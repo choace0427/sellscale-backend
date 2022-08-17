@@ -15,6 +15,7 @@ certifi==2019.11.28
 cffi==1.14.3
 chardet==3.0.4
 click==7.1.2
+colorclass==2.2.2
 configparser==4.0.2
 contextlib2==0.6.0.post1
 cryptography==3.3.2
@@ -26,6 +27,7 @@ Django==1.11.27
 django-cors-headers==3.0.2
 djangorestframework==3.9.4
 djangorestframework-jsonapi==2.8.0
+docopt==0.6.2
 entrypoints==0.3
 enum34==1.1.6
 filelock==3.0.12
@@ -71,6 +73,7 @@ pathlib==1.0.1
 pathlib2==2.3.5
 pexpect==4.8.0
 pickleshare==0.7.5
+pip-upgrader==1.4.15
 prometheus-client==0.8.0
 prompt-toolkit==1.0.18
 psycopg2-binary==2.8.6
@@ -136,12 +139,14 @@ SQLAlchemy==1.4.29
 SQLAlchemy-Utils==0.36.5
 subprocess32==3.5.4
 terminado==0.8.3
+terminaltables==3.1.10
 testpath==0.4.4
 tornado==5.1.1
 tqdm==4.54.1
 traitlets==4.3.3
 typing==3.7.4.3
 tzlocal==2.1
+upgrade-requirements==1.7.0
 urllib3==1.25.8
 virtualenv==20.2.2
 wcwidth==0.2.4
