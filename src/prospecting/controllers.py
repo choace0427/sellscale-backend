@@ -16,9 +16,9 @@ def index():
         experience='Technology'
     )
 
-    data = []
-    # data = prospector.prospect_sync(
-    #     prospecting_config=config
-    # )
+    # data = []
+    data = prospector.prospect_sync(
+        prospecting_config=config
+    )
 
     return jsonify({'data': data})
