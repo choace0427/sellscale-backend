@@ -7,10 +7,7 @@ backports-abc==0.5
 backports.functools-lru-cache==1.6.1
 backports.shutil-get-terminal-size==1.0.0
 bdist-mpkg==0.5.0
-BeautifulSoup==3.2.2
-beautifulsoup4==4.9.1
 bleach==3.1.5
-bonjour-py==0.3
 certifi==2019.11.28
 cffi==1.14.3
 chardet==3.0.4
@@ -31,7 +28,7 @@ docopt==0.6.2
 entrypoints==0.3
 enum34==1.1.6
 filelock==3.0.12
-Flask==1.1.4
+Flask==1.1.4BeautifulSoup
 Flask-SQLAlchemy==2.5.1
 functools32==3.2.3.post2
 future==0.17.1
