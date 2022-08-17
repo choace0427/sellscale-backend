@@ -1,0 +1,13 @@
+summary_info.title:
+  _name: title
+summary_info.post_date:
+  _name: published
+  _converters:
+    - clazz: StringToTimestampProtoString
+      _dependencies:
+          src_fmt: '%a, %d %b %Y %H:%M:%S %Z'
+
+subtitle:
+  _name: summary
+link:
+  _name: link

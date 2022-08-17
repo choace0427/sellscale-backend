@@ -1,0 +1,18 @@
+step 1. 
+`source .env`
+
+step 2.
+`source ./venv/bin/activate`
+
+step 3.
+`python app.py`
+
+//
+
+push heroku
+
+commit.
+git push heroku main.
+
+check logs
+heroku logs --tail
