@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from .fine_tuned_bullet_models import get_completion
+from ....ml.fine_tuned_models import get_completion
 
 from ....utils.abstract.attr_utils import deep_get
 

@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify
-from .linkedin.services import get_research_bullet_points, get_research_payload
+
+from ..message_generation.services import generate_outreaches, generate_prompt, generate_prompt_permutations_from_notes
+from .linkedin.services import get_research_and_bullet_points
 
 RESEARCH_BLUEPRINT = Blueprint('research', __name__)
 
@@ -15,8 +17,13 @@ def research_linkedin(linkedin_id: str):
     #         pass
     # return {'data': payload}
 
-    info = get_research_bullet_points(profile_id=linkedin_id, test_mode=False)
-    # info = get_research_payload(profile_id=linkedin_id, test_mode=False)
+    data = get_research_and_bullet_points(profile_id=linkedin_id, test_mode=False)
+    outreaches = generate_outreaches(
+        research_and_bullets=data,
+        num_options=4
+    )
+
     return jsonify({
-        'research': info
+        'source': data,
+        'outreaches': outreaches
     })

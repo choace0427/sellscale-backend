@@ -664,7 +664,7 @@ SAMPLE_RESEARCH_RESPONSE = {
             "Public Speaking"
         ],
         "sub_title": "Engineering @ Athelas",
-        "summary": None,
+        "summary": "this is a summary",
         "test_scores": [],
         "treasury_media": [],
         "volunteer_experiences": [

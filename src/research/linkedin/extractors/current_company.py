@@ -1,4 +1,4 @@
-from .fine_tuned_bullet_models import get_completion
+from ....ml.fine_tuned_models import get_completion
 
 
 def get_current_company_description(data):
