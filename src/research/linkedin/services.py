@@ -85,7 +85,16 @@ def get_research_payload(profile_id: str, test_mode: bool):
         'company': company_info
     }
 
-def get_research_bullet_points(profile_id: str, test_mode: bool):
+def get_cleaned_response(s: dict):
+    if not s:
+        return None
+    
+    response = s.get('response')
+    response = response.replace('\n', '', len(response))
+    response = response.split('\'')[0]
+    return response
+
+def get_research_and_bullet_points(profile_id: str, test_mode: bool):
     info = get_research_payload(profile_id=profile_id, test_mode=test_mode)
 
     current_company_description = get_current_company_description(data=info)
@@ -98,14 +107,14 @@ def get_research_bullet_points(profile_id: str, test_mode: bool):
     recent_recommendation = get_recent_recommendation_summary(data=info)
 
     bullets = {
-        'current_company_description': current_company_description.get('response'),
-        'current_company_specialties': current_company_specialties.get('response'),
-        'current_experience_description': current_experience_description.get('response'),
-        'years_of_experience': years_of_experience.get('response'),
-        'years_of_experience_at_current_job': years_of_experience_at_current_job.get('response'),
-        'list_of_past_jobs': list_of_past_jobs.get('response'),
-        'recent_patent': recent_patent.get('response'),
-        'recent_recommendation': recent_recommendation.get('response')
+        'current_company_description': get_cleaned_response(current_company_description),
+        'current_company_specialties': get_cleaned_response(current_company_specialties),
+        'current_experience_description': get_cleaned_response(current_experience_description),
+        'years_of_experience': get_cleaned_response(years_of_experience),
+        'years_of_experience_at_current_job': get_cleaned_response(years_of_experience_at_current_job),
+        'list_of_past_jobs': get_cleaned_response(list_of_past_jobs),
+        'recent_patent': get_cleaned_response(recent_patent),
+        'recent_recommendation': get_cleaned_response(recent_recommendation)
     }
 
     final_bullets = {}
@@ -113,7 +122,10 @@ def get_research_bullet_points(profile_id: str, test_mode: bool):
         if bullets[key]:
             final_bullets[key] = bullets[key].strip()
 
-    return final_bullets
+    return {
+        'raw_data': info,
+        'bullets': final_bullets
+    }
 
     # ✅  experience: years of experience in industry 
     # ✅  experience: years of experience at latest job 
