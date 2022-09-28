@@ -19,6 +19,11 @@ def create_client(company: str, contact_name: str, contact_email: str):
     return {"client_id": c.id}
 
 
+def get_client_archetype(client_archetype_id: int):
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    return ca
+
+
 def create_client_archetype(client_id: int, archetype: str, filters: any):
     c: Client = get_client(client_id=client_id)
     if not c:
