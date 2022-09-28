@@ -1,9 +1,15 @@
+from app import db
+
 from flask import Blueprint, jsonify, request
+from src.prospecting.models import Prospect
+from src.prospecting.services import prospect_exists_for_archetype
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
 from src.prospecting.clay_run.clay_run_prospector import ClayRunProspector
 from src.prospecting.clay_run.configs import ProspectingConfig
 from src.utils.request_helpers import get_request_parameter
+
+from tqdm import tqdm
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -28,6 +34,30 @@ def index():
         location=location, headline=headline, industry=industry, experience=experience
     )
 
-    data = prospector.prospect_sync(prospecting_config=config)
+    prospects = prospector.prospect_sync(prospecting_config=config)
 
-    return jsonify({"data": data})
+    print("Uploading unique prospects to database...")
+    for prospect in tqdm(prospects):
+        linkedin_url = prospect["Linkedin"]
+        prospect_exists = prospect_exists_for_archetype(
+            linkedin_url=linkedin_url, archetype_id=archetype_id
+        )
+
+        if not prospect_exists:
+            p: Prospect = Prospect(
+                archetype_id=archetype_id,
+                company=prospect["Company"],
+                company_url=prospect["Company URL"],
+                employee_count=prospect["Employee Count"],
+                full_name=prospect["Full Name"],
+                industry=prospect["Industry"],
+                linkedin_url=prospect["Linkedin"],
+                linkedin_bio=prospect["Linkedin Bio"],
+                title=prospect["Title"],
+                twitter_url=prospect["Twitter"],
+            )
+            db.session.add(p)
+            db.session.commit()
+    print("Done uploading!")
+
+    return jsonify({"data": prospects})
