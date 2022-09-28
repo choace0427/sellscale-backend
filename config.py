@@ -1,11 +1,6 @@
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
-
-if (os.environ['APP_SETTINGS'] == 'config.DevelopmentConfig'):
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-else:
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL').replace("://", "ql://", 1)
-
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 class Config(object):
     DEBUG = False
     TESTING = False
