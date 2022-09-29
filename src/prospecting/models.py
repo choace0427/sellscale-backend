@@ -1,4 +1,5 @@
 from app import db
+import enum
 
 
 class Prospect(db.Model):
@@ -6,7 +7,9 @@ class Prospect(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
+
     company = db.Column(db.String, nullable=True)
     company_url = db.Column(db.String, nullable=True)
     employee_count = db.Column(db.String, nullable=True)
@@ -16,3 +19,6 @@ class Prospect(db.Model):
     linkedin_bio = db.Column(db.String, nullable=True)
     title = db.Column(db.String, nullable=True)
     twitter_url = db.Column(db.String, nullable=True)
+
+    batch = db.Column(db.String, nullable=True)
+    contacted = db.Column(db.Boolean, nullable=True)

@@ -10,6 +10,8 @@ from src.utils.request_helpers import get_request_parameter
 
 from tqdm import tqdm
 
+from src.utils.random_string import generate_random_alphanumeric
+
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
 
@@ -26,6 +28,7 @@ def index():
     ca: ClientArchetype = get_client_archetype(client_archetype_id=archetype_id)
     if not ca:
         return "Archetype not found", 404
+    client_id = ca.client_id
 
     prospector: ClayRunProspector = ClayRunProspector()
 
@@ -35,17 +38,20 @@ def index():
 
     prospects = prospector.prospect_sync(prospecting_config=config)
 
+    batch_id = generate_random_alphanumeric(32)
+
     print("Uploading unique prospects to database...")
     for prospect in tqdm(prospects):
         linkedin_url = prospect["Linkedin"]
         prospect_exists = prospect_exists_for_archetype(
-            linkedin_url=linkedin_url, archetype_id=archetype_id
+            linkedin_url=linkedin_url, client_id=client_id
         )
 
         from src.prospecting.models import Prospect
 
         if not prospect_exists:
             p: Prospect = Prospect(
+                client_id=client_id,
                 archetype_id=archetype_id,
                 company=prospect["Company"],
                 company_url=prospect["Company URL"],
@@ -56,9 +62,10 @@ def index():
                 linkedin_bio=prospect["Linkedin Bio"],
                 title=prospect["Title"],
                 twitter_url=prospect["Twitter"],
+                batch=batch_id,
             )
             db.session.add(p)
             db.session.commit()
     print("Done uploading!")
 
-    return jsonify({"data": prospects})
+    return jsonify({"data": prospects, "batch_id": batch_id})
