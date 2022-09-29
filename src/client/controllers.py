@@ -15,8 +15,12 @@ def index():
 @CLIENT_BLUEPRINT.route("/", methods=["POST"])
 def create():
     company = get_request_parameter("company", request, json=True, required=True)
-    contact_name = get_request_parameter("company", request, json=True, required=True)
-    contact_email = get_request_parameter("company", request, json=True, required=True)
+    contact_name = get_request_parameter(
+        "contact_name", request, json=True, required=True
+    )
+    contact_email = get_request_parameter(
+        "contact_email", request, json=True, required=True
+    )
 
     resp = create_client(
         company=company, contact_name=contact_name, contact_email=contact_email
