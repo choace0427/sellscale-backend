@@ -15,7 +15,7 @@ from src.utils.random_string import generate_random_alphanumeric
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
 
-@PROSPECTING_BLUEPRINT.route("/")
+@PROSPECTING_BLUEPRINT.route("/", methods=["POST"])
 def index():
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True
