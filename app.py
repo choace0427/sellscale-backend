@@ -25,11 +25,15 @@ def register_blueprints(app):
     from src.prospecting.controllers import PROSPECTING_BLUEPRINT
     from src.research.controllers import RESEARCH_BLUEPRINT
     from src.client.controllers import CLIENT_BLUEPRINT
+    from src.message_generation.controllers import MESSAGE_GENERATION_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
     app.register_blueprint(RESEARCH_BLUEPRINT, url_prefix="/research")
     app.register_blueprint(CLIENT_BLUEPRINT, url_prefix="/client")
+    app.register_blueprint(
+        MESSAGE_GENERATION_BLUEPRINT, url_prefix="/message_generation"
+    )
 
     db.init_app(app)
 

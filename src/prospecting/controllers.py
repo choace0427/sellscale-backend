@@ -1,7 +1,6 @@
 from app import db
 
 from flask import Blueprint, jsonify, request
-from src.prospecting.models import Prospect
 from src.prospecting.services import prospect_exists_for_archetype
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
@@ -42,6 +41,8 @@ def index():
         prospect_exists = prospect_exists_for_archetype(
             linkedin_url=linkedin_url, archetype_id=archetype_id
         )
+
+        from src.prospecting.models import Prospect
 
         if not prospect_exists:
             p: Prospect = Prospect(
