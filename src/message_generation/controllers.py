@@ -3,7 +3,10 @@ from app import db
 from flask import Blueprint, request
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.message_generation.services import (
+    approve_message,
+    delete_message,
     generate_outreaches_for_batch_of_prospects,
+    update_message,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -27,3 +30,37 @@ def index():
     generate_outreaches_for_batch_of_prospects(prospect_list=prospect_ids)
 
     return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["PATCH"])
+def update():
+    message_id = get_request_parameter("message_id", request, json=True, required=True)
+    update = get_request_parameter("update", request, json=True, required=True)
+
+    success = update_message(message_id=message_id, update=update)
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/approve", methods=["POST"])
+def approve():
+    message_id = get_request_parameter("message_id", request, json=True, required=True)
+
+    success = approve_message(message_id=message_id)
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["DELETE"])
+def delete():
+    message_id = get_request_parameter("message_id", request, json=True, required=True)
+
+    success = delete_message(message_id=message_id)
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400

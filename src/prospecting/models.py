@@ -22,3 +22,7 @@ class Prospect(db.Model):
 
     batch = db.Column(db.String, nullable=True)
     contacted = db.Column(db.Boolean, nullable=True)
+
+    approved_outreach_message_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message.id")
+    )

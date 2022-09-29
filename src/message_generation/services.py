@@ -123,3 +123,46 @@ def generate_outreaches_for_batch_of_prospects(prospect_list: list):
             pass
 
     return True
+
+
+def update_message(message_id: int, update: str):
+    from model_import import GeneratedMessage
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message.completion = update
+    db.session.add(message)
+    db.session.commit()
+
+    return True
+
+
+def approve_message(message_id: int):
+    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message.message_status = GeneratedMessageStatus.APPROVED
+    db.session.add(message)
+
+    prospect_id = message.prospect_id
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.approved_outreach_message_id = message.id
+    db.session.add(prospect)
+
+    db.session.commit()
+
+    return True
+
+
+def delete_message(message_id: int):
+    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    prospect: Prospect = Prospect.query.get(message.prospect_id)
+    prospect.approved_outreach_message_id = None
+    db.session.add(prospect)
+    db.session.commit()
+
+    db.session.delete(message)
+    db.session.commit()
+
+    return True

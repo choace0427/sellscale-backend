@@ -5,6 +5,7 @@ import enum
 class GeneratedMessageStatus(enum.Enum):
     DRAFT = "DRAFT"
     BLOCKED = "BLOCKED"
+    APPROVED = "APPROVED"
     SENT = "SENT"
 
 
