@@ -2,6 +2,21 @@ from app import db
 import enum
 
 
+class ProspectStatus(enum.Enum):
+    PROSPECTED = "PROSPECTED"
+
+    NOT_QUALIFIED = "NOT_QUALIFIED"
+    SENT_OUTREACH = "SENT_OUTREACH"
+
+    RESPONDED = "RESPONDED"
+    NOT_INTERESTED = "NOT_INTERESTED"
+
+    DEMO_SET = "DEMO_SET"
+
+    DEMO_WON = "DEMO_WON"
+    DEMO_LOSS = "DEMO_LOSS"
+
+
 class Prospect(db.Model):
     __tablename__ = "prospect"
 
@@ -21,7 +36,7 @@ class Prospect(db.Model):
     twitter_url = db.Column(db.String, nullable=True)
 
     batch = db.Column(db.String, nullable=True)
-    contacted = db.Column(db.Boolean, nullable=True)
+    status = db.Column(db.Enum(ProspectStatus), nullable=True)
 
     approved_outreach_message_id = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")
