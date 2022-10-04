@@ -280,6 +280,10 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
                 continue
 
             value = t[2](info).get("response", "")
+
+            if not value:
+                continue
+
             bullets[t[1]] = value
 
             research_point: ResearchPoints = ResearchPoints(
