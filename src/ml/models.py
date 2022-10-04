@@ -20,3 +20,7 @@ class GNLPModel(db.Model):
     model_type = db.Column(db.Enum(GNLPModelType), nullable=False)
     model_description = db.Column(db.String, nullable=False)
     model_uuid = db.Column(db.String, nullable=False)
+
+    client_id = client_id = db.Column(
+        db.Integer, db.ForeignKey("client.id"), nullable=True
+    )

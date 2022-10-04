@@ -1,7 +1,10 @@
 from app import db
 
 from flask import Blueprint, jsonify, request
-from src.prospecting.services import prospect_exists_for_archetype
+from src.prospecting.services import (
+    prospect_exists_for_archetype,
+    update_prospect_status,
+)
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
 from src.prospecting.clay_run.clay_run_prospector import ClayRunProspector
@@ -69,3 +72,18 @@ def index():
     print("Done uploading!")
 
     return jsonify({"data": prospects, "batch_id": batch_id})
+
+
+@PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
+def update_status():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    new_status = get_request_parameter("new_status", request, json=True, required=True)
+
+    success = update_prospect_status(prospect_id=prospect_id, new_status=new_status)
+
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400

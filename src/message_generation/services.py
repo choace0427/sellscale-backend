@@ -119,7 +119,8 @@ def generate_outreaches_for_batch_of_prospects(prospect_list: list):
     for prospect_id in tqdm(prospect_list):
         try:
             generate_outreaches_new(prospect_id=prospect_id)
-        except:
+        except Exception as e:
+            print(e)
             pass
 
     return True

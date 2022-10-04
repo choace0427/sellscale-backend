@@ -1,0 +1,7 @@
+export FLASK_APP=app.py
+export FLASK_ENV='staging'
+export APP_SETTINGS=config.StagingConfig
+export ENCRYPTION_KEY='WnvHGDi3ly44ss36JGtbrEotXca33PTd1d_y1h0U2uM='
+export ISCRAPER_API_KEY='DUvMDFTrxv77QvsVF3VdDlSYWLDs9Qqp'
+export OPENAI_KEY='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'
+export DATABASE_URL='postgresql://sellscale_db_development_user:9rUhpfv6iWpDlTUQFGHlQmvGb0pFEvMN@dpg-ccqdbicgqg4cmrh1r5ig-a.oregon-postgres.render.com/sellscale_db_development'
