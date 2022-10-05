@@ -18,7 +18,7 @@ def create_upload_jsonl_file(prompt_completion_dict: any):
         for key in prompt_completion_dict:
             f.write(
                 "{"
-                + """\"prompt\":\"{}\",\"completion\":\"{} XXX\"""".format(
+                + '"prompt":"{}","completion":"{} XXX"'.format(
                     key, prompt_completion_dict[key]
                 ).replace("\n", "\\n")
                 + "}\n"
