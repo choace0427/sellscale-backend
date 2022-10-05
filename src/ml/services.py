@@ -16,10 +16,13 @@ import openai
 def create_upload_jsonl_file(prompt_completion_dict: any):
     with open("training_set_temp.jsonl", "w") as f:
         for key in prompt_completion_dict:
+            sanitized_key = key.replace('"', "")
+            sanitized_value = prompt_completion_dict[key].replace('"', "")
+
             f.write(
                 "{"
                 + '"prompt":"{}","completion":"{} XXX"'.format(
-                    key, prompt_completion_dict[key].replace('"', '\\"')
+                    sanitized_key, sanitized_value
                 ).replace("\n", "\\n")
                 + "}\n"
             )
