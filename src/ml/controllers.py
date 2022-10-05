@@ -1,4 +1,4 @@
-from app import db
+from db import db
 
 from flask import Blueprint, jsonify, request
 from src.ml.models import GNLPModelType
@@ -35,5 +35,5 @@ def index():
 
 @ML_BLUEPRINT.route("/update_fine_tune_job_statuses", methods=["GET"])
 def update_fine_tune_job_statuses():
-    num_jobs = check_statuses_of_fine_tune_jobs()
-    return jsonify({"num_jobs": num_jobs})
+    updated_job_ids = check_statuses_of_fine_tune_jobs()
+    return jsonify({"num_jobs": updated_job_ids})

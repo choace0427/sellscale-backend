@@ -1,5 +1,5 @@
 from datetime import datetime
-from app import db
+from db import db
 import os
 from src.client.models import Client
 from src.message_generation.models import GeneratedMessage
@@ -60,7 +60,9 @@ def initiate_fine_tune_job(
         db.session.commit()
 
         # create new finetune job
-        fine_tune_create_job_resp = openai.FineTune.create(training_file=file_id)
+        fine_tune_create_job_resp = openai.FineTune.create(
+            training_file=file_id, model="davinci"
+        )
         fine_tune_job_id = fine_tune_create_job_resp["id"]
         job.finetune_job_id = fine_tune_job_id
         job.finetune_job_response = fine_tune_create_job_resp
@@ -89,6 +91,7 @@ def check_statuses_of_fine_tune_jobs():
         .all()
     )
 
+    updated_job_ids = []
     for j in jobs:
         job: GNLPModelFineTuneJobs = j
         client: Client = Client.query.get(job.client_id)
@@ -111,5 +114,12 @@ def check_statuses_of_fine_tune_jobs():
             gnlp_model_id = gnlp_model.id
 
             job.gnlp_model_id = gnlp_model_id
+            job.status = GNLPFinetuneJobStatuses.COMPLETED
             db.session.add(job)
             db.session.commit()
+
+            updated_job_ids.append(job.id)
+
+    print("checked fine tuned job statuses.")
+
+    return updated_job_ids

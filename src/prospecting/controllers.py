@@ -1,4 +1,4 @@
-from app import db
+from db import db
 
 from flask import Blueprint, jsonify, request
 from src.prospecting.services import (
