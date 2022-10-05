@@ -100,6 +100,7 @@ def check_statuses_of_fine_tune_jobs():
         client: Client = Client.query.get(job.client_id)
         fine_tune_status = openai.FineTune.retrieve(id=job.finetune_job_id)
         model_uuid = fine_tune_status.get("fine_tuned_model")
+        client_id = client.id
 
         if model_uuid:
             gnlp_model: GNLPModel = GNLPModel(
@@ -110,6 +111,7 @@ def check_statuses_of_fine_tune_jobs():
                     date=str(datetime.utcnow())[0:10],
                 ),
                 model_uuid=model_uuid,
+                client_id=client_id,
             )
             db.session.add(gnlp_model)
             db.session.commit()
