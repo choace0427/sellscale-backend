@@ -1,1 +1,4 @@
 .env
+
+training_set_temp.jsonl
+.gitignore
