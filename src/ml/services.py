@@ -1,7 +1,15 @@
+from datetime import datetime
 from app import db
 import os
+from src.client.models import Client
 from src.message_generation.models import GeneratedMessage
-from src.ml.models import GNLPFinetuneJobStatuses, GNLPModelFineTuneJobs, GNLPModelType
+from src.ml.models import (
+    GNLPFinetuneJobStatuses,
+    GNLPModel,
+    GNLPModelFineTuneJobs,
+    GNLPModelType,
+    ModelProvider,
+)
 import openai
 
 
@@ -23,13 +31,15 @@ def create_upload_jsonl_file(prompt_completion_dict: any):
     return jsonl_file_upload
 
 
-def initiate_fine_tune_job(client_id: int, message_ids: list):
-
+def initiate_fine_tune_job(
+    client_id: int, message_ids: list, model_type: GNLPModelType
+):
     # create new fine tune job in db
     job: GNLPModelFineTuneJobs = GNLPModelFineTuneJobs(
         client_id=client_id,
         message_ids=message_ids,
         status=GNLPFinetuneJobStatuses.INITIATED,
+        model_type=model_type,
     )
     db.session.add(job)
     db.session.commit()
@@ -68,3 +78,38 @@ def initiate_fine_tune_job(client_id: int, message_ids: list):
         db.session.commit()
 
         return False, job, str(e)
+
+
+def check_statuses_of_fine_tune_jobs():
+    jobs: list = (
+        GNLPModelFineTuneJobs.query.filter(
+            GNLPModelFineTuneJobs.status != GNLPFinetuneJobStatuses.COMPLETED
+        )
+        .filter(GNLPModelFineTuneJobs.status != GNLPFinetuneJobStatuses.FAILED)
+        .all()
+    )
+
+    for j in jobs:
+        job: GNLPModelFineTuneJobs = j
+        client: Client = Client.query.get(job.client_id)
+        fine_tune_status = openai.FineTune.retrieve(id=job.finetune_job_id)
+        model_uuid = fine_tune_status.get("fine_tuned_model")
+
+        if model_uuid:
+            gnlp_model: GNLPModel = GNLPModel(
+                model_provider=ModelProvider.OPENAI_GPT3,
+                model_type=job.model_type,
+                model_description="{client}-{date}".format(
+                    client=client.company,
+                    date=str(datetime.utcnow())[0:10],
+                ),
+                model_uuid=model_uuid,
+            )
+            db.session.add(gnlp_model)
+            db.session.commit()
+
+            gnlp_model_id = gnlp_model.id
+
+            job.gnlp_model_id = gnlp_model_id
+            db.session.add(job)
+            db.session.commit()

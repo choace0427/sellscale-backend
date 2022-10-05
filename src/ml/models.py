@@ -42,6 +42,7 @@ class GNLPModelFineTuneJobs(db.Model):
     status = db.Column(db.Enum(GNLPFinetuneJobStatuses), nullable=False)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
     message_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
+    model_type = db.Column(db.Enum(GNLPModelType), nullable=False)
 
     jsonl_file_id = db.Column(db.String, nullable=True)
     jsonl_file_response = db.Column(db.JSON, nullable=True)
