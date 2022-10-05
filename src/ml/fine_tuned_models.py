@@ -45,13 +45,7 @@ def get_open_ai_completion(model: str, prompt: str, max_tokens: int = 40, n: int
         return [choices[x].get("text", "") for x in range(len(choices))]
 
 
-def get_custom_completion_for_client(
-    client_id: int,
-    model_type: GNLPModelType,
-    prompt: str,
-    max_tokens: int = 40,
-    n: int = 1,
-):
+def get_latest_custom_model(client_id: int, model_type: GNLPModelType):
     m: GNLPModel = (
         GNLPModel.query.filter(GNLPModel.client_id == client_id)
         .filter(GNLPModel.model_type == model_type)
@@ -66,9 +60,25 @@ def get_custom_completion_for_client(
     else:
         raise Exception("Model not found.")
 
+    return model, m.id
+
+
+def get_custom_completion_for_client(
+    client_id: int,
+    model_type: GNLPModelType,
+    prompt: str,
+    max_tokens: int = 40,
+    n: int = 1,
+):
+    model_uuid, model_id = get_latest_custom_model(
+        client_id=client_id, model_type=model_type
+    )
+
     return (
-        get_open_ai_completion(model=model, prompt=prompt, max_tokens=max_tokens, n=n),
-        m.id,
+        get_open_ai_completion(
+            model=model_uuid, prompt=prompt, max_tokens=max_tokens, n=n
+        ),
+        model_id,
     )
 
 
