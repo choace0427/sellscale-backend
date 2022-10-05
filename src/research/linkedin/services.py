@@ -171,6 +171,7 @@ def get_research_and_bullet_points(profile_id: str, test_mode: bool):
 
 
 def get_research_payload_new(prospect_id: int, test_mode: bool):
+
     if test_mode:
         return SAMPLE_RESEARCH_RESPONSE
 

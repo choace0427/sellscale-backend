@@ -2,41 +2,78 @@ import requests
 import json
 import os
 
-OPENAI_KEY = os.environ.get('OPENAI_KEY')
+from src.ml.models import GNLPModel, GNLPModelType
+
+OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
 
 BULLET_MODELS = {
-    "recent_job_summary": "davinci:ft-personal-2022-08-16-06-51-55", # summarize recent job
-    "recent_job_specialties": "davinci:ft-personal-2022-08-16-17-33-38", # get recent company's specialties
-    "current_experience_description": "davinci:ft-personal-2022-08-16-21-34-34", # summarize experience
-    "recent_recommendation": "davinci:ft-personal-2022-08-17-01-44-59", # summarize recommendations
-    'baseline_generation': 'davinci:ft-personal-2022-07-23-19-55-19', # baseline generation model
+    "recent_job_summary": "davinci:ft-personal-2022-08-16-06-51-55",  # summarize recent job
+    "recent_job_specialties": "davinci:ft-personal-2022-08-16-17-33-38",  # get recent company's specialties
+    "current_experience_description": "davinci:ft-personal-2022-08-16-21-34-34",  # summarize experience
+    "recent_recommendation": "davinci:ft-personal-2022-08-17-01-44-59",  # summarize recommendations
+    "baseline_generation": "davinci:ft-personal-2022-07-23-19-55-19",  # baseline generation model
 }
 
-def get_completion(bullet_model_id: str, prompt: str, max_tokens: int = 40, n: int = 1):
-    model = BULLET_MODELS[bullet_model_id]
 
+def get_open_ai_completion(model: str, prompt: str, max_tokens: int = 40, n: int = 1):
     url = "https://api.openai.com/v1/completions"
 
-    payload=json.dumps({
-        "prompt": prompt,
-        "model": model,
-        "n": n,
-        "stop": "XXX",
-        "max_tokens": max_tokens
-    })
+    payload = json.dumps(
+        {
+            "prompt": prompt,
+            "model": model,
+            "n": n,
+            "stop": "XXX",
+            "max_tokens": max_tokens,
+        }
+    )
     headers = {
-        'Authorization': 'Bearer {}'.format(OPENAI_KEY),
-        'Content-Type': 'application/json'
+        "Authorization": "Bearer {}".format(OPENAI_KEY),
+        "Content-Type": "application/json",
     }
 
     response = requests.request("POST", url, headers=headers, data=payload)
     response_json = response.json()
-    choices = response_json.get('choices', [])
+    choices = response_json.get("choices", [])
 
-    if (n == 1):
-        completion = choices[0].get('text', '')
+    if n == 1:
+        completion = choices[0].get("text", "")
         return completion
 
     else:
-        return [choices[x].get('text', '') for x in range(len(choices))]
+        return [choices[x].get("text", "") for x in range(len(choices))]
+
+
+def get_custom_completion_for_client(
+    client_id: int,
+    model_type: GNLPModelType,
+    prompt: str,
+    max_tokens: int = 40,
+    n: int = 1,
+):
+    m: GNLPModel = (
+        GNLPModel.query.filter(GNLPModel.client_id == client_id)
+        .filter(GNLPModel.model_type == model_type)
+        .order_by(GNLPModel.created_at.desc())
+        .first()
+    )
+
+    if model_type == GNLPModelType.OUTREACH and not m:
+        model = BULLET_MODELS["baseline_generation"]
+    elif model_type == GNLPModelType.OUTREACH:
+        model = m.model_uuid
+    else:
+        raise Exception("Model not found.")
+
+    return (
+        get_open_ai_completion(model=model, prompt=prompt, max_tokens=max_tokens, n=n),
+        m.id,
+    )
+
+
+def get_completion(bullet_model_id: str, prompt: str, max_tokens: int = 40, n: int = 1):
+    model = BULLET_MODELS[bullet_model_id]
+    return get_open_ai_completion(
+        model=model, prompt=prompt, max_tokens=max_tokens, n=n
+    )

@@ -1,5 +1,6 @@
+from src.ml.models import GNLPModelType
 from src.research.models import ResearchPayload, ResearchPoints
-from ..ml.fine_tuned_models import get_completion
+from ..ml.fine_tuned_models import get_completion, get_custom_completion_for_client
 from ..utils.abstract.attr_utils import deep_get
 import random
 from app import db
@@ -65,7 +66,10 @@ def generate_outreaches(research_and_bullets: dict, num_options: int = 1):
 
 
 def generate_outreaches_new(prospect_id: int):
-    from model_import import GeneratedMessage, GeneratedMessageStatus
+    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
+
+    p: Prospect = Prospect.query.get(prospect_id)
+    client_id = p.client_id
 
     # check if messages exist, if do don't do anything extra
     messages: list = GeneratedMessage.query.filter(
@@ -94,8 +98,13 @@ def generate_outreaches_new(prospect_id: int):
         research_points = [x.id for x in perm]
 
         prompt = generate_prompt(linkedin_payload=research.payload, notes=notes)
-        completions = get_completion(
-            bullet_model_id="baseline_generation", prompt=prompt, max_tokens=90, n=2
+
+        completions, model_id = get_custom_completion_for_client(
+            client_id=client_id,
+            model_type=GNLPModelType.OUTREACH,
+            prompt=prompt,
+            max_tokens=90,
+            n=2,
         )
 
         for completion in completions:
@@ -103,7 +112,7 @@ def generate_outreaches_new(prospect_id: int):
 
             message: GeneratedMessage = GeneratedMessage(
                 prospect_id=prospect_id,
-                gnlp_model_id=5,
+                gnlp_model_id=model_id,
                 research_points=research_points,
                 prompt=prompt,
                 completion=completion,
