@@ -33,7 +33,7 @@ def generate_prompt_permutations_from_notes(notes: dict, n: int = 1):
 
     for i in range(n):
         sample = ["- " + x for x in random.sample(notes, 2)]
-        perms.append("\n".join(sample))
+        perms.append(" ".join(sample))
 
     return perms
 

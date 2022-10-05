@@ -26,6 +26,7 @@ def register_blueprints(app):
     from src.research.controllers import RESEARCH_BLUEPRINT
     from src.client.controllers import CLIENT_BLUEPRINT
     from src.message_generation.controllers import MESSAGE_GENERATION_BLUEPRINT
+    from src.ml.controllers import ML_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -34,6 +35,7 @@ def register_blueprints(app):
     app.register_blueprint(
         MESSAGE_GENERATION_BLUEPRINT, url_prefix="/message_generation"
     )
+    app.register_blueprint(ML_BLUEPRINT, url_prefix="/ml")
 
     db.init_app(app)
 
