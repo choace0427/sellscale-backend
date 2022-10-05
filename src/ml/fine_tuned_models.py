@@ -53,14 +53,10 @@ def get_latest_custom_model(client_id: int, model_type: GNLPModelType):
         .first()
     )
 
-    if model_type == GNLPModelType.OUTREACH and not m:
-        model = BULLET_MODELS["baseline_generation"]
-    elif model_type == GNLPModelType.OUTREACH:
-        model = m.model_uuid
-    else:
+    if not m:
         raise Exception("Model not found.")
 
-    return model, m.id
+    return m.model_uuid, m.id
 
 
 def get_custom_completion_for_client(
