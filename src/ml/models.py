@@ -7,8 +7,10 @@ class ModelProvider(enum.Enum):
 
 
 class GNLPModelType(enum.Enum):
-    TRANSFORMER = "TRANSFORMER"
-    OUTREACH = "OUTREACH"
+    TRANSFORMER = "TRANSFORMER"  # data transformer
+    OUTREACH = "OUTREACH"  # linkedin outbound
+    # todo(Aakash Adesara): Email Outreach
+    # todo(Aakash Adesara): Text Outreach
 
 
 class GNLPFinetuneJobStatuses(enum.Enum):

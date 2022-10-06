@@ -1,4 +1,5 @@
 from app import db
+from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype
 
 
@@ -29,10 +30,21 @@ def create_client_archetype(client_id: int, archetype: str, filters: any):
     if not c:
         return None
 
-    archetype = ClientArchetype(
+    client_archetype = ClientArchetype(
         client_id=client_id, archetype=archetype, filters=filters
     )
-    db.session.add(archetype)
+    db.session.add(client_archetype)
+    db.session.commit()
+    archetype_id = client_archetype.id
+
+    model: GNLPModel = GNLPModel(
+        model_provider=ModelProvider.OPENAI_GPT3,
+        model_type=GNLPModelType.OUTREACH,
+        model_description="baseline_model_{}".format(archetype),
+        model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
+        archetype_id=archetype_id,
+    )
+    db.session.add(model)
     db.session.commit()
 
-    return {"client_archetype_id": archetype.id}
+    return {"client_archetype_id": client_archetype.id}
