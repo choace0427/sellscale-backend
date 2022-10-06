@@ -52,7 +52,7 @@ def index():
 
         from src.prospecting.models import Prospect
 
-        if not prospect_exists:
+        if not prospect_exists and prospect["Full Name"]:
             p: Prospect = Prospect(
                 client_id=client_id,
                 archetype_id=archetype_id,

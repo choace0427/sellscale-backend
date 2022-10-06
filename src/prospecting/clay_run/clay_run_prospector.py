@@ -54,51 +54,52 @@ class ClayRunProspector:
         return result
 
     def _get_table_name(self) -> str:
-        return f'{format_datestring(now_in_utc(), DateFormat.YYYY_MM_DD)}_{generate_random_alphanumeric(10)}'
+        return f"{format_datestring(now_in_utc(), DateFormat.YYYY_MM_DD)}_{generate_random_alphanumeric(10)}"
 
     def _prospect_sync(self, prospecting_config: ProspectingConfig) -> List[dict]:
-        print('Deleting Tables in Workspace')
+        print("Deleting Tables in Workspace")
         self._client.delete_all_tables_in_workspace()
 
-        print('Creating new table...')
+        print("Creating new table...")
         table = self._client.create_table(self._get_table_name())
         print(
             f'Created {deep_get(table, "table.id")} - {deep_get(table, "table.name")}'
         )
 
-        print('Clearing default records')
-        table_id = deep_get(table, 'table.id')
-        view_id = deep_get(table, 'table.views.0.id')
+        print("Clearing default records")
+        table_id = deep_get(table, "table.id")
+        view_id = deep_get(table, "table.views.0.id")
         self._client.clear_table(table_id=table_id)
 
-        print('Adding LinkedIn Source to Table')
+        print("Adding LinkedIn Source to Table")
         self._client.add_source_to_table(prospecting_config, table_id)
         bio_field_data = self._client.add_bio_to_table(table_id=table_id)
-        bio_field_id = deep_get(bio_field_data, 'id')
+        bio_field_id = deep_get(bio_field_data, "id")
 
-        print(f'Added source + bio field ({bio_field_id}). Waiting for Augmentation.')
+        print(f"Added source + bio field ({bio_field_id}). Waiting for Augmentation.")
         print(
-            f'You can check it out here: https://app.clay.run/workspaces/{self._client.workspace_id()}/tables/{table_id}/views/{view_id}'
+            f"You can check it out here: https://app.clay.run/workspaces/{self._client.workspace_id()}/tables/{table_id}/views/{view_id}"
         )
 
         print(
-            f'sleeping for {self._SLEEP_AUGMENTATION_SECONDS}s to allow for augmentation.'
+            f"sleeping for {self._SLEEP_AUGMENTATION_SECONDS}s to allow for augmentation."
         )
         sleep_with_progress(self._SLEEP_AUGMENTATION_SECONDS)
         records = self._client.get_records_in_view(table_id, view_id)
 
         bender = JsonBender(
             bender_dict=load_yaml_from_file(
-                'src/prospecting/benders/clay_run_format_bender.yml',
-                additional_vars={'bio_field_id': bio_field_id},
+                "src/prospecting/benders/clay_run_format_bender.yml",
+                additional_vars={"bio_field_id": bio_field_id},
             )
         )
-        results = bender.bend_list(deep_get(records, 'results'))
+        results = bender.bend_list(deep_get(records, "results"))
         df = pd.DataFrame(results)
-        results = df.to_dict('records')
+        results = df.to_dict("records")
         final_results = []
         for i, result in enumerate(results):
-            result[''] = f'{i}'
-            final_results.append(result)
+            result[""] = f"{i}"
+            if result["Full Name"]:
+                final_results.append(result)
 
         return final_results

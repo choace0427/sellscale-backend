@@ -4,4 +4,4 @@ export APP_SETTINGS=config.ProductionConfig
 export ENCRYPTION_KEY='WnvHGDi3ly44ss36JGtbrEotXca33PTd1d_y1h0U2uM='
 export ISCRAPER_API_KEY='DUvMDFTrxv77QvsVF3VdDlSYWLDs9Qqp'
 export OPENAI_KEY='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'
-export DATABASE_URL='postgresql://sellscale_db_production_user:ShyALOyxhZ3NSr8txZ3iNzvSrU16TWhR@dpg-ccu9i2qen0hklj3dv41g-a.oregon-postgres.render.com/sellscale_db_production'
+export DATABASE_URL='postgresql://sellscale_db_production_602w_user:qCe1FyhyBHxlkESEt7wYdCZGlrVo9cg8@dpg-ccvkhmien0hrc1s9lpfg-a.oregon-postgres.render.com/sellscale_db_production_602w'

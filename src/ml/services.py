@@ -1,7 +1,7 @@
 from datetime import datetime
 from app import db
 import os
-from src.client.models import Client
+from src.client.models import Client, ClientArchetype
 from src.message_generation.models import GeneratedMessage
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
@@ -35,11 +35,11 @@ def create_upload_jsonl_file(prompt_completion_dict: any):
 
 
 def initiate_fine_tune_job(
-    client_id: int, message_ids: list, model_type: GNLPModelType
+    archetype_id: int, message_ids: list, model_type: GNLPModelType
 ):
     # create new fine tune job in db
     job: GNLPModelFineTuneJobs = GNLPModelFineTuneJobs(
-        client_id=client_id,
+        archetype_id=archetype_id,
         message_ids=message_ids,
         status=GNLPFinetuneJobStatuses.INITIATED,
         model_type=model_type,
@@ -69,12 +69,11 @@ def initiate_fine_tune_job(
         fine_tune_job_id = fine_tune_create_job_resp["id"]
         job.finetune_job_id = fine_tune_job_id
         job.finetune_job_response = fine_tune_create_job_resp
-        job.client_id = client_id
         job.status = GNLPFinetuneJobStatuses.STARTED_FINE_TUNE_JOB
         db.session.add(job)
         db.session.commit()
 
-        return True, job, "OK"
+        return True, "OK"
     except Exception as e:
         # if failed update status
         job.status = GNLPFinetuneJobStatuses.FAILED
@@ -82,7 +81,7 @@ def initiate_fine_tune_job(
         db.session.add(job)
         db.session.commit()
 
-        return False, job, str(e)
+        return False, str(e)
 
 
 def check_statuses_of_fine_tune_jobs():
@@ -97,21 +96,25 @@ def check_statuses_of_fine_tune_jobs():
     updated_job_ids = []
     for j in jobs:
         job: GNLPModelFineTuneJobs = j
-        client: Client = Client.query.get(job.client_id)
+        archetype: ClientArchetype = ClientArchetype.query.get(job.archetype_id)
+        archetype_id = archetype.id
+        archetype_name = archetype.archetype
         fine_tune_status = openai.FineTune.retrieve(id=job.finetune_job_id)
         model_uuid = fine_tune_status.get("fine_tuned_model")
-        client_id = client.id
+
+        client: Client = Client.query.get(archetype.client_id)
 
         if model_uuid:
             gnlp_model: GNLPModel = GNLPModel(
                 model_provider=ModelProvider.OPENAI_GPT3,
                 model_type=job.model_type,
-                model_description="{client}-{date}".format(
+                model_description="{client}-{archetype_name}-{date}".format(
                     client=client.company,
+                    archetype_name=archetype_name,
                     date=str(datetime.utcnow())[0:10],
                 ),
                 model_uuid=model_uuid,
-                client_id=client_id,
+                archetype_id=archetype_id,
             )
             db.session.add(gnlp_model)
             db.session.commit()

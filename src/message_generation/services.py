@@ -69,7 +69,7 @@ def generate_outreaches_new(prospect_id: int):
     from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
 
     p: Prospect = Prospect.query.get(prospect_id)
-    client_id = p.client_id
+    archetype_id = p.archetype_id
 
     # check if messages exist, if do don't do anything extra
     messages: list = GeneratedMessage.query.filter(
@@ -100,7 +100,7 @@ def generate_outreaches_new(prospect_id: int):
         prompt = generate_prompt(linkedin_payload=research.payload, notes=notes)
 
         completions, model_id = get_custom_completion_for_client(
-            client_id=client_id,
+            archetype_id=archetype_id,
             model_type=GNLPModelType.OUTREACH,
             prompt=prompt,
             max_tokens=90,

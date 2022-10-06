@@ -29,8 +29,8 @@ class GNLPModel(db.Model):
     model_description = db.Column(db.String, nullable=False)
     model_uuid = db.Column(db.String, nullable=False)
 
-    client_id = client_id = db.Column(
-        db.Integer, db.ForeignKey("client.id"), nullable=True
+    archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
 
 
@@ -40,7 +40,9 @@ class GNLPModelFineTuneJobs(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     status = db.Column(db.Enum(GNLPFinetuneJobStatuses), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
+    archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
     message_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
     model_type = db.Column(db.Enum(GNLPModelType), nullable=False)
 

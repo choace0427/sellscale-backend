@@ -45,9 +45,9 @@ def get_open_ai_completion(model: str, prompt: str, max_tokens: int = 40, n: int
         return [choices[x].get("text", "") for x in range(len(choices))]
 
 
-def get_latest_custom_model(client_id: int, model_type: GNLPModelType):
+def get_latest_custom_model(archetype_id: int, model_type: GNLPModelType):
     m: GNLPModel = (
-        GNLPModel.query.filter(GNLPModel.client_id == client_id)
+        GNLPModel.query.filter(GNLPModel.archetype_id == archetype_id)
         .filter(GNLPModel.model_type == model_type)
         .order_by(GNLPModel.created_at.desc())
         .first()
@@ -60,14 +60,14 @@ def get_latest_custom_model(client_id: int, model_type: GNLPModelType):
 
 
 def get_custom_completion_for_client(
-    client_id: int,
+    archetype_id: int,
     model_type: GNLPModelType,
     prompt: str,
     max_tokens: int = 40,
     n: int = 1,
 ):
     model_uuid, model_id = get_latest_custom_model(
-        client_id=client_id, model_type=model_type
+        archetype_id=archetype_id, model_type=model_type
     )
 
     return (
