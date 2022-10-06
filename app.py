@@ -1,8 +1,6 @@
 import os
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
-from src.ml import check_statuses_of_fine_tune_jobs
-from app import db
 
 from flask_cors import CORS
 from flask_migrate import Migrate
