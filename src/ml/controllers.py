@@ -1,4 +1,4 @@
-from db import db
+from app import db
 
 from flask import Blueprint, jsonify, request
 from src.ml.fine_tuned_models import get_latest_custom_model

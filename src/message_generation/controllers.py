@@ -1,4 +1,4 @@
-from db import db
+from app import db
 
 from flask import Blueprint, request
 from src.research.linkedin.services import get_research_and_bullet_points_new

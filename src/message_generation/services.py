@@ -3,7 +3,7 @@ from src.research.models import ResearchPayload, ResearchPoints
 from ..ml.fine_tuned_models import get_completion, get_custom_completion_for_client
 from ..utils.abstract.attr_utils import deep_get
 import random
-from db import db
+from app import db
 from tqdm import tqdm
 
 

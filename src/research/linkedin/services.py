@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-from db import db
+from app import db
 
 from src.research.models import (
     ResearchPayload,

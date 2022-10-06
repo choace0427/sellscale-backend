@@ -2,10 +2,13 @@ import os
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from src.ml import check_statuses_of_fine_tune_jobs
-from db import db
+from app import db
 
 from flask_cors import CORS
 from flask_migrate import Migrate
+
+from flask_sqlalchemy import SQLAlchemy
+from src.setup.TimestampedModel import TimestampedModel
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -14,6 +17,8 @@ app.config["CORS_HEADERS"] = "Content-Type"
 
 app.config.from_object(os.environ["APP_SETTINGS"])
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
 
 from model_import import *

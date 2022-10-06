@@ -1,4 +1,4 @@
-from db import db
+from app import db
 from src.client.models import Client, ClientArchetype
 
 

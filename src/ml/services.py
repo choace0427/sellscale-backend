@@ -1,5 +1,5 @@
 from datetime import datetime
-from db import db
+from app import db
 import os
 from src.client.models import Client
 from src.message_generation.models import GeneratedMessage

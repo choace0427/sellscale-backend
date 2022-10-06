@@ -1,5 +1,5 @@
 from src.prospecting.models import ProspectStatus
-from db import db
+from app import db
 
 
 def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
