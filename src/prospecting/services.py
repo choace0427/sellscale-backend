@@ -49,23 +49,28 @@ def add_prospect(
     batch = generate_random_alphanumeric(32)
     status = ProspectStatus.PROSPECTED
 
-    prospect: Prospect = Prospect(
-        client_id=client_id,
-        archetype_id=archetype_id,
-        company=company,
-        company_url=company_url,
-        employee_count=employee_count,
-        full_name=full_name,
-        industry=industry,
-        linkedin_url=linkedin_url,
-        linkedin_bio=linkedin_bio,
-        title=title,
-        twitter_url=twitter_url,
-        batch=batch,
-        status=status,
+    prospect_exists = prospect_exists_for_archetype(
+        linkedin_url=linkedin_url, client_id=client_id
     )
-    db.session.add(prospect)
-    db.session.commit()
+
+    if not prospect_exists:
+        prospect: Prospect = Prospect(
+            client_id=client_id,
+            archetype_id=archetype_id,
+            company=company,
+            company_url=company_url,
+            employee_count=employee_count,
+            full_name=full_name,
+            industry=industry,
+            linkedin_url=linkedin_url,
+            linkedin_bio=linkedin_bio,
+            title=title,
+            twitter_url=twitter_url,
+            batch=batch,
+            status=status,
+        )
+        db.session.add(prospect)
+        db.session.commit()
 
 
 def get_linkedin_slug_from_url(url: str):
@@ -90,6 +95,19 @@ def get_navigator_slug_from_url(url: str):
         return slug
     except:
         raise Exception("Unable to extract slug")
+
+
+def create_prospects_from_linkedin_link_list(
+    url_string: str, archetype_id: int, delimeter: str = "..."
+):
+    from tqdm import tqdm
+
+    prospect_urls = url_string.split(delimeter)
+
+    for url in tqdm(prospect_urls):
+        create_prospect_from_linkedin_link(archetype_id=archetype_id, url=url)
+
+    return True
 
 
 def create_prospect_from_linkedin_link(archetype_id: int, url: str):

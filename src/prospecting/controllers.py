@@ -3,6 +3,7 @@ from app import db
 from flask import Blueprint, jsonify, request
 from src.prospecting.services import (
     create_prospect_from_linkedin_link,
+    create_prospects_from_linkedin_link_list,
     prospect_exists_for_archetype,
     update_prospect_status,
 )
@@ -98,6 +99,22 @@ def prospect_from_link():
     url = get_request_parameter("url", request, json=True, required=True)
 
     success = create_prospect_from_linkedin_link(archetype_id=archetype_id, url=url)
+
+    if success:
+        return "OK", 200
+    return "Failed to create prospect", 404
+
+
+@PROSPECTING_BLUEPRINT.route("/from_link_chain", methods=["POST"])
+def prospect_from_link_chain():
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True
+    )
+    url_string = get_request_parameter("url_string", request, json=True, required=True)
+
+    success = create_prospects_from_linkedin_link_list(
+        url_string=url_string, archetype_id=archetype_id
+    )
 
     if success:
         return "OK", 200
