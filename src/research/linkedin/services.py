@@ -28,7 +28,9 @@ from .extractors.current_company import (
 
 from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
 
+LINKEDIN_SEARCH_URL = "https://api.iscraper.io/v2/linkedin-search"
 PROFILE_DETAILS_URL = "https://api.iscraper.io/v2/profile-details"
+DATA_TYPES_URL = "https://api.iscraper.io/v2/data-types"
 ISCRAPER_API_KEY = os.environ.get("ISCRAPER_API_KEY")
 
 
