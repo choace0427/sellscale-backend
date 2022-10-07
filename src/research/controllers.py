@@ -1,6 +1,9 @@
 import re
 from flask import Blueprint, jsonify, request
-from src.research.linkedin.iscraper import get_linkedin_search_results_from_iscraper
+from src.research.linkedin.iscraper import (
+    get_linkedin_search_results_from_iscraper,
+    get_linkedin_link_from_iscraper,
+)
 
 from src.utils.request_helpers import get_request_parameter
 
@@ -45,3 +48,11 @@ def search_linkedin_iscraper():
     return jsonify(
         get_linkedin_search_results_from_iscraper(name=name, location=location)
     )
+
+
+@RESEARCH_BLUEPRINT.route("/v1/search_linkedin/universal_id", methods=["POST"])
+def search_linkedin_universal_id():
+    name = get_request_parameter("name", request, json=True, required=True)
+    location = get_request_parameter("location", request, json=True, required=True)
+
+    return jsonify(get_linkedin_link_from_iscraper(name=name, location=location))

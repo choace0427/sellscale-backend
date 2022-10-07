@@ -20,6 +20,32 @@ def get_location_ids_from_iscraper(location: str):
     return location_ids
 
 
+def get_linkedin_link_from_iscraper(name: str, location: str):
+    location_ids = get_location_ids_from_iscraper(location)
+
+    payload = json.dumps(
+        {
+            "keyword": name,
+            "search_type": "people",
+            "locations": location_ids,
+            "per_page": 50,
+            "offset": 0,
+        }
+    )
+    headers = {"X-API-KEY": ISCRAPER_API_KEY, "Content-Type": "application/json"}
+
+    response = requests.request(
+        "POST", LINKEDIN_SEARCH_URL, headers=headers, data=payload
+    )
+    data = json.loads(response.text)
+
+    if not data or not data["results"]:
+        return {"message": "Prospect not found"}
+
+    profile_id = data["results"][0]["universal_id"]
+    return {"link": "https://www.linkedin.com/in/{}/".format(profile_id)}
+
+
 def get_linkedin_search_results_from_iscraper(name: str, location: str):
     location_ids = get_location_ids_from_iscraper(location)
 
