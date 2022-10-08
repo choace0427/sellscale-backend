@@ -44,6 +44,11 @@ def get_current_company_specialties(data):
     prompt = "company: {company_name} -- specialities: {specialities} -- industries: {industries} -- tagline: {tagline}\n -- summary:".format(
         **raw_data
     )
-    response = get_completion(bullet_model_id="recent_job_specialties", prompt=prompt)
+    if not company_name or not specialities or not industries or not tagline:
+        response = ""
+    else:
+        response = get_completion(
+            bullet_model_id="recent_job_specialties", prompt=prompt
+        )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}

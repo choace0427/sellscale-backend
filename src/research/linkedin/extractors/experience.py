@@ -32,9 +32,12 @@ def get_current_experience_description(data):
     prompt = "company: {company_name} -- description: {description} -- title: {title}\n -- summary:".format(
         **raw_data
     )
-    response = get_completion(
-        bullet_model_id="current_experience_description", prompt=prompt
-    )
+    if not company_name or not title or not description:
+        response = ""
+    else:
+        response = get_completion(
+            bullet_model_id="current_experience_description", prompt=prompt
+        )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
 
