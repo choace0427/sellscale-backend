@@ -1,6 +1,6 @@
 from app import db
 
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.message_generation.services import (
     approve_message,
@@ -64,3 +64,28 @@ def delete():
         return "OK", 200
 
     return "Failed to update", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/mass_update", methods=["POST"])
+def mass_update_generated_messages():
+    from model_import import Prospect, GeneratedMessage
+
+    payload = get_request_parameter("payload", request, json=True, required=True)
+    ids = []
+    for item in payload:
+        prospect_id = item["Prospect ID"]
+        update = item["Message"]
+
+        p: Prospect = Prospect.query.get(prospect_id)
+        approved_message_id: int = p.approved_outreach_message_id
+        message: GeneratedMessage = GeneratedMessage.query.get(approved_message_id)
+        if not message:
+            continue
+
+        message.completion = update
+        db.session.add(message)
+        db.session.commit()
+
+        ids.append(message.id)
+
+    return jsonify({"message_ids": ids})
