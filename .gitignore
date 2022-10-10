@@ -1,4 +1,8 @@
+.gitignore
 .env
+.envstaging
+.envprod
 
 training_set_temp.jsonl
 .gitignore
+*.csv
