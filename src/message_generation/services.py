@@ -176,3 +176,17 @@ def delete_message(message_id: int):
     db.session.commit()
 
     return True
+
+
+def delete_message_generation_by_prospect_id(prospect_id: int):
+    from model_import import GeneratedMessage
+
+    messages: list = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id == prospect_id
+    ).all()
+
+    for message in messages:
+        db.session.delete(message)
+        db.session.commit()
+
+    return True

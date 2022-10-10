@@ -13,6 +13,7 @@ from ..message_generation.services import (
 from .linkedin.services import (
     get_research_and_bullet_points,
     get_research_and_bullet_points_new,
+    reset_prospect_research_and_messages,
 )
 
 RESEARCH_BLUEPRINT = Blueprint("research", __name__)
@@ -56,3 +57,14 @@ def search_linkedin_universal_id():
     location = get_request_parameter("location", request, json=True, required=True)
 
     return jsonify(get_linkedin_link_from_iscraper(name=name, location=location))
+
+
+@RESEARCH_BLUEPRINT.route("/v1/wipe_prospect_messages_and_research", methods=["DELETE"])
+def wipe_prospect_messages_and_research():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+
+    reset_prospect_research_and_messages(prospect_id=prospect_id)
+
+    return "OK", 200

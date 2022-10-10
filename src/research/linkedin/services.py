@@ -2,6 +2,8 @@ import requests
 import json
 import os
 from app import db
+from src.message_generation.services import delete_message_generation_by_prospect_id
+from src.prospecting.models import Prospect
 
 from src.research.models import (
     ResearchPayload,
@@ -305,3 +307,38 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             final_bullets[key] = bullets[key].strip()
 
     return {"raw_data": info, "bullets": final_bullets}
+
+
+def reset_prospect_approved_status(prospect_id: int):
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p or not p.approved_outreach_message_id:
+        return False
+
+    p.approved_outreach_message_id = None
+    db.session.add(p)
+    db.session.commit()
+
+    return True
+
+
+def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
+    research_payload = ResearchPayload.query.filter(
+        ResearchPayload.prospect_id == prospect_id
+    ).first()
+    research_payload_id = research_payload.id
+
+    research_points: list = ResearchPoints.query.filter(
+        ResearchPoints.research_payload_id == research_payload_id
+    ).all()
+    for rp in research_points:
+        db.session.delete(rp)
+        db.session.commit()
+
+    db.session.delete(research_payload)
+    db.session.commit()
+
+
+def reset_prospect_research_and_messages(prospect_id: int):
+    reset_prospect_approved_status(prospect_id=prospect_id)
+    delete_message_generation_by_prospect_id(prospect_id=prospect_id)
+    delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
