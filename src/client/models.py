@@ -1,4 +1,6 @@
 from app import db
+from src.research.models import ResearchPointType
+import sqlalchemy as sa
 
 
 class Client(db.Model):
@@ -19,3 +21,8 @@ class ClientArchetype(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     archetype = db.Column(db.String)
     filters = db.Column(db.JSON, nullable=True)
+
+    transformer_blocklist = db.Column(
+        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        nullable=True,
+    )  # use this list to blocklist transformer durings message generation
