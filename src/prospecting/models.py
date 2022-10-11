@@ -41,3 +41,12 @@ class Prospect(db.Model):
     approved_outreach_message_id = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")
     )
+
+
+class ProspectStatusRecords(db.Model):
+    __tablename__ = "prospect_status_records"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    from_status = db.Column(db.Enum(ProspectStatus), nullable=True)
+    to_status = db.Column(db.Enum(ProspectStatus), nullable=True)

@@ -22,7 +22,7 @@ def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
 
 
 def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
-    from src.prospecting.models import Prospect
+    from src.prospecting.models import Prospect, ProspectStatusRecords
 
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
@@ -30,6 +30,14 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
 
     p.status = new_status
     db.session.add(p)
+    db.session.commit()
+
+    record: ProspectStatusRecords = ProspectStatusRecords(
+        prospect_id=prospect_id,
+        from_status=p.status,
+        to_status=new_status,
+    )
+    db.session.add(record)
     db.session.commit()
 
     return True
@@ -174,8 +182,9 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list):
         if not prospect or not prospect.approved_outreach_message_id:
             continue
 
-        prospect.status = ProspectStatus.SENT_OUTREACH
-        db.session.add(prospect)
+        update_prospect_status(
+            prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
+        )
 
         message: GeneratedMessage = GeneratedMessage.query.get(
             prospect.approved_outreach_message_id
