@@ -1,4 +1,5 @@
 from typing import Optional
+from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.client.models import Client, ClientArchetype
 from src.research.linkedin.services import research_personal_profile_details
 from src.prospecting.models import Prospect, ProspectStatus
@@ -154,3 +155,31 @@ def create_prospect_from_linkedin_link(archetype_id: int, url: str):
     )
 
     return True
+
+
+def batch_mark_prospects_as_sent_outreach(prospect_ids: list):
+    from src.prospecting.models import Prospect
+
+    prospects = Prospect.query.filter(Prospect.id.in_(prospect_ids)).all()
+    updates = []
+
+    for p in prospects:
+        prospect: Prospect = p
+
+        if not prospect or not prospect.approved_outreach_message_id:
+            continue
+
+        prospect.status = ProspectStatus.SENT_OUTREACH
+        db.session.add(prospect)
+
+        message: GeneratedMessage = GeneratedMessage.query.get(
+            prospect.approved_outreach_message_id
+        )
+        message.message_status = GeneratedMessageStatus.SENT
+        db.session.add(message)
+
+        db.session.commit()
+
+        updates.append(prospect.id)
+
+    return updates

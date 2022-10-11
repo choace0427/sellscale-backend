@@ -2,6 +2,7 @@ from app import db
 
 from flask import Blueprint, jsonify, request
 from src.prospecting.services import (
+    batch_mark_prospects_as_sent_outreach,
     create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,
     prospect_exists_for_archetype,
@@ -119,3 +120,13 @@ def prospect_from_link_chain():
     if success:
         return "OK", 200
     return "Failed to create prospect", 404
+
+
+@PROSPECTING_BLUEPRINT.route("/batch_mark_sent", methods=["POST"])
+def batch_mark_sent():
+    updates = batch_mark_prospects_as_sent_outreach(
+        prospect_ids=get_request_parameter(
+            "prospect_ids", request, json=True, required=True
+        )
+    )
+    return jsonify({"updates": updates})
