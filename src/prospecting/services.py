@@ -22,11 +22,20 @@ def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
 
 
 def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
-    from src.prospecting.models import Prospect, ProspectStatusRecords
+    from src.prospecting.models import (
+        Prospect,
+        ProspectStatusRecords,
+        VALID_FROM_STATUSES_MAP,
+    )
 
     p: Prospect = Prospect.query.get(prospect_id)
     if p.status == new_status:
         return True
+
+    if p.status not in VALID_FROM_STATUSES_MAP[ProspectStatus[new_status]]:
+        raise Exception(
+            f"Invalid status transition from {p.status} to {ProspectStatus[new_status]}"
+        )
 
     record: ProspectStatusRecords = ProspectStatusRecords(
         prospect_id=prospect_id,

@@ -50,3 +50,18 @@ class ProspectStatusRecords(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     from_status = db.Column(db.Enum(ProspectStatus), nullable=True)
     to_status = db.Column(db.Enum(ProspectStatus), nullable=True)
+
+
+# map of to_status and from status
+# ensure that the prospect's from_status is in the array of the value of
+#   "to_status" index
+VALID_FROM_STATUSES_MAP = {
+    ProspectStatus.PROSPECTED: [],
+    ProspectStatus.NOT_QUALIFIED: [ProspectStatus.PROSPECTED],
+    ProspectStatus.SENT_OUTREACH: [ProspectStatus.PROSPECTED],
+    ProspectStatus.RESPONDED: [ProspectStatus.SENT_OUTREACH],
+    ProspectStatus.NOT_INTERESTED: [ProspectStatus.RESPONDED],
+    ProspectStatus.DEMO_SET: [ProspectStatus.RESPONDED],
+    ProspectStatus.DEMO_WON: [ProspectStatus.DEMO_SET],
+    ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_SET],
+}
