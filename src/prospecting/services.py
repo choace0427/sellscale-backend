@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.client.models import Client, ClientArchetype
@@ -176,6 +177,7 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list):
             prospect.approved_outreach_message_id
         )
         message.message_status = GeneratedMessageStatus.SENT
+        message.date_sent = datetime.now()
         db.session.add(message)
 
         db.session.commit()
