@@ -2,6 +2,7 @@ import requests
 import json
 import os
 from app import db
+from src.client.models import ClientArchetype
 from src.message_generation.services import delete_message_generation_by_prospect_id
 from src.prospecting.models import Prospect
 
@@ -228,6 +229,10 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
 
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype_id = prospect.archetype_id
+    ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    blocked_transformers = ca.transformer_blocklist
 
     research_payload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
@@ -282,6 +287,9 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             ).first()
             if rp_exists:
                 bullets[t[1]] = rp_exists.value
+                continue
+
+            if t[0] in blocked_transformers:
                 continue
 
             value = t[2](info).get("response", "")
