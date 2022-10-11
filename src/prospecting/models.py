@@ -8,9 +8,11 @@ class ProspectStatus(enum.Enum):
     NOT_QUALIFIED = "NOT_QUALIFIED"
     SENT_OUTREACH = "SENT_OUTREACH"
 
+    ACCEPTED = "ACCEPTED"
     RESPONDED = "RESPONDED"
-    NOT_INTERESTED = "NOT_INTERESTED"
+    ACTIVE_CONVO = "ACTIVE_CONVO"
 
+    NOT_INTERESTED = "NOT_INTERESTED"
     DEMO_SET = "DEMO_SET"
 
     DEMO_WON = "DEMO_WON"
@@ -59,9 +61,14 @@ VALID_FROM_STATUSES_MAP = {
     ProspectStatus.PROSPECTED: [],
     ProspectStatus.NOT_QUALIFIED: [ProspectStatus.PROSPECTED],
     ProspectStatus.SENT_OUTREACH: [ProspectStatus.PROSPECTED],
-    ProspectStatus.RESPONDED: [ProspectStatus.SENT_OUTREACH],
-    ProspectStatus.NOT_INTERESTED: [ProspectStatus.RESPONDED],
-    ProspectStatus.DEMO_SET: [ProspectStatus.RESPONDED],
+    ProspectStatus.ACCEPTED: [ProspectStatus.SENT_OUTREACH],
+    ProspectStatus.RESPONDED: [ProspectStatus.ACCEPTED],
+    ProspectStatus.ACTIVE_CONVO: [ProspectStatus.RESPONDED],
+    ProspectStatus.NOT_INTERESTED: [
+        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO,
+    ],
+    ProspectStatus.DEMO_SET: [ProspectStatus.RESPONDED, ProspectStatus.ACTIVE_CONVO],
     ProspectStatus.DEMO_WON: [ProspectStatus.DEMO_SET],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_SET],
 }
