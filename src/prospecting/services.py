@@ -24,6 +24,10 @@ def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
 def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
     from src.prospecting.models import Prospect, ProspectStatusRecords
 
+    p: Prospect = Prospect.query.get(prospect_id)
+    if p.status == new_status:
+        return True
+
     record: ProspectStatusRecords = ProspectStatusRecords(
         prospect_id=prospect_id,
         from_status=p.status,
@@ -32,7 +36,6 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
     db.session.add(record)
     db.session.commit()
 
-    p: Prospect = Prospect.query.get(prospect_id)
     if not p:
         return False
 
