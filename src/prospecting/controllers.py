@@ -1,6 +1,7 @@
 from app import db
 
 from flask import Blueprint, jsonify, request
+from src.prospecting.models import ProspectStatus
 from src.prospecting.services import (
     batch_mark_prospects_as_sent_outreach,
     create_prospect_from_linkedin_link,
@@ -69,6 +70,7 @@ def index():
                 title=prospect["Title"],
                 twitter_url=prospect["Twitter"],
                 batch=batch_id,
+                status=ProspectStatus.PROSPECTED,
             )
             db.session.add(p)
             db.session.commit()
