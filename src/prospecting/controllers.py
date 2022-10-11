@@ -101,7 +101,10 @@ def prospect_from_link():
     )
     url = get_request_parameter("url", request, json=True, required=True)
 
-    success = create_prospect_from_linkedin_link(archetype_id=archetype_id, url=url)
+    batch = generate_random_alphanumeric(32)
+    success = create_prospect_from_linkedin_link(
+        archetype_id=archetype_id, url=url, batch=batch
+    )
 
     if success:
         return "OK", 200
