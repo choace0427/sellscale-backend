@@ -22,6 +22,7 @@ def create_upload_jsonl_file(prompt_completion_dict: any):
                 .replace("\\n", "")
                 .replace("\n", "")
                 .replace("\r", "")
+                .replace("\\", "")
             )
             sanitized_value = prompt_completion_dict[key].replace('"', "")
 
