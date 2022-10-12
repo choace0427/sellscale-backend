@@ -10,14 +10,20 @@ from src.ml.models import (
     GNLPModelType,
     ModelProvider,
 )
+import regex as rx
+
 import openai
+
+
+def remove_control_characters(str):
+    return rx.sub(r"\p{C}", "", str)
 
 
 def create_upload_jsonl_file(prompt_completion_dict: any):
     with open("training_set_temp.jsonl", "w") as f:
         for key in prompt_completion_dict:
 
-            sanitized_key = (
+            sanitized_key = remove_control_characters(
                 key.replace('"', "")
                 .replace("\\n", "")
                 .replace("\n", "")
