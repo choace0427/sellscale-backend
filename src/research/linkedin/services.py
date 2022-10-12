@@ -289,7 +289,7 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
                 bullets[t[1]] = rp_exists.value
                 continue
 
-            if t[0] in blocked_transformers:
+            if blocked_transformers and t[0] in blocked_transformers:
                 continue
 
             value = t[2](info).get("response", "")
