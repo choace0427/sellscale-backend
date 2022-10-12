@@ -139,3 +139,8 @@ def check_statuses_of_fine_tune_jobs():
     print("checked fine tuned job statuses.")
 
     return updated_job_ids
+
+
+def get_fine_tune_timeline(fine_tune_id: str):
+    response = openai.FineTune.retrieve(id=fine_tune_id)
+    return response

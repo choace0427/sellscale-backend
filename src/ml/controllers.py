@@ -6,6 +6,7 @@ from src.ml.models import GNLPModelType
 from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
     create_upload_jsonl_file,
+    get_fine_tune_timeline,
     initiate_fine_tune_job,
 )
 
@@ -53,3 +54,11 @@ def get_latest_fine_tune():
     )
 
     return jsonify({"model_uuid": model_uuid, "model_id": model_id})
+
+
+@ML_BLUEPRINT.route("/fine_tune_job_timeline", methods=["GET"])
+def get_fine_tune_job_timeline():
+    fine_tune_id = get_request_parameter(
+        "fine_tune_id", request, json=False, required=True
+    )
+    return jsonify(get_fine_tune_timeline(fine_tune_id))
