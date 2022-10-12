@@ -9,6 +9,12 @@ def create_phantom_buster_config(
     phantom_name: str,
     phantom_uuid: str,
 ):
+    existing_config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+        PhantomBusterConfig.client_sdr_id == client_sdr_id
+    ).first()
+    if existing_config:
+        return {"phantom_buster_config_id": existing_config.id}
+
     pb_config = PhantomBusterConfig(
         client_id=client_id,
         client_sdr_id=client_sdr_id,
