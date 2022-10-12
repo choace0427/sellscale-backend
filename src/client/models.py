@@ -26,3 +26,13 @@ class ClientArchetype(db.Model):
         db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
+
+
+class ClientSDR(db.Model):
+    __tablename__ = "client_sdr"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    name = db.Column(db.String)
+    email = db.Column(db.String)

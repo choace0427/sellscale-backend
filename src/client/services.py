@@ -1,6 +1,6 @@
 from app import db
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
-from src.client.models import Client, ClientArchetype
+from src.client.models import Client, ClientArchetype, ClientSDR
 
 
 def get_client(client_id: int):
@@ -48,3 +48,15 @@ def create_client_archetype(client_id: int, archetype: str, filters: any):
     db.session.commit()
 
     return {"client_archetype_id": client_archetype.id}
+
+
+def create_client_sdr(client_id: int, name: str, email: str):
+    c: Client = get_client(client_id=client_id)
+    if not c:
+        return None
+
+    sdr = ClientSDR(client_id=client_id, name=name, email=email)
+    db.session.add(sdr)
+    db.session.commit()
+
+    return {"client_sdr_id": sdr.id}

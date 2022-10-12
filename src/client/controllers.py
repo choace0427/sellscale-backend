@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify
 from src.client.models import ClientArchetype
-from src.client.services import create_client, create_client_archetype
+from src.client.services import (
+    create_client,
+    create_client_archetype,
+    create_client_sdr,
+)
 
 from src.utils.request_helpers import get_request_parameter
 
@@ -42,3 +46,16 @@ def create_archetype():
         return "Client not found", 404
 
     return ca
+
+
+@CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])
+def create_sdr():
+    client_id = get_request_parameter("client_id", request, json=True, required=True)
+    name = get_request_parameter("name", request, json=True, required=True)
+    email = get_request_parameter("email", request, json=True, required=True)
+
+    resp = create_client_sdr(client_id=client_id, name=name, email=email)
+    if not resp:
+        return "Client not found", 404
+
+    return resp
