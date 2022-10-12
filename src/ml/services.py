@@ -93,13 +93,9 @@ def initiate_fine_tune_job(
 
 
 def check_statuses_of_fine_tune_jobs():
-    jobs: list = (
-        GNLPModelFineTuneJobs.query.filter(
-            GNLPModelFineTuneJobs.status != GNLPFinetuneJobStatuses.COMPLETED
-        )
-        .filter(GNLPModelFineTuneJobs.status != GNLPFinetuneJobStatuses.FAILED)
-        .all()
-    )
+    jobs: list = GNLPModelFineTuneJobs.query.filter(
+        GNLPModelFineTuneJobs.status == GNLPFinetuneJobStatuses.STARTED_FINE_TUNE_JOB
+    ).all()
 
     updated_job_ids = []
     for j in jobs:
