@@ -6,7 +6,7 @@ from src.client.services import (
     create_client_sdr,
 )
 from src.automation.services import create_phantom_buster_config
-
+from src.automation.services import get_all_phantom_busters
 from src.utils.request_helpers import get_request_parameter
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
@@ -41,4 +41,10 @@ def post_phantom_buster_config():
         phantom_uuid=phantom_uuid,
     )
 
+    return jsonify(resp)
+
+
+@AUTOMATION_BLUEPRINT.route("/get-all-phantom-busters", methods=["GET"])
+def get_all_phantom_busters_endpoint():
+    resp = get_all_phantom_busters()
     return jsonify(resp)

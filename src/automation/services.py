@@ -1,5 +1,11 @@
+import json
 from src.automation.models import PhantomBusterConfig
 from app import db
+import requests
+import os
+
+PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
+GET_PHANTOMBUSTER_AGENTS_URL = "https://api.phantombuster.com/api/v2/agents/fetch-all"
 
 
 def create_phantom_buster_config(
@@ -26,3 +32,15 @@ def create_phantom_buster_config(
     db.session.commit()
 
     return {"phantom_buster_config_id": pb_config.id}
+
+
+def get_all_phantom_busters():
+    headers = {
+        "accept": "application/json",
+        "X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ",
+    }
+
+    response = requests.get(GET_PHANTOMBUSTER_AGENTS_URL, headers=headers)
+    response_json = json.loads(response.text)
+
+    return {x["id"]: x["name"] for x in response_json}
