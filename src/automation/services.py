@@ -43,4 +43,18 @@ def get_all_phantom_busters():
     response = requests.get(GET_PHANTOMBUSTER_AGENTS_URL, headers=headers)
     response_json = json.loads(response.text)
 
-    return {x["id"]: x["name"] for x in response_json}
+    phantom_map = {}
+    for x in response_json:
+        config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+            PhantomBusterConfig.phantom_uuid == x["id"]
+        ).first()
+        phantom_map[x["id"]] = {
+            "config_id": config and config.id,
+            "phantom_name": x["name"],
+            "client_id": config and config.client_id,
+            "client_sdr_id": config and config.client_sdr_id,
+            "google_sheets_uuid": config and config.google_sheets_uuid,
+            "phantom_uuid": config and config.phantom_uuid,
+        }
+
+    return phantom_map
