@@ -65,7 +65,7 @@ def generate_outreaches(research_and_bullets: dict, num_options: int = 1):
     return outreaches
 
 
-def generate_outreaches_new(prospect_id: int):
+def generate_outreaches_new(prospect_id: int, cta_prompt: str = None):
     from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
 
     p: Prospect = Prospect.query.get(prospect_id)
@@ -93,6 +93,8 @@ def generate_outreaches_new(prospect_id: int):
     outreaches = []
     for perm in perms:
         d = ["-" + x.value for x in perm]
+        if cta_prompt:
+            d.append("-" + cta_prompt)
         notes = "\n".join(d)
 
         research_points = [x.id for x in perm]
@@ -124,10 +126,12 @@ def generate_outreaches_new(prospect_id: int):
     return outreaches
 
 
-def generate_outreaches_for_batch_of_prospects(prospect_list: list):
+def generate_outreaches_for_batch_of_prospects(
+    prospect_list: list, cta_prompt: str = None
+):
     for prospect_id in tqdm(prospect_list):
         try:
-            generate_outreaches_new(prospect_id=prospect_id)
+            generate_outreaches_new(prospect_id=prospect_id, cta_prompt=cta_prompt)
         except Exception as e:
             print(e)
             pass
