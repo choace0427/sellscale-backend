@@ -106,7 +106,7 @@ def generate_outreaches_new(prospect_id: int, cta_prompt: str = None):
             model_type=GNLPModelType.OUTREACH,
             prompt=prompt,
             max_tokens=90,
-            n=2,
+            n=1,
         )
 
         for completion in completions:
