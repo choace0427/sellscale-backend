@@ -19,6 +19,7 @@ def index():
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True
     )
+    cta_prompt = get_request_parameter("cta_prompt", request, json=True, required=False)
 
     # researching prospects
     print("Research prospects ...")
@@ -27,7 +28,9 @@ def index():
 
     # generating messages
     print("Generated messages ...")
-    generate_outreaches_for_batch_of_prospects(prospect_list=prospect_ids)
+    generate_outreaches_for_batch_of_prospects(
+        prospect_list=prospect_ids, cta_prompt=cta_prompt
+    )
 
     return "OK", 200
 
