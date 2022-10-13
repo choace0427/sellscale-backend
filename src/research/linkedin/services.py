@@ -333,6 +333,8 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
     research_payload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
     ).first()
+    if not research_payload:
+        return
     research_payload_id = research_payload.id
 
     research_points: list = ResearchPoints.query.filter(

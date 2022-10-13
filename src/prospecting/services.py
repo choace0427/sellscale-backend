@@ -143,7 +143,9 @@ def create_prospect_from_linkedin_link(archetype_id: int, url: str, batch: str):
 
     payload = research_personal_profile_details(profile_id=slug)
 
-    if payload.get("detail") == "Profile data cannot be retrieved.":
+    if payload.get("detail") == "Profile data cannot be retrieved." or not deep_get(
+        payload, "first_name"
+    ):
         return False
 
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
