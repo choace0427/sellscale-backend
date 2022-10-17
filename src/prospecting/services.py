@@ -31,7 +31,7 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
         current_status == ProspectStatus.SENT_OUTREACH
         and new_status == ProspectStatus.RESPONDED
     ):
-        update_prospect_status_multi_step(
+        return update_prospect_status_multi_step(
             prospect_id=prospect_id,
             statuses=[ProspectStatus.ACCEPTED, ProspectStatus.RESPONDED],
         )
@@ -40,7 +40,7 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
         current_status == ProspectStatus.SENT_OUTREACH
         and new_status == ProspectStatus.ACTIVE_CONVO
     ):
-        update_prospect_status_multi_step(
+        return update_prospect_status_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.ACCEPTED,
@@ -49,12 +49,20 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
             ],
         )
 
-    update_prospect_status_multi_step(prospect_id=prospect_id, statuses=[new_status])
+    return update_prospect_status_multi_step(
+        prospect_id=prospect_id, statuses=[new_status]
+    )
 
 
 def update_prospect_status_multi_step(prospect_id: int, statuses: list):
+    success = True
     for status in statuses:
-        update_prospect_status_helper(prospect_id=prospect_id, new_status=status)
+        success = (
+            update_prospect_status_helper(prospect_id=prospect_id, new_status=status)
+            and success
+        )
+
+    return success
 
 
 def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
@@ -70,9 +78,7 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
         return True
 
     if p.status not in VALID_FROM_STATUSES_MAP[new_status]:
-        raise Exception(
-            f"Invalid status transition from {p.status} to {ProspectStatus[new_status]}"
-        )
+        raise Exception(f"Invalid status transition from {p.status} to {new_status}")
 
     record: ProspectStatusRecords = ProspectStatusRecords(
         prospect_id=prospect_id,
