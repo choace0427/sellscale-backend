@@ -8,6 +8,7 @@ from src.client.services import (
 from src.automation.services import create_phantom_buster_config
 from src.automation.services import get_all_phantom_busters
 from src.utils.request_helpers import get_request_parameter
+from src.utils.slack import send_slack_message
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
@@ -58,6 +59,6 @@ def handle_phantom_buster_webhook():
         "exitMessage", request, json=True, required=True
     )
 
-    print(agentId, agentName, exitMessage)
+    send_slack_message(" ".join([agentId, agentName, exitMessage]))
 
     return "OK", 200

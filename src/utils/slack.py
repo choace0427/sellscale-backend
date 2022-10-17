@@ -5,7 +5,7 @@ URL_MAP = {
 }
 
 
-def send_slack_message(message: str, blocks: any, channel: str = "eng-sandbox"):
+def send_slack_message(message: str, blocks: any = [], channel: str = "eng-sandbox"):
     webhook = WebhookClient(URL_MAP[channel])
     response = webhook.send(text=message, blocks=blocks)
     return response
