@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, request, jsonify
 from src.client.models import ClientArchetype
 from src.client.services import (
@@ -53,12 +54,8 @@ def get_all_phantom_busters_endpoint():
 
 @AUTOMATION_BLUEPRINT.route("/phantom-buster/webhook", methods=["POST"])
 def handle_phantom_buster_webhook():
-    agentId = get_request_parameter("agentId", request, json=True, required=True)
-    agentName = get_request_parameter("agentName", request, json=True, required=True)
-    exitMessage = get_request_parameter(
-        "exitMessage", request, json=True, required=True
-    )
+    payload = request.get_json()
 
-    send_slack_message(" ".join([agentId, agentName, exitMessage]))
+    send_slack_message(json.dumps(payload))
 
     return "OK", 200
