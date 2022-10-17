@@ -26,7 +26,6 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
 
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
-    new_status = ProspectStatus[new_status]
 
     if (
         current_status == ProspectStatus.SENT_OUTREACH
@@ -70,7 +69,7 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
     if p.status == new_status:
         return True
 
-    if p.status not in VALID_FROM_STATUSES_MAP[ProspectStatus[new_status]]:
+    if p.status not in VALID_FROM_STATUSES_MAP[new_status]:
         raise Exception(
             f"Invalid status transition from {p.status} to {ProspectStatus[new_status]}"
         )

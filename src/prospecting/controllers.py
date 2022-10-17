@@ -81,10 +81,14 @@ def index():
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
 def update_status():
+    from model_import import ProspectStatus
+
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True
     )
-    new_status = get_request_parameter("new_status", request, json=True, required=True)
+    new_status = ProspectStatus[
+        get_request_parameter("new_status", request, json=True, required=True)
+    ]
 
     success = update_prospect_status(prospect_id=prospect_id, new_status=new_status)
 
