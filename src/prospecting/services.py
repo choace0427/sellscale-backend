@@ -22,6 +22,42 @@ def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
 
 
 def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
+    from src.prospecting.models import Prospect, ProspectStatus
+
+    p: Prospect = Prospect.query.get(prospect_id)
+    current_status = p.status
+
+    if (
+        current_status == ProspectStatus.SENT_OUTREACH
+        and new_status == ProspectStatus.RESPONDED
+    ):
+        update_prospect_status_multi_step(
+            prospect_id=prospect_id,
+            statuses=[ProspectStatus.ACCEPTED, ProspectStatus.RESPONDED],
+        )
+
+    if (
+        current_status == ProspectStatus.SENT_OUTREACH
+        and new_status == ProspectStatus.ACTIVE_CONVO
+    ):
+        update_prospect_status_multi_step(
+            prospect_id=prospect_id,
+            statuses=[
+                ProspectStatus.ACCEPTED,
+                ProspectStatus.RESPONDED,
+                ProspectStatus.ACTIVE_CONVO,
+            ],
+        )
+
+    update_prospect_status_multi_step(prospect_id=prospect_id, statuses=[new_status])
+
+
+def update_prospect_status_multi_step(prospect_id: int, statuses: list):
+    for status in statuses:
+        update_prospect_status_helper(prospect_id=prospect_id, new_status=status)
+
+
+def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
     from src.prospecting.models import (
         Prospect,
         ProspectStatusRecords,
