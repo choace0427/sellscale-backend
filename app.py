@@ -7,6 +7,8 @@ from flask_migrate import Migrate
 
 from flask_sqlalchemy import SQLAlchemy
 from src.setup.TimestampedModel import TimestampedModel
+from src.utils.scheduler import *
+
 
 app = Flask(__name__)
 cors = CORS(app)
