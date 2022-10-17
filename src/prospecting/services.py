@@ -26,6 +26,7 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
 
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
+    new_status = ProspectStatus[new_status]
 
     if (
         current_status == ProspectStatus.SENT_OUTREACH
@@ -58,6 +59,7 @@ def update_prospect_status_multi_step(prospect_id: int, statuses: list):
 
 
 def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
+    # Status Mapping here: https://excalidraw.com/#json=u5Ynh702JjSM1BNnffooZ,OcIRq8s0Ev--ACW10UP4vQ
     from src.prospecting.models import (
         Prospect,
         ProspectStatusRecords,
