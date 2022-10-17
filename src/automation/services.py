@@ -61,3 +61,8 @@ def get_all_phantom_busters():
         )
 
     return phantom_map
+
+
+def handle_phantom_buster_webhook(payload: any):
+    print(payload)
+    return True

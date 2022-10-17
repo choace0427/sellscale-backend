@@ -48,3 +48,16 @@ def post_phantom_buster_config():
 def get_all_phantom_busters_endpoint():
     resp = get_all_phantom_busters()
     return jsonify(resp)
+
+
+@AUTOMATION_BLUEPRINT.route("/phantom-buster/webhook", methods=["POST"])
+def handle_phantom_buster_webhook():
+    agentId = get_request_parameter("agentId", request, json=True, required=True)
+    agentName = get_request_parameter("agentName", request, json=True, required=True)
+    exitMessage = get_request_parameter(
+        "exitMessage", request, json=True, required=True
+    )
+
+    print(agentId, agentName, exitMessage)
+
+    return "OK", 200
