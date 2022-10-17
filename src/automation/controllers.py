@@ -50,12 +50,3 @@ def post_phantom_buster_config():
 def get_all_phantom_busters_endpoint():
     resp = get_all_phantom_busters()
     return jsonify(resp)
-
-
-@AUTOMATION_BLUEPRINT.route("/phantom-buster/webhook", methods=["POST"])
-def handle_phantom_buster_webhook():
-    payload = request.get_json()
-
-    send_slack_message(json.dumps(payload))
-
-    return "OK", 200
