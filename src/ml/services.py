@@ -24,11 +24,7 @@ def create_upload_jsonl_file(prompt_completion_dict: any):
         for key in prompt_completion_dict:
 
             sanitized_key = remove_control_characters(
-                key.replace('"', "")
-                .replace("\\n", "")
-                .replace("\n", "")
-                .replace("\r", "")
-                .replace("\\", "")
+                key.replace('"', "").replace("\n", "\\n").replace("\r", "")
             )
             sanitized_value = prompt_completion_dict[key].replace('"', "")
 
