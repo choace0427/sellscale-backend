@@ -6,3 +6,4 @@
 training_set_temp.jsonl
 .gitignore
 *.csv
+*.pyc
