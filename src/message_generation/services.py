@@ -1,6 +1,10 @@
 from src.ml.models import GNLPModelType
 from src.research.models import ResearchPayload, ResearchPoints
-from ..ml.fine_tuned_models import get_completion, get_custom_completion_for_client
+from ..ml.fine_tuned_models import (
+    get_basic_openai_completion,
+    get_completion,
+    get_custom_completion_for_client,
+)
 from ..utils.abstract.attr_utils import deep_get
 import random
 from app import db
@@ -191,6 +195,89 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
 
     for message in messages:
         db.session.delete(message)
+        db.session.commit()
+
+    return True
+
+
+def generate_few_shot_generation_prompt(generated_message_ids: list, prospect_id: int):
+    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
+
+    messages: list = GeneratedMessage.query.filter(
+        GeneratedMessage.id.in_(generated_message_ids)
+    ).all()
+
+    full_prompt = ""
+    for m in messages:
+        gm: GeneratedMessage = m
+        prospect: Prospect = Prospect.query.get(gm.prospect_id)
+        full_name = prospect.full_name
+        research_point_ids: list = gm.research_points
+        research_points: list = random.sample(
+            ResearchPoints.query.filter(
+                ResearchPoints.id.in_(research_point_ids)
+            ).all(),
+            2,
+        )
+
+        prompt = (
+            """name: {name}\nresearch: {research}\nmessage: {message}\n--\n""".format(
+                name=full_name,
+                research=". ".join([x.value.strip() for x in research_points]),
+                message=gm.completion,
+            )
+        )
+        full_prompt += prompt
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    research_payload: ResearchPayload = ResearchPayload.query.filter(
+        ResearchPayload.prospect_id == prospect_id
+    ).first()
+    new_research_points_all: list = ResearchPoints.query.filter(
+        ResearchPoints.research_payload_id == research_payload.id
+    ).all()
+    new_research_points = random.sample(
+        new_research_points_all, min(len(new_research_points_all), 2)
+    )
+
+    new_name = prospect.full_name
+    new_research = ". ".join([x.value.strip() for x in new_research_points])
+
+    full_prompt += """name: {new_name}\nresearch: {new_research}\nmessage:""".format(
+        new_name=new_name, new_research=new_research
+    )
+
+    return full_prompt, [x.id for x in new_research_points]
+
+
+def few_shot_generations(prospect_id: int, example_ids: list, cta_prompt: str = None):
+    from src.research.linkedin.services import get_research_and_bullet_points_new
+    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
+
+    gm: GeneratedMessage = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id == prospect_id
+    ).first()
+    if gm:
+        return
+
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+
+    prompt, research_points = generate_few_shot_generation_prompt(
+        generated_message_ids=example_ids, prospect_id=prospect_id
+    )
+
+    completions = get_basic_openai_completion(prompt=prompt, max_tokens=60, n=4)
+
+    for completion in completions:
+        gm: GeneratedMessage = GeneratedMessage(
+            prospect_id=prospect_id,
+            gnlp_model_id=5,
+            research_points=research_points,
+            prompt=prompt,
+            completion=completion,
+            message_status=GeneratedMessageStatus.DRAFT,
+        )
+        db.session.add(gm)
         db.session.commit()
 
     return True

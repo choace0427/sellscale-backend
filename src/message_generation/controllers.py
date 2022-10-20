@@ -24,6 +24,7 @@ def index():
     # researching prospects
     print("Research prospects ...")
     for prospect_id in tqdm(prospect_ids):
+        print(prospect_id)
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
     # generating messages
@@ -33,6 +34,17 @@ def index():
     )
 
     return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/batch/few_shot", methods=["POST"])
+def batch_few_shot():
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+    example_ids = get_request_parameter(
+        "example_ids", request, json=True, required=True
+    )
+    cta_prompt = get_request_parameter("cta_prompt", request, json=True, required=False)
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["PATCH"])

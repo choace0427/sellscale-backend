@@ -239,7 +239,9 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list):
         if not prospect or not prospect.approved_outreach_message_id:
             continue
 
-        update_prospect_status(prospect_id=prospect.id, new_status="SENT_OUTREACH")
+        update_prospect_status(
+            prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
+        )
 
         message: GeneratedMessage = GeneratedMessage.query.get(
             prospect.approved_outreach_message_id

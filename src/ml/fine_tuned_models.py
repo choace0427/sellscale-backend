@@ -16,6 +16,30 @@ BULLET_MODELS = {
 }
 
 
+def get_basic_openai_completion(prompt, max_tokens: int = 100, n: int = 1):
+    OPENAI_URL = "https://api.openai.com/v1/completions"
+
+    payload = json.dumps(
+        {
+            "model": "text-davinci-002",
+            "prompt": prompt,
+            "n": n,
+            "stop": "XXX",
+            "max_tokens": max_tokens,
+        }
+    )
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {}".format(OPENAI_KEY),
+    }
+
+    raw_response = requests.request(
+        "POST", OPENAI_URL, headers=headers, data=payload
+    ).text
+    response = json.loads(raw_response)
+    return [response["choices"][i]["text"] for i in range(len(response["choices"]))]
+
+
 def get_open_ai_completion(model: str, prompt: str, max_tokens: int = 40, n: int = 1):
     url = "https://api.openai.com/v1/completions"
 
