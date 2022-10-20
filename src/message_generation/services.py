@@ -237,7 +237,7 @@ def generate_few_shot_generation_prompt(generated_message_ids: list, prospect_id
         ResearchPoints.research_payload_id == research_payload.id
     ).all()
     new_research_points = random.sample(
-        new_research_points_all, min(len(new_research_points_all), 2)
+        new_research_points_all, min(len(new_research_points_all), 3)
     )
 
     new_name = prospect.full_name

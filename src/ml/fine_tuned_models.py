@@ -37,7 +37,9 @@ def get_basic_openai_completion(prompt, max_tokens: int = 100, n: int = 1):
         "POST", OPENAI_URL, headers=headers, data=payload
     ).text
     response = json.loads(raw_response)
-    return [response["choices"][i]["text"] for i in range(len(response["choices"]))]
+    return [
+        response["choices"][i]["text"].strip() for i in range(len(response["choices"]))
+    ]
 
 
 def get_open_ai_completion(model: str, prompt: str, max_tokens: int = 40, n: int = 1):
