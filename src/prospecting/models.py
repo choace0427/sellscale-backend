@@ -69,8 +69,13 @@ VALID_FROM_STATUSES_MAP = {
     ProspectStatus.NOT_INTERESTED: [
         ProspectStatus.RESPONDED,
         ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.SCHEDULING,
     ],
-    ProspectStatus.DEMO_SET: [ProspectStatus.RESPONDED, ProspectStatus.ACTIVE_CONVO],
+    ProspectStatus.DEMO_SET: [
+        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.SCHEDULING,
+    ],
     ProspectStatus.DEMO_WON: [ProspectStatus.DEMO_SET],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_SET],
 }
