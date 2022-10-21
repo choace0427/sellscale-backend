@@ -255,3 +255,15 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list):
         updates.append(prospect.id)
 
     return updates
+
+
+def batch_update_prospect_statuses(updates: list):
+    for update in updates:
+        prospect_id = update.get("id")
+        new_status = update.get("status")
+
+        update_prospect_status(
+            prospect_id=prospect_id, new_status=ProspectStatus[new_status]
+        )
+
+    return True

@@ -49,10 +49,9 @@ from model_import import *
 
 @celery.task()
 def add_together(a, b):
-    import time
+    from datetime import datetime
 
-    time.sleep(5)
-    send_slack_message(message="Testing from slack!" + str(a + b))
+    send_slack_message(message="Testing from slack!" + str(datetime.utcnow()))
     return a + b
 
 
@@ -80,7 +79,6 @@ def register_blueprints(app):
 
 @app.route("/")
 def hello():
-    add_together.delay(12, 43)
     return "SellScale API."
 
 

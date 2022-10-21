@@ -14,6 +14,7 @@ from src.client.services import get_client_archetype
 from src.prospecting.clay_run.clay_run_prospector import ClayRunProspector
 from src.prospecting.clay_run.configs import ProspectingConfig
 from src.utils.request_helpers import get_request_parameter
+from src.prospecting.services import batch_update_prospect_statuses
 
 from tqdm import tqdm
 
@@ -139,3 +140,14 @@ def batch_mark_sent():
         )
     )
     return jsonify({"updates": updates})
+
+
+@PROSPECTING_BLUEPRINT.route("/batch_update_status", methods=["POST"])
+def batch_update_status():
+    success = batch_update_prospect_statuses(
+        updates=get_request_parameter("updates", request, json=True, required=True)
+    )
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400
