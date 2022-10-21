@@ -37,7 +37,7 @@ def create_phantom_buster_config(
     return {"phantom_buster_config_id": pb_config.id}
 
 
-def get_all_phantom_busters():
+def get_all_phantom_busters(search_term: str = None):
     headers = {
         "accept": "application/json",
         "X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ",
@@ -48,7 +48,7 @@ def get_all_phantom_busters():
 
     phantom_map = []
     for x in response_json:
-        if "Auto Connect" not in x["name"]:
+        if search_term and search_term not in x["name"]:
             continue
 
         config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
