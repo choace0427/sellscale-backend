@@ -9,8 +9,9 @@ class ProspectStatus(enum.Enum):
     SENT_OUTREACH = "SENT_OUTREACH"
 
     ACCEPTED = "ACCEPTED"
-    RESPONDED = "RESPONDED"
+    RESPONDED = "RESPONDED"  # responded / followed up
     ACTIVE_CONVO = "ACTIVE_CONVO"
+    SCHEDULING = "SCHEDULING"
 
     NOT_INTERESTED = "NOT_INTERESTED"
     DEMO_SET = "DEMO_SET"
@@ -64,6 +65,7 @@ VALID_FROM_STATUSES_MAP = {
     ProspectStatus.ACCEPTED: [ProspectStatus.SENT_OUTREACH],
     ProspectStatus.RESPONDED: [ProspectStatus.ACCEPTED],
     ProspectStatus.ACTIVE_CONVO: [ProspectStatus.RESPONDED],
+    ProspectStatus.SCHEDULING: [ProspectStatus.ACTIVE_CONVO],
     ProspectStatus.NOT_INTERESTED: [
         ProspectStatus.RESPONDED,
         ProspectStatus.ACTIVE_CONVO,
