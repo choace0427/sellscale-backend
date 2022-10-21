@@ -1,5 +1,12 @@
+from email.policy import default
 from app import db
 import sqlalchemy as sa
+import enum
+
+
+class PhantomBusterType(enum.Enum):
+    INBOX_SCRAPER = "INBOX_SCRAPER"
+    OUTBOUND_ENGINE = "OUTBOUND_ENGINE"
 
 
 class PhantomBusterConfig(db.Model):
@@ -9,6 +16,8 @@ class PhantomBusterConfig(db.Model):
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    pb_type = db.Column(db.Enum(PhantomBusterType), nullable=True)
 
     google_sheets_uuid = db.Column(db.String, nullable=True)
 
