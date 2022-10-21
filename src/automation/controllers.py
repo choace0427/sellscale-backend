@@ -74,11 +74,15 @@ def post_inbox_scraper_config():
 
 @AUTOMATION_BLUEPRINT.route("/get-all-phantom-busters", methods=["GET"])
 def get_all_phantom_busters_endpoint():
-    resp = get_all_phantom_busters("Auto Connect")
+    resp = get_all_phantom_busters(
+        pb_type=PhantomBusterType.OUTBOUND_ENGINE, search_term="Auto Connect"
+    )
     return jsonify(resp)
 
 
 @AUTOMATION_BLUEPRINT.route("/get-all-inbox-scrapers", methods=["GET"])
 def get_all_inbox_scrapers_endpoint():
-    resp = get_all_phantom_busters("Inbox Scraper")
+    resp = get_all_phantom_busters(
+        pb_type=PhantomBusterType.INBOX_SCRAPER, search_term="Inbox Scraper"
+    )
     return jsonify(resp)

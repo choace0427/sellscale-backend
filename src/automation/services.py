@@ -37,7 +37,10 @@ def create_phantom_buster_config(
     return {"phantom_buster_config_id": pb_config.id}
 
 
-def get_all_phantom_busters(search_term: str = None):
+def get_all_phantom_busters(
+    pb_type: PhantomBusterType,
+    search_term: str = None,
+):
     headers = {
         "accept": "application/json",
         "X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ",
@@ -53,7 +56,7 @@ def get_all_phantom_busters(search_term: str = None):
 
         config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
             PhantomBusterConfig.phantom_uuid == x["id"],
-            PhantomBusterConfig.pb_type == PhantomBusterType.OUTBOUND_ENGINE,
+            PhantomBusterConfig.pb_type == pb_type,
         ).first()
         phantom_map.append(
             {
