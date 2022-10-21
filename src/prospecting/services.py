@@ -189,6 +189,13 @@ def add_prospect(
         db.session.commit()
 
 
+def find_prospect_by_linkedin_slug(slug: str):
+    prospect: Prospect = Prospect.query.filter(
+        Prospect.linkedin_url.like(f"%{slug}%")
+    ).first()
+    return prospect
+
+
 def get_linkedin_slug_from_url(url: str):
     try:
         split = url.split("/in/")

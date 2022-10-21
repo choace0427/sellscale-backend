@@ -11,6 +11,7 @@ from src.automation.services import create_phantom_buster_config
 from src.automation.services import get_all_phantom_busters
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message
+from src.automation.inbox_scraper import scrape_inbox
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
@@ -85,4 +86,13 @@ def get_all_inbox_scrapers_endpoint():
     resp = get_all_phantom_busters(
         pb_type=PhantomBusterType.INBOX_SCRAPER, search_term="Inbox Scraper"
     )
+    return jsonify(resp)
+
+
+@AUTOMATION_BLUEPRINT.route("/scrape_inbox", methods=["GET"])
+def scrape_inbox_from_client_sdr_id():
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=False, required=True
+    )
+    resp = scrape_inbox(client_sdr_id=client_sdr_id)
     return jsonify(resp)
