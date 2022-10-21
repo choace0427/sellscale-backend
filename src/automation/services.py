@@ -46,6 +46,9 @@ def get_all_phantom_busters():
 
     phantom_map = []
     for x in response_json:
+        if "Auto Connect" not in x["name"]:
+            continue
+
         config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
             PhantomBusterConfig.phantom_uuid == x["id"],
             PhantomBusterConfig.pb_type == PhantomBusterType.OUTBOUND_ENGINE,
