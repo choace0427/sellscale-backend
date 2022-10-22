@@ -1,4 +1,6 @@
 from src.automation.models import PhantomBusterType, PhantomBusterConfig
+from model_import import ProspectStatus, Prospect
+from src.utils.slack import send_slack_message
 import requests
 import json
 import os
@@ -6,6 +8,7 @@ from src.prospecting.services import (
     get_linkedin_slug_from_url,
     find_prospect_by_linkedin_slug,
 )
+from src.prospecting.services import update_prospect_status
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 
@@ -65,7 +68,7 @@ def process_inbox(message_payload):
     """
     for message in message_payload:
         is_group_message = len(message["linkedInUrls"]) > 1
-        isLastMessageFromMe = message["isLastMessageFromMe"]
+        is_last_message_from = message["isLastMessageFromMe"]
         recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
         last_message = message["message"]
 
@@ -74,7 +77,92 @@ def process_inbox(message_payload):
         if is_group_message or not prospect:
             continue
 
-        print(prospect)
+        if prospect.status == ProspectStatus.SENT_OUTREACH and is_last_message_from:
+            send_slack_block(
+                message_suffix=" accepted your invite! 😀",
+                prospect=prospect,
+                new_status=ProspectStatus.ACCEPTED,
+                li_message_payload=message,
+            )
+        elif (
+            prospect.status == ProspectStatus.SENT_OUTREACH and not is_last_message_from
+        ):
+            send_slack_block(
+                message_suffix=" responded to your outreach! 🙌🏽",
+                prospect=prospect,
+                new_status=ProspectStatus.ACTIVE_CONVO,
+                li_message_payload=message,
+            )
+        elif (
+            prospect.status == ProspectStatus.ACTIVE_CONVO and not is_last_message_from
+        ):
+            send_slack_block(
+                message_suffix=" sent you a follow up 👀",
+                prospect=prospect,
+                li_message_payload=message,
+            )
+
+
+def send_slack_block(
+    message_suffix: str,
+    prospect: Prospect,
+    li_message_payload: any,
+    new_status: ProspectStatus = None,
+):
+    send_slack_message(
+        message=prospect.full_name + message_suffix,
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": prospect.full_name + message_suffix,
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Company:*\n<{link}|{name}>".format(
+                            link=prospect.company_url, name=prospect.company
+                        ),
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Title:*\n{}".format(prospect.title),
+                    },
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Last Message*\n{}".format(li_message_payload["message"]),
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Conversation Thread",
+                        },
+                        "style": "primary",
+                        "value": li_message_payload["threadUrl"],
+                    },
+                ],
+            },
+        ],
+    )
+
+    # if new_status:
+    #   update_prospect_status(
+    #         prospect_id=prospect.id, new_status=new_status
+    #   )
 
 
 def scrape_inbox(client_sdr_id: int):
@@ -93,4 +181,6 @@ def scrape_inbox(client_sdr_id: int):
         s3Folder=s3Folder, orgS3Folder=orgS3Folder
     )
 
-    return data_payload
+    process_inbox(message_payload=data_payload)
+
+    return True
