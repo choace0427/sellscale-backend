@@ -152,7 +152,7 @@ def send_slack_block(
                     "text": {
                         "type": "View LI Conversation Thread",
                         "text": "Thread",
-                        "emoji": true,
+                        "emoji": True,
                     },
                     "value": li_message_payload["threadUrl"],
                     "url": li_message_payload["threadUrl"],
