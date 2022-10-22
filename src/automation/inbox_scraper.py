@@ -113,10 +113,11 @@ def send_slack_block(
         message=prospect.full_name + message_suffix,
         blocks=[
             {
-                "type": "section",
+                "type": "header",
                 "text": {
-                    "type": "mrkdwn",
+                    "type": "plain_text",
                     "text": prospect.full_name + message_suffix,
+                    "emoji": True,
                 },
             },
             {
@@ -159,6 +160,7 @@ def send_slack_block(
                     "action_id": "button-action",
                 },
             },
+            {"type": "divider"},
         ],
     )
 
