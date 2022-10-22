@@ -145,12 +145,12 @@ def send_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "This is a section block with a button.",
+                    "text": "View Linkedin conversation thread",
                 },
                 "accessory": {
                     "type": "button",
                     "text": {
-                        "type": "View LI Conversation Thread",
+                        "type": "plain_text",
                         "text": "Thread",
                         "emoji": True,
                     },
