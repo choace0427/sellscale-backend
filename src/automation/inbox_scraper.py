@@ -142,19 +142,22 @@ def send_slack_block(
                 },
             },
             {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Conversation Thread",
-                        },
-                        "style": "primary",
-                        "value": li_message_payload["threadUrl"],
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "This is a section block with a button.",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "View LI Conversation Thread",
+                        "text": "Thread",
+                        "emoji": true,
                     },
-                ],
+                    "value": li_message_payload["threadUrl"],
+                    "url": li_message_payload["threadUrl"],
+                    "action_id": "button-action",
+                },
             },
         ],
     )
