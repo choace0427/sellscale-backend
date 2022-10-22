@@ -1,5 +1,5 @@
 from src.automation.models import PhantomBusterType, PhantomBusterConfig
-from model_import import ProspectStatus, Prospect
+from model_import import ProspectStatus, Prospect, Client, ClientSDR
 from src.utils.slack import send_slack_message
 import requests
 import json
@@ -47,7 +47,7 @@ def get_phantom_buster_payload(s3Folder, orgS3Folder):
     return json.loads(response.text)
 
 
-def process_inbox(message_payload):
+def process_inbox(message_payload, client_id):
     """
      data_payload = [{
         "firstnameFrom": "Zaheer",
@@ -72,7 +72,9 @@ def process_inbox(message_payload):
         recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
         last_message = message["message"]
 
-        prospect: Prospect = find_prospect_by_linkedin_slug(recipient)
+        prospect: Prospect = find_prospect_by_linkedin_slug(
+            recipient, client_id=client_id
+        )
 
         if is_group_message or not prospect:
             continue
@@ -109,8 +111,10 @@ def send_slack_block(
     li_message_payload: any,
     new_status: ProspectStatus = None,
 ):
+    client: Client = Client.query.get(prospect.client_id)
+
     send_slack_message(
-        message=prospect.full_name + message_suffix,
+        message=prospect.full_name + message_suffix + " `" + new_status.value + "`",
         blocks=[
             {
                 "type": "header",
@@ -122,16 +126,30 @@ def send_slack_block(
             },
             {
                 "type": "section",
-                "fields": [
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Title:* {}".format(prospect.title),
+                },
+            },
+            # {
+            #     "type": "section",
+            #     "text": {
+            #         "type": "mrkdwn",
+            #         "text": "*Last Message* {}".format(li_message_payload["message"]),
+            #     },
+            # },
+            {
+                "type": "context",
+                "elements": [
                     {
-                        "type": "mrkdwn",
-                        "text": "*Company:*\n<{link}|{name}>".format(
-                            link=prospect.company_url, name=prospect.company
-                        ),
+                        "type": "plain_text",
+                        "text": "👣 SDR: <INSERT HERE>",
+                        "emoji": True,
                     },
                     {
-                        "type": "mrkdwn",
-                        "text": "*Title:*\n{}".format(prospect.title),
+                        "type": "plain_text",
+                        "text": "🧳 SellScale Client: {}".format(client.company),
+                        "emoji": True,
                     },
                 ],
             },
@@ -139,20 +157,13 @@ def send_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Last Message*\n{}".format(li_message_payload["message"]),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "View Linkedin conversation thread",
+                    "text": "Next steps: Respond on Linkedin conversation thread",
                 },
                 "accessory": {
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": "Thread",
+                        "text": "Click to see Linkedin Thread",
                         "emoji": True,
                     },
                     "value": li_message_payload["threadUrl"],
@@ -172,6 +183,9 @@ def send_slack_block(
 
 def scrape_inbox(client_sdr_id: int):
     """Scrape the inbox of a client on Linkedin"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
     pb_config = get_inbox_scraper_config(client_sdr_id=client_sdr_id)
     if not pb_config:
         raise Exception(
@@ -186,6 +200,6 @@ def scrape_inbox(client_sdr_id: int):
         s3Folder=s3Folder, orgS3Folder=orgS3Folder
     )
 
-    process_inbox(message_payload=data_payload)
+    process_inbox(message_payload=data_payload, client_id=client_id)
 
     return True
