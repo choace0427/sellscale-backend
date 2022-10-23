@@ -24,7 +24,7 @@ def generate_prompt(linkedin_payload: any, notes: str = ""):
         "notes": notes,
         "cleaned_bio": deep_get(linkedin_payload, "personal.summary"),
     }
-    prompt = "name: {full_name}<>industry: {industry}<>company: {company}<>title: {title}<>notes: {notes}<>bio: {cleaned_bio}<>response:".format(
+    prompt = "name: {full_name}<>industry: {industry}<>company: {company}<>title: {title}<>notes: {notes}<>response:".format(
         **bio_data
     )
 

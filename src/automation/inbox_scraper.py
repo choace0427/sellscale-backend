@@ -114,7 +114,7 @@ def send_slack_block(
     client: Client = Client.query.get(prospect.client_id)
 
     send_slack_message(
-        message=prospect.full_name + message_suffix + " `" + new_status.value + "`",
+        message=prospect.full_name + message_suffix,
         blocks=[
             {
                 "type": "header",

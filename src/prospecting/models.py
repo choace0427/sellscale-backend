@@ -44,6 +44,7 @@ class Prospect(db.Model):
     approved_outreach_message_id = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")
     )
+    # todo(Aakash) add which client sdr is responsible for this prospect
 
 
 class ProspectStatusRecords(db.Model):
