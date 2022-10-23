@@ -5,7 +5,7 @@ from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.message_generation.services import (
     approve_message,
     delete_message,
-    generate_outreaches_for_batch_of_prospects,
+    research_and_generate_outreaches_for_prospect,
     update_message,
 )
 from src.utils.request_helpers import get_request_parameter
@@ -21,16 +21,8 @@ def index():
     )
     cta_prompt = get_request_parameter("cta_prompt", request, json=True, required=False)
 
-    # researching prospects
-    print("Research prospects ...")
-    for prospect_id in tqdm(prospect_ids):
-        print(prospect_id)
-        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-
-    # generating messages
-    print("Generated messages ...")
-    generate_outreaches_for_batch_of_prospects(
-        prospect_list=prospect_ids, cta_prompt=cta_prompt
+    research_and_generate_outreaches_for_prospect(
+        prospect_ids=prospect_ids, cta_prompt=cta_prompt
     )
 
     return "OK", 200
@@ -45,6 +37,8 @@ def batch_few_shot():
         "example_ids", request, json=True, required=True
     )
     cta_prompt = get_request_parameter("cta_prompt", request, json=True, required=False)
+
+    # todo(Aakash): implement this
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["PATCH"])

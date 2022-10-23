@@ -11,6 +11,28 @@ from app import db
 from tqdm import tqdm
 
 
+def research_and_generate_outreaches_for_prospect_list(
+    prospect_ids: list, cta_prompt: str = None
+):
+    for prospect_id in tqdm(prospect_ids):
+        research_and_generate_outreaches_for_prospect(
+            prospect_id=prospect_id, cta_prompt=cta_prompt
+        )
+
+    return True
+
+
+def research_and_generate_outreaches_for_prospect(
+    prospect_id: int, cta_prompt: str = None
+):
+    from src.research.linkedin.services import get_research_and_bullet_points_new
+
+    get_research_and_bullet_points_new(prospect_id)
+    generate_outreaches_for_batch_of_prospects(
+        prospect_list=[prospect_id], cta_prompt=cta_prompt
+    )
+
+
 def generate_prompt(linkedin_payload: any, notes: str = ""):
     bio_data = {
         "full_name": deep_get(linkedin_payload, "personal.first_name")
