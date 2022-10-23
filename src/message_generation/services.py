@@ -7,7 +7,7 @@ from ..ml.fine_tuned_models import (
 )
 from ..utils.abstract.attr_utils import deep_get
 import random
-from app import db
+from app import db, celery
 from tqdm import tqdm
 
 
@@ -15,13 +15,14 @@ def research_and_generate_outreaches_for_prospect_list(
     prospect_ids: list, cta_prompt: str = None
 ):
     for prospect_id in tqdm(prospect_ids):
-        research_and_generate_outreaches_for_prospect(
+        research_and_generate_outreaches_for_prospect.delay(
             prospect_id=prospect_id, cta_prompt=cta_prompt
         )
 
     return True
 
 
+@celery.task
 def research_and_generate_outreaches_for_prospect(
     prospect_id: int, cta_prompt: str = None
 ):
