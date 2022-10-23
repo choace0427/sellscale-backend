@@ -1,7 +1,6 @@
 from app import db
 
 from flask import Blueprint, request, jsonify
-from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.message_generation.services import (
     approve_message,
     delete_message,
