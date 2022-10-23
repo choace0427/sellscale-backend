@@ -5,7 +5,7 @@ from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.message_generation.services import (
     approve_message,
     delete_message,
-    research_and_generate_outreaches_for_prospect,
+    research_and_generate_outreaches_for_prospect_list,
     update_message,
 )
 from src.utils.request_helpers import get_request_parameter
@@ -21,7 +21,7 @@ def index():
     )
     cta_prompt = get_request_parameter("cta_prompt", request, json=True, required=False)
 
-    research_and_generate_outreaches_for_prospect(
+    research_and_generate_outreaches_for_prospect_list(
         prospect_ids=prospect_ids, cta_prompt=cta_prompt
     )
 
