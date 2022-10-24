@@ -95,14 +95,6 @@ def process_inbox(message_payload, client_id):
                 new_status=ProspectStatus.ACTIVE_CONVO,
                 li_message_payload=message,
             )
-        elif (
-            prospect.status == ProspectStatus.ACTIVE_CONVO and not is_last_message_from
-        ):
-            send_slack_block(
-                message_suffix=" sent you a follow up 👀",
-                prospect=prospect,
-                li_message_payload=message,
-            )
 
 
 def send_slack_block(
@@ -120,7 +112,10 @@ def send_slack_block(
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": prospect.full_name + message_suffix,
+                    "text": prospect.full_name
+                    + "#"
+                    + str(prospect.id)
+                    + message_suffix,
                     "emoji": True,
                 },
             },
@@ -131,13 +126,6 @@ def send_slack_block(
                     "text": "*Title:* {}".format(prospect.title),
                 },
             },
-            # {
-            #     "type": "section",
-            #     "text": {
-            #         "type": "mrkdwn",
-            #         "text": "*Last Message* {}".format(li_message_payload["message"]),
-            #     },
-            # },
             {
                 "type": "context",
                 "elements": [
@@ -175,10 +163,8 @@ def send_slack_block(
         ],
     )
 
-    # if new_status:
-    #   update_prospect_status(
-    #         prospect_id=prospect.id, new_status=new_status
-    #   )
+    if new_status:
+        update_prospect_status(prospect_id=prospect.id, new_status=new_status)
 
 
 def scrape_inbox(client_sdr_id: int):
