@@ -67,34 +67,38 @@ def process_inbox(message_payload, client_id):
     ...]
     """
     for message in message_payload:
-        is_group_message = len(message["linkedInUrls"]) > 1
-        is_last_message_from = message["isLastMessageFromMe"]
-        recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
-        last_message = message["message"]
+        try:
+            is_group_message = len(message["linkedInUrls"]) > 1
+            is_last_message_from = message["isLastMessageFromMe"]
+            recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
+            last_message = message["message"]
 
-        prospect: Prospect = find_prospect_by_linkedin_slug(
-            recipient, client_id=client_id
-        )
+            prospect: Prospect = find_prospect_by_linkedin_slug(
+                recipient, client_id=client_id
+            )
 
-        if is_group_message or not prospect:
+            if is_group_message or not prospect:
+                continue
+
+            if prospect.status == ProspectStatus.SENT_OUTREACH and is_last_message_from:
+                send_slack_block(
+                    message_suffix=" accepted your invite! 😀",
+                    prospect=prospect,
+                    new_status=ProspectStatus.ACCEPTED,
+                    li_message_payload=message,
+                )
+            elif (
+                prospect.status == ProspectStatus.SENT_OUTREACH
+                and not is_last_message_from
+            ):
+                send_slack_block(
+                    message_suffix=" responded to your outreach! 🙌🏽",
+                    prospect=prospect,
+                    new_status=ProspectStatus.ACTIVE_CONVO,
+                    li_message_payload=message,
+                )
+        except:
             continue
-
-        if prospect.status == ProspectStatus.SENT_OUTREACH and is_last_message_from:
-            send_slack_block(
-                message_suffix=" accepted your invite! 😀",
-                prospect=prospect,
-                new_status=ProspectStatus.ACCEPTED,
-                li_message_payload=message,
-            )
-        elif (
-            prospect.status == ProspectStatus.SENT_OUTREACH and not is_last_message_from
-        ):
-            send_slack_block(
-                message_suffix=" responded to your outreach! 🙌🏽",
-                prospect=prospect,
-                new_status=ProspectStatus.ACTIVE_CONVO,
-                li_message_payload=message,
-            )
 
 
 def send_slack_block(
