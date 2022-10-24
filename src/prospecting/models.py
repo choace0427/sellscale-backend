@@ -46,6 +46,7 @@ class Prospect(db.Model):
     )
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    li_conversation_thread_id = db.Column(db.String, nullable=True)
     # todo(Aakash) add which client sdr is responsible for this prospect
 
 
