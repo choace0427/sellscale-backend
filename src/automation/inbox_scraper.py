@@ -73,15 +73,17 @@ def process_inbox(message_payload, client_id):
             is_group_message = len(message["linkedInUrls"]) > 1
             is_last_message_from = message["isLastMessageFromMe"]
             thread_url = message["threadUrl"]
+            li_last_message_timestamp = message["timestamp"]
             recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
 
             prospect: Prospect = find_prospect_by_linkedin_slug(
                 recipient, client_id=client_id
             )
-            if not prospect.li_conversation_thread_id:
-                prospect.li_conversation_thread_id = thread_url
-                db.session.add(prospect)
-                db.session.commit()
+            prospect.li_conversation_thread_id = thread_url
+            prospect.li_is_last_message_from_sdr = is_last_message_from
+            prospect.li_last_message_timestamp = li_last_message_timestamp
+            db.session.add(prospect)
+            db.session.commit()
 
             if is_group_message or not prospect:
                 continue

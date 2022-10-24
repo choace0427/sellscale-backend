@@ -47,7 +47,8 @@ class Prospect(db.Model):
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     li_conversation_thread_id = db.Column(db.String, nullable=True)
-    # todo(Aakash) add which client sdr is responsible for this prospect
+    li_last_message_timestamp = db.Column(db.DateTime, nullable=True)
+    li_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
 
 
 class ProspectStatusRecords(db.Model):
