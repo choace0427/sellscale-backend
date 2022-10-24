@@ -204,4 +204,4 @@ def scrape_inbox(client_sdr_id: int):
 def scrape_all_inboxes():
     client_sdr_ids = [x.id for x in ClientSDR.query.all()]
     for cs_id in tqdm(client_sdr_ids):
-        scrape_all_inboxes(client_sdr_id=cs_id)
+        scrape_inbox(client_sdr_id=cs_id)
