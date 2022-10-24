@@ -9,6 +9,8 @@ from src.prospecting.services import (
     find_prospect_by_linkedin_slug,
 )
 from src.prospecting.services import update_prospect_status
+from tqdm import tqdm
+from app import celery
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 
@@ -174,13 +176,13 @@ def send_slack_block(
 def scrape_inbox(client_sdr_id: int):
     """Scrape the inbox of a client on Linkedin"""
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False
     client_id = client_sdr.client_id
 
     pb_config = get_inbox_scraper_config(client_sdr_id=client_sdr_id)
     if not pb_config:
-        raise Exception(
-            "No inbox scraper config found for client #{}".format(client_sdr_id)
-        )
+        return False
 
     agent = get_phantom_buster_agent(config=pb_config)
     s3Folder = agent["s3Folder"]
@@ -191,5 +193,11 @@ def scrape_inbox(client_sdr_id: int):
     )
 
     process_inbox(message_payload=data_payload, client_id=client_id)
-
     return True
+
+
+@celery.task
+def scrape_all_inboxes():
+    client_sdr_ids = [x.id for x in ClientSDR.query.all()]
+    for cs_id in tqdm(client_sdr_ids):
+        scrape_all_inboxes(client_sdr_id=cs_id)
