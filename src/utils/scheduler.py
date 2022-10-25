@@ -12,11 +12,6 @@ def scrape_all_inboxes_job():
     from src.automation.inbox_scraper import scrape_all_inboxes
 
     scrape_all_inboxes.delay()
-    send_slack_message(
-        "📨 Scraped all the inboxes at {}".format(
-            time.strftime("%A, %d. %B %Y %I:%M:%S %p")
-        )
-    )
 
 
 if ENV == "production":
