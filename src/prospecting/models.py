@@ -50,6 +50,8 @@ class Prospect(db.Model):
     li_last_message_timestamp = db.Column(db.DateTime, nullable=True)
     li_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
 
+    last_reviewed = db.Column(db.DateTime, nullable=True)
+
 
 class ProspectStatusRecords(db.Model):
     __tablename__ = "prospect_status_records"

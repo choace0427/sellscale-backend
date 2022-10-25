@@ -330,7 +330,7 @@ def batch_update_prospect_statuses(updates: list):
 
 def mark_prospect_reengagement(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
-    prospect.li_last_message_timestamp = datetime.now()
+    prospect.last_reviewed = datetime.now()
     db.session.add(prospect)
     db.session.commit()
 
