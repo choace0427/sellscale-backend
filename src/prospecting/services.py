@@ -326,3 +326,12 @@ def batch_update_prospect_statuses(updates: list):
         )
 
     return True
+
+
+def mark_prospect_reengagement(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.updated_at = datetime.now()
+    db.session.add(prospect)
+    db.session.commit()
+
+    return True

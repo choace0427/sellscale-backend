@@ -14,7 +14,10 @@ from src.client.services import get_client_archetype
 from src.prospecting.clay_run.clay_run_prospector import ClayRunProspector
 from src.prospecting.clay_run.configs import ProspectingConfig
 from src.utils.request_helpers import get_request_parameter
-from src.prospecting.services import batch_update_prospect_statuses
+from src.prospecting.services import (
+    batch_update_prospect_statuses,
+    mark_prospect_reengagement,
+)
 
 from tqdm import tqdm
 
@@ -150,4 +153,15 @@ def batch_update_status():
     if success:
         return "OK", 200
 
+    return "Failed to update", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/mark_reengagement", methods=["POST"])
+def mark_reengagement():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    success = mark_prospect_reengagement(prospect_id=prospect_id)
+    if success:
+        return "OK", 200
     return "Failed to update", 400
