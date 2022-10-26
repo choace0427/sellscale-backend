@@ -5,6 +5,12 @@ from app import db
 from src.prospecting.models import *
 
 
+def get_all_latest_week_benchmarks_for_clients():
+    clients: list = Client.query.filter(Client.active == True, Client.id != 1).all()
+
+    return [get_li_message_benchmarks_for_client(client.id)[-1] for client in clients]
+
+
 def get_li_message_benchmarks_for_client(client_id: int):
     updates = []
 
@@ -129,6 +135,8 @@ def get_li_message_benchmarks_for_client(client_id: int):
 
         updates.append(
             {
+                "client_name": client.company,
+                "client_id": client.id,
                 "interval_start": interval_start,
                 "interval_end": interval_end,
                 "generated": unique_prospects_generated_count,
