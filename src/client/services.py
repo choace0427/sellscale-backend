@@ -12,7 +12,10 @@ def create_client(company: str, contact_name: str, contact_email: str):
     from model_import import Client
 
     c: Client = Client(
-        company=company, contact_name=contact_name, contact_email=contact_email
+        company=company,
+        contact_name=contact_name,
+        contact_email=contact_email,
+        active=True,
     )
     db.session.add(c)
     db.session.commit()
