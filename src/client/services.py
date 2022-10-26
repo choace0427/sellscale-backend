@@ -58,7 +58,9 @@ def create_client_sdr(client_id: int, name: str, email: str):
     if not c:
         return None
 
-    sdr = ClientSDR(client_id=client_id, name=name, email=email)
+    sdr = ClientSDR(
+        client_id=client_id, name=name, email=email, weekly_li_outbound_target=100
+    )
     db.session.add(sdr)
     db.session.commit()
 
