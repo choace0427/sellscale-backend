@@ -38,6 +38,7 @@ def get_li_message_benchmarks_for_client(client_id: int):
                 GeneratedMessage.created_at < interval_end,
                 Prospect.approved_outreach_message_id != None,
                 Prospect.client_id == client.id,
+                Prospect.status != ProspectStatus.NOT_QUALIFIED,
             )
             .distinct(GeneratedMessage.prospect_id)
             .count()
