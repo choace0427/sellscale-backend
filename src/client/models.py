@@ -12,6 +12,8 @@ class Client(db.Model):
     contact_name = db.Column(db.String)
     contact_email = db.Column(db.String)
 
+    active = db.Column(db.Boolean, nullable=True)
+
 
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"
