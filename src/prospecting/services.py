@@ -4,7 +4,7 @@ from src.message_generation.models import GeneratedMessage, GeneratedMessageStat
 from src.client.models import Client, ClientArchetype
 from src.research.linkedin.services import research_personal_profile_details
 from src.prospecting.models import Prospect, ProspectStatus
-from app import db
+from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
 
@@ -320,31 +320,41 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int
     updates = []
 
     for p in prospects:
-        prospect: Prospect = p
+        prospect_id = p.id
 
-        prospect.client_sdr_id = client_sdr_id
-        db.session.add(p)
-        db.session.commit()
-
-        if not prospect or not prospect.approved_outreach_message_id:
-            continue
-
-        update_prospect_status(
-            prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
+        match_prospect_as_sent_outreach.delay(
+            prospect_id=prospect_id,
+            client_sdr_id=client_sdr_id,
         )
 
-        message: GeneratedMessage = GeneratedMessage.query.get(
-            prospect.approved_outreach_message_id
-        )
-        message.message_status = GeneratedMessageStatus.SENT
-        message.date_sent = datetime.now()
-        db.session.add(message)
-
-        db.session.commit()
-
-        updates.append(prospect.id)
+        updates.append(prospect_id)
 
     return updates
+
+
+@celery.task
+def match_prospect_as_sent_outreach(prospect_id: int, client_sdr_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    prospect.client_sdr_id = client_sdr_id
+    db.session.add(p)
+    db.session.commit()
+
+    if not prospect or not prospect.approved_outreach_message_id:
+        return
+
+    update_prospect_status(
+        prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
+    )
+
+    message: GeneratedMessage = GeneratedMessage.query.get(
+        prospect.approved_outreach_message_id
+    )
+    message.message_status = GeneratedMessageStatus.SENT
+    message.date_sent = datetime.now()
+    db.session.add(message)
+
+    db.session.commit()
 
 
 def batch_update_prospect_statuses(updates: list):
