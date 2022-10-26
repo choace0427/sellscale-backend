@@ -18,6 +18,20 @@ def get_all_latest_week_benchmarks_for_clients():
     return latest_benchmarks
 
 
+def get_weekly_client_sdr_outbound_goal_map():
+    results = db.session.execute(
+        """
+        select client_sdr.id, sum(client_sdr.weekly_li_outbound_target) from client_sdr group by 1;
+    """
+    ).fetchall()
+
+    outbound_goal_map = {}
+    for res in results:
+        outbound_goal_map[res[0]] = res[1]
+
+    return outbound_goal_map
+
+
 def get_li_message_benchmarks_for_client(client_id: int):
     updates = []
 
@@ -143,12 +157,15 @@ def get_li_message_benchmarks_for_client(client_id: int):
             .count()
         )
 
+        weekly_targets = get_weekly_client_sdr_outbound_goal_map()
+
         updates.append(
             {
                 "client_name": client.company,
                 "client_id": client.id,
                 "interval_start": interval_start,
                 "interval_end": interval_end,
+                "weekly_target": weekly_targets.get(client.id, -1),
                 "generated": unique_prospects_generated_count,
                 "edited": unique_prospects_edited,
                 "sent": unique_prospects_sent_count,
