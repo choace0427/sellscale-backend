@@ -38,3 +38,5 @@ class ClientSDR(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     name = db.Column(db.String)
     email = db.Column(db.String)
+
+    weekly_li_outbound_target = db.Column(db.Integer, nullable=True)
