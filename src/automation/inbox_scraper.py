@@ -1,6 +1,5 @@
 from src.automation.models import PhantomBusterType, PhantomBusterConfig
-from model_import import ProspectStatus, Prospect, Client, ClientSDR
-from src.utils.slack import send_slack_message
+from model_import import ProspectStatus, Prospect, ClientSDR
 import requests
 import json
 import os
@@ -8,9 +7,10 @@ from src.prospecting.services import (
     get_linkedin_slug_from_url,
     find_prospect_by_linkedin_slug,
 )
-from src.prospecting.services import update_prospect_status
 from tqdm import tqdm
 from app import celery, db
+from src.automation.slack_notification import send_slack_block
+from src.prospecting.services import update_prospect_status
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 
@@ -95,9 +95,17 @@ def process_inbox(message_payload, client_id):
                     new_status=ProspectStatus.ACCEPTED,
                     li_message_payload=message,
                 )
+                update_prospect_status(
+                    prospect_id=prospect.id, new_status=ProspectStatus.ACCEPTED
+                )
+
             elif (
                 prospect.status
-                in (ProspectStatus.SENT_OUTREACH, ProspectStatus.RESPONDED)
+                in (
+                    ProspectStatus.SENT_OUTREACH,
+                    ProspectStatus.ACCEPTED,
+                    ProspectStatus.RESPONDED,
+                )
                 and not is_last_message_from
             ):
                 send_slack_block(
@@ -106,78 +114,11 @@ def process_inbox(message_payload, client_id):
                     new_status=ProspectStatus.ACTIVE_CONVO,
                     li_message_payload=message,
                 )
+                update_prospect_status(
+                    prospect_id=prospect.id, new_status=ProspectStatus.ACTIVE_CONVO
+                )
         except:
             continue
-
-
-def send_slack_block(
-    message_suffix: str,
-    prospect: Prospect,
-    li_message_payload: any,
-    new_status: ProspectStatus = None,
-):
-    client: Client = Client.query.get(prospect.client_id)
-
-    send_slack_message(
-        message=prospect.full_name + message_suffix,
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": prospect.full_name
-                    + "#"
-                    + str(prospect.id)
-                    + message_suffix,
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Title:* {}".format(prospect.title),
-                },
-            },
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "plain_text",
-                        "text": "👣 SDR: <INSERT HERE>",
-                        "emoji": True,
-                    },
-                    {
-                        "type": "plain_text",
-                        "text": "🧳 SellScale Client: {}".format(client.company),
-                        "emoji": True,
-                    },
-                ],
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Next steps: Respond on Linkedin conversation thread",
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Click to see Linkedin Thread",
-                        "emoji": True,
-                    },
-                    "value": li_message_payload["threadUrl"],
-                    "url": li_message_payload["threadUrl"],
-                    "action_id": "button-action",
-                },
-            },
-            {"type": "divider"},
-        ],
-    )
-
-    if new_status:
-        update_prospect_status(prospect_id=prospect.id, new_status=new_status)
 
 
 def scrape_inbox(client_sdr_id: int):

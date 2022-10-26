@@ -23,10 +23,28 @@ def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
 
 def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
     from src.prospecting.models import Prospect, ProspectStatus
+    from src.automation.slack_notification import send_slack_block
 
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
 
+    # notifications
+    if new_status == ProspectStatus.SCHEDULING:
+        send_slack_block(
+            message_suffix=" is scheduling! 🙏🔥",
+            prospect=p,
+            new_status=ProspectStatus.SCHEDULING,
+            li_message_payload={"threadUrl": p.li_conversation_thread_id},
+        )
+    elif new_status == ProspectStatus.DEMO_SET:
+        send_slack_block(
+            message_suffix=" set a time to demo!! 🎉🎉🎉",
+            prospect=p,
+            new_status=ProspectStatus.DEMO_SET,
+            li_message_payload={"threadUrl": p.li_conversation_thread_id},
+        )
+
+    # status jumps
     if (
         current_status == ProspectStatus.SENT_OUTREACH
         and new_status == ProspectStatus.RESPONDED
