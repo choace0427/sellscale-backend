@@ -96,7 +96,8 @@ def process_inbox(message_payload, client_id):
                     li_message_payload=message,
                 )
             elif (
-                prospect.status == ProspectStatus.SENT_OUTREACH
+                prospect.status
+                in (ProspectStatus.SENT_OUTREACH, ProspectStatus.RESPONDED)
                 and not is_last_message_from
             ):
                 send_slack_block(

@@ -1,0 +1,28 @@
+{
+  "restoreTerminals.terminals": [
+    {
+      "splitTerminals": [
+        {
+          "name": "redis",
+          "color": "red",
+          "commands": ["source .env && redis"]
+        },
+        {
+          "name": "celery",
+          "color": "green",
+          "commands": ["source .env && celery"]
+        },
+        {
+          "name": "server",
+          "color": "blue",
+          "commands": ["source .env && server"]
+        },
+        {
+          "name": "ssh",
+          "color": "yellow",
+          "commands": ["ssh srv-ccu9hol3t398coe8gggg@ssh.oregon.render.com"]
+        }
+      ]
+    }
+  ]
+}
