@@ -9,9 +9,6 @@ def send_slack_block(
     li_message_payload: any,
     new_status: ProspectStatus = None,
 ):
-    import pdb
-
-    pdb.set_trace()
     client: Client = Client.query.get(prospect.client_id)
 
     send_slack_message(
