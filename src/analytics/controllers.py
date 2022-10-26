@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
 from src.utils.request_helpers import get_request_parameter
-from src.analytics.services import get_li_message_benchmarks_for_client
+from src.analytics.services import (
+    get_li_message_benchmarks_for_client,
+    get_all_latest_week_benchmarks_for_clients,
+)
 
 ANALYTICS_BLUEPRINT = Blueprint("analytics", __name__)
 
@@ -8,6 +11,12 @@ ANALYTICS_BLUEPRINT = Blueprint("analytics", __name__)
 @ANALYTICS_BLUEPRINT.route("/")
 def index():
     return "OK", 200
+
+
+@ANALYTICS_BLUEPRINT.route("/latest_weeks_benchmarks", methods=["GET"])
+def get_latest_weeks_benchmarks():
+    benchmarks = get_all_latest_week_benchmarks_for_clients()
+    return jsonify(benchmarks)
 
 
 @ANALYTICS_BLUEPRINT.route("/weekly_li_benchmarks", methods=["GET"])
