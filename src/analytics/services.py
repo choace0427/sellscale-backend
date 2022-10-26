@@ -15,7 +15,7 @@ def get_li_message_benchmarks_for_client(client_id: int):
     updates = []
 
     client: Client = Client.query.get(client_id)
-    created_at = client.created_at - datetime.timedelta(
+    created_at = client.created_at - timedelta(
         days=-client.created_at.weekday(), weeks=-1
     )
     now_time = datetime.now()
