@@ -286,7 +286,7 @@ def create_prospect_from_linkedin_link(archetype_id: int, url: str, batch: str):
     return True
 
 
-def batch_mark_prospects_as_sent_outreach(prospect_ids: list):
+def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int):
     from src.prospecting.models import Prospect
 
     prospects = Prospect.query.filter(Prospect.id.in_(prospect_ids)).all()
@@ -294,6 +294,10 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list):
 
     for p in prospects:
         prospect: Prospect = p
+
+        prospect.client_sdr_id = client_sdr_id
+        db.session.add(p)
+        db.session.commit()
 
         if not prospect or not prospect.approved_outreach_message_id:
             continue

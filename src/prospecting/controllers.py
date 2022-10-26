@@ -140,7 +140,10 @@ def batch_mark_sent():
     updates = batch_mark_prospects_as_sent_outreach(
         prospect_ids=get_request_parameter(
             "prospect_ids", request, json=True, required=True
-        )
+        ),
+        client_sdr_id=get_request_parameter(
+            "client_sdr_id", request, json=True, required=True
+        ),
     )
     return jsonify({"updates": updates})
 
