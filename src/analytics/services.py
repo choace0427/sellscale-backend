@@ -8,7 +8,14 @@ from src.prospecting.models import *
 def get_all_latest_week_benchmarks_for_clients():
     clients: list = Client.query.filter(Client.active == True, Client.id != 1).all()
 
-    return [get_li_message_benchmarks_for_client(client.id)[-1] for client in clients]
+    latest_benchmarks = []
+    for client in clients:
+        print(client, client.company)
+        benchmarks = get_li_message_benchmarks_for_client(client.id)
+        if len(benchmarks) > 0:
+            latest_benchmarks.append(benchmarks[-1])
+
+    return latest_benchmarks
 
 
 def get_li_message_benchmarks_for_client(client_id: int):
