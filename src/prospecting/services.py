@@ -102,7 +102,7 @@ def update_prospect_status(prospect_id: int, new_status: ProspectStatus):
 
     if new_status in (
         ProspectStatus.SCHEDULING,
-        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.RESPONDED,
         ProspectStatus.NOT_INTERESTED,
     ):
         p.last_reviewed = datetime.now()
