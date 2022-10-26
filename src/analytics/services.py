@@ -21,7 +21,7 @@ def get_all_latest_week_benchmarks_for_clients():
 def get_weekly_client_sdr_outbound_goal_map():
     results = db.session.execute(
         """
-        select client_sdr.id, sum(client_sdr.weekly_li_outbound_target) from client_sdr group by 1;
+        select client_sdr.client_id, sum(client_sdr.weekly_li_outbound_target) from client_sdr group by 1;
     """
     ).fetchall()
 
