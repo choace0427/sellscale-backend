@@ -171,6 +171,7 @@ def update_message(message_id: int, update: str):
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.completion = update
+    message.human_edited = True
     db.session.add(message)
     db.session.commit()
 
