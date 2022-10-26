@@ -337,7 +337,7 @@ def match_prospect_as_sent_outreach(prospect_id: int, client_sdr_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     prospect.client_sdr_id = client_sdr_id
-    db.session.add(p)
+    db.session.add(prospect)
     db.session.commit()
 
     if not prospect or not prospect.approved_outreach_message_id:
