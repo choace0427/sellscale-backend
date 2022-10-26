@@ -57,12 +57,12 @@ def get_li_message_benchmarks_for_client(client_id: int):
         )
 
         prospect_status_to_accepted = (
-            db.session.query(ProspectStatusRecords, Prospect, GeneratedMessage)
+            db.session.query(Prospect, GeneratedMessage)
             .filter(
                 Prospect.client_id == client.id,
                 Prospect.id == ProspectStatusRecords.prospect_id,
                 GeneratedMessage.prospect_id == Prospect.id,
-                ProspectStatusRecords.to_status == ProspectStatus.ACCEPTED,
+                Prospect.status == ProspectStatus.ACCEPTED,
                 GeneratedMessage.created_at >= interval_start,
                 GeneratedMessage.created_at < interval_end,
             )
@@ -71,12 +71,12 @@ def get_li_message_benchmarks_for_client(client_id: int):
         )
 
         prospect_status_to_responded = (
-            db.session.query(ProspectStatusRecords, Prospect, GeneratedMessage)
+            db.session.query(Prospect, GeneratedMessage)
             .filter(
                 Prospect.client_id == client.id,
                 Prospect.id == ProspectStatusRecords.prospect_id,
                 GeneratedMessage.prospect_id == Prospect.id,
-                ProspectStatusRecords.to_status == ProspectStatus.RESPONDED,
+                Prospect.status == ProspectStatus.RESPONDED,
                 GeneratedMessage.created_at >= interval_start,
                 GeneratedMessage.created_at < interval_end,
             )
@@ -85,11 +85,11 @@ def get_li_message_benchmarks_for_client(client_id: int):
         )
 
         prospect_status_to_active_convo = (
-            db.session.query(ProspectStatusRecords, Prospect, GeneratedMessage)
+            db.session.query(Prospect, GeneratedMessage)
             .filter(
                 Prospect.client_id == client.id,
                 Prospect.id == ProspectStatusRecords.prospect_id,
-                ProspectStatusRecords.to_status == ProspectStatus.ACTIVE_CONVO,
+                Prospect.status == ProspectStatus.ACTIVE_CONVO,
                 GeneratedMessage.prospect_id == Prospect.id,
                 GeneratedMessage.created_at >= interval_start,
                 GeneratedMessage.created_at < interval_end,
@@ -99,11 +99,11 @@ def get_li_message_benchmarks_for_client(client_id: int):
         )
 
         prospect_status_to_scheduling = (
-            db.session.query(ProspectStatusRecords, Prospect, GeneratedMessage)
+            db.session.query(Prospect, GeneratedMessage)
             .filter(
                 Prospect.client_id == client.id,
                 Prospect.id == ProspectStatusRecords.prospect_id,
-                ProspectStatusRecords.to_status == ProspectStatus.SCHEDULING,
+                Prospect.status == ProspectStatus.SCHEDULING,
                 GeneratedMessage.prospect_id == Prospect.id,
                 GeneratedMessage.created_at >= interval_start,
                 GeneratedMessage.created_at < interval_end,
@@ -113,11 +113,11 @@ def get_li_message_benchmarks_for_client(client_id: int):
         )
 
         prospect_status_to_demo_set = (
-            db.session.query(ProspectStatusRecords, Prospect, GeneratedMessage)
+            db.session.query(Prospect, GeneratedMessage)
             .filter(
                 Prospect.client_id == client.id,
                 Prospect.id == ProspectStatusRecords.prospect_id,
-                ProspectStatusRecords.to_status == ProspectStatus.DEMO_SET,
+                Prospect.status == ProspectStatus.DEMO_SET,
                 GeneratedMessage.prospect_id == Prospect.id,
                 GeneratedMessage.created_at >= interval_start,
                 GeneratedMessage.created_at < interval_end,
