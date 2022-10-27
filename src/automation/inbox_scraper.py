@@ -89,14 +89,10 @@ def process_inbox(message_payload, client_id):
                 continue
 
             if prospect.status == ProspectStatus.SENT_OUTREACH and is_last_message_from:
-                send_slack_block(
-                    message_suffix=" accepted your invite! 😀",
-                    prospect=prospect,
-                    new_status=ProspectStatus.ACCEPTED,
-                    li_message_payload=message,
-                )
                 update_prospect_status(
-                    prospect_id=prospect.id, new_status=ProspectStatus.ACCEPTED
+                    prospect_id=prospect.id,
+                    new_status=ProspectStatus.ACCEPTED,
+                    message=message,
                 )
 
             elif (
@@ -108,14 +104,11 @@ def process_inbox(message_payload, client_id):
                 )
                 and not is_last_message_from
             ):
-                send_slack_block(
-                    message_suffix=" responded to your outreach! 🙌🏽",
-                    prospect=prospect,
-                    new_status=ProspectStatus.ACTIVE_CONVO,
-                    li_message_payload=message,
-                )
+
                 update_prospect_status(
-                    prospect_id=prospect.id, new_status=ProspectStatus.ACTIVE_CONVO
+                    prospect_id=prospect.id,
+                    new_status=ProspectStatus.ACTIVE_CONVO,
+                    message=message,
                 )
         except:
             continue
