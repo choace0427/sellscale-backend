@@ -14,6 +14,8 @@ class Client(db.Model):
 
     active = db.Column(db.Boolean, nullable=True)
 
+    pipeline_notifications_webhook_url = db.Column(db.String, nullable=True)
+
 
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"

@@ -1,6 +1,7 @@
 from model_import import ProspectStatus, Prospect, Client, ClientSDR
 from src.utils.slack import send_slack_message
 from src.prospecting.services import update_prospect_status
+from src.utils.slack import URL_MAP
 
 
 def send_slack_block(
@@ -11,6 +12,10 @@ def send_slack_block(
 ):
     client: Client = Client.query.get(prospect.client_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+
+    webhook_urls = [URL_MAP["sellscale_pipeline_all_clients"]]
+    if client.pipeline_notifications_webhook_url:
+        webhook_urls.append(client.pipeline_notifications_webhook_url)
 
     send_slack_message(
         message=prospect.full_name + message_suffix,
@@ -38,14 +43,14 @@ def send_slack_block(
                 "elements": [
                     {
                         "type": "plain_text",
-                        "text": "👣 SDR: {}".format(
+                        "text": "😎 Contact: {}".format(
                             client_sdr.name if client_sdr else "NOT FOUND"
                         ),
                         "emoji": True,
                     },
                     {
                         "type": "plain_text",
-                        "text": "🧳 SellScale Client: {}".format(client.company),
+                        "text": "🧳 Representing: {}".format(client.company),
                         "emoji": True,
                     },
                 ],
@@ -72,4 +77,5 @@ def send_slack_block(
             },
             {"type": "divider"},
         ],
+        webhook_urls=webhook_urls,
     )
