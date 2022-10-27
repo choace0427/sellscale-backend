@@ -8,6 +8,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from src.setup.TimestampedModel import TimestampedModel
 from src.utils.scheduler import *
+from src.utils.slack import URL_MAP
 
 from celery import Celery
 from src.utils.slack import send_slack_message
@@ -51,7 +52,10 @@ from model_import import *
 def add_together(a, b):
     from datetime import datetime
 
-    send_slack_message(message="Testing from slack!" + str(datetime.utcnow()))
+    send_slack_message(
+        message="Testing from slack!" + str(datetime.utcnow()),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
     return a + b
 
 
