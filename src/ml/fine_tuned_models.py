@@ -13,6 +13,7 @@ BULLET_MODELS = {
     "current_experience_description": "davinci:ft-personal-2022-08-16-21-34-34",  # summarize experience
     "recent_recommendation": "davinci:ft-personal-2022-08-17-01-44-59",  # summarize recommendations
     "baseline_generation": "davinci:ft-personal-2022-07-23-19-55-19",  # baseline generation model
+    "recent_recommendation_2": "davinci:ft-personal-2022-10-27-06-51-55",
 }
 
 
