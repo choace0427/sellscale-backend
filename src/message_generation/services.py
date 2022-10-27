@@ -71,7 +71,7 @@ def generate_prompt_permutations_from_notes(notes: dict, n: int = 1):
 def generate_batches_of_research_points(points: list, n: int = 1):
     perms = []
     for i in range(n):
-        sample = [x for x in random.sample(points, 2)]
+        sample = [x for x in random.sample(points, min(len(points), 2))]
         perms.append(sample)
     return perms
 
