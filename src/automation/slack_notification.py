@@ -1,4 +1,4 @@
-from model_import import ProspectStatus, Prospect, Client
+from model_import import ProspectStatus, Prospect, Client, ClientSDR
 from src.utils.slack import send_slack_message
 from src.prospecting.services import update_prospect_status
 
@@ -10,6 +10,7 @@ def send_slack_block(
     new_status: ProspectStatus = None,
 ):
     client: Client = Client.query.get(prospect.client_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     send_slack_message(
         message=prospect.full_name + message_suffix,
@@ -37,7 +38,9 @@ def send_slack_block(
                 "elements": [
                     {
                         "type": "plain_text",
-                        "text": "👣 SDR: <INSERT HERE>",
+                        "text": "👣 SDR: {}".format(
+                            client_sdr.name if client_sdr else "NOT FOUND"
+                        ),
                         "emoji": True,
                     },
                     {

@@ -156,6 +156,7 @@ def generate_outreaches_new(prospect_id: int, cta_prompt: str = None):
 def generate_outreaches_for_batch_of_prospects(
     prospect_list: list, cta_prompt: str = None
 ):
+    # todo(Aakash) add batch here
     for prospect_id in tqdm(prospect_list):
         try:
             generate_outreaches_new(prospect_id=prospect_id, cta_prompt=cta_prompt)
