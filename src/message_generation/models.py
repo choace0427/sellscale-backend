@@ -24,3 +24,5 @@ class GeneratedMessage(db.Model):
     batch_id = db.Column(db.String, nullable=True)
 
     human_edited = db.Column(db.Boolean, nullable=True)
+
+    adversarial_ai_prediction = db.Column(db.Boolean, nullable=True)

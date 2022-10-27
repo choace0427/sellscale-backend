@@ -1,3 +1,4 @@
+from src.ml.adverserial_ai import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
@@ -141,6 +142,8 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_prompt: str = N
         for completion in completions:
             outreaches.append(completion)
 
+            prediction = get_adversarial_ai_approval(prompt=completion)
+
             message: GeneratedMessage = GeneratedMessage(
                 prospect_id=prospect_id,
                 gnlp_model_id=model_id,
@@ -149,6 +152,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_prompt: str = N
                 completion=completion,
                 message_status=GeneratedMessageStatus.DRAFT,
                 batch_id=batch_id,
+                adversarial_ai_prediction=prediction,
             )
             db.session.add(message)
             db.session.commit()
