@@ -21,5 +21,6 @@ class GeneratedMessage(db.Model):
     completion = db.Column(db.String, nullable=False)
     message_status = db.Column(db.Enum(GeneratedMessageStatus), nullable=False)
     date_sent = db.Column(db.DateTime, nullable=True)
+    batch_id = db.Column(db.String, nullable=True)
 
     human_edited = db.Column(db.Boolean, nullable=True)

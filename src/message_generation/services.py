@@ -1,5 +1,6 @@
 from src.ml.models import GNLPModelType
 from src.research.models import ResearchPayload, ResearchPoints
+from src.utils.random_string import generate_random_alphanumeric
 from ..ml.fine_tuned_models import (
     get_basic_openai_completion,
     get_completion,
@@ -14,9 +15,10 @@ from tqdm import tqdm
 def research_and_generate_outreaches_for_prospect_list(
     prospect_ids: list, cta_prompt: str = None
 ):
+    batch_id = generate_random_alphanumeric(36)
     for prospect_id in tqdm(prospect_ids):
         research_and_generate_outreaches_for_prospect.delay(
-            prospect_id=prospect_id, cta_prompt=cta_prompt
+            prospect_id=prospect_id, cta_prompt=cta_prompt, batch_id=batch_id
         )
 
     return True
@@ -24,13 +26,13 @@ def research_and_generate_outreaches_for_prospect_list(
 
 @celery.task
 def research_and_generate_outreaches_for_prospect(
-    prospect_id: int, cta_prompt: str = None
+    prospect_id: int, batch_id: str, cta_prompt: str = None
 ):
     from src.research.linkedin.services import get_research_and_bullet_points_new
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
     generate_outreaches_for_batch_of_prospects(
-        prospect_list=[prospect_id], cta_prompt=cta_prompt
+        prospect_list=[prospect_id], cta_prompt=cta_prompt, batch_id=batch_id
     )
 
 
@@ -92,7 +94,7 @@ def generate_outreaches(research_and_bullets: dict, num_options: int = 1):
     return outreaches
 
 
-def generate_outreaches_new(prospect_id: int, cta_prompt: str = None):
+def generate_outreaches_new(prospect_id: int, batch_id: str, cta_prompt: str = None):
     from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
 
     p: Prospect = Prospect.query.get(prospect_id)
@@ -146,6 +148,7 @@ def generate_outreaches_new(prospect_id: int, cta_prompt: str = None):
                 prompt=prompt,
                 completion=completion,
                 message_status=GeneratedMessageStatus.DRAFT,
+                batch_id=batch_id,
             )
             db.session.add(message)
             db.session.commit()
@@ -154,12 +157,14 @@ def generate_outreaches_new(prospect_id: int, cta_prompt: str = None):
 
 
 def generate_outreaches_for_batch_of_prospects(
-    prospect_list: list, cta_prompt: str = None
+    prospect_list: list, batch_id: str, cta_prompt: str = None
 ):
     # todo(Aakash) add batch here
     for prospect_id in tqdm(prospect_list):
         try:
-            generate_outreaches_new(prospect_id=prospect_id, cta_prompt=cta_prompt)
+            generate_outreaches_new(
+                prospect_id=prospect_id, cta_prompt=cta_prompt, batch_id=batch_id
+            )
         except Exception as e:
             print(e)
             pass
