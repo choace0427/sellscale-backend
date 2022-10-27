@@ -88,6 +88,11 @@ def hello():
     return "SellScale API."
 
 
+@app.route("/health-check")
+def health_check():
+    return "OK", 200
+
+
 register_blueprints(app)
 
 if __name__ == "__main__":
