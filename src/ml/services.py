@@ -11,6 +11,7 @@ from src.ml.models import (
     ModelProvider,
 )
 import regex as rx
+import re
 
 import openai
 
@@ -157,3 +158,16 @@ def create_profane_word(words: str):
     db.session.commit()
 
     return profane_word
+
+
+def contains_profane_word(text: str):
+    d = db.session.execute(
+        """select array_agg(profane_words.words) from profane_words"""
+    ).fetchall()[0][0]
+    regex = re.compile("(?=(" + "|".join(map(re.escape, d)) + "))")
+    matches = re.findall(regex, text)
+
+    if len(matches) > 0:
+        return False, []
+
+    return True, matches
