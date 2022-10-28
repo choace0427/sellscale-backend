@@ -26,3 +26,17 @@ class GeneratedMessage(db.Model):
     human_edited = db.Column(db.Boolean, nullable=True)
 
     adversarial_ai_prediction = db.Column(db.Boolean, nullable=True)
+    message_cta = db.Column(
+        db.Integer, db.ForeignKey("generated_message_cta.id"), nullable=True
+    )
+
+
+class GeneratedMessageCTA(db.Model):
+    __tablename__ = "generated_message_cta"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
+    text_value = db.Column(db.String, nullable=False)
