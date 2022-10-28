@@ -59,3 +59,10 @@ class GNLPModelFineTuneJobs(db.Model):
     )
 
     error = db.Column(db.String, nullable=True)
+
+
+class ProfaneWords(db.Model):
+    __tablename__ = "profane_words"
+
+    id = db.Column(db.Integer, primary_key=True)
+    words = db.Column(db.String, nullable=False)
