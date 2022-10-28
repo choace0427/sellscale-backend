@@ -18,26 +18,13 @@ def index():
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True
     )
-    cta_prompt = get_request_parameter("cta_prompt", request, json=True, required=False)
+    cta_id = get_request_parameter("cta_id", request, json=True, required=False)
 
     research_and_generate_outreaches_for_prospect_list(
-        prospect_ids=prospect_ids, cta_prompt=cta_prompt
+        prospect_ids=prospect_ids, cta_id=cta_id
     )
 
     return "OK", 200
-
-
-@MESSAGE_GENERATION_BLUEPRINT.route("/batch/few_shot", methods=["POST"])
-def batch_few_shot():
-    prospect_ids = get_request_parameter(
-        "prospect_ids", request, json=True, required=True
-    )
-    example_ids = get_request_parameter(
-        "example_ids", request, json=True, required=True
-    )
-    cta_prompt = get_request_parameter("cta_prompt", request, json=True, required=False)
-
-    # todo(Aakash): implement this
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["PATCH"])

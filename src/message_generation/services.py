@@ -14,12 +14,12 @@ from tqdm import tqdm
 
 
 def research_and_generate_outreaches_for_prospect_list(
-    prospect_ids: list, cta_prompt: str = None
+    prospect_ids: list, cta_id: int = None
 ):
     batch_id = generate_random_alphanumeric(36)
     for prospect_id in tqdm(prospect_ids):
         research_and_generate_outreaches_for_prospect.delay(
-            prospect_id=prospect_id, cta_prompt=cta_prompt, batch_id=batch_id
+            prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
         )
 
     return True
@@ -27,13 +27,13 @@ def research_and_generate_outreaches_for_prospect_list(
 
 @celery.task
 def research_and_generate_outreaches_for_prospect(
-    prospect_id: int, batch_id: str, cta_prompt: str = None
+    prospect_id: int, batch_id: str, cta_id: str = None
 ):
     from src.research.linkedin.services import get_research_and_bullet_points_new
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
     generate_outreaches_for_batch_of_prospects(
-        prospect_list=[prospect_id], cta_prompt=cta_prompt, batch_id=batch_id
+        prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
     )
 
 
@@ -95,8 +95,13 @@ def generate_outreaches(research_and_bullets: dict, num_options: int = 1):
     return outreaches
 
 
-def generate_outreaches_new(prospect_id: int, batch_id: str, cta_prompt: str = None):
-    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
+def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None):
+    from model_import import (
+        GeneratedMessage,
+        GeneratedMessageStatus,
+        Prospect,
+        GeneratedMessageCTA,
+    )
 
     p: Prospect = Prospect.query.get(prospect_id)
     archetype_id = p.archetype_id
@@ -123,8 +128,9 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_prompt: str = N
     outreaches = []
     for perm in perms:
         d = ["-" + x.value for x in perm]
-        if cta_prompt:
-            d.append("-" + cta_prompt)
+        cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+        if cta:
+            d.append("-" + cta.text_value)
         notes = "\n".join(d)
 
         research_points = [x.id for x in perm]
@@ -153,6 +159,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_prompt: str = N
                 message_status=GeneratedMessageStatus.DRAFT,
                 batch_id=batch_id,
                 adversarial_ai_prediction=prediction,
+                message_cta=cta.id if cta else None,
             )
             db.session.add(message)
             db.session.commit()
@@ -161,13 +168,12 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_prompt: str = N
 
 
 def generate_outreaches_for_batch_of_prospects(
-    prospect_list: list, batch_id: str, cta_prompt: str = None
+    prospect_list: list, batch_id: str, cta_id: str = None
 ):
-    # todo(Aakash) add batch here
     for prospect_id in tqdm(prospect_list):
         try:
             generate_outreaches_new(
-                prospect_id=prospect_id, cta_prompt=cta_prompt, batch_id=batch_id
+                prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
             )
         except Exception as e:
             print(e)
