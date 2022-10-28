@@ -315,3 +315,32 @@ def few_shot_generations(prospect_id: int, example_ids: list, cta_prompt: str = 
         db.session.commit()
 
     return True
+
+
+def create_cta(archetype_id: int, text_value: str):
+    from model_import import GeneratedMessageCTA
+
+    duplicate_cta_exists = GeneratedMessageCTA.query.filter(
+        GeneratedMessageCTA.archetype_id == archetype_id,
+        GeneratedMessageCTA.text_value == text_value,
+    ).first()
+    if duplicate_cta_exists:
+        return duplicate_cta_exists
+
+    cta: GeneratedMessageCTA = GeneratedMessageCTA(
+        archetype_id=archetype_id, text_value=text_value
+    )
+    db.session.add(cta)
+    db.session.commit()
+
+    return cta
+
+
+def delete_cta(cta_id: int):
+    from model_import import GeneratedMessageCTA
+
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+    db.session.delete(cta)
+    db.session.commit()
+
+    return True
