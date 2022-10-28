@@ -7,5 +7,5 @@ from src.message_generation.models import (
     GeneratedMessageCTA,
 )
 from src.prospecting.models import Prospect, ProspectStatus
-from src.ml.models import GNLPModel, GNLPModelType
+from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords
 from src.automation.models import PhantomBusterConfig

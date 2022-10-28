@@ -62,3 +62,12 @@ def get_fine_tune_job_timeline():
         "fine_tune_id", request, json=False, required=True
     )
     return jsonify(get_fine_tune_timeline(fine_tune_id))
+
+
+@ML_BLUEPRINT.route("/create_profane_word", methods=["POST"])
+def post_create_profane_word():
+    from src.ml.services import create_profane_word
+
+    words = get_request_parameter("words", request, json=False, required=True)
+    profane_words = create_profane_word(words=words)
+    return jsonify({"profane_word_id": profane_words.id})

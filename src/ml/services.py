@@ -143,3 +143,17 @@ def check_statuses_of_fine_tune_jobs():
 def get_fine_tune_timeline(fine_tune_id: str):
     response = openai.FineTune.retrieve(id=fine_tune_id)
     return response
+
+
+def create_profane_word(words: str):
+    from model_import import ProfaneWords
+
+    word_exists = ProfaneWords.query.filter(ProfaneWords.words == words).first()
+    if word_exists:
+        return word_exists
+
+    profane_word = ProfaneWords(words=words)
+    db.session.add(profane_word)
+    db.session.commit()
+
+    return profane_word
