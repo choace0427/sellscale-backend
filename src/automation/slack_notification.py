@@ -14,7 +14,11 @@ def send_slack_block(
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     webhook_urls = [URL_MAP["sellscale_pipeline_all_clients"]]
-    if client.pipeline_notifications_webhook_url:
+    if client.pipeline_notifications_webhook_url and new_status in (
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.DEMO_LOSS,
+        ProspectStatus.ACTIVE_CONVO,
+    ):
         webhook_urls.append(client.pipeline_notifications_webhook_url)
 
     send_slack_message(
