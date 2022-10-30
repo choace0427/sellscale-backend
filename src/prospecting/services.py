@@ -273,13 +273,14 @@ def create_prospects_from_linkedin_link_list(
     batch = generate_random_alphanumeric(32)
 
     for url in tqdm(prospect_urls):
-        create_prospect_from_linkedin_link(
+        create_prospect_from_linkedin_link.delay(
             archetype_id=archetype_id, url=url, batch=batch
         )
 
     return True
 
 
+@celery.task
 def create_prospect_from_linkedin_link(archetype_id: int, url: str, batch: str):
     if "/in/" in url:
         slug = get_linkedin_slug_from_url(url)

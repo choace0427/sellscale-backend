@@ -110,7 +110,7 @@ def prospect_from_link():
     url = get_request_parameter("url", request, json=True, required=True)
 
     batch = generate_random_alphanumeric(32)
-    success = create_prospect_from_linkedin_link(
+    success = create_prospect_from_linkedin_link.delay(
         archetype_id=archetype_id, url=url, batch=batch
     )
 
