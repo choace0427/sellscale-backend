@@ -111,7 +111,7 @@ def check_statuses_of_fine_tune_jobs():
         archetype: ClientArchetype = ClientArchetype.query.get(job.archetype_id)
         archetype_id = archetype.id
         archetype_name = archetype.archetype
-        fine_tune_status = openai.FineTune.retrieve(id=job.finetune_job_id)
+        fine_tune_status = get_fine_tune_timeline(fine_tune_id=job.finetune_job_id)
         model_uuid = fine_tune_status.get("fine_tuned_model")
 
         client: Client = Client.query.get(archetype.client_id)
@@ -146,7 +146,16 @@ def check_statuses_of_fine_tune_jobs():
 
 
 def get_fine_tune_timeline(fine_tune_id: str):
+    from model_import import GNLPModelFineTuneJobs
+
     response = openai.FineTune.retrieve(id=fine_tune_id)
+    job: GNLPModelFineTuneJobs = GNLPModelFineTuneJobs.query.filter(
+        GNLPModelFineTuneJobs.finetune_job_id == fine_tune_id
+    ).first()
+    job.finetune_job_response = response
+    db.session.add(job)
+    db.session.commit()
+
     return response
 
 
