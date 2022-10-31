@@ -6,7 +6,7 @@ URL_MAP = {
 }
 
 
-def send_slack_message(message: str, webhook_urls: str, blocks: any = []):
+def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
     for url in webhook_urls:
         webhook = WebhookClient(url)
         webhook.send(text=message, blocks=blocks)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from app import db
+from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype
 from src.message_generation.models import GeneratedMessage
@@ -100,6 +100,7 @@ def initiate_fine_tune_job(
         return False, str(e)
 
 
+@celery.task
 def check_statuses_of_fine_tune_jobs():
     jobs: list = GNLPModelFineTuneJobs.query.filter(
         GNLPModelFineTuneJobs.status == GNLPFinetuneJobStatuses.STARTED_FINE_TUNE_JOB
