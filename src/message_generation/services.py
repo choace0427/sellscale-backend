@@ -350,3 +350,14 @@ def delete_cta(cta_id: int):
     db.session.commit()
 
     return True
+
+
+def toggle_cta_active(cta_id: int):
+    from model_import import GeneratedMessageCTA
+
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+    cta.active = not cta.active
+    db.session.add(cta)
+    db.session.commit()
+
+    return True

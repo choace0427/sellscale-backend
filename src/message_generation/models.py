@@ -41,3 +41,4 @@ class GeneratedMessageCTA(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
     text_value = db.Column(db.String, nullable=False)
+    active = db.Column(db.Boolean, nullable=True)

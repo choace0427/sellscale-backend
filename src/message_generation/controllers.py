@@ -110,3 +110,16 @@ def delete_cta_request():
         return "OK", 200
 
     return "Failed to delete", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/toggle_cta_active", methods=["POST"])
+def post_toggle_cta_active():
+    from src.message_generation.services import toggle_cta_active
+
+    cta_id = get_request_parameter("cta_id", request, json=True, required=True)
+
+    success = toggle_cta_active(cta_id=cta_id)
+    if success:
+        return "OK", 200
+
+    return "Failed to toggle", 400
