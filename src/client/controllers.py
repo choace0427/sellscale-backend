@@ -59,3 +59,16 @@ def create_sdr():
         return "Client not found", 404
 
     return resp
+
+
+@CLIENT_BLUEPRINT.route("/reset_client_sdr_auth_token", methods=["POST"])
+def reset_client_sdr_auth_token():
+    from src.client.services import reset_client_sdr_sight_auth_token
+
+    sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+
+    resp = reset_client_sdr_sight_auth_token(client_sdr_id=sdr_id)
+    if not resp:
+        return "Client not found", 404
+
+    return jsonify(resp)

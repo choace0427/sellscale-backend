@@ -1,6 +1,7 @@
 from app import db
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.utils.random_string import generate_random_alphanumeric
 
 
 def get_client(client_id: int):
@@ -65,3 +66,14 @@ def create_client_sdr(client_id: int, name: str, email: str):
     db.session.commit()
 
     return {"client_sdr_id": sdr.id}
+
+
+def reset_client_sdr_sight_auth_token(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return None
+
+    sdr.auth_token = generate_random_alphanumeric(32)
+    db.session.commit()
+
+    return {"token": sdr.auth_token}
