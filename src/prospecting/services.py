@@ -14,11 +14,11 @@ def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
 
     p: Prospect = Prospect.query.filter(
         Prospect.linkedin_url == linkedin_url, Prospect.client_id == client_id
-    ).all()
+    ).first()
 
-    if len(p) > 0:
-        return True
-    return False
+    if p:
+        return p
+    return None
 
 
 def update_prospect_status(
@@ -195,16 +195,17 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
 def add_prospect(
     client_id: int,
     archetype_id: int,
-    company: Optional[str],
-    company_url: Optional[str],
-    employee_count: Optional[str],
-    full_name: Optional[str],
-    industry: Optional[str],
-    linkedin_url: Optional[str],
-    linkedin_bio: Optional[str],
-    title: Optional[str],
-    twitter_url: Optional[str],
     batch: str,
+    company: Optional[str] = None,
+    company_url: Optional[str] = None,
+    employee_count: Optional[str] = None,
+    full_name: Optional[str] = None,
+    industry: Optional[str] = None,
+    linkedin_url: Optional[str] = None,
+    linkedin_bio: Optional[str] = None,
+    title: Optional[str] = None,
+    twitter_url: Optional[str] = None,
+    email: Optional[str] = None,
 ):
     status = ProspectStatus.PROSPECTED
 
@@ -227,7 +228,26 @@ def add_prospect(
             twitter_url=twitter_url,
             batch=batch,
             status=status,
+            email=email,
         )
+        db.session.add(prospect)
+        db.session.commit()
+    else:
+        prospect: Prospect = prospect_exists
+        prospect.client_id = client_id or prospect.client_id
+        prospect.archetype_id = archetype_id or prospect.archetype_id
+        prospect.company = company or prospect.company
+        prospect.company_url = company_url or prospect.company_url
+        prospect.employee_count = employee_count or prospect.employee_count
+        prospect.full_name = full_name or prospect.full_name
+        prospect.industry = industry or prospect.industry
+        prospect.linkedin_url = linkedin_url or prospect.linkedin_url
+        prospect.linkedin_bio = linkedin_bio or prospect.linkedin_bio
+        prospect.title = title or prospect.title
+        prospect.twitter_url = twitter_url or prospect.twitter_url
+        prospect.batch = batch or prospect.batch
+        prospect.status = status or prospect.status
+        prospect.email = email or prospect.email
         db.session.add(prospect)
         db.session.commit()
 

@@ -28,3 +28,4 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+    QLALCHEMY_DATABASE_URI = "TESTING_DATABASE_URL"

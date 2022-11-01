@@ -37,6 +37,7 @@ class Prospect(db.Model):
     linkedin_bio = db.Column(db.String, nullable=True)
     title = db.Column(db.String, nullable=True)
     twitter_url = db.Column(db.String, nullable=True)
+    email = db.Column(db.String, nullable=True)
 
     batch = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
