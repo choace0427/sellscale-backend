@@ -39,3 +39,37 @@ def test_add_prospect():
     assert prospects[0].archetype_id == archetype2.id
 
     assert archetype.id != archetype2.id
+
+    add_prospect(
+        client_id=client.id,
+        archetype_id=archetype.id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url=None,
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    assert len(prospects) == 1
+
+    add_prospect(
+        client_id=client.id,
+        archetype_id=archetype.id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url="12381",
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    assert len(prospects) == 2
