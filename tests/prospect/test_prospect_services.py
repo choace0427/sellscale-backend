@@ -188,6 +188,9 @@ def test_add_prospects_from_json_payload():
     assert prospects[2].full_name == "Ishan No Linkedin"
     assert prospects[3].full_name == "Ishan No Email"
 
+    for i in prospects:
+        assert i.company_url == "https://athelas.com/"
+
 
 @use_app_context
 def test_add_prospects_from_json_payload_invalid():

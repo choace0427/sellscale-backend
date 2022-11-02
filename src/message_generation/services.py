@@ -37,19 +37,17 @@ def research_and_generate_outreaches_for_prospect(
     )
 
 
-def generate_prompt(linkedin_payload: any, notes: str = ""):
-    # todo generate linkedin payload from prospect id
+def generate_prompt(prospect_id: int, notes: str = ""):
+    from model_import import Prospect
+
+    p: Prospect = Prospect.query.get(prospect_id)
     bio_data = {
-        "full_name": deep_get(linkedin_payload, "personal.first_name")
-        + " "
-        + deep_get(linkedin_payload, "personal.last_name"),
-        "industry": deep_get(linkedin_payload, "personal.industry"),
-        "company": deep_get(linkedin_payload, "company.details.name"),
-        "title": deep_get(
-            linkedin_payload, "personal.position_groups.0.profile_positions.0.title"
-        ),
+        "full_name": p.full_name,
+        "industry": p.industry,
+        "company": p.company,
+        "title": p.title,
         "notes": notes,
-        "cleaned_bio": deep_get(linkedin_payload, "personal.summary"),
+        "cleaned_bio": p.linkedin_bio,
     }
     prompt = "name: {full_name}<>industry: {industry}<>company: {company}<>title: {title}<>notes: {notes}<>response:".format(
         **bio_data
@@ -136,7 +134,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
 
         research_points = [x.id for x in perm]
 
-        prompt = generate_prompt(linkedin_payload=research.payload, notes=notes)
+        prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
         completions, model_id = get_custom_completion_for_client(
             archetype_id=archetype_id,

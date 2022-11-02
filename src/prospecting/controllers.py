@@ -188,4 +188,4 @@ def add_prospect_from_csv_payload():
     if success:
         return "OK", 200
 
-    return "Could not add all prospects", 400
+    return "Could not add prospects", 400

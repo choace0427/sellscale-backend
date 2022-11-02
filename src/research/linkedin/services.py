@@ -187,8 +187,6 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
     from src.prospecting.models import Prospect
 
     p: Prospect = Prospect.query.get(prospect_id)
-    if not p or not p.linkedin_url:
-        return None
 
     rp: ResearchPayload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
@@ -196,25 +194,27 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
     if rp:
         return rp.payload
 
-    linkedin_url = p.linkedin_url
-    linkedin_slug = linkedin_url.split("/in/")[1]
-    if not linkedin_slug:
-        return None
-
-    personal_info = research_personal_profile_details(profile_id=linkedin_slug)
+    personal_info = {}
     company_info = {}
-    try:
-        if len(personal_info.get("position_groups", [])) > 0:
-            company_name = (
-                personal_info.get("position_groups", [])[0]
-                .get("company", {})
-                .get("url", "")
-                .split("company/")[1]
-                .replace("/", "")
-            )
-            company_info = research_corporate_profile_details(company_name=company_name)
-    except:
-        pass
+    linkedin_url = p.linkedin_url
+    if linkedin_url:
+        linkedin_slug = linkedin_url.split("/in/")[1]
+        if linkedin_slug:
+            personal_info = research_personal_profile_details(profile_id=linkedin_slug)
+            try:
+                if len(personal_info.get("position_groups", [])) > 0:
+                    company_name = (
+                        personal_info.get("position_groups", [])[0]
+                        .get("company", {})
+                        .get("url", "")
+                        .split("company/")[1]
+                        .replace("/", "")
+                    )
+                    company_info = research_corporate_profile_details(
+                        company_name=company_name
+                    )
+            except:
+                pass
 
     payload = {"personal": personal_info, "company": company_info}
 
@@ -228,7 +228,8 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     company_url_update = deep_get(payload, "company.details.urls.company_page")
-    prospect.company_url = company_url_update
+    if company_url_update:
+        prospect.company_url = company_url_update
     db.session.add(prospect)
     db.session.commit()
 
