@@ -8,6 +8,7 @@ from src.prospecting.services import (
     create_prospects_from_linkedin_link_list,
     prospect_exists_for_archetype,
     update_prospect_status,
+    add_prospects_from_json_payload,
 )
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
@@ -168,3 +169,23 @@ def mark_reengagement():
     if success:
         return "OK", 200
     return "Failed to update", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
+def add_prospect_from_csv_payload():
+    client_id = get_request_parameter("client_id", request, json=True, required=True)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True
+    )
+    csv_payload = get_request_parameter(
+        "csv_payload", request, json=True, required=True
+    )
+
+    success, couldnt_add = add_prospects_from_json_payload(
+        client_id=client_id, archetype_id=archetype_id, payload=csv_payload
+    )
+
+    if success:
+        return "OK", 200
+
+    return "Could not add all prospects", 400

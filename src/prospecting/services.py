@@ -7,6 +7,7 @@ from src.prospecting.models import Prospect, ProspectStatus
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
+from flask import jsonify
 
 
 def prospect_exists_for_archetype(full_name: str, client_id: int):
@@ -213,6 +214,10 @@ def add_prospect(
         full_name=full_name, client_id=client_id
     )
 
+    linkedin_url = linkedin_url.replace("https://www.", "")
+    if linkedin_url[-1] == "/":
+        linkedin_url = linkedin_url[:-1]
+
     if not prospect_exists:
         prospect: Prospect = Prospect(
             client_id=client_id,
@@ -414,3 +419,47 @@ def mark_prospect_reengagement(prospect_id: int):
     db.session.commit()
 
     return True
+
+
+def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: dict):
+    """
+    This is what a sample payload from Retool will look like.
+    payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "aakash.adesara@gmail.com",
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "title": "Growth Engineer",
+        },
+        ....
+    ]
+    """
+    couldnt_add = []
+    batch_id = generate_random_alphanumeric(32)
+
+    for prospect in payload:
+        linkedin_url = prospect.get("linkedin_url")
+        email = prospect.get("email")
+
+        if not linkedin_url and not email:
+            couldnt_add.append(prospect.get("full_name"))
+            continue
+
+        add_prospect(
+            client_id=client_id,
+            archetype_id=archetype_id,
+            company=prospect.get("company"),
+            company_url=prospect.get("company_url"),
+            email=prospect.get("email"),
+            full_name=prospect.get("full_name"),
+            linkedin_url=prospect.get("linkedin_url"),
+            title=prospect.get("title"),
+            batch=batch_id,
+        )
+
+    if len(couldnt_add) > 0:
+        return False, couldnt_add
+
+    return True, []

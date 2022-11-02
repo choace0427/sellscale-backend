@@ -4,6 +4,7 @@ from src.prospecting.services import (
     add_prospect,
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
+    add_prospects_from_json_payload,
 )
 from model_import import Prospect
 from decorators import use_app_context
@@ -124,3 +125,47 @@ def test_get_sales_nav_slug_from_url():
     for url in urls:
         slug = get_navigator_slug_from_url(url)
         assert slug == "testingsara"
+
+
+@use_app_context
+def test_add_prospects_from_json_payload():
+    payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "aakash.adesara@gmail.com",
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "title": "Growth Engineer",
+        },
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "aakash.adesara@gmail.com",  # duplicate shouldn't add
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "title": "Growth Engineer",
+        },
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "aakash.adesara@gmail.com",
+            "full_name": "Ishan Sharma",  # different name
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "title": "Growth Engineer",
+        },
+    ]
+    client = basic_client()
+    archetype = basic_archetype(client)
+
+    success, couldnt_add = add_prospects_from_json_payload(
+        client.id, archetype.id, payload
+    )
+    assert success == True
+    assert couldnt_add == []
+
+    prospects = Prospect.query.all()
+    assert len(prospects) == 2
+
+    assert prospects[0].full_name == "Aakash Adesara"
+    assert prospects[1].full_name == "Ishan Sharma"
