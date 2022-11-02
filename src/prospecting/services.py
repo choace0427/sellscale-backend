@@ -9,11 +9,11 @@ from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
 
 
-def prospect_exists_for_archetype(linkedin_url: str, client_id: int):
+def prospect_exists_for_archetype(full_name: str, client_id: int):
     from src.prospecting.models import Prospect
 
     p: Prospect = Prospect.query.filter(
-        Prospect.linkedin_url == linkedin_url, Prospect.client_id == client_id
+        Prospect.full_name == full_name, Prospect.client_id == client_id
     ).first()
 
     if p:
@@ -210,7 +210,7 @@ def add_prospect(
     status = ProspectStatus.PROSPECTED
 
     prospect_exists = prospect_exists_for_archetype(
-        linkedin_url=linkedin_url, client_id=client_id
+        full_name=full_name, client_id=client_id
     )
 
     if not prospect_exists:

@@ -38,9 +38,9 @@ def test_add_prospect():
     add_prospect(client_id=client.id, archetype_id=archetype2.id, batch="456")
 
     prospects = Prospect.query.all()
-    assert len(prospects) == 1
-    assert prospects[0].batch == "456"
-    assert prospects[0].archetype_id == archetype2.id
+    assert len(prospects) == 2
+    assert prospects[1].batch == "456"
+    assert prospects[1].archetype_id == archetype2.id
 
     assert archetype.id != archetype2.id
 
@@ -59,7 +59,7 @@ def test_add_prospect():
         twitter_url="testing",
     )
     prospects = Prospect.query.all()
-    assert len(prospects) == 1
+    assert len(prospects) == 2
 
     add_prospect(
         client_id=client.id,
@@ -77,6 +77,23 @@ def test_add_prospect():
     )
     prospects = Prospect.query.all()
     assert len(prospects) == 2
+
+    add_prospect(
+        client_id=client.id,
+        archetype_id=archetype.id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing sara",  # new name here
+        industry="saas",
+        batch="123",
+        linkedin_url="12381",
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    assert len(prospects) == 3
 
 
 @use_app_context
