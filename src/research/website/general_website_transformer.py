@@ -95,7 +95,7 @@ summary:""".format(
 
 def generate_general_website_research_points(url):
     point = find_points_from_website(url)
-    prompt = "blurb: {}\nsummary: ".format(point)
+    prompt = "prompt: {}\nsummary: ".format(point)
     completion = generate_simple_summary(prompt)
     response = completion[0]
     return {"raw_data": {"url": url}, "prompt": "", "response": response}
