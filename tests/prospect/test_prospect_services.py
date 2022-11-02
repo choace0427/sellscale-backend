@@ -82,12 +82,12 @@ def test_add_prospect():
 @use_app_context
 def test_get_linkedin_slug_from_url():
     urls = [
-        # "https://www.linkedin.com/in/testingsara",
-        # "www.linkedin.com/in/testingsara",
-        # "linkedin.com/in/testingsara",
-        # "https://www.linkedin.com/in/testingsara/?testing=123",
-        # "www.linkedin.com/in/testingsara/?testing=123",
-        # "linkedin.com/in/testingsara/?testing=123",
+        "https://www.linkedin.com/in/testingsara",
+        "www.linkedin.com/in/testingsara",
+        "linkedin.com/in/testingsara",
+        "https://www.linkedin.com/in/testingsara/?testing=123",
+        "www.linkedin.com/in/testingsara/?testing=123",
+        "linkedin.com/in/testingsara/?testing=123",
         "linkedin.com/in/testingsara?testing=123",
     ]
 
