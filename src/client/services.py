@@ -2,6 +2,7 @@ from app import db
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.utils.random_string import generate_random_alphanumeric
+from src.prospecting.models import ProspectStatus
 
 
 def get_client(client_id: int):
@@ -21,6 +22,11 @@ def create_client(company: str, contact_name: str, contact_email: str):
         contact_name=contact_name,
         contact_email=contact_email,
         active=True,
+        notification_allowlist=[
+            ProspectStatus.SCHEDULING,
+            ProspectStatus.DEMO_SET,
+            ProspectStatus.ACTIVE_CONVO,
+        ],
     )
     db.session.add(c)
     db.session.commit()

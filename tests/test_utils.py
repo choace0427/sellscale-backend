@@ -37,11 +37,23 @@ def basic_client() -> Client:
     return c
 
 
-def basic_archetype(client: Client):
+def basic_archetype(client: Client) -> ClientArchetype:
     a = ClientArchetype(client_id=client.id, archetype="Testing archetype")
     db.session.add(a)
     db.session.commit()
     return a
+
+
+def basic_prospect(client: Client, archetype: ClientArchetype):
+    p = Prospect(
+        client_id=client.id,
+        archetype_id=archetype.id,
+        full_name="Testing Testasara",
+        title="Testing Director",
+    )
+    db.session.add(p)
+    db.session.commit()
+    return p
 
 
 def clear_all_entities(SQLAlchemyObject):

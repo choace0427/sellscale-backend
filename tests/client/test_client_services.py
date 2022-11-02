@@ -30,6 +30,7 @@ def test_add_client_and_archetype():
 
     c: Client = get_client(clients[0].id)
     assert c.id == clients[0].id
+    assert len(c.notification_allowlist) == 3
 
     create_client_archetype(client_id=c.id, archetype="testing", filters={})
 

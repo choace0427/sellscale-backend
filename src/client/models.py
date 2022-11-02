@@ -1,4 +1,5 @@
 from app import db
+from src.prospecting.models import ProspectStatus
 from src.research.models import ResearchPointType
 import sqlalchemy as sa
 
@@ -15,6 +16,11 @@ class Client(db.Model):
     active = db.Column(db.Boolean, nullable=True)
 
     pipeline_notifications_webhook_url = db.Column(db.String, nullable=True)
+
+    notification_allowlist = db.Column(
+        db.ARRAY(sa.Enum(ProspectStatus, create_constraint=False)),
+        nullable=True,
+    )
 
 
 class ClientArchetype(db.Model):
