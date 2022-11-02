@@ -75,23 +75,21 @@ def find_points_from_website(url):
 
 
 def generate_simple_summary(prompt):
-    prompt_frame = """
-prompt: Holiday gift guide Celebrate the joy of the season with amazing tech gifts. Shop and ship early for holiday delivery. Holiday gift guide Celebrate the joy of the season with amazing tech gifts. Shop and ship early for holiday delivery. Shop
+    prompt_frame = """prompt: Holiday gift guide Celebrate the joy of the season with amazing tech gifts. Shop and ship early for holiday delivery. Holiday gift guide Celebrate the joy of the season with amazing tech gifts. Shop and ship early for holiday delivery. Shop
 summary: I saw your website and noticed you all have started promoting a bunch of amazing tech gifts.XXX
 
 prompt: Your next best revenue channel Engage your customers through SMS marketing. It s easy. It works. We're at your service. Book a demo 1 click set up 30 day free trial 5x ROI guarantee based on reviews on
 summary: I saw your website and noticed how you highlight yourself as the best revenue channel for SMS Marketing.XXX
 
 prompt: Whether you are buying a server for the first time or replacing an outdated model there is much to consider. With this server buying guide we ll walk you through everything you need to know to find the best server for small business.
-summary: I saw your website and saw the server buying guide.XXX
+summary: I saw your website and saw the server buying guide for small businesses.XXX
 
 prompt: {}
-summary:
-""".format(
+summary:""".format(
         prompt
     )
 
-    completion = get_basic_openai_completion(prompt_frame, max_tokens=18)
+    completion = get_basic_openai_completion(prompt_frame, max_tokens=25)
     return completion
 
 
