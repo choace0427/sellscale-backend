@@ -1,6 +1,10 @@
 from app import db
 from test_utils import test_app, basic_client, basic_archetype
-from src.prospecting.services import add_prospect
+from src.prospecting.services import (
+    add_prospect,
+    get_linkedin_slug_from_url,
+    get_navigator_slug_from_url,
+)
 from model_import import Prospect
 from decorators import use_app_context
 
@@ -73,3 +77,33 @@ def test_add_prospect():
     )
     prospects = Prospect.query.all()
     assert len(prospects) == 2
+
+
+@use_app_context
+def test_get_linkedin_slug_from_url():
+    urls = [
+        # "https://www.linkedin.com/in/testingsara",
+        # "www.linkedin.com/in/testingsara",
+        # "linkedin.com/in/testingsara",
+        # "https://www.linkedin.com/in/testingsara/?testing=123",
+        # "www.linkedin.com/in/testingsara/?testing=123",
+        # "linkedin.com/in/testingsara/?testing=123",
+        "linkedin.com/in/testingsara?testing=123",
+    ]
+
+    for url in urls:
+        slug = get_linkedin_slug_from_url(url)
+        assert slug == "testingsara"
+
+
+@use_app_context
+def test_get_sales_nav_slug_from_url():
+    urls = [
+        "https://www.linkedin.com/sales/lead/testingsara",
+        "www.linkedin.com/sales/lead/testingsara",
+        "linkedin.com/sales/lead/testingsara",
+    ]
+
+    for url in urls:
+        slug = get_navigator_slug_from_url(url)
+        assert slug == "testingsara"

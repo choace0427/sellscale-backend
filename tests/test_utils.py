@@ -1,11 +1,13 @@
-from app import db, app
 import pytest
+from app import db
 from config import TestingConfig
-from model_import import Client, ClientArchetype, Echo, Prospect
+from model_import import Client, ClientArchetype, Echo, Prospect, GNLPModel, ClientSDR
 
 
 @pytest.fixture
 def test_app():
+    from app import app
+
     app.config.from_object(TestingConfig)
     sql_url = app.config["SQLALCHEMY_DATABASE_URI"]
     if "/testing" not in sql_url:
@@ -16,6 +18,8 @@ def test_app():
     with app.app_context():
         clear_all_entities(Echo)
         clear_all_entities(Prospect)
+        clear_all_entities(GNLPModel)
+        clear_all_entities(ClientSDR)
         clear_all_entities(ClientArchetype)
         clear_all_entities(Client)
 

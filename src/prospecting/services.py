@@ -264,6 +264,7 @@ def get_linkedin_slug_from_url(url: str):
     try:
         split = url.split("/in/")
         slug_with_suffix = split[1]
+        slug_with_suffix = slug_with_suffix.split("?")[0]
         slug = slug_with_suffix.split("/")[0]
 
         return slug

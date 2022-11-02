@@ -12,6 +12,10 @@ def get_client(client_id: int):
 def create_client(company: str, contact_name: str, contact_email: str):
     from model_import import Client
 
+    c: Client = Client.query.filter_by(company=company).first()
+    if c:
+        return {"client_id": c.id}
+
     c: Client = Client(
         company=company,
         contact_name=contact_name,
