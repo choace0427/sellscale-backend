@@ -8,6 +8,8 @@ from src.prospecting.models import Prospect
 from src.research.website.general_website_transformer import (
     generate_general_website_research_points,
 )
+from src.utils.abstract.attr_utils import deep_get
+
 
 from src.research.models import (
     ResearchPayload,
@@ -179,7 +181,6 @@ def get_research_and_bullet_points(profile_id: str, test_mode: bool):
 
 
 def get_research_payload_new(prospect_id: int, test_mode: bool):
-
     if test_mode:
         return SAMPLE_RESEARCH_RESPONSE
 
@@ -201,8 +202,6 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
         return None
 
     personal_info = research_personal_profile_details(profile_id=linkedin_slug)
-    company_info = {}
-
     company_info = {}
     try:
         if len(personal_info.get("position_groups", [])) > 0:
@@ -227,13 +226,20 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
     db.session.add(rp)
     db.session.commit()
 
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    company_url_update = deep_get(payload, "company.details.urls.company_page")
+    prospect.company_url = company_url_update
+    db.session.add(prospect)
+    db.session.commit()
+
     return payload
 
 
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
     prospect: Prospect = Prospect.query.get(prospect_id)
-    company_url = prospect.company_url
+
+    company_url = str(prospect.company_url)
     archetype_id = prospect.archetype_id
     ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
     blocked_transformers = ca.transformer_blocklist
