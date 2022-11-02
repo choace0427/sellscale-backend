@@ -4,19 +4,20 @@ from ....utils.abstract.attr_utils import deep_get
 from ....ml.fine_tuned_models import get_completion
 import math
 import random
+from src.utils.converters.string_converters import sanitize_string
 
 
 def get_current_experience_description(data):
     # notice that you __________ at ________ currently
 
     company_name = data.get("company").get("details", {}).get("name")
-    title = (
+    title = sanitize_string(
         data.get("personal", {})
         .get("position_groups", [])[0]
         .get("profile_positions", [])[0]
         .get("title", "")
     )
-    description = (
+    description = sanitize_string(
         data.get("personal", {})
         .get("position_groups", [])[0]
         .get("profile_positions", [])[0]

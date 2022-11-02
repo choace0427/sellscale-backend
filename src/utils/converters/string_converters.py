@@ -4,14 +4,14 @@ from typing import Any
 from src.utils.converters.base_converter import BaseConverter
 from src.utils.jinja.utils import render_jinja
 
-_CASING_KEY = 'casing'
-_FMT_KEY = 'jinja'
+_CASING_KEY = "casing"
+_FMT_KEY = "jinja"
 
 
 class Casing(Enum):
-    LOWER = 'LOWER'
-    UPPER = 'UPPER'
-    CAPITALIZED = 'CAPITALIZED'
+    LOWER = "LOWER"
+    UPPER = "UPPER"
+    CAPITALIZED = "CAPITALIZED"
 
 
 class RecaseConverter(BaseConverter):
@@ -32,4 +32,10 @@ class JinjaConverter(BaseConverter):
     def convert(self, value: Any) -> Any:
         jinja_format_string = self._dependencies[_FMT_KEY]
 
-        return render_jinja(jinja_format_string, {'value': value})
+        return render_jinja(jinja_format_string, {"value": value})
+
+
+def sanitize_string(text: str) -> str:
+    return (
+        text.replace('"', "").replace("\n", "\\n").replace("\r", "").replace("\\", "")
+    )

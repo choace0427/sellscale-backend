@@ -1,12 +1,15 @@
 from ....ml.fine_tuned_models import get_completion
+from src.utils.converters.string_converters import sanitize_string
 
 
 def get_current_company_description(data):
     # ___________ is building the _____________ for ________
 
     company_name = data.get("company").get("details", {}).get("name")
-    company_description = data.get("company", {}).get("details", {}).get("description")
-    tagline = data.get("company", {}).get("details", {}).get("tagline")
+    company_description = sanitize_string(
+        data.get("company", {}).get("details", {}).get("description")
+    )
+    tagline = sanitize_string(data.get("company", {}).get("details", {}).get("tagline"))
 
     raw_data = {
         "company_name": company_name,
