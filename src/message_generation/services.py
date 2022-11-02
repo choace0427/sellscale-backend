@@ -18,7 +18,7 @@ def research_and_generate_outreaches_for_prospect_list(
 ):
     batch_id = generate_random_alphanumeric(36)
     for prospect_id in tqdm(prospect_ids):
-        research_and_generate_outreaches_for_prospect.delay(
+        research_and_generate_outreaches_for_prospect(
             prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
         )
 
@@ -38,6 +38,7 @@ def research_and_generate_outreaches_for_prospect(
 
 
 def generate_prompt(linkedin_payload: any, notes: str = ""):
+    # todo generate linkedin payload from prospect id
     bio_data = {
         "full_name": deep_get(linkedin_payload, "personal.first_name")
         + " "

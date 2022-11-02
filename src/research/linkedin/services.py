@@ -5,6 +5,9 @@ from app import db
 from src.client.models import ClientArchetype
 from src.message_generation.services import delete_message_generation_by_prospect_id
 from src.prospecting.models import Prospect
+from src.research.website.general_website_transformer import (
+    generate_general_website_research_points,
+)
 
 from src.research.models import (
     ResearchPayload,
@@ -230,6 +233,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
     prospect: Prospect = Prospect.query.get(prospect_id)
+    company_url = prospect.company_url
     archetype_id = prospect.archetype_id
     ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
     blocked_transformers = ca.transformer_blocklist
@@ -237,9 +241,9 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     research_payload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
     ).first()
-    research_payload_id = research_payload.id
+    research_payload_id = research_payload and research_payload.id
 
-    transformers = [
+    linkedin_transformers = [
         (
             ResearchPointType.CURRENT_JOB_DESCRIPTION,
             "current_company_description",
@@ -276,10 +280,16 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "recent_recommendation",
             get_recent_recommendation_summary,
         ),
+        (
+            ResearchPointType.GENERAL_WEBSITE_TRANSFORMER,
+            "general_website_transformer",
+            generate_general_website_research_points,
+        ),
     ]
 
     bullets = {}
-    for t in transformers:
+
+    for t in linkedin_transformers:
         try:
             rp_exists: ResearchPoints = ResearchPoints.query.filter(
                 ResearchPoints.research_payload_id == research_payload_id,
@@ -292,7 +302,12 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             if blocked_transformers and t[0] in blocked_transformers:
                 continue
 
-            value = t[2](info).get("response", "")
+            if t[0] == ResearchPointType.GENERAL_WEBSITE_TRANSFORMER:
+                input_payload = company_url
+            else:
+                input_payload = info
+
+            value = t[2](input_payload).get("response", "")
 
             if not value:
                 continue
