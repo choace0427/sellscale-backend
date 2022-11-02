@@ -154,6 +154,22 @@ def test_add_prospects_from_json_payload():
             "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
             "title": "Growth Engineer",
         },
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "aakash.adesara@gmail.com",
+            "full_name": "Ishan No Linkedin",  # no linkeidn
+            "linkedin_url": "",
+            "title": "Growth Engineer",
+        },
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "",  # no  email
+            "full_name": "Ishan No Email",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "title": "Growth Engineer",
+        },
     ]
     client = basic_client()
     archetype = basic_archetype(client)
@@ -165,7 +181,34 @@ def test_add_prospects_from_json_payload():
     assert couldnt_add == []
 
     prospects = Prospect.query.all()
-    assert len(prospects) == 2
+    assert len(prospects) == 4
 
     assert prospects[0].full_name == "Aakash Adesara"
     assert prospects[1].full_name == "Ishan Sharma"
+    assert prospects[2].full_name == "Ishan No Linkedin"
+    assert prospects[3].full_name == "Ishan No Email"
+
+
+@use_app_context
+def test_add_prospects_from_json_payload_invalid():
+    payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "",
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "",
+            "title": "Growth Engineer",
+        },
+    ]
+    client = basic_client()
+    archetype = basic_archetype(client)
+
+    success, couldnt_add = add_prospects_from_json_payload(
+        client.id, archetype.id, payload
+    )
+    assert success == False
+    assert couldnt_add == ["Aakash Adesara"]
+
+    prospects = Prospect.query.all()
+    assert len(prospects) == 0

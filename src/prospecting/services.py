@@ -214,9 +214,10 @@ def add_prospect(
         full_name=full_name, client_id=client_id
     )
 
-    linkedin_url = linkedin_url.replace("https://www.", "")
-    if linkedin_url[-1] == "/":
-        linkedin_url = linkedin_url[:-1]
+    if linkedin_url and len(linkedin_url) > 0:
+        linkedin_url = linkedin_url.replace("https://www.", "")
+        if linkedin_url[-1] == "/":
+            linkedin_url = linkedin_url[:-1]
 
     if not prospect_exists:
         prospect: Prospect = Prospect(
