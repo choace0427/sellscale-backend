@@ -1,7 +1,17 @@
 import pytest
 from app import db
 from config import TestingConfig
-from model_import import Client, ClientArchetype, Echo, Prospect, GNLPModel, ClientSDR
+from model_import import (
+    Client,
+    ClientArchetype,
+    Echo,
+    Prospect,
+    GNLPModel,
+    ClientSDR,
+    EmailSchema,
+    GeneratedMessage,
+    ProspectEmail,
+)
 
 
 @pytest.fixture
@@ -17,6 +27,9 @@ def test_app():
 
     with app.app_context():
         clear_all_entities(Echo)
+        clear_all_entities(ProspectEmail)
+        clear_all_entities(EmailSchema)
+        clear_all_entities(GeneratedMessage)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(ClientSDR)
@@ -54,6 +67,42 @@ def basic_prospect(client: Client, archetype: ClientArchetype):
     db.session.add(p)
     db.session.commit()
     return p
+
+
+def basic_gnlp_model(archetype: ClientArchetype):
+    from src.ml.models import ModelProvider, GNLPModelType
+
+    g = GNLPModel(
+        model_provider=ModelProvider.OPENAI_GPT3,
+        model_type=GNLPModelType.OUTREACH,
+        model_description="test_model",
+        model_uuid="1234567890",
+        archetype_id=archetype.id,
+    )
+    db.session.add(g)
+    db.session.commit()
+    return g
+
+
+def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel):
+    from model_import import (
+        GeneratedMessage,
+        GeneratedMessageStatus,
+        GeneratedMessageType,
+    )
+
+    g = GeneratedMessage(
+        prospect_id=prospect.id,
+        gnlp_model_id=gnlp_model.id,
+        research_points=[],
+        prompt="",
+        completion="this is a test",
+        message_status=GeneratedMessageStatus.DRAFT,
+        message_type=GeneratedMessageType.LINKEDIN,
+    )
+    db.session.add(g)
+    db.session.commit()
+    return g
 
 
 def clear_all_entities(SQLAlchemyObject):
