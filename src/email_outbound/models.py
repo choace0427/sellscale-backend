@@ -47,8 +47,8 @@ class ProspectEmail(db.Model):
     )
 
 
-# create schema
-#   write test
+# create schema ✅
+#   write test ✅
 # generate email from schema + prospect IDs
 #   for prospect id in prospect ids
 #        create schema with schema id + prospect id
