@@ -37,10 +37,6 @@ class GeneratedMessage(db.Model):
         db.Integer, db.ForeignKey("generated_message_cta.id"), nullable=True
     )
 
-    email_customized_field_id = db.Column(
-        db.Integer, db.ForeignKey("email_customized_field.id"), nullable=True
-    )
-
 
 class GeneratedMessageCTA(db.Model):
     __tablename__ = "generated_message_cta"
