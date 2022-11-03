@@ -9,6 +9,11 @@ class GeneratedMessageStatus(enum.Enum):
     SENT = "SENT"
 
 
+class GeneratedMessageType(enum.Enum):
+    LINKEDIN = "LINKEDIN"
+    EMAIL = "EMAIL"
+
+
 class GeneratedMessage(db.Model):
     __tablename__ = "generated_message"
 
@@ -20,6 +25,7 @@ class GeneratedMessage(db.Model):
     prompt = db.Column(db.String, nullable=False)
     completion = db.Column(db.String, nullable=False)
     message_status = db.Column(db.Enum(GeneratedMessageStatus), nullable=False)
+    message_type = db.Column(db.Enum(GeneratedMessageType), nullable=True)
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
 
@@ -29,6 +35,10 @@ class GeneratedMessage(db.Model):
     sensitive_content_flag = db.Column(db.Boolean, nullable=True)
     message_cta = db.Column(
         db.Integer, db.ForeignKey("generated_message_cta.id"), nullable=True
+    )
+
+    email_customized_field_id = db.Column(
+        db.Integer, db.ForeignKey("email_customized_field.id"), nullable=True
     )
 
 

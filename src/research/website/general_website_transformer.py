@@ -58,15 +58,17 @@ def find_points_from_website(url):
 
     soup = BeautifulSoup(mystr, "html.parser")
     ps = soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "div"])
+
     for p in ps:
         if len(p.get_text()) > 0:
-            contents = p.get_text().replace("\n", ".")
-            contents = re.sub("[^A-Za-z0-9\.']+", " ", p.get_text())
+            contents = p.get_text(separator=". ").replace("\n", ".")
+            contents = re.sub("[^A-Za-z0-9\.']+", " ", contents)
             if (
                 "<" not in contents
                 and len(contents) > 150
                 and not words_re.search(contents.lower())
             ):
+
                 contents = contents.replace("\xa0", " ")
                 contents = contents.strip()
                 c.append(contents)
@@ -98,4 +100,4 @@ def generate_general_website_research_points(url):
     prompt = "prompt: {}\nsummary: ".format(point)
     completion = generate_simple_summary(prompt)
     response = completion[0]
-    return {"raw_data": {"url": url}, "prompt": "", "response": response}
+    return {"raw_data": {"url": url}, "prompt": prompt, "response": response}

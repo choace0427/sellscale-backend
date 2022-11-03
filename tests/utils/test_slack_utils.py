@@ -1,6 +1,7 @@
 from decorators import use_app_context
 from test_utils import test_app
 
+from src.utils.slack import *
 from src.prospecting.models import ProspectStatus
 from src.automation.slack_notification import send_slack_block
 from test_utils import basic_client, basic_archetype, basic_prospect
@@ -85,3 +86,8 @@ def test_send_slack_block_with_webhook_config_and_allowlist(mock_send_slack_mess
 
     args, kwargs = mock_send_slack_message.call_args
     assert len(kwargs.get("webhook_urls")) == 2
+
+
+@mock.patch("src.utils.slack.WebhookClient")
+def test_send_slack_message(webhook_client_mock):
+    send_slack_message("testing123", "webhook123", blocks=[])
