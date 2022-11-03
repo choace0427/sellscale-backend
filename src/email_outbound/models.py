@@ -16,6 +16,10 @@ For actual send, we'll generate a CSV based on email_schema -> fields -> selecte
 """
 
 
+class EmailCustomizedFieldTypes(enum.Enum):
+    EMAIL_FIRST_LINE = "EMAIL_FIRST_LINE"  # email outbound first line
+
+
 class EmailSchema(db.Model):
     __tablename__ = "email_schema"
 
@@ -32,6 +36,9 @@ class EmailCustomizedField(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
+    email_customized_field_type = db.Column(
+        db.Enum(EmailCustomizedFieldTypes), nullable=False
+    )
 
     email_schema_id = db.Column(
         db.Integer, db.ForeignKey("email_schema.id"), nullable=False

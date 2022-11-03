@@ -10,3 +10,4 @@ from src.prospecting.models import Prospect, ProspectStatus
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs
 from src.automation.models import PhantomBusterConfig
 from src.email_outbound.models import EmailSchema
+from src.email_outbound.models import EmailCustomizedFieldTypes

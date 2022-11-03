@@ -9,6 +9,7 @@ class ModelProvider(enum.Enum):
 class GNLPModelType(enum.Enum):
     TRANSFORMER = "TRANSFORMER"  # data transformer
     OUTREACH = "OUTREACH"  # linkedin outbound
+    EMAIL_FIRST_LINE = "EMAIL_FIRST_LINE"  # email outbound first line
     # todo(Aakash Adesara): Email Outreach
     # todo(Aakash Adesara): Text Outreach
 
