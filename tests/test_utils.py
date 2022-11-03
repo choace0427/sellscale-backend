@@ -12,6 +12,8 @@ from model_import import (
     GeneratedMessage,
     ProspectEmail,
     GeneratedMessageCTA,
+    ResearchPayload,
+    ResearchPoints,
 )
 
 
@@ -30,8 +32,15 @@ def test_app():
         clear_all_entities(Echo)
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)
+        for p in Prospect.query.all():
+            prospect: Prospect = p
+            prospect.approved_outreach_message_id = None
+            db.session.add(prospect)
+            db.session.commit()
         clear_all_entities(GeneratedMessage)
         clear_all_entities(GeneratedMessageCTA)
+        clear_all_entities(ResearchPoints)
+        clear_all_entities(ResearchPayload)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(ClientSDR)

@@ -1,8 +1,14 @@
 from src.ml.adverserial_ai import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
-from model_import import GeneratedMessageType, GeneratedMessage
+from model_import import (
+    GeneratedMessageType,
+    GeneratedMessage,
+    EmailSchema,
+    GeneratedMessageStatus,
+)
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
+from model_import import Prospect
 from ..ml.fine_tuned_models import (
     get_basic_openai_completion,
     get_completion,
@@ -95,6 +101,22 @@ def generate_outreaches(research_and_bullets: dict, num_options: int = 1):
     return outreaches
 
 
+def get_notes_and_points_from_perm(perm, cta_id: int = None):
+    from model_import import (
+        GeneratedMessageCTA,
+    )
+
+    d = ["-" + x.value for x in perm]
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+    if cta:
+        d.append("-" + cta.text_value)
+    notes = "\n".join(d)
+
+    research_points = [x.id for x in perm]
+
+    return notes, research_points, cta
+
+
 def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None):
     from model_import import (
         GeneratedMessage,
@@ -127,13 +149,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
 
     outreaches = []
     for perm in perms:
-        d = ["-" + x.value for x in perm]
-        cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
-        if cta:
-            d.append("-" + cta.text_value)
-        notes = "\n".join(d)
-
-        research_points = [x.id for x in perm]
+        notes, research_points, cta = get_notes_and_points_from_perm(perm, cta_id)
 
         prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
@@ -369,3 +385,49 @@ def toggle_cta_active(cta_id: int):
     db.session.commit()
 
     return True
+
+
+def generate_prospect_email(prospect_id: int, email_schema_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
+    if not prospect:
+        return False
+    if not email_schema:
+        return False
+
+    archetype_id = prospect.archetype_id
+
+    research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
+        ResearchPoints.research_payload_id == research.id
+    ).all()
+
+    NUM_GENERATIONS = 3  # number of ProspectEmail's to make
+    perms = generate_batches_of_research_points(
+        points=research_points_list, n=NUM_GENERATIONS
+    )
+
+    for perm in perms:
+        notes, research_points, _ = get_notes_and_points_from_perm(perm)
+
+        prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+
+        personalized_first_line = None
+        if email_schema.personalized_first_line_gnlp_model_id:
+            completion, model_id = get_custom_completion_for_client(
+                archetype_id=archetype_id,
+                model_type=GNLPModelType.EMAIL_FIRST_LINE,
+                prompt=prompt,
+                max_tokens=100,
+                n=1,
+            )
+            personalized_first_line = GeneratedMessage(
+                prospect_id=prospect_id,
+                gnlp_model_id=model_id,
+                research_points=research_points,
+                prompt=prompt,
+                completion=completion,
+                message_status=GeneratedMessageStatus.DRAFT,
+                message_type=GeneratedMessageType.EMAIL,
+            )
+            db.session.add(personalized_first_line)
+            db.session.commit()

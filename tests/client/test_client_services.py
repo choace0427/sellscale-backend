@@ -5,7 +5,7 @@ from src.client.services import (
     create_client_sdr,
     reset_client_sdr_sight_auth_token,
 )
-from model_import import Client, ClientArchetype, ClientSDR
+from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
 from test_utils import test_app
 
@@ -36,6 +36,9 @@ def test_add_client_and_archetype():
 
     client_archetypes: list = ClientArchetype.query.all()
     assert len(client_archetypes) == 1
+
+    gnlp_models: list = GNLPModel.query.all()
+    assert len(gnlp_models) == 1
 
 
 @use_app_context
