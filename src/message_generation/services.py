@@ -1,5 +1,6 @@
 from src.ml.adverserial_ai import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
+from model_import import GeneratedMessageType, GeneratedMessage
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from ..ml.fine_tuned_models import (
@@ -159,6 +160,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
                 batch_id=batch_id,
                 adversarial_ai_prediction=prediction,
                 message_cta=cta.id if cta else None,
+                message_type=GeneratedMessageType.LINKEDIN,
             )
             db.session.add(message)
             db.session.commit()
@@ -315,6 +317,7 @@ def few_shot_generations(prospect_id: int, example_ids: list, cta_prompt: str = 
             prompt=prompt,
             completion=completion,
             message_status=GeneratedMessageStatus.DRAFT,
+            message_type=GeneratedMessageType.LINKEDIN,
         )
         db.session.add(gm)
         db.session.commit()
@@ -343,6 +346,12 @@ def create_cta(archetype_id: int, text_value: str):
 
 def delete_cta(cta_id: int):
     from model_import import GeneratedMessageCTA
+
+    generated_message_with_cta = GeneratedMessage.query.filter(
+        GeneratedMessage.message_cta == cta_id
+    ).first()
+    if generated_message_with_cta:
+        return False
 
     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
     db.session.delete(cta)

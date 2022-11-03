@@ -11,6 +11,7 @@ from model_import import (
     EmailSchema,
     GeneratedMessage,
     ProspectEmail,
+    GeneratedMessageCTA,
 )
 
 
@@ -30,6 +31,7 @@ def test_app():
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)
         clear_all_entities(GeneratedMessage)
+        clear_all_entities(GeneratedMessageCTA)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(ClientSDR)

@@ -50,3 +50,24 @@ def create_prospect_email(
     db.session.add(prospect_email)
     db.session.commit()
     return prospect_email
+
+
+def generate_prospect_email(prospect_id: int, email_schema_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
+    if not prospect:
+        raise Exception("Prospect not found")
+    if not email_schema:
+        raise Exception("Email schema not found")
+
+    # personalized_first_line = generate_email_completion(
+    #     prospect_id=prospect.id,
+    #     gnlp_model_id=email_schema.personalized_first_line_gnlp_model_id,
+    # )
+
+    # prospect_email = create_prospect_email(
+    #     email_schema_id=email_schema_id,
+    #     prospect_id=prospect_id,
+    #     personalized_first_line_id=personalized_first_line.id,
+    # )
+    # return prospect_email
