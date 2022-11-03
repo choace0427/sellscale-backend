@@ -3,16 +3,14 @@ import enum
 
 
 """
-Explanation
-ClientArchetype -> client archetype
-EmailSchema -> an email template (root). Each archetype can have multiple EmailSchema's
-EmailCustomizedField -> a customized field in an EmailSchema
-GeneratedMessage -> multiple generations can be made per custom field. 1 can be approved per custom field
+Create new email schema:
+- client
+- template name
+- fields 1 -> n
 
-You need to approve all the generated messages under GeneratedMessage for 
-EmailCustomizedField -> EmailSchema to register and be eligible for send.
-
-For actual send, we'll generate a CSV based on email_schema -> fields -> selected/approved messages
+generate_email_for_client()
+- get template
+create new prospect email
 """
 
 
@@ -30,16 +28,20 @@ class EmailSchema(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
 
-
-class EmailCustomizedField(db.Model):
-    __tablename__ = "email_customized_field"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    email_customized_field_type = db.Column(
-        db.Enum(EmailCustomizedFieldTypes), nullable=False
+    personalized_first_line_gnlp_model_id = db.Column(
+        db.Integer, db.ForeignKey("gnlp_models.id"), nullable=True
     )
 
+
+class ProspectEmail(db.Model):
+    __tablename__ = "prospect_email"
+
+    id = db.Column(db.Integer, primary_key=True)
     email_schema_id = db.Column(
         db.Integer, db.ForeignKey("email_schema.id"), nullable=False
+    )
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
+
+    personalized_first_line = db.Column(
+        db.Integer, db.ForeignKey("generated_message.id")
     )
