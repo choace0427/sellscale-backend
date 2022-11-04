@@ -12,6 +12,8 @@ from decorators import use_app_context
 from test_utils import test_app
 from src.email_outbound.models import EmailSchema, ProspectEmail, ProspectEmailStatus
 from app import app
+import json
+import mock
 
 
 def test_email_field_types():
@@ -29,52 +31,47 @@ def test_create_email_schema():
 
     response = app.test_client().post(
         "/email_generation/create_email_schema",
-        data={
-            "name": "This is a test email schema",
-            "client_archetype_id": archetype.id,
-        },
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "name": "This is a test email schema",
+                "client_archetype_id": archetype.id,
+            }
+        ),
     )
     assert response.status_code == 200
     assert response.data.decode("utf-8") == "OK"
-    # email_schema = create_email_schema(
-    #     name="test",
-    #     client_archetype_id=archetype.id,
-    # )
 
     all_schemas = EmailSchema.query.all()
     assert len(all_schemas) == 1
-    assert all_schemas[0].name == "test"
+    assert all_schemas[0].name == "This is a test email schema"
 
 
-# @use_app_context
-# def test_create_prospect_email():
-#     client = basic_client()
-#     archetype = basic_archetype(client)
-#     gnlp_model = basic_gnlp_model(archetype)
-#     prospect = basic_prospect(client, archetype)
-#     personalized_first_line = basic_generated_message(prospect, gnlp_model)
+@use_app_context
+@mock.patch("src.message_generation.services.generate_prospect_email.delay")
+def test_create_prospect_email(generate_prospect_email_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    gnlp_model = basic_gnlp_model(archetype)
+    prospect = basic_prospect(client, archetype)
+    prospect_id: int = prospect.id
+    personalized_first_line = basic_generated_message(prospect, gnlp_model)
 
-#     email_schema = create_email_schema(
-#         name="test",
-#         client_archetype_id=archetype.id,
-#     )
+    email_schema = create_email_schema(
+        name="test",
+        client_archetype_id=archetype.id,
+    )
 
-#     prospect_email = create_prospect_email(
-#         email_schema_id=email_schema.id,
-#         prospect_id=prospect.id,
-#         personalized_first_line_id=personalized_first_line.id,
-#         batch_id="123123123",
-#     )
-#     assert prospect_email.email_schema_id == email_schema.id
-#     assert prospect_email.prospect_id == prospect.id
-#     assert prospect_email.personalized_first_line == personalized_first_line.id
-#     assert prospect_email.email_status == ProspectEmailStatus.DRAFT
-#     assert prospect_email.batch_id == "123123123"
-
-#     all_prospect_emails = ProspectEmail.query.all()
-#     assert len(all_prospect_emails) == 1
-#     assert all_prospect_emails[0].email_schema_id == email_schema.id
-#     assert all_prospect_emails[0].prospect_id == prospect.id
-#     assert all_prospect_emails[0].personalized_first_line == personalized_first_line.id
-#     assert all_prospect_emails[0].email_status == ProspectEmailStatus.DRAFT
-#     assert all_prospect_emails[0].batch_id == "123123123"
+    response = app.test_client().post(
+        "/email_generation/batch",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": [prospect_id],
+                "email_schema_id": email_schema.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert response.data.decode("utf-8") == "OK"
+    assert generate_prospect_email_mock.call_count == 1
