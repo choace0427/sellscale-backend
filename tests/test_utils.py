@@ -128,6 +128,23 @@ def basic_email_schema(archetype: ClientArchetype):
     return e
 
 
+def basic_prospect_email(
+    prospect: Prospect,
+    email_schema: EmailSchema,
+) -> ProspectEmail:
+    from model_import import ProspectEmail
+    from src.email_outbound.models import ProspectEmailStatus
+
+    p = ProspectEmail(
+        email_schema_id=email_schema.id,
+        prospect_id=prospect.id,
+        email_status=ProspectEmailStatus.DRAFT,
+    )
+    db.session.add(p)
+    db.session.commit()
+    return p
+
+
 def clear_all_entities(SQLAlchemyObject):
     echos = SQLAlchemyObject.query.all()
     for e in echos:

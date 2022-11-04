@@ -43,7 +43,10 @@ class Prospect(db.Model):
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
 
     approved_outreach_message_id = db.Column(
-        db.Integer, db.ForeignKey("generated_message.id")
+        db.Integer, db.ForeignKey("generated_message.id")  # approved linkedin message
+    )
+    approved_prospect_email_id = db.Column(
+        db.Integer, db.ForeignKey("prospect_email.id")  # approved prospect email id
     )
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
