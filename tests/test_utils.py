@@ -30,13 +30,14 @@ def test_app():
 
     with app.app_context():
         clear_all_entities(Echo)
-        clear_all_entities(ProspectEmail)
-        clear_all_entities(EmailSchema)
         for p in Prospect.query.all():
             prospect: Prospect = p
             prospect.approved_outreach_message_id = None
+            prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
+        clear_all_entities(ProspectEmail)
+        clear_all_entities(EmailSchema)
         clear_all_entities(GeneratedMessage)
         clear_all_entities(GeneratedMessageCTA)
         clear_all_entities(ResearchPoints)

@@ -504,6 +504,13 @@ def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailSt
 
 
 def mark_prospect_email_approved(prospect_email_id: int):
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    prospect_id = prospect_email.prospect_id
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.approved_prospect_email_id = prospect_email.id
+    db.session.add(prospect)
+    db.session.commit()
+
     return change_prospect_email_status(
         prospect_email_id=prospect_email_id, status=ProspectEmailStatus.APPROVED
     )

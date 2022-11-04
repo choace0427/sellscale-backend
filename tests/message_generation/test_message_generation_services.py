@@ -401,9 +401,22 @@ def test_change_prospect_email_status():
     assert prospect_email.personalized_first_line == generated_message_id
     assert generated_message.message_status == GeneratedMessageStatus.DRAFT
 
-    change_prospect_email_status(prospect_email.id, ProspectEmailStatus.SENT)
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_prospect_email_id == None
+
+    mark_prospect_email_approved(prospect_email.id)
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(
+        generated_message_id
+    )
+    assert prospect_email.email_status == ProspectEmailStatus.APPROVED
+    assert generated_message.message_status == GeneratedMessageStatus.APPROVED
+
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_prospect_email_id == prospect_email.id
+
+    mark_prospect_email_sent(prospect_email.id)
     generated_message: GeneratedMessage = GeneratedMessage.query.get(
         generated_message_id
     )
