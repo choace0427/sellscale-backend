@@ -404,6 +404,7 @@ def get_personalized_first_line(
     prompt: str,
     research_points: list,
     prospect_id: int,
+    batch_id: int,
 ):
     completion, model_id = get_custom_completion_for_client(
         archetype_id=archetype_id,
@@ -420,6 +421,7 @@ def get_personalized_first_line(
         completion=completion,
         message_status=GeneratedMessageStatus.DRAFT,
         message_type=GeneratedMessageType.EMAIL,
+        batch_id=batch_id,
     )
     db.session.add(personalized_first_line)
     db.session.commit()
@@ -427,7 +429,16 @@ def get_personalized_first_line(
     return personalized_first_line
 
 
-def generate_prospect_email(prospect_id: int, email_schema_id: int):
+def batch_generate_prospect_emails(prospect_ids: list, email_schema_id: int):
+    batch_id = generate_random_alphanumeric(32)
+    for prospect_id in prospect_ids:
+        generate_prospect_email.delay(
+            prospect_id=prospect_id, email_schema_id=email_schema_id, batch_id=batch_id
+        )
+
+
+@celery.task
+def generate_prospect_email(prospect_id: int, email_schema_id: int, batch_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
     if not prospect:
@@ -455,18 +466,18 @@ def generate_prospect_email(prospect_id: int, email_schema_id: int):
         notes, research_points, _ = get_notes_and_points_from_perm(perm)
         prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
-        personalized_first_line = None
-        if email_schema.personalized_first_line_gnlp_model_id:
-            personalized_first_line = get_personalized_first_line(
-                archetype_id=archetype_id,
-                model_type=GNLPModelType.EMAIL_FIRST_LINE,
-                prompt=prompt,
-                research_points=research_points,
-                prospect_id=prospect_id,
-            )
+        personalized_first_line = get_personalized_first_line(
+            archetype_id=archetype_id,
+            model_type=GNLPModelType.EMAIL_FIRST_LINE,
+            prompt=prompt,
+            research_points=research_points,
+            prospect_id=prospect_id,
+            batch_id=batch_id,
+        )
 
         create_prospect_email(
             email_schema_id=email_schema_id,
             prospect_id=prospect_id,
             personalized_first_line_id=personalized_first_line.id,
+            batch_id=batch_id,
         )

@@ -30,7 +30,6 @@ def test_email_schema():
     email_schema = EmailSchema(
         name="test",
         client_archetype_id=archetype.id,
-        personalized_first_line_gnlp_model_id=gnlp_model.id,
     )
     db.session.add(email_schema)
     db.session.commit()
@@ -50,7 +49,6 @@ def test_prospect_email():
     email_schema = EmailSchema(
         name="test",
         client_archetype_id=archetype.id,
-        personalized_first_line_gnlp_model_id=gnlp_model.id,
     )
     db.session.add(email_schema)
     db.session.commit()

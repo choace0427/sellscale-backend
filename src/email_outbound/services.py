@@ -6,19 +6,14 @@ from model_import import ClientArchetype, GNLPModel, GeneratedMessage, Prospect
 def create_email_schema(
     name: str,
     client_archetype_id: int,
-    personalized_first_line_gnlp_model_id: int,
 ):
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
-    gnlp_model: GNLPModel = GNLPModel.query.get(personalized_first_line_gnlp_model_id)
     if not ca:
         raise Exception("Client archetype not found")
-    if not gnlp_model:
-        raise Exception("GNLP model not found")
 
     email_schema = EmailSchema(
         name=name,
         client_archetype_id=client_archetype_id,
-        personalized_first_line_gnlp_model_id=personalized_first_line_gnlp_model_id,
     )
     db.session.add(email_schema)
     db.session.commit()
@@ -29,6 +24,7 @@ def create_prospect_email(
     email_schema_id: int,
     prospect_id: int,
     personalized_first_line_id: int,
+    batch_id: int,
 ):
     email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -46,28 +42,9 @@ def create_prospect_email(
         email_schema_id=email_schema_id,
         prospect_id=prospect_id,
         personalized_first_line=personalized_first_line_id,
+        email_status=ProspectEmailStatus.DRAFT,
+        batch_id=batch_id,
     )
     db.session.add(prospect_email)
     db.session.commit()
     return prospect_email
-
-
-def generate_prospect_email(prospect_id: int, email_schema_id: int):
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
-    if not prospect:
-        raise Exception("Prospect not found")
-    if not email_schema:
-        raise Exception("Email schema not found")
-
-    # personalized_first_line = generate_email_completion(
-    #     prospect_id=prospect.id,
-    #     gnlp_model_id=email_schema.personalized_first_line_gnlp_model_id,
-    # )
-
-    # prospect_email = create_prospect_email(
-    #     email_schema_id=email_schema_id,
-    #     prospect_id=prospect_id,
-    #     personalized_first_line_id=personalized_first_line.id,
-    # )
-    # return prospect_email

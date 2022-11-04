@@ -11,7 +11,7 @@ from test_utils import (
 from decorators import use_app_context
 from test_utils import test_app
 from app import db
-from src.email_outbound.models import EmailSchema, ProspectEmail
+from src.email_outbound.models import EmailSchema, ProspectEmail, ProspectEmailStatus
 
 
 def test_email_field_types():
@@ -31,7 +31,6 @@ def test_create_email_schema():
     email_schema = create_email_schema(
         name="test",
         client_archetype_id=archetype.id,
-        personalized_first_line_gnlp_model_id=gnlp_model.id,
     )
 
     all_schemas = EmailSchema.query.all()
@@ -50,20 +49,24 @@ def test_create_prospect_email():
     email_schema = create_email_schema(
         name="test",
         client_archetype_id=archetype.id,
-        personalized_first_line_gnlp_model_id=gnlp_model.id,
     )
 
     prospect_email = create_prospect_email(
         email_schema_id=email_schema.id,
         prospect_id=prospect.id,
         personalized_first_line_id=personalized_first_line.id,
+        batch_id="123123123",
     )
     assert prospect_email.email_schema_id == email_schema.id
     assert prospect_email.prospect_id == prospect.id
     assert prospect_email.personalized_first_line == personalized_first_line.id
+    assert prospect_email.email_status == ProspectEmailStatus.DRAFT
+    assert prospect_email.batch_id == "123123123"
 
     all_prospect_emails = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
     assert all_prospect_emails[0].email_schema_id == email_schema.id
     assert all_prospect_emails[0].prospect_id == prospect.id
     assert all_prospect_emails[0].personalized_first_line == personalized_first_line.id
+    assert all_prospect_emails[0].email_status == ProspectEmailStatus.DRAFT
+    assert all_prospect_emails[0].batch_id == "123123123"

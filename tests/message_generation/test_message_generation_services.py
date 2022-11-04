@@ -260,13 +260,17 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
     db.session.add(gnlp_model)
     db.session.commit()
-    email_schema = basic_email_schema(archetype, gnlp_model)
+    email_schema = basic_email_schema(archetype)
+    email_schema_id = email_schema.id
 
-    generate_prospect_email(prospect_id=prospect.id, email_schema_id=email_schema.id)
+    generate_prospect_email(
+        prospect_id=prospect.id, email_schema_id=email_schema.id, batch_id="123123"
+    )
 
     assert get_custom_completion_for_client_mock.called is True
 
@@ -274,15 +278,17 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     assert len(messages) == 3
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
-        assert message.gnlp_model_id == gnlp_model.id
+        assert message.gnlp_model_id == 5
         assert message.completion == "completion"
+        assert message.batch_id == "123123"
 
     prospect_emails: list = ProspectEmail.query.all()
     assert len(prospect_emails) == 3
     for prospect_email in prospect_emails:
-        assert prospect_email.prospect_id == prospect.id
-        assert prospect_email.email_schema_id == email_schema.id
+        assert prospect_email.prospect_id == prospect_id
+        assert prospect_email.email_schema_id == email_schema_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
+        assert prospect_email.batch_id == "123123"
 
 
 @use_app_context
@@ -297,26 +303,55 @@ def test_research_and_generate_emails_for_prospect(
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
+    gnlp_model_id = 5
     db.session.add(gnlp_model)
     db.session.commit()
-    email_schema = basic_email_schema(archetype, gnlp_model)
+    email_schema = basic_email_schema(archetype)
+    email_schema_id = email_schema.id
 
-    generate_prospect_email(prospect_id=prospect.id, email_schema_id=email_schema.id)
+    generate_prospect_email(
+        prospect_id=prospect.id, email_schema_id=email_schema.id, batch_id="123123"
+    )
 
     assert get_custom_completion_for_client_mock.called is True
 
     messages: list = GeneratedMessage.query.all()
+    batch_id = messages[0].batch_id
     assert len(messages) == 3
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
-        assert message.gnlp_model_id == gnlp_model.id
+        assert message.gnlp_model_id == 5
         assert message.completion == "completion"
+        assert message.batch_id == "123123"
 
     prospect_emails: list = ProspectEmail.query.all()
     assert len(prospect_emails) == 3
     for prospect_email in prospect_emails:
-        assert prospect_email.prospect_id == prospect.id
-        assert prospect_email.email_schema_id == email_schema.id
+        assert prospect_email.prospect_id == prospect_id
+        assert prospect_email.email_schema_id == email_schema_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
+        assert prospect_email.batch_id == "123123"
+
+
+@use_app_context
+@mock.patch(
+    "src.message_generation.services.get_custom_completion_for_client",
+    return_value=("completion", 5),
+)
+@mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
+@mock.patch("src.message_generation.services.generate_prospect_email.delay")
+def test_batch_generate_emails_for_prospect(
+    generate_email_mock, linkedin_research_patch, get_custom_completion_for_client_mock
+):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    email_schema = basic_email_schema(archetype)
+
+    batch_generate_prospect_emails(
+        prospect_ids=[1, 2, 3],
+        email_schema_id=email_schema.id,
+    )
+    assert generate_email_mock.call_count == 3

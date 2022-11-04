@@ -28,9 +28,12 @@ class EmailSchema(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
 
-    personalized_first_line_gnlp_model_id = db.Column(
-        db.Integer, db.ForeignKey("gnlp_models.id"), nullable=True
-    )
+
+class ProspectEmailStatus(enum.Enum):
+    DRAFT = "DRAFT"
+    BLOCKED = "BLOCKED"
+    APPROVED = "APPROVED"
+    SENT = "SENT"
 
 
 class ProspectEmail(db.Model):
@@ -41,10 +44,14 @@ class ProspectEmail(db.Model):
         db.Integer, db.ForeignKey("email_schema.id"), nullable=False
     )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
+    email_status = db.Column(db.Enum(ProspectEmailStatus), nullable=True)
 
     personalized_first_line = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")
     )
+
+    date_sent = db.Column(db.DateTime, nullable=True)
+    batch_id = db.Column(db.String, nullable=True)
 
 
 # create schema ✅
