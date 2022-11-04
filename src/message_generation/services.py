@@ -41,7 +41,9 @@ def research_and_generate_outreaches_for_prospect(
     from src.research.linkedin.services import get_research_and_bullet_points_new
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    generate_prospect_email(prospect_id=prospect_id, batch_id=batch_id, cta_id=cta_id)
+    generate_outreaches_for_batch_of_prospects(
+        prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
+    )
 
 
 @celery.task

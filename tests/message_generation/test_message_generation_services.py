@@ -355,3 +355,27 @@ def test_batch_generate_emails_for_prospect(
         email_schema_id=email_schema.id,
     )
     assert generate_email_mock.call_count == 3
+
+
+@use_app_context
+@mock.patch(
+    "src.message_generation.services.get_custom_completion_for_client",
+    return_value=("completion", 5),
+)
+@mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
+@mock.patch(
+    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
+)
+def test_research_and_generate_outreaches_for_prospect_list(
+    generate_outreach_mock,
+    linkedin_research_patch,
+    get_custom_completion_for_client_mock,
+):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    email_schema = basic_email_schema(archetype)
+
+    research_and_generate_outreaches_for_prospect_list(
+        prospect_ids=[1, 2, 3],
+    )
+    assert generate_outreach_mock.call_count == 3
