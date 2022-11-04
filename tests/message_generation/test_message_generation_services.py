@@ -6,6 +6,7 @@ from test_utils import (
     basic_generated_message,
     basic_gnlp_model,
     basic_prospect,
+    basic_email_schema,
 )
 from decorators import use_app_context
 from src.message_generation.services import *
@@ -248,3 +249,74 @@ def test_delete_message():
 
     messages: list = GeneratedMessage.query.all()
     assert len(messages) == 0
+
+
+@use_app_context
+@mock.patch(
+    "src.message_generation.services.get_custom_completion_for_client",
+    return_value=("completion", 5),
+)
+def test_generate_prospect_email(get_custom_completion_for_client_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    gnlp_model.id = 5
+    db.session.add(gnlp_model)
+    db.session.commit()
+    email_schema = basic_email_schema(archetype, gnlp_model)
+
+    generate_prospect_email(prospect_id=prospect.id, email_schema_id=email_schema.id)
+
+    assert get_custom_completion_for_client_mock.called is True
+
+    messages: list = GeneratedMessage.query.all()
+    assert len(messages) == 3
+    for message in messages:
+        assert message.message_type == GeneratedMessageType.EMAIL
+        assert message.gnlp_model_id == gnlp_model.id
+        assert message.completion == "completion"
+
+    prospect_emails: list = ProspectEmail.query.all()
+    assert len(prospect_emails) == 3
+    for prospect_email in prospect_emails:
+        assert prospect_email.prospect_id == prospect.id
+        assert prospect_email.email_schema_id == email_schema.id
+        assert prospect_email.personalized_first_line in [x.id for x in messages]
+
+
+@use_app_context
+@mock.patch(
+    "src.message_generation.services.get_custom_completion_for_client",
+    return_value=("completion", 5),
+)
+@mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
+def test_research_and_generate_emails_for_prospect(
+    linkedin_research_patch, get_custom_completion_for_client_mock
+):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    gnlp_model.id = 5
+    db.session.add(gnlp_model)
+    db.session.commit()
+    email_schema = basic_email_schema(archetype, gnlp_model)
+
+    generate_prospect_email(prospect_id=prospect.id, email_schema_id=email_schema.id)
+
+    assert get_custom_completion_for_client_mock.called is True
+
+    messages: list = GeneratedMessage.query.all()
+    assert len(messages) == 3
+    for message in messages:
+        assert message.message_type == GeneratedMessageType.EMAIL
+        assert message.gnlp_model_id == gnlp_model.id
+        assert message.completion == "completion"
+
+    prospect_emails: list = ProspectEmail.query.all()
+    assert len(prospect_emails) == 3
+    for prospect_email in prospect_emails:
+        assert prospect_email.prospect_id == prospect.id
+        assert prospect_email.email_schema_id == email_schema.id
+        assert prospect_email.personalized_first_line in [x.id for x in messages]

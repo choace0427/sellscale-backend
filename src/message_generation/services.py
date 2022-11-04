@@ -5,6 +5,7 @@ from model_import import (
     GeneratedMessage,
     EmailSchema,
     GeneratedMessageStatus,
+    ProspectEmail,
 )
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
@@ -14,6 +15,7 @@ from ..ml.fine_tuned_models import (
     get_completion,
     get_custom_completion_for_client,
 )
+from src.email_outbound.services import create_prospect_email
 from ..utils.abstract.attr_utils import deep_get
 import random
 from app import db, celery
@@ -39,9 +41,15 @@ def research_and_generate_outreaches_for_prospect(
     from src.research.linkedin.services import get_research_and_bullet_points_new
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    generate_outreaches_for_batch_of_prospects(
-        prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
-    )
+    generate_prospect_email(prospect_id=prospect_id, batch_id=batch_id, cta_id=cta_id)
+
+
+@celery.task
+def research_and_generate_emails_for_prospect(prospect_id: int, email_schema_id: int):
+    from src.research.linkedin.services import get_research_and_bullet_points_new
+
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+    generate_prospect_email(prospect_id=prospect_id, email_schema_id=email_schema_id)
 
 
 def generate_prompt(prospect_id: int, notes: str = ""):
@@ -107,7 +115,10 @@ def get_notes_and_points_from_perm(perm, cta_id: int = None):
     )
 
     d = ["-" + x.value for x in perm]
-    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+    cta = None
+    if cta_id:
+        cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+
     if cta:
         d.append("-" + cta.text_value)
     notes = "\n".join(d)
@@ -387,6 +398,35 @@ def toggle_cta_active(cta_id: int):
     return True
 
 
+def get_personalized_first_line(
+    archetype_id: int,
+    model_type: GNLPModelType,
+    prompt: str,
+    research_points: list,
+    prospect_id: int,
+):
+    completion, model_id = get_custom_completion_for_client(
+        archetype_id=archetype_id,
+        model_type=GNLPModelType.EMAIL_FIRST_LINE,
+        prompt=prompt,
+        max_tokens=100,
+        n=1,
+    )
+    personalized_first_line = GeneratedMessage(
+        prospect_id=prospect_id,
+        gnlp_model_id=model_id,
+        research_points=research_points,
+        prompt=prompt,
+        completion=completion,
+        message_status=GeneratedMessageStatus.DRAFT,
+        message_type=GeneratedMessageType.EMAIL,
+    )
+    db.session.add(personalized_first_line)
+    db.session.commit()
+
+    return personalized_first_line
+
+
 def generate_prospect_email(prospect_id: int, email_schema_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
@@ -397,8 +437,13 @@ def generate_prospect_email(prospect_id: int, email_schema_id: int):
 
     archetype_id = prospect.archetype_id
 
+    research: ResearchPayload = ResearchPayload.query.filter(
+        ResearchPayload.prospect_id == prospect_id
+    ).first()
+    research_id = research and research.id
+
     research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
-        ResearchPoints.research_payload_id == research.id
+        ResearchPoints.research_payload_id == research_id
     ).all()
 
     NUM_GENERATIONS = 3  # number of ProspectEmail's to make
@@ -408,26 +453,20 @@ def generate_prospect_email(prospect_id: int, email_schema_id: int):
 
     for perm in perms:
         notes, research_points, _ = get_notes_and_points_from_perm(perm)
-
         prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
         personalized_first_line = None
         if email_schema.personalized_first_line_gnlp_model_id:
-            completion, model_id = get_custom_completion_for_client(
+            personalized_first_line = get_personalized_first_line(
                 archetype_id=archetype_id,
                 model_type=GNLPModelType.EMAIL_FIRST_LINE,
                 prompt=prompt,
-                max_tokens=100,
-                n=1,
-            )
-            personalized_first_line = GeneratedMessage(
-                prospect_id=prospect_id,
-                gnlp_model_id=model_id,
                 research_points=research_points,
-                prompt=prompt,
-                completion=completion,
-                message_status=GeneratedMessageStatus.DRAFT,
-                message_type=GeneratedMessageType.EMAIL,
+                prospect_id=prospect_id,
             )
-            db.session.add(personalized_first_line)
-            db.session.commit()
+
+        create_prospect_email(
+            email_schema_id=email_schema_id,
+            prospect_id=prospect_id,
+            personalized_first_line_id=personalized_first_line.id,
+        )

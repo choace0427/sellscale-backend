@@ -116,6 +116,19 @@ def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel):
     return g
 
 
+def basic_email_schema(archetype: ClientArchetype, gnlp_model: GNLPModel):
+    from model_import import EmailSchema
+
+    e = EmailSchema(
+        name="Test Schema",
+        client_archetype_id=archetype.id,
+        personalized_first_line_gnlp_model_id=gnlp_model.id,
+    )
+    db.session.add(e)
+    db.session.commit()
+    return e
+
+
 def clear_all_entities(SQLAlchemyObject):
     echos = SQLAlchemyObject.query.all()
     for e in echos:
