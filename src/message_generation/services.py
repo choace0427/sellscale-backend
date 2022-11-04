@@ -442,6 +442,10 @@ def batch_generate_prospect_emails(prospect_ids: list, email_schema_id: int):
 
 @celery.task
 def generate_prospect_email(prospect_id: int, email_schema_id: int, batch_id: int):
+    from src.research.linkedin.services import get_research_and_bullet_points_new
+
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+
     prospect: Prospect = Prospect.query.get(prospect_id)
     email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
     if not prospect:
@@ -454,7 +458,7 @@ def generate_prospect_email(prospect_id: int, email_schema_id: int, batch_id: in
     research: ResearchPayload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
     ).first()
-    research_id = research and research.id
+    research_id = research.id
 
     research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
         ResearchPoints.research_payload_id == research_id
@@ -520,3 +524,24 @@ def mark_prospect_email_sent(prospect_email_id: int):
     return change_prospect_email_status(
         prospect_email_id=prospect_email_id, status=ProspectEmailStatus.SENT
     )
+
+
+def wipe_prospect_email_and_generations_and_research(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_emails: list = ProspectEmail.query.filter(
+        ProspectEmail.prospect_id == prospect_id
+    ).all()
+
+    prospect.approved_prospect_email_id = None
+    db.session.add(prospect)
+    db.session.commit()
+
+    for prospect_email in prospect_emails:
+        personalized_line = GeneratedMessage.query.get(
+            prospect_email.personalized_first_line
+        )
+        db.session.delete(personalized_line)
+        db.session.delete(prospect_email)
+        db.session.commit()
+
+    return True

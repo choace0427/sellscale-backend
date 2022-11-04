@@ -298,7 +298,7 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     return_value=("completion", 5),
 )
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
-def test_research_and_generate_emails_for_prospect(
+def test_research_and_generate_emails_for_prospect_and_wipe(
     linkedin_research_patch, get_custom_completion_for_client_mock
 ):
     client = basic_client()
@@ -312,6 +312,14 @@ def test_research_and_generate_emails_for_prospect(
     db.session.commit()
     email_schema = basic_email_schema(archetype)
     email_schema_id = email_schema.id
+
+    rp: ResearchPayload = ResearchPayload(
+        prospect_id=prospect_id,
+        research_type=ResearchType.LINKEDIN_ISCRAPER,
+        payload={},
+    )
+    db.session.add(rp)
+    db.session.commit()
 
     generate_prospect_email(
         prospect_id=prospect.id, email_schema_id=email_schema.id, batch_id="123123"
@@ -335,6 +343,38 @@ def test_research_and_generate_emails_for_prospect(
         assert prospect_email.email_schema_id == email_schema_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
         assert prospect_email.batch_id == "123123"
+
+    another_client = basic_client()
+    another_archetype = basic_archetype(another_client)
+    another_prospect = basic_prospect(another_client, another_archetype)
+    another_prospect_id = another_prospect.id
+
+    rp: ResearchPayload = ResearchPayload(
+        prospect_id=another_prospect_id,
+        research_type=ResearchType.LINKEDIN_ISCRAPER,
+        payload={},
+    )
+    db.session.add(rp)
+    db.session.commit()
+
+    generate_prospect_email(
+        prospect_id=another_prospect_id,
+        email_schema_id=email_schema_id,
+        batch_id="123123",
+    )
+
+    messages: list = GeneratedMessage.query.all()
+    prospect_emails = ProspectEmail.query.all()
+    assert len(messages) == 6
+    assert len(prospect_emails) == 6
+
+    wipe_prospect_email_and_generations_and_research(prospect_id=prospect_id)
+    messages: list = GeneratedMessage.query.all()
+    assert len(messages) == 3
+    prospect_emails = ProspectEmail.query.all()
+    assert len(prospect_emails) == 3
+    for email in prospect_emails:
+        assert email.prospect_id == another_prospect_id
 
 
 @use_app_context
