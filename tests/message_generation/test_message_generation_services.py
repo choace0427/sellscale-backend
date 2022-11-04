@@ -7,6 +7,7 @@ from test_utils import (
     basic_gnlp_model,
     basic_prospect,
     basic_email_schema,
+    basic_prospect_email,
 )
 from decorators import use_app_context
 from src.message_generation.services import *
@@ -379,3 +380,43 @@ def test_research_and_generate_outreaches_for_prospect_list(
         prospect_ids=[1, 2, 3],
     )
     assert generate_outreach_mock.call_count == 3
+
+
+@use_app_context
+def test_change_prospect_email_status():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    email_schema = basic_email_schema(archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+    prospect_email: ProspectEmail = basic_prospect_email(prospect, email_schema)
+    prospect_email.personalized_first_line = generated_message_id
+    db.session.add(prospect_email)
+    db.session.commit()
+
+    prospect_email = ProspectEmail.query.get(prospect_email.id)
+    assert prospect_email.email_status == ProspectEmailStatus.DRAFT
+    assert prospect_email.personalized_first_line == generated_message_id
+    assert generated_message.message_status == GeneratedMessageStatus.DRAFT
+
+    change_prospect_email_status(prospect_email.id, ProspectEmailStatus.SENT)
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(
+        generated_message_id
+    )
+    assert prospect_email.email_status == ProspectEmailStatus.SENT
+    assert generated_message.message_status == GeneratedMessageStatus.SENT
+
+
+def test_prospect_email_status_and_generated_message_status_parity():
+    gm_status = [x.value for x in GeneratedMessageStatus]
+    pe_status = [x.value for x in ProspectEmailStatus]
+
+    assert len(gm_status) == len(pe_status)
+    for status in gm_status:
+        assert status in pe_status
+    for status in pe_status:
+        assert status in gm_status

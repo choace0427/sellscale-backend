@@ -7,6 +7,7 @@ from model_import import (
     GeneratedMessageStatus,
     ProspectEmail,
 )
+from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from model_import import Prospect
@@ -483,3 +484,32 @@ def generate_prospect_email(prospect_id: int, email_schema_id: int, batch_id: in
             personalized_first_line_id=personalized_first_line.id,
             batch_id=batch_id,
         )
+
+
+def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailStatus):
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    prospect_email.email_status = status
+    db.session.add(prospect_email)
+    db.session.commit()
+
+    personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
+        prospect_email.personalized_first_line
+    )
+    if personalized_first_line:
+        personalized_first_line.message_status = GeneratedMessageStatus[status.value]
+        db.session.add(personalized_first_line)
+        db.session.commit()
+
+    return True
+
+
+def mark_prospect_email_approved(prospect_email_id: int):
+    return change_prospect_email_status(
+        prospect_email_id=prospect_email_id, status=ProspectEmailStatus.APPROVED
+    )
+
+
+def mark_prospect_email_sent(prospect_email_id: int):
+    return change_prospect_email_status(
+        prospect_email_id=prospect_email_id, status=ProspectEmailStatus.SENT
+    )

@@ -68,6 +68,7 @@ def register_blueprints(app):
     from src.ml.controllers import ML_BLUEPRINT
     from src.automation.controllers import AUTOMATION_BLUEPRINT
     from src.analytics.controllers import ANALYTICS_BLUEPRINT
+    from src.email_outbound.controllers import EMAIL_GENERATION_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -79,6 +80,7 @@ def register_blueprints(app):
     app.register_blueprint(ML_BLUEPRINT, url_prefix="/ml")
     app.register_blueprint(AUTOMATION_BLUEPRINT, url_prefix="/automation")
     app.register_blueprint(ANALYTICS_BLUEPRINT, url_prefix="/analytics")
+    app.register_blueprint(EMAIL_GENERATION_BLUEPRINT, url_prefix="/email_generation")
 
     db.init_app(app)
 
