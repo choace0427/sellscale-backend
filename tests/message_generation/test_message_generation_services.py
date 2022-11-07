@@ -14,7 +14,7 @@ from src.message_generation.services import *
 from model_import import GeneratedMessageCTA, GeneratedMessage, GeneratedMessageStatus
 from src.research.models import ResearchPointType, ResearchType
 from src.client.services import create_client
-from model_import import Client
+from model_import import Client, ProspectStatus
 from app import db
 import mock
 import json
@@ -521,6 +521,9 @@ def test_change_prospect_email_status():
     )
 
     assert response.status_code == 200
+
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.status == ProspectStatus.SENT_OUTREACH
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
     generated_message: GeneratedMessage = GeneratedMessage.query.get(

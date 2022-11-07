@@ -521,6 +521,15 @@ def mark_prospect_email_approved(prospect_email_id: int):
 
 
 def mark_prospect_email_sent(prospect_email_id: int):
+    from model_import import ProspectStatus
+
+    prospect: Prospect = Prospect.query.filter(
+        Prospect.approved_prospect_email_id == prospect_email_id
+    ).first()
+    if prospect:
+        prospect.status = ProspectStatus.SENT_OUTREACH
+        db.session.add(prospect)
+        db.session.commit()
     return change_prospect_email_status(
         prospect_email_id=prospect_email_id, status=ProspectEmailStatus.SENT
     )
