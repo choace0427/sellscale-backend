@@ -8,6 +8,7 @@ from src.prospecting.services import (
 )
 from model_import import Prospect
 from decorators import use_app_context
+import mock
 
 
 @use_app_context
@@ -128,7 +129,8 @@ def test_get_sales_nav_slug_from_url():
 
 
 @use_app_context
-def test_add_prospects_from_json_payload():
+@mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.delay")
+def test_add_prospects_from_json_payload(mock_create_from_linkedin):
     payload = [
         {
             "company": "Athelas",
@@ -181,12 +183,10 @@ def test_add_prospects_from_json_payload():
     assert couldnt_add == []
 
     prospects = Prospect.query.all()
-    assert len(prospects) == 4
+    assert len(prospects) == 1
+    assert mock_create_from_linkedin.call_count == 4
 
-    assert prospects[0].full_name == "Aakash Adesara"
-    assert prospects[1].full_name == "Ishan Sharma"
-    assert prospects[2].full_name == "Ishan No Linkedin"
-    assert prospects[3].full_name == "Ishan No Email"
+    assert prospects[0].full_name == "Ishan No Linkedin"
 
     for i in prospects:
         assert i.company_url == "https://athelas.com/"

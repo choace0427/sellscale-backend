@@ -308,7 +308,9 @@ def create_prospects_from_linkedin_link_list(
 
 
 @celery.task
-def create_prospect_from_linkedin_link(archetype_id: int, url: str, batch: str):
+def create_prospect_from_linkedin_link(
+    archetype_id: int, url: str, batch: str, email: str = None
+):
     if "/in/" in url:
         slug = get_linkedin_slug_from_url(url)
     elif "/lead/" in url:
@@ -352,6 +354,7 @@ def create_prospect_from_linkedin_link(archetype_id: int, url: str, batch: str):
         title=title,
         twitter_url=twitter_url,
         batch=batch,
+        email=email,
     )
 
     return True
@@ -448,17 +451,22 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
             couldnt_add.append(prospect.get("full_name"))
             continue
 
-        add_prospect(
-            client_id=client_id,
-            archetype_id=archetype_id,
-            company=prospect.get("company"),
-            company_url=prospect.get("company_url"),
-            email=prospect.get("email"),
-            full_name=prospect.get("full_name"),
-            linkedin_url=prospect.get("linkedin_url"),
-            title=prospect.get("title"),
-            batch=batch_id,
-        )
+        if linkedin_url:
+            create_prospect_from_linkedin_link.delay(
+                archetype_id=archetype_id, url=linkedin_url, batch=batch_id, email=email
+            )
+        else:
+            add_prospect(
+                client_id=client_id,
+                archetype_id=archetype_id,
+                company=prospect.get("company"),
+                company_url=prospect.get("company_url"),
+                email=prospect.get("email"),
+                full_name=prospect.get("full_name"),
+                linkedin_url=prospect.get("linkedin_url"),
+                title=prospect.get("title"),
+                batch=batch_id,
+            )
 
     if len(couldnt_add) > 0:
         return False, couldnt_add
