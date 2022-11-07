@@ -6,6 +6,7 @@ from model_import import (
     EmailSchema,
     GeneratedMessageStatus,
     ProspectEmail,
+    ProspectStatus,
 )
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
@@ -545,6 +546,9 @@ def batch_mark_prospect_email_sent(prospect_ids: list):
 
 def wipe_prospect_email_and_generations_and_research(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.status != ProspectStatus.PROSPECTED:
+        return False
+
     prospect_emails: list = ProspectEmail.query.filter(
         ProspectEmail.prospect_id == prospect_id
     ).all()

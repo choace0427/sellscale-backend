@@ -369,6 +369,11 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     assert len(messages) == 6
     assert len(prospect_emails) == 6
 
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.status = ProspectStatus.PROSPECTED
+    db.session.add(prospect)
+    db.session.commit()
+
     wipe_prospect_email_and_generations_and_research(prospect_id=prospect_id)
     messages: list = GeneratedMessage.query.all()
     assert len(messages) == 3
