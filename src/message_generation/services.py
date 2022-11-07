@@ -526,6 +526,14 @@ def mark_prospect_email_sent(prospect_email_id: int):
     )
 
 
+def batch_mark_prospect_email_sent(prospect_ids: list):
+    for prospect_id in prospect_ids:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if prospect.approved_prospect_email_id:
+            mark_prospect_email_sent(prospect.approved_prospect_email_id)
+    return True
+
+
 def wipe_prospect_email_and_generations_and_research(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_emails: list = ProspectEmail.query.filter(

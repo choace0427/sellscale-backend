@@ -1,4 +1,4 @@
-from app import db
+from app import db, app
 from test_utils import (
     test_app,
     basic_client,
@@ -17,6 +17,7 @@ from src.client.services import create_client
 from model_import import Client
 from app import db
 import mock
+import json
 
 
 @use_app_context
@@ -473,3 +474,57 @@ def test_prospect_email_status_and_generated_message_status_parity():
         assert status in pe_status
     for status in pe_status:
         assert status in gm_status
+
+
+@use_app_context
+def test_change_prospect_email_status():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    email_schema = basic_email_schema(archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+    prospect_email: ProspectEmail = basic_prospect_email(prospect, email_schema)
+    prospect_email.personalized_first_line = generated_message_id
+    db.session.add(prospect_email)
+    db.session.commit()
+
+    prospect_email = ProspectEmail.query.get(prospect_email.id)
+    assert prospect_email.email_status == ProspectEmailStatus.DRAFT
+    assert prospect_email.personalized_first_line == generated_message_id
+    assert generated_message.message_status == GeneratedMessageStatus.DRAFT
+
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_prospect_email_id == None
+
+    mark_prospect_email_approved(prospect_email.id)
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(
+        generated_message_id
+    )
+    assert prospect_email.email_status == ProspectEmailStatus.APPROVED
+    assert generated_message.message_status == GeneratedMessageStatus.APPROVED
+
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_prospect_email_id == prospect_email.id
+
+    response = app.test_client().post(
+        "email_generation/batch/mark_sent",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": [prospect.id],
+            }
+        ),
+    )
+
+    assert response.status_code == 200
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(
+        generated_message_id
+    )
+    assert prospect_email.email_status == ProspectEmailStatus.SENT
+    assert generated_message.message_status == GeneratedMessageStatus.SENT

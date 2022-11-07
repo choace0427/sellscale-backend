@@ -7,6 +7,7 @@ from src.message_generation.services import (
 )
 from src.email_outbound.services import create_email_schema
 from src.utils.request_helpers import get_request_parameter
+from src.message_generation.services import batch_mark_prospect_email_sent
 from tqdm import tqdm
 
 EMAIL_GENERATION_BLUEPRINT = Blueprint("email_generation", __name__)
@@ -53,3 +54,14 @@ def approve():
     if success:
         return "OK", 200
     return "Could not approve email.", 400
+
+
+@EMAIL_GENERATION_BLUEPRINT.route("/batch/mark_sent", methods=["POST"])
+def batch_mark_sent():
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    batch_mark_prospect_email_sent(prospect_ids=prospect_ids)
+
+    return "OK", 200
