@@ -367,7 +367,7 @@ def create_cta(archetype_id: int, text_value: str):
         return duplicate_cta_exists
 
     cta: GeneratedMessageCTA = GeneratedMessageCTA(
-        archetype_id=archetype_id, text_value=text_value
+        archetype_id=archetype_id, text_value=text_value, active=True
     )
     db.session.add(cta)
     db.session.commit()

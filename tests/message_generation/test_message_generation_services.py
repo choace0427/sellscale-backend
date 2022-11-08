@@ -27,6 +27,7 @@ def test_create_cta():
     cta = create_cta(text_value="test", archetype_id=archetype.id)
     assert cta.text_value == "test"
     assert cta.archetype_id == archetype.id
+    assert cta.active
 
 
 @use_app_context
@@ -48,11 +49,11 @@ def test_toggle_cta():
     archetype = basic_archetype(client)
     cta = create_cta(text_value="test", archetype_id=archetype.id)
 
-    assert cta.active == None
-    toggle_cta_active(cta_id=cta.id)
     assert cta.active == True
     toggle_cta_active(cta_id=cta.id)
     assert cta.active == False
+    toggle_cta_active(cta_id=cta.id)
+    assert cta.active == True
 
 
 @use_app_context
