@@ -10,8 +10,12 @@ def get_recent_recommendation_summary(data):
 
     recommender_name = deep_get(data, "personal.recommendations.0.first_name", "")
     recommendation = deep_get(data, "personal.recommendations.0.text", "")
+    created_at = deep_get(data, "personal.recommendations.0.created_at")
+    years_since_recommendation = (
+        datetime.now() - datetime.fromisoformat(created_at)
+    ).days / 365
 
-    if not recommender_name or not recommendation:
+    if not recommender_name or not recommendation or years_since_recommendation > 5:
         return {}
 
     raw_data = {"recommender_name": recommender_name, "recommendation": recommendation}
