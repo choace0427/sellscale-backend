@@ -14,6 +14,7 @@ from .linkedin.services import (
     get_research_and_bullet_points,
     get_research_and_bullet_points_new,
     reset_prospect_research_and_messages,
+    reset_batch_of_prospect_research_and_messages,
 )
 
 RESEARCH_BLUEPRINT = Blueprint("research", __name__)
@@ -66,7 +67,18 @@ def wipe_prospect_messages_and_research():
     )
 
     reset_prospect_research_and_messages(prospect_id=prospect_id)
+    return "OK", 200
 
+
+@RESEARCH_BLUEPRINT.route(
+    "/v1/batch_wipe_prospect_messages_and_research", methods=["DELETE"]
+)
+def batch_wipe_prospect_messages_and_research():
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    reset_batch_of_prospect_research_and_messages(prospect_ids=prospect_ids)
     return "OK", 200
 
 

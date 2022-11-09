@@ -1,5 +1,6 @@
 from src.research.linkedin.services import *
 from decorators import use_app_context
+from app import app
 from test_utils import (
     test_app,
     basic_prospect,
@@ -60,4 +61,21 @@ def test_reset_batch_of_prospect_research_and_messages(
     prospect_ids = [1, 2, 3, 4]
     reset_batch_of_prospect_research_and_messages(prospect_ids)
 
+    assert reset_prospect_research_and_messages_mock.call_count == 4
+
+
+@mock.patch("src.research.linkedin.services.reset_prospect_research_and_messages.delay")
+def test_v1_batch_wipe_prospect_messages_and_research_endpoint(
+    reset_prospect_research_and_messages_mock,
+):
+    response = app.test_client().delete(
+        "research/v1/batch_wipe_prospect_messages_and_research",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": [1, 2, 3, 4],
+            }
+        ),
+    )
+    assert response.status_code == 200
     assert reset_prospect_research_and_messages_mock.call_count == 4
