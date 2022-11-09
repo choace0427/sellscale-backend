@@ -146,6 +146,32 @@ def basic_prospect_email(
     return p
 
 
+def basic_research_payload(prospect: Prospect):
+    from model_import import ResearchPayload
+
+    r = ResearchPayload(
+        prospect_id=prospect.id,
+        research_type="LINKEDIN_ISCRAPER",
+        payload="test",
+    )
+    db.session.add(r)
+    db.session.commit()
+    return r
+
+
+def basic_research_point(research_payload: ResearchPayload):
+    from model_import import ResearchPoints
+
+    r = ResearchPoints(
+        research_payload_id=research_payload.id,
+        research_point_type="RECENT_RECOMMENDATIONS",
+        value="this is a test",
+    )
+    db.session.add(r)
+    db.session.commit()
+    return r
+
+
 def clear_all_entities(SQLAlchemyObject):
     echos = SQLAlchemyObject.query.all()
     for e in echos:

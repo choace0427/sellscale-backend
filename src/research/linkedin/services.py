@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-from app import db
+from app import db, celery
 from src.client.models import ClientArchetype
 from src.message_generation.services import delete_message_generation_by_prospect_id
 from src.prospecting.models import Prospect
@@ -370,7 +370,13 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
     db.session.commit()
 
 
+@celery.task
 def reset_prospect_research_and_messages(prospect_id: int):
     reset_prospect_approved_status(prospect_id=prospect_id)
     delete_message_generation_by_prospect_id(prospect_id=prospect_id)
     delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
+
+
+def reset_batch_of_prospect_research_and_messages(prospect_ids: list):
+    for p_id in prospect_ids:
+        reset_prospect_research_and_messages.delay(prospect_id=p_id)
