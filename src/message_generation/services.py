@@ -71,6 +71,9 @@ def generate_prompt(prospect_id: int, notes: str = ""):
     prompt = "name: {full_name}<>industry: {industry}<>company: {company}<>title: {title}<>notes: {notes}<>response:".format(
         **bio_data
     )
+    prompt = (
+        prompt.replace('"', "").replace("\n", "\\n").replace("\r", "").replace("\\", "")
+    )
 
     return prompt
 
