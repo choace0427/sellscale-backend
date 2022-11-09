@@ -39,6 +39,31 @@ def update():
     return "Failed to update", 400
 
 
+@MESSAGE_GENERATION_BLUEPRINT.route("/batch_update", methods=["PATCH"])
+def batch_update():
+    """
+    payload = [
+        {
+            "linkedin_url": "linkedin.com/in/jameszw",
+            "id": 2028,
+            "full_name": "James Wang",
+            "title": "VP of Sales Ops & Strategy at Velocity Global",
+            "company": "Velocity Global",
+            "completion": "This is a test 1\n",
+            "message_id": 36582,
+        },
+        ...
+    ]
+    """
+    payload = get_request_parameter("payload", request, json=True, required=True)
+    for prospect in payload:
+        message_id = prospect["message_id"]
+        update = prospect["completion"]
+        update_message(message_id=message_id, update=update)
+
+    return "OK", 200
+
+
 @MESSAGE_GENERATION_BLUEPRINT.route("/approve", methods=["POST"])
 def approve():
     message_id = get_request_parameter("message_id", request, json=True, required=True)

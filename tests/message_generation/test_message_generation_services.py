@@ -194,6 +194,40 @@ def test_update_message():
     assert message.human_edited == True
 
 
+@mock.patch("src.message_generation.controllers.update_message")
+def test_batch_update_messages(update_message_mock):
+    response = app.test_client().patch(
+        "/message_generation/batch_update",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "linkedin_url": "linkedin.com/in/jameszw",
+                        "id": 102,
+                        "full_name": "Test 2",
+                        "title": "VP of Sales Ops & Strategy at Velocity Global",
+                        "company": "Velocity Global",
+                        "completion": "This is a test 1\n",
+                        "message_id": 2,
+                    },
+                    {
+                        "linkedin_url": "linkedin.com/in/jameszw",
+                        "id": 2028,
+                        "full_name": "Test 1",
+                        "title": "VP of Sales Ops & Strategy at Velocity Global",
+                        "company": "Velocity Global",
+                        "completion": "This is a test 1\n",
+                        "message_id": 3,
+                    },
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert update_message_mock.call_count == 2
+
+
 @use_app_context
 def test_approve_message():
     client = basic_client()
