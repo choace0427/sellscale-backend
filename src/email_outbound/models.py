@@ -52,22 +52,3 @@ class ProspectEmail(db.Model):
 
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
-
-
-# create schema ✅
-#   write test ✅
-# generate email from schema + prospect IDs
-#   for prospect id in prospect ids
-#        create schema with schema id + prospect id
-#            generate first line, etc etc
-#            sav to email
-#            TODO ProspectEmailMessageStatus
-#            set status to DRAFT
-
-# approve email
-#        approve underlying generated message IDs
-#        approve email ProspectEmail
-
-# send email
-#        mark prospectEmail as set
-#        mark underlying generated messages as sent

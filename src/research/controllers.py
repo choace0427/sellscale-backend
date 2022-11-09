@@ -82,46 +82,7 @@ def batch_wipe_prospect_messages_and_research():
     return "OK", 200
 
 
-# AAKASH TODO NOTE HERE
-# prospects = [
-#     659,
-#     660,
-#     667,
-#     672,
-#     674,
-#     686,
-#     687,
-#     691,
-#     695,
-#     713,
-#     714,
-#     725,
-#     726,
-#     727,
-#     732,
-#     736,
-#     738,
-#     739,
-#     744,
-#     748,
-#     752,
-#     767,
-#     768,
-#     774,
-#     776,
-#     781,
-#     782,
-#     783,
-#     784,
-#     785,
-#     786,
-#     792,
-#     805,
-#     813,
-#     819,
-#     821,
-#     823,
-# ]
+# prospects = prospect_ids
 # from src.message_generation.services import (
 #     approve_message,
 # )

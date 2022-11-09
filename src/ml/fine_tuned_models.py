@@ -2,7 +2,9 @@ import requests
 import json
 import os
 
-from src.ml.models import GNLPModel, GNLPModelType
+from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
+from model_import import ClientArchetype
+from app import db
 
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
@@ -14,6 +16,11 @@ BULLET_MODELS = {
     "recent_recommendation": "davinci:ft-personal-2022-08-17-01-44-59",  # summarize recommendations
     "baseline_generation": "davinci:ft-personal-2022-07-23-19-55-19",  # baseline generation model
     "recent_recommendation_2": "davinci:ft-personal-2022-10-27-06-51-55",
+}
+
+BASELINE_GENERATION_MODELS = {
+    GNLPModelType.OUTREACH: "davinci:ft-personal-2022-07-23-19-55-19",
+    GNLPModelType.EMAIL_FIRST_LINE: "davinci:ft-personal-2022-07-23-19-55-19",
 }
 
 
@@ -72,6 +79,22 @@ def get_open_ai_completion(model: str, prompt: str, max_tokens: int = 40, n: int
         return [choices[x].get("text", "") for x in range(len(choices))]
 
 
+def create_baseline_model(archetype_id: int, model_type: GNLPModelType):
+    ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    archetype = ca.archetype
+
+    model: GNLPModel = GNLPModel(
+        model_provider=ModelProvider.OPENAI_GPT3,
+        model_type=model_type,
+        model_description="baseline_model_{}".format(archetype),
+        model_uuid=BASELINE_GENERATION_MODELS[model_type],
+        archetype_id=archetype_id,
+    )
+    db.session.add(model)
+    db.session.commit()
+    return model
+
+
 def get_latest_custom_model(archetype_id: int, model_type: GNLPModelType):
     m: GNLPModel = (
         GNLPModel.query.filter(GNLPModel.archetype_id == archetype_id)
@@ -81,7 +104,7 @@ def get_latest_custom_model(archetype_id: int, model_type: GNLPModelType):
     )
 
     if not m:
-        raise Exception("Model not found.")
+        m = create_baseline_model(archetype_id, model_type)
 
     return m.model_uuid, m.id
 

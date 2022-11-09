@@ -40,7 +40,7 @@ def update():
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/batch_update", methods=["PATCH"])
-def batch_update():
+def batch_update_messages():
     """
     payload = [
         {
