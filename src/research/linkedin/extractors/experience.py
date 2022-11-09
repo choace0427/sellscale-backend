@@ -125,6 +125,9 @@ def get_list_of_past_jobs(data):
     positions = [deep_get(x, "company.name") for x in position_data][1:][0:3]
     positions_str = ", ".join(positions)
 
+    if len(positions) == 0:
+        return {}
+
     raw_data = {
         "positions": positions,
     }
