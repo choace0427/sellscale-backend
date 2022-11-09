@@ -57,3 +57,5 @@ def test_get_latest_custom_model(get_open_ai_completion_patch):
 
         models = GNLPModel.query.all()
         assert len(models) == 2
+
+    assert get_open_ai_completion_patch.call_count == 20
