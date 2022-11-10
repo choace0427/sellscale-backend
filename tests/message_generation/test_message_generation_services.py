@@ -24,7 +24,20 @@ import json
 def test_create_cta():
     client = basic_client()
     archetype = basic_archetype(client)
-    cta = create_cta(text_value="test", archetype_id=archetype.id)
+    # cta = create_cta(text_value="test", archetype_id=archetype.id)
+    response = app.test_client().post(
+        "message_generation/create_cta",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "archetype_id": archetype.id,
+                "text_value": "test",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    cta_id = response.json["cta_id"]
+    cta = GeneratedMessageCTA.query.get(cta_id)
     assert cta.text_value == "test"
     assert cta.archetype_id == archetype.id
     assert cta.active
@@ -38,7 +51,17 @@ def test_delete_cta():
     all_ctas: list = GeneratedMessageCTA.query.all()
     assert len(all_ctas) == 1
 
-    success = delete_cta(cta_id=cta.id)
+    response = app.test_client().delete(
+        "message_generation/delete_cta",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "cta_id": cta.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
     all_ctas = GeneratedMessageCTA.query.all()
     assert len(all_ctas) == 0
 
@@ -48,11 +71,23 @@ def test_toggle_cta():
     client = basic_client()
     archetype = basic_archetype(client)
     cta = create_cta(text_value="test", archetype_id=archetype.id)
+    cta_id = cta.id
 
     assert cta.active == True
     toggle_cta_active(cta_id=cta.id)
     assert cta.active == False
-    toggle_cta_active(cta_id=cta.id)
+    response = app.test_client().post(
+        "message_generation/toggle_cta_active",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "cta_id": cta_id,
+            }
+        ),
+    )
+
+    cta = GeneratedMessageCTA.query.get(cta_id)
+    assert response.status_code == 200
     assert cta.active == True
 
 
@@ -184,8 +219,18 @@ def test_update_message():
     assert message.completion == "this is a test"
     assert not message.human_edited
 
-    success = update_message(message_id=message.id, update="this is an update copy")
-    assert success is True
+    response = app.test_client().patch(
+        "message_generation/",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "message_id": message.id,
+                "update": "this is an update copy",
+            }
+        ),
+    )
+    assert response.status_code == 200
+
     messages: GeneratedMessage = GeneratedMessage.query.all()
     assert len(messages) == 1
 
@@ -243,7 +288,16 @@ def test_approve_message():
     message: GeneratedMessage = GeneratedMessage.query.first()
     assert message.message_status == GeneratedMessageStatus.DRAFT
 
-    approve_message(message_id=message.id)
+    response = app.test_client().post(
+        "message_generation/approve",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "message_id": message.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
 
     message: GeneratedMessage = GeneratedMessage.query.first()
     assert message.message_status == GeneratedMessageStatus.APPROVED
@@ -264,7 +318,16 @@ def test_delete_message():
     message: GeneratedMessage = GeneratedMessage.query.first()
     assert message.message_status == GeneratedMessageStatus.DRAFT
 
-    delete_message(message_id=message.id)
+    response = app.test_client().post(
+        "message_generation/delete",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "message_id": message.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
 
     message: GeneratedMessage = GeneratedMessage.query.first()
     assert message == None
@@ -455,11 +518,17 @@ def test_research_and_generate_outreaches_for_prospect_list(
 ):
     client = basic_client()
     archetype = basic_archetype(client)
-    email_schema = basic_email_schema(archetype)
 
-    research_and_generate_outreaches_for_prospect_list(
-        prospect_ids=[1, 2, 3],
+    response = app.test_client().post(
+        "message_generation/batch",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": [1, 2, 3],
+            }
+        ),
     )
+    assert response.status_code == 200
     assert generate_outreach_mock.call_count == 3
 
 
