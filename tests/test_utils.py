@@ -15,6 +15,7 @@ from model_import import (
     ResearchPayload,
     ResearchPoints,
     ProspectStatus,
+    GNLPModelFineTuneJobs,
 )
 
 
@@ -45,6 +46,7 @@ def test_app():
         clear_all_entities(ResearchPayload)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
+        clear_all_entities(GNLPModelFineTuneJobs)
         clear_all_entities(ClientSDR)
         clear_all_entities(ClientArchetype)
         clear_all_entities(Client)

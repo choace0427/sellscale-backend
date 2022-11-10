@@ -24,11 +24,12 @@ def index():
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True
     )
+    model_type = get_request_parameter("model_type", request, json=True, required=True)
 
     status, message = initiate_fine_tune_job(
         archetype_id=archetype_id,
         message_ids=message_ids,
-        model_type=GNLPModelType.OUTREACH,
+        model_type=model_type,
     )
 
     if status:
