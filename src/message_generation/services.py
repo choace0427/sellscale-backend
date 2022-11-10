@@ -598,4 +598,4 @@ def batch_approve_message_generations_by_heuristic(prospect_ids: int):
         message_id = data["id"]
         approve_message(message_id=message_id)
 
-    return "OK", 200
+    return True
