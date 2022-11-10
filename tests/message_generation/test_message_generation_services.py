@@ -597,7 +597,6 @@ def test_batch_approve_message_generations_by_heuristic():
         assert prospect.approved_prospect_email_id == None
         assert prospect.status == ProspectStatus.PROSPECTED
 
-    # batch_approve_message_generations_by_heuristic(prospect_ids=prospect_ids)
     response = app.test_client().post(
         "/message_generation/batch_approve",
         headers={"Content-Type": "application/json"},
