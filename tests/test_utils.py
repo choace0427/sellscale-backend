@@ -14,6 +14,7 @@ from model_import import (
     GeneratedMessageCTA,
     ResearchPayload,
     ResearchPoints,
+    ProspectStatus,
 )
 
 
@@ -75,6 +76,7 @@ def basic_prospect(client: Client, archetype: ClientArchetype):
         archetype_id=archetype.id,
         full_name="Testing Testasara",
         title="Testing Director",
+        status=ProspectStatus.PROSPECTED,
     )
     db.session.add(p)
     db.session.commit()

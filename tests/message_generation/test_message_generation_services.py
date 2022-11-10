@@ -571,3 +571,37 @@ def test_change_prospect_email_status():
     )
     assert prospect_email.email_status == ProspectEmailStatus.SENT
     assert generated_message.message_status == GeneratedMessageStatus.SENT
+
+
+@use_app_context
+def test_batch_approve_message_generations_by_heuristic():
+    prospect_ids = []
+
+    client = basic_client()
+    archetype = basic_archetype(client)
+    for i in range(10):
+        prospect = basic_prospect(client, archetype)
+        prospect_ids.append(prospect.id)
+        gnlp_model = basic_gnlp_model(archetype)
+        message: GeneratedMessage = basic_generated_message(
+            prospect=prospect, gnlp_model=gnlp_model
+        )
+        db.session.add(message)
+        db.session.commit()
+
+    messages: GeneratedMessage = GeneratedMessage.query.all()
+    assert len(messages) == 10
+    for message in messages:
+        assert message.message_status == GeneratedMessageStatus.DRAFT
+        prospect: Prospect = Prospect.query.get(message.prospect_id)
+        assert prospect.approved_prospect_email_id == None
+        assert prospect.status == ProspectStatus.PROSPECTED
+
+    batch_approve_message_generations_by_heuristic(prospect_ids=prospect_ids)
+
+    messages: GeneratedMessage = GeneratedMessage.query.all()
+    assert len(messages) == 10
+    for message in messages:
+        assert message.message_status == GeneratedMessageStatus.APPROVED
+        prospect: Prospect = Prospect.query.get(message.prospect_id)
+        assert prospect.status == ProspectStatus.PROSPECTED

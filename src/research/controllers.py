@@ -80,31 +80,3 @@ def batch_wipe_prospect_messages_and_research():
 
     reset_batch_of_prospect_research_and_messages(prospect_ids=prospect_ids)
     return "OK", 200
-
-
-# prospects = prospect_ids
-# from src.message_generation.services import (
-#     approve_message,
-# )
-# from app import db
-# from model_import import Prospect
-# from tqdm import tqdm
-
-# # for prospect_id in prospects:
-
-# for prospect_id in tqdm(prospects):
-#     data = db.session.execute(
-#         """
-#         select length(completion), *
-#         from generated_message
-#         where prospect_id = {prospect_id}
-#         order by abs(280 - length(completion)) asc
-#         limit 1;
-#     """.format(
-#             prospect_id=prospect_id
-#         )
-#     ).fetchall()[0]
-#     approve_message(data["id"])
-
-
-# return "OK", 200

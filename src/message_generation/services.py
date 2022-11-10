@@ -571,3 +571,31 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
         db.session.commit()
 
     return True
+
+
+def batch_approve_message_generations_by_heuristic(prospect_ids: int):
+    from src.message_generation.services import (
+        approve_message,
+    )
+    from app import db
+    from tqdm import tqdm
+
+    for prospect_id in tqdm(prospect_ids):
+        data = db.session.execute(
+            """
+            select length(completion), *
+            from generated_message
+            where prospect_id = {prospect_id}
+            order by abs(270 - length(completion)) asc
+            limit 1;
+        """.format(
+                prospect_id=prospect_id
+            )
+        ).fetchall()[0]
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if prospect.approved_outreach_message_id != None:
+            continue
+        message_id = data["id"]
+        approve_message(message_id=message_id)
+
+    return "OK", 200
