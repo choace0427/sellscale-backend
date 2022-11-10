@@ -17,6 +17,7 @@ from model_import import (
     ProspectStatus,
     GNLPModelFineTuneJobs,
     ProspectStatusRecords,
+    PhantomBusterConfig,
 )
 
 
@@ -46,6 +47,7 @@ def test_app():
         clear_all_entities(ResearchPoints)
         clear_all_entities(ResearchPayload)
         clear_all_entities(ProspectStatusRecords)
+        clear_all_entities(PhantomBusterConfig)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(GNLPModelFineTuneJobs)
@@ -85,6 +87,13 @@ def basic_prospect(client: Client, archetype: ClientArchetype):
     db.session.add(p)
     db.session.commit()
     return p
+
+
+def basic_client_sdr(client: Client) -> ClientSDR:
+    sdr = ClientSDR(client_id=client.id, name="Test SDR", email="test@test.com")
+    db.session.add(sdr)
+    db.session.commit()
+    return sdr
 
 
 def basic_gnlp_model(archetype: ClientArchetype):
