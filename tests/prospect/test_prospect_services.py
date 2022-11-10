@@ -6,9 +6,11 @@ from src.prospecting.services import (
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
 )
-from model_import import Prospect
+from model_import import Prospect, ProspectStatusRecords
 from decorators import use_app_context
 import mock
+from app import app
+import json
 
 
 @use_app_context
@@ -175,12 +177,18 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
     ]
     client = basic_client()
     archetype = basic_archetype(client)
-
-    success, couldnt_add = add_prospects_from_json_payload(
-        client.id, archetype.id, payload
+    response = app.test_client().post(
+        "prospect/add_prospect_from_csv_payload",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": client.id,
+                "archetype_id": archetype.id,
+                "csv_payload": payload,
+            }
+        ),
     )
-    assert success == True
-    assert couldnt_add == []
+    assert response.status_code == 200
 
     prospects = Prospect.query.all()
     assert len(prospects) == 1
@@ -215,3 +223,66 @@ def test_add_prospects_from_json_payload_invalid():
 
     prospects = Prospect.query.all()
     assert len(prospects) == 0
+
+
+@use_app_context
+@mock.patch(
+    "src.prospecting.clay_run.clay_run_prospector.ClayRunProspector.prospect_sync",
+    return_value=[
+        {
+            "Company": "Athelas",
+            "Company URL": "https://athelas.com/",
+            "Employee Count": "10-100",
+            "Full Name": "Aakash Adesara",
+            "Industry": "saas",
+            "Linkedin": "https://www.linkedin.com/in/aaadesara/",
+            "Linkedin Bio": "Growth Engineer",
+            "Title": "Growth Engineer",
+            "Twitter": "https://twitter.com/aaadesara",
+        }
+    ],
+)
+def test_prospecting_with_clay(prospect_sync_patch):
+    client = basic_client()
+    archetype = basic_archetype(client)
+
+    archetype_id = archetype.id
+    location = "San Francisco Bay Area"
+    headline = "Software Engineer"
+    industry = "Computer Software"
+    experience = "1-3 years"
+
+    response = app.test_client().post(
+        "prospect/",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "archetype_id": archetype_id,
+                "location": location,
+                "headline": headline,
+                "industry": industry,
+                "experience": experience,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert prospect_sync_patch.call_count == 1
+
+    prospects: list = Prospect.query.all()
+    assert len(prospects) == 1
+    assert prospects[0].full_name == "Aakash Adesara"
+    assert prospects[0].company == "Athelas"
+    assert prospects[0].company_url == "https://athelas.com/"
+    prospect_id = prospects[0].id
+
+    response = app.test_client().patch(
+        "prospect/",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id, "new_status": "SENT_OUTREACH"}),
+    )
+    assert response.status_code == 200
+    prospect = Prospect.query.get(prospect_id)
+    assert prospect.status.value == "SENT_OUTREACH"
+
+    records = ProspectStatusRecords.query.all()
+    assert len(records) == 1

@@ -54,9 +54,9 @@ def index():
 
     print("Uploading unique prospects to database...")
     for prospect in tqdm(prospects):
-        linkedin_url = prospect["Linkedin"]
+        full_name = prospect["Full Name"]
         prospect_exists = prospect_exists_for_archetype(
-            linkedin_url=linkedin_url, client_id=client_id
+            full_name=full_name, client_id=client_id
         )
 
         from src.prospecting.models import Prospect
