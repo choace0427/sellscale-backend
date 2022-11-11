@@ -479,6 +479,9 @@ def generate_prospect_email(prospect_id: int, email_schema_id: int, batch_id: in
         notes, research_points, _ = get_notes_and_points_from_perm(perm)
         prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
+        if len(research_points) == 0:
+            continue
+
         personalized_first_line = get_personalized_first_line(
             archetype_id=archetype_id,
             model_type=GNLPModelType.EMAIL_FIRST_LINE,

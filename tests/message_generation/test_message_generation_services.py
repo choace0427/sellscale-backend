@@ -8,6 +8,8 @@ from test_utils import (
     basic_prospect,
     basic_email_schema,
     basic_prospect_email,
+    basic_research_payload,
+    basic_research_point,
 )
 from decorators import use_app_context
 from src.message_generation.services import *
@@ -368,6 +370,9 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     email_schema = basic_email_schema(archetype)
     email_schema_id = email_schema.id
 
+    payload = basic_research_payload(prospect=prospect)
+    point = basic_research_point(research_payload=payload)
+
     generate_prospect_email(
         prospect_id=prospect.id, email_schema_id=email_schema.id, batch_id="123123"
     )
@@ -411,6 +416,9 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.commit()
     email_schema = basic_email_schema(archetype)
     email_schema_id = email_schema.id
+
+    payload = basic_research_payload(prospect=prospect)
+    point = basic_research_point(research_payload=payload)
 
     rp: ResearchPayload = ResearchPayload(
         prospect_id=prospect_id,
@@ -464,8 +472,8 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 
     messages: list = GeneratedMessage.query.all()
     prospect_emails = ProspectEmail.query.all()
-    assert len(messages) == 6
-    assert len(prospect_emails) == 6
+    assert len(messages) == 3
+    assert len(prospect_emails) == 3
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.status = ProspectStatus.PROSPECTED
@@ -474,9 +482,9 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 
     wipe_prospect_email_and_generations_and_research(prospect_id=prospect_id)
     messages: list = GeneratedMessage.query.all()
-    assert len(messages) == 3
+    assert len(messages) == 0
     prospect_emails = ProspectEmail.query.all()
-    assert len(prospect_emails) == 3
+    assert len(prospect_emails) == 0
     for email in prospect_emails:
         assert email.prospect_id == another_prospect_id
 
