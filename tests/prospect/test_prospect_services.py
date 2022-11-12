@@ -6,7 +6,13 @@ from src.prospecting.services import (
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
 )
-from model_import import Prospect, ProspectStatusRecords, Prospect, ProspectUploadBatch
+from model_import import (
+    Prospect,
+    ProspectStatusRecords,
+    Prospect,
+    ProspectUploadBatch,
+    Client,
+)
 from decorators import use_app_context
 import mock
 from app import app
@@ -16,10 +22,12 @@ import json
 @use_app_context
 def test_add_prospect():
     client = basic_client()
+    client_id = client.id
     archetype = basic_archetype(client)
+    archetype_id = archetype.id
     add_prospect(
-        client_id=client.id,
-        archetype_id=archetype.id,
+        client_id=client_id,
+        archetype_id=archetype_id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -34,23 +42,25 @@ def test_add_prospect():
 
     prospects = Prospect.query.all()
     assert len(prospects) == 1
-    assert prospects[0].client_id == client.id
-    assert prospects[0].archetype_id == archetype.id
+    assert prospects[0].client_id == client_id
+    assert prospects[0].archetype_id == archetype_id
     assert prospects[0].batch == "123"
 
+    client = Client.query.get(client_id)
     archetype2 = basic_archetype(client)
-    add_prospect(client_id=client.id, archetype_id=archetype2.id, batch="456")
+    archetype_id2 = archetype2.id
+    add_prospect(client_id=client_id, archetype_id=archetype_id2, batch="456")
 
     prospects = Prospect.query.all()
     assert len(prospects) == 2
     assert prospects[1].batch == "456"
-    assert prospects[1].archetype_id == archetype2.id
+    assert prospects[1].archetype_id == archetype_id2
 
-    assert archetype.id != archetype2.id
+    assert archetype_id != archetype_id2
 
     add_prospect(
-        client_id=client.id,
-        archetype_id=archetype.id,
+        client_id=client_id,
+        archetype_id=archetype_id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -66,8 +76,8 @@ def test_add_prospect():
     assert len(prospects) == 2
 
     add_prospect(
-        client_id=client.id,
-        archetype_id=archetype.id,
+        client_id=client_id,
+        archetype_id=archetype_id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -83,8 +93,8 @@ def test_add_prospect():
     assert len(prospects) == 2
 
     add_prospect(
-        client_id=client.id,
-        archetype_id=archetype.id,
+        client_id=client_id,
+        archetype_id=archetype_id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -132,7 +142,8 @@ def test_get_sales_nav_slug_from_url():
 
 @use_app_context
 @mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.delay")
-def test_add_prospects_from_json_payload(mock_create_from_linkedin):
+@mock.patch("src.prospecting.services.add_prospect.delay")
+def test_add_prospects_from_json_payload(mock_add_prospect, mock_create_from_linkedin):
     payload = [
         {
             "company": "Athelas",
@@ -184,6 +195,7 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
         },
     ]
     client = basic_client()
+    client_id = client.id
     archetype = basic_archetype(client)
     archetype_id = archetype.id
     response = app.test_client().post(
@@ -191,8 +203,8 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "client_id": client.id,
-                "archetype_id": archetype.id,
+                "client_id": client_id,
+                "archetype_id": archetype_id,
                 "csv_payload": payload,
             }
         ),
@@ -207,10 +219,9 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
     assert batch_0.num_prospects == 5
 
     prospects = Prospect.query.all()
-    assert len(prospects) == 1
+    assert len(prospects) == 0
+    assert mock_add_prospect.call_count == 1
     assert mock_create_from_linkedin.call_count == 4
-
-    assert prospects[0].full_name == "Ishan No Linkedin"
 
     for i in prospects:
         assert i.company_url == "https://athelas.com/"

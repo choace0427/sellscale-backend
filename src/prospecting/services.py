@@ -193,6 +193,7 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
     return True
 
 
+@celery.task
 def add_prospect(
     client_id: int,
     archetype_id: int,
@@ -467,7 +468,7 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
                 archetype_id=archetype_id, url=linkedin_url, batch=batch_id, email=email
             )
         else:
-            add_prospect(
+            add_prospect.delay(
                 client_id=client_id,
                 archetype_id=archetype_id,
                 company=prospect.get("company"),
