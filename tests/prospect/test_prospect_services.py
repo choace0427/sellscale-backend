@@ -174,6 +174,14 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
             "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
             "title": "Growth Engineer",
         },
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "",  # no  email
+            "full_name": "",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "title": "Growth Engineer",
+        },
     ]
     client = basic_client()
     archetype = basic_archetype(client)

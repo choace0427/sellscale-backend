@@ -443,10 +443,13 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
     couldnt_add = []
     batch_id = generate_random_alphanumeric(32)
 
+    payload = [x for x in payload if len(x.get("full_name", "")) > 0]
+    num_prospects = len(payload)
+
     prospect_upload_batch: ProspectUploadBatch = ProspectUploadBatch(
         archetype_id=archetype_id,
         batch_id=batch_id,
-        num_prospects=len(payload),
+        num_prospects=num_prospects,
     )
     db.session.add(prospect_upload_batch)
     db.session.commit()
