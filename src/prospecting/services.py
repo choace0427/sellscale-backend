@@ -3,7 +3,7 @@ from typing import Optional
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.client.models import Client, ClientArchetype
 from src.research.linkedin.services import research_personal_profile_details
-from src.prospecting.models import Prospect, ProspectStatus
+from src.prospecting.models import Prospect, ProspectStatus, ProspectUploadBatch
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
@@ -442,6 +442,14 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
     """
     couldnt_add = []
     batch_id = generate_random_alphanumeric(32)
+
+    prospect_upload_batch: ProspectUploadBatch = ProspectUploadBatch(
+        archetype_id=archetype_id,
+        batch_id=batch_id,
+        num_prospects=len(payload),
+    )
+    db.session.add(prospect_upload_batch)
+    db.session.commit()
 
     for prospect in payload:
         linkedin_url = prospect.get("linkedin_url")

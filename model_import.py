@@ -7,7 +7,12 @@ from src.message_generation.models import (
     GeneratedMessageCTA,
     GeneratedMessageType,
 )
-from src.prospecting.models import Prospect, ProspectStatus, ProspectStatusRecords
+from src.prospecting.models import (
+    Prospect,
+    ProspectStatus,
+    ProspectStatusRecords,
+    ProspectUploadBatch,
+)
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs
 from src.automation.models import PhantomBusterConfig
 from src.email_outbound.models import (

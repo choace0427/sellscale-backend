@@ -6,7 +6,7 @@ from src.prospecting.services import (
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
 )
-from model_import import Prospect, ProspectStatusRecords
+from model_import import Prospect, ProspectStatusRecords, Prospect, ProspectUploadBatch
 from decorators import use_app_context
 import mock
 from app import app
@@ -177,6 +177,7 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
     ]
     client = basic_client()
     archetype = basic_archetype(client)
+    archetype_id = archetype.id
     response = app.test_client().post(
         "prospect/add_prospect_from_csv_payload",
         headers={"Content-Type": "application/json"},
@@ -189,6 +190,13 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
         ),
     )
     assert response.status_code == 200
+
+    batches: list = ProspectUploadBatch.query.all()
+    assert len(batches) == 1
+
+    batch_0: ProspectUploadBatch = batches[0]
+    assert batch_0.archetype_id == archetype_id
+    assert batch_0.num_prospects == 5
 
     prospects = Prospect.query.all()
     assert len(prospects) == 1

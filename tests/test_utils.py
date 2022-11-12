@@ -18,6 +18,7 @@ from model_import import (
     GNLPModelFineTuneJobs,
     ProspectStatusRecords,
     PhantomBusterConfig,
+    ProspectUploadBatch,
 )
 
 
@@ -40,6 +41,7 @@ def test_app():
             prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
+        clear_all_entities(ProspectUploadBatch)
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)
         clear_all_entities(GeneratedMessage)
