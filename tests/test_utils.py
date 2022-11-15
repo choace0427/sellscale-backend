@@ -19,6 +19,7 @@ from model_import import (
     ProspectStatusRecords,
     PhantomBusterConfig,
     ProspectUploadBatch,
+    ProspectNote,
 )
 
 
@@ -50,6 +51,7 @@ def test_app():
         clear_all_entities(ResearchPayload)
         clear_all_entities(ProspectStatusRecords)
         clear_all_entities(PhantomBusterConfig)
+        clear_all_entities(ProspectNote)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(GNLPModelFineTuneJobs)

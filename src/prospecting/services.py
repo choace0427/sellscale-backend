@@ -3,7 +3,12 @@ from typing import Optional
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.client.models import Client, ClientArchetype
 from src.research.linkedin.services import research_personal_profile_details
-from src.prospecting.models import Prospect, ProspectStatus, ProspectUploadBatch
+from src.prospecting.models import (
+    Prospect,
+    ProspectStatus,
+    ProspectUploadBatch,
+    ProspectNote,
+)
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
@@ -22,8 +27,9 @@ def prospect_exists_for_archetype(full_name: str, client_id: int):
     return None
 
 
-def create_note():
-    pass
+def create_note(prospect_id: int, note: str):
+    note_id = create_prospect_note(prospect_id=prospect_id, note=note)
+    return note_id
 
 
 def update_prospect_status(
@@ -39,7 +45,7 @@ def update_prospect_status(
     current_status = p.status
 
     if note:
-        create_note(note)
+        create_note(prospect_id=prospect_id, note=note)
 
     # notifications
     if new_status == ProspectStatus.ACCEPTED:
@@ -494,3 +500,14 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
         return False, couldnt_add
 
     return True, []
+
+
+def create_prospect_note(prospect_id: int, note: str):
+    prospect_note: ProspectNote = ProspectNote(
+        prospect_id=prospect_id,
+        note=note,
+    )
+    db.session.add(prospect_note)
+    db.session.commit()
+
+    return {"prospect_note_id": prospect_note.id}

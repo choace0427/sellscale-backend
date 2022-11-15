@@ -5,6 +5,7 @@ from src.prospecting.services import (
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
+    update_prospect_status,
 )
 from model_import import (
     Prospect,
@@ -12,11 +13,58 @@ from model_import import (
     Prospect,
     ProspectUploadBatch,
     Client,
+    ProspectStatus,
+    ProspectNote,
 )
 from decorators import use_app_context
 import mock
 from app import app
 import json
+
+
+@use_app_context
+def test_update_prospect_status_with_note():
+    client = basic_client()
+    client_id = client.id
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    add_prospect(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url=None,
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+
+    prospects = Prospect.query.all()
+    assert len(prospects) == 1
+    assert prospects[0].client_id == client_id
+    assert prospects[0].archetype_id == archetype_id
+    assert prospects[0].batch == "123"
+
+    prospect0 = prospects[0]
+    prospect_id = prospect0.id
+    update_prospect_status(
+        prospect_id=prospect0.id,
+        new_status=ProspectStatus.SENT_OUTREACH,
+        note="testing",
+    )
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect is not None
+    assert prospect.status == ProspectStatus.SENT_OUTREACH
+
+    notes: list = ProspectNote.query.all()
+    assert len(notes) == 1
+    assert notes[0].prospect_id == prospect_id
+    assert notes[0].note == "testing"
 
 
 @use_app_context

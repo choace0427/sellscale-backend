@@ -12,6 +12,7 @@ from src.prospecting.models import (
     ProspectStatus,
     ProspectStatusRecords,
     ProspectUploadBatch,
+    ProspectNote,
 )
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs
 from src.automation.models import PhantomBusterConfig
