@@ -20,6 +20,7 @@ from model_import import (
     PhantomBusterConfig,
     ProspectUploadBatch,
     ProspectNote,
+    OutboundCampaign,
 )
 
 
@@ -43,6 +44,7 @@ def test_app():
             db.session.add(prospect)
             db.session.commit()
         clear_all_entities(ProspectUploadBatch)
+        clear_all_entities(OutboundCampaign)
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)
         clear_all_entities(GeneratedMessage)
