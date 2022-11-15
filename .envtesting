@@ -1,5 +1,0 @@
-export FLASK_APP=app.py
-export FLASK_ENV='testing'
-export APP_SETTINGS=config.TestingConfig
-export ENCRYPTION_KEY='WnvHGDi3ly44ss36JGtbrEotXca33PTd1d_y1h0U2uM='
-export DATABASE_URL='postgresql://aakash@localhost:5432/testing'

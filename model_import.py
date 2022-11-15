@@ -21,3 +21,4 @@ from src.email_outbound.models import (
     EmailCustomizedFieldTypes,
     ProspectEmail,
 )
+from src.campaigns.models import OutboundCampaign
