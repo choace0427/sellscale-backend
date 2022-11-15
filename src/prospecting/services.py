@@ -22,14 +22,24 @@ def prospect_exists_for_archetype(full_name: str, client_id: int):
     return None
 
 
+def create_note():
+    pass
+
+
 def update_prospect_status(
-    prospect_id: int, new_status: ProspectStatus, message: any = {}
+    prospect_id: int,
+    new_status: ProspectStatus,
+    message: any = {},
+    note: Optional[str] = None,
 ):
     from src.prospecting.models import Prospect, ProspectStatus
     from src.automation.slack_notification import send_slack_block
 
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
+
+    if note:
+        create_note(note)
 
     # notifications
     if new_status == ProspectStatus.ACCEPTED:

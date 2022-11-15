@@ -94,8 +94,11 @@ def update_status():
     new_status = ProspectStatus[
         get_request_parameter("new_status", request, json=True, required=True)
     ]
+    note = get_request_parameter("note", request, json=True, required=False)
 
-    success = update_prospect_status(prospect_id=prospect_id, new_status=new_status)
+    success = update_prospect_status(
+        prospect_id=prospect_id, new_status=new_status, note=note
+    )
 
     if success:
         return "OK", 200
