@@ -75,6 +75,14 @@ class ProspectStatusRecords(db.Model):
     to_status = db.Column(db.Enum(ProspectStatus), nullable=True)
 
 
+class ProspectNote(db.Model):
+    __tablename__ = "prospect_note"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    note = db.Column(db.String, nullable=False)
+
+
 # map of to_status and from status
 # ensure that the prospect's from_status is in the array of the value of
 #   "to_status" index
