@@ -19,7 +19,10 @@ class OutboundCampaign(db.Model):
     name = db.Column(db.String(255), nullable=False)
     prospect_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
     campaign_type = db.Column(db.Enum(GeneratedMessageType), nullable=False)
-    ctas = db.Column(db.ARRAY(db.Integer), nullable=False)
+    ctas = db.Column(db.ARRAY(db.Integer), nullable=True)
+    email_schema_id = db.Column(
+        db.Integer, db.ForeignKey("email_schema.id"), nullable=True
+    )
     client_archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )

@@ -3,6 +3,11 @@ from src.campaigns.models import *
 
 from model_import import OutboundCampaign, OutboundCampaignStatus, GeneratedMessageType
 import datetime
+from src.message_generation.services import (
+    generate_outreaches_for_prospect_list_from_multiple_ctas,
+    batch_generate_prospect_emails,
+)
+from typing import Optional
 
 from model_import import ClientArchetype
 
@@ -10,11 +15,12 @@ from model_import import ClientArchetype
 def create_outbound_campaign(
     prospect_ids: list,
     campaign_type: GeneratedMessageType,
-    ctas: list,
     client_archetype_id: int,
     client_sdr_id: int,
     campaign_start_date: datetime,
     campaign_end_date: datetime,
+    ctas: Optional[list] = None,
+    email_schema_id: Optional[int] = None,
 ) -> OutboundCampaign:
     """Creates a new outbound campaign
 
@@ -36,11 +42,18 @@ def create_outbound_campaign(
     name = (
         ca.archetype + ", " + str(len(prospect_ids)) + ", " + str(campaign_start_date)
     )
+
+    if campaign_type == GeneratedMessageType.EMAIL and email_schema_id is None:
+        raise Exception("Email campaign type requires an email schema id")
+    if campaign_type == GeneratedMessageType.LINKEDIN and ctas is None:
+        raise Exception("LinkedIn campaign type requires a list of CTAs")
+
     campaign = OutboundCampaign(
         name=name,
         prospect_ids=prospect_ids,
         campaign_type=campaign_type,
         ctas=ctas,
+        email_schema_id=email_schema_id,
         client_archetype_id=client_archetype_id,
         client_sdr_id=client_sdr_id,
         campaign_start_date=campaign_start_date,
@@ -50,6 +63,28 @@ def create_outbound_campaign(
     db.session.add(campaign)
     db.session.commit()
     return campaign
+
+
+def generate_campaign(campaign_id: int):
+    """Generates the campaign
+
+    Args:
+        campaign_id (int): Campaign id
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign.status = OutboundCampaignStatus.IN_PROGRESS
+    db.session.add(campaign)
+    db.session.commit()
+
+    if campaign.campaign_type == GeneratedMessageType.EMAIL:
+        batch_generate_prospect_emails(
+            prospect_ids=campaign.prospect_ids, email_schema_id=campaign.email_schema_id
+        )
+    elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
+        generate_outreaches_for_prospect_list_from_multiple_ctas(
+            prospect_ids=campaign.prospect_ids,
+            cta_ids=campaign.ctas,
+        )
 
 
 def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):

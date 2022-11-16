@@ -36,6 +36,17 @@ def research_and_generate_outreaches_for_prospect_list(
     return True
 
 
+def generate_outreaches_for_prospect_list_from_multiple_ctas(
+    prospect_ids: list, cta_ids: list
+):
+    batch_id = generate_random_alphanumeric(36)
+    for i, prospect_id in enumerate(tqdm(prospect_ids)):
+        cta_id = cta_ids[i % len(cta_ids)]
+        research_and_generate_outreaches_for_prospect.delay(
+            prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
+        )
+
+
 @celery.task
 def research_and_generate_outreaches_for_prospect(
     prospect_id: int, batch_id: str, cta_id: str = None

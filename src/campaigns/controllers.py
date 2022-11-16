@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from src.campaigns.services import create_outbound_campaign, change_campaign_status
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
+from src.campaigns.services import generate_campaign
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
 
@@ -48,4 +49,13 @@ def patch_change_campaign_status():
     )
     status = get_request_parameter("status", request, json=True, required=True)
     change_campaign_status(campaign_id=campaign_id, status=status)
+    return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/generate", methods=["POST"])
+def post_generate_campaigns():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    generate_campaign(campaign_id=campaign_id)
     return "OK", 200

@@ -6,10 +6,14 @@ import json
 
 from test_utils import basic_client, basic_archetype, basic_client_sdr
 from model_import import OutboundCampaign
+import mock
 
 
 @use_app_context
-def test_create_campaign():
+@mock.patch(
+    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
+)
+def test_create_campaign(message_gen_call_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -34,6 +38,7 @@ def test_create_campaign():
     assert campaign_id > 0
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign_id = campaign.id
     assert campaign.id == campaign_id
     assert campaign.client_archetype_id == archetype.id
     assert campaign.client_sdr_id == client_sdr.id
@@ -42,9 +47,21 @@ def test_create_campaign():
     assert campaign.ctas == [5, 6]
     assert campaign.status.value == "PENDING"
 
+    response = app.test_client().post(
+        "campaigns/generate",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert message_gen_call_patch.call_count == 4
+
 
 @use_app_context
-def test_create_campaign():
+def test_change_campaign_status():
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
