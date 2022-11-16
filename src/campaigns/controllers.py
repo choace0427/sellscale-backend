@@ -16,7 +16,7 @@ def create_new_campaign():
     campaign_type = get_request_parameter(
         "campaign_type", request, json=True, required=True
     )
-    ctas = get_request_parameter("ctas", request, json=True, required=True)
+    ctas = get_request_parameter("ctas", request, json=True, required=False)
     client_archetype_id = get_request_parameter(
         "client_archetype_id", request, json=True, required=True
     )
@@ -29,11 +29,15 @@ def create_new_campaign():
     campaign_end_date = get_request_parameter(
         "campaign_end_date", request, json=True, required=True
     )
+    email_schema_id = get_request_parameter(
+        "email_schema_id", request, json=True, required=False
+    )
 
     campaign: OutboundCampaign = create_outbound_campaign(
         prospect_ids=prospect_ids,
         campaign_type=campaign_type,
         ctas=ctas,
+        email_schema_id=email_schema_id,
         client_archetype_id=client_archetype_id,
         client_sdr_id=client_sdr_id,
         campaign_start_date=campaign_start_date,
