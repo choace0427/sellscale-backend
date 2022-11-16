@@ -396,29 +396,32 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int
     return updates
 
 
-@celery.task
-def match_prospect_as_sent_outreach(prospect_id: int, client_sdr_id: int):
-    prospect: Prospect = Prospect.query.get(prospect_id)
+@celery.task(bind=True, max_retries=3)
+def match_prospect_as_sent_outreach(self, prospect_id: int, client_sdr_id: int):
+    try:
+        prospect: Prospect = Prospect.query.get(prospect_id)
 
-    prospect.client_sdr_id = client_sdr_id
-    db.session.add(prospect)
-    db.session.commit()
+        prospect.client_sdr_id = client_sdr_id
+        db.session.add(prospect)
+        db.session.commit()
 
-    if not prospect or not prospect.approved_outreach_message_id:
-        return
+        if not prospect or not prospect.approved_outreach_message_id:
+            return
 
-    update_prospect_status(
-        prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
-    )
+        update_prospect_status(
+            prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
+        )
 
-    message: GeneratedMessage = GeneratedMessage.query.get(
-        prospect.approved_outreach_message_id
-    )
-    message.message_status = GeneratedMessageStatus.SENT
-    message.date_sent = datetime.now()
-    db.session.add(message)
+        message: GeneratedMessage = GeneratedMessage.query.get(
+            prospect.approved_outreach_message_id
+        )
+        message.message_status = GeneratedMessageStatus.SENT
+        message.date_sent = datetime.now()
+        db.session.add(message)
 
-    db.session.commit()
+        db.session.commit()
+    except Exception as e:
+        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 def batch_update_prospect_statuses(updates: list):
