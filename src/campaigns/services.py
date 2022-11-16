@@ -50,3 +50,16 @@ def create_outbound_campaign(
     db.session.add(campaign)
     db.session.commit()
     return campaign
+
+
+def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
+    """Changes the status of a campaign
+
+    Args:
+        campaign_id (int): Campaign id
+        status (OutboundCampaignStatus): New status of the campaign
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign.status = status
+    db.session.add(campaign)
+    db.session.commit()

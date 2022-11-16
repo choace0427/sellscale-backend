@@ -41,3 +41,46 @@ def test_create_campaign():
     assert campaign.prospect_ids == [1, 2, 3, 4]
     assert campaign.ctas == [5, 6]
     assert campaign.status.value == "PENDING"
+
+
+@use_app_context
+def test_create_campaign():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+
+    response = app.test_client().post(
+        "campaigns/",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": [1, 2, 3, 4],
+                "campaign_type": "LINKEDIN",
+                "ctas": [5, 6],
+                "client_archetype_id": archetype.id,
+                "client_sdr_id": client_sdr.id,
+                "campaign_start_date": "2021-01-01",
+                "campaign_end_date": "2021-01-01",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign_id = json.loads(response.data.decode("utf-8"))["campaign_id"]
+    assert campaign_id > 0
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "PENDING"
+
+    response = app.test_client().patch(
+        "campaigns/",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+                "status": "IN_PROGRESS",
+            }
+        ),
+    )
+
+    assert response.status_code == 200
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "IN_PROGRESS"
