@@ -470,6 +470,13 @@ def generate_prospect_email(prospect_id: int, email_schema_id: int, batch_id: in
     if not email_schema:
         return False
 
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(
+        ProspectEmail.prospect_id == prospect_id,
+        ProspectEmail.email_schema_id == email_schema_id,
+    ).first()
+    if prospect_email:
+        return False
+
     archetype_id = prospect.archetype_id
 
     research: ResearchPayload = ResearchPayload.query.filter(
