@@ -147,7 +147,13 @@ def get_li_message_benchmarks_for_client(client_id: int):
             .filter(
                 Prospect.client_id == client.id,
                 Prospect.id == ProspectStatusRecords.prospect_id,
-                Prospect.status == ProspectStatus.DEMO_SET,
+                Prospect.status.in_(
+                    [
+                        ProspectStatus.DEMO_SET,
+                        ProspectStatus.DEMO_LOSS,
+                        ProspectStatus.DEMO_WON,
+                    ]
+                ),
                 GeneratedMessage.prospect_id == Prospect.id,
                 GeneratedMessage.created_at >= interval_start,
                 GeneratedMessage.created_at < interval_end,
