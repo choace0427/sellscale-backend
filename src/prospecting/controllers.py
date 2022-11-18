@@ -21,6 +21,7 @@ from src.prospecting.services import (
 )
 
 from tqdm import tqdm
+from src.prospecting.services import delete_prospect_by_id
 
 from src.utils.random_string import generate_random_alphanumeric
 
@@ -192,3 +193,16 @@ def add_prospect_from_csv_payload():
         return "OK", 200
 
     return "Could not add prospects", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/delete_prospect", methods=["DELETE"])
+def delete_prospect():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    success = delete_prospect_by_id(prospect_id=prospect_id)
+
+    if success:
+        return "OK", 200
+
+    return "Failed to delete prospect", 400

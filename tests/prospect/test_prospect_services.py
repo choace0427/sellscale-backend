@@ -17,6 +17,7 @@ from model_import import (
     ProspectNote,
 )
 from decorators import use_app_context
+from test_utils import basic_prospect
 import mock
 from app import app
 import json
@@ -361,3 +362,19 @@ def test_prospecting_with_clay(prospect_sync_patch):
 
     records = ProspectStatusRecords.query.all()
     assert len(records) == 1
+
+
+@use_app_context
+def test_delete_prospect_by_id_endpoint():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+
+    response = app.test_client().delete(
+        "prospect/delete_prospect",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id}),
+    )
+    assert response.status_code == 200
+    assert Prospect.query.get(prospect.id) is None

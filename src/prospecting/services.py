@@ -514,3 +514,11 @@ def create_prospect_note(prospect_id: int, note: str):
     db.session.commit()
 
     return {"prospect_note_id": prospect_note.id}
+
+
+def delete_prospect_by_id(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    db.session.delete(prospect)
+    db.session.commit()
+
+    return True
