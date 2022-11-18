@@ -23,6 +23,8 @@ import random
 from app import db, celery
 from tqdm import tqdm
 
+import datetime
+
 
 def research_and_generate_outreaches_for_prospect_list(
     prospect_ids: list, cta_id: int = None
@@ -557,6 +559,12 @@ def mark_prospect_email_sent(prospect_email_id: int):
         prospect.status = ProspectStatus.SENT_OUTREACH
         db.session.add(prospect)
         db.session.commit()
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    prospect_email.date_sent = datetime.datetime.now()
+    db.session.add(prospect_email)
+    db.session.commit()
+
     return change_prospect_email_status(
         prospect_email_id=prospect_email_id, status=ProspectEmailStatus.SENT
     )
