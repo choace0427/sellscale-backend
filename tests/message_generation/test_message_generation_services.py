@@ -541,7 +541,7 @@ def test_research_and_generate_outreaches_for_prospect_list(
 
 
 @use_app_context
-def test_change_prospect_email_status():
+def test_change_prospect_email_status_sent():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
