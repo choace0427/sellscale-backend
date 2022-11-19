@@ -7,6 +7,7 @@ from src.message_generation.services import (
     research_and_generate_outreaches_for_prospect_list,
     update_message,
     batch_approve_message_generations_by_heuristic,
+    batch_disapprove_message_generations,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -83,6 +84,19 @@ def post_batch_approve_message_generations_by_heuristic():
     )
 
     success = batch_approve_message_generations_by_heuristic(prospect_ids=prospect_ids)
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/batch_disapprove", methods=["POST"])
+def post_batch_disapprove_message_generations_by_heuristic():
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    success = batch_disapprove_message_generations(prospect_ids=prospect_ids)
     if success:
         return "OK", 200
 

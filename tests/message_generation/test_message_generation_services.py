@@ -691,3 +691,23 @@ def test_batch_approve_message_generations_by_heuristic():
         assert message.message_status == GeneratedMessageStatus.APPROVED
         prospect: Prospect = Prospect.query.get(message.prospect_id)
         assert prospect.status == ProspectStatus.PROSPECTED
+        assert prospect.approved_outreach_message_id == message.id
+
+    response = app.test_client().post(
+        "message_generation/batch_disapprove",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": prospect_ids,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    messages: GeneratedMessage = GeneratedMessage.query.all()
+    assert len(messages) == 10
+    for message in messages:
+        assert message.message_status == GeneratedMessageStatus.DRAFT
+        prospect: Prospect = Prospect.query.get(message.prospect_id)
+        assert prospect.status == ProspectStatus.PROSPECTED
+        assert prospect.approved_outreach_message_id == None

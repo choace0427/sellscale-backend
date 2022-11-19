@@ -261,6 +261,21 @@ def approve_message(message_id: int):
     return True
 
 
+def disapprove_message(message_id: int):
+    from model_import import GeneratedMessage, GeneratedMessageStatus
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    prospect_id = message.prospect_id
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.approved_outreach_message_id = None
+    message.message_status = GeneratedMessageStatus.DRAFT
+    db.session.add(message)
+    db.session.add(prospect)
+    db.session.commit()
+
+    return True
+
+
 def delete_message(message_id: int):
     from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
 
@@ -626,5 +641,20 @@ def batch_approve_message_generations_by_heuristic(prospect_ids: int):
             continue
         message_id = data["id"]
         approve_message(message_id=message_id)
+
+    return True
+
+
+def batch_disapprove_message_generations(prospect_ids: int):
+    from src.message_generation.services import (
+        disapprove_message,
+    )
+    from app import db
+    from tqdm import tqdm
+
+    for prospect_id in tqdm(prospect_ids):
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        message_id = prospect.approved_outreach_message_id
+        disapprove_message(message_id=message_id)
 
     return True
