@@ -8,6 +8,7 @@ class OutboundCampaignStatus(enum.Enum):
     PENDING = "PENDING"
     NEEDS_REVIEW = "NEEDS_REVIEW"
     IN_PROGRESS = "IN_PROGRESS"
+    READY_TO_SEND = "READY_TO_SEND"
     COMPLETE = "COMPLETE"
     CANCELLED = "CANCELLED"
 
