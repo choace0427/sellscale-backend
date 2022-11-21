@@ -27,12 +27,13 @@ from tqdm import tqdm
 import datetime
 
 
+@celery.task
 def research_and_generate_outreaches_for_prospect_list(
     prospect_ids: list, cta_id: int = None
 ):
     batch_id = generate_random_alphanumeric(36)
     for prospect_id in tqdm(prospect_ids):
-        research_and_generate_outreaches_for_prospect.delay(
+        research_and_generate_outreaches_for_prospect(
             prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
         )
 

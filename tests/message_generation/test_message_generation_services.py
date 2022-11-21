@@ -517,7 +517,7 @@ def test_batch_generate_emails_for_prospect(
 )
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
 @mock.patch(
-    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
+    "src.message_generation.services.research_and_generate_outreaches_for_prospect_list.delay"
 )
 def test_research_and_generate_outreaches_for_prospect_list(
     generate_outreach_mock,
@@ -537,7 +537,7 @@ def test_research_and_generate_outreaches_for_prospect_list(
         ),
     )
     assert response.status_code == 200
-    assert generate_outreach_mock.call_count == 3
+    assert generate_outreach_mock.call_count == 1
 
 
 @use_app_context
