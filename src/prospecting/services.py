@@ -518,12 +518,9 @@ def create_prospect_note(prospect_id: int, note: str):
 
 
 def delete_prospect_by_id(prospect_id: int):
-    rp: list = ResearchPayload.query.filter(
-        ResearchPayload.prospect_id == prospect_id
-    ).first()
-    if rp:
-        db.session.delete(rp)
-        db.session.commit()
+    from src.research.linkedin.services import reset_prospect_research_and_messages
+
+    reset_prospect_research_and_messages(prospect_id=prospect_id)
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     db.session.delete(prospect)
