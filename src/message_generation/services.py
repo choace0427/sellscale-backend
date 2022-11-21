@@ -248,6 +248,18 @@ def approve_message(message_id: int):
     from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    prospect_id = message.prospect_id
+    other_approved_messages = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id == prospect_id,
+        GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
+        GeneratedMessage.id != message_id,
+    ).all()
+    for message in other_approved_messages:
+        message.message_status = GeneratedMessageStatus.DRAFT
+        db.session.add(message)
+        db.session.commit()
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.message_status = GeneratedMessageStatus.APPROVED
     db.session.add(message)
 
@@ -274,6 +286,23 @@ def disapprove_message(message_id: int):
     db.session.commit()
 
     return True
+
+
+def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
+    data = db.session.execute(
+        """
+            select length(completion), *
+            from generated_message
+            where prospect_id = {prospect_id}
+            order by abs(270 - length(completion)) asc
+        """.format(
+            prospect_id=prospect_id
+        )
+    ).fetchall()
+    ids = [x["id"] for x in data]
+    new_index = (ids.index(message_id) + 1) % len(ids)
+    new_message_id = ids[new_index]
+    approve_message(message_id=new_message_id)
 
 
 def delete_message(message_id: int):
