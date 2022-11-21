@@ -50,3 +50,14 @@ class GeneratedMessageCTA(db.Model):
     )
     text_value = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True)
+
+
+class GeneratedMessageFeedback(db.Model):
+    __tablename__ = "generated_message_feedback"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    generated_message_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message.id"), nullable=False
+    )
+    feedback_value = db.Column(db.String, nullable=False)
