@@ -304,6 +304,8 @@ def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
     new_message_id = ids[new_index]
     approve_message(message_id=new_message_id)
 
+    return True
+
 
 def delete_message(message_id: int):
     from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
