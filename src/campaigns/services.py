@@ -82,7 +82,7 @@ def generate_campaign(campaign_id: int):
             prospect_ids=campaign.prospect_ids, email_schema_id=campaign.email_schema_id
         )
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
-        generate_outreaches_for_prospect_list_from_multiple_ctas(
+        generate_outreaches_for_prospect_list_from_multiple_ctas.delay(
             prospect_ids=campaign.prospect_ids,
             cta_ids=campaign.ctas,
         )

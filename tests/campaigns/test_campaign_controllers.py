@@ -16,7 +16,7 @@ import mock
 
 @use_app_context
 @mock.patch(
-    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
+    "src.campaigns.services.generate_outreaches_for_prospect_list_from_multiple_ctas.delay"
 )
 def test_create_generate_message_campaign(message_gen_call_patch):
     client = basic_client()
@@ -62,7 +62,7 @@ def test_create_generate_message_campaign(message_gen_call_patch):
         ),
     )
     assert response.status_code == 200
-    assert message_gen_call_patch.call_count == 4
+    assert message_gen_call_patch.call_count == 1
 
 
 @use_app_context
