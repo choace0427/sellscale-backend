@@ -9,6 +9,7 @@ from src.prospecting.models import (
     ProspectUploadBatch,
     ProspectNote,
 )
+from model_import import ResearchPayload
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
@@ -517,6 +518,13 @@ def create_prospect_note(prospect_id: int, note: str):
 
 
 def delete_prospect_by_id(prospect_id: int):
+    rp: list = ResearchPayload.query.filter(
+        ResearchPayload.prospect_id == prospect_id
+    ).first()
+    if rp:
+        db.session.delete(rp)
+        db.session.commit()
+
     prospect: Prospect = Prospect.query.get(prospect_id)
     db.session.delete(prospect)
     db.session.commit()
