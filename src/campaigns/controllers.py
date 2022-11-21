@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify
 
-from src.campaigns.services import create_outbound_campaign, change_campaign_status
+from src.campaigns.services import (
+    create_outbound_campaign,
+    change_campaign_status,
+    mark_campaign_as_ready_to_send,
+)
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
 from src.campaigns.services import generate_campaign
@@ -63,3 +67,15 @@ def post_generate_campaigns():
     )
     generate_campaign(campaign_id=campaign_id)
     return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/mark_ready_to_send", methods=["POST"])
+def post_mark_campaign_as_ready_to_send():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    success = mark_campaign_as_ready_to_send(campaign_id=campaign_id)
+    if success:
+        return "OK", 200
+
+    return "Failed to mark", 400

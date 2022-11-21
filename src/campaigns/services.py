@@ -10,6 +10,7 @@ from src.message_generation.services import (
 from typing import Optional
 
 from model_import import ClientArchetype
+from src.utils.slack import send_slack_message, URL_MAP
 
 
 def create_outbound_campaign(
@@ -98,3 +99,19 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
     campaign.status = status
     db.session.add(campaign)
     db.session.commit()
+
+
+def mark_campaign_as_ready_to_send(campaign_id: int):
+    """Marks the campaign as ready to send
+
+    Args:
+        campaign_id (int): Campaign id
+    """
+    change_campaign_status(campaign_id, OutboundCampaignStatus.READY_TO_SEND)
+
+    send_slack_message(
+        message="Campaign {} is ready to send".format(campaign_id),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
+    return True

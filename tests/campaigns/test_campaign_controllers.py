@@ -162,3 +162,16 @@ def test_change_campaign_status():
     assert response.status_code == 200
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.status.value == "IN_PROGRESS"
+
+    response = app.test_client().post(
+        "campaigns/mark_ready_to_send",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "READY_TO_SEND"
