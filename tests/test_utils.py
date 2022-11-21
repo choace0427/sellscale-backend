@@ -21,6 +21,7 @@ from model_import import (
     ProspectUploadBatch,
     ProspectNote,
     OutboundCampaign,
+    GeneratedMessageFeedback,
 )
 
 
@@ -44,6 +45,7 @@ def test_app():
             db.session.add(prospect)
             db.session.commit()
         clear_all_entities(ProspectUploadBatch)
+        clear_all_entities(GeneratedMessageFeedback)
         clear_all_entities(OutboundCampaign)
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)

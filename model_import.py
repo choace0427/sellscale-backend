@@ -6,6 +6,7 @@ from src.message_generation.models import (
     GeneratedMessageStatus,
     GeneratedMessageCTA,
     GeneratedMessageType,
+    GeneratedMessageFeedback,
 )
 from src.prospecting.models import (
     Prospect,

@@ -7,6 +7,7 @@ from model_import import (
     GeneratedMessageStatus,
     ProspectEmail,
     ProspectStatus,
+    GeneratedMessageFeedback,
 )
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
@@ -687,5 +688,15 @@ def batch_disapprove_message_generations(prospect_ids: int):
         prospect: Prospect = Prospect.query.get(prospect_id)
         message_id = prospect.approved_outreach_message_id
         disapprove_message(message_id=message_id)
+
+    return True
+
+
+def create_generated_message_feedback(message_id: int, feedback_value: str):
+    feedback: GeneratedMessageFeedback = GeneratedMessageFeedback(
+        generated_message_id=message_id, feedback_value=feedback_value
+    )
+    db.session.add(feedback)
+    db.session.commit()
 
     return True

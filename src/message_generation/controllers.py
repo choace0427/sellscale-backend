@@ -9,6 +9,7 @@ from src.message_generation.services import (
     batch_approve_message_generations_by_heuristic,
     batch_disapprove_message_generations,
     pick_new_approved_message_for_prospect,
+    create_generated_message_feedback,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -193,3 +194,18 @@ def post_toggle_cta_active():
         return "OK", 200
 
     return "Failed to toggle", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/add_feedback", methods=["POST"])
+def post_create_feedback():
+    message_id = get_request_parameter("message_id", request, json=True, required=True)
+    feedback_value = get_request_parameter(
+        "feedback_value", request, json=True, required=True
+    )
+
+    success = create_generated_message_feedback(
+        message_id=message_id, feedback_value=feedback_value
+    )
+    if success:
+        return "OK", 200
+    return "Failed to write feedback", 400
