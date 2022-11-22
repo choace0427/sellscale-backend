@@ -669,7 +669,10 @@ def batch_approve_message_generations_by_heuristic(prospect_ids: int):
         """.format(
                 prospect_id=prospect_id
             )
-        ).fetchall()[0]
+        ).fetchall()
+        if len(data) == 0:
+            continue
+        data = data[0]
         prospect: Prospect = Prospect.query.get(prospect_id)
         if prospect.approved_outreach_message_id != None:
             continue
