@@ -12,6 +12,7 @@ from src.automation.services import get_all_phantom_busters
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message
 from src.automation.inbox_scraper import scrape_inbox
+from src.automation.services import create_new_auto_connect_phantom
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
@@ -96,3 +97,29 @@ def scrape_inbox_from_client_sdr_id():
     )
     resp = scrape_inbox(client_sdr_id=client_sdr_id)
     return jsonify(resp)
+
+
+@AUTOMATION_BLUEPRINT.route("/configure_phantom_agents", methods=["POST"])
+def configure_phantom_agents():
+    client_sdr_id: int = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    linkedin_session_cookie = get_request_parameter(
+        "linkedin_session_cookie", request, json=True, required=True
+    )
+    google_sheet_uuid = get_request_parameter(
+        "google_sheet_uuid", request, json=True, required=True
+    )
+
+    inbox_scraper_pb_config, auto_connect_pb_config = create_new_auto_connect_phantom(
+        client_sdr_id=client_sdr_id,
+        linkedin_session_cookie=linkedin_session_cookie,
+        google_sheet_uuid=google_sheet_uuid,
+    )
+
+    return jsonify(
+        {
+            "inbox_scraper_pb_config": inbox_scraper_pb_config,
+            "auto_connect_pb_config": auto_connect_pb_config,
+        }
+    )

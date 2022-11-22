@@ -95,7 +95,7 @@ def create_inbox_scraper_agent(client_sdr_id: int, linkedin_session_cookie: str)
             "argument": '{\n\t"inboxFilter": "all",\n\t"sessionCookie": "'
             + linkedin_session_cookie
             + '",\n\t"numberOfThreadsToScrape": 100\n}',
-            "launchType": "manually",
+            "launchType": "repeatedly",
             "repeatedLaunchTimes": {
                 "day": [
                     1,
@@ -176,7 +176,7 @@ def create_inbox_scraper_agent(client_sdr_id: int, linkedin_session_cookie: str)
         }
     )
     headers = {
-        "X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ",
+        "X-Phantombuster-Key": PHANTOMBUSTER_API_KEY,
         "accept": "application/json",
         "Content-Type": "application/json",
     }
@@ -211,7 +211,7 @@ def create_auto_connect_agent(
             + '",\n\t"spreadsheetUrl": "'
             + google_spreadsheet_uuid
             + '",\n\t"message": "#Message#",\n\t"spreadsheetUrlExclusionList": [],\n\t"numberOfAddsPerLaunch": 2\n}',
-            "launchType": "manually",
+            "launchType": "repeatedly",
             "repeatedLaunchTimes": {
                 "day": [
                     1,
@@ -294,7 +294,7 @@ def create_auto_connect_agent(
         }
     )
     headers = {
-        "X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ",
+        "X-Phantombuster-Key": PHANTOMBUSTER_API_KEY,
         "accept": "application/json",
         "Content-Type": "application/json",
     }
@@ -302,6 +302,34 @@ def create_auto_connect_agent(
     response = requests.request("POST", url, headers=headers, data=payload)
     phantom_id = response.json()["id"]
     return phantom_id, phantom_name
+
+
+def get_all_agent_groups():
+    url = "https://api.phantombuster.com/api/v2/orgs/fetch-agent-groups"
+
+    headers = {
+        "accept": "application/json",
+        "X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ",
+    }
+
+    response = requests.get(url, headers=headers)
+
+    return response.json()
+
+
+def save_agent_groups(agent_groups: list):
+    url = "https://api.phantombuster.com/api/v2/orgs/save-agent-groups"
+
+    payload = {"agentGroups": agent_groups}
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ",
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    return response.json()
 
 
 def create_new_auto_connect_phantom(
@@ -321,31 +349,31 @@ def create_new_auto_connect_phantom(
     auto_connect_agent_id, auto_connect_agent_name = create_auto_connect_agent(
         client_sdr_id, linkedin_session_cookie, google_sheet_uuid
     )
-    # agent_groups = get_all_agent_groups()
-    # agent_groups.append({
-    #        "id": "client_sdr_name-company_name",
-    #        "name": "{} - {}".format(company_name, client_sdr_name),
-    #        "agents": [
-    #             "inbox_scraper_id",
-    #             "auto_connect_id"
-    #        ]
-    #   })
-    # save_agent_groups(agent_groups)
 
-    # inbox_scraper_pb_config = create_phantom_buster_config(
-    #     client_id: client_id,
-    #     client_sdr_id: client_sdr_id,
-    #     phantom_name: inbox_scraper_agent_name,
-    #     phantom_uuid: inbox_scraper_agent_id,
-    #     phantom_type: PhantomBusterType.INBOX_SCRAPER,
-    # )
-    # auto_connect_pb_config = create_phantom_buster_config(
-    #     client_id: client_id,
-    #     client_sdr_id: client_sdr_id,
-    #     phantom_name: inbox_scraper_agent_name,
-    #     phantom_uuid: auto_connect_agent_id,
-    #     phantom_type: PhantomBusterType.AUTO_CONNECT,
-    #     google_sheets_uuid: google_sheet_uuid,
-    # )
+    agent_groups = get_all_agent_groups()
+    agent_groups.append(
+        {
+            "id": "{} - {}".format(company_name, client_sdr_name),
+            "name": "{} - {}".format(company_name, client_sdr_name),
+            "agents": [inbox_scraper_agent_id, auto_connect_agent_id],
+        }
+    )
+    success = save_agent_groups(agent_groups)
 
-    return True
+    inbox_scraper_pb_config = create_phantom_buster_config(
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        phantom_name=inbox_scraper_agent_name,
+        phantom_uuid=inbox_scraper_agent_id,
+        phantom_type=PhantomBusterType.INBOX_SCRAPER,
+    )
+    auto_connect_pb_config = create_phantom_buster_config(
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        phantom_name=auto_connect_agent_name,
+        phantom_uuid=auto_connect_agent_id,
+        phantom_type=PhantomBusterType.OUTBOUND_ENGINE,
+        google_sheets_uuid=google_sheet_uuid,
+    )
+
+    return inbox_scraper_pb_config, auto_connect_pb_config
