@@ -106,7 +106,9 @@ def get_li_message_benchmarks_for_client(client_id: int):
                 Prospect.client_id == client.id,
                 Prospect.id == ProspectStatusRecords.prospect_id,
                 GeneratedMessage.prospect_id == Prospect.id,
-                Prospect.status == ProspectStatus.RESPONDED,
+                Prospect.status.in_(
+                    [ProspectStatus.RESPONDED, ProspectStatus.NOT_INTERESTED]
+                ),
                 GeneratedMessage.created_at >= interval_start,
                 GeneratedMessage.created_at < interval_end,
             )
