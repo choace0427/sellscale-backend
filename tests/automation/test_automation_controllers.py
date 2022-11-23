@@ -3,6 +3,7 @@ import pytest
 from decorators import use_app_context
 import json
 from test_utils import test_app, basic_client, basic_client_sdr
+import mock
 
 
 @use_app_context
@@ -26,3 +27,33 @@ def test_post_phantom_buster_config():
         ),
     )
     assert response.status_code == 200
+
+
+class FakePostResponse:
+    def json(self):
+        return {"id": "TEST_ID"}
+
+
+@use_app_context
+@mock.patch(
+    "src.automation.services.requests.request",
+    return_value=FakePostResponse(),
+)
+def test_configure_phantom_agents(request_patch):
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    sdr_id = sdr.id
+
+    response = app.test_client().post(
+        "/automation/configure_phantom_agents",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_sdr_id": sdr_id,
+                "linkedin_session_cookie": "TEST_LINKEDIN_COOKIE",
+                "google_sheet_uuid": "GOOGLE_SHEET_UUID",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert request_patch.call_count == 2
