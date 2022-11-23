@@ -43,7 +43,7 @@ def test_add_client_and_archetype():
 
     c: Client = get_client(clients[0].id)
     assert c.id == clients[0].id
-    assert len(c.notification_allowlist) == 3
+    assert len(c.notification_allowlist) == 4
 
     response = app.test_client().post(
         "client/archetype",

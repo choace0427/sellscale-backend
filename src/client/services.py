@@ -26,6 +26,7 @@ def create_client(company: str, contact_name: str, contact_email: str):
             ProspectStatus.SCHEDULING,
             ProspectStatus.DEMO_SET,
             ProspectStatus.ACTIVE_CONVO,
+            ProspectStatus.ACCEPTED,
         ],
     )
     db.session.add(c)
