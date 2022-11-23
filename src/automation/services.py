@@ -198,6 +198,11 @@ def create_auto_connect_agent(
     phantom_name = "LinkedIn Auto Connect - {company} ({sdr_name})".format(
         company=client_company, sdr_name=client_sdr_name
     )
+    google_sheet_link = (
+        "https://docs.google.com/spreadsheets/d/{}/edit?usp=sharing".format(
+            google_spreadsheet_uuid
+        )
+    )
 
     payload = json.dumps(
         {
@@ -209,7 +214,7 @@ def create_auto_connect_agent(
             "argument": '{\n\t"onlySecondCircle": false,\n\t"waitDuration": 30,\n\t"skipProfiles": true,\n\t"dwellTime": true,\n\t"sessionCookie": "'
             + linkedin_session_cookie
             + '",\n\t"spreadsheetUrl": "'
-            + google_spreadsheet_uuid
+            + google_sheet_link
             + '",\n\t"message": "#Message#",\n\t"spreadsheetUrlExclusionList": [],\n\t"numberOfAddsPerLaunch": 2\n}',
             "launchType": "repeatedly",
             "repeatedLaunchTimes": {
