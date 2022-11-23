@@ -40,3 +40,5 @@ class ResearchPoints(db.Model):
     research_payload_id = db.Column(db.Integer, db.ForeignKey("research_payload.id"))
     research_point_type = db.Column(db.Enum(ResearchPointType), nullable=False)
     value = db.Column(db.String, nullable=False)
+
+    flagged = db.Column(db.Boolean, nullable=True)

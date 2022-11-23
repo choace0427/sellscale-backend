@@ -277,6 +277,64 @@ def test_add_prospects_from_json_payload(mock_add_prospect, mock_create_from_lin
 
 
 @use_app_context
+@mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.delay")
+@mock.patch("src.prospecting.services.add_prospect.delay")
+def test_add_2_prospects_from_csv(mock_add_prospect, mock_create_from_linkedin):
+    payload = [
+        {
+            "First Name": "Suzanne",
+            "Last Name": "Cooner",
+            "State": "Iowa",
+            "full_name": "Suzanne Cooner",
+            "company": "Audubon County Memorial Hospital",
+            "title": "Chief Executive Officer",
+            "linkedin_url": "https://www.linkedin.com/in/suzanne-cooner-31849321",
+        },
+        {
+            "First Name": "Michelle",
+            "Last Name": "Rebelsky",
+            "State": "Iowa",
+            "full_name": "Michelle Rebelsky",
+            "company": "Audubon County Memorial Hospital",
+            "title": "Chief Medical Officer",
+            "linkedin_url": "https://www.linkedin.com/in/michelle-rebelsky-md-mba-609702143",
+        },
+    ]
+
+    client = basic_client()
+    client_id = client.id
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    response = app.test_client().post(
+        "prospect/add_prospect_from_csv_payload",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": client_id,
+                "archetype_id": archetype_id,
+                "csv_payload": payload,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    batches: list = ProspectUploadBatch.query.all()
+    assert len(batches) == 1
+
+    batch_0: ProspectUploadBatch = batches[0]
+    assert batch_0.archetype_id == archetype_id
+    assert batch_0.num_prospects == 2
+
+    prospects = Prospect.query.all()
+    assert len(prospects) == 0
+    assert mock_add_prospect.call_count == 0
+    assert mock_create_from_linkedin.call_count == 2
+
+    for i in prospects:
+        assert i.company_url == "https://athelas.com/"
+
+
+@use_app_context
 def test_add_prospects_from_json_payload_invalid():
     payload = [
         {

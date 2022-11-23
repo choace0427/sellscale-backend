@@ -6,6 +6,7 @@ from src.research.linkedin.iscraper import (
 )
 
 from src.utils.request_helpers import get_request_parameter
+from src.research.services import flag_research_point
 
 from ..message_generation.services import (
     generate_outreaches,
@@ -80,3 +81,14 @@ def batch_wipe_prospect_messages_and_research():
 
     reset_batch_of_prospect_research_and_messages(prospect_ids=prospect_ids)
     return "OK", 200
+
+
+@RESEARCH_BLUEPRINT.route("/v1/flag_research_point", methods=["POST"])
+def flag_research():
+    research_point_id = get_request_parameter(
+        "research_point_id", request, json=True, required=True
+    )
+    success = flag_research_point(research_point_id=research_point_id)
+    if success:
+        return "OK", 200
+    return "Failed to flag point", 500
