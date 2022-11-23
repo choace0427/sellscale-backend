@@ -119,11 +119,23 @@ def get_years_of_experience_at_current_job(data):
     return {"raw_data": raw_data, "response": frame}
 
 
+def remove_suffixes_from_company_name(positions_str):
+    """
+    Remove suffixes from company name like "LLC" and "Inc."
+    """
+    replaced_suffixes = [" Inc", " Inc.", " LLC", " LLC."]
+    replaced_suffixes.sort(key=lambda x: len(x), reverse=True)
+    for suffix in replaced_suffixes:
+        positions_str = positions_str.replace(suffix, "")
+    return positions_str
+
+
 def get_list_of_past_jobs(data):
     # saw that you've worked at X, Y, Z
     position_data = deep_get(data, "personal.position_groups")
     positions = [deep_get(x, "company.name") for x in position_data][1:][0:3]
     positions_str = ", ".join(positions)
+    positions_str = remove_suffixes_from_company_name(positions_str)
 
     if len(positions) == 0:
         return {}

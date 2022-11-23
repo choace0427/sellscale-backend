@@ -848,3 +848,513 @@ def test_get_list_of_past_jobs():
     }
     data = get_list_of_past_jobs(info_with_jobs)
     assert "Dropbox" in data["response"] and "Jones Lang" in data["response"]
+
+
+def test_get_list_of_past_jobs_without_inc_llc():
+    info_with_llc_and_inc = {
+        "personal": {
+            "profile_id": "kylejohnson22",
+            "entity_urn": "ACoAAAEC6EsBBQ9_l0Nb6SzscEvhVWa-iwCRwJ4",
+            "object_urn": "16967755",
+            "first_name": "Kyle",
+            "last_name": "Johnson",
+            "sub_title": "VP of Product at Plate IQ",
+            "birth_date": None,
+            "profile_picture": "https://media-exp1.licdn.com/dms/image/C4E03AQEe2d8lmgofaQ/profile-displayphoto-shrink_400_400/0/1517760237498?e=1674086400&v=beta&t=M7dkBULHdTviBemv5ZhTl1yJz2UooSnp2NaBaQvX3sE",
+            "summary": "Throughout my life I've always questioned everything. How does that work? Is that the best way to do that? How else can we attack this problem?\n\nMy approach has led me to learn a about and respect a ton of different disciplines. If you read through my experience below you'll see that this has been reflected in my career. I've had very diverse responsibilities, born out of my eagerness and willingness to expand, explore, and learn.\n\nOne of my colleagues and mentors at Vino Volo LLC gave me a great compliment once. She said that I was extremely valuable to the team because of my ability to not just look at things from everyone's perspective, but also understand everyone's perspective, and then to be able to make judgments objectively based on that understanding.\n\nI think my biggest strength is that I understand problems well. I like to understand problems from different perspectives AND at different levels of abstraction. That means I want to understand the user or customer problem completely - and probably related problems. But I also want to understand the problem from a technology perspective, from a business perspective, from a financial perspective. How does this impact their business? How does this impact our business? I believe that by completely understanding the problem, the solution generally presents itself willingly.",
+            "location": {
+                "country": "United States",
+                "short": "San Francisco, California",
+                "city": "San Francisco",
+                "state": "California",
+                "default": "San Francisco, California, United States",
+            },
+            "premium": False,
+            "influencer": False,
+            "treasury_media": [],
+            "languages": {
+                "primary_locale": {"country": "US", "language": "en"},
+                "supported_locales": [{"country": "US", "language": "en"}],
+                "profile_languages": [
+                    {"name": "English", "proficiency": "NATIVE_OR_BILINGUAL"},
+                    {"name": "Spanish", "proficiency": "LIMITED_WORKING"},
+                ],
+            },
+            "industry": "Computer Software",
+            "education": [
+                {
+                    "date": {
+                        "start": {"month": None, "year": 2003},
+                        "end": {"month": None, "year": 2007},
+                    },
+                    "school": {
+                        "name": "Northwestern University",
+                        "logo": "https://media-exp1.licdn.com/dms/image/C4E0BAQH-sXOOSUF3aA/company-logo_400_400/0/1519856314413?e=1676505600&v=beta&t=VYVk6XBW0Jcm-xdL3JoqxWTlsGCgjdJMDUoQqzlQAGA",
+                    },
+                    "degree_name": "Bachelor of Arts",
+                    "field_of_study": "Political Science",
+                }
+            ],
+            "patents": [],
+            "awards": [
+                {
+                    "title": "Be Extraordinary",
+                    "description": "Vino Volo LLC has four Core Values: Be Extraordinary, Share the Wine, Create Community, and Plant & Grow. Each year every employee nominates a colleague who exemplifies a core value. The CEO then chooses the winners from the nominees and presents them at the Annual Wine Retreat.\n\nThis is the highest honor at Vino Volo LLC.",
+                    "issuer": "CEO, Doug Tomlinson",
+                    "date": {"year": 2012, "month": 4},
+                }
+            ],
+            "certifications": [],
+            "organizations": [],
+            "projects": [],
+            "publications": [],
+            "courses": [],
+            "test_scores": [],
+            "position_groups": [
+                {
+                    "company": {
+                        "name": "Plate IQ",
+                        "logo": "https://media-exp1.licdn.com/dms/image/C560BAQEnCzMGStOdbg/company-logo_400_400/0/1652897047952?e=1676505600&v=beta&t=X0k0CsfXK7sQZf0Mt-43QMs7Ps_rJcPR-fXY-AO34yA",
+                        "url": "https://www.linkedin.com/company/plateiq/",
+                        "employees": {"start": 51, "end": 200},
+                    },
+                    "company_url": "https://www.linkedin.com/company/plateiq/",
+                    "date": {
+                        "start": {"month": 7, "year": 2015},
+                        "end": {"month": None, "year": None},
+                    },
+                    "profile_positions": [
+                        {
+                            "location": None,
+                            "date": {
+                                "start": {"month": 8, "year": 2022},
+                                "end": {"month": None, "year": None},
+                            },
+                            "company": "Plate IQ",
+                            "description": None,
+                            "title": "VP Product",
+                        },
+                        {
+                            "location": None,
+                            "date": {
+                                "start": {"month": 1, "year": 2022},
+                                "end": {"month": 8, "year": 2022},
+                            },
+                            "company": "Plate IQ",
+                            "description": None,
+                            "title": "VP Enterprise Solutions",
+                        },
+                        {
+                            "location": "Oakland, CA",
+                            "date": {
+                                "start": {"month": 7, "year": 2015},
+                                "end": {"month": 1, "year": 2022},
+                            },
+                            "company": "Plate IQ",
+                            "description": None,
+                            "title": "VP Product Management & Customer Success",
+                        },
+                    ],
+                },
+                {
+                    "company": {
+                        "name": "Freelance",
+                        "logo": None,
+                        "url": None,
+                        "employees": {"start": None, "end": None},
+                    },
+                    "company_url": None,
+                    "date": {
+                        "start": {"month": 3, "year": 2014},
+                        "end": {"month": 7, "year": 2015},
+                    },
+                    "profile_positions": [
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 3, "year": 2014},
+                                "end": {"month": 7, "year": 2015},
+                            },
+                            "company": "Freelance",
+                            "description": "I provide freelance consulting to Vino Volo LLC and Punchh as well as other small clients.",
+                            "title": "Consultant",
+                        }
+                    ],
+                },
+                {
+                    "company": {
+                        "name": "Punchh Inc.",
+                        "logo": "https://media-exp1.licdn.com/dms/image/C4E0BAQEQCTAacFVHAA/company-logo_400_400/0/1658511828554?e=1676505600&v=beta&t=beBFc-gIKqkJntkDUiNq_IjSysG8zRrWlNTnux77wjc",
+                        "url": "https://www.linkedin.com/company/punchh/",
+                        "employees": {"start": 201, "end": 500},
+                    },
+                    "company_url": "https://www.linkedin.com/company/punchh/",
+                    "date": {
+                        "start": {"month": 3, "year": 2014},
+                        "end": {"month": 10, "year": 2014},
+                    },
+                    "profile_positions": [
+                        {
+                            "location": "Sunnyvale, CA",
+                            "date": {
+                                "start": {"month": 3, "year": 2014},
+                                "end": {"month": 10, "year": 2014},
+                            },
+                            "company": "Punchh",
+                            "description": "I managed the design, implementation, training, and launch of custom mobile apps and loyalty programs and provided ongoing support. I communicated with customers regularly with program updates and recommendations on how to better leverage the product.\n\nI implemented new processes for onboarding, design, and QA, improving the quality of our apps and cutting the production timeline by weeks.\n\nI wrote requirements for custom mobile apps, new product features, and partner integrations. I wrote specifications on Redmine, created flowcharts with PowerPoint, and built prototypes using Illustrator and Flinto.\n\nI was able to touch features on all aspects of the product \u2013 mobile, web, and integrations. On mobile, I worked with our designers and developers to improve and standardize our common screens. We redesigned the functionality and visual design of the \u201cNews & Offers\u201d screen, which is now used in all new apps. We also created templates for the main screen of the app.\n\nOn the web, I designed a new report feature that provides critical loyalty performance data, leveraging my hospitality expertise. I also designed the algorithm and flows for a sweepstakes game, which was used for Schlotzsky\u2019s Scratch Match \u2018n\u2019 Win annual promotion. I wrote a demo of the algorithm in Ruby.\n\nI worked with partners to create new integrations with new POS vendors and mobile ordering. We designed new single-sign-on functionality and APIs to handle partner integrations. I worked with our POS integration engineer and server team to launch a new version of our POS integration. First, we designed new POS integration functionality that helped improve reliability and durability of the integration in case of connection outages. Second, we designed a new barcode algorithm (temporary integration keys) that was more secure and guaranteed uniqueness. I wrote algorithm demos in Python to test their security.\n\nI led the design and implementation of our first beacon-enabled app and its supporting technology.",
+                            "title": "Senior Director of Customer Success",
+                        }
+                    ],
+                },
+                {
+                    "company": {
+                        "name": "Vino Volo LLC",
+                        "logo": "https://media-exp1.licdn.com/dms/image/C4D0BAQEXTI68em4ucA/company-logo_400_400/0/1519884691985?e=1676505600&v=beta&t=jPxVYihvb30qM8llutgGqdq9cnUmivhymz8sgMYvPFc",
+                        "url": "https://www.linkedin.com/company/vino-volo/",
+                        "employees": {"start": 201, "end": 500},
+                    },
+                    "company_url": "https://www.linkedin.com/company/vino-volo/",
+                    "date": {
+                        "start": {"month": 10, "year": 2008},
+                        "end": {"month": 3, "year": 2014},
+                    },
+                    "profile_positions": [
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 1, "year": 2013},
+                                "end": {"month": 3, "year": 2014},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "My team and I were responsible for all FP&A, Analytics, Systems, IT, and Strategy for the business. I was a member of the core executive team, which defined short- and long-term objectives for the company.\n\nAt the end of the prior year, the Board approved the company's ambitious plan to create a Digital Customer Experience. We wanted customer interactions to continue, even after they had left our airport stores.\n\nI led a cross-functional team with colleagues from Marketing and Operations to implement the plan. We set out to rebuild the website, implement an email marketing platform, create a branded mobile app, and to launch a customer loyalty program. We didn't have existing vendors for anything.\n\nWe gathered vendors and went through a series of RFPs, product demos, proposals, and negotiations until we had all the pieces in place and within our budget.\n\nNine months later we launched the new website, our mobile app, and our loyalty program, integrated in real time with our point of sale.\n\nI also worked with the CFO to raise a round of debt to finance the company's expansion. I created financial models and projections that we presented to lenders. I also created internal cash flow models to analyze the cost of capital of different lender proposals and to test exit and prepayment scenarios. We successfully raised $7MM in debt.",
+                            "title": "Director of Systems & Strategy",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 3, "year": 2011},
+                                "end": {"month": 3, "year": 2014},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "In July of 2011 I created Drinktank \u2013 a sales dashboarding and forecasting tool. Drinktank runs on a LAMP stack on top of a homebuilt PHP application framework. I wrote VBA scripts to extract and load data into Drinktank from spreadsheets. The application makes use of AJAX, XML, and XSLT for displaying and updating reports on the browser and MySQL stored procedures for sales forecasting.\n\nI later created a Windows C#.NET application called Snapshot, which ran on each of the store\u2019s POS computers. This application displayed real time sales from the Squirrel SQL Server database and the daily goal from Drinktank\u2019s REST API. Snapshot also broadcasted sales to Drinktank, allowing Drinktank users to see real time sales at each store from the Snapshot dashboard.\n\nWhen we implemented Microsoft Dynamics GP ERP, I integrated it with our Squirrel POS system using a Python command-line script. This Python script ran daily, queried the POS SQL Server, generated a CSV sales report, and uploaded it to the ERP system.\n\nIn 2014, I replaced the scheduled command-line integration with the DSR (daily sales reporting) system. Using Python, Flask, and Redis, I created a message queue system to handle the integration. Each POS has a service that polls for new requests via a REST API. Data is uploaded to the DSR server, which then relays the data to the ERP. If a store goes offline, it will receive requests when it comes back online. The DSR dashboard also shows status of all integrations and recent activity.\n\nIn 2012, I created Swirl, which integrates the POS with the payroll system. In addition, the Swirl system calculates overtime and tip pooling. Swirl is built in Python on the LAMP stack using Flask, Jinja, SQLAlchemy, and Bootstrap.\n\nI wrote a real time integration between Squirrel's POS and Punchh's CRM in 2013. I created an audit table and database triggers to detect changes in POS tables. I then created a Python service which checked for changes and relayed them to Punchh's API.",
+                            "title": "Software Development",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 3, "year": 2009},
+                                "end": {"month": 3, "year": 2014},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "My team and I created all of the pro forma projections for new store locations. We created and continually refined net present value pro forma P&L models based on historical data from existing stores, demographics, and enplanement data from airports. We ran regression models against a variety of metrics to determine what factors had the greatest impact on sales performance.\n\nWe handled all annual and quarterly budgeting for the company. We worked with managers and department heads to create budgets for each store and department and then rolled these budgets into a master budget and cash flow plan. With the CEO and CFO, we developed a hiring plan based on company needs and refined it based on budgeting needs. This budget was used to set the company goals with the Board and to plan cash and fundraising.\n\nWe re-forecasted sales every quarter to create new quarterly goals for the managers. We created the processes and methodologies for forecasting and then went through a process with the Executive team and Operations team to determine new goals for each store for the next quarter.\n\nMy team created the financial reports for the business in Management Reporter. Every month, my team analyzed each store P&L looking for trends or areas of improvement. They then worked with each store manager to help them improve, leading to major improvements in EBITDA at those stores.\n\nAs necessary, I worked with the CEO to make 5-year financial models for the company, using different assumptions to model the cash needs for different business strategies.\n\nIn 2012 I worked with our investment bankers to create a financial model for the business and to gather historical metrics for our pitch book. We successfully raised $10MM in private equity.\n\nIn 2013, my team created a financial model in connection with raising debt capital. We successfully raised $7MM in debt.",
+                            "title": "Financial Planning & Analysis",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 1, "year": 2012},
+                                "end": {"month": 12, "year": 2012},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "My team and I handled all HR and Payroll operations for 150-300 employees in US and Canada. Responsibilities included employee onboarding, benefits, regular pay, bonus pay, employee handbooks, performance improvement plans, and terminations.\n\nWe worked with Finance and consultants to establish a presence in Canada, including new employee handbooks, employee agreements, and a new payroll system.\n\nI implemented a new payroll and HRIS system for the US company as well, transitioning all employee data and pay history from the previous system and creating new processes for the new system.\n\nI did salary benchmarking for all of the corporate office employees. Based on my findings I proposed and implemented a new salary structure for the corporate team.",
+                            "title": "HR and Payroll",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 3, "year": 2011},
+                                "end": {"month": 12, "year": 2012},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "As Manager of Systems & Analysis I was responsible for FP&A, Analytics, Systems, and IT. I later also became responsible for HR and Payroll.\n\nVino Volo LLC was growing quickly and it had outgrown its back office systems. I evaluated new systems and then gradually transitioned almost all of the business systems to new systems over two years. First to go was our POP mail, which I replaced with Google Apps for Business.\n\nOur Quickbooks accounting system was grinding to a halt with its limitations on users and companies. Working with an accounting consultancy, I implemented Microsoft Dynamics GP ERP, which met our requirements of multi-user, multi-company, and multi-currency. I created a new Chart of Accounts and transitioned detailed historical data from Quickbooks to GP. I created all new reports - P&L, Balance Sheet, etc. - in Management Reporter, using Management Reporter's reporting tree system to create report hierarchies and rollups for stores, departments, regions, companies, etc. Finally, we integrated the Squirrel POS with Dynamics GP so that sales data would be automatically pushed into the ERP every day.\n\nWe upgraded all of our POS software so that operating system and POS versions would be consistent. I sourced a new merchant services provider, simultaneously reducing our rates by over $80,000/year and improving PCI compliance by adding tokenization. We outfitted all of our stores with firewalls, improving security and providing our guests with WiFi access.\n\nI also implemented a custom sales reporting and operational metrics dashboard, which provided managers and executives with access to KPIs, replacing archaic spreadsheets. This system, which was introduced in 2011, is still used to send reports to managers, executives, and board members.\n\nFinally, I implemented a new payroll system and a custom system that calculated overtime and tip pooling (Swirl). These systems cut payroll costs in half and increased efficiency and scalability dramatically.",
+                            "title": "Manager of Systems & Analysis",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 1, "year": 2010},
+                                "end": {"month": 12, "year": 2011},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "When proposing on real estate, Vino Volo LLC always included concept renderings and concept floor plans with its proposals to show how the proposed store would look. Working with outside designers and architects on every proposal was expensive and the results were inconsistent.\n\nI taught myself Google SketchUp and built a robust library of standard objects and textures for Vino Volo LLC stores. For each proposal I would create a concept design in Google SketchUp and then export the model to Kerkythea, a photorealistic renderer, to add lighting and texture effects. When necessary I would render the store into a real photograph of the space to help landlords make the final visual leap. Because we were designing in-house, it was easy to collaborate with the CEO and Operations team on design decisions.\n\nIf we won the space, I would continue the design process, creating a concept design submittal package including color floor plan, renderings, and elevations. Thereafter, our architect would take over and create permit sets and construction drawings.\n\nI personally designed six Vino Volo LLC locations that were eventually built and oversaw the design of a handful of other locations. I created countless designs for spaces that we didn't win. Please check out the Slideshare below to see some examples!",
+                            "title": "Store Design",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 3, "year": 2010},
+                                "end": {"month": 3, "year": 2011},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "The Business Development department was responsible for acquiring new store locations (leases) and then designing and building out those spaces and delivering them to the Operations team. The role I played was very similar to a Sales Support or Sales Engineer role. I created all support materials such as brochures, handouts, magazine ads, and presentations. I also managed our consultants, such as outside counsel, architects, designers, and construction managers.\n\nI wrote all of our proposals for spaces, which were typically in response to large Request for Proposal (RFP) processes. These proposals included business plans, marketing plans, concept descriptions, concept designs and renderings, financial projections, and legal documents. My proposal efforts resulted in winning 6 leases over this time period.\n\nI performed all the financial projections and analysis for potential store locations. We used these pro forma projections to determine appropriate rent terms to propose and to determine store buildout budgets.\n\nI managed the design, buildout, and handoff of new store locations through consultants and vendors.",
+                            "title": "Senior Business Development Analyst",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 3, "year": 2009},
+                                "end": {"month": 2, "year": 2010},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "\u0095 Responsible for all pro forma unit economic analysis\n\u0095 Developed a net present value model to compare potential store locations\n\u0095 Built financial and operational models for a new concept to determine if the concept could be a potential growth platform; this concept was successfully launched in February 2010\n\u0095 Led RFP response efforts resulting in two additional new store locations\n\u0095 Created a template and process for responding to airport RFPs; transitioned content to InDesign; significantly reduced the time required to respond to RFPs while dramatically improving quality\n\u0095 Managed the wine club program including customer service and billing\n\u0095 Created a promotional calendar for store-level promotions; created promotional signage and marketing materials\n\u0095 Created a summer Marketing internship program; hired and managed two Marketing interns\n\u0095 Implemented an internal social network for employees to share photographs, best practices, and information across the organization",
+                            "title": "Marketing and Business Development Analyst",
+                        },
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 10, "year": 2008},
+                                "end": {"month": 2, "year": 2009},
+                            },
+                            "company": "Vino Volo LLC",
+                            "description": "I rolled out a new food menu and supply chain strategy across 10 units, resulting in a reduction of food COGS of over 10% of sales. I found and negotiated agreements with new suppliers for all of our stores. I created training manuals and posters for the new food menu and then visited units to personally train field operations on the new menu.\n\nI developed and implemented a labor scheduling tool in Excel to help store managers plan, track, and analyze their labor. We also implemented new reporting metrics for tracking labor.\n\nI worked with the CEO and EVP Operations to develop an evaluation report to be completed by executives during store visits. The report was used as a metric to determine store bonuses.",
+                            "title": "Business and Operations Analyst",
+                        },
+                    ],
+                },
+                {
+                    "company": {
+                        "name": "JF Capital Series, LLC",
+                        "logo": None,
+                        "url": None,
+                        "employees": {"start": None, "end": None},
+                    },
+                    "company_url": None,
+                    "date": {
+                        "start": {"month": 2, "year": 2008},
+                        "end": {"month": 10, "year": 2008},
+                    },
+                    "profile_positions": [
+                        {
+                            "location": "San Francisco, CA",
+                            "date": {
+                                "start": {"month": 2, "year": 2008},
+                                "end": {"month": 10, "year": 2008},
+                            },
+                            "company": "JF Capital Series, LLC",
+                            "description": "Long-term investments in real estate and small growth companies.  Angel investment in startup and growth stage companies.",
+                            "title": "Analyst",
+                        }
+                    ],
+                },
+                {
+                    "company": {
+                        "name": "Turbulence",
+                        "logo": None,
+                        "url": None,
+                        "employees": {"start": None, "end": None},
+                    },
+                    "company_url": None,
+                    "date": {
+                        "start": {"month": None, "year": 1998},
+                        "end": {"month": None, "year": 2000},
+                    },
+                    "profile_positions": [
+                        {
+                            "location": "Tiburon, CA",
+                            "date": {
+                                "start": {"month": None, "year": 1998},
+                                "end": {"month": None, "year": 2000},
+                            },
+                            "company": "Turbulence",
+                            "description": "My partner and I created dynamic, data-driven websites for local businesses. I wrote all of the front-end and back-end code for our sites while he developed graphics and Flash animations. I developed a proprietary Content Management System in Microsoft ASP 1.0 that we customized for each client so that they could update their website's content themselves.",
+                            "title": "Partner, Web Developer",
+                        }
+                    ],
+                },
+                {
+                    "company": {
+                        "name": "AOL",
+                        "logo": "https://media-exp1.licdn.com/dms/image/C4D0BAQHWqhJpq9GMuA/company-logo_400_400/0/1519856117142?e=1676505600&v=beta&t=7BQQ1jkrBWzhrXI8Aa0GsRpF9f--yXgtJ9set9rx3us",
+                        "url": "https://www.linkedin.com/company/aol/",
+                        "employees": {"start": 1001, "end": 5000},
+                    },
+                    "company_url": "https://www.linkedin.com/company/aol/",
+                    "date": {
+                        "start": {"month": None, "year": 1997},
+                        "end": {"month": None, "year": 1999},
+                    },
+                    "profile_positions": [
+                        {
+                            "location": None,
+                            "date": {
+                                "start": {"month": None, "year": 1997},
+                                "end": {"month": None, "year": 1999},
+                            },
+                            "company": "AOL",
+                            "description": "YouthTech was a virtual property on AOL targeted at kids in technology (keyword: YT). I moderated the chatrooms and forums and led chats on technology. I also created a sub-property targeted at teaching kids how to program. I wrote a tutorials on programming in BASIC and C and led programming discussions in the YT chatroom.",
+                            "title": "YouthTech Community Leader",
+                        }
+                    ],
+                },
+            ],
+            "volunteer_experiences": [],
+            "skills": [
+                "Analytics",
+                "Data Analysis",
+                "Management",
+                "Competitive Analysis",
+                "Marketing",
+                "Project Management",
+                "Customer Service",
+                "Analysis",
+                "Social Networking",
+                "Budgets",
+                "Financial Modeling",
+                "Training",
+                "Retail",
+                "Business Development",
+                "Microsoft Excel",
+                "Microsoft Office",
+                "Marketing Strategy",
+                "HTML",
+                "Outlook",
+                "Microsoft Word",
+            ],
+            "network_info": {
+                "followable": True,
+                "followers_count": 855,
+                "connections_count": 500,
+            },
+            "recommendations": [],
+            "contact_info": {"websites": [], "email": None, "twitter": None},
+            "related_profiles": [
+                {
+                    "profile_id": "jkrish",
+                    "first_name": "Krishna",
+                    "last_name": "Janakiraman",
+                    "title": "VP of Engineering at Plate IQ",
+                    "image_url": None,
+                },
+                {
+                    "profile_id": "arturo-inzunza-45196a22",
+                    "first_name": "Arturo",
+                    "last_name": "Inzunza",
+                    "title": "Profesional with experience in team management, knowledge in electronics, programming and embedded systems.",
+                    "image_url": None,
+                },
+                {
+                    "profile_id": "kevinleduc",
+                    "first_name": "Kevin",
+                    "last_name": "Leduc",
+                    "title": "Senior Engineering Manager at Plate IQ",
+                    "image_url": "https://media-exp1.licdn.com/dms/image/C4D03AQE80Z_XsUSVZw/profile-displayphoto-shrink_400_400/0/1516256537408?e=1674086400&v=beta&t=sRxtov4yj-Vw1dYiA01gLFiraSdqIlL1yWwPPxLujng",
+                },
+                {
+                    "profile_id": "barrettboston",
+                    "first_name": "Barrett",
+                    "last_name": "Boston",
+                    "title": "CEO, Plate IQ",
+                    "image_url": "https://media-exp1.licdn.com/dms/image/C5603AQEg1pw8JmWeZg/profile-displayphoto-shrink_400_400/0/1633997262351?e=1674086400&v=beta&t=xsN7xZHAiTGP2dN9tF52pSzGLviplC5sM7-6piK-coI",
+                },
+                {
+                    "profile_id": "matthew-t-rocha",
+                    "first_name": "Matt",
+                    "last_name": "Rocha",
+                    "title": "RevOps / Vendor Enrollment at Plate IQ",
+                    "image_url": "https://media-exp1.licdn.com/dms/image/C4E03AQEj54eXFUC0BQ/profile-displayphoto-shrink_400_400/0/1633335987240?e=1674086400&v=beta&t=3XF3ErvDhOelFO61HFzaZeKg0_xGYXOG2Rv7z_L8WFw",
+                },
+                {
+                    "profile_id": "michael-briatico-b373569b",
+                    "first_name": "Michael",
+                    "last_name": "Briatico",
+                    "title": "Account Executive at Plate IQ",
+                    "image_url": "https://media-exp1.licdn.com/dms/image/C5603AQEv9VoLym4aDA/profile-displayphoto-shrink_400_400/0/1518534371939?e=1674086400&v=beta&t=L5ZH2W3M39w9Ldfw0m3NvY5be2nDQWOQnaFR4l0JTE8",
+                },
+                {
+                    "profile_id": "tara-qualls-08815a48",
+                    "first_name": "Tara",
+                    "last_name": "Qualls",
+                    "title": "Sales Operations Manager at Plate IQ",
+                    "image_url": None,
+                },
+                {
+                    "profile_id": "skylerjstone",
+                    "first_name": "Skyler",
+                    "last_name": "Stone",
+                    "title": "Senior Product Manager at PlateIQ",
+                    "image_url": "https://media-exp1.licdn.com/dms/image/C5603AQF4hihpGfQ2RA/profile-displayphoto-shrink_400_400/0/1626365980217?e=1674086400&v=beta&t=4UG4fBgb1CW9oSvJseU8hyEn3s-lSEDU4uyI0_QLLdo",
+                },
+                {
+                    "profile_id": "jason-morris-cfa-6b93763",
+                    "first_name": "Jason",
+                    "last_name": "Morris, CFA",
+                    "title": "Entrepreneur | SaaS Software President | FinTech Executive",
+                    "image_url": "https://media-exp1.licdn.com/dms/image/C4E03AQF79AtC8m-7iQ/profile-displayphoto-shrink_400_400/0/1516302176738?e=1674086400&v=beta&t=3omxklZ5o7wIfIUhWjqqc8jCNsNa0vlCYEzPEs7YmKI",
+                },
+                {
+                    "profile_id": "layla-ward-877310",
+                    "first_name": "Layla",
+                    "last_name": "Ward",
+                    "title": "Chief Financial Officer | Investor",
+                    "image_url": None,
+                },
+            ],
+        },
+        "company": {
+            "details": {
+                "name": "Plate IQ",
+                "universal_name": "plateiq",
+                "company_id": "6600800",
+                "description": "Plate IQ is Automated Accounts Payable.\n\nAutomated AP software replaces manual data entry by digitizing your invoices down to the line item, automatically assigning them to your proper GL codes, and syncing the information to your accounting software. \n\nPlate IQ also offers one-click bill pay, advanced approval workflows, expense management, and cloud-based data storage that allows you to go paperless, and work together remotely over multiple time zones.",
+                "tagline": "The Accounts Payable automation and payments platform.",
+                "founded": {"year": 2014},
+                "phone": None,
+                "type": "Privately Held",
+                "staff": {"range": {"start": 51, "end": 200}, "total": 151},
+                "followers": 5172,
+                "call_to_action": {
+                    "url": "http://www.plateiq.com",
+                    "text": "Contact us",
+                },
+                "locations": {
+                    "headquarter": {
+                        "country": "US",
+                        "geographicArea": "California",
+                        "city": "San Francisco",
+                    },
+                    "other": [
+                        {
+                            "streetAddressOptOut": True,
+                            "country": "US",
+                            "geographicArea": "California",
+                            "city": "San Francisco",
+                            "headquarter": True,
+                        }
+                    ],
+                },
+                "urls": {
+                    "company_page": "http://www.plateiq.com",
+                    "li_url": "https://www.linkedin.com/company/plateiq",
+                },
+                "industries": ["Computer Software"],
+                "images": {
+                    "logo": "https://media-exp1.licdn.com/dms/image/C560BAQEnCzMGStOdbg/company-logo_400_400/0/1652897047952?e=1676505600&v=beta&t=X0k0CsfXK7sQZf0Mt-43QMs7Ps_rJcPR-fXY-AO34yA",
+                    "cover": "https://media-exp1.licdn.com/dms/image/C4D1BAQGNQo4IqDwhHw/company-background_10000/0/1649338570241?e=1669233600&v=beta&t=zWyNmTSlkhLiSOfE3qBVLHdd1Ph3jKG5R06OYCWmIv8",
+                },
+                "specialities": [
+                    "Automated Accounts Payable",
+                    "Line-Item Invoice Digitization",
+                    "Bill Pay",
+                    "SaaS",
+                    "Restaurants",
+                    "Food & Beverage",
+                    "Hotels",
+                    "Payments",
+                    "Virtual Cards",
+                    "Grocery",
+                    "Retailers",
+                    "Country Clubs",
+                    "Digital Storage",
+                    "Accounting Software Integration",
+                ],
+                "paid": False,
+            },
+            "related_companies": [],
+        },
+    }
+
+    transformer_response = get_list_of_past_jobs(info_with_llc_and_inc)
+    assert transformer_response["raw_data"] == {
+        "positions": ["Freelance", "Punchh Inc.", "Vino Volo LLC"]
+    }
+    assert "Freelance, Punchh, Vino Volo" in transformer_response["response"]
