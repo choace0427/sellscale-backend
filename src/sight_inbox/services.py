@@ -48,7 +48,7 @@ def get_all_bumped_prospects(client_sdr_id: int):
         Prospect.status == ProspectStatus.RESPONDED,
         or_(
             Prospect.last_reviewed > datetime.now() - timedelta(days=1),
-            Prospect.last_reviewed == None,
+            Prospect.last_reviewed.is_(None),
         ),
     ).all()
     return [map_prospect(p) for p in prospects]
@@ -60,7 +60,7 @@ def get_all_active_convo_prospects(client_sdr_id: int):
         Prospect.status == ProspectStatus.ACTIVE_CONVO,
         or_(
             Prospect.last_reviewed > datetime.now() - timedelta(days=1),
-            Prospect.last_reviewed == None,
+            Prospect.last_reviewed.is_(None),
         ),
     ).all()
     return [map_prospect(p) for p in prospects]
@@ -72,7 +72,7 @@ def get_all_scheduling_prospects(client_sdr_id: int):
         Prospect.status == ProspectStatus.SCHEDULING,
         or_(
             Prospect.last_reviewed > datetime.now() - timedelta(days=1),
-            Prospect.last_reviewed == None,
+            Prospect.last_reviewed.is_(None),
         ),
     ).all()
     return [map_prospect(p) for p in prospects]
