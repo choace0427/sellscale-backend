@@ -60,6 +60,11 @@ def test_add_client_and_archetype():
 
     client_archetypes: list = ClientArchetype.query.all()
     assert len(client_archetypes) == 1
+    archetype = client_archetypes[0]
+    assert archetype.client_id == c.id
+    assert archetype.archetype == "testing"
+    assert archetype.filters == {}
+    assert archetype.active == True
 
     gnlp_models: list = GNLPModel.query.all()
     assert len(gnlp_models) == 1
