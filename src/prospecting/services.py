@@ -509,3 +509,13 @@ def delete_prospect_by_id(prospect_id: int):
     db.session.commit()
 
     return True
+
+
+def toggle_ai_engagement(prospect_id: int):
+    """Toggle AI engagement on/off for a prospect.a"""
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.deactivate_ai_engagement = not prospect.deactivate_ai_engagement
+    db.session.add(prospect)
+    db.session.commit()
+
+    return True

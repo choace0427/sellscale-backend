@@ -9,6 +9,7 @@ from src.prospecting.services import (
     prospect_exists_for_archetype,
     update_prospect_status,
     add_prospects_from_json_payload,
+    toggle_ai_engagement,
 )
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
@@ -206,3 +207,16 @@ def delete_prospect():
         return "OK", 200
 
     return "Failed to delete prospect", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/toggle_ai_engagement", methods=["POST"])
+def post_toggle_ai_engagement():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    success = toggle_ai_engagement(prospect_id=prospect_id)
+
+    if success:
+        return "OK", 200
+
+    return "Failed to toggle AI engagement", 400

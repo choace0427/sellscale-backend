@@ -100,7 +100,7 @@ def test_add_prospect():
     archetype_id2 = archetype2.id
     add_prospect(client_id=client_id, archetype_id=archetype_id2, batch="456")
 
-    prospects = Prospect.query.all()
+    prospects = Prospect.query.order_by(Prospect.id.asc()).all()
     assert len(prospects) == 2
     assert prospects[1].batch == "456"
     assert prospects[1].archetype_id == archetype_id2
@@ -420,6 +420,27 @@ def test_prospecting_with_clay(prospect_sync_patch):
 
     records = ProspectStatusRecords.query.all()
     assert len(records) == 1
+
+
+@use_app_context
+def test_toggle_ai_engagement_endpoint():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+
+    assert not prospect.deactivate_ai_engagement
+
+    response = app.test_client().post(
+        "prospect/toggle_ai_engagement",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id}),
+    )
+    assert response.status_code == 200
+
+    prospect = Prospect.query.get(prospect_id)
+    assert prospect is not None
+    assert prospect.deactivate_ai_engagement == True
 
 
 @use_app_context

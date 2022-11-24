@@ -56,6 +56,8 @@ class Prospect(db.Model):
 
     last_reviewed = db.Column(db.DateTime, nullable=True)
 
+    deactivate_ai_engagement = db.Column(db.Boolean, nullable=True)
+
 
 class ProspectUploadBatch(db.Model):
     __tablename__ = "prospect_upload_batch"
