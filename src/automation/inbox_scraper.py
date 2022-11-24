@@ -117,6 +117,7 @@ def process_inbox(message_payload, client_id):
 def scrape_inbox(client_sdr_id: int):
     """Scrape the inbox of a client on Linkedin"""
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
     if not client_sdr:
         return False
     client_id = client_sdr.client_id
