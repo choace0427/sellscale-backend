@@ -41,6 +41,7 @@ def map_prospect(prospect: Prospect):
         "prospect_last_reviwed_date": prospect.last_reviewed,
         "prospect_status": prospect.status.value,
         "actions": get_actions(prospect.status),
+        "prospect_deactivate_ai_engagement": prospect.deactivate_ai_engagement,
     }
 
 
@@ -106,6 +107,7 @@ def get_outstanding_inbox(client_sdr_id: int):
             "prospect_client_name": str,
             "prospect_last_reviwed_date": datetime,
             "prospect_status: ProspectStatus,
+            "prospect_deactivate_ai_engagement": bool,
 
 
             "actions": RECORD_BUMP | NOT_INTERESTED | ACTIVE_CONVO | SCHEDULING | DEMO_SET,

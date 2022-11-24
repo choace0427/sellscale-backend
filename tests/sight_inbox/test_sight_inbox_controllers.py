@@ -59,6 +59,9 @@ def test_get_one_accepted_prospect():
         db.session.add(prospect)
         db.session.commit()
 
+    prospects: list = Prospect.query.all()
+    assert len(prospects) == 12
+
     response = app.test_client().get("/sight_inbox/{}".format(client_sdr_id))
     assert response.status_code == 200
     inbox = json.loads(response.data.decode("utf-8"))
@@ -67,3 +70,15 @@ def test_get_one_accepted_prospect():
     assert len([x for x in inbox if x["prospect_status"] == "ACTIVE_CONVO"]) == 2
     assert len([x for x in inbox if x["prospect_status"] == "SCHEDULING"]) == 2
     assert len(inbox) == 9
+
+    prospect0 = inbox[0]
+    assert prospect0["prospect_id"] > 1
+    assert prospect0["prospect_full_name"] == "Testing Testasara"
+    assert prospect0["prospect_title"] == "Testing Director"
+    assert prospect0["prospect_linkedin"] == None
+    assert prospect0["prospect_linkedin_conversation_thread"] == None
+    assert prospect0["prospect_sdr_name"] == "Test SDR"
+    assert prospect0["prospect_client_name"] == "Testing Company"
+    assert prospect0["prospect_status"] == "ACCEPTED"
+    assert prospect0["actions"] == ["RECORD_BUMP"]
+    assert not prospect0["prospect_deactivate_ai_engagement"]
