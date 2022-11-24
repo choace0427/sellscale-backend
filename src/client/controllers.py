@@ -40,8 +40,15 @@ def create_archetype():
     archetype = get_request_parameter("archetype", request, json=True, required=True)
     filters = get_request_parameter("filters", request, json=True, required=False)
 
+    base_archetype_id = get_request_parameter(
+        "base_archetype_id", request, json=True, required=False
+    )
+
     ca: object = create_client_archetype(
-        client_id=client_id, archetype=archetype, filters=filters
+        client_id=client_id,
+        archetype=archetype,
+        filters=filters,
+        base_archetype_id=base_archetype_id,
     )
     if not ca:
         return "Client not found", 404

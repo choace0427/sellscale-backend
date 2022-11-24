@@ -8,7 +8,7 @@ from src.client.services import (
 from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
 from test_utils import test_app
-from app import app
+from app import app, db
 import json
 
 
@@ -69,6 +69,11 @@ def test_add_client_and_archetype():
     gnlp_models: list = GNLPModel.query.all()
     assert len(gnlp_models) == 1
 
+    gnlp_model: GNLPModel = gnlp_models[0]
+    gnlp_model.model_uuid = "TESTING_NEW_UUID"
+    db.session.add(gnlp_model)
+    db.session.commit()
+
     response = app.test_client().patch(
         "client/archetype",
         headers={"Content-Type": "application/json"},
@@ -82,6 +87,28 @@ def test_add_client_and_archetype():
     assert response.status_code == 200
     archetype = ClientArchetype.query.get(client_archetypes[0].id)
     assert archetype.archetype == "testing2"
+    archetype_id = archetype.id
+
+    response = app.test_client().post(
+        "client/archetype",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": c.id,
+                "archetype": "testing",
+                "filters": {},
+                "base_archetype_id": archetype_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    new_archetype_id = json.loads(response.data)["client_archetype_id"]
+
+    new_archetype_gnlp_model: GNLPModel = GNLPModel.query.filter(
+        GNLPModel.archetype_id == new_archetype_id
+    ).first()
+    assert new_archetype_gnlp_model is not None
+    assert new_archetype_gnlp_model.model_uuid == "TESTING_NEW_UUID"
 
 
 @use_app_context

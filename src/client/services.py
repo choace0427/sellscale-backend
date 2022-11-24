@@ -3,6 +3,8 @@ from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import ProspectStatus
+from typing import Optional
+from src.ml.fine_tuned_models import get_latest_custom_model
 
 
 def get_client(client_id: int):
@@ -40,7 +42,12 @@ def get_client_archetype(client_archetype_id: int):
     return ca
 
 
-def create_client_archetype(client_id: int, archetype: str, filters: any):
+def create_client_archetype(
+    client_id: int,
+    archetype: str,
+    filters: any,
+    base_archetype_id: Optional[int] = None,
+):
     c: Client = get_client(client_id=client_id)
     if not c:
         return None
@@ -52,15 +59,28 @@ def create_client_archetype(client_id: int, archetype: str, filters: any):
     db.session.commit()
     archetype_id = client_archetype.id
 
-    model: GNLPModel = GNLPModel(
-        model_provider=ModelProvider.OPENAI_GPT3,
-        model_type=GNLPModelType.OUTREACH,
-        model_description="baseline_model_{}".format(archetype),
-        model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
-        archetype_id=archetype_id,
-    )
-    db.session.add(model)
-    db.session.commit()
+    if base_archetype_id:
+        _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
+        base_model: GNLPModel = GNLPModel.query.get(model_id)
+        model = GNLPModel(
+            model_provider=base_model.model_provider,
+            model_type=base_model.model_type,
+            model_description="baseline_model_{}".format(archetype),
+            model_uuid=base_model.model_uuid,
+            archetype_id=archetype_id,
+        )
+        db.session.add(model)
+        db.session.commit()
+    else:
+        model: GNLPModel = GNLPModel(
+            model_provider=ModelProvider.OPENAI_GPT3,
+            model_type=GNLPModelType.OUTREACH,
+            model_description="baseline_model_{}".format(archetype),
+            model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
+            archetype_id=archetype_id,
+        )
+        db.session.add(model)
+        db.session.commit()
 
     return {"client_archetype_id": client_archetype.id}
 
