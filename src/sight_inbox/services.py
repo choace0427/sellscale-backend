@@ -1,5 +1,42 @@
 from app import db
 from sqlalchemy.orm import attributes
+from model_import import Prospect, ProspectStatus, ClientSDR, Client
+
+RECORD_BUMP = "RECORD_BUMP"
+NOT_INTERESTED = "NOT_INTERESTED"
+ACTIVE_CONVO = "ACTIVE_CONVO"
+SCHEDULING = "SCHEDULING"
+DEMO_SET = "DEMO_SET"
+
+
+def get_actions(prospect_status: ProspectStatus):
+    if prospect_status == ProspectStatus.ACCEPTED:
+        return [RECORD_BUMP]
+
+
+def map_prospect(prospect: Prospect):
+    client_sdr_id: int = prospect.client_sdr_id
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(prospect.client_id)
+    return {
+        "prospect_id": prospect.id,
+        "prospect_full_name": prospect.full_name,
+        "prospect_title": prospect.title,
+        "prospect_linkedin": prospect.linkedin_url,
+        "prospect_linkedin_conversation_thread": prospect.li_conversation_thread_id,
+        "prospect_sdr_name": client_sdr.name,
+        "prospect_client_name": client.company,
+        "prospect_last_reviwed_date": prospect.last_reviewed,
+        "actions": get_actions(prospect.status),
+    }
+
+
+def get_all_accepted_prospects(client_sdr_id: int):
+    prospects: list = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.status == ProspectStatus.ACCEPTED,
+    ).all()
+    return [map_prospect(p) for p in prospects]
 
 
 def get_outstanding_inbox(client_sdr_id: int):
@@ -30,7 +67,7 @@ def get_outstanding_inbox(client_sdr_id: int):
     This will be mapped in SellScale in an inbox view.
     """
 
-    # accepted_prospects = get_all_accepted_prospects(client_sdr_id=client_sdr_id)
+    accepted_prospects = get_all_accepted_prospects(client_sdr_id=client_sdr_id)
     # bumped_prospects = get_all_bumped_prospects(client_sdr_id=client_sdr_id)
     # active_convo_prospects = get_all_active_convo_prospects(client_sdr_id=client_sdr_id)
     # scheduling_prospects = get_all_scheduling_prospects(client_sdr_id=client_sdr_id)
@@ -44,4 +81,4 @@ def get_outstanding_inbox(client_sdr_id: int):
     #     combine_prospect_lists, key=lambda prospect: prospect.last_reviewed_date
     # )
 
-    return []
+    return accepted_prospects
