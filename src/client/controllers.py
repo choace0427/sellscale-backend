@@ -5,6 +5,7 @@ from src.client.services import (
     create_client_archetype,
     create_client_sdr,
     rename_archetype,
+    toggle_archetype_active,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -95,4 +96,17 @@ def update_archetype_name():
 
     if not success:
         return "Failed to update name", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/toggle_active", methods=["PATCH"])
+def patch_toggle_archetype_active():
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+
+    success = toggle_archetype_active(archetype_id=client_archetype_id)
+
+    if not success:
+        return "Failed to update active", 404
     return "OK", 200

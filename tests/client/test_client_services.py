@@ -65,6 +65,20 @@ def test_add_client_and_archetype():
     assert archetype.archetype == "testing"
     assert archetype.filters == {}
     assert archetype.active == True
+    archetype_id = archetype.id
+
+    response = app.test_client().patch(
+        "client/archetype/toggle_active",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_archetype_id": archetype_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    archetype = ClientArchetype.query.get(archetype_id)
+    assert archetype.active == False
 
     gnlp_models: list = GNLPModel.query.all()
     assert len(gnlp_models) == 1

@@ -123,3 +123,18 @@ def rename_archetype(new_name: str, client_archetype_id: int):
     db.session.commit()
 
     return True
+
+
+def toggle_archetype_active(archetype_id: int):
+    """
+    Toggle an archetype's active status
+    """
+    ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not ca:
+        return None
+
+    ca.active = not ca.active
+    db.session.add(ca)
+    db.session.commit()
+
+    return True
