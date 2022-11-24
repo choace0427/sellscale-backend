@@ -256,24 +256,6 @@ def add_prospect(
         )
         db.session.add(prospect)
         db.session.commit()
-    else:
-        prospect: Prospect = prospect_exists
-        prospect.client_id = client_id or prospect.client_id
-        prospect.archetype_id = archetype_id or prospect.archetype_id
-        prospect.company = company or prospect.company
-        prospect.company_url = company_url or prospect.company_url
-        prospect.employee_count = employee_count or prospect.employee_count
-        prospect.full_name = full_name or prospect.full_name
-        prospect.industry = industry or prospect.industry
-        prospect.linkedin_url = linkedin_url or prospect.linkedin_url
-        prospect.linkedin_bio = linkedin_bio or prospect.linkedin_bio
-        prospect.title = title or prospect.title
-        prospect.twitter_url = twitter_url or prospect.twitter_url
-        prospect.batch = batch or prospect.batch
-        prospect.status = status or prospect.status
-        prospect.email = email or prospect.email
-        db.session.add(prospect)
-        db.session.commit()
 
 
 def find_prospect_by_linkedin_slug(slug: str, client_id: int):
