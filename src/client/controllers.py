@@ -4,6 +4,7 @@ from src.client.services import (
     create_client,
     create_client_archetype,
     create_client_sdr,
+    rename_archetype,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -72,3 +73,19 @@ def reset_client_sdr_auth_token():
         return "Client not found", 404
 
     return jsonify(resp)
+
+
+@CLIENT_BLUEPRINT.route("/archetype", methods=["PATCH"])
+def update_archetype_name():
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    new_name = get_request_parameter("new_name", request, json=True, required=True)
+
+    success = rename_archetype(
+        client_archetype_id=client_archetype_id, new_name=new_name
+    )
+
+    if not success:
+        return "Failed to update name", 404
+    return "OK", 200

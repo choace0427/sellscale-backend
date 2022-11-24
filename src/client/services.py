@@ -88,3 +88,18 @@ def reset_client_sdr_sight_auth_token(client_sdr_id: int):
     db.session.commit()
 
     return {"token": sdr.auth_token}
+
+
+def rename_archetype(new_name: str, client_archetype_id: int):
+    """
+    Rename an archetype
+    """
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not ca:
+        return None
+
+    ca.archetype = new_name
+    db.session.add(ca)
+    db.session.commit()
+
+    return True

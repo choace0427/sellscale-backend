@@ -64,6 +64,20 @@ def test_add_client_and_archetype():
     gnlp_models: list = GNLPModel.query.all()
     assert len(gnlp_models) == 1
 
+    response = app.test_client().patch(
+        "client/archetype",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_archetype_id": client_archetypes[0].id,
+                "new_name": "testing2",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    archetype = ClientArchetype.query.get(client_archetypes[0].id)
+    assert archetype.archetype == "testing2"
+
 
 @use_app_context
 def test_add_client_and_archetype_and_sdr():
