@@ -32,6 +32,8 @@ class ClientArchetype(db.Model):
     archetype = db.Column(db.String)
     filters = db.Column(db.JSON, nullable=True)
 
+    active = db.Column(db.Boolean, nullable=True, default=True)
+
     transformer_blocklist = db.Column(
         db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
         nullable=True,
