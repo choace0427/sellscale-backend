@@ -10,6 +10,8 @@ ACTIVE_CONVO = "ACTIVE_CONVO"
 SCHEDULING = "SCHEDULING"
 DEMO_SET = "DEMO_SET"
 
+DATE_TO_REVIEW_WINDOW = 1
+
 
 def get_actions(prospect_status: ProspectStatus):
     if prospect_status == ProspectStatus.ACCEPTED:
@@ -47,7 +49,8 @@ def get_all_bumped_prospects(client_sdr_id: int):
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.status == ProspectStatus.RESPONDED,
         or_(
-            Prospect.last_reviewed > datetime.now() - timedelta(days=1),
+            Prospect.last_reviewed
+            < datetime.now() - timedelta(days=DATE_TO_REVIEW_WINDOW),
             Prospect.last_reviewed.is_(None),
         ),
     ).all()
@@ -59,7 +62,8 @@ def get_all_active_convo_prospects(client_sdr_id: int):
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.status == ProspectStatus.ACTIVE_CONVO,
         or_(
-            Prospect.last_reviewed > datetime.now() - timedelta(days=1),
+            Prospect.last_reviewed
+            < datetime.now() - timedelta(days=DATE_TO_REVIEW_WINDOW),
             Prospect.last_reviewed.is_(None),
         ),
     ).all()
@@ -71,7 +75,8 @@ def get_all_scheduling_prospects(client_sdr_id: int):
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.status == ProspectStatus.SCHEDULING,
         or_(
-            Prospect.last_reviewed > datetime.now() - timedelta(days=1),
+            Prospect.last_reviewed
+            < datetime.now() - timedelta(days=DATE_TO_REVIEW_WINDOW),
             Prospect.last_reviewed.is_(None),
         ),
     ).all()
