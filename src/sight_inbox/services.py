@@ -1,6 +1,8 @@
 from app import db
 from sqlalchemy.orm import attributes
+from sqlalchemy import or_
 from model_import import Prospect, ProspectStatus, ClientSDR, Client
+from datetime import datetime, timedelta
 
 RECORD_BUMP = "RECORD_BUMP"
 NOT_INTERESTED = "NOT_INTERESTED"
@@ -27,6 +29,7 @@ def map_prospect(prospect: Prospect):
         "prospect_sdr_name": client_sdr.name,
         "prospect_client_name": client.company,
         "prospect_last_reviwed_date": prospect.last_reviewed,
+        "prospect_status": prospect.status.value,
         "actions": get_actions(prospect.status),
     }
 
@@ -35,6 +38,42 @@ def get_all_accepted_prospects(client_sdr_id: int):
     prospects: list = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.status == ProspectStatus.ACCEPTED,
+    ).all()
+    return [map_prospect(p) for p in prospects]
+
+
+def get_all_bumped_prospects(client_sdr_id: int):
+    prospects: list = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.status == ProspectStatus.RESPONDED,
+        or_(
+            Prospect.last_reviewed > datetime.now() - timedelta(days=1),
+            Prospect.last_reviewed == None,
+        ),
+    ).all()
+    return [map_prospect(p) for p in prospects]
+
+
+def get_all_active_convo_prospects(client_sdr_id: int):
+    prospects: list = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.status == ProspectStatus.ACTIVE_CONVO,
+        or_(
+            Prospect.last_reviewed > datetime.now() - timedelta(days=1),
+            Prospect.last_reviewed == None,
+        ),
+    ).all()
+    return [map_prospect(p) for p in prospects]
+
+
+def get_all_scheduling_prospects(client_sdr_id: int):
+    prospects: list = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.status == ProspectStatus.SCHEDULING,
+        or_(
+            Prospect.last_reviewed > datetime.now() - timedelta(days=1),
+            Prospect.last_reviewed == None,
+        ),
     ).all()
     return [map_prospect(p) for p in prospects]
 
@@ -68,17 +107,19 @@ def get_outstanding_inbox(client_sdr_id: int):
     """
 
     accepted_prospects = get_all_accepted_prospects(client_sdr_id=client_sdr_id)
-    # bumped_prospects = get_all_bumped_prospects(client_sdr_id=client_sdr_id)
-    # active_convo_prospects = get_all_active_convo_prospects(client_sdr_id=client_sdr_id)
-    # scheduling_prospects = get_all_scheduling_prospects(client_sdr_id=client_sdr_id)
-    # combine_prospect_lists = (
-    #     accepted_prospects
-    #     + bumped_prospects
-    #     + active_convo_prospects
-    #     + scheduling_prospects
-    # )
-    # sorted_prospect_lists_by_date = sorted(
-    #     combine_prospect_lists, key=lambda prospect: prospect.last_reviewed_date
-    # )
+    bumped_prospects = get_all_bumped_prospects(client_sdr_id=client_sdr_id)
+    active_convo_prospects = get_all_active_convo_prospects(client_sdr_id=client_sdr_id)
+    scheduling_prospects = get_all_scheduling_prospects(client_sdr_id=client_sdr_id)
+    combine_prospect_lists = (
+        accepted_prospects
+        + bumped_prospects
+        + active_convo_prospects
+        + scheduling_prospects
+    )
+    sorted_prospect_lists_by_date = sorted(
+        combine_prospect_lists,
+        key=lambda prospect: prospect.get("prospect_last_reviwed_date")
+        or datetime.now(),
+    )
 
-    return accepted_prospects
+    return sorted_prospect_lists_by_date
