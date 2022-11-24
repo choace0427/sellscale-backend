@@ -16,6 +16,14 @@ DATE_TO_REVIEW_WINDOW = 1
 def get_actions(prospect_status: ProspectStatus):
     if prospect_status == ProspectStatus.ACCEPTED:
         return [RECORD_BUMP]
+    elif prospect_status == ProspectStatus.RESPONDED:
+        return [RECORD_BUMP, NOT_INTERESTED, ACTIVE_CONVO]
+    elif prospect_status == ProspectStatus.ACTIVE_CONVO:
+        return [RECORD_BUMP, NOT_INTERESTED, SCHEDULING]
+    elif prospect_status == ProspectStatus.SCHEDULING:
+        return [RECORD_BUMP, DEMO_SET, NOT_INTERESTED]
+
+    return []
 
 
 def map_prospect(prospect: Prospect):
