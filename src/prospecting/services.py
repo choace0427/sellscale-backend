@@ -421,6 +421,12 @@ def batch_update_prospect_statuses(updates: list):
 
 def mark_prospect_reengagement(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.status == ProspectStatus.ACCEPTED:
+        update_prospect_status(
+            prospect_id=prospect_id, new_status=ProspectStatus.RESPONDED
+        )
+
+    prospect = Prospect.query.get(prospect_id)
     prospect.last_reviewed = datetime.now()
     db.session.add(prospect)
     db.session.commit()

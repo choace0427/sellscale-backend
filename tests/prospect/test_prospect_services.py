@@ -457,3 +457,43 @@ def test_delete_prospect_by_id_endpoint():
     )
     assert response.status_code == 200
     assert Prospect.query.get(prospect.id) is None
+
+
+@use_app_context
+def test_reengage_accepted_prospected():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+    prospect.status = ProspectStatus.ACCEPTED
+
+    response = app.test_client().post(
+        "prospect/mark_reengagement",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id}),
+    )
+    assert response.status_code == 200
+    assert Prospect.query.get(prospect.id) is not None
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.status == ProspectStatus.RESPONDED
+    assert prospect.last_reviewed is not None
+
+
+@use_app_context
+def test_reengage_active_prospected():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+    prospect.status = ProspectStatus.ACTIVE_CONVO
+
+    response = app.test_client().post(
+        "prospect/mark_reengagement",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id}),
+    )
+    assert response.status_code == 200
+    assert Prospect.query.get(prospect.id) is not None
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.status == ProspectStatus.ACTIVE_CONVO
+    assert prospect.last_reviewed is not None
