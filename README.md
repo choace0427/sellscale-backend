@@ -5,10 +5,10 @@ Supercharge your outbound with AI
 <br/>
 <br/>
 
-<img src="https://shields.io/badge/coverage-75%25-yellow">
+<span><img src="https://shields.io/badge/coverage-75%25-yellow">
 <img src="https://img.shields.io/badge/Flask-API-blue">
 <img src="https://img.shields.io/badge/PostgreSQL-Database-blue">
-<img src="https://img.shields.io/badge/Testing-87 unit tests-red">
+<img src="https://img.shields.io/badge/Testing-87 unit tests-red"></span>
 
 ## SellScale API Overview
 
