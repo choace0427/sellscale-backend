@@ -8,6 +8,8 @@ from model_import import (
     ProspectEmail,
     ProspectStatus,
     GeneratedMessageFeedback,
+    GeneratedMessageJob,
+    GeneratedMessageJobStatus,
 )
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
@@ -47,21 +49,59 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
     batch_id = generate_random_alphanumeric(36)
     for i, prospect_id in enumerate(tqdm(prospect_ids)):
         cta_id = cta_ids[i % len(cta_ids)]
-        research_and_generate_outreaches_for_prospect(
-            prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
+
+        gm_job: GeneratedMessageJob = create_generated_message_job(
+            prospect_id=prospect_id, batch_id=batch_id
         )
+        gm_job_id: int = gm_job.id
+
+        research_and_generate_outreaches_for_prospect.delay(
+            prospect_id=prospect_id,
+            cta_id=cta_id,
+            batch_id=batch_id,
+            gm_job_id=gm_job_id,
+        )
+
+
+def create_generated_message_job(prospect_id: int, batch_id: str):
+    job = GeneratedMessageJob(
+        prospect_id=prospect_id,
+        batch_id=batch_id,
+        status=GeneratedMessageJobStatus.PENDING,
+    )
+    db.session.add(job)
+    db.session.commit()
+
+    return job
+
+
+def update_generated_message_job_status(gm_job_id: int, status: str):
+    gm_job: GeneratedMessageJob = GeneratedMessageJob.query.get(gm_job_id)
+    if gm_job:
+        gm_job.status = status
+        db.session.add(gm_job)
+        db.session.commit()
 
 
 @celery.task
 def research_and_generate_outreaches_for_prospect(
-    prospect_id: int, batch_id: str, cta_id: str = None
+    prospect_id: int, batch_id: str, cta_id: str = None, gm_job_id: int = None
 ):
     from src.research.linkedin.services import get_research_and_bullet_points_new
 
-    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    generate_outreaches_for_batch_of_prospects(
-        prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
+    update_generated_message_job_status(
+        gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
     )
+
+    try:
+        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+        generate_outreaches_for_batch_of_prospects(
+            prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
+        )
+    except:
+        update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.FAILED)
+
+    update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.COMPLETED)
 
 
 @celery.task

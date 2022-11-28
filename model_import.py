@@ -7,6 +7,8 @@ from src.message_generation.models import (
     GeneratedMessageCTA,
     GeneratedMessageType,
     GeneratedMessageFeedback,
+    GeneratedMessageJob,
+    GeneratedMessageJobStatus,
 )
 from src.prospecting.models import (
     Prospect,

@@ -9,6 +9,7 @@ from test_utils import (
     basic_archetype,
     basic_client_sdr,
     basic_email_schema,
+    basic_prospect,
 )
 from model_import import OutboundCampaign
 import mock
@@ -16,19 +17,24 @@ import mock
 
 @use_app_context
 @mock.patch(
-    "src.campaigns.services.generate_outreaches_for_prospect_list_from_multiple_ctas.delay"
+    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
 )
 def test_create_generate_message_campaign(message_gen_call_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
 
+    prospect1 = basic_prospect(client, archetype)
+    prospect2 = basic_prospect(client, archetype)
+    prospect3 = basic_prospect(client, archetype)
+    prospect_ids = [prospect1.id, prospect2.id, prospect3.id]
+
     response = app.test_client().post(
         "campaigns/",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "prospect_ids": [1, 2, 3, 4],
+                "prospect_ids": prospect_ids,
                 "campaign_type": "LINKEDIN",
                 "ctas": [5, 6],
                 "client_archetype_id": archetype.id,
@@ -48,7 +54,7 @@ def test_create_generate_message_campaign(message_gen_call_patch):
     assert campaign.client_archetype_id == archetype.id
     assert campaign.client_sdr_id == client_sdr.id
     assert campaign.campaign_type.value == "LINKEDIN"
-    assert campaign.prospect_ids == [1, 2, 3, 4]
+    assert campaign.prospect_ids == prospect_ids
     assert campaign.ctas == [5, 6]
     assert campaign.status.value == "PENDING"
 
@@ -62,7 +68,7 @@ def test_create_generate_message_campaign(message_gen_call_patch):
         ),
     )
     assert response.status_code == 200
-    assert message_gen_call_patch.call_count == 1
+    assert message_gen_call_patch.call_count == 3
 
 
 @use_app_context

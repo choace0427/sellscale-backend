@@ -14,6 +14,13 @@ class GeneratedMessageType(enum.Enum):
     EMAIL = "EMAIL"
 
 
+class GeneratedMessageJobStatus(enum.Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 class GeneratedMessage(db.Model):
     __tablename__ = "generated_message"
 
@@ -61,3 +68,13 @@ class GeneratedMessageFeedback(db.Model):
         db.Integer, db.ForeignKey("generated_message.id"), nullable=False
     )
     feedback_value = db.Column(db.String, nullable=False)
+
+
+class GeneratedMessageJob(db.Model):
+    __tablename__ = "generated_message_job"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    batch_id = db.Column(db.String, nullable=True)
+
+    status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
