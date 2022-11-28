@@ -103,25 +103,33 @@ def update_generated_message_job_status(gm_job_id: int, status: str):
         db.session.commit()
 
 
-@celery.task
+@celery.task(bind=True, max_retries=3)
 def research_and_generate_outreaches_for_prospect(
-    prospect_id: int, batch_id: str, cta_id: str = None, gm_job_id: int = None
+    self, prospect_id: int, batch_id: str, cta_id: str = None, gm_job_id: int = None
 ):
-    from src.research.linkedin.services import get_research_and_bullet_points_new
-
-    update_generated_message_job_status(
-        gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
-    )
-
     try:
-        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-        generate_outreaches_for_batch_of_prospects(
-            prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
-        )
-    except:
-        update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.FAILED)
+        from src.research.linkedin.services import get_research_and_bullet_points_new
 
-    update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.COMPLETED)
+        update_generated_message_job_status(
+            gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
+        )
+
+        try:
+            get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+            generate_outreaches_for_batch_of_prospects(
+                prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
+            )
+        except:
+            update_generated_message_job_status(
+                gm_job_id, GeneratedMessageJobStatus.FAILED
+            )
+            return
+
+        update_generated_message_job_status(
+            gm_job_id, GeneratedMessageJobStatus.COMPLETED
+        )
+    except Exception as e:
+        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 @celery.task
