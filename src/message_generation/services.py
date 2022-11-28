@@ -35,8 +35,22 @@ def research_and_generate_outreaches_for_prospect_list(
 ):
     batch_id = generate_random_alphanumeric(36)
     for prospect_id in tqdm(prospect_ids):
-        research_and_generate_outreaches_for_prospect(
-            prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
+        does_job_exist = GeneratedMessageJob.query.filter(
+            GeneratedMessageJob.prospect_id == prospect_id,
+        ).first()
+        if does_job_exist:
+            continue
+
+        gm_job: GeneratedMessageJob = create_generated_message_job(
+            prospect_id=prospect_id, batch_id=batch_id
+        )
+        gm_job_id: int = gm_job.id
+
+        research_and_generate_outreaches_for_prospect.delay(
+            prospect_id=prospect_id,
+            cta_id=cta_id,
+            batch_id=batch_id,
+            gm_job_id=gm_job_id,
         )
 
     return True
@@ -49,6 +63,12 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
     batch_id = generate_random_alphanumeric(36)
     for i, prospect_id in enumerate(tqdm(prospect_ids)):
         cta_id = cta_ids[i % len(cta_ids)]
+
+        does_job_exist = GeneratedMessageJob.query.filter(
+            GeneratedMessageJob.prospect_id == prospect_id,
+        ).first()
+        if does_job_exist:
+            continue
 
         gm_job: GeneratedMessageJob = create_generated_message_job(
             prospect_id=prospect_id, batch_id=batch_id
