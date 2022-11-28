@@ -517,7 +517,7 @@ def test_batch_generate_emails_for_prospect(
 )
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
 @mock.patch(
-    "src.message_generation.services.research_and_generate_outreaches_for_prospect_list.delay"
+    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
 )
 def test_research_and_generate_outreaches_for_prospect_list(
     generate_outreach_mock,
@@ -526,13 +526,14 @@ def test_research_and_generate_outreaches_for_prospect_list(
 ):
     client = basic_client()
     archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
 
     response = app.test_client().post(
         "message_generation/batch",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "prospect_ids": [1, 2, 3],
+                "prospect_ids": [prospect.id],
             }
         ),
     )

@@ -24,7 +24,7 @@ def index():
     )
     cta_id = get_request_parameter("cta_id", request, json=True, required=False)
 
-    research_and_generate_outreaches_for_prospect_list.delay(
+    research_and_generate_outreaches_for_prospect_list(
         prospect_ids=prospect_ids, cta_id=cta_id
     )
 
