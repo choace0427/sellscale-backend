@@ -37,6 +37,7 @@ def research_and_generate_outreaches_for_prospect_list(
     for prospect_id in tqdm(prospect_ids):
         does_job_exist = GeneratedMessageJob.query.filter(
             GeneratedMessageJob.prospect_id == prospect_id,
+            GeneratedMessageJob.status == GeneratedMessageJobStatus.PENDING,
         ).first()
         if does_job_exist:
             continue
@@ -66,6 +67,7 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
 
         does_job_exist = GeneratedMessageJob.query.filter(
             GeneratedMessageJob.prospect_id == prospect_id,
+            GeneratedMessageJob.status == GeneratedMessageJobStatus.PENDING,
         ).first()
         if does_job_exist:
             continue
