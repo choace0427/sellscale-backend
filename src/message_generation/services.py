@@ -573,69 +573,95 @@ def get_personalized_first_line(
 def batch_generate_prospect_emails(prospect_ids: list, email_schema_id: int):
     batch_id = generate_random_alphanumeric(32)
     for prospect_id in prospect_ids:
-        generate_prospect_email.delay(
-            prospect_id=prospect_id, email_schema_id=email_schema_id, batch_id=batch_id
-        )
-
-
-@celery.task
-def generate_prospect_email(prospect_id: int, email_schema_id: int, batch_id: int):
-    from src.research.linkedin.services import get_research_and_bullet_points_new
-
-    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
-    if not prospect:
-        return False
-    if not email_schema:
-        return False
-
-    prospect_email: ProspectEmail = ProspectEmail.query.filter(
-        ProspectEmail.prospect_id == prospect_id,
-        ProspectEmail.email_schema_id == email_schema_id,
-    ).first()
-    if prospect_email:
-        return False
-
-    archetype_id = prospect.archetype_id
-
-    research: ResearchPayload = ResearchPayload.query.filter(
-        ResearchPayload.prospect_id == prospect_id
-    ).first()
-    research_id = research.id
-
-    research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
-        ResearchPoints.research_payload_id == research_id
-    ).all()
-
-    NUM_GENERATIONS = 3  # number of ProspectEmail's to make
-    perms = generate_batches_of_research_points(
-        points=research_points_list, n=NUM_GENERATIONS, num_per_perm=3
-    )
-
-    for perm in perms:
-        notes, research_points, _ = get_notes_and_points_from_perm(perm)
-        prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
-
-        if len(research_points) == 0:
+        does_job_exist = GeneratedMessageJob.query.filter(
+            GeneratedMessageJob.prospect_id == prospect_id,
+            GeneratedMessageJob.status == GeneratedMessageJobStatus.PENDING,
+        ).first()
+        if does_job_exist:
             continue
 
-        personalized_first_line = get_personalized_first_line(
-            archetype_id=archetype_id,
-            model_type=GNLPModelType.EMAIL_FIRST_LINE,
-            prompt=prompt,
-            research_points=research_points,
+        gm_job: GeneratedMessageJob = create_generated_message_job(
+            prospect_id=prospect_id, batch_id=batch_id
+        )
+        gm_job_id: int = gm_job.id
+
+        generate_prospect_email.delay(
             prospect_id=prospect_id,
+            email_schema_id=email_schema_id,
             batch_id=batch_id,
+            gm_job_id=gm_job_id,
         )
 
-        create_prospect_email(
-            email_schema_id=email_schema_id,
-            prospect_id=prospect_id,
-            personalized_first_line_id=personalized_first_line.id,
-            batch_id=batch_id,
+
+@celery.task(bind=True, max_retries=3)
+def generate_prospect_email(
+    self, prospect_id: int, email_schema_id: int, batch_id: int, gm_job_id: int = None
+):
+    update_generated_message_job_status(
+        gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
+    )
+    try:
+        from src.research.linkedin.services import get_research_and_bullet_points_new
+
+        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
+        if not prospect:
+            return False
+        if not email_schema:
+            return False
+
+        prospect_email: ProspectEmail = ProspectEmail.query.filter(
+            ProspectEmail.prospect_id == prospect_id,
+            ProspectEmail.email_schema_id == email_schema_id,
+        ).first()
+        if prospect_email:
+            return False
+
+        archetype_id = prospect.archetype_id
+
+        research: ResearchPayload = ResearchPayload.query.filter(
+            ResearchPayload.prospect_id == prospect_id
+        ).first()
+        research_id = research.id
+
+        research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
+            ResearchPoints.research_payload_id == research_id
+        ).all()
+
+        NUM_GENERATIONS = 3  # number of ProspectEmail's to make
+        perms = generate_batches_of_research_points(
+            points=research_points_list, n=NUM_GENERATIONS, num_per_perm=3
         )
+
+        for perm in perms:
+            notes, research_points, _ = get_notes_and_points_from_perm(perm)
+            prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+
+            if len(research_points) == 0:
+                continue
+
+            personalized_first_line = get_personalized_first_line(
+                archetype_id=archetype_id,
+                model_type=GNLPModelType.EMAIL_FIRST_LINE,
+                prompt=prompt,
+                research_points=research_points,
+                prospect_id=prospect_id,
+                batch_id=batch_id,
+            )
+
+            create_prospect_email(
+                email_schema_id=email_schema_id,
+                prospect_id=prospect_id,
+                personalized_first_line_id=personalized_first_line.id,
+                batch_id=batch_id,
+            )
+    except Exception as e:
+        update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.FAILED)
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
+    update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.COMPLETED)
 
 
 def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailStatus):

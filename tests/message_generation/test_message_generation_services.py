@@ -502,9 +502,12 @@ def test_batch_generate_emails_for_prospect(
     client = basic_client()
     archetype = basic_archetype(client)
     email_schema = basic_email_schema(archetype)
+    prospect1 = basic_prospect(client, archetype)
+    prospect2 = basic_prospect(client, archetype)
+    prospect3 = basic_prospect(client, archetype)
 
     batch_generate_prospect_emails(
-        prospect_ids=[1, 2, 3],
+        prospect_ids=[prospect1.id, prospect2.id, prospect3.id],
         email_schema_id=email_schema.id,
     )
     assert generate_email_mock.call_count == 3
