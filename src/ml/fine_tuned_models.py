@@ -29,7 +29,7 @@ def get_basic_openai_completion(prompt, max_tokens: int = 100, n: int = 1):
 
     payload = json.dumps(
         {
-            "model": "text-davinci-002",
+            "model": "text-davinci-003",
             "prompt": prompt,
             "n": n,
             "stop": "XXX",

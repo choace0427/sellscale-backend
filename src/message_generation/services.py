@@ -25,6 +25,7 @@ from ..utils.abstract.attr_utils import deep_get
 import random
 from app import db, celery
 from tqdm import tqdm
+import openai
 
 import datetime
 
@@ -805,3 +806,53 @@ def create_generated_message_feedback(message_id: int, feedback_value: str):
     db.session.commit()
 
     return True
+
+
+def generate_cta_examples(company_name: str, persona: str, with_what: str):
+    """
+    company_name: Name of company
+    persona: Name of persona
+    with_what: What the company does for persona
+    """
+    import os
+
+    openai.api_key = os.getenv("OPENAI_KEY")
+
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt=(
+            """
+Make 6 CTAs that are comma separated for the company.
+    
+Example: Curative, helps healthcare leaders get access to top physicians looking for new opportunities and achieve staffing goals.
+Output:
+- [Feedback] I wanted to get your thoughts on a staffing solution I'm building for providers - open to chat?
+- [Problem] Would love to talk about what issues you're seeing in provider staffing.
+- [Priority] Is staffing a priority for your health system? Would love to see if Curative can help.
+- [Persona] Since you're a leader in your health system, would love to see if Curative is helpful for staffing.
+- [Solution] Given how competitive hiring providers is, and our access to them, would love to connect!
+- [Company] Have you heard of Curative? Would love to tell you about how we help with provider staffing.
+
+{company_name}, helps {persona} with {with_what}
+-
+""".format(
+                company_name=company_name, persona=persona, with_what=with_what
+            )
+        ),
+        temperature=0,
+        max_tokens=500,
+        top_p=1,
+        frequency_penalty=0.2,
+        presence_penalty=0,
+    )
+
+    ctas = []
+
+    options = response["choices"][0]["text"].split("\n- ")
+    for option in options:
+        tag, cta = option.split("] ")
+        tag = tag[1:]
+
+        ctas.append({"tag": tag, "cta": cta})
+
+    return ctas

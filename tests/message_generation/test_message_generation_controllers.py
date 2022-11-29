@@ -52,3 +52,24 @@ def test_create_feedback():
     assert len(feedbacks) == 1
     feedback: GeneratedMessageFeedback = feedbacks[0]
     assert feedback.feedback_value == "this is a test"
+
+
+@mock.patch(
+    "src.message_generation.services.openai.Completion.create",
+    return_value={"choices": [{"text": "[Tag] This a CTA"}]},
+)
+def test_post_generate_ai_made_ctas(open_ai_completion_mock):
+    response = app.test_client().post(
+        "message_generation/generate_ai_made_ctas",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "company_name": "company name",
+                "persona": "persona",
+                "with_what": "with something",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert len(response.json["ctas"]) == 1
+    assert open_ai_completion_mock.call_count == 1

@@ -10,6 +10,7 @@ from src.message_generation.services import (
     batch_disapprove_message_generations,
     pick_new_approved_message_for_prospect,
     create_generated_message_feedback,
+    generate_cta_examples,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -209,3 +210,19 @@ def post_create_feedback():
     if success:
         return "OK", 200
     return "Failed to write feedback", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/generate_ai_made_ctas", methods=["POST"])
+def post_generate_ai_made_ctas():
+    company_name = get_request_parameter(
+        "company_name", request, json=True, required=True
+    )
+    persona = get_request_parameter("persona", request, json=True, required=True)
+    with_what = get_request_parameter("with_what", request, json=True, required=True)
+
+    ctas = generate_cta_examples(
+        company_name=company_name,
+        persona=persona,
+        with_what=with_what,
+    )
+    return jsonify({"ctas": ctas})
