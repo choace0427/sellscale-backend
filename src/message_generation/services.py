@@ -634,14 +634,15 @@ def generate_prospect_email(
         perms = generate_batches_of_research_points(
             points=research_points_list, n=NUM_GENERATIONS, num_per_perm=3
         )
-        if not perms:
-            raise Exception("No permutations generated")
 
         for perm in perms:
             notes, research_points, _ = get_notes_and_points_from_perm(perm)
             prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
             if len(research_points) == 0:
+                update_generated_message_job_status(
+                    gm_job_id, GeneratedMessageJobStatus.FAILED
+                )
                 continue
 
             personalized_first_line = get_personalized_first_line(
