@@ -736,6 +736,7 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
     ).all()
 
     prospect.approved_prospect_email_id = None
+    prospect.approved_outreach_message_id = None
     db.session.add(prospect)
     db.session.commit()
 
