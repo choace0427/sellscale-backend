@@ -2,6 +2,7 @@ from app import db, app
 from test_utils import test_app
 import pytest
 from decorators import use_app_context
+import datetime
 import json
 
 from test_utils import (
@@ -181,3 +182,45 @@ def test_change_campaign_status():
     assert response.status_code == 200
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.status.value == "READY_TO_SEND"
+
+    campaign_id = campaign.id
+    campaign_name = campaign.name
+    assert campaign_name != "New Campaign Name"
+    response = app.test_client().post(
+        "campaigns/update_campaign_name",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+                "name": "New Campaign Name",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.name == "New Campaign Name"
+
+    campaign_start_date = campaign.campaign_start_date
+    campaign_end_date = campaign.campaign_end_date
+
+    new_start_date = datetime.datetime.now().isoformat()
+    new_end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).isoformat()
+
+    assert campaign_start_date != new_start_date
+    assert campaign_end_date != new_end_date
+
+    response = app.test_client().post(
+        "campaigns/update_campaign_dates",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+                "start_date": new_start_date,
+                "end_date": new_end_date,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.campaign_start_date.isoformat() == new_start_date
+    assert campaign.campaign_end_date.isoformat() == new_end_date

@@ -7,7 +7,11 @@ from src.campaigns.services import (
 )
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
-from src.campaigns.services import generate_campaign
+from src.campaigns.services import (
+    generate_campaign,
+    update_campaign_dates,
+    update_campaign_name,
+)
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
 
@@ -79,3 +83,26 @@ def post_mark_campaign_as_ready_to_send():
         return "OK", 200
 
     return "Failed to mark", 400
+
+
+@CAMPAIGN_BLUEPRINT.route("/update_campaign_name", methods=["POST"])
+def post_update_campaign_name():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    name = get_request_parameter("name", request, json=True, required=True)
+    update_campaign_name(campaign_id=campaign_id, name=name)
+    return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/update_campaign_dates", methods=["POST"])
+def post_update_campaign_dates():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    start_date = get_request_parameter("start_date", request, json=True, required=True)
+    end_date = get_request_parameter("end_date", request, json=True, required=True)
+    update_campaign_dates(
+        campaign_id=campaign_id, start_date=start_date, end_date=end_date
+    )
+    return "OK", 200

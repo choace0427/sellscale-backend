@@ -115,3 +115,31 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
     )
 
     return True
+
+
+def update_campaign_name(campaign_id: int, name: str):
+    """Updates the name of the campaign
+
+    Args:
+        campaign_id (int): Campaign id
+        name (str): New name of the campaign
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign.name = name
+    db.session.add(campaign)
+    db.session.commit()
+
+
+def update_campaign_dates(campaign_id: int, start_date: datetime, end_date: datetime):
+    """Updates the start and end dates of the campaign
+
+    Args:
+        campaign_id (int): Campaign id
+        start_date (datetime): New start date of the campaign
+        end_date (datetime): New end date of the campaign
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign.campaign_start_date = start_date
+    campaign.campaign_end_date = end_date
+    db.session.add(campaign)
+    db.session.commit()
