@@ -824,7 +824,7 @@ def generate_cta_examples(company_name: str, persona: str, with_what: str):
             """
 Make 6 CTAs that are comma separated for the company.
     
-Example: Curative, helps healthcare leaders get access to top physicians looking for new opportunities and achieve staffing goals.
+Example: Curative helps healthcare leaders get access to top physicians looking for new opportunities and achieve staffing goals.
 Output:
 - [Feedback] I wanted to get your thoughts on a staffing solution I'm building for providers - open to chat?
 - [Problem] Would love to talk about what issues you're seeing in provider staffing.
@@ -833,7 +833,7 @@ Output:
 - [Solution] Given how competitive hiring providers is, and our access to them, would love to connect!
 - [Company] Have you heard of Curative? Would love to tell you about how we help with provider staffing.
 
-{company_name}, helps {persona} with {with_what}
+{company_name} helps {persona} with {with_what}
 -
 """.format(
                 company_name=company_name, persona=persona, with_what=with_what

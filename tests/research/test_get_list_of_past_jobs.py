@@ -958,7 +958,7 @@ def test_get_list_of_past_jobs_without_inc_llc():
                 },
                 {
                     "company": {
-                        "name": "Freelance",
+                        "name": "Freelance Ltd",
                         "logo": None,
                         "url": None,
                         "employees": {"start": None, "end": None},
@@ -975,8 +975,8 @@ def test_get_list_of_past_jobs_without_inc_llc():
                                 "start": {"month": 3, "year": 2014},
                                 "end": {"month": 7, "year": 2015},
                             },
-                            "company": "Freelance",
-                            "description": "I provide freelance consulting to Vino Volo LLC and Punchh as well as other small clients.",
+                            "company": "Freelance Ltd",
+                            "description": "I provide Freelance Ltd consulting to Vino Volo LLC and Punchh as well as other small clients.",
                             "title": "Consultant",
                         }
                     ],
@@ -1355,6 +1355,6 @@ def test_get_list_of_past_jobs_without_inc_llc():
 
     transformer_response = get_list_of_past_jobs(info_with_llc_and_inc)
     assert transformer_response["raw_data"] == {
-        "positions": ["Freelance", "Punchh Inc.", "Vino Volo LLC"]
+        "positions": ["Freelance Ltd", "Punchh Inc.", "Vino Volo LLC"]
     }
     assert "Freelance, Punchh, Vino Volo" in transformer_response["response"]

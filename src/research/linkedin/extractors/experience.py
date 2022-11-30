@@ -123,7 +123,18 @@ def remove_suffixes_from_company_name(positions_str):
     """
     Remove suffixes from company name like "LLC" and "Inc."
     """
-    replaced_suffixes = [" Inc", " Inc.", " LLC", " LLC."]
+    replaced_suffixes = [
+        " Inc",
+        " Inc.",
+        " LLC",
+        " LLC.",
+        " INC",
+        " INC.",
+        " Ltd",
+        " .Ltd",
+        " Co.",
+        " Co",
+    ]
     replaced_suffixes.sort(key=lambda x: len(x), reverse=True)
     for suffix in replaced_suffixes:
         positions_str = positions_str.replace(suffix, "")
