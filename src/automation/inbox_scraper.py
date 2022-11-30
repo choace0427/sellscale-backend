@@ -71,7 +71,7 @@ def process_inbox(message_payload, client_id):
     for message in message_payload:
         try:
             is_group_message = len(message["linkedInUrls"]) > 1
-            is_last_message_from = message["isLastMessageFromMe"]
+            is_last_message_from_me = message["isLastMessageFromMe"]
             thread_url = message["threadUrl"]
             li_last_message_timestamp = message["timestamp"]
             recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
@@ -80,15 +80,23 @@ def process_inbox(message_payload, client_id):
                 recipient, client_id=client_id
             )
             prospect.li_conversation_thread_id = thread_url
-            prospect.li_is_last_message_from_sdr = is_last_message_from
+            prospect.li_is_last_message_from_sdr = is_last_message_from_me
             prospect.li_last_message_timestamp = li_last_message_timestamp
+            if not is_last_message_from_me:
+                prospect.li_last_message_from_prospect = message["message"]
+            else:
+                prospect.li_last_message_from_prospect = None
+
             db.session.add(prospect)
             db.session.commit()
 
             if is_group_message or not prospect:
                 continue
 
-            if prospect.status == ProspectStatus.SENT_OUTREACH and is_last_message_from:
+            if (
+                prospect.status == ProspectStatus.SENT_OUTREACH
+                and is_last_message_from_me
+            ):
                 update_prospect_status(
                     prospect_id=prospect.id,
                     new_status=ProspectStatus.ACCEPTED,
@@ -102,7 +110,7 @@ def process_inbox(message_payload, client_id):
                     ProspectStatus.ACCEPTED,
                     ProspectStatus.RESPONDED,
                 )
-                and not is_last_message_from
+                and not is_last_message_from_me
             ):
 
                 update_prospect_status(
