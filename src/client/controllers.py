@@ -6,6 +6,8 @@ from src.client.services import (
     create_client_sdr,
     rename_archetype,
     toggle_archetype_active,
+    update_client_sdr_email,
+    update_client_sdr_scheduling_link,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -109,4 +111,36 @@ def patch_toggle_archetype_active():
 
     if not success:
         return "Failed to update active", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/update_scheduling_link", methods=["PATCH"])
+def patch_update_scheduling_link():
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    scheduling_link = get_request_parameter(
+        "scheduling_link", request, json=True, required=True
+    )
+
+    success = update_client_sdr_scheduling_link(
+        client_sdr_id=client_sdr_id, scheduling_link=scheduling_link
+    )
+
+    if not success:
+        return "Failed to update scheduling link", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/update_email", methods=["PATCH"])
+def patch_update_sdr_email():
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    email = get_request_parameter("email", request, json=True, required=True)
+
+    success = update_client_sdr_email(client_sdr_id=client_sdr_id, email=email)
+
+    if not success:
+        return "Failed to update email", 404
     return "OK", 200

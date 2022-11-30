@@ -50,5 +50,6 @@ class ClientSDR(db.Model):
     email = db.Column(db.String)
 
     weekly_li_outbound_target = db.Column(db.Integer, nullable=True)
+    scheduling_link = db.Column(db.String, nullable=True)
 
     auth_token = db.Column(db.String, nullable=True)

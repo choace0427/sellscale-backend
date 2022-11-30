@@ -138,3 +138,33 @@ def toggle_archetype_active(archetype_id: int):
     db.session.commit()
 
     return True
+
+
+def update_client_sdr_scheduling_link(client_sdr_id: int, scheduling_link: str):
+    """
+    Update the scheduling link for a Client SDR
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return None
+
+    sdr.scheduling_link = scheduling_link
+    db.session.add(sdr)
+    db.session.commit()
+
+    return True
+
+
+def update_client_sdr_email(client_sdr_id: int, email: str):
+    """
+    Update the email for a Client SDR
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return None
+
+    sdr.email = email
+    db.session.add(sdr)
+    db.session.commit()
+
+    return True

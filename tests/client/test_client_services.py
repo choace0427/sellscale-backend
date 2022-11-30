@@ -7,7 +7,7 @@ from src.client.services import (
 )
 from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
-from test_utils import test_app
+from test_utils import test_app, basic_client, basic_client_sdr
 from app import app, db
 import json
 
@@ -180,3 +180,49 @@ def test_add_client_and_archetype_and_sdr():
     assert response.status_code == 200
     client_sdrs: ClientSDR = ClientSDR.query.get(client_sdrs[0].id)
     assert client_sdrs.auth_token is not None
+
+
+@use_app_context
+def test_update_client_sdr_scheduling_link_endpoint():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+    client_sdr_id = client_sdr.id
+
+    assert client_sdr.scheduling_link is None
+
+    response = app.test_client().patch(
+        "client/sdr/update_scheduling_link",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_sdr_id": client_sdr_id,
+                "scheduling_link": "TESTING_LINK",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    client_sdrs: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    assert client_sdrs.scheduling_link == "TESTING_LINK"
+
+
+@use_app_context
+def test_update_client_sdr_email_endpoint():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+    client_sdr_id = client_sdr.id
+
+    assert client_sdr.email == "test@test.com"
+
+    response = app.test_client().patch(
+        "client/sdr/update_email",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_sdr_id": client_sdr_id,
+                "email": "test@testinco.com",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    client_sdrs: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    assert client_sdrs.email == "test@testinco.com"
