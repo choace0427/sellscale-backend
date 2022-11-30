@@ -53,6 +53,7 @@ class Prospect(db.Model):
     li_conversation_thread_id = db.Column(db.String, nullable=True)
     li_last_message_timestamp = db.Column(db.DateTime, nullable=True)
     li_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
+    li_last_message_from_prospect = db.Column(db.String, nullable=True)
 
     last_reviewed = db.Column(db.DateTime, nullable=True)
 
