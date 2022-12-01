@@ -885,6 +885,19 @@ def get_named_entities(string: str):
     return output
 
 
+def replace_words(message_id: int):
+    from model_import import Client
+
+    prospect_id: int = GeneratedMessage.query.get(message_id).prospect_id
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client: Client = Client.query.get(prospect.client_id)
+    client_name = client.company
+
+    words_to_ignore = ["hey", "hello", "hi", client_name.lower(), "linkedin"]
+
+    return words_to_ignore
+
+
 def get_named_entities_for_generated_message(message_id: int):
     """
     Get named entities for a generated message
@@ -897,6 +910,9 @@ def get_named_entities_for_generated_message(message_id: int):
         tag = e["entity_group"]
         entity = e["word"]
         entity = entity.lower()
+        words_to_replace = replace_words(message_id=message_id)
+        for word in words_to_replace:
+            entity = entity.replace(word, "")
         sanitize_entity = re.sub(
             "[^0-9a-zA-Z]+",
             " ",
@@ -918,7 +934,13 @@ def generated_message_has_entities_not_in_prompt(message_id: int):
     has_entity_not_in_prompt = False
     flagged_entities = []
     for entity in entities:
-        if entity["entity"] not in message.prompt.lower():
+        sanitized_prompt = re.sub(
+            "[^0-9a-zA-Z]+",
+            " ",
+            sanitized_prompt.lower(),
+        ).strip()
+
+        if entity["entity"] not in sanitized_prompt:
             has_entity_not_in_prompt = True
             flagged_entities.append(entity["entity"])
 
