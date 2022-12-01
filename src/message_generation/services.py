@@ -934,10 +934,11 @@ def generated_message_has_entities_not_in_prompt(message_id: int):
     has_entity_not_in_prompt = False
     flagged_entities = []
     for entity in entities:
+        prompt = message.prompt
         sanitized_prompt = re.sub(
             "[^0-9a-zA-Z]+",
             " ",
-            sanitized_prompt.lower(),
+            prompt.lower(),
         ).strip()
 
         if entity["entity"] not in sanitized_prompt:
