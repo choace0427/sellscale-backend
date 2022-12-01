@@ -226,3 +226,25 @@ def test_update_client_sdr_email_endpoint():
     assert response.status_code == 200
     client_sdrs: ClientSDR = ClientSDR.query.get(client_sdr_id)
     assert client_sdrs.email == "test@testinco.com"
+
+
+@use_app_context
+def test_patch_update_pipeline_webhook():
+    client: Client = basic_client()
+    client_id = client.id
+
+    assert client.pipeline_notifications_webhook_url == None
+
+    response = app.test_client().patch(
+        "client/update_pipeline_webhook",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": client_id,
+                "webhook": "TESTING_WEBHOOK",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    client: Client = Client.query.get(client_id)
+    assert client.pipeline_notifications_webhook_url == "TESTING_WEBHOOK"

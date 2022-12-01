@@ -168,3 +168,18 @@ def update_client_sdr_email(client_sdr_id: int, email: str):
     db.session.commit()
 
     return True
+
+
+def update_client_pipeline_notification_webhook(client_id: int, webhook: str):
+    """
+    Update the Slack pipeline notification webhook for a Client
+    """
+    c: Client = Client.query.get(client_id)
+    if not c:
+        return None
+
+    c.pipeline_notifications_webhook_url = webhook
+    db.session.add(c)
+    db.session.commit()
+
+    return True

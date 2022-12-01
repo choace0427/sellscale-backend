@@ -8,6 +8,7 @@ from src.client.services import (
     toggle_archetype_active,
     update_client_sdr_email,
     update_client_sdr_scheduling_link,
+    update_client_pipeline_notification_webhook,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -143,4 +144,18 @@ def patch_update_sdr_email():
 
     if not success:
         return "Failed to update email", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/update_pipeline_webhook", methods=["PATCH"])
+def patch_update_pipeline_webhook():
+    client_id = get_request_parameter("client_id", request, json=True, required=True)
+    webhook = get_request_parameter("webhook", request, json=True, required=True)
+
+    success = update_client_pipeline_notification_webhook(
+        client_id=client_id, webhook=webhook
+    )
+
+    if not success:
+        return "Failed to update pipeline webhook", 404
     return "OK", 200
