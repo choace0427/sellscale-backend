@@ -948,4 +948,7 @@ def generated_message_has_entities_not_in_prompt(message_id: int):
             has_entity_not_in_prompt = True
             flagged_entities.append(entity["original_entity"])
 
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    generated_message.unknown_named_entities = flagged_entities
+
     return has_entity_not_in_prompt, flagged_entities

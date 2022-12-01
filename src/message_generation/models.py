@@ -46,6 +46,8 @@ class GeneratedMessage(db.Model):
         db.Integer, db.ForeignKey("generated_message_cta.id"), nullable=True
     )
 
+    unknown_named_entities = db.Column(db.ARRAY(db.String), nullable=True)
+
 
 class GeneratedMessageCTA(db.Model):
     __tablename__ = "generated_message_cta"
