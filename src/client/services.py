@@ -199,7 +199,7 @@ def test_client_pipeline_notification_webhook(client_id: int):
 
     send_slack_message(
         message="This is a test message from the Sight Pipeline",
-        webhook_url=[c.pipeline_notifications_webhook_url],
+        webhook_urls=[c.pipeline_notifications_webhook_url],
     )
 
     return True
