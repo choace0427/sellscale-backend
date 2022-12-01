@@ -863,6 +863,9 @@ Output:
 
 
 def get_named_entities(string: str):
+    """
+    Get named entities from a string
+    """
     sentence = Sentence(string)
     tagger.predict(sentence)
 
