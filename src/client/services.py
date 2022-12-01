@@ -5,6 +5,7 @@ from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import ProspectStatus
 from typing import Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
+from src.utils.slack import send_slack_message
 
 
 def get_client(client_id: int):
@@ -181,5 +182,24 @@ def update_client_pipeline_notification_webhook(client_id: int, webhook: str):
     c.pipeline_notifications_webhook_url = webhook
     db.session.add(c)
     db.session.commit()
+
+    return True
+
+
+def test_client_pipeline_notification_webhook(client_id: int):
+    """
+    Test the Slack pipeline notification webhook for a Client
+    """
+    c: Client = Client.query.get(client_id)
+    if not c:
+        return None
+
+    if not c.pipeline_notifications_webhook_url:
+        return None
+
+    send_slack_message(
+        message="This is a test message from the Sight Pipeline",
+        webhook_url=[c.pipeline_notifications_webhook_url],
+    )
 
     return True

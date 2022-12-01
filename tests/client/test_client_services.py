@@ -10,6 +10,7 @@ from decorators import use_app_context
 from test_utils import test_app, basic_client, basic_client_sdr
 from app import app, db
 import json
+import mock
 
 
 @use_app_context
@@ -229,7 +230,8 @@ def test_update_client_sdr_email_endpoint():
 
 
 @use_app_context
-def test_patch_update_pipeline_webhook():
+@mock.patch("src.client.services.send_slack_message")
+def test_patch_update_pipeline_webhook(mock_send_slack_message):
     client: Client = basic_client()
     client_id = client.id
 
@@ -248,3 +250,15 @@ def test_patch_update_pipeline_webhook():
     assert response.status_code == 200
     client: Client = Client.query.get(client_id)
     assert client.pipeline_notifications_webhook_url == "TESTING_WEBHOOK"
+
+    response = app.test_client().post(
+        "client/test_webhook",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": client_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert mock_send_slack_message.call_count == 1
