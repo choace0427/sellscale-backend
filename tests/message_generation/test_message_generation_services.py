@@ -764,3 +764,33 @@ def test_generated_message_has_entities_not_in_prompt():
 
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     assert gm.unknown_named_entities == ["Hey Marla !", "Megan", "Zuma"]
+
+
+@use_app_context
+def test_generated_message_has_entities_not_in_prompt_with_dr():
+    client = basic_client()
+    client.company = "Curative"
+    client_id = client.id
+    db.session.add(client)
+    db.session.commit()
+
+    client = Client.query.get(client_id)
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+    generated_message.prompt = "name: Dan Drozd, MD MSc<>industry: Computer Software<>company: PicnicHealth<>title: Physician Executive & Scientist | Advisor | Investor | Digital Health Technologist | CMO @PicnicHealth<>notes: - Chief Medical Officer and leads product strategy and roadmap at PicnicHealth n-21+ years of experience in industryn-Would love to talk about what issues you're seeing in provider staffing.<>response:"
+    generated_message.completion = " Hi Dr. Drozd! I read your profile and wanted to say how impressed I am by your 21+ years of experience in the industry. I'd love to talk - I work at Curative, and we're building a staffing platform to solve the exact issues you've seen in the provider staffing industry."
+    db.session.add(generated_message)
+    db.session.commit()
+
+    assert generated_message.unknown_named_entities == None
+
+    x, entities = generated_message_has_entities_not_in_prompt(generated_message.id)
+
+    assert x == False
+    assert len(entities) == 0
+
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    assert gm.unknown_named_entities == []
