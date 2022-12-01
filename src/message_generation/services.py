@@ -26,6 +26,10 @@ import random
 from app import db, celery
 from tqdm import tqdm
 import openai
+from flair.data import Sentence
+from flair.models import SequenceTagger
+
+tagger = SequenceTagger.load("ner")
 
 import datetime
 
@@ -856,3 +860,14 @@ Output:
         ctas.append({"tag": tag, "cta": cta})
 
     return ctas
+
+
+def get_named_entities(string: str):
+    sentence = Sentence(string)
+    tagger.predict(sentence)
+
+    entites = []
+    for entity in sentence.get_spans("ner"):
+        entites.append(entity)
+
+    return entites
