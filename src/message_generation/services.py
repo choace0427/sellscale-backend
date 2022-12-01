@@ -908,6 +908,7 @@ def get_named_entities_for_generated_message(message_id: int):
     return_entities = []
     for e in entities:
         tag = e["entity_group"]
+        original_entity = e["word"]
         entity = e["word"]
         entity = entity.lower()
         words_to_replace = replace_words(message_id=message_id)
@@ -919,7 +920,9 @@ def get_named_entities_for_generated_message(message_id: int):
             (entity.replace("hi", "").replace("hello", "").replace("hey", "")),
         ).strip()
 
-        return_entities.append({"entity": sanitize_entity, "type": tag})
+        return_entities.append(
+            {"entity": sanitize_entity, "type": tag, "original_entity": original_entity}
+        )
 
     return return_entities
 
@@ -943,6 +946,6 @@ def generated_message_has_entities_not_in_prompt(message_id: int):
 
         if entity["entity"] not in sanitized_prompt:
             has_entity_not_in_prompt = True
-            flagged_entities.append(entity["entity"])
+            flagged_entities.append(entity["original_entity"])
 
     return has_entity_not_in_prompt, flagged_entities

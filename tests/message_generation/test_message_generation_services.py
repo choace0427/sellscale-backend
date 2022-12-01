@@ -741,3 +741,20 @@ def test_get_named_entities_for_generated_message():
             "zuma",
         ]
         assert type in ["PER"]
+
+
+@use_app_context
+def test_generated_message_has_entities_not_in_prompt():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message.completion = " Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
+    db.session.add(generated_message)
+    db.session.commit()
+
+    x, entities = generated_message_has_entities_not_in_prompt(generated_message.id)
+
+    assert x == True
+    assert len(entities) == 3
