@@ -28,6 +28,8 @@ from tqdm import tqdm
 import openai
 from flair.data import Sentence
 from flair.models import SequenceTagger
+import re
+
 
 tagger = SequenceTagger.load("ner")
 
@@ -874,3 +876,42 @@ def get_named_entities(string: str):
         entites.append(entity)
 
     return entites
+
+
+def get_named_entities_for_generated_message(message_id: int):
+    """
+    Get named entities for a generated message
+    """
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    entities = get_named_entities(message.completion)
+
+    return_entities = []
+    for e in entities:
+        entity = " ".join([token.form for token in e.tokens])
+        entity = entity.lower()
+        sanitize_entity = re.sub(
+            "[^0-9a-zA-Z]+",
+            " ",
+            (entity.replace("hi", "").replace("hello", "").replace("hey", "")),
+        ).strip()
+
+        return_entities.append({"entity": sanitize_entity, "type": e.tag})
+
+    return return_entities
+
+
+def generated_message_has_entities_not_in_prompt(message_id: int):
+    """
+    Check if the message has any entities that are not in the prompt
+    """
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    entities = get_named_entities_for_generated_message(message_id=message_id)
+
+    has_entity_not_in_prompt = False
+    flagged_entities = []
+    for entity in entities:
+        if entity["entity"] not in message.prompt.lower():
+            has_entity_not_in_prompt = True
+            flagged_entities.append(entity["entity"])
+
+    return has_entity_not_in_prompt, flagged_entities
