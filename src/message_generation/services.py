@@ -31,8 +31,6 @@ from flair.models import SequenceTagger
 import re
 
 
-tagger = SequenceTagger.load("ner")
-
 import datetime
 
 

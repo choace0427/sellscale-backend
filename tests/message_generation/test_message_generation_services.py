@@ -718,26 +718,26 @@ def test_batch_approve_message_generations_by_heuristic():
         assert prospect.approved_outreach_message_id == None
 
 
-@use_app_context
-def test_get_named_entities_for_generated_message():
-    client = basic_client()
-    archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
-    generated_message.completion = " Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
-    db.session.add(generated_message)
-    db.session.commit()
+# @use_app_context
+# def test_get_named_entities_for_generated_message():
+#     client = basic_client()
+#     archetype = basic_archetype(client)
+#     prospect = basic_prospect(client, archetype)
+#     gnlp_model = basic_gnlp_model(archetype)
+#     generated_message = basic_generated_message(prospect, gnlp_model)
+#     generated_message.completion = " Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
+#     db.session.add(generated_message)
+#     db.session.commit()
 
-    entities = get_named_entities_for_generated_message(generated_message.id)
-    assert len(entities) == 3
+#     entities = get_named_entities_for_generated_message(generated_message.id)
+#     assert len(entities) == 3
 
-    for e in entities:
-        entity = e["entity"]
-        type = e["type"]
-        assert entity in [
-            "marla",
-            "megan",
-            "zuma",
-        ]
-        assert type in ["PER"]
+#     for e in entities:
+#         entity = e["entity"]
+#         type = e["type"]
+#         assert entity in [
+#             "marla",
+#             "megan",
+#             "zuma",
+#         ]
+#         assert type in ["PER"]
