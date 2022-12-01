@@ -893,7 +893,7 @@ def replace_words(message_id: int):
     client: Client = Client.query.get(prospect.client_id)
     client_name = client.company
 
-    words_to_ignore = ["hey", "hello", "hi", client_name.lower(), "linkedin"]
+    words_to_ignore = ["hey ", "hello ", "hi ", "yo ", client_name.lower(), "linkedin"]
 
     return words_to_ignore
 
@@ -918,7 +918,7 @@ def get_named_entities_for_generated_message(message_id: int):
         sanitize_entity = re.sub(
             "[^0-9a-zA-Z]+",
             " ",
-            (entity.replace("hi", "").replace("hello", "").replace("hey", "")),
+            entity,
         ).strip()
 
         return_entities.append(
