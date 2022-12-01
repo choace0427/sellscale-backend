@@ -26,12 +26,13 @@ import random
 from app import db, celery
 from tqdm import tqdm
 import openai
-from flair.data import Sentence
-from flair.models import SequenceTagger
 import re
-
+import os
 
 import datetime
+
+
+HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
 
 
 @celery.task
@@ -866,14 +867,22 @@ def get_named_entities(string: str):
     """
     Get named entities from a string
     """
-    sentence = Sentence(string)
-    tagger.predict(sentence)
+    import requests
 
-    entites = []
-    for entity in sentence.get_spans("ner"):
-        entites.append(entity)
+    API_URL = "https://api-inference.huggingface.co/models/flair/ner-english"
+    headers = {"Authorization": "Bearer {}".format(HUGGING_FACE_KEY)}
 
-    return entites
+    def query(payload):
+        response = requests.post(API_URL, headers=headers, json=payload)
+        return response.json()
+
+    output = query(
+        {
+            "inputs": string,
+        }
+    )
+
+    return output
 
 
 def get_named_entities_for_generated_message(message_id: int):
@@ -885,7 +894,8 @@ def get_named_entities_for_generated_message(message_id: int):
 
     return_entities = []
     for e in entities:
-        entity = " ".join([token.form for token in e.tokens])
+        tag = e["entity_group"]
+        entity = e["word"]
         entity = entity.lower()
         sanitize_entity = re.sub(
             "[^0-9a-zA-Z]+",
@@ -893,7 +903,7 @@ def get_named_entities_for_generated_message(message_id: int):
             (entity.replace("hi", "").replace("hello", "").replace("hey", "")),
         ).strip()
 
-        return_entities.append({"entity": sanitize_entity, "type": e.tag})
+        return_entities.append({"entity": sanitize_entity, "type": tag})
 
     return return_entities
 
