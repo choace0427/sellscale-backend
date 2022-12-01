@@ -906,6 +906,7 @@ def get_named_entities_for_generated_message(message_id: int):
     entities = get_named_entities(message.completion)
 
     return_entities = []
+    print(entities)
     for e in entities:
         tag = e["entity_group"]
         original_entity = e["word"]
@@ -927,30 +928,34 @@ def get_named_entities_for_generated_message(message_id: int):
     return return_entities
 
 
-def generated_message_has_entities_not_in_prompt(message_id: int):
+@celery.task(bind=True, max_retries=3)
+def generated_message_has_entities_not_in_prompt(self, message_id: int):
     """
     Check if the message has any entities that are not in the prompt
     """
-    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    entities = get_named_entities_for_generated_message(message_id=message_id)
+    try:
+        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+        entities = get_named_entities_for_generated_message(message_id=message_id)
 
-    has_entity_not_in_prompt = False
-    flagged_entities = []
-    for entity in entities:
-        prompt = message.prompt
-        sanitized_prompt = re.sub(
-            "[^0-9a-zA-Z]+",
-            " ",
-            prompt.lower(),
-        ).strip()
+        has_entity_not_in_prompt = False
+        flagged_entities = []
+        for entity in entities:
+            prompt = message.prompt
+            sanitized_prompt = re.sub(
+                "[^0-9a-zA-Z]+",
+                " ",
+                prompt.lower(),
+            ).strip()
 
-        if entity["entity"] not in sanitized_prompt:
-            has_entity_not_in_prompt = True
-            flagged_entities.append(entity["original_entity"])
+            if entity["entity"] not in sanitized_prompt:
+                has_entity_not_in_prompt = True
+                flagged_entities.append(entity["original_entity"])
 
-    generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    generated_message.unknown_named_entities = flagged_entities
-    db.session.add(generated_message)
-    db.session.commit()
+        generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+        generated_message.unknown_named_entities = flagged_entities
+        db.session.add(generated_message)
+        db.session.commit()
 
-    return has_entity_not_in_prompt, flagged_entities
+        return has_entity_not_in_prompt, flagged_entities
+    except Exception as e:
+        raise self.retry(exc=e, countdown=2**self.request.retries)
