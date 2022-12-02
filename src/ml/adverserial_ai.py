@@ -73,9 +73,6 @@ def adversarial_ai_ruleset(message_id: int):
     if "i've spent" in completion.lower():
         problems.append("Contains 'i've spent'.")
 
-    if "i'm " in completion.lower():
-        problems.append("Contains 'i'm'.")
-
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.problems = problems
     db.session.add(message)
