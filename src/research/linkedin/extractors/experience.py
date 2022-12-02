@@ -134,6 +134,8 @@ def remove_suffixes_from_company_name(positions_str):
         " .Ltd",
         " Co.",
         " Co",
+        "®",
+        " ®",
     ]
     replaced_suffixes.sort(key=lambda x: len(x), reverse=True)
     for suffix in replaced_suffixes:
