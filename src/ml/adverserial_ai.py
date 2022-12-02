@@ -1,6 +1,7 @@
 import requests
 import json
 from model_import import GeneratedMessage
+from app import db
 
 # View experiment here: https://www.notion.so/sellscale/Adversarial-AI-v0-Experiment-901a97de91a845d5a83063f3d6606a4a
 ADVERSARIAL_MODEL = "curie:ft-personal-2022-10-27-20-07-22"
@@ -74,5 +75,10 @@ def adversarial_ai_ruleset(message_id: int):
 
     if "i'm " in completion.lower():
         problems.append("Contains 'i'm'.")
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message.problems = problems
+    db.session.add(message)
+    db.session.commit()
 
     return problems
