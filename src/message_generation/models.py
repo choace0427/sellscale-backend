@@ -47,6 +47,7 @@ class GeneratedMessage(db.Model):
     )
 
     unknown_named_entities = db.Column(db.ARRAY(db.String), nullable=True)
+    problems = db.Column(db.ARRAY(db.String), nullable=True)
 
 
 class GeneratedMessageCTA(db.Model):
