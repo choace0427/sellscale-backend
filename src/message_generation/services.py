@@ -690,9 +690,41 @@ def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailSt
     return True
 
 
+def clear_prospect_approved_email(prospect_id: int):
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(
+        ProspectEmail.prospect_id == prospect_id,
+        ProspectEmail.email_status == ProspectEmailStatus.APPROVED,
+    ).first()
+    if prospect_email:
+        prospect_email.email_status = ProspectEmailStatus.DRAFT
+        db.session.add(prospect_email)
+        db.session.commit()
+
+        personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
+            prospect_email.personalized_first_line
+        )
+        if personalized_first_line:
+            personalized_first_line.message_status = GeneratedMessageStatus.DRAFT
+            db.session.add(personalized_first_line)
+            db.session.commit()
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.approved_prospect_email_id = None
+    db.session.add(prospect)
+    db.session.commit()
+
+    return True
+
+
 def mark_prospect_email_approved(prospect_email_id: int):
+
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect_id = prospect_email.prospect_id
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    if prospect.approved_outreach_message_id:
+        clear_prospect_approved_email(prospect_id=prospect_id)
+
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.approved_prospect_email_id = prospect_email.id
     db.session.add(prospect)
@@ -701,6 +733,17 @@ def mark_prospect_email_approved(prospect_email_id: int):
     return change_prospect_email_status(
         prospect_email_id=prospect_email_id, status=ProspectEmailStatus.APPROVED
     )
+
+
+def batch_mark_prospect_email_approved_by_prospect_ids(prospect_ids: list):
+    for prospect_id in prospect_ids:
+        random_prospect_email: ProspectEmail = ProspectEmail.query.filter(
+            ProspectEmail.prospect_id == prospect_id,
+        ).first()
+        if random_prospect_email:
+            mark_prospect_email_approved(random_prospect_email.id)
+
+    return True
 
 
 def mark_prospect_email_sent(prospect_email_id: int):

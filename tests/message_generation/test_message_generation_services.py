@@ -567,9 +567,19 @@ def test_change_prospect_email_status_sent():
     prospect: Prospect = Prospect.query.get(prospect.id)
     assert prospect.approved_prospect_email_id == None
 
-    mark_prospect_email_approved(prospect_email.id)
+    response = app.test_client().post(
+        "message_generation/post_batch_mark_prospect_email_approved",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": [prospect.id],
+            }
+        ),
+    )
+    assert response.status_code == 200
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
+    prospect_email_id = prospect_email.id
     generated_message: GeneratedMessage = GeneratedMessage.query.get(
         generated_message_id
     )
@@ -583,8 +593,64 @@ def test_change_prospect_email_status_sent():
     generated_message: GeneratedMessage = GeneratedMessage.query.get(
         generated_message_id
     )
+    generated_message_id = generated_message.id
     assert prospect_email.email_status == ProspectEmailStatus.SENT
     assert generated_message.message_status == GeneratedMessageStatus.SENT
+
+
+@use_app_context
+def test_clearing_approved_emails():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    email_schema = basic_email_schema(archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+    prospect_email: ProspectEmail = basic_prospect_email(prospect, email_schema)
+    prospect_email.personalized_first_line = generated_message_id
+    db.session.add(prospect_email)
+    db.session.commit()
+
+    prospect_email = ProspectEmail.query.get(prospect_email.id)
+    assert prospect_email.email_status == ProspectEmailStatus.DRAFT
+    assert prospect_email.personalized_first_line == generated_message_id
+    assert generated_message.message_status == GeneratedMessageStatus.DRAFT
+
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_prospect_email_id == None
+
+    response = app.test_client().post(
+        "message_generation/post_batch_mark_prospect_email_approved",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": [prospect.id],
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
+    prospect_email_id = prospect_email.id
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(
+        generated_message_id
+    )
+    assert prospect_email.email_status == ProspectEmailStatus.APPROVED
+    assert generated_message.message_status == GeneratedMessageStatus.APPROVED
+
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_prospect_email_id == prospect_email.id
+
+    clear_prospect_approved_email(prospect.id)
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_prospect_email_id == None
+
+    generated_message = GeneratedMessage.query.get(generated_message_id)
+    assert generated_message.message_status == GeneratedMessageStatus.DRAFT
+
+    prospect_email = ProspectEmail.query.get(prospect_email_id)
+    assert prospect_email.email_status == ProspectEmailStatus.DRAFT
 
 
 def test_prospect_email_status_and_generated_message_status_parity():
@@ -719,7 +785,15 @@ def test_batch_approve_message_generations_by_heuristic():
 
 
 @use_app_context
-def test_get_named_entities_for_generated_message():
+@mock.patch(
+    "src.message_generation.services.get_named_entities",
+    return_value=[
+        {"entity_group": "PER", "word": "Hey Marla!"},
+        {"entity_group": "PER", "word": "Megan"},
+        {"entity_group": "PER", "word": "Zuma"},
+    ],
+)
+def test_get_named_entities_for_generated_message(get_named_entities_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -744,7 +818,15 @@ def test_get_named_entities_for_generated_message():
 
 
 @use_app_context
-def test_generated_message_has_entities_not_in_prompt():
+@mock.patch(
+    "src.message_generation.services.get_named_entities",
+    return_value=[
+        {"entity_group": "PER", "word": "Hey Marla !"},
+        {"entity_group": "PER", "word": "Megan"},
+        {"entity_group": "PER", "word": "Zuma"},
+    ],
+)
+def test_generated_message_has_entities_not_in_prompt(get_named_entities_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -767,7 +849,11 @@ def test_generated_message_has_entities_not_in_prompt():
 
 
 @use_app_context
-def test_generated_message_has_entities_not_in_prompt_with_dr():
+@mock.patch(
+    "src.message_generation.services.get_named_entities",
+    return_value=[{"entity_group": "PER", "word": "Dr. Drozd!"}],
+)
+def test_generated_message_has_entities_not_in_prompt_with_dr(get_named_entities_patch):
     client = basic_client()
     client.company = "Curative"
     client_id = client.id

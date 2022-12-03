@@ -11,6 +11,7 @@ from src.message_generation.services import (
     pick_new_approved_message_for_prospect,
     create_generated_message_feedback,
     generate_cta_examples,
+    batch_mark_prospect_email_approved_by_prospect_ids,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -226,3 +227,20 @@ def post_generate_ai_made_ctas():
         with_what=with_what,
     )
     return jsonify({"ctas": ctas})
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/post_batch_mark_prospect_email_approved", methods=["POST"]
+)
+def post_batch_mark_prospect_email_approved():
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    success = batch_mark_prospect_email_approved_by_prospect_ids(
+        prospect_ids=prospect_ids
+    )
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400

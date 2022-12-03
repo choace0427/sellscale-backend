@@ -1,6 +1,6 @@
 import requests
 import json
-from model_import import GeneratedMessage
+from model_import import GeneratedMessage, GeneratedMessageType
 from app import db
 
 # View experiment here: https://www.notion.so/sellscale/Adversarial-AI-v0-Experiment-901a97de91a845d5a83063f3d6606a4a
@@ -55,7 +55,7 @@ def adversarial_ai_ruleset(message_id: int):
             )
         )
 
-    if "i have" in completion.lower():
+    if "i have " in completion.lower():
         problems.append("Uses first person 'I have'.")
 
     if "www." in completion.lower():
@@ -67,11 +67,14 @@ def adversarial_ai_ruleset(message_id: int):
     if "MD" in prompt and "Dr" not in completion:
         problems.append("Contains 'MD' but not 'Dr'. in title")
 
-    if "they've worked" in completion.lower():
+    if "they've worked " in completion.lower():
         problems.append("Contains 'they've worked'.")
 
     if "i've spent" in completion.lower():
         problems.append("Contains 'i've spent'.")
+
+    if len(completion) > 300 and message.message_type == GeneratedMessageType.LINKEDIN:
+        problems.append("Linkedin message is > 300 characters.")
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.problems = problems

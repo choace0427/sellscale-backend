@@ -163,7 +163,7 @@ def get_list_of_past_jobs(data):
     elif prob > 0.6:
         response = "Loved following journey between {}".format(positions_str)
     elif prob > 0.4:
-        response = "Has a trove of experiences at {}".format(positions_str)
+        response = "Saw that you have experiences at {}".format(positions_str)
     elif prob > 0.2:
         response = "Kudos on all the experiences at {}".format(positions_str)
     else:
