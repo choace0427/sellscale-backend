@@ -11,6 +11,7 @@ from model_import import (
     GeneratedMessageJob,
     GeneratedMessageJobStatus,
 )
+from src.ml.adverserial_ai import adversarial_ai_ruleset
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
@@ -341,6 +342,9 @@ def approve_message(message_id: int):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.message_status = GeneratedMessageStatus.APPROVED
     db.session.add(message)
+
+    message_id = message.id
+    adversarial_ai_ruleset.delay(message_id=message_id)
 
     prospect_id = message.prospect_id
     prospect: Prospect = Prospect.query.get(prospect_id)

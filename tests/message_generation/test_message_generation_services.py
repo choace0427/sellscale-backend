@@ -277,7 +277,8 @@ def test_batch_update_messages(update_message_mock):
 
 
 @use_app_context
-def test_approve_message():
+@mock.patch("src.message_generation.services.adversarial_ai_ruleset.delay")
+def test_approve_message(adversarial_ai_ruleset_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -304,6 +305,8 @@ def test_approve_message():
 
     message: GeneratedMessage = GeneratedMessage.query.first()
     assert message.message_status == GeneratedMessageStatus.APPROVED
+
+    assert adversarial_ai_ruleset_mock.called is True
 
 
 @use_app_context
@@ -722,7 +725,8 @@ def test_change_prospect_email_status():
 
 
 @use_app_context
-def test_batch_approve_message_generations_by_heuristic():
+@mock.patch("src.message_generation.services.adversarial_ai_ruleset.delay")
+def test_batch_approve_message_generations_by_heuristic(adversarial_ai_ruleset_mock):
     prospect_ids = []
 
     client = basic_client()
@@ -782,6 +786,8 @@ def test_batch_approve_message_generations_by_heuristic():
         prospect: Prospect = Prospect.query.get(message.prospect_id)
         assert prospect.status == ProspectStatus.PROSPECTED
         assert prospect.approved_outreach_message_id == None
+
+    assert adversarial_ai_ruleset_mock.call_count == 10
 
 
 @use_app_context
