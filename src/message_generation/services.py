@@ -165,7 +165,7 @@ def generate_prompt(prospect_id: int, notes: str = ""):
         **bio_data
     )
     prompt = (
-        prompt.replace('"', "").replace("\n", "\\n").replace("\r", "").replace("\\", "")
+        prompt.replace('"', "").replace("\\", "").replace("\n", "\\n").replace("\r", "")
     )
 
     return prompt
