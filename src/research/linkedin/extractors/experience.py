@@ -133,7 +133,6 @@ def remove_suffixes_from_company_name(positions_str):
         " Ltd",
         " .Ltd",
         " Co.",
-        " Co",
         "®",
         " ®",
     ]
