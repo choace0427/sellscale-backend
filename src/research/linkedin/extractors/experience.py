@@ -159,14 +159,14 @@ def get_list_of_past_jobs(data):
 
     prob = random.random()
     if prob > 0.8:
-        response = "Saw that they've worked at {} in the past".format(positions_str)
+        response = "Saw that you've worked at {} in the past".format(positions_str)
     elif prob > 0.6:
-        response = "Loved following journey between {}".format(positions_str)
+        response = "Loved following your journey between {}".format(positions_str)
     elif prob > 0.4:
         response = "Saw that you have experiences at {}".format(positions_str)
     elif prob > 0.2:
-        response = "Kudos on all the experiences at {}".format(positions_str)
+        response = "Kudos on all your experiences at {}".format(positions_str)
     else:
-        response = "Has worked at {}".format(positions_str)
+        response = "Saw you've worked at {}".format(positions_str)
 
     return {"raw_data": raw_data, "response": response}
