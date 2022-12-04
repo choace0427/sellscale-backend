@@ -152,6 +152,18 @@ def update_prospect_status(
             ],
         )
 
+    if (
+        current_status == ProspectStatus.ACTIVE_CONVO
+        and new_status == ProspectStatus.DEMO_SET
+    ):
+        return update_prospect_status_multi_step(
+            prospect_id=prospect_id,
+            statuses=[
+                ProspectStatus.SCHEDULING,
+                ProspectStatus.DEMO_SET,
+            ],
+        )
+
     if new_status in (
         ProspectStatus.SCHEDULING,
         ProspectStatus.RESPONDED,

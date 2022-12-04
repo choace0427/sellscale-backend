@@ -980,7 +980,6 @@ def get_named_entities_for_generated_message(message_id: int):
     entities = get_named_entities(message.completion)
 
     return_entities = []
-    print(entities)
     for e in entities:
         tag = e["entity_group"]
         original_entity = e["word"]
