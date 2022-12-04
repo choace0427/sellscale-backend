@@ -720,10 +720,26 @@ def clear_prospect_approved_email(prospect_id: int):
     return True
 
 
+def mark_random_new_prospect_email(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(
+        ProspectEmail.prospect_id == prospect_id,
+        ProspectEmail.email_status == ProspectEmailStatus.DRAFT,
+        ProspectEmail.id != prospect.approved_prospect_email_id,
+    ).first()
+    if prospect_email:
+        mark_prospect_email_approved(prospect_email.id)
+
+    return True
+
+
 def mark_prospect_email_approved(prospect_email_id: int):
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect_id = prospect_email.prospect_id
+
+    clear_prospect_approved_email(prospect_id=prospect_id)
+
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     if prospect.approved_outreach_message_id:

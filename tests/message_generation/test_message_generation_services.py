@@ -392,12 +392,30 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
         assert message.batch_id == "123123"
 
     prospect_emails: list = ProspectEmail.query.all()
+    prospect_email_ids = [pe.id for pe in prospect_emails]
     assert len(prospect_emails) == 3
     for prospect_email in prospect_emails:
         assert prospect_email.prospect_id == prospect_id
         assert prospect_email.email_schema_id == email_schema_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
         assert prospect_email.batch_id == "123123"
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.approved_prospect_email_id == None
+
+    response = app.test_client().post(
+        "message_generation/pick_new_approved_email",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_id": prospect_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.approved_prospect_email_id in prospect_email_ids
 
 
 @use_app_context

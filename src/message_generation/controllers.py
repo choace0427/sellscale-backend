@@ -12,6 +12,7 @@ from src.message_generation.services import (
     create_generated_message_feedback,
     generate_cta_examples,
     batch_mark_prospect_email_approved_by_prospect_ids,
+    mark_random_new_prospect_email,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -244,3 +245,16 @@ def post_batch_mark_prospect_email_approved():
         return "OK", 200
 
     return "Failed to update", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/pick_new_approved_email", methods=["POST"])
+def pick_new_approved_email():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+
+    mark_random_new_prospect_email(
+        prospect_id=prospect_id,
+    )
+
+    return "OK", 200
