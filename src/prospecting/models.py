@@ -91,10 +91,12 @@ class ProspectNote(db.Model):
 #   "to_status" index
 VALID_FROM_STATUSES_MAP = {
     ProspectStatus.PROSPECTED: [],
-    ProspectStatus.NOT_QUALIFIED: [ProspectStatus.PROSPECTED],
+    ProspectStatus.NOT_QUALIFIED: [
+        ProspectStatus.PROSPECTED,
+        ProspectStatus.SENT_OUTREACH,
+    ],
     ProspectStatus.SENT_OUTREACH: [
         ProspectStatus.PROSPECTED,
-        ProspectStatus.NOT_QUALIFIED,
     ],
     ProspectStatus.ACCEPTED: [ProspectStatus.SENT_OUTREACH],
     ProspectStatus.RESPONDED: [ProspectStatus.ACCEPTED],
