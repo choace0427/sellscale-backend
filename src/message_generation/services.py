@@ -760,6 +760,9 @@ def batch_mark_prospect_email_approved_by_prospect_ids(prospect_ids: list):
         random_prospect_email: ProspectEmail = ProspectEmail.query.filter(
             ProspectEmail.prospect_id == prospect_id,
         ).first()
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if prospect.approved_prospect_email_id:
+            continue
         if random_prospect_email:
             mark_prospect_email_approved(random_prospect_email.id)
 
