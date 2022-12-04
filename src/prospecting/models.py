@@ -92,7 +92,10 @@ class ProspectNote(db.Model):
 VALID_FROM_STATUSES_MAP = {
     ProspectStatus.PROSPECTED: [],
     ProspectStatus.NOT_QUALIFIED: [ProspectStatus.PROSPECTED],
-    ProspectStatus.SENT_OUTREACH: [ProspectStatus.PROSPECTED],
+    ProspectStatus.SENT_OUTREACH: [
+        ProspectStatus.PROSPECTED,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
     ProspectStatus.ACCEPTED: [ProspectStatus.SENT_OUTREACH],
     ProspectStatus.RESPONDED: [ProspectStatus.ACCEPTED],
     ProspectStatus.ACTIVE_CONVO: [ProspectStatus.RESPONDED],
