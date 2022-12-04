@@ -19,7 +19,7 @@ def get_actions(prospect_status: ProspectStatus):
     elif prospect_status == ProspectStatus.RESPONDED:
         return [RECORD_BUMP, NOT_INTERESTED, ACTIVE_CONVO]
     elif prospect_status == ProspectStatus.ACTIVE_CONVO:
-        return [RECORD_BUMP, NOT_INTERESTED, SCHEDULING]
+        return [RECORD_BUMP, NOT_INTERESTED, SCHEDULING, DEMO_SET]
     elif prospect_status == ProspectStatus.SCHEDULING:
         return [RECORD_BUMP, DEMO_SET, NOT_INTERESTED]
 
