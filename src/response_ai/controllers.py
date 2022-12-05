@@ -3,6 +3,7 @@ from src.utils.request_helpers import get_request_parameter
 from src.response_ai.services import (
     create_response_configuration,
     get_response_configuration,
+    update_response_configuration,
 )
 
 RESPONSE_AI_BLUEPRINT = Blueprint("response_ai", __name__)
@@ -38,4 +39,28 @@ def get_response_configuration_endpoint():
         "archetype_id", request, json=True, required=True
     )
     response_configuration = get_response_configuration(archetype_id=archetype_id)
+    return jsonify(response_configuration)
+
+
+@RESPONSE_AI_BLUEPRINT.route("/update", methods=["PATCH"])
+def patch_update_response_configuration():
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True
+    )
+    li_first_follow_up = get_request_parameter(
+        "li_first_follow_up", request, json=True, required=False
+    )
+    li_second_follow_up = get_request_parameter(
+        "li_second_follow_up", request, json=True, required=False
+    )
+    li_third_follow_up = get_request_parameter(
+        "li_third_follow_up", request, json=True, required=False
+    )
+
+    response_configuration = update_response_configuration(
+        archetype_id=archetype_id,
+        li_first_follow_up=li_first_follow_up,
+        li_second_follow_up=li_second_follow_up,
+        li_third_follow_up=li_third_follow_up,
+    )
     return jsonify(response_configuration)
