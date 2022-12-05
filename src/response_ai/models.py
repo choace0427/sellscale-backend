@@ -11,3 +11,11 @@ class ResponseConfiguration(db.Model):
     li_first_follow_up = db.Column(db.String, nullable=True)
     li_second_follow_up = db.Column(db.String, nullable=True)
     li_third_follow_up = db.Column(db.String, nullable=True)
+
+    def to_dict(self):
+        return {
+            "archetype_id": self.archetype_id,
+            "li_first_follow_up": self.li_first_follow_up,
+            "li_second_follow_up": self.li_second_follow_up,
+            "li_third_follow_up": self.li_third_follow_up,
+        }

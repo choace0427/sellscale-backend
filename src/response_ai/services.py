@@ -18,3 +18,10 @@ def create_response_configuration(
     db.session.add(response_configuration)
     db.session.commit()
     return response_configuration
+
+
+def get_response_configuration(archetype_id: int):
+    rc: ResponseConfiguration = ResponseConfiguration.query.filter_by(
+        archetype_id=archetype_id
+    ).first()
+    return rc.to_dict()

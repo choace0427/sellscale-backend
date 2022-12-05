@@ -112,6 +112,7 @@ def check_statuses_of_fine_tune_jobs():
         archetype: ClientArchetype = ClientArchetype.query.get(job.archetype_id)
         archetype_id = archetype.id
         archetype_name = archetype.archetype
+
         fine_tune_status = get_fine_tune_timeline(fine_tune_id=job.finetune_job_id)
         model_uuid = fine_tune_status.get("fine_tuned_model")
 
