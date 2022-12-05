@@ -72,3 +72,42 @@ def test_get_response_ai_configuration():
         "li_second_follow_up": "li_second_follow_up",
         "li_third_follow_up": "li_third_follow_up",
     }
+
+
+@use_app_context
+def test_update_response_configuration():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+
+    response_configuration = ResponseConfiguration(
+        archetype_id=archetype_id,
+        li_first_follow_up="li_first_follow_up",
+        li_second_follow_up="li_second_follow_up",
+        li_third_follow_up="li_third_follow_up",
+    )
+    db.session.add(response_configuration)
+    db.session.commit()
+
+    rc_list = ResponseConfiguration.query.all()
+    assert len(rc_list) == 1
+
+    response = app.test_client().patch(
+        "/response_ai/update",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "archetype_id": archetype_id,
+                "li_first_follow_up": "li_first_follow_up_updated",
+                "li_second_follow_up": "li_second_follow_up_updated",
+                "li_third_follow_up": "li_third_follow_up_updated",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert json.loads(response.data.decode("utf-8")) == {
+        "archetype_id": archetype_id,
+        "li_first_follow_up": "li_first_follow_up_updated",
+        "li_second_follow_up": "li_second_follow_up_updated",
+        "li_third_follow_up": "li_third_follow_up_updated",
+    }
