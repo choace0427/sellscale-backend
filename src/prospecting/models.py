@@ -56,6 +56,7 @@ class Prospect(db.Model):
     li_last_message_from_prospect = db.Column(db.String, nullable=True)
 
     last_reviewed = db.Column(db.DateTime, nullable=True)
+    times_bumped = db.Column(db.Integer, nullable=True)
 
     deactivate_ai_engagement = db.Column(db.Boolean, nullable=True)
 

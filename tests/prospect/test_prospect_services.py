@@ -477,6 +477,17 @@ def test_reengage_accepted_prospected():
     prospect: Prospect = Prospect.query.get(prospect.id)
     assert prospect.status == ProspectStatus.RESPONDED
     assert prospect.last_reviewed is not None
+    assert prospect.times_bumped == 1
+
+    response = app.test_client().post(
+        "prospect/mark_reengagement",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id}),
+    )
+    assert response.status_code == 200
+    assert Prospect.query.get(prospect.id) is not None
+    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert prospect.times_bumped == 2
 
 
 @use_app_context

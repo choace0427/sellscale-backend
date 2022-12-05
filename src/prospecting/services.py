@@ -440,6 +440,11 @@ def mark_prospect_reengagement(prospect_id: int):
 
     prospect = Prospect.query.get(prospect_id)
     prospect.last_reviewed = datetime.now()
+
+    if not prospect.times_bumped:
+        prospect.times_bumped = 0
+    prospect.times_bumped += 1
+
     db.session.add(prospect)
     db.session.commit()
 
