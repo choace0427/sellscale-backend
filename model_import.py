@@ -25,3 +25,4 @@ from src.email_outbound.models import (
     ProspectEmail,
 )
 from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus
+from src.response_ai.models import ResponseConfiguration
