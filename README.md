@@ -102,7 +102,17 @@ This flow is different for Migrations. Migrations are very very _very_ risky so 
     <br/>
 
 7.  Get a local `.env` file from a fellow engineer. It'll look something like this:
-    `export FLASK_APP=app.py export FLASK_ENV='development' export APP_SETTINGS=config.DevelopmentConfig export ENCRYPTION_KEY='<KEY GOES HERE>' export ISCRAPER_API_KEY='<KEY GOES HERE>' export OPENAI_KEY='<KEY GOES HERE>' export DATABASE_URL='postgresql://<YOUR_USER_NAME>@localhost:5432/sellscale' export PHANTOMBUSTER_API_KEY='<KEY GOES HERE>' export CELERY_REDIS_URL='redis://localhost:6379'`
+    ```
+    export FLASK_APP=app.py 
+    export FLASK_ENV='development' 
+    export APP_SETTINGS=config.DevelopmentConfig 
+    export ENCRYPTION_KEY='<KEY GOES HERE>' 
+    export ISCRAPER_API_KEY='<KEY GOES HERE>' 
+    export OPENAI_KEY='<KEY GOES HERE>' 
+    export DATABASE_URL='postgresql://<YOUR_USER_NAME>@localhost:5432/sellscale' 
+    export PHANTOMBUSTER_API_KEY='<KEY GOES HERE>' 
+    export CELERY_REDIS_URL='redis://localhost:6379'
+    ```
 
         Edit the .env file and ensure the `DATABASE_URL` is pointed to your local PostgreSQL uri.
 
