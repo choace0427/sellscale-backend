@@ -23,6 +23,7 @@ from model_import import (
     OutboundCampaign,
     GeneratedMessageFeedback,
     GeneratedMessageJob,
+    ResponseConfiguration,
 )
 
 
@@ -47,6 +48,7 @@ def test_app():
             db.session.commit()
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
+        clear_all_entities(ResponseConfiguration)
         clear_all_entities(GeneratedMessageFeedback)
         clear_all_entities(OutboundCampaign)
         clear_all_entities(ProspectEmail)
