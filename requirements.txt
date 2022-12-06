@@ -116,6 +116,7 @@ smmap==5.0.0
 soupsieve==2.3.2.post1
 SQLAlchemy==1.4.44
 stack-data==0.3.0
+stytch==5.15.0
 tdqm==0.0.1
 terminado==0.15.0
 tinycss2==1.1.1
