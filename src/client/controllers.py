@@ -10,6 +10,8 @@ from src.client.services import (
     update_client_sdr_scheduling_link,
     update_client_pipeline_notification_webhook,
     test_client_pipeline_notification_webhook,
+    send_stytch_magic_link,
+    approve_stytch_client_sdr_token,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -171,3 +173,28 @@ def post_test_webhook():
     if not success:
         return "Failed to test pipeline webhook", 404
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/send_magic_link_login", methods=["POST"])
+def post_send_magic_link_login():
+    client_sdr_id: str = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    success = send_stytch_magic_link(
+        client_sdr_id=client_sdr_id,
+    )
+    if not success:
+        return "Failed to send magic link", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/approve_auth_token", methods=["POST"])
+def post_approve_auth_token():
+    client_sdr_id: str = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    token = get_request_parameter("token", request, json=True, required=True)
+    token_payload = approve_stytch_client_sdr_token(
+        client_sdr_id=client_sdr_id, token=token
+    )
+    return jsonify(token_payload)

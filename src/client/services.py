@@ -6,6 +6,10 @@ from src.prospecting.models import ProspectStatus
 from typing import Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
+import os
+
+STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
+STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
 
 
 def get_client(client_id: int):
@@ -203,3 +207,31 @@ def test_client_pipeline_notification_webhook(client_id: int):
     )
 
     return True
+
+
+def send_stytch_magic_link(client_sdr_id: int):
+    from stytch import Client
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return None
+
+    email = sdr.email
+
+    client = Client(
+        project_id=STYTCH_PROJECT_ID,
+        secret=STYTCH_SECRET,
+        environment="live",
+    )
+    client.magic_links.email.login_or_create(email=email)
+    return True
+
+
+def approve_stytch_client_sdr_token(client_sdr_id: int, token: str):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_sdr.auth_token = token
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    return {"token": token}
