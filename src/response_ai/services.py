@@ -24,6 +24,10 @@ def get_response_configuration(archetype_id: int):
     rc: ResponseConfiguration = ResponseConfiguration.query.filter_by(
         archetype_id=archetype_id
     ).first()
+
+    if not rc:
+        return {}
+
     return rc.to_dict()
 
 
