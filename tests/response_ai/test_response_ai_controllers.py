@@ -92,7 +92,7 @@ def test_update_response_configuration():
     rc_list = ResponseConfiguration.query.all()
     assert len(rc_list) == 1
 
-    response = app.test_client().patch(
+    response = app.test_client().post(
         "/response_ai/update",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
