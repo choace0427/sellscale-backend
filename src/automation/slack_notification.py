@@ -20,6 +20,12 @@ def send_slack_block(
         and new_status in client.notification_allowlist
     ):
         webhook_urls.append(client.pipeline_notifications_webhook_url)
+    if (
+        client_sdr and client_sdr.pipeline_notifications_webhook_url
+        and client_sdr.notification_allowlist
+        and new_status in client_sdr.notification_allowlist
+    ):
+        webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
 
     send_slack_message(
         message=prospect.full_name + message_suffix,

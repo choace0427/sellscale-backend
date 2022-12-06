@@ -55,3 +55,7 @@ class ClientSDR(db.Model):
     auth_token = db.Column(db.String, nullable=True)
 
     pipeline_notifications_webhook_url = db.Column(db.String, nullable=True)
+    notification_allowlist = db.Column(
+        db.ARRAY(sa.Enum(ProspectStatus, create_constraint=False)),
+        nullable=True,
+    )

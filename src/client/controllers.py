@@ -9,7 +9,9 @@ from src.client.services import (
     update_client_sdr_email,
     update_client_sdr_scheduling_link,
     update_client_pipeline_notification_webhook,
+    update_client_sdr_pipeline_notification_webhook,
     test_client_pipeline_notification_webhook,
+    test_client_sdr_pipeline_notification_webhook,
     send_stytch_magic_link,
     approve_stytch_client_sdr_token,
 )
@@ -172,6 +174,41 @@ def post_test_webhook():
 
     if not success:
         return "Failed to test pipeline webhook", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/update_pipeline_client_sdr_webhook", methods=["PATCH"])
+def patch_update_pipeline_client_sdr_webhook():
+    """ Update the Client SDR Webhook
+
+    Returns:
+        response.status_code: 200 if successful, 404 if not
+    """
+    client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+    webhook = get_request_parameter("webhook", request, json=True, required=True)
+
+    success = update_client_sdr_pipeline_notification_webhook(
+        client_sdr_id=client_sdr_id, webhook=webhook
+    )
+
+    if not success:
+        return "Failed to update pipeline client sdr webhook", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/test_sdr_webhook", methods=["POST"])
+def post_test_sdr_webhook():
+    """ Sends a test message through the Client SDR Webhook
+
+    Returns:
+        response.status_code: 200 if successful, 404 if not
+    """
+    client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+
+    success = test_client_sdr_pipeline_notification_webhook(client_sdr_id=client_sdr_id)
+
+    if not success:
+        return "Failed to test pipeline client sdr webhook", 404
     return "OK", 200
 
 

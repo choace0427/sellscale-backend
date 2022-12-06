@@ -262,3 +262,42 @@ def test_patch_update_pipeline_webhook(mock_send_slack_message):
     )
     assert response.status_code == 200
     assert mock_send_slack_message.call_count == 1
+
+
+@use_app_context
+@mock.patch("src.client.services.send_slack_message")
+def test_patch_update_pipeline_client_sdr_webhook(mock_send_slack_message):
+    """ Tests the updating of a Client SDR's slack webhook endpoint.
+
+    Args:
+        mock_send_slack_message (Mock): Mocks the send_slack_message function.
+    """
+    client: Client = basic_client()
+    client_sdr: ClientSDR = basic_client_sdr(client=client)
+    client_sdr_id = client_sdr.id
+
+    assert client_sdr.pipeline_notifications_webhook_url == None
+
+    response = app.test_client().patch(
+        "client/update_pipeline_client_sdr_webhook",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_sdr_id": client_sdr_id,
+                "webhook": "TESTING_WEBHOOK",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    assert client_sdr.pipeline_notifications_webhook_url == "TESTING_WEBHOOK"
+
+    response = app.test_client().post(
+        "client/test_sdr_webhook",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {"client_sdr_id": client_sdr_id,}
+        ),
+    )
+    assert response.status_code == 200
+    assert mock_send_slack_message.call_count == 1

@@ -96,7 +96,16 @@ def create_client_sdr(client_id: int, name: str, email: str):
         return None
 
     sdr = ClientSDR(
-        client_id=client_id, name=name, email=email, weekly_li_outbound_target=100
+        client_id=client_id, 
+        name=name, 
+        email=email, 
+        weekly_li_outbound_target=100,
+        notification_allowlist=[
+            ProspectStatus.SCHEDULING,
+            ProspectStatus.DEMO_SET,
+            ProspectStatus.ACTIVE_CONVO,
+            ProspectStatus.ACCEPTED,
+        ],
     )
     db.session.add(sdr)
     db.session.commit()
@@ -204,6 +213,51 @@ def test_client_pipeline_notification_webhook(client_id: int):
     send_slack_message(
         message="This is a test message from the Sight Pipeline",
         webhook_urls=[c.pipeline_notifications_webhook_url],
+    )
+
+    return True
+
+
+def update_client_sdr_pipeline_notification_webhook(client_sdr_id: int, webhook: str):
+    """ Update the Slack pipeline notification webhook for a Client SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        webhook (str): Webhook URL
+
+    Returns:
+        bool: True if successful, None otherwise
+    """
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not csdr:
+        return None
+
+    csdr.pipeline_notifications_webhook_url = webhook
+    db.session.add(csdr)
+    db.session.commit()
+
+    return True
+
+
+def test_client_sdr_pipeline_notification_webhook(client_sdr_id: int):
+    """ Test the Slack pipeline notification webhook for a Client SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+
+    Returns:
+        bool: True if successful, None otherwise
+    """
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not csdr:
+        return None
+
+    if not csdr.pipeline_notifications_webhook_url:
+        return None
+
+    send_slack_message(
+        message="This is a test message from the Sight Pipeline",
+        webhook_urls=[csdr.pipeline_notifications_webhook_url],
     )
 
     return True
