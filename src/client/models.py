@@ -53,3 +53,5 @@ class ClientSDR(db.Model):
     scheduling_link = db.Column(db.String, nullable=True)
 
     auth_token = db.Column(db.String, nullable=True)
+
+    pipeline_notifications_webhook_url = db.Column(db.String, nullable=True)
