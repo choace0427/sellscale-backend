@@ -24,6 +24,7 @@ def test_get_empty_client_sdr_inbox():
 def test_get_one_accepted_prospect():
     client = basic_client()
     archetype = basic_archetype(client=client)
+    archetype_id = archetype.id
     client_sdr = basic_client_sdr(client=client)
     client_sdr_id = client_sdr.id
 
@@ -82,3 +83,4 @@ def test_get_one_accepted_prospect():
     assert prospect0["prospect_status"] == "ACCEPTED"
     assert prospect0["actions"] == ["RECORD_BUMP"]
     assert not prospect0["prospect_deactivate_ai_engagement"]
+    assert prospect0["prospect_archetype_id"] == archetype_id

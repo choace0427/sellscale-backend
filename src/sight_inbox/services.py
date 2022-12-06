@@ -38,6 +38,7 @@ def map_prospect(prospect: Prospect):
         "prospect_linkedin_conversation_thread": prospect.li_conversation_thread_id,
         "prospect_sdr_name": client_sdr.name,
         "prospect_client_name": client.company,
+        "prospect_archetype_id": prospect.archetype_id,
         "prospect_last_reviwed_date": prospect.last_reviewed,
         "prospect_status": prospect.status.value,
         "actions": get_actions(prospect.status),
@@ -110,6 +111,7 @@ def get_outstanding_inbox(client_sdr_id: int):
             "prospect_status: ProspectStatus,
             "prospect_deactivate_ai_engagement": bool,
             "prospect_last_message_from": str,
+            "prospect_archetype_id": int,
 
 
             "actions": RECORD_BUMP | NOT_INTERESTED | ACTIVE_CONVO | SCHEDULING | DEMO_SET,
