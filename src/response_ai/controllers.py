@@ -46,7 +46,7 @@ def post_create_response_configuration():
 @RESPONSE_AI_BLUEPRINT.route("/", methods=["GET"])
 def get_response_configuration_endpoint():
     archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True
+        "archetype_id", request, json=False, required=True
     )
     response_configuration = get_response_configuration(archetype_id=archetype_id)
     return jsonify(response_configuration)

@@ -57,13 +57,8 @@ def test_get_response_ai_configuration():
     assert len(rc_list) == 1
 
     response = app.test_client().get(
-        "/response_ai/",
+        "/response_ai/?archetype_id={}".format(archetype_id),
         headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "archetype_id": archetype_id,
-            }
-        ),
     )
     assert response.status_code == 200
     assert json.loads(response.data.decode("utf-8")) == {
