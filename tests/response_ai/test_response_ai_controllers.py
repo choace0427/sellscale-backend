@@ -13,7 +13,7 @@ def test_create_response_ai_configuration():
     archetype = basic_archetype(client)
     archetype_id = archetype.id
     response = app.test_client().post(
-        "/response_ai/create",
+        "/response_ai/",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -93,7 +93,7 @@ def test_update_response_configuration():
     assert len(rc_list) == 1
 
     response = app.test_client().post(
-        "/response_ai/update",
+        "/response_ai/",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -106,8 +106,5 @@ def test_update_response_configuration():
     )
     assert response.status_code == 200
     assert json.loads(response.data.decode("utf-8")) == {
-        "archetype_id": archetype_id,
-        "li_first_follow_up": "li_first_follow_up_updated",
-        "li_second_follow_up": "li_second_follow_up_updated",
-        "li_third_follow_up": "li_third_follow_up_updated",
+        "response_configuration_id": archetype_id
     }

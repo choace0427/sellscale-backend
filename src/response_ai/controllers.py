@@ -10,7 +10,7 @@ from src.response_ai.models import ResponseConfiguration
 RESPONSE_AI_BLUEPRINT = Blueprint("response_ai", __name__)
 
 
-@RESPONSE_AI_BLUEPRINT.route("/create", methods=["POST"])
+@RESPONSE_AI_BLUEPRINT.route("/", methods=["POST"])
 def post_create_response_configuration():
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True

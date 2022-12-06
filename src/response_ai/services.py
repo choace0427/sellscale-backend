@@ -44,4 +44,4 @@ def update_response_configuration(
         rc.li_third_follow_up = li_third_follow_up
     db.session.add(rc)
     db.session.commit()
-    return rc.to_dict()
+    return rc
