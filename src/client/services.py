@@ -320,3 +320,12 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
     token = client_sdr.auth_token
 
     return {"token": token}
+
+
+def verify_client_sdr_auth_token(auth_token: str):
+    """Verify a Client SDR auth token"""
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(auth_token=auth_token).first()
+    if not client_sdr:
+        return None
+
+    return True
