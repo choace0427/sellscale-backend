@@ -231,11 +231,11 @@ def post_send_magic_link_login():
 
 @CLIENT_BLUEPRINT.route("/approve_auth_token", methods=["POST"])
 def post_approve_auth_token():
-    client_sdr_id: str = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
+    client_sdr_email: str = get_request_parameter(
+        "client_sdr_email", request, json=True, required=True
     )
     token = get_request_parameter("token", request, json=True, required=True)
     token_payload = approve_stytch_client_sdr_token(
-        client_sdr_id=client_sdr_id, token=token
+        client_sdr_email=client_sdr_email, token=token
     )
     return jsonify(token_payload)
