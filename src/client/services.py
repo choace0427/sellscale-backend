@@ -303,6 +303,8 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
     """Authenticate a Stytch token and return a SellScale Sight auth token"""
     stytch_response = authenticate_stytch_client_sdr_token(token)
     emails = stytch_response.get("user").get("emails")
+    if not emails or len(emails) == 0:
+        return None
     email_found = False
     for email in emails:
         if (email.get("email")).lower() == client_sdr_email.lower():

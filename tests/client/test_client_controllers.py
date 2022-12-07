@@ -34,7 +34,11 @@ def test_send_magic_link(make_stytch_call_mock):
 
 
 @use_app_context
-def approve_auth_token():
+@mock.patch(
+    "src.client.services.authenticate_stytch_client_sdr_token",
+    return_value={"user": {"emails": [{"email": "test@test.com"}]}},
+)
+def test_approve_auth_token(authenticate_stytch_client_sdr_token_mock):
     """Test that we can approve an auth token after getting from Stytch provider"""
     client: Client = basic_client()
     client_sdr: ClientSDR = basic_client_sdr(client=client)
@@ -52,4 +56,6 @@ def approve_auth_token():
     )
     assert response.status_code == 200
     client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
-    assert client_sdr.auth_token == "1234"
+    assert len(client_sdr.auth_token) > 10
+
+    assert authenticate_stytch_client_sdr_token_mock.call_count == 1
