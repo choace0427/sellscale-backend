@@ -119,12 +119,12 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
     
     campaign_name = campaign.name.split(",")[0]
     prospect_count = len(campaign.prospect_ids)
-    campaign_type = campaign.campaign_type
+    campaign_type = campaign.campaign_type.value
     start_date = campaign.campaign_start_date.strftime("%b %d, %Y")
     end_date = campaign.campaign_end_date.strftime("%b %d, %Y")
 
     send_slack_message(
-        message="{} - {}'s Campaign #{} is ready to send! 🎉".format(client_company, sdr_name, campaign_id),
+        message="{} - {}'s Campaign #{} is ready to send! :tada:".format(client_company, sdr_name, campaign_id),
         blocks=[
             {
                 "type": "header",
