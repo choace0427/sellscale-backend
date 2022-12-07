@@ -274,8 +274,19 @@ def make_stytch_call(email: str):
     client.magic_links.email.login_or_create(email=email)
 
 
-def send_stytch_magic_link(client_sdr_email: int):
+def authenticate_stytch_client_sdr_token(token: str):
+    from stytch import Client
 
+    client = Client(
+        project_id=STYTCH_PROJECT_ID,
+        secret=STYTCH_SECRET,
+        environment="live",
+    )
+    return client.magic_links.authenticate(token).json()
+
+
+def send_stytch_magic_link(client_sdr_email: int):
+    """Send a Stytch magic link to a Client SDR"""
     sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
     if not sdr:
         return None
@@ -289,10 +300,21 @@ def send_stytch_magic_link(client_sdr_email: int):
 
 
 def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    """Authenticate a Stytch token and return a SellScale Sight auth token"""
+    stytch_response = authenticate_stytch_client_sdr_token(token)
+    emails = stytch_response.get("user").get("emails")
+    email_found = False
+    for email in emails:
+        if (email.get("email")).lower() == client_sdr_email.lower():
+            email_found = True
 
-    client_sdr.auth_token = token
-    db.session.add(client_sdr)
-    db.session.commit()
+    if not email_found:
+        return None
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    reset_client_sdr_sight_auth_token(client_sdr.id)
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    token = client_sdr.auth_token
 
     return {"token": token}
