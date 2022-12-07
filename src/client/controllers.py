@@ -226,8 +226,16 @@ def post_send_magic_link_login():
         client_sdr_email=client_sdr_email,
     )
     if not success:
-        return "Failed to send magic link", 404
-    return "OK", 200
+        return (
+            "Failed to send magic link. Please ensure this is a valid SellScale account email.",
+            404,
+        )
+    return (
+        "Magic login link sent to {}. Please check your inbox.".format(
+            client_sdr_email
+        ),
+        200,
+    )
 
 
 @CLIENT_BLUEPRINT.route("/approve_auth_token", methods=["POST"])
