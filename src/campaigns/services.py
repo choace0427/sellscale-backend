@@ -130,7 +130,7 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "{} - {}'s Campaign #{} is ready to send".format(client_company, sdr_name, campaign_id),
+                    "text": "{} - {}'s Campaign #{} is ready to send! :tada:".format(client_company, sdr_name, campaign_id),
                 },
             },
             {
