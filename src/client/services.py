@@ -90,6 +90,19 @@ def create_client_archetype(
     return {"client_archetype_id": client_archetype.id}
 
 
+def get_client_sdr(client_sdr_id: int):
+    """ Gets a Client SDR
+
+    Args:
+        client_sdr_id (int): The ID of the Client SDR
+
+    Returns:
+        ClientSDR: ClientSDR
+    """
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    return csdr
+
+
 def create_client_sdr(client_id: int, name: str, email: str):
     c: Client = get_client(client_id=client_id)
     if not c:

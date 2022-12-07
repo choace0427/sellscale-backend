@@ -75,6 +75,11 @@ def post_generate_campaigns():
 
 @CAMPAIGN_BLUEPRINT.route("/mark_ready_to_send", methods=["POST"])
 def post_mark_campaign_as_ready_to_send():
+    """ Mark a campaign as ready to send and send a slack message to the operations channel.
+
+    Returns:
+        status: 200 if successful, 400 if failed
+    """
     campaign_id = get_request_parameter(
         "campaign_id", request, json=True, required=True
     )
