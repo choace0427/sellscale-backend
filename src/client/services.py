@@ -263,29 +263,33 @@ def test_client_sdr_pipeline_notification_webhook(client_sdr_id: int):
     return True
 
 
-def send_stytch_magic_link(client_sdr_email: int):
+def make_stytch_call(email: str):
     from stytch import Client
-
-    sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
-    if not sdr:
-        return None
-
-    email = sdr.email
 
     client = Client(
         project_id=STYTCH_PROJECT_ID,
         secret=STYTCH_SECRET,
         environment="live",
     )
+    client.magic_links.email.login_or_create(email=email)
+
+
+def send_stytch_magic_link(client_sdr_email: int):
+
+    sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    if not sdr:
+        return None
+
+    email = sdr.email
     try:
-        client.magic_links.email.login_or_create(email=email)
+        make_stytch_call(email)
     except:
         return False
     return True
 
 
-def approve_stytch_client_sdr_token(client_sdr_id: int, token: str):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
 
     client_sdr.auth_token = token
     db.session.add(client_sdr)

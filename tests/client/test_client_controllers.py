@@ -14,8 +14,9 @@ import mock
 
 
 @use_app_context
-def test_send_magic_link():
-    """Test that we can send a magic link to a client SDR. Should 404."""
+@mock.patch("src.client.services.make_stytch_call")
+def test_send_magic_link(make_stytch_call_mock):
+    """Test that we can send a magic link to a client SDR."""
     client: Client = basic_client()
     client_sdr: ClientSDR = basic_client_sdr(client=client)
 
@@ -28,7 +29,8 @@ def test_send_magic_link():
             }
         ),
     )
-    assert response.status_code == 404  # should fail since it's test@test.com
+    assert response.status_code == 200
+    assert make_stytch_call_mock.called
 
 
 @use_app_context
