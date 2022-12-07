@@ -8,8 +8,8 @@ from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
 import os
 
-STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
+STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
 
 
 def get_client(client_id: int):
@@ -96,9 +96,9 @@ def create_client_sdr(client_id: int, name: str, email: str):
         return None
 
     sdr = ClientSDR(
-        client_id=client_id, 
-        name=name, 
-        email=email, 
+        client_id=client_id,
+        name=name,
+        email=email,
         weekly_li_outbound_target=100,
         notification_allowlist=[
             ProspectStatus.SCHEDULING,
@@ -219,7 +219,7 @@ def test_client_pipeline_notification_webhook(client_id: int):
 
 
 def update_client_sdr_pipeline_notification_webhook(client_sdr_id: int, webhook: str):
-    """ Update the Slack pipeline notification webhook for a Client SDR
+    """Update the Slack pipeline notification webhook for a Client SDR
 
     Args:
         client_sdr_id (int): ID of the Client SDR
@@ -240,7 +240,7 @@ def update_client_sdr_pipeline_notification_webhook(client_sdr_id: int, webhook:
 
 
 def test_client_sdr_pipeline_notification_webhook(client_sdr_id: int):
-    """ Test the Slack pipeline notification webhook for a Client SDR
+    """Test the Slack pipeline notification webhook for a Client SDR
 
     Args:
         client_sdr_id (int): ID of the Client SDR
@@ -263,10 +263,10 @@ def test_client_sdr_pipeline_notification_webhook(client_sdr_id: int):
     return True
 
 
-def send_stytch_magic_link(client_sdr_id: int):
+def send_stytch_magic_link(client_sdr_email: int):
     from stytch import Client
 
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
     if not sdr:
         return None
 
@@ -277,7 +277,10 @@ def send_stytch_magic_link(client_sdr_id: int):
         secret=STYTCH_SECRET,
         environment="live",
     )
-    client.magic_links.email.login_or_create(email=email)
+    try:
+        client.magic_links.email.login_or_create(email=email)
+    except:
+        return False
     return True
 
 
