@@ -1,6 +1,7 @@
 <img src="https://uploads-ssl.webflow.com/6353a854c4fa2d460377c061/63642a6e9b19034a8b42547d_Group%2018-p-500.png" style="width: 200px;">
 <br/>
-Supercharge your outbound with AI
+
+## Supercharge your outbound with AI
 
 <br/>
 <br/>
@@ -10,7 +11,20 @@ Supercharge your outbound with AI
 <img src="https://img.shields.io/badge/PostgreSQL-Database-blue">
 <img src="https://img.shields.io/badge/Testing-87 unit tests-red"></span>
 
-## SellScale API Overview
+# Table of Contents
+
+1. [SellScale API Overview](#sellscale-api-overview)
+2. [Development](#development)
+    1. [Overview](#overview)
+    2. [Installation & Local Set Up](#installation--local-set-up)
+    3. [Running Locally](#running-locally)
+    4. [Making Changes](#making-changes)
+    5. [Handling DB Migrations](#handling-db-migrations)
+3. [Other](#other)
+    1. [API Documentation](#api-documentation)
+    2. [Helpful Bash Profiles](#bash-profiles)
+
+# SellScale API Overview
 
 SellScale API is a Flask app that stores data in a **PostgreSQL** database. We use **Redis** for storing items in a task queue and **Celery** to run tasks asynchronously. We also use several APIs like PhantomBuster, **OpenAI GPT-3**, iScraper, Clay API, Slack API, and more.
 
@@ -24,7 +38,11 @@ This API allows our staff and customers to do various things like:
 - send notifications via Slack
   ... and more
 
-Main folders are as follows
+# Development
+
+## Overview
+
+The source directory is as follows
 
 ```
 - src
@@ -47,30 +65,15 @@ Main folders are as follows
 
 This structure keeps our code clean and ensures we know where to find unit tests easily. We also have some general utils in the `utils` folder and `notebooks` for experiments in the notebooks folder.
 
-## To Run API Locally
+## Installation & Local Set Up
 
-1. Open three terminals and `source .env`. Get source file from a fellow engineer.
-2. In terminal #1, start Redis with `redis-server`
-3. In terminal #2, start the Celery worker with `celery -A app.celery worker`
-4. In terminal #3, start local SellScale API with `flask run`
+If setting up from a fresh machine, make sure you have the following installed before continuing:
 
-## Making Feature Changes
+- Python3 (For OSX `xcode-select --install`)
+- Pip (For OSX `xcode-select --install`)
+- [Brew](https://brew.sh/)
 
-In general, when making feature changes, follow these guidelines:
-
-1. Make a new branch and called it `<YOUR_NAME>-<DESCRIPTION_SEPARATED_BY_UNDERSCORES>`. Examples would be `aakash-adding_delete_api_for_prospects` or `david-generate_new_hash_keys`
-2. Check out the new branch, and make your feature changes.
-3. Add unit tests! (Do not forget to add unit tests!)
-4. Run all unit tests locally. If everything passes, push to branch.
-5. Get a peer review from a fellow engineer and have them 'check it off'
-6. Verify your Pull Request in Github. If things look good, merge into Master (and it will automatically deploy via our Render pipeline)
-
-🚨 **NOTE:** 🚨
-This flow is different for Migrations. Migrations are very very _very_ risky so proceed with caution. Use the Migration guide later on in this README.
-
-## Setup SellScale API Locally
-
-If setting up from a fresh environment, make sure you have **Python3**, **Pip**, and **Brew** installed.
+The following steps assume that you have the above prerequisites installed - any necessary installations should be added to the list above.
 
 1.  Install `virtualenv` globally and use it to create your Python3 virtual environment. Make sure to run `virtualenv` in your working directory.
 
@@ -100,9 +103,9 @@ If setting up from a fresh environment, make sure you have **Python3**, **Pip**,
     create database testing
     ```
 
-6.  Download a [Postico 2](https://eggerapps.at/postico2/) - or your own PostgresSQL navigator of choice - to validate that the databases have been created (New Server -> Fill in Database field with `sellscale` -> Connect. Repeat for `testing`).
+6.  Download [Postico 2](https://eggerapps.at/postico2/) - or your own PostgresSQL navigator of choice - to validate that the databases have been created (For Postico 2: New Server -> Fill in Database field with `sellscale` -> Connect. Repeat for `testing`).
 
-7.  Create a `.env` file and paste the following. Ensure that the `DATABASE_URL` points to your `sellscale` db.
+7.  Create a `.env` file and paste the following example. Ensure that the `DATABASE_URL` points to your `sellscale` db.
 
     ```
     export FLASK_APP=app.py
@@ -117,7 +120,7 @@ If setting up from a fresh environment, make sure you have **Python3**, **Pip**,
     export HUGGING_FACE_KEY='<YOUR_KEY_HERE>'
     ```
 
-8.  Create a `.envtesting` file and paste the following. Ensure that the `DATABASE_URL` points to your `testing` db.
+8.  Create a `.envtesting` file and paste the following example. Ensure that the `DATABASE_URL` points to your `testing` db.
 
     ```
     export FLASK_APP=app.py
@@ -137,21 +140,98 @@ If setting up from a fresh environment, make sure you have **Python3**, **Pip**,
 
 10.  Make sure that setup worked by running two tests.
 
-- **Run Unit Tests**: Run all the unit tests by typing `source .envtesting && python -m pytest --cov=src -vv`. There should not be any failures.
+- **Run Unit Tests**: Run all the unit tests by typing `source .envtesting && python -m pytest --cov=src -v`. There should not be any failures.
 
 - **Boot Up Local API**: Run the API locally by typing `flask run`. You can then hit the endpoints using Postman.
 
-## Bash Profile Shortcuts
+## Running Locally
 
-Here are some shortcuts that we find really useful to get the local and testing environment up and running quickly. Feel free to copy/paste into your local `.bash_profile`
+You may need to install Redis and Celery to run the API locally.
+
+1. Make sure to `source .env`
+2. In terminal #1, start Redis with `redis-server`
+3. In terminal #2, start the Celery worker with `celery -A app.celery worker`
+4. In terminal #3, start local SellScale API with `flask run`
+
+## Making Changes
+
+In general, when making changes, follow these guidelines:
+
+1. Make a new branch: 
 
 ```
-alias 'pyinit'='source venv/bin/activate'
-alias 'python'='python3.8'
+<YOUR_NAME>_<DESCRIPTION-SEPARATED-BY-HYPHENS>
+```
 
-alias ssapi='code /Users/YOUR_USER/Documents/core-SellScale/sellscale-api'
-alias sssight='code /Users/YOUR_USER/Documents/core-SellScale/sellscale-sight'
+Examples would be `aakash_adding-delete-api-for-prospects` or `david_generate-new-hash-keys`
 
+2. Check out the new branch, and make your feature changes. **INCLUDE DOC**
+
+3. **Add unit tests!** (Do not forget to add unit tests!)
+
+4. Run all unit tests locally. If everything passes, push to branch.
+
+5. Get a peer review from a fellow engineer and have them 'check it off'
+
+6. Verify your Pull Request in Github. If things look good, merge into Master (and it will automatically deploy via our Render pipeline)
+
+🚨 **NOTE:** 🚨
+This flow is different for Migrations. Migrations are very very _very_ risky so proceed with caution. Use the Migration guide later on in this README.
+
+## Handling DB Migrations
+
+At SellScale, our database runs on three technologies: PostgreSQL, SQLAlchemy, and Alembic.
+
+- **PostgreSQL** - Our relational database of choice
+- **SQLAlchemy** - An ORM layer over databases
+- **Alembic** - our database versioning / migration tool of choice
+
+We store data in a PostgreSQL database, interact with it via SQLAlchemy, and when we want to make changes to the underlying tables/databases, we use Alembic to make 'versioned changes'.
+
+When make versioned changes, we need to be **very very careful** as we can permanently corrupt data and/or delete data! 
+
+Best to do this in pairs until you are certain you know what you are doing.
+
+Steps:
+
+1. Make an update to the model in the relevant `models.py` file.
+
+2. Create a migration file by running `flask db migrate`.
+
+3. This will create a new file with a hash (linked in terminal). Open the file and edit the first line to describe the change. This documents what changes are being made to the schema.
+
+4. Set yourself to a local environment by running `source .env` and then run `flask db upgrade`. If everything works, check a couple endpoints and ensure server is running.
+
+5. Now switch to the testing environment by running `source .envtesting` and then run `flask db upgrade`. Run all unit tests and make sure things are passing!
+
+6. Create a branch, and push your changes like usual. **ABSOLUTELY** get a peer review on DB Migrations before merging.
+
+7. SSH into a staging pod using Render. In the staging pod, run `flask db upgrade` and ensure Staging API works as expected.
+
+8. If staging works, run it on production by SSH-ing into a production pod and running `flask db upgrade`.
+
+Verify everything works! Do this with a pair to be cautious. 
+
+Do not run migrations late at night or on Friday nights when you want to go home - usually ends in demise.
+
+# Other
+
+## API Documentation
+
+**Please, please use PyDoc to document your code.** It makes it easier for others to understand your code.
+
+The following is a helpful VSCode extension for generating PyDoc comments: [autoDocstring](https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring)
+
+## Helpful Bash Profiles
+
+Here are some shortcuts that we find really useful to get the local and testing environment up and running quickly. Feel free to copy/paste into your local `.bash_profile` or `.bashrc` file or `.zshrc` file.
+
+```bash
+# Opens VSCode project quickly
+alias ssapi='code /Users/YOUR_USER/YOUR_PATH/sellscale-api'
+alias sssight='code /Users/YOUR_USER/YOUR_PATH/sellscale-sight'
+
+# The following need to be from SellScale directory
 alias prod='source .envprod'
 alias staging='source .envstaging'
 alias dev='source .env'
@@ -160,30 +240,3 @@ alias server='flask run'
 alias celery='celery -A app.celery worker'
 alias redis='redis-server'
 ```
-
-## Running Migrations
-
-At SellScale, our database runs on three technologies: PostgreSQL, SQLAlchemy, and Alembic.
-
-- PostgreSQL - Our relational database of choice
-- SQLAlchemy - An ORM layer over databases
-- Alembic - our database versioning / migration tool of choice
-
-In other words, we store data in a PostgreSQL database, interact with it via SQLAlchemy, and when we want to make changes to the underlying tables/databases, we use Alembic to make 'versioned changes'.
-
-When make versioned changes, we need to be very very careful as we can permanently corrupt data and/or delete data! Best to do this in pairs unless you are certain you know what you are doing.
-
-##### Steps:
-
-1. Make an update to the model in the relevant `models.py` file.
-
-1. Create a migration file by running `flask db migrate`
-2. This will create a new file with a hash, open up the file.
-3. Edit the first line of the file and ensure there's a comment describing the change. We need this so other engineers know, in human, what changes are being made to the schema.
-4. Set yourself to a local environment by running `source .env` and then run `flask db upgrade`. If everything works, check a couple endpoints and ensure server is running.
-5. Now checkout the testing environment by running `source .envtesting` and then run `flask db upgrade`. Run all unit tests and make sure things are passing!
-6. At this point, you know the migration did not kill your local server and it did not kill unit tests, so it's most probably safe. Create a branch, and push your changes like usual. Then merge to master.
-7. SSH into a staging pod using the SSH links provided in Render. In a staging pod, run `flask db upgrade` and ensure Staging API works as expected.
-8. If staging works, run it on production by SSH-ing into a production pod and running `flask db upgrade`.
-
-Verify everything works! Do this with a pair to be cautious. Do not run migrations late at night or on Friday nights when you want to go home - usually ends in demise.
