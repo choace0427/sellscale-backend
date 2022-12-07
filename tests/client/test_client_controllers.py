@@ -59,3 +59,14 @@ def test_approve_auth_token(authenticate_stytch_client_sdr_token_mock):
     assert len(client_sdr.auth_token) > 10
 
     assert authenticate_stytch_client_sdr_token_mock.call_count == 1
+
+    response = app.test_client().post(
+        "client/verify_client_sdr_auth_token",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "auth_token": client_sdr.auth_token,
+            }
+        ),
+    )
+    assert response.status_code == 200

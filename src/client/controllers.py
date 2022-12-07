@@ -14,6 +14,7 @@ from src.client.services import (
     test_client_sdr_pipeline_notification_webhook,
     send_stytch_magic_link,
     approve_stytch_client_sdr_token,
+    verify_client_sdr_auth_token,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -239,3 +240,14 @@ def post_approve_auth_token():
         client_sdr_email=client_sdr_email, token=token
     )
     return jsonify(token_payload)
+
+
+@CLIENT_BLUEPRINT.route("/verify_client_sdr_auth_token", methods=["POST"])
+def post_verify_client_sdr_auth_token():
+    auth_token = get_request_parameter("auth_token", request, json=True, required=True)
+    success = verify_client_sdr_auth_token(
+        auth_token=auth_token,
+    )
+    if not success:
+        return "Failed to verify auth token", 404
+    return "OK", 200
