@@ -537,17 +537,10 @@ def test_batch_generate_emails_for_prospect(
 
 @use_app_context
 @mock.patch(
-    "src.message_generation.services.get_custom_completion_for_client",
-    return_value=("completion", 5),
-)
-@mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
-@mock.patch(
     "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
 )
 def test_research_and_generate_outreaches_for_prospect_list(
     generate_outreach_mock,
-    linkedin_research_patch,
-    get_custom_completion_for_client_mock,
 ):
     client = basic_client()
     archetype = basic_archetype(client)
@@ -564,6 +557,25 @@ def test_research_and_generate_outreaches_for_prospect_list(
     )
     assert response.status_code == 200
     assert generate_outreach_mock.call_count == 1
+
+
+@use_app_context
+@mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
+@mock.patch("src.message_generation.services.generate_outreaches_new")
+def test_research_and_generate_outreaches_for_prospect_individual(
+    generate_outreaches_new_patch,
+    linkedin_research_patch,
+):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+
+    research_and_generate_outreaches_for_prospect(
+        prospect_id=prospect.id,
+        batch_id="123123",
+    )
+    assert generate_outreaches_new_patch.call_count == 1
+    assert linkedin_research_patch.call_count == 1
 
 
 @use_app_context

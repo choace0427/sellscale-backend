@@ -8,25 +8,13 @@ from src.research.linkedin.iscraper import (
 from src.utils.request_helpers import get_request_parameter
 from src.research.services import flag_research_point
 
-from ..message_generation.services import (
-    generate_outreaches,
-)
 from .linkedin.services import (
-    get_research_and_bullet_points,
     get_research_and_bullet_points_new,
     reset_prospect_research_and_messages,
     reset_batch_of_prospect_research_and_messages,
 )
 
 RESEARCH_BLUEPRINT = Blueprint("research", __name__)
-
-
-@RESEARCH_BLUEPRINT.route("/<linkedin_id>")
-def research_linkedin(linkedin_id: str):
-    data = get_research_and_bullet_points(profile_id=linkedin_id, test_mode=False)
-    outreaches = generate_outreaches(research_and_bullets=data, num_options=4)
-
-    return jsonify({"source": data, "outreaches": outreaches})
 
 
 @RESEARCH_BLUEPRINT.route("/v1/linkedin", methods=["POST"])
