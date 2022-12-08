@@ -1,5 +1,11 @@
 from app import db
-from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_prospect
+from test_utils import (
+    test_app,
+    basic_client,
+    basic_client_sdr,
+    basic_archetype,
+    basic_prospect,
+)
 from src.prospecting.services import (
     add_prospect,
     get_linkedin_slug_from_url,
@@ -360,69 +366,6 @@ def test_add_prospects_from_json_payload_invalid():
 
 
 @use_app_context
-@mock.patch(
-    "src.prospecting.clay_run.clay_run_prospector.ClayRunProspector.prospect_sync",
-    return_value=[
-        {
-            "Company": "Athelas",
-            "Company URL": "https://athelas.com/",
-            "Employee Count": "10-100",
-            "Full Name": "Aakash Adesara",
-            "Industry": "saas",
-            "Linkedin": "https://www.linkedin.com/in/aaadesara/",
-            "Linkedin Bio": "Growth Engineer",
-            "Title": "Growth Engineer",
-            "Twitter": "https://twitter.com/aaadesara",
-        }
-    ],
-)
-def test_prospecting_with_clay(prospect_sync_patch):
-    client = basic_client()
-    archetype = basic_archetype(client)
-
-    archetype_id = archetype.id
-    location = "San Francisco Bay Area"
-    headline = "Software Engineer"
-    industry = "Computer Software"
-    experience = "1-3 years"
-
-    response = app.test_client().post(
-        "prospect/",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "archetype_id": archetype_id,
-                "location": location,
-                "headline": headline,
-                "industry": industry,
-                "experience": experience,
-            }
-        ),
-    )
-    assert response.status_code == 200
-    assert prospect_sync_patch.call_count == 1
-
-    prospects: list = Prospect.query.all()
-    assert len(prospects) == 1
-    assert prospects[0].full_name == "Aakash Adesara"
-    assert prospects[0].company == "Athelas"
-    assert prospects[0].company_url == "https://athelas.com/"
-    prospect_id = prospects[0].id
-
-    response = app.test_client().patch(
-        "prospect/",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps({"prospect_id": prospect_id, "new_status": "SENT_OUTREACH"}),
-    )
-    assert response.status_code == 200
-    prospect = Prospect.query.get(prospect_id)
-    assert prospect.status.value == "SENT_OUTREACH"
-
-    records = ProspectStatusRecords.query.all()
-    assert len(records) == 1
-
-
-@use_app_context
 def test_toggle_ai_engagement_endpoint():
     client = basic_client()
     archetype = basic_archetype(client)
@@ -532,10 +475,7 @@ def test_send_slack_reminder(send_slack_message_patch):
     response = app.test_client().post(
         "prospect/send_slack_reminder",
         headers={"Content-Type": "application/json"},
-        data=json.dumps({
-            "prospect_id": 1,
-            "alert_reason": "test alert reason"
-        }),
+        data=json.dumps({"prospect_id": 1, "alert_reason": "test alert reason"}),
     )
     assert response.status_code == 200
 

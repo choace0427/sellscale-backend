@@ -14,8 +14,6 @@ from src.prospecting.services import (
 )
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
-from src.prospecting.clay_run.clay_run_prospector import ClayRunProspector
-from src.prospecting.clay_run.configs import ProspectingConfig
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.services import (
     batch_update_prospect_statuses,
@@ -28,63 +26,6 @@ from src.prospecting.services import delete_prospect_by_id
 from src.utils.random_string import generate_random_alphanumeric
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
-
-
-@PROSPECTING_BLUEPRINT.route("/", methods=["POST"])
-def index():
-    archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True
-    )
-    location = get_request_parameter("location", request, json=True, required=True)
-    headline = get_request_parameter("headline", request, json=True, required=True)
-    industry = get_request_parameter("industry", request, json=True, required=True)
-    experience = get_request_parameter("experience", request, json=True, required=True)
-
-    ca: ClientArchetype = get_client_archetype(client_archetype_id=archetype_id)
-    if not ca:
-        return "Archetype not found", 404
-    client_id = ca.client_id
-
-    prospector: ClayRunProspector = ClayRunProspector()
-
-    config: ProspectingConfig = ProspectingConfig(
-        location=location, headline=headline, industry=industry, experience=experience
-    )
-
-    prospects = prospector.prospect_sync(prospecting_config=config)
-
-    batch_id = generate_random_alphanumeric(32)
-
-    print("Uploading unique prospects to database...")
-    for prospect in tqdm(prospects):
-        full_name = prospect["Full Name"]
-        prospect_exists = prospect_exists_for_archetype(
-            full_name=full_name, client_id=client_id
-        )
-
-        from src.prospecting.models import Prospect
-
-        if not prospect_exists and prospect["Full Name"]:
-            p: Prospect = Prospect(
-                client_id=client_id,
-                archetype_id=archetype_id,
-                company=prospect["Company"],
-                company_url=prospect["Company URL"],
-                employee_count=prospect["Employee Count"],
-                full_name=prospect["Full Name"],
-                industry=prospect["Industry"],
-                linkedin_url=prospect["Linkedin"],
-                linkedin_bio=prospect["Linkedin Bio"],
-                title=prospect["Title"],
-                twitter_url=prospect["Twitter"],
-                batch=batch_id,
-                status=ProspectStatus.PROSPECTED,
-            )
-            db.session.add(p)
-            db.session.commit()
-    print("Done uploading!")
-
-    return jsonify({"data": prospects, "batch_id": batch_id})
 
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
@@ -179,7 +120,7 @@ def mark_reengagement():
 
 @PROSPECTING_BLUEPRINT.route("/send_slack_reminder", methods=["POST"])
 def send_slack_reminder():
-    """ Sends a slack reminder to the SDR for a prospect when the SDR's attention is requried. 
+    """Sends a slack reminder to the SDR for a prospect when the SDR's attention is requried.
     This could occur as a result of a message with the SellScale AI is unable to respond to.
 
     Returns:
@@ -192,8 +133,10 @@ def send_slack_reminder():
         "alert_reason", request, json=True, required=True
     )
 
-    success = send_slack_reminder_for_prospect(prospect_id=prospect_id, alert_reason=alert_reason)
-    
+    success = send_slack_reminder_for_prospect(
+        prospect_id=prospect_id, alert_reason=alert_reason
+    )
+
     if success:
         return "OK", 200
 
