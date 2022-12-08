@@ -171,17 +171,6 @@ def generate_prompt(prospect_id: int, notes: str = ""):
     return prompt
 
 
-def generate_prompt_permutations_from_notes(notes: dict, n: int = 1):
-    perms = []
-    notes = [notes[key] for key in notes.keys()]
-
-    for i in range(n):
-        sample = ["- " + x for x in random.sample(notes, 2)]
-        perms.append(" ".join(sample))
-
-    return perms
-
-
 def generate_batches_of_research_points(
     points: list, n: int = 1, num_per_perm: int = 2
 ):
@@ -190,25 +179,6 @@ def generate_batches_of_research_points(
         sample = [x for x in random.sample(points, min(len(points), num_per_perm))]
         perms.append(sample)
     return perms
-
-
-def generate_outreaches(research_and_bullets: dict, num_options: int = 1):
-    profile = research_and_bullets["raw_data"]
-    notes = research_and_bullets["bullets"]
-
-    perms = generate_prompt_permutations_from_notes(notes=notes, n=num_options)
-
-    outreaches = []
-    for perm in perms:
-        prompt = generate_prompt(linkedin_payload=profile, notes=perm)
-        completions = get_completion(
-            bullet_model_id="baseline_generation", prompt=prompt, max_tokens=90, n=2
-        )
-
-        for completion in completions:
-            outreaches.append(completion)
-
-    return outreaches
 
 
 def get_notes_and_points_from_perm(perm, cta_id: int = None):
