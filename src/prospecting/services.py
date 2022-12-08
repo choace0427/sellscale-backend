@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
-from src.client.models import Client, ClientArchetype
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
 from src.prospecting.models import (
     Prospect,
@@ -13,6 +13,7 @@ from model_import import ResearchPayload
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
+from src.utils.slack import send_slack_message
 from flask import jsonify
 
 
@@ -218,6 +219,92 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
     p.status = new_status
     db.session.add(p)
     db.session.commit()
+
+    return True
+
+
+def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
+    """ Sends an alert in the Client and Client SDR's Slack channel when a prospect's message needs custom attention.
+
+    Args:
+        prospect_id (int): ID of the Prospect
+        alert_reason (str): Reason for the alert
+
+    Returns:
+        bool: True if the alert was sent successfully, False otherwise
+    """
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return False
+    p_name = p.full_name
+    last_li_message = p.li_last_message_from_prospect
+    li_convo_thread = p.li_conversation_thread_id
+
+    c_csdr_webhook_urls = []
+    c: Client = Client.query.get(p.client_id)
+    if not c:
+        return False
+    c_slack_webhook = c.pipeline_notifications_webhook_url
+    if c_slack_webhook:
+        c_csdr_webhook_urls.append(c_slack_webhook)
+
+    csdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+    if not csdr:
+        return False
+    csdr_slack_webhook = csdr.pipeline_notifications_webhook_url
+    if csdr_slack_webhook:
+        c_csdr_webhook_urls.append(csdr_slack_webhook)
+
+    sent = send_slack_message(
+        message=f"Prospect {p_name} needs your attention! {alert_reason}",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "mrkdwn", 
+                    "text": ":rotating_light: **{}** (**#{}**) needs your attention".format(p_name, prospect_id)
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "{} last responded to you with:\n>{}".format(p_name, last_li_message)
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "SellScale AI was uncertain of how to handle the message for the following reason:\n`{}`".format(alert_reason)
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Please continue the conversation via LinkedIn",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Go to LinkedIn",
+                        "emoji": True,
+                    },
+                    "value": li_convo_thread or "https://www.linkedin.com",
+                    "url": li_convo_thread or "https://www.linkedin.com",
+                    "action_id": "button-action",
+                },
+            }
+        ],
+        webhook_urls=c_csdr_webhook_urls,
+    )
+    if sent:
+        p.last_reviewed = datetime.now()
+        p.deactivate_ai_engagement = True
+        db.session.add(p)
+        db.session.commit()
 
     return True
 

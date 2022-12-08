@@ -1,5 +1,5 @@
 from app import db
-from test_utils import test_app, basic_client, basic_archetype
+from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_prospect
 from src.prospecting.services import (
     add_prospect,
     get_linkedin_slug_from_url,
@@ -17,8 +17,8 @@ from model_import import (
     ProspectNote,
 )
 from decorators import use_app_context
-from test_utils import basic_prospect
 import mock
+import src.utils.slack
 from app import app
 import json
 
@@ -508,3 +508,40 @@ def test_reengage_active_prospected():
     prospect: Prospect = Prospect.query.get(prospect.id)
     assert prospect.status == ProspectStatus.ACTIVE_CONVO
     assert prospect.last_reviewed is not None
+
+
+@use_app_context
+@mock.patch("src.prospecting.services.send_slack_message")
+def test_send_slack_reminder(send_slack_message_patch):
+    client = basic_client()
+    client.id = 1
+    client.pipeline_notifications_webhook_url = "some_c_webhook"
+    client_sdr = basic_client_sdr(client)
+    client_sdr.id = 1
+    client_sdr.pipeline_notifications_webhook_url = "some_sdr_webhook"
+    archetype = basic_archetype(client)
+    archetype.id = 1
+    prospect = basic_prospect(client, archetype)
+    prospect.id = 1
+    prospect.client_id = 1
+    prospect.client_sdr_id = 1
+    prospect.li_last_message_from_prospect = "Last Message Test"
+    prospect.li_conversation_thread_id = "some_url"
+    db.session.commit()
+
+    response = app.test_client().post(
+        "prospect/send_slack_reminder",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({
+            "prospect_id": 1,
+            "alert_reason": "test alert reason"
+        }),
+    )
+    assert response.status_code == 200
+
+    assert send_slack_message_patch is src.prospecting.services.send_slack_message
+    assert send_slack_message_patch.call_count == 1
+
+    prospect: Prospect = Prospect.query.get(1)
+    assert prospect.last_reviewed is not None
+    assert prospect.deactivate_ai_engagement == True

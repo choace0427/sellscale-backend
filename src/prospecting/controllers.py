@@ -10,6 +10,7 @@ from src.prospecting.services import (
     update_prospect_status,
     add_prospects_from_json_payload,
     toggle_ai_engagement,
+    send_slack_reminder_for_prospect,
 )
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
@@ -173,6 +174,29 @@ def mark_reengagement():
     success = mark_prospect_reengagement(prospect_id=prospect_id)
     if success:
         return "OK", 200
+    return "Failed to update", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/send_slack_reminder", methods=["POST"])
+def send_slack_reminder():
+    """ Sends a slack reminder to the SDR for a prospect when the SDR's attention is requried. 
+    This could occur as a result of a message with the SellScale AI is unable to respond to.
+
+    Returns:
+        status: 200 if successful, 400 if failed
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    alert_reason = get_request_parameter(
+        "alert_reason", request, json=True, required=True
+    )
+
+    success = send_slack_reminder_for_prospect(prospect_id=prospect_id, alert_reason=alert_reason)
+    
+    if success:
+        return "OK", 200
+
     return "Failed to update", 400
 
 
