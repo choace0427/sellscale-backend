@@ -549,6 +549,44 @@ def mark_prospect_reengagement(prospect_id: int):
     return True
 
 
+def validate_prospect_json_payload(payload: dict):
+    """ Validate the CSV payload sent by the SDR through Retool.
+    This is in respect to validating a prospect. 
+
+    At the moment, only linkedin_url and email are enforced (one or the other).
+    In the future, additional fields can be added as we see fit.
+
+    This is what a sample payload from Retool will look like.
+    payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "aakash.adesara@gmail.com",
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "title": "Growth Engineer",
+        },
+        ....
+    ]
+
+    Args:
+        payload (dict): The payload sent by the SDR through Retool.
+
+    Returns:
+        (bool, str): A tuple of (is_valid, error_message)
+    """
+    if len(payload) == 0:
+        return False, "No prospects were sent."
+
+    for prospect in payload:
+        email = prospect.get("email")
+        linkedin_url = prospect.get("linkedin_url")
+        if not email and not linkedin_url:
+            return False, "Could not find the 'email' or 'linkedin_url' field. Please check your CSV, or make sure each Prospect has either an email or a linkedin_url field."
+
+    return True, "No Error"
+
+
 def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: dict):
     """
     This is what a sample payload from Retool will look like.

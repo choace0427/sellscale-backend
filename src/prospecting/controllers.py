@@ -8,6 +8,7 @@ from src.prospecting.services import (
     create_prospects_from_linkedin_link_list,
     prospect_exists_for_archetype,
     update_prospect_status,
+    validate_prospect_json_payload,
     add_prospects_from_json_payload,
     toggle_ai_engagement,
     send_slack_reminder_for_prospect,
@@ -151,6 +152,10 @@ def add_prospect_from_csv_payload():
         "csv_payload", request, json=True, required=True
     )
 
+    validated, reason = validate_prospect_json_payload(payload=csv_payload)
+    if not validated:
+        return reason, 400
+
     success, couldnt_add = add_prospects_from_json_payload(
         client_id=client_id, archetype_id=archetype_id, payload=csv_payload
     )
@@ -158,7 +163,7 @@ def add_prospect_from_csv_payload():
     if success:
         return "OK", 200
 
-    return "Could not add prospects", 400
+    return "Error", 400
 
 
 @PROSPECTING_BLUEPRINT.route("/delete_prospect", methods=["DELETE"])

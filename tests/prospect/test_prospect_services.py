@@ -11,6 +11,7 @@ from src.prospecting.services import (
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
+    validate_prospect_json_payload,
     update_prospect_status,
 )
 from model_import import (
@@ -338,6 +339,38 @@ def test_add_2_prospects_from_csv(mock_add_prospect, mock_create_from_linkedin):
 
     for i in prospects:
         assert i.company_url == "https://athelas.com/"
+
+
+@use_app_context
+def test_validate_prospect_json_payload_invalid():
+    """
+    Tests that a bad payload is rejected
+    """
+    bad_email_li_payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "emailBAD": "",
+            "full_name": "Aakash Adesara",
+            "linkedin_urlBAD": "",
+            "title": "Growth Engineer",
+        },
+    ]
+    validated, _ = validate_prospect_json_payload(bad_email_li_payload)
+    assert validated == False
+
+    correct_payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "some_email",
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "some_url",
+            "title": "Growth Engineer",
+        },
+    ]
+    validated, _ = validate_prospect_json_payload(correct_payload)
+    assert validated == True
 
 
 @use_app_context
