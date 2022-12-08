@@ -84,8 +84,6 @@ def process_inbox(message_payload, client_id):
             prospect.li_last_message_timestamp = li_last_message_timestamp
             if not is_last_message_from_me:
                 prospect.li_last_message_from_prospect = message["message"]
-            else:
-                prospect.li_last_message_from_prospect = None
 
             db.session.add(prospect)
             db.session.commit()
