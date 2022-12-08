@@ -261,8 +261,8 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
             {
                 "type": "header",
                 "text": {
-                    "type": "mrkdwn", 
-                    "text": ":rotating_light: **{}** (**#{}**) needs your attention".format(p_name, prospect_id)
+                    "type": "plain_text", 
+                    "text": ":rotating_light: {} (#{}) needs your attention".format(p_name, prospect_id)
                 },
             },
             {
