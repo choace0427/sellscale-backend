@@ -1,0 +1,17 @@
+.env
+.envstaging
+.envprod
+
+.coverage*
+dump.rdb
+
+training_set_temp.jsonl
+*.csv
+*.pyc
+
+.DS_Store
+.envtesting
+.vscode/
+Procfile
+
+cov.xml
