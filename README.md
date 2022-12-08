@@ -6,23 +6,23 @@
 <br/>
 <br/>
 
-<span><img src="https://shields.io/badge/coverage-75%25-yellow">
+<span><img src="https://shields.io/badge/coverage-79%25-yellow">
 <img src="https://img.shields.io/badge/Flask-API-blue">
 <img src="https://img.shields.io/badge/PostgreSQL-Database-blue">
-<img src="https://img.shields.io/badge/Testing-87 unit tests-red"></span>
+<img src="https://img.shields.io/badge/Testing-111 unit tests-red"></span>
 
 # Table of Contents
 
 1. [SellScale API Overview](#sellscale-api-overview)
 2. [Development](#development)
-    1. [Overview](#overview)
-    2. [Installation & Local Set Up](#installation--local-set-up)
-    3. [Running Locally](#running-locally)
-    4. [Making Changes](#making-changes)
-    5. [Handling DB Migrations](#handling-db-migrations)
+   1. [Overview](#overview)
+   2. [Installation & Local Set Up](#installation--local-set-up)
+   3. [Running Locally](#running-locally)
+   4. [Making Changes](#making-changes)
+   5. [Handling DB Migrations](#handling-db-migrations)
 3. [Other](#other)
-    1. [API Documentation](#api-documentation)
-    2. [Helpful Bash Profiles](#bash-profiles)
+   1. [API Documentation](#api-documentation)
+   2. [Helpful Bash Profiles](#bash-profiles)
 
 # SellScale API Overview
 
@@ -138,7 +138,7 @@ The following steps assume that you have the above prerequisites installed - any
     source .envtesting && flask upgrade db
     ```
 
-10.  Make sure that setup worked by running two tests.
+10. Make sure that setup worked by running two tests.
 
 - **Run Unit Tests**: Run all the unit tests by typing `source .envtesting && python -m pytest --cov=src -v`. There should not be any failures.
 
@@ -157,7 +157,7 @@ You may need to install Redis and Celery to run the API locally.
 
 In general, when making changes, follow these guidelines:
 
-1. Make a new branch: 
+1. Make a new branch:
 
 ```
 <YOUR_NAME>_<DESCRIPTION-SEPARATED-BY-HYPHENS>
@@ -188,7 +188,7 @@ At SellScale, our database runs on three technologies: PostgreSQL, SQLAlchemy, a
 
 We store data in a PostgreSQL database, interact with it via SQLAlchemy, and when we want to make changes to the underlying tables/databases, we use Alembic to make 'versioned changes'.
 
-When make versioned changes, we need to be **very very careful** as we can permanently corrupt data and/or delete data! 
+When make versioned changes, we need to be **very very careful** as we can permanently corrupt data and/or delete data!
 
 Best to do this in pairs until you are certain you know what you are doing.
 
@@ -210,7 +210,7 @@ Steps:
 
 8. If staging works, run it on production by SSH-ing into a production pod and running `flask db upgrade`.
 
-Verify everything works! Do this with a pair to be cautious. 
+Verify everything works! Do this with a pair to be cautious.
 
 Do not run migrations late at night or on Friday nights when you want to go home - usually ends in demise.
 

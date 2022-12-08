@@ -58,13 +58,11 @@ def prospect_from_link():
     url = get_request_parameter("url", request, json=True, required=True)
 
     batch = generate_random_alphanumeric(32)
-    success = create_prospect_from_linkedin_link.delay(
+    create_prospect_from_linkedin_link.delay(
         archetype_id=archetype_id, url=url, batch=batch
     )
 
-    if success:
-        return "OK", 200
-    return "Failed to create prospect", 404
+    return "OK", 200
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link_chain", methods=["POST"])

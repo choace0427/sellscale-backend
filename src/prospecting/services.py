@@ -174,9 +174,14 @@ def update_prospect_status(
         db.session.add(p)
         db.session.commit()
 
-    return update_prospect_status_multi_step(
-        prospect_id=prospect_id, statuses=[new_status]
-    )
+    try:
+        update_prospect_status_multi_step(
+            prospect_id=prospect_id, statuses=[new_status]
+        )
+    except Exception:
+        return False
+
+    return True
 
 
 def update_prospect_status_multi_step(prospect_id: int, statuses: list):
@@ -224,7 +229,7 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
 
 
 def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
-    """ Sends an alert in the Client and Client SDR's Slack channel when a prospect's message needs custom attention.
+    """Sends an alert in the Client and Client SDR's Slack channel when a prospect's message needs custom attention.
 
     Args:
         prospect_id (int): ID of the Prospect
@@ -261,22 +266,28 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
             {
                 "type": "header",
                 "text": {
-                    "type": "plain_text", 
-                    "text": ":rotating_light: {} (#{}) needs your attention".format(p_name, prospect_id)
+                    "type": "plain_text",
+                    "text": ":rotating_light: {} (#{}) needs your attention".format(
+                        p_name, prospect_id
+                    ),
                 },
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "{} last responded to you with:\n>{}".format(p_name, last_li_message)
+                    "text": "{} last responded to you with:\n>{}".format(
+                        p_name, last_li_message
+                    ),
                 },
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "SellScale AI was uncertain of how to handle the message for the following reason:\n`{}`".format(alert_reason)
+                    "text": "SellScale AI was uncertain of how to handle the message for the following reason:\n`{}`".format(
+                        alert_reason
+                    ),
                 },
             },
             {
@@ -296,7 +307,7 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
                     "url": li_convo_thread or "https://www.linkedin.com",
                     "action_id": "button-action",
                 },
-            }
+            },
         ],
         webhook_urls=c_csdr_webhook_urls,
     )
