@@ -77,15 +77,14 @@ def test_update_prospect_status_with_note():
 
 @use_app_context
 def test_update_prospect_status_active_convo_disable_ai():
-    client = basic_client()
-    client.id = 8 # Hard coded to Curative
-    db.session.add(client)
+    client_ramp = basic_client()
+    client_ramp.id = 10 # Hard coded to Ramp
+    db.session.add(client_ramp)
     db.session.commit()
-
-    archetype = basic_archetype(client)
+    archetype = basic_archetype(client_ramp)
     archetype_id = archetype.id
     add_prospect(
-        client_id=client.id, # Hard coded to Curative
+        client_id=client_ramp.id, # Hard coded to Ramp
         archetype_id=archetype_id,
         company="testing",
         company_url="testing.com",
@@ -111,11 +110,83 @@ def test_update_prospect_status_active_convo_disable_ai():
         new_status=ProspectStatus.ACTIVE_CONVO,
         note="testing",
     )
-
     prospect = Prospect.query.get(prospect_id)
     assert prospect is not None
-    print(prospect.deactivate_ai_engagement)
     assert prospect.deactivate_ai_engagement == True
+
+    client_cur = basic_client()
+    client_cur.id = 8 # Hard coded to Curative
+    db.session.add(client_cur)
+    db.session.commit()
+    archetype = basic_archetype(client_cur)
+    archetype_id = archetype.id
+    add_prospect(
+        client_id=client_cur.id, # Hard coded to Curative
+        archetype_id=archetype_id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url=None,
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    prospect1 = prospects[1]
+    prospect1_id = prospect1.id
+    prospect1.status = ProspectStatus.RESPONDED
+    prospect1.deactivate_ai_engagement = False
+    db.session.add(prospect1)
+    db.session.commit()
+
+    update_prospect_status(
+        prospect_id=prospect1_id,
+        new_status=ProspectStatus.ACTIVE_CONVO,
+        note="testing",
+    )
+    prospect = Prospect.query.get(prospect1_id)
+    assert prospect is not None
+    assert prospect.deactivate_ai_engagement == True
+
+    client_other = basic_client()
+    client_other.id = 1 # Anyone else
+    db.session.add(client_other)
+    db.session.commit()
+    archetype = basic_archetype(client_other)
+    archetype_id = archetype.id
+    add_prospect(
+        client_id=client_other.id, # Anyone else
+        archetype_id=archetype_id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url=None,
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    prospect2 = prospects[2]
+    prospect2_id = prospect2.id
+    prospect2.status = ProspectStatus.RESPONDED
+    prospect2.deactivate_ai_engagement = False
+    db.session.add(prospect2)
+    db.session.commit()
+
+    update_prospect_status(
+        prospect_id=prospect2_id,
+        new_status=ProspectStatus.ACTIVE_CONVO,
+        note="testing",
+    )
+    prospect = Prospect.query.get(prospect2_id)
+    assert prospect is not None
+    assert prospect.deactivate_ai_engagement == False
 
 
 @use_app_context
