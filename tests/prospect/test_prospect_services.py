@@ -76,6 +76,46 @@ def test_update_prospect_status_with_note():
 
 
 @use_app_context
+def test_update_prospect_status_active_convo_disable_ai():
+    client = basic_client()
+    client_id = client.id
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    add_prospect(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url=None,
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    prospect0 = prospects[0]
+    prospect_id = prospect0.id
+    prospect0.status = ProspectStatus.RESPONDED
+    prospect0.deactivate_ai_engagement = False
+    db.session.add(prospect0)
+    db.session.commit()
+
+    update_prospect_status(
+        prospect_id=prospect_id,
+        new_status=ProspectStatus.ACTIVE_CONVO,
+        note="testing",
+    )
+
+    prospect = Prospect.query.get(prospect_id)
+    assert prospect is not None
+    print(prospect.deactivate_ai_engagement)
+    assert prospect.deactivate_ai_engagement == True
+
+
+@use_app_context
 def test_add_prospect():
     client = basic_client()
     client_id = client.id

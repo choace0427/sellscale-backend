@@ -222,6 +222,11 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
         return False
 
     p.status = new_status
+
+    # Ensures that Active Conversation individuals no longer receive AI responses.
+    if new_status == ProspectStatus.ACTIVE_CONVO:
+        p.deactivate_ai_engagement = True
+
     db.session.add(p)
     db.session.commit()
 
