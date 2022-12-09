@@ -54,6 +54,7 @@ def test_add_client_and_archetype():
                 "client_id": c.id,
                 "archetype": "testing",
                 "filters": {},
+                "disable_ai_after_prospect_engaged": True,
             }
         ),
     )
@@ -66,6 +67,7 @@ def test_add_client_and_archetype():
     assert archetype.archetype == "testing"
     assert archetype.filters == {}
     assert archetype.active == True
+    assert archetype.disable_ai_after_prospect_engaged == True
     archetype_id = archetype.id
 
     response = app.test_client().patch(
@@ -113,6 +115,7 @@ def test_add_client_and_archetype():
                 "archetype": "testing",
                 "filters": {},
                 "base_archetype_id": archetype_id,
+                "disable_ai_after_prospect_engaged": False,
             }
         ),
     )
@@ -124,6 +127,12 @@ def test_add_client_and_archetype():
     ).first()
     assert new_archetype_gnlp_model is not None
     assert new_archetype_gnlp_model.model_uuid == "TESTING_NEW_UUID"
+
+    client_archetypes: list = ClientArchetype.query.all()
+    assert len(client_archetypes) == 2
+    archetype_ai_not_disabled = client_archetypes[1]
+    assert archetype_ai_not_disabled.client_id == c.id
+    assert archetype_ai_not_disabled.disable_ai_after_prospect_engaged == False
 
 
 @use_app_context

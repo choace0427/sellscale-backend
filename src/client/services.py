@@ -52,13 +52,14 @@ def create_client_archetype(
     archetype: str,
     filters: any,
     base_archetype_id: Optional[int] = None,
+    disable_ai_after_prospect_engaged: bool = False,
 ):
     c: Client = get_client(client_id=client_id)
     if not c:
         return None
 
     client_archetype = ClientArchetype(
-        client_id=client_id, archetype=archetype, filters=filters
+        client_id=client_id, archetype=archetype, filters=filters, disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged
     )
     db.session.add(client_archetype)
     db.session.commit()

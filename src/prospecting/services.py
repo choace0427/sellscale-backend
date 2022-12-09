@@ -224,9 +224,9 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
     p.status = new_status
 
     # Ensures that Active Conversation individuals no longer receive AI responses.
-    # Hardcoded for client_id 8 (Curative)
-    # Hardcoded for client_id 10 (Ramp)
-    if new_status == ProspectStatus.ACTIVE_CONVO and (p.client_id == 8 or p.client_id == 10): 
+    # Given that the SDR has set this Prospect's Archetype to disable AI after prospect engagement.
+    ca: ClientArchetype = ClientArchetype.query.get(p.archetype_id)
+    if new_status == ProspectStatus.ACTIVE_CONVO and ca.disable_ai_after_prospect_engaged: 
         p.deactivate_ai_engagement = True
 
     db.session.add(p)

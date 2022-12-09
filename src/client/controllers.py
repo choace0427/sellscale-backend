@@ -49,6 +49,9 @@ def create_archetype():
     client_id = get_request_parameter("client_id", request, json=True, required=True)
     archetype = get_request_parameter("archetype", request, json=True, required=True)
     filters = get_request_parameter("filters", request, json=True, required=False)
+    disable_ai_after_prospect_engaged = get_request_parameter(
+        "disable_ai_after_prospect_engaged", request, json=True, required=True
+    )
 
     base_archetype_id = get_request_parameter(
         "base_archetype_id", request, json=True, required=False
@@ -59,6 +62,7 @@ def create_archetype():
         archetype=archetype,
         filters=filters,
         base_archetype_id=base_archetype_id,
+        disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
     )
     if not ca:
         return "Client not found", 404
