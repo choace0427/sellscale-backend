@@ -78,11 +78,14 @@ def test_update_prospect_status_with_note():
 @use_app_context
 def test_update_prospect_status_active_convo_disable_ai():
     client = basic_client()
-    client_id = client.id
+    client.id = 8 # Hard coded to Curative
+    db.session.add(client)
+    db.session.commit()
+
     archetype = basic_archetype(client)
     archetype_id = archetype.id
     add_prospect(
-        client_id=client_id,
+        client_id=client.id, # Hard coded to Curative
         archetype_id=archetype_id,
         company="testing",
         company_url="testing.com",
