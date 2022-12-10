@@ -39,6 +39,8 @@ class ClientArchetype(db.Model):
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
 
+    disable_ai_after_prospect_engaged = db.Column(db.Boolean, nullable=True, default=False)
+
 
 class ClientSDR(db.Model):
     __tablename__ = "client_sdr"

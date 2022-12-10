@@ -11,6 +11,7 @@ from src.prospecting.services import (
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
+    validate_prospect_json_payload,
     update_prospect_status,
 )
 from model_import import (
@@ -72,6 +73,73 @@ def test_update_prospect_status_with_note():
     assert len(notes) == 1
     assert notes[0].prospect_id == prospect_id
     assert notes[0].note == "testing"
+
+
+@use_app_context
+def test_update_prospect_status_active_convo_disable_ai():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    add_prospect(
+        client_id=client.id,
+        archetype_id=archetype.id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url=None,
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    prospect0 = prospects[0]
+    prospect0.status = ProspectStatus.RESPONDED
+    db.session.add(prospect0)
+    db.session.commit()
+
+    update_prospect_status(
+        prospect_id=prospect0.id,
+        new_status=ProspectStatus.ACTIVE_CONVO,
+        note="testing",
+    )
+    prospect = Prospect.query.get(prospect0.id)
+    assert prospect is not None
+    assert prospect.deactivate_ai_engagement == None
+
+    client2 = basic_client()
+    archetype2 = basic_archetype(client2)
+    archetype2.disable_ai_after_prospect_engaged = True
+    add_prospect(
+        client_id=client2.id,
+        archetype_id=archetype2.id,
+        company="testing",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing",
+        industry="saas",
+        batch="123",
+        linkedin_url=None,
+        linkedin_bio=None,
+        title="testing",
+        twitter_url="testing",
+    )
+    prospects = Prospect.query.all()
+    assert len(prospects) == 2
+    prospect1 = prospects[1]
+    prospect1.status = ProspectStatus.RESPONDED
+    db.session.add(prospect1)
+    db.session.commit()
+
+    update_prospect_status(
+        prospect_id=prospect1.id,
+        new_status=ProspectStatus.ACTIVE_CONVO,
+        note="testing",
+    )
+    prospect = Prospect.query.get(prospect1.id)
+    assert prospect is not None
+    assert prospect.deactivate_ai_engagement == True
 
 
 @use_app_context
@@ -338,6 +406,38 @@ def test_add_2_prospects_from_csv(mock_add_prospect, mock_create_from_linkedin):
 
     for i in prospects:
         assert i.company_url == "https://athelas.com/"
+
+
+@use_app_context
+def test_validate_prospect_json_payload_invalid():
+    """
+    Tests that a bad payload is rejected
+    """
+    bad_email_li_payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "emailBAD": "",
+            "full_name": "Aakash Adesara",
+            "linkedin_urlBAD": "",
+            "title": "Growth Engineer",
+        },
+    ]
+    validated, _ = validate_prospect_json_payload(bad_email_li_payload)
+    assert validated == False
+
+    correct_payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "email": "some_email",
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "some_url",
+            "title": "Growth Engineer",
+        },
+    ]
+    validated, _ = validate_prospect_json_payload(correct_payload)
+    assert validated == True
 
 
 @use_app_context
