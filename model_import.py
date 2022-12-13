@@ -26,3 +26,4 @@ from src.email_outbound.models import (
 )
 from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus
 from src.response_ai.models import ResponseConfiguration
+from src.onboarding.models import SightOnboarding

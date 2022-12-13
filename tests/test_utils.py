@@ -24,6 +24,7 @@ from model_import import (
     GeneratedMessageFeedback,
     GeneratedMessageJob,
     ResponseConfiguration,
+    SightOnboarding,
 )
 
 
@@ -51,6 +52,7 @@ def test_app():
         clear_all_entities(ResponseConfiguration)
         clear_all_entities(GeneratedMessageFeedback)
         clear_all_entities(OutboundCampaign)
+        clear_all_entities(SightOnboarding)
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)
         clear_all_entities(GeneratedMessage)
