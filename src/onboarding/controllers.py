@@ -22,8 +22,8 @@ def check_onboarding():
     onboarding: SightOnboarding = get_sight_onboarding(client_sdr_id)
     if not onboarding:
         return "Client not found", 404
-    
-    return is_onboarding_complete(onboarding), 200
+
+    return is_onboarding_complete(onboarding.client_sdr_id), 200
 
 
 @ONBOARDING_BLUEPRINT.route("/update", methods=["POST"])
@@ -40,6 +40,6 @@ def manual_update_onboarding():
     if not onboarding:
         return "Client not found", 404
     
-    update_sight_onboarding(onboarding, manual_update_key)
+    update_sight_onboarding(onboarding.client_sdr_id, manual_update_key)
     return "OK", 200
     

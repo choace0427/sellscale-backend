@@ -3,20 +3,20 @@ from test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
+    basic_archetype,
+    basic_prospect,
 )
 from src.onboarding.services import (
     get_sight_onboarding,
     create_sight_onboarding,
     update_sight_onboarding,
-    check_completed_credentials,
     check_completed_first_persona,
     check_completed_ai_behavior,
     check_completed_first_campaign,
     is_onboarding_complete,
 )
-from model_import import (SightOnboarding)
+from model_import import (SightOnboarding, ResponseConfiguration, GeneratedMessageCTA)
 from decorators import use_app_context
-import mock
 
 @use_app_context
 def test_get_sight_onboarding():
@@ -81,14 +81,14 @@ def test_update_sight_onboarding():
     assert sight_onboarding.is_onboarding_complete == False
     assert sight_onboarding.completed_credentials == True
 
-    # update_sight_onboarding(client_sdr_id=client_sdr.id, completed_first_persona=True)
-    # assert sight_onboarding.is_onboarding_complete == False
-    # update_sight_onboarding(client_sdr_id=client_sdr.id, completed_ai_behavior=True)
-    # assert sight_onboarding.is_onboarding_complete == False
-    # update_sight_onboarding(client_sdr_id=client_sdr.id, completed_first_campaign=True)
-    # assert sight_onboarding.is_onboarding_complete == False
-    # update_sight_onboarding(client_sdr_id=client_sdr.id, completed_go_live=True)
-    # assert sight_onboarding.is_onboarding_complete == True
+    update_sight_onboarding(client_sdr_id=client_sdr.id, manual_update_key="completed_first_persona")
+    assert sight_onboarding.is_onboarding_complete == False
+    update_sight_onboarding(client_sdr_id=client_sdr.id, manual_update_key="completed_ai_behavior")
+    assert sight_onboarding.is_onboarding_complete == False
+    update_sight_onboarding(client_sdr_id=client_sdr.id, manual_update_key="completed_first_campaign")
+    assert sight_onboarding.is_onboarding_complete == False
+    update_sight_onboarding(client_sdr_id=client_sdr.id, manual_update_key="completed_go_live")
+    assert sight_onboarding.is_onboarding_complete == True
 
 
 @use_app_context
@@ -99,27 +99,62 @@ def test_check_completed_credentials():
 
 @use_app_context
 def test_check_completed_first_persona():
-    # client = basic_client()
-    # client_sdr = basic_client_sdr(client=client)
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+    assert check_completed_first_persona(client_sdr_id=client_sdr.id) == False
 
-    # assert check_completed_first_persona(client_sdr_id=client_sdr.id) == False
-
-    pass
+    client_archetype = basic_archetype(client=client)
+    client_archetype.client_sdr_id = client_sdr.id
+    db.session.add(client_archetype)
+    db.session.commit()
+    assert check_completed_first_persona(client_sdr_id=client_sdr.id) == False
+    for i in range(10):
+        prospect = basic_prospect(client=client, archetype=client_archetype)
+        db.session.add(prospect)
+        db.session.commit()
+    assert check_completed_first_persona(client_sdr_id=client_sdr.id) == True
 
 
 @use_app_context
 def test_check_completed_ai_behavior():
-    # client = basic_client()
-    # client_sdr = basic_client_sdr(client=client)
-    # assert check_completed_ai_behavior(client=client, client_sdr_id=client_sdr.id) == False
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+    assert check_completed_ai_behavior(client=client, client_sdr_id=client_sdr.id) == False
 
-    # client2 = basic_client()
-    # client2.linkedin_outbound_enabled = True
-    # client_sdr2 = basic_client_sdr(client=client2)
+    client2 = basic_client()
+    client2.linkedin_outbound_enabled = True
+    client_sdr2 = basic_client_sdr(client=client2)
+    client_sdr2.scheduling_link = "test-link"
+    assert check_completed_ai_behavior(client=client2, client_sdr_id=client_sdr2.id) == False
 
-    # assert check_completed_ai_behavior(client=client2, client_sdr_id=client_sdr2.id) == True
+    client_archetype = basic_archetype(client=client)
+    client_archetype.client_sdr_id = client_sdr2.id
+    ai_config = ResponseConfiguration(archetype_id = client_archetype.id)
+    db.session.add(client_archetype)
+    db.session.add(ai_config)
+    db.session.commit()
+    assert check_completed_ai_behavior(client=client2, client_sdr_id=client_sdr2.id) == True
 
-    pass
+
+@use_app_context
+def test_check_completed_first_campaign():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+    assert check_completed_first_campaign(client_sdr_id=client_sdr.id) == False
+
+    client_archetype = basic_archetype(client=client)
+    client_archetype.client_sdr_id = client_sdr.id
+    db.session.add(client_archetype)
+    db.session.commit()
+    for i in range(3):
+        cta = GeneratedMessageCTA(archetype_id=client_archetype.id, text_value="test {}".format(i+1))
+        db.session.add(cta)
+        db.session.commit()
+    assert check_completed_first_campaign(client_sdr_id=client_sdr.id) == False
+    fourth_cta = GeneratedMessageCTA(archetype_id=client_archetype.id,  text_value="test 4")
+    db.session.add(fourth_cta)
+    db.session.commit()
+    assert check_completed_first_campaign(client_sdr_id=client_sdr.id) == True
 
 
 @use_app_context

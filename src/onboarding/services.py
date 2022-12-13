@@ -91,20 +91,20 @@ def update_sight_onboarding(client_sdr_id: int, manual_update_key: Optional[str]
     client: Client = Client.query.get(client_sdr.client_id)
 
     # Credentials - NEEDS WORK
-    # if not sight_onboarding.completed_credentials:
-    #     sight_onboarding.completed_credentials = check_completed_credentials(client)
+    if not sight_onboarding.completed_credentials:
+        sight_onboarding.completed_credentials = check_completed_credentials(client)
 
     # First Persona
-    # if not sight_onboarding.completed_first_persona:
-    #     sight_onboarding.completed_first_persona = check_completed_first_persona(client_sdr_id)
+    if not sight_onboarding.completed_first_persona:
+        sight_onboarding.completed_first_persona = check_completed_first_persona(client_sdr_id)
 
-    # AI Behavior - NEEDS WORK
-    # if not sight_onboarding.completed_ai_behavior:
-    #     sight_onboarding.completed_ai_behavior = check_completed_ai_behavior(client, client_sdr_id)
+    # AI Behavior
+    if not sight_onboarding.completed_ai_behavior:
+        sight_onboarding.completed_ai_behavior = check_completed_ai_behavior(client, client_sdr_id)
 
     # First Campaign
-    # if not sight_onboarding.completed_first_campaign:
-    #     sight_onboarding.completed_first_campaign = check_completed_first_campaign(client_sdr_id)
+    if not sight_onboarding.completed_first_campaign:
+        sight_onboarding.completed_first_campaign = check_completed_first_campaign(client_sdr_id)
 
     # Mark onboarding as complete if all fields are True
     if sight_onboarding.completed_credentials and \
@@ -130,6 +130,7 @@ def check_completed_credentials(client: Client):
     Returns:
         _type_: _description_
     """
+    # TODO: Implement (not ready yet)
     return False
 
 
@@ -147,12 +148,12 @@ def check_completed_first_persona(client_sdr_id: int):
     Returns:
         bool: True if client has met onboarding criteria, False otherwise.
     """
-    # personas: ClientArchetype = ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
-    # for persona in personas:
-    #     persona_id = persona.id
-    #     prospects: Prospect = Prospect.query.filter_by(client_archetype_id=persona_id).all()
-    #     if len(prospects) >= 10:
-    #         return True
+    personas: ClientArchetype = ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
+    for persona in personas:
+        persona_id = persona.id
+        prospects: Prospect = Prospect.query.filter_by(archetype_id=persona_id).all()
+        if len(prospects) >= 10:
+            return True
 
     return False
 
@@ -173,15 +174,15 @@ def check_completed_ai_behavior(client: Client, client_sdr_id: int):
     Returns:
         bool: True if client has met onboarding criteria, False otherwise.
     """
-    # if client.linkedin_outbound_enabled:
-    #     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    #     if client_sdr.scheduling_link:
-    #         personas: ClientArchetype = ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
-    #         for persona in personas:
-    #             archetype_id = persona.id
-    #             ai_config: ResponseConfiguration = ResponseConfiguration.query.get(archetype_id)
-    #             if ai_config:
-    #                 return True
+    if client.linkedin_outbound_enabled:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if client_sdr.scheduling_link:
+            personas: ClientArchetype = ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
+            for persona in personas:
+                archetype_id = persona.id
+                ai_config: ResponseConfiguration = ResponseConfiguration.query.get(archetype_id)
+                if ai_config:
+                    return True
 
     return False
 
@@ -199,14 +200,15 @@ def check_completed_first_campaign(client_sdr_id: int):
     Returns:
         bool: True if client has met onboarding criteria, False otherwise.
     """
-    # personas: ClientArchetype = ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
-    # cta_sum = 0
-    # for persona in personas:
-    #     archetype_id = persona.id
-    #     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id).all()
-    #     cta_sum += len(cta)
-    #     if cta_sum >= 4:
-    #         return True
+    personas: ClientArchetype = ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
+    cta_sum = 0
+    for persona in personas:
+        
+        archetype_id = persona.id
+        cta: GeneratedMessageCTA = GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id).all()
+        cta_sum += len(cta)
+        if cta_sum >= 4:
+            return True
 
     return False
 
