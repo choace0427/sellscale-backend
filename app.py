@@ -73,7 +73,6 @@ def register_blueprints(app):
     from src.sight_inbox.controllers import SIGHT_INBOX_BLUEPRINT
     from src.editing_tools.controllers import EDITING_TOOLS_BLUEPRINT
     from src.response_ai.controllers import RESPONSE_AI_BLUEPRINT
-    from src.onboarding.controllers import ONBOARDING_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -90,7 +89,6 @@ def register_blueprints(app):
     app.register_blueprint(SIGHT_INBOX_BLUEPRINT, url_prefix="/sight_inbox")
     app.register_blueprint(EDITING_TOOLS_BLUEPRINT, url_prefix="/editing_tools")
     app.register_blueprint(RESPONSE_AI_BLUEPRINT, url_prefix="/response_ai")
-    app.register_blueprint(ONBOARDING_BLUEPRINT, url_prefix="/onboarding")
 
     db.init_app(app)
 

@@ -1,7 +1,6 @@
 from app import db
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import ProspectStatus
 from typing import Optional
@@ -124,8 +123,6 @@ def create_client_sdr(client_id: int, name: str, email: str):
     )
     db.session.add(sdr)
     db.session.commit()
-
-    create_sight_onboarding(sdr.id)
 
     return {"client_sdr_id": sdr.id}
 
