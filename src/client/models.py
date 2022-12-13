@@ -44,6 +44,8 @@ class ClientArchetype(db.Model):
 
     disable_ai_after_prospect_engaged = db.Column(db.Boolean, nullable=True, default=False)
 
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+
 
 class ClientSDR(db.Model):
     __tablename__ = "client_sdr"

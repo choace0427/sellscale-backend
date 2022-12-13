@@ -52,13 +52,16 @@ def create_archetype():
     disable_ai_after_prospect_engaged = get_request_parameter(
         "disable_ai_after_prospect_engaged", request, json=True, required=True
     )
-
     base_archetype_id = get_request_parameter(
         "base_archetype_id", request, json=True, required=False
+    )
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
     )
 
     ca: object = create_client_archetype(
         client_id=client_id,
+        client_sdr_id=client_sdr_id,
         archetype=archetype,
         filters=filters,
         base_archetype_id=base_archetype_id,

@@ -45,6 +45,7 @@ def test_add_client_and_archetype():
     c: Client = get_client(clients[0].id)
     assert c.id == clients[0].id
     assert len(c.notification_allowlist) == 4
+    c_sdr: ClientSDR = basic_client_sdr(c)
 
     response = app.test_client().post(
         "client/archetype",
@@ -52,6 +53,7 @@ def test_add_client_and_archetype():
         data=json.dumps(
             {
                 "client_id": c.id,
+                "client_sdr_id": c_sdr.id, 
                 "archetype": "testing",
                 "filters": {},
                 "disable_ai_after_prospect_engaged": True,
@@ -64,6 +66,7 @@ def test_add_client_and_archetype():
     assert len(client_archetypes) == 1
     archetype = client_archetypes[0]
     assert archetype.client_id == c.id
+    assert archetype.client_sdr_id == c_sdr.id
     assert archetype.archetype == "testing"
     assert archetype.filters == {}
     assert archetype.active == True
@@ -112,6 +115,7 @@ def test_add_client_and_archetype():
         data=json.dumps(
             {
                 "client_id": c.id,
+                "client_sdr_id": c_sdr.id,
                 "archetype": "testing",
                 "filters": {},
                 "base_archetype_id": archetype_id,
@@ -156,11 +160,12 @@ def test_add_client_and_archetype_and_sdr():
 
     c: Client = get_client(clients[0].id)
     assert c.id == clients[0].id
+    c_sdr: ClientSDR = basic_client_sdr(c)
 
-    create_client_archetype(client_id=c.id, archetype="testing", filters={})
-
+    create_client_archetype(client_id=c.id, client_sdr_id=c_sdr.id, archetype="testing", filters={})
     client_archetypes: list = ClientArchetype.query.all()
     assert len(client_archetypes) == 1
+    assert client_archetypes[0].client_sdr_id == c_sdr.id
 
     response = app.test_client().post(
         "client/sdr",
@@ -176,19 +181,19 @@ def test_add_client_and_archetype_and_sdr():
     assert response.status_code == 200
 
     client_sdrs: list = ClientSDR.query.all()
-    assert len(client_sdrs) == 1
+    assert len(client_sdrs) == 2
 
     response = app.test_client().post(
         "client/reset_client_sdr_auth_token",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "client_sdr_id": client_sdrs[0].id,
+                "client_sdr_id": client_sdrs[1].id,
             }
         ),
     )
     assert response.status_code == 200
-    client_sdrs: ClientSDR = ClientSDR.query.get(client_sdrs[0].id)
+    client_sdrs: ClientSDR = ClientSDR.query.get(client_sdrs[1].id)
     assert client_sdrs.auth_token is not None
 
 

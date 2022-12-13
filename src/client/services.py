@@ -50,6 +50,7 @@ def get_client_archetype(client_archetype_id: int):
 
 def create_client_archetype(
     client_id: int,
+    client_sdr_id: int,
     archetype: str,
     filters: any,
     base_archetype_id: Optional[int] = None,
@@ -60,7 +61,7 @@ def create_client_archetype(
         return None
 
     client_archetype = ClientArchetype(
-        client_id=client_id, archetype=archetype, filters=filters, disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged
+        client_id=client_id, client_sdr_id=client_sdr_id, archetype=archetype, filters=filters, disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged
     )
     db.session.add(client_archetype)
     db.session.commit()
