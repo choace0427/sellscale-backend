@@ -379,7 +379,8 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
     from model_import import GeneratedMessage
 
     messages: list = GeneratedMessage.query.filter(
-        GeneratedMessage.prospect_id == prospect_id
+        GeneratedMessage.prospect_id == prospect_id,
+        GeneratedMessage.message_type == GeneratedMessageType.LINKEDIN,
     ).all()
 
     for message in messages:
