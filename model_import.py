@@ -9,6 +9,7 @@ from src.message_generation.models import (
     GeneratedMessageFeedback,
     GeneratedMessageJob,
     GeneratedMessageJobStatus,
+    GeneratedMessageInstruction,
 )
 from src.prospecting.models import (
     Prospect,

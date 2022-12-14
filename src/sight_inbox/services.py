@@ -22,7 +22,7 @@ def get_actions(prospect_status: ProspectStatus):
     elif prospect_status == ProspectStatus.ACTIVE_CONVO:
         return [RECORD_BUMP, NOT_INTERESTED, SCHEDULING, DEMO_SET, INTERVENTION_NEEDED]
     elif prospect_status == ProspectStatus.SCHEDULING:
-        return [RECORD_BUMP, DEMO_SET, INTERVENTION_NEEDED]
+        return [RECORD_BUMP, DEMO_SET, INTERVENTION_NEEDED, NOT_INTERESTED]
 
     return []
 
