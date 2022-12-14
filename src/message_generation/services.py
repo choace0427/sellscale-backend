@@ -805,7 +805,7 @@ def batch_approve_message_generations_by_heuristic(prospect_ids: int):
             """
             select length(completion), *
             from generated_message
-            where prospect_id = {prospect_id}
+            where prospect_id = {prospect_id} and generated_message.message_type = 'LINKEDIN'
             order by abs(270 - length(completion)) asc
             limit 1;
         """.format(
