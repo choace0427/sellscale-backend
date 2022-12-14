@@ -213,7 +213,8 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
 
     # check if messages exist, if do don't do anything extra
     messages: list = GeneratedMessage.query.filter(
-        GeneratedMessage.prospect_id == prospect_id
+        GeneratedMessage.prospect_id == prospect_id,
+        GeneratedMessage.message_type == GeneratedMessageType.LINKEDIN,
     ).all()
     if len(messages) > 1:
         return None
