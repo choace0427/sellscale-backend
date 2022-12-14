@@ -9,7 +9,10 @@ URL_MAP = {
 
 
 def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
-    if os.environ.get("FLASK_ENV") != "production":
+    if (
+        os.environ.get("FLASK_ENV") != "production"
+        and os.environ.get("FLASK_ENV") != "celery-production"
+    ):
         return
 
     for url in webhook_urls:
