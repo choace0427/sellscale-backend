@@ -162,7 +162,8 @@ def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
     "src.message_generation.services.get_adversarial_ai_approval", return_value=True
 )
 def test_generate_outreaches_new(ai_patch, completion_patch):
-    payload = create_client(company="test", contact_name="test", contact_email="test")
+    payload = create_client(company="test", contact_name="test", contact_email="test", linkedin_outbound_enabled=True,
+        email_outbound_enabled=True,)
     client: Client = Client.query.get(payload["client_id"])
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)

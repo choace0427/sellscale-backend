@@ -18,7 +18,7 @@ def get_client(client_id: int):
     return c
 
 
-def create_client(company: str, contact_name: str, contact_email: str):
+def create_client(company: str, contact_name: str, contact_email: str, linkedin_outbound_enabled: bool, email_outbound_enabled: bool):
     from model_import import Client
 
     c: Client = Client.query.filter_by(company=company).first()
@@ -36,6 +36,8 @@ def create_client(company: str, contact_name: str, contact_email: str):
             ProspectStatus.ACTIVE_CONVO,
             ProspectStatus.ACCEPTED,
         ],
+        linkedin_outbound_enabled=linkedin_outbound_enabled,
+        email_outbound_enabled=email_outbound_enabled,
     )
     db.session.add(c)
     db.session.commit()

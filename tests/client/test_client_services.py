@@ -22,6 +22,8 @@ def test_add_client_and_archetype():
         company="testing",
         contact_name="testing",
         contact_email="testing",
+        linkedin_outbound_enabled=True,
+        email_outbound_enabled=True,
     )
     clients: list = Client.query.all()
     assert len(clients) == 1
@@ -34,6 +36,8 @@ def test_add_client_and_archetype():
                 "company": "testing",
                 "contact_name": "testing",
                 "contact_email": "testing",
+                "linkedin_outbound_enabled": True,
+                "email_outbound_enabled": True,
             }
         ),
     )
@@ -45,6 +49,8 @@ def test_add_client_and_archetype():
     c: Client = get_client(clients[0].id)
     assert c.id == clients[0].id
     assert len(c.notification_allowlist) == 4
+    assert c.linkedin_outbound_enabled == True
+    assert c.email_outbound_enabled == True
     c_sdr: ClientSDR = basic_client_sdr(c)
 
     response = app.test_client().post(
@@ -146,6 +152,8 @@ def test_add_client_and_archetype_and_sdr():
         company="testing",
         contact_name="testing",
         contact_email="testing",
+        linkedin_outbound_enabled=True,
+        email_outbound_enabled=True,
     )
     clients: list = Client.query.all()
     assert len(clients) == 1
@@ -154,6 +162,8 @@ def test_add_client_and_archetype_and_sdr():
         company="testing",
         contact_name="testing",
         contact_email="testing",
+        linkedin_outbound_enabled=True,
+        email_outbound_enabled=True,
     )
     clients: list = Client.query.all()
     assert len(clients) == 1
