@@ -50,6 +50,22 @@ class GeneratedMessage(db.Model):
     problems = db.Column(db.ARRAY(db.String), nullable=True)
 
     good_message = db.Column(db.Boolean, nullable=True)
+    few_shot_prompt = db.Column(db.String, nullable=True)
+    generated_message_instruction_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message_instruction.id"), nullable=True
+    )
+
+
+class GeneratedMessageInstruction(db.Model):
+    __tablename__ = "generated_message_instruction"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
+    text_value = db.Column(db.String, nullable=False)
+    active = db.Column(db.Boolean, nullable=True)
 
 
 class GeneratedMessageCTA(db.Model):
