@@ -299,10 +299,12 @@ def approve_message(message_id: int):
     from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message_type = message.message_type
     prospect_id = message.prospect_id
     other_approved_messages = GeneratedMessage.query.filter(
         GeneratedMessage.prospect_id == prospect_id,
         GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
+        GeneratedMessage.message_type == message_type,
         GeneratedMessage.id != message_id,
     ).all()
     for message in other_approved_messages:
