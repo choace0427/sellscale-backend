@@ -9,6 +9,7 @@ from src.message_generation.services import (
     batch_generate_prospect_emails,
 )
 from typing import Optional
+from src.utils.random_string import generate_random_alphanumeric
 
 from model_import import ClientArchetype
 from src.utils.slack import send_slack_message, URL_MAP
@@ -50,6 +51,8 @@ def create_outbound_campaign(
     if campaign_type == GeneratedMessageType.LINKEDIN and ctas is None:
         raise Exception("LinkedIn campaign type requires a list of CTAs")
 
+    uuid = generate_random_alphanumeric(32)
+
     campaign = OutboundCampaign(
         name=name,
         prospect_ids=prospect_ids,
@@ -61,6 +64,7 @@ def create_outbound_campaign(
         campaign_start_date=campaign_start_date,
         campaign_end_date=campaign_end_date,
         status=OutboundCampaignStatus.PENDING,
+        uuid=uuid,
     )
     db.session.add(campaign)
     db.session.commit()
@@ -116,7 +120,7 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
     sdr_auth = sdr.auth_token
     client_id = sdr.client_id
     client_company = get_client(client_id).company
-    
+
     campaign_name = campaign.name.split(",")[0]
     prospect_count = len(campaign.prospect_ids)
     campaign_type = campaign.campaign_type.value
@@ -124,13 +128,17 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
     end_date = campaign.campaign_end_date.strftime("%b %d, %Y")
 
     send_slack_message(
-        message="{} - {}'s Campaign #{} is ready to send! :tada:".format(client_company, sdr_name, campaign_id),
+        message="{} - {}'s Campaign #{} is ready to send! :tada:".format(
+            client_company, sdr_name, campaign_id
+        ),
         blocks=[
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "{} - {}'s Campaign #{} is ready to send! :tada:".format(client_company, sdr_name, campaign_id),
+                    "text": "{} - {}'s Campaign #{} is ready to send! :tada:".format(
+                        client_company, sdr_name, campaign_id
+                    ),
                 },
             },
             {
@@ -172,7 +180,9 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Next steps: Go to {}'s Sight and send campaign".format(sdr_name),
+                    "text": "Next steps: Go to {}'s Sight and send campaign".format(
+                        sdr_name
+                    ),
                 },
                 "accessory": {
                     "type": "button",
@@ -181,12 +191,16 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
                         "text": "Go to {}'s Sight".format(sdr_name),
                         "emoji": True,
                     },
-                    "value": "https://sight.sellscale.com/?overrideAuthToken={}".format(sdr_auth)
+                    "value": "https://sight.sellscale.com/?overrideAuthToken={}".format(
+                        sdr_auth
+                    )
                     or "https://sight.sellscale.com/sight",
-                    "url": "https://sight.sellscale.com/?overrideAuthToken={}".format(sdr_auth)
+                    "url": "https://sight.sellscale.com/?overrideAuthToken={}".format(
+                        sdr_auth
+                    )
                     or "https://sight.sellscale.com/sight",
-                    "action_id": "button-action,"
-                }
+                    "action_id": "button-action,",
+                },
             },
         ],
         webhook_urls=[URL_MAP["operations-ready-campaigns"]],

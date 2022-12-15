@@ -34,3 +34,5 @@ class OutboundCampaign(db.Model):
     campaign_end_date = db.Column(db.DateTime, nullable=False)
 
     status = db.Column(db.Enum(OutboundCampaignStatus), nullable=False)
+
+    uuid = db.Column(db.String(255), nullable=True)
