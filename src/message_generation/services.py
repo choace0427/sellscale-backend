@@ -207,6 +207,10 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
         Prospect,
         GeneratedMessageCTA,
     )
+    from src.message_generation.services_few_shot_generations import (
+        generate_few_shot_generation_completion,
+        can_generate_with_few_shot,
+    )
 
     p: Prospect = Prospect.query.get(prospect_id)
     archetype_id = p.archetype_id
@@ -235,15 +239,31 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
     for perm in perms:
         notes, research_points, cta = get_notes_and_points_from_perm(perm, cta_id)
 
-        prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
-
-        completions, model_id = get_custom_completion_for_client(
-            archetype_id=archetype_id,
-            model_type=GNLPModelType.OUTREACH,
-            prompt=prompt,
-            max_tokens=90,
-            n=2,
+        able_to_generate_with_few_shot = can_generate_with_few_shot(
+            prospect_id=prospect_id
         )
+        if not able_to_generate_with_few_shot:
+            prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+            completions, model_id = get_custom_completion_for_client(
+                archetype_id=archetype_id,
+                model_type=GNLPModelType.OUTREACH,
+                prompt=prompt,
+                max_tokens=90,
+                n=2,
+            )
+
+            instruction_id = None
+            few_shot_prompt = None
+        else:
+            (
+                completions,
+                model_id,
+                prompt,
+                instruction_id,
+                few_shot_prompt,
+            ) = generate_few_shot_generation_completion(
+                prospect_id=prospect_id, notes=notes
+            )
 
         for completion in completions:
             outreaches.append(completion)
@@ -261,6 +281,8 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
                 adversarial_ai_prediction=prediction,
                 message_cta=cta.id if cta else None,
                 message_type=GeneratedMessageType.LINKEDIN,
+                generated_message_instruction_id=instruction_id,
+                few_shot_prompt=few_shot_prompt,
             )
             db.session.add(message)
             db.session.commit()
