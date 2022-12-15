@@ -58,6 +58,7 @@ def test_create_generate_message_campaign(message_gen_call_patch):
     assert campaign.prospect_ids == prospect_ids
     assert campaign.ctas == [5, 6]
     assert campaign.status.value == "PENDING"
+    assert len(campaign.uuid) > 10
 
     response = app.test_client().post(
         "campaigns/generate",
