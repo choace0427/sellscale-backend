@@ -20,7 +20,7 @@ BULLET_MODELS = {
 
 BASELINE_GENERATION_MODELS = {
     GNLPModelType.OUTREACH: "davinci:ft-personal-2022-07-23-19-55-19",
-    GNLPModelType.EMAIL_FIRST_LINE: "davinci:ft-personal-2022-07-23-19-55-19",
+    GNLPModelType.EMAIL_FIRST_LINE: "davinci:ft-personal-2022-12-04-05-14-26",
 }
 
 
