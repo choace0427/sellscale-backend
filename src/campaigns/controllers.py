@@ -11,6 +11,7 @@ from src.campaigns.services import (
     generate_campaign,
     update_campaign_dates,
     update_campaign_name,
+    merge_outbound_campaigns,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -75,7 +76,7 @@ def post_generate_campaigns():
 
 @CAMPAIGN_BLUEPRINT.route("/mark_ready_to_send", methods=["POST"])
 def post_mark_campaign_as_ready_to_send():
-    """ Mark a campaign as ready to send and send a slack message to the operations channel.
+    """Mark a campaign as ready to send and send a slack message to the operations channel.
 
     Returns:
         status: 200 if successful, 400 if failed
@@ -111,3 +112,15 @@ def post_update_campaign_dates():
         campaign_id=campaign_id, start_date=start_date, end_date=end_date
     )
     return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/merge", methods=["POST"])
+def post_merge_campaigns():
+    campaign_ids = get_request_parameter(
+        "campaign_ids", request, json=True, required=True
+    )
+    try:
+        campaign_id = merge_outbound_campaigns(campaign_ids=campaign_ids)
+    except Exception as e:
+        return str(e), 400
+    return jsonify({"new_campaign_id": campaign_id})
