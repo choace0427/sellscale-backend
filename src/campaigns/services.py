@@ -235,3 +235,70 @@ def update_campaign_dates(campaign_id: int, start_date: datetime, end_date: date
     campaign.campaign_end_date = end_date
     db.session.add(campaign)
     db.session.commit()
+
+
+def merge_outbound_campaigns(campaign_ids: list):
+    """Merges multiple campaigns into one
+
+    Args:
+        campaign_ids (list): List of campaign ids to merge
+
+    Returns:
+        int: Id of the new campaign
+    """
+    name = "Merged Campaign - " + ", ".join([str(c) for c in campaign_ids])
+    campaigns = OutboundCampaign.query.filter(
+        OutboundCampaign.id.in_(campaign_ids)
+    ).all()
+
+    campaign_types = set([c.campaign_type for c in campaigns])
+    if len(campaign_types) > 1:
+        raise Exception("Campaigns must be of the same type")
+
+    email_schema_ids = set([c.email_schema_id for c in campaigns])
+    if len(email_schema_ids) > 1:
+        raise Exception("Campaigns must be of the same email schema")
+
+    client_archetype_ids = set([c.client_archetype_id for c in campaigns])
+    if len(client_archetype_ids) > 1:
+        raise Exception("Campaigns must be of the same client archetype")
+
+    client_sdr_ids = set([c.client_sdr_id for c in campaigns])
+    if len(client_sdr_ids) > 1:
+        raise Exception("Campaigns must be of the same client sdr")
+
+    campaign_statuses = set([c.status.value for c in campaigns])
+    if len(campaign_statuses) > 1:
+        raise Exception("Campaigns must be of the same status")
+
+    name = "Merged - Campaigns: " + ", ".join([str(c.id) for c in campaigns])
+    prospect_ids = list(set().union(*[c.prospect_ids for c in campaigns]))
+    campaign_type = campaigns[0].campaign_type
+    ctas = list(set().union(*[c.ctas for c in campaigns if c.ctas]))
+    email_schema_id = campaigns[0].email_schema_id
+    client_archetype_id = campaigns[0].client_archetype_id
+    client_sdr_id = campaigns[0].client_sdr_id
+    campaign_start_date = min([c.campaign_start_date for c in campaigns])
+    campaign_end_date = max([c.campaign_end_date for c in campaigns])
+
+    campaign: OutboundCampaign = create_outbound_campaign(
+        prospect_ids=prospect_ids,
+        campaign_type=campaign_type,
+        client_archetype_id=client_archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date=campaign_start_date,
+        campaign_end_date=campaign_end_date,
+        ctas=ctas,
+        email_schema_id=email_schema_id,
+    )
+    campaign.status = campaigns[0].status
+    campaign.name = name
+    db.session.add(campaign)
+    db.session.commit()
+
+    for c in campaigns:
+        c.status = OutboundCampaignStatus.CANCELLED
+        db.session.add(c)
+        db.session.commit()
+
+    return campaign.id

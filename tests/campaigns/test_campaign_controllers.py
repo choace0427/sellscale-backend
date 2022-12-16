@@ -12,6 +12,7 @@ from test_utils import (
     basic_email_schema,
     basic_prospect,
 )
+from src.campaigns.services import create_outbound_campaign
 from model_import import OutboundCampaign
 import mock
 
@@ -225,3 +226,219 @@ def test_change_campaign_status():
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.campaign_start_date.isoformat() == new_start_date
     assert campaign.campaign_end_date.isoformat() == new_end_date
+
+
+@use_app_context
+def test_merge_multiple_linkedin_campaigns_succeed():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+
+    campaign1 = create_outbound_campaign(
+        prospect_ids=[1, 2],
+        campaign_type="LINKEDIN",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        ctas=[1, 2, 3],
+    )
+    campaign2 = create_outbound_campaign(
+        prospect_ids=[2, 3, 4],
+        campaign_type="LINKEDIN",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-02",
+        campaign_end_date="2021-01-05",
+        ctas=[2, 3, 4],
+    )
+
+    response = app.test_client().post(
+        "campaigns/merge",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_ids": [campaign1.id, campaign2.id],
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign_id = json.loads(response.data.decode("utf-8"))["new_campaign_id"]
+    assert campaign_id > 0
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "PENDING"
+    assert campaign.prospect_ids == [1, 2, 3, 4]
+    assert campaign.campaign_end_date == datetime.datetime(2021, 1, 5)
+    assert campaign.campaign_start_date == datetime.datetime(2021, 1, 1)
+    assert campaign.campaign_type.value == "LINKEDIN"
+    assert campaign.client_archetype_id == archetype_id
+    assert campaign.client_sdr_id == client_sdr_id
+    assert campaign.ctas == [1, 2, 3, 4]
+
+
+@use_app_context
+def test_merge_multiple_email_campaigns_succeed():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    email_schema = basic_email_schema(archetype=archetype)
+    email_schema_id = email_schema.id
+
+    campaign1 = create_outbound_campaign(
+        prospect_ids=[1, 2],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        email_schema_id=email_schema_id,
+    )
+    campaign1_id = campaign1.id
+    campaign2 = create_outbound_campaign(
+        prospect_ids=[2, 3, 4],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-02",
+        campaign_end_date="2021-01-05",
+        email_schema_id=email_schema_id,
+    )
+    campaign2_id = campaign2.id
+
+    response = app.test_client().post(
+        "campaigns/merge",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_ids": [campaign1.id, campaign2.id],
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign_id = json.loads(response.data.decode("utf-8"))["new_campaign_id"]
+    assert campaign_id > 0
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "PENDING"
+    assert campaign.prospect_ids == [1, 2, 3, 4]
+    assert campaign.campaign_end_date == datetime.datetime(2021, 1, 5)
+    assert campaign.campaign_start_date == datetime.datetime(2021, 1, 1)
+    assert campaign.campaign_type.value == "EMAIL"
+    assert campaign.client_archetype_id == archetype_id
+    assert campaign.client_sdr_id == client_sdr_id
+    assert campaign.email_schema_id == email_schema_id
+
+    campaign1 = OutboundCampaign.query.get(campaign1_id)
+    campaign2 = OutboundCampaign.query.get(campaign2_id)
+    merged_campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign1.status.value == "CANCELLED"
+    assert campaign2.status.value == "CANCELLED"
+    assert merged_campaign.status.value == "PENDING"
+
+
+@use_app_context
+def test_merge_multiple_email_campaigns_failed_for_type():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    email_schema = basic_email_schema(archetype=archetype)
+    email_schema_id = email_schema.id
+
+    campaign1 = create_outbound_campaign(
+        prospect_ids=[1, 2],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        email_schema_id=email_schema_id,
+    )
+    campaign1_id = campaign1.id
+    campaign2 = create_outbound_campaign(
+        prospect_ids=[2, 3, 4],
+        campaign_type="LINKEDIN",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-02",
+        campaign_end_date="2021-01-05",
+        email_schema_id=email_schema_id,
+    )
+    campaign2_id = campaign2.id
+
+    response = app.test_client().post(
+        "campaigns/merge",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_ids": [campaign1.id, campaign2.id],
+            }
+        ),
+    )
+    assert response.status_code == 400
+    assert response.text == "Campaigns must be of the same type"
+    all_campaigns = OutboundCampaign.query.all()
+    assert len(all_campaigns) == 2
+
+    campaign1 = OutboundCampaign.query.get(campaign1_id)
+    campaign2 = OutboundCampaign.query.get(campaign2_id)
+    assert campaign1.status.value == "PENDING"
+    assert campaign2.status.value == "PENDING"
+
+
+@use_app_context
+def test_merge_multiple_email_campaigns_failed_for_archetype():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    email_schema = basic_email_schema(archetype=archetype)
+    email_schema_id = email_schema.id
+
+    archetype_2 = basic_archetype(client)
+    archetype_2_id = archetype_2.id
+
+    campaign1 = create_outbound_campaign(
+        prospect_ids=[1, 2],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        email_schema_id=email_schema_id,
+    )
+    campaign1_id = campaign1.id
+    campaign2 = create_outbound_campaign(
+        prospect_ids=[2, 3, 4],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_2_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-02",
+        campaign_end_date="2021-01-05",
+        email_schema_id=email_schema_id,
+    )
+    campaign2_id = campaign2.id
+
+    response = app.test_client().post(
+        "campaigns/merge",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_ids": [campaign1.id, campaign2.id],
+            }
+        ),
+    )
+    assert response.status_code == 400
+    assert response.text == "Campaigns must be of the same client archetype"
+    all_campaigns = OutboundCampaign.query.all()
+    assert len(all_campaigns) == 2
+
+    campaign1 = OutboundCampaign.query.get(campaign1_id)
+    campaign2 = OutboundCampaign.query.get(campaign2_id)
+    assert campaign1.status.value == "PENDING"
+    assert campaign2.status.value == "PENDING"
