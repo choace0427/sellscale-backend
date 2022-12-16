@@ -23,6 +23,7 @@ from src.message_generation.services import (
 )
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.ml.fine_tuned_models import get_latest_custom_model
+from sqlalchemy.sql.expression import func
 
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -77,6 +78,7 @@ def get_similar_prospects(prospect_id, n=2):
             Prospect.id != prospect_id,
             Prospect.archetype_id == p.archetype_id,
         )
+        .order_by(func.random())
         .limit(n)
         .all()
     )
