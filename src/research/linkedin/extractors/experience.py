@@ -47,16 +47,20 @@ def get_years_of_experience(data):
     # been in industry for X years
 
     positions = data.get("personal", {}).get("position_groups", [])
-    oldest_position = positions[len(positions) - 1].get("date", {}).get("start")["year"]
-    newest_position = positions[0].get("date", {}).get("start")["year"]
+    current_year = datetime.now().year
+    oldest_position_start = positions[len(positions) - 1].get("date", {}).get("start")["year"]
+    newest_position_end = positions[0].get("date", {}).get("end")["year"] or current_year
+    yoe = newest_position_end - oldest_position_start
 
-    if not newest_position or not oldest_position:
+    if not newest_position_end or not oldest_position_start or yoe < 1:
         raw_data = {"years_of_experience": ""}
     else:
-        raw_data = {
-            "years_of_experience": str(newest_position - oldest_position)
-            + "+ years of experience in industry"
-        }
+        if yoe == 1:
+            raw_data = {"years_of_experience": "1 year of experience in industry"}
+        else:
+            raw_data = {
+                "years_of_experience": str(yoe)+ "+ years of experience in industry"
+            }
 
     return {"raw_data": raw_data, "response": raw_data["years_of_experience"]}
 
