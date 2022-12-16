@@ -226,7 +226,10 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
     # Ensures that Active Conversation individuals no longer receive AI responses.
     # Given that the SDR has set this Prospect's Archetype to disable AI after prospect engagement.
     ca: ClientArchetype = ClientArchetype.query.get(p.archetype_id)
-    if new_status == ProspectStatus.ACTIVE_CONVO and ca.disable_ai_after_prospect_engaged: 
+    if (
+        new_status == ProspectStatus.ACTIVE_CONVO
+        and ca.disable_ai_after_prospect_engaged
+    ):
         p.deactivate_ai_engagement = True
 
     db.session.add(p)
@@ -424,57 +427,62 @@ def create_prospects_from_linkedin_link_list(
     return True
 
 
-@celery.task
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_linkedin_link(
-    archetype_id: int, url: str, batch: str, email: str = None
+    self, archetype_id: int, url: str, batch: str, email: str = None
 ):
-    if "/in/" in url:
-        slug = get_linkedin_slug_from_url(url)
-    elif "/lead/" in url:
-        slug = get_navigator_slug_from_url(url)
+    try:
+        if "/in/" in url:
+            slug = get_linkedin_slug_from_url(url)
+        elif "/lead/" in url:
+            slug = get_navigator_slug_from_url(url)
 
-    payload = research_personal_profile_details(profile_id=slug)
+        payload = research_personal_profile_details(profile_id=slug)
 
-    if payload.get("detail") == "Profile data cannot be retrieved." or not deep_get(
-        payload, "first_name"
-    ):
-        return False
+        if payload.get("detail") == "Profile data cannot be retrieved." or not deep_get(
+            payload, "first_name"
+        ):
+            return False
 
-    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    client: Client = Client.query.get(client_archetype.client_id)
-    client_id = client.id
+        client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+        client: Client = Client.query.get(client_archetype.client_id)
+        client_id = client.id
 
-    company_name = deep_get(payload, "position_groups.0.company.name")
-    company_url = deep_get(payload, "position_groups.0.company.url")
-    employee_count = (
-        str(deep_get(payload, "position_groups.0.company.employees.start"))
-        + "-"
-        + str(deep_get(payload, "position_groups.0.company.employees.end"))
-    )
-    full_name = deep_get(payload, "first_name") + " " + deep_get(payload, "last_name")
-    industry = deep_get(payload, "industry")
-    linkedin_url = "linkedin.com/in/{}".format(deep_get(payload, "profile_id"))
-    linkedin_bio = deep_get(payload, "summary")
-    title = deep_get(payload, "sub_title")
-    twitter_url = None
+        company_name = deep_get(payload, "position_groups.0.company.name")
+        company_url = deep_get(payload, "position_groups.0.company.url")
+        employee_count = (
+            str(deep_get(payload, "position_groups.0.company.employees.start"))
+            + "-"
+            + str(deep_get(payload, "position_groups.0.company.employees.end"))
+        )
+        full_name = (
+            deep_get(payload, "first_name") + " " + deep_get(payload, "last_name")
+        )
+        industry = deep_get(payload, "industry")
+        linkedin_url = "linkedin.com/in/{}".format(deep_get(payload, "profile_id"))
+        linkedin_bio = deep_get(payload, "summary")
+        title = deep_get(payload, "sub_title")
+        twitter_url = None
 
-    add_prospect(
-        client_id=client_id,
-        archetype_id=archetype_id,
-        company=company_name,
-        company_url=company_url,
-        employee_count=employee_count,
-        full_name=full_name,
-        industry=industry,
-        linkedin_url=linkedin_url,
-        linkedin_bio=linkedin_bio,
-        title=title,
-        twitter_url=twitter_url,
-        batch=batch,
-        email=email,
-    )
+        add_prospect(
+            client_id=client_id,
+            archetype_id=archetype_id,
+            company=company_name,
+            company_url=company_url,
+            employee_count=employee_count,
+            full_name=full_name,
+            industry=industry,
+            linkedin_url=linkedin_url,
+            linkedin_bio=linkedin_bio,
+            title=title,
+            twitter_url=twitter_url,
+            batch=batch,
+            email=email,
+        )
 
-    return True
+        return True
+    except Exception as e:
+        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int):
@@ -557,8 +565,8 @@ def mark_prospect_reengagement(prospect_id: int):
 
 
 def validate_prospect_json_payload(payload: dict):
-    """ Validate the CSV payload sent by the SDR through Retool.
-    This is in respect to validating a prospect. 
+    """Validate the CSV payload sent by the SDR through Retool.
+    This is in respect to validating a prospect.
 
     At the moment, only linkedin_url and email are enforced (one or the other).
     In the future, additional fields can be added as we see fit.
@@ -589,7 +597,10 @@ def validate_prospect_json_payload(payload: dict):
         email = prospect.get("email")
         linkedin_url = prospect.get("linkedin_url")
         if not email and not linkedin_url:
-            return False, "Could not find the 'email' or 'linkedin_url' field. Please check your CSV, or make sure each Prospect has either an email or a linkedin_url field."
+            return (
+                False,
+                "Could not find the 'email' or 'linkedin_url' field. Please check your CSV, or make sure each Prospect has either an email or a linkedin_url field.",
+            )
 
     return True, "No Error"
 
