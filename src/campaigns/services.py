@@ -191,11 +191,11 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
                         "text": "Go to {}'s Sight".format(sdr_name),
                         "emoji": True,
                     },
-                    "value": "https://sight.sellscale.com/?overrideAuthToken={}".format(
+                    "value": "https://sight.sellscale.com/?token={}".format(
                         sdr_auth
                     )
                     or "https://sight.sellscale.com/sight",
-                    "url": "https://sight.sellscale.com/?overrideAuthToken={}".format(
+                    "url": "https://sight.sellscale.com/?token={}".format(
                         sdr_auth
                     )
                     or "https://sight.sellscale.com/sight",
