@@ -56,7 +56,7 @@ def test_get_one_accepted_prospect():
         prospect = basic_prospect(client=client, archetype=archetype)
         prospect.status = status
         prospect.client_sdr_id = client_sdr_id
-        prospect.last_reviewed = datetime.now() - timedelta(days=2)
+        prospect.last_reviewed = datetime.now() - timedelta(days=4)
         db.session.add(prospect)
         db.session.commit()
 
