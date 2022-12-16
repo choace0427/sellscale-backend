@@ -44,12 +44,14 @@ def generate_prompt_with_instruction(
 
     instruction_value = instruction.text_value
 
+    prospect_data = ""
     if incomplete:
         incomplete_prompt_value = generate_prompt(prospect_id, notes=notes)
         prompt = "prompt: {prompt_value} \n\ninstruction: {instruction_value}\n\ncompletion:".format(
             prompt_value=incomplete_prompt_value,
             instruction_value=instruction_value,
         )
+        prospect_data = incomplete_prompt_value
     else:
         approved_gm: GeneratedMessage = GeneratedMessage.query.get(
             prospect.approved_outreach_message_id
@@ -61,8 +63,9 @@ def generate_prompt_with_instruction(
             completion_value=completion_value,
             instruction_value=instruction_value,
         )
+        prospect_data = complete_prompt_value
 
-    return prompt
+    return prompt, prospect_data
 
 
 def get_similar_prospects(prospect_id, n=2):
@@ -130,12 +133,12 @@ def generate_few_shot_generation_completion(prospect_id, notes):
         archetype_id=archetype_id, model_type=GNLPModelType.OUTREACH
     )
 
-    prompt = generate_prompt_with_instruction(
+    prompt, prospect_data = generate_prompt_with_instruction(
         prospect_id, instruction_id, incomplete=True, notes=notes
     )
     similar_prospects_list = get_similar_prospects(prospect_id, 2)
     examples_for_prompt_from_similar_prospects = [
-        generate_prompt_with_instruction(i, instruction_id)
+        generate_prompt_with_instruction(i, instruction_id)[0]
         for i in similar_prospects_list
     ]
     few_shot_prompt = "".join(examples_for_prompt_from_similar_prospects) + prompt
@@ -153,7 +156,7 @@ def generate_few_shot_generation_completion(prospect_id, notes):
 
     completions = [x["text"] for x in response["choices"]]
 
-    return completions, model_id, prompt, instruction_id, few_shot_prompt
+    return completions, model_id, prospect_data, instruction_id, few_shot_prompt
 
 
 def can_generate_with_few_shot(prospect_id: int):
