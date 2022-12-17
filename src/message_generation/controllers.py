@@ -13,6 +13,7 @@ from src.message_generation.services import (
     generate_cta_examples,
     batch_mark_prospect_email_approved_by_prospect_ids,
     mark_random_new_prospect_email,
+    clear_all_generated_message_jobs,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -258,3 +259,13 @@ def pick_new_approved_email():
     )
 
     return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/clear_message_generation_jobs_queue", methods=["POST"]
+)
+def post_clear_all_generated_message_jobs():
+    success = clear_all_generated_message_jobs()
+    if success:
+        return "OK", 200
+    return "Failed to clear all generated message jobs", 400

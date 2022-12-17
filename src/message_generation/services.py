@@ -1029,3 +1029,11 @@ def generated_message_has_entities_not_in_prompt(self, message_id: int):
         return has_entity_not_in_prompt, flagged_entities
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def clear_all_generated_message_jobs():
+    gm_jobs: list = GeneratedMessageJob.query.all()
+    for gm_job in gm_jobs:
+        db.session.delete(gm_job)
+        db.session.commit()
+    return True
