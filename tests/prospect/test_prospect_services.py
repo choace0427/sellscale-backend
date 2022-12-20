@@ -6,6 +6,7 @@ from test_utils import (
     basic_archetype,
     basic_prospect,
 )
+from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
 from src.prospecting.services import (
     add_prospect,
     get_linkedin_slug_from_url,
@@ -13,6 +14,7 @@ from src.prospecting.services import (
     add_prospects_from_json_payload,
     validate_prospect_json_payload,
     update_prospect_status,
+    create_prospect_from_linkedin_link,
 )
 from model_import import (
     Prospect,
@@ -585,3 +587,45 @@ def test_send_slack_reminder(send_slack_message_patch):
     prospect: Prospect = Prospect.query.get(1)
     assert prospect.last_reviewed is not None
     assert prospect.deactivate_ai_engagement == True
+
+
+@use_app_context
+@mock.patch(
+    "src.prospecting.services.research_personal_profile_details",
+    return_value=SAMPLE_LINKEDIN_RESEARCH_PAYLOAD,
+)
+def test_create_prospect_from_linkedin_link(research_personal_profile_details_patch):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_id = client.id
+    archetype_id = archetype.id
+    linkedin_url = "https://www.linkedin.com/in/johnny/"
+
+    create_prospect_from_linkedin_link(
+        archetype_id=archetype.id,
+        url=linkedin_url,
+        batch="123",
+        email="johnny@sellscale.com",
+    )
+
+    prospect = Prospect.query.first()
+    assert prospect.client_id == client_id
+    assert prospect.archetype_id == archetype_id
+    assert prospect.batch == "123"
+    assert prospect.email == "johnny@sellscale.com"
+    assert prospect.employee_count == "1001-5000"
+    assert prospect.industry == "Information Technology & Services"
+    assert prospect.linkedin_url == "linkedin.com/in/matthewdbarlow"
+    assert (
+        prospect.title
+        == "Senior Manager - Global Sales Compensation & Administration at Sungard Availability Services"
+    )
+    assert (
+        prospect.company_url
+        == "https://www.linkedin.com/company/sungard-availability-services/"
+    )
+    assert prospect.company == "Sungard Availability Services"
+    assert (
+        "Highly successful, dependable, with a strong work ethic and noted leadership skills. Strategic minded with an eye to the optimal future state.  Experience in managing processes and systems, with background in Lean Six Sigma and Scrum. Organized and detail-oriented. Focused on benefiting the team dynamic and quality of work through effective communication and a high level of integrity."
+        in prospect.linkedin_bio
+    )
