@@ -8,7 +8,6 @@ class AdversaryTrainingPoint(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     generated_message_id = db.Column(db.Integer, db.ForeignKey("generated_message.id"), nullable=False)
-    generated_message_type = db.Column(db.Enum(GeneratedMessageType), nullable=False)
 
     prompt = db.Column(db.String, nullable=False)
     completion = db.Column(db.String, nullable=False)
