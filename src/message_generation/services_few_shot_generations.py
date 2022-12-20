@@ -161,3 +161,38 @@ def generate_few_shot_generation_completion(prospect_id, notes):
 
 def can_generate_with_few_shot(prospect_id: int):
     return len(get_similar_prospects(prospect_id, 2)) > 0
+
+
+def clear_all_good_messages_by_archetype_id(archetype_id: int):
+    messages: list = (
+        GeneratedMessage.query.join(
+            Prospect, Prospect.id == GeneratedMessage.prospect_id
+        )
+        .filter(
+            Prospect.archetype_id == archetype_id, GeneratedMessage.good_message == True
+        )
+        .all()
+    )
+    for message in messages:
+        message.good_message = None
+        db.session.add(message)
+    db.session.commit()
+    return True
+
+
+def toggle_message_as_good_message(message_id: int):
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    if not message:
+        return False
+
+    message.good_message = not message.good_message
+    db.session.commit()
+    return True
+
+
+def mark_messages_as_good_message(generated_message_ids: list):
+    GeneratedMessage.query.filter(
+        GeneratedMessage.id.in_(generated_message_ids)
+    ).update({"good_message": True})
+    db.session.commit()
+    return True

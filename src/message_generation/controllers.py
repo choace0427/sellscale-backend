@@ -15,6 +15,9 @@ from src.message_generation.services import (
     mark_random_new_prospect_email,
     clear_all_generated_message_jobs,
 )
+from src.message_generation.services_few_shot_generations import (
+    clear_all_good_messages_by_archetype_id,
+)
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
 
@@ -269,3 +272,16 @@ def post_clear_all_generated_message_jobs():
     if success:
         return "OK", 200
     return "Failed to clear all generated message jobs", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/clear_all_good_messages_by_archetype_id", methods=["POST"]
+)
+def post_clear_all_good_messages_by_archetype_id():
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True
+    )
+    success = clear_all_good_messages_by_archetype_id(archetype_id=archetype_id)
+    if success:
+        return "OK", 200
+    return "Failed to clear all good messages by archetype id", 400

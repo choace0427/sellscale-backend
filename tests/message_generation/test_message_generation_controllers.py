@@ -101,3 +101,36 @@ def test_post_clear_message_generation_jobs_queue():
 
     gm_jobs = GeneratedMessageJob.query.all()
     assert len(gm_jobs) == 0
+
+
+@use_app_context
+def test_post_clear_all_good_messages_by_archetype_id():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client=client, archetype=archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(
+        prospect=prospect, gnlp_model=gnlp_model
+    )
+    generated_message.good_message = True
+    db.session.add(generated_message)
+    db.session.commit()
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].good_message == True
+
+    response = app.test_client().post(
+        "message_generation/clear_all_good_messages_by_archetype_id",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "archetype_id": archetype.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].good_message == None
