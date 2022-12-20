@@ -101,8 +101,14 @@ VALID_FROM_STATUSES_MAP = {
     ],
     ProspectStatus.ACCEPTED: [ProspectStatus.SENT_OUTREACH],
     ProspectStatus.RESPONDED: [ProspectStatus.ACCEPTED],
-    ProspectStatus.ACTIVE_CONVO: [ProspectStatus.RESPONDED],
-    ProspectStatus.SCHEDULING: [ProspectStatus.ACTIVE_CONVO],
+    ProspectStatus.ACTIVE_CONVO: [
+        ProspectStatus.RESPONDED,
+        ProspectStatus.NOT_INTERESTED,
+    ],
+    ProspectStatus.SCHEDULING: [
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_INTERESTED,
+    ],
     ProspectStatus.NOT_INTERESTED: [
         ProspectStatus.RESPONDED,
         ProspectStatus.ACTIVE_CONVO,
@@ -112,6 +118,7 @@ VALID_FROM_STATUSES_MAP = {
         ProspectStatus.RESPONDED,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_INTERESTED,
     ],
     ProspectStatus.DEMO_WON: [ProspectStatus.DEMO_SET],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_SET],
