@@ -12,6 +12,7 @@ DEMO_SET = "DEMO_SET"
 INTERVENTION_NEEDED = "INTERVENTION_NEEDED"
 
 DATE_TO_REVIEW_WINDOW = 3
+DATE_TO_REVIEW_FOR_ACTIVE_CONVOS = 1
 
 
 def get_actions(prospect_status: ProspectStatus):
@@ -75,7 +76,7 @@ def get_all_active_convo_prospects(client_sdr_id: int):
         Prospect.status == ProspectStatus.ACTIVE_CONVO,
         or_(
             Prospect.last_reviewed
-            < datetime.now() - timedelta(days=DATE_TO_REVIEW_WINDOW),
+            < datetime.now() - timedelta(days=DATE_TO_REVIEW_FOR_ACTIVE_CONVOS),
             Prospect.last_reviewed.is_(None),
         ),
     ).all()
