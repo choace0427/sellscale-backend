@@ -174,7 +174,7 @@ def clear_all_good_messages_by_archetype_id(archetype_id: int):
         .all()
     )
     for message in messages:
-        message.good_message = False
+        message.good_message = None
         db.session.add(message)
     db.session.commit()
     return True

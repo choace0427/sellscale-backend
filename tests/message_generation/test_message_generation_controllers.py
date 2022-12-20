@@ -133,4 +133,4 @@ def test_post_clear_all_good_messages_by_archetype_id():
 
     gm_list = GeneratedMessage.query.all()
     assert len(gm_list) == 1
-    assert gm_list[0].good_message == False
+    assert gm_list[0].good_message == None
