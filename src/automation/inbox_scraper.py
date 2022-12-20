@@ -107,6 +107,7 @@ def process_inbox(message_payload, client_id):
                     ProspectStatus.SENT_OUTREACH,
                     ProspectStatus.ACCEPTED,
                     ProspectStatus.RESPONDED,
+                    ProspectStatus.NOT_INTERESTED,
                 )
                 and not is_last_message_from_me
             ):
