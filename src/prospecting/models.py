@@ -95,6 +95,11 @@ VALID_FROM_STATUSES_MAP = {
     ProspectStatus.NOT_QUALIFIED: [
         ProspectStatus.PROSPECTED,
         ProspectStatus.SENT_OUTREACH,
+        ProspectStatus.ACCEPTED,
+        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_INTERESTED,
     ],
     ProspectStatus.SENT_OUTREACH: [
         ProspectStatus.PROSPECTED,
