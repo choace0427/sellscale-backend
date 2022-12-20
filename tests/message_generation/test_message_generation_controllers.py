@@ -134,3 +134,69 @@ def test_post_clear_all_good_messages_by_archetype_id():
     gm_list = GeneratedMessage.query.all()
     assert len(gm_list) == 1
     assert gm_list[0].good_message == None
+
+
+@use_app_context
+def test_post_toggle_message_as_good_message():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client=client, archetype=archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(
+        prospect=prospect, gnlp_model=gnlp_model
+    )
+    generated_message.good_message = None
+    db.session.add(generated_message)
+    db.session.commit()
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].good_message == None
+
+    response = app.test_client().post(
+        "message_generation/toggle_message_as_good_message",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "message_id": generated_message.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].good_message == True
+
+
+@use_app_context
+def test_post_mark_messages_as_good_message():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client=client, archetype=archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(
+        prospect=prospect, gnlp_model=gnlp_model
+    )
+    generated_message.good_message = None
+    db.session.add(generated_message)
+    db.session.commit()
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].good_message == None
+
+    response = app.test_client().post(
+        "message_generation/mark_messages_as_good_message",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "message_ids": [generated_message.id],
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].good_message == True
