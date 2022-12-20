@@ -17,6 +17,8 @@ from src.message_generation.services import (
 )
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
+    toggle_message_as_good_message,
+    mark_messages_as_good_message,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -285,3 +287,23 @@ def post_clear_all_good_messages_by_archetype_id():
     if success:
         return "OK", 200
     return "Failed to clear all good messages by archetype id", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/toggle_message_as_good_message", methods=["POST"])
+def post_toggle_message_as_good_message():
+    message_id = get_request_parameter("message_id", request, json=True, required=True)
+    success = toggle_message_as_good_message(message_id=message_id)
+    if success:
+        return "OK", 200
+    return "Failed to toggle message as good message", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/mark_messages_as_good_message", methods=["POST"])
+def post_mark_messages_as_good_message():
+    message_ids = get_request_parameter(
+        "message_ids", request, json=True, required=True
+    )
+    success = mark_messages_as_good_message(generated_message_ids=message_ids)
+    if success:
+        return "OK", 200
+    return "Failed to mark messages as good message", 400

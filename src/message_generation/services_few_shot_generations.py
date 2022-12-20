@@ -186,6 +186,7 @@ def toggle_message_as_good_message(message_id: int):
         return False
 
     message.good_message = not message.good_message
+    db.session.add(message)
     db.session.commit()
     return True
 
