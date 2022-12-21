@@ -9,12 +9,27 @@ from test_utils import (
     basic_generated_message,
 )
 from src.ml_adversary.services import (
+    preview_fix,
     create_adversary_training_point,
     toggle_adversary_training_point,
     edit_adversary_training_point,
 )
 from model_import import (AdversaryTrainingPoint, GeneratedMessage)
 from decorators import use_app_context
+import mock
+
+
+fake_openai_response = {
+    "choices": [
+        {
+            "text": "test completion    "
+        }
+    ]
+}
+
+fake_openai_response_fail = {
+    "choices": []
+}
 
 
 def setup_generated_message():
@@ -27,9 +42,43 @@ def setup_generated_message():
     archetype = basic_archetype(client=c)
     prospect = basic_prospect(client=c, archetype=archetype)
     gnlp_model = basic_gnlp_model(archetype=archetype)
-    generated_message = basic_generated_message(prospect=prospect, gnlp_model=gnlp_model)
+    generated_message = basic_generated_message(
+        prospect=prospect, gnlp_model=gnlp_model)
     return generated_message
 
+
+@use_app_context
+@mock.patch("openai.Completion.create", return_value=fake_openai_response)
+def test_preview_fix_success(openai_patch):
+    # Test that we can't preview a fix if the completion is empty
+    response = preview_fix(completion="", fix="test fix")
+    _, status_code = response[0], response[1]
+    assert status_code == 400
+    assert openai_patch.called == 0
+
+    # Test that we can't preview a fix if the fix is empty
+    response = preview_fix(completion="test completion", fix="")
+    _, status_code = response[0], response[1]
+    assert status_code == 400
+    assert openai_patch.called == 0
+
+    # Test that we can preview a fix
+    response = preview_fix(completion="test completion", fix="test fix")
+    preview, status_code = response[0], response[1]
+    assert openai_patch.called == 1
+    assert preview == "test completion"
+    assert status_code == 200
+
+
+@use_app_context
+@mock.patch("openai.Completion.create", return_value=fake_openai_response_fail)
+def test_preview_fix_fail(openai_patch):
+    # Test that we can't preview a fix if the response is bad
+    response = preview_fix(completion="test completion", fix="test fix")
+    _, status_code = response[0], response[1]
+    assert status_code == 400
+    assert openai_patch.called == 1
+    
 
 @use_app_context
 def test_create_adversary_training_point():
@@ -53,7 +102,8 @@ def test_create_adversary_training_point():
     )
     _, status_code = response[0], response[1]
     assert status_code == 200
-    atp = AdversaryTrainingPoint.query.filter_by(generated_message_id=generated_message.id).first()
+    atp = AdversaryTrainingPoint.query.filter_by(
+        generated_message_id=generated_message.id).first()
     assert atp.generated_message_id == generated_message.id
     assert atp.prompt == generated_message.prompt
     assert atp.completion == generated_message.completion
@@ -69,7 +119,8 @@ def test_create_adversary_training_point():
     )
     _, status_code = response[0], response[1]
     assert status_code == 400
-    atp = AdversaryTrainingPoint.query.filter_by(generated_message_id=generated_message.id).all()
+    atp = AdversaryTrainingPoint.query.filter_by(
+        generated_message_id=generated_message.id).all()
     assert len(atp) == 1
 
     # Test that we can't create a adversary training point without a mistake
@@ -80,7 +131,8 @@ def test_create_adversary_training_point():
     )
     _, status_code = response[0], response[1]
     assert status_code == 400
-    atp = AdversaryTrainingPoint.query.filter_by(generated_message_id=generated_message2.id).all()
+    atp = AdversaryTrainingPoint.query.filter_by(
+        generated_message_id=generated_message2.id).all()
     assert len(atp) == 0
 
     # Test that we can't create a adversary training point without a fix
@@ -91,13 +143,15 @@ def test_create_adversary_training_point():
     )
     _, status_code = response[0], response[1]
     assert status_code == 400
-    atp = AdversaryTrainingPoint.query.filter_by(generated_message_id=generated_message2.id).all()
+    atp = AdversaryTrainingPoint.query.filter_by(
+        generated_message_id=generated_message2.id).all()
 
 
 @use_app_context
 def test_toggle_adversary_training_point():
     # Test that we can't toggle a non-existent training point
-    response = toggle_adversary_training_point(training_point_id=1, toggle_on=False)
+    response = toggle_adversary_training_point(
+        training_point_id=1, toggle_on=False)
     _, status_code = response[0], response[1]
     assert status_code == 404
 
@@ -109,17 +163,20 @@ def test_toggle_adversary_training_point():
     )
     _, status_code = response[0], response[1]
     assert status_code == 200
-    atp = AdversaryTrainingPoint.query.filter_by(generated_message_id=generated_message.id).first()
+    atp = AdversaryTrainingPoint.query.filter_by(
+        generated_message_id=generated_message.id).first()
     assert atp.use_in_training == False
 
     # Test that we can toggle a training point
-    response = toggle_adversary_training_point(training_point_id=atp.id, toggle_on=True)
+    response = toggle_adversary_training_point(
+        training_point_id=atp.id, toggle_on=True)
     _, status_code = response[0], response[1]
     assert status_code == 200
     assert atp.use_in_training == True
 
     # Test that we can toggle a training point
-    response = toggle_adversary_training_point(training_point_id=atp.id, toggle_on=False)
+    response = toggle_adversary_training_point(
+        training_point_id=atp.id, toggle_on=False)
     _, status_code = response[0], response[1]
     assert status_code == 200
     assert atp.use_in_training == False
@@ -128,7 +185,8 @@ def test_toggle_adversary_training_point():
 @use_app_context
 def test_edit_adversary_training_point():
     # Test that we can't edit a non-existent training point
-    response = edit_adversary_training_point(training_point_id=1, mistake="test mistake", fix="test fix")
+    response = edit_adversary_training_point(
+        training_point_id=1, mistake="test mistake", fix="test fix")
     _, status_code = response[0], response[1]
     assert status_code == 404
 
@@ -140,25 +198,42 @@ def test_edit_adversary_training_point():
     )
     _, status_code = response[0], response[1]
     assert status_code == 200
-    atp = AdversaryTrainingPoint.query.filter_by(generated_message_id=generated_message.id).first()
+    atp = AdversaryTrainingPoint.query.filter_by(
+        generated_message_id=generated_message.id).first()
 
     # Test that we can edit a training point
-    response = edit_adversary_training_point(training_point_id=atp.id, mistake="test mistake 2", fix="test fix 2")
+    response = edit_adversary_training_point(
+        training_point_id=atp.id, mistake="test mistake 2", fix="test fix 2")
     _, status_code = response[0], response[1]
     assert status_code == 200
     assert atp.mistake_description == "test mistake 2"
     assert atp.fix_instuctions == "test fix 2"
 
     # Test that we can't edit a training point without a mistake
-    response = edit_adversary_training_point(training_point_id=atp.id, mistake=None, fix="test fix 3")
+    response = edit_adversary_training_point(
+        training_point_id=atp.id, mistake=None, fix="test fix 3")
     _, status_code = response[0], response[1]
     assert status_code == 400
     assert atp.mistake_description == "test mistake 2"
     assert atp.fix_instuctions == "test fix 2"
 
     # Test that we can't edit a training point without a fix
-    response = edit_adversary_training_point(training_point_id=atp.id, mistake="test mistake 3", fix=None)
+    response = edit_adversary_training_point(
+        training_point_id=atp.id, mistake="test mistake 3", fix=None)
     _, status_code = response[0], response[1]
     assert status_code == 400
     assert atp.mistake_description == "test mistake 2"
     assert atp.fix_instuctions == "test fix 2"
+
+    atp.use_in_training = True
+    atp.used_in_past_training = True
+
+    # Test that we set the use_in_training to false when we edit a training point
+    response = edit_adversary_training_point(
+        training_point_id=atp.id, mistake="test mistake 4", fix="test fix 4")
+    _, status_code = response[0], response[1]
+    assert status_code == 200
+    assert atp.mistake_description == "test mistake 4"
+    assert atp.fix_instuctions == "test fix 4"
+    assert atp.use_in_training == False
+    assert atp.used_in_past_training == False

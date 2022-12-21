@@ -1,6 +1,43 @@
-from app import db
+import openai
+import os
 
+from app import db
 from model_import import AdversaryTrainingPoint, GeneratedMessage
+
+openai.api_key = os.getenv("OPENAI_KEY")
+
+def preview_fix(completion: str, fix: str):
+    """ Previews the fix for a given completion.
+
+    Args:
+        completion (str): Completion to preview the fix for.
+        fix (str): Fix to preview.
+
+    Returns:
+        str: Preview of the fix.
+    """
+    if completion == "" or fix == "":
+        return "Completion or fix not provided", 400
+
+    # Define the maximum number of generated tokens to be equal to 1.25 the original message.
+    max_tokens_length = int(len(completion) * 1.25)
+    completion = completion.strip()
+    fix = fix.strip()
+
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt="completion: {}\nfix: {}\ncompletion:".format(completion, fix),
+        max_tokens=max_tokens_length,
+        temperature=0,
+    )
+    if response is None or response['choices'] is None or len(response['choices']) == 0:
+        return "Error generating preview", 400
+
+    choices = response['choices']
+    top_choice = choices[0]
+    preview = top_choice['text'].strip()     
+
+    return preview, 200
 
 
 def create_adversary_training_point(generated_message_id: int, mistake: str, fix: str):
@@ -79,6 +116,8 @@ def edit_adversary_training_point(training_point_id: int, mistake: str, fix: str
 
     training_point.mistake_description = mistake
     training_point.fix_instuctions = fix
+    training_point.use_in_training = False
+    training_point.used_in_past_training = False
     db.session.commit()
 
     return "Training point {} edited".format(training_point.id), 200
