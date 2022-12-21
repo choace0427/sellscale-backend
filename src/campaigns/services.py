@@ -191,13 +191,112 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
                         "text": "Go to {}'s Sight".format(sdr_name),
                         "emoji": True,
                     },
-                    "value": "https://sight.sellscale.com/?token={}".format(
-                        sdr_auth
-                    )
+                    "value": "https://sight.sellscale.com/?token={}".format(sdr_auth)
                     or "https://sight.sellscale.com/sight",
-                    "url": "https://sight.sellscale.com/?token={}".format(
-                        sdr_auth
-                    )
+                    "url": "https://sight.sellscale.com/?token={}".format(sdr_auth)
+                    or "https://sight.sellscale.com/sight",
+                    "action_id": "button-action,",
+                },
+            },
+        ],
+        webhook_urls=[URL_MAP["operations-ready-campaigns"]],
+    )
+
+    return True
+
+
+def mark_campaign_as_initial_review_complete(campaign_id: int):
+    """Marks the campaign as initial edit is complete
+
+    Args:
+        campaign_id (int): Campaign id
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if campaign.status == OutboundCampaignStatus.READY_TO_SEND:
+        return False
+
+    change_campaign_status(campaign_id, OutboundCampaignStatus.INITIAL_EDIT_COMPLETE)
+
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    sdr = get_client_sdr(campaign.client_sdr_id)
+    sdr_name = sdr.name
+    sdr_auth = sdr.auth_token
+    client_id = sdr.client_id
+    client_company = get_client(client_id).company
+
+    campaign_name = campaign.name.split(",")[0]
+    prospect_count = len(campaign.prospect_ids)
+    campaign_type = campaign.campaign_type.value
+    start_date = campaign.campaign_start_date.strftime("%b %d, %Y")
+    end_date = campaign.campaign_end_date.strftime("%b %d, %Y")
+
+    send_slack_message(
+        message="{} - {}'s Campaign #{} has been reviewed by an editor! :black_joker:".format(
+            client_company, sdr_name, campaign_id
+        ),
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "{} - {}'s Campaign #{} has been reviewed by an editor! :black_joker:".format(
+                        client_company, sdr_name, campaign_id
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "SellScale operations team has read and verified this campaign.",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Campaign Name:* {}".format(campaign_name),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Prospect #:* {} prospects".format(prospect_count),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Campaign Type #:* {}".format(campaign_type),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Date Range #:* {} - {}".format(start_date, end_date),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Next steps: Go to {}'s Sight and send campaign".format(
+                        sdr_name
+                    ),
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Go to {}'s Sight".format(sdr_name),
+                        "emoji": True,
+                    },
+                    "value": "https://sight.sellscale.com/?token={}".format(sdr_auth)
+                    or "https://sight.sellscale.com/sight",
+                    "url": "https://sight.sellscale.com/?token={}".format(sdr_auth)
                     or "https://sight.sellscale.com/sight",
                     "action_id": "button-action,",
                 },
