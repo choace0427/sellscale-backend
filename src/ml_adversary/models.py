@@ -16,3 +16,4 @@ class AdversaryTrainingPoint(db.Model):
     fix_instuctions = db.Column(db.String, nullable=False)
 
     use_in_training = db.Column(db.Boolean, nullable=False)
+    used_in_past_training = db.Column(db.Boolean, nullable=False)

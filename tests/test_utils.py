@@ -25,6 +25,7 @@ from model_import import (
     GeneratedMessageJob,
     ResponseConfiguration,
     SightOnboarding,
+    AdversaryTrainingPoint,
 )
 
 
@@ -55,6 +56,7 @@ def test_app():
         clear_all_entities(SightOnboarding)
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)
+        clear_all_entities(AdversaryTrainingPoint)
         clear_all_entities(GeneratedMessage)
         clear_all_entities(GeneratedMessageCTA)
         clear_all_entities(ResearchPoints)
