@@ -2,7 +2,7 @@
 This way we can keep track of which training points have been used in the past training iterations.
 
 Revision ID: b2cbebbdb727
-Revises: 16853d25c66e
+Revises: b9810fddf233
 Create Date: 2022-12-21 10:37:42.888363
 
 """
