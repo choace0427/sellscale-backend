@@ -4,6 +4,7 @@ from src.campaigns.services import (
     create_outbound_campaign,
     change_campaign_status,
     mark_campaign_as_ready_to_send,
+    mark_campaign_as_initial_review_complete,
 )
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
@@ -72,6 +73,23 @@ def post_generate_campaigns():
     )
     generate_campaign(campaign_id=campaign_id)
     return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/mark_initial_review_complete", methods=["POST"])
+def post_mark_initial_review_complete():
+    """Mark a campaign as ready to send and send a slack message to the operations channel.
+
+    Returns:
+        status: 200 if successful, 400 if failed
+    """
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    success = mark_campaign_as_initial_review_complete(campaign_id=campaign_id)
+    if success:
+        return "OK", 200
+
+    return "Failed to mark", 400
 
 
 @CAMPAIGN_BLUEPRINT.route("/mark_ready_to_send", methods=["POST"])
