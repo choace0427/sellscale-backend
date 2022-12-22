@@ -156,7 +156,7 @@ def test_add_prospect():
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
-        full_name="testing",
+        full_name="testing testoro",
         industry="saas",
         batch="123",
         linkedin_url=None,
@@ -170,6 +170,8 @@ def test_add_prospect():
     assert prospects[0].client_id == client_id
     assert prospects[0].archetype_id == archetype_id
     assert prospects[0].batch == "123"
+    assert prospects[0].first_name == "Testing"
+    assert prospects[0].last_name == "Testoro"
 
     client = Client.query.get(client_id)
     archetype2 = basic_archetype(client)
@@ -186,10 +188,10 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
-        company="testing",
+        company="testing testasara",
         company_url="testing.com",
         employee_count="10-100",
-        full_name="testing",
+        full_name="testing testoro",
         industry="saas",
         batch="123",
         linkedin_url=None,
@@ -206,7 +208,7 @@ def test_add_prospect():
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
-        full_name="testing",
+        full_name="testing testoro",
         industry="saas",
         batch="123",
         linkedin_url="12381",
@@ -629,3 +631,5 @@ def test_create_prospect_from_linkedin_link(research_personal_profile_details_pa
         "Highly successful, dependable, with a strong work ethic and noted leadership skills. Strategic minded with an eye to the optimal future state.  Experience in managing processes and systems, with background in Lean Six Sigma and Scrum. Organized and detail-oriented. Focused on benefiting the team dynamic and quality of work through effective communication and a high level of integrity."
         in prospect.linkedin_bio
     )
+    assert prospect.first_name == "Matthew"
+    assert prospect.last_name == "Barlow"

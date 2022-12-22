@@ -15,6 +15,10 @@ from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
 from src.utils.slack import send_slack_message
 from flask import jsonify
+from src.utils.converters.string_converters import (
+    get_last_name_from_full_name,
+    get_first_name_from_full_name,
+)
 
 
 def prospect_exists_for_archetype(full_name: str, client_id: int):
@@ -357,6 +361,9 @@ def add_prospect(
         if linkedin_url[-1] == "/":
             linkedin_url = linkedin_url[:-1]
 
+    first_name = get_first_name_from_full_name(full_name=full_name)
+    last_name = get_last_name_from_full_name(full_name=full_name)
+
     if not prospect_exists:
         prospect: Prospect = Prospect(
             client_id=client_id,
@@ -365,6 +372,8 @@ def add_prospect(
             company_url=company_url,
             employee_count=employee_count,
             full_name=full_name,
+            first_name=first_name,
+            last_name=last_name,
             industry=industry,
             linkedin_url=linkedin_url,
             linkedin_bio=linkedin_bio,
