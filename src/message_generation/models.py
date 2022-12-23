@@ -54,6 +54,9 @@ class GeneratedMessage(db.Model):
     generated_message_instruction_id = db.Column(
         db.Integer, db.ForeignKey("generated_message_instruction.id"), nullable=True
     )
+    
+    adversary_identified_mistake = db.Column(db.String, nullable=True)
+    adversary_identified_fix = db.Column(db.String, nullable=True)
 
 
 class GeneratedMessageInstruction(db.Model):
