@@ -2,6 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import time
 import os
+from src.utils.slack import URL_MAP
 
 ENV = os.environ.get("FLASK_ENV")
 
@@ -11,13 +12,19 @@ from src.utils.slack import send_slack_message
 def scrape_all_inboxes_job():
     from src.automation.inbox_scraper import scrape_all_inboxes
 
-    scrape_all_inboxes.delay()
+    if os.environ.get("FLASK_ENV") == "production":
+        scrape_all_inboxes.delay()
+        send_slack_message(
+            message="Scraped all inboxes today!",
+            webhook_urls=[URL_MAP["scrape_all_inboxes"]],
+        )
 
 
 def refresh_fine_tune_statuses_job():
     from src.ml.services import check_statuses_of_fine_tune_jobs
 
-    check_statuses_of_fine_tune_jobs.delay()
+    if os.environ.get("FLASK_ENV") == "production":
+        check_statuses_of_fine_tune_jobs.delay()
 
 
 scheduler = BackgroundScheduler()
