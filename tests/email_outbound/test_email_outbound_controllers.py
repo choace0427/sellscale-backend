@@ -87,6 +87,9 @@ def test_post_batch_update_emails():
     prospect = basic_prospect(client, archetype)
     prospect_id: int = prospect.id
     personalized_first_line = basic_generated_message(prospect, gnlp_model)
+    personalized_first_line.completion = "original"
+    db.session.add(personalized_first_line)
+    db.session.commit()
 
     email_schema = create_email_schema(
         name="test",
@@ -99,6 +102,9 @@ def test_post_batch_update_emails():
         personalized_first_line_id=personalized_first_line.id,
         batch_id=1,
     )
+    prospect.approved_prospect_email_id = prospect_email.id
+    db.session.add(prospect)
+    db.session.commit()
 
     response = app.test_client().post(
         "/email_generation/batch_update_emails",
@@ -147,6 +153,9 @@ def test_post_batch_update_emails_failed():
         personalized_first_line_id=personalized_first_line.id,
         batch_id=1,
     )
+    prospect.approved_prospect_email_id = prospect_email.id
+    db.session.add(prospect)
+    db.session.commit()
 
     response = app.test_client().post(
         "/email_generation/batch_update_emails",
