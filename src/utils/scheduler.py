@@ -16,7 +16,7 @@ def scrape_all_inboxes_job():
         scrape_all_inboxes.delay()
         send_slack_message(
             message="Scraped all inboxes today!",
-            webhook_urls=[URL_MAP["scrape_all_inboxes"]],
+            webhook_urls=[URL_MAP["eng-sandbox"]],
         )
 
 
