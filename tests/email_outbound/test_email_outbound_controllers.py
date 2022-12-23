@@ -1,4 +1,6 @@
+from app import db
 from src.email_outbound.models import EmailCustomizedFieldTypes
+from model_import import GeneratedMessage
 from src.ml.models import GNLPModelType
 from src.email_outbound.services import create_email_schema, create_prospect_email
 from test_utils import (
@@ -75,3 +77,120 @@ def test_create_prospect_email(generate_prospect_email_mock):
     assert response.status_code == 200
     assert response.data.decode("utf-8") == "OK"
     assert generate_prospect_email_mock.call_count == 1
+
+
+@use_app_context
+def test_post_batch_update_emails():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    gnlp_model = basic_gnlp_model(archetype)
+    prospect = basic_prospect(client, archetype)
+    prospect_id: int = prospect.id
+    personalized_first_line = basic_generated_message(prospect, gnlp_model)
+
+    email_schema = create_email_schema(
+        name="test",
+        client_archetype_id=archetype.id,
+    )
+
+    prospect_email = create_prospect_email(
+        email_schema_id=email_schema.id,
+        prospect_id=prospect_id,
+        personalized_first_line_id=personalized_first_line.id,
+        batch_id=1,
+    )
+
+    response = app.test_client().post(
+        "/email_generation/batch_update_emails",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "prospect_id": prospect.id,
+                        "personalized_first_line": "this is a test",
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert response.data.decode("utf-8") == "OK"
+
+    all_prospect_emails = ProspectEmail.query.all()
+    assert len(all_prospect_emails) == 1
+    personalized_first_line_id = all_prospect_emails[0].personalized_first_line
+    personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
+    assert personalized_first_line.completion == "this is a test"
+
+
+@use_app_context
+def test_post_batch_update_emails_failed():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    gnlp_model = basic_gnlp_model(archetype)
+    prospect = basic_prospect(client, archetype)
+    prospect_id: int = prospect.id
+    personalized_first_line = basic_generated_message(prospect, gnlp_model)
+    personalized_first_line.completion = "original"
+    db.session.add(personalized_first_line)
+    db.session.commit()
+
+    email_schema = create_email_schema(
+        name="test",
+        client_archetype_id=archetype.id,
+    )
+
+    prospect_email = create_prospect_email(
+        email_schema_id=email_schema.id,
+        prospect_id=prospect_id,
+        personalized_first_line_id=personalized_first_line.id,
+        batch_id=1,
+    )
+
+    response = app.test_client().post(
+        "/email_generation/batch_update_emails",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "prospect_id": prospect.id,
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 400
+    assert (
+        response.data.decode("utf-8")
+        == "Personalized first line missing in one of the rows"
+    )
+
+    all_prospect_emails = ProspectEmail.query.all()
+    assert len(all_prospect_emails) == 1
+    personalized_first_line_id = all_prospect_emails[0].personalized_first_line
+    personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
+    assert personalized_first_line.completion == "original"
+
+    response = app.test_client().post(
+        "/email_generation/batch_update_emails",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "personalized_first_line": "this is a test",
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 400
+    assert response.data.decode("utf-8") == "Prospect ID missing in one of the rows"
+
+    all_prospect_emails = ProspectEmail.query.all()
+    assert len(all_prospect_emails) == 1
+    personalized_first_line_id = all_prospect_emails[0].personalized_first_line
+    personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
+    assert personalized_first_line.completion == "original"

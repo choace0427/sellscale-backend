@@ -48,3 +48,35 @@ def create_prospect_email(
     db.session.add(prospect_email)
     db.session.commit()
     return prospect_email
+
+
+def batch_update_emails(
+    payload: dict,
+):
+    for entry in payload:
+        if "prospect_id" not in entry:
+            return False, "Prospect ID missing in one of the rows"
+        if "personalized_first_line" not in entry:
+            return False, "Personalized first line missing in one of the rows"
+
+    for entry in payload:
+        prospect_id_payload: int = entry["prospect_id"]
+        personalized_first_line_payload: str = entry["personalized_first_line"]
+
+        prospect: Prospect = Prospect.query.get(prospect_id_payload)
+        prospect_email_id: int = prospect.approved_prospect_email_id
+        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+
+        if not prospect_email:
+            continue
+
+        personalized_first_line_id: int = prospect_email.personalized_first_line
+        personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
+            personalized_first_line_id
+        )
+        personalized_first_line.completion = personalized_first_line_payload
+
+        db.session.add(personalized_first_line)
+        db.session.commit()
+
+    return True, "OK"
