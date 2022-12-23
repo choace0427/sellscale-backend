@@ -5,7 +5,7 @@ from src.message_generation.services import (
     batch_generate_prospect_emails,
     mark_prospect_email_approved,
 )
-from src.email_outbound.services import create_email_schema
+from src.email_outbound.services import create_email_schema, batch_update_emails
 from src.utils.request_helpers import get_request_parameter
 from src.message_generation.services import batch_mark_prospect_email_sent
 from tqdm import tqdm
@@ -79,3 +79,12 @@ def wipe_prospect_email_and_research():
     if success:
         return "OK", 200
     return "Failed to wipe", 400
+
+
+@EMAIL_GENERATION_BLUEPRINT.route("/batch_update_emails", methods=["POST"])
+def post_batch_update_emails():
+    payload: dict = get_request_parameter("payload", request, json=True, required=True)
+    success, message = batch_update_emails(payload=payload)
+    if success:
+        return message, 200
+    return message, 400
