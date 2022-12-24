@@ -242,6 +242,9 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
         able_to_generate_with_few_shot = can_generate_with_few_shot(
             prospect_id=prospect_id
         )
+        # If you are able to generate with few shot, generate with few shot. Else
+        #       default to the normal generation using baseline / fine tuned model for
+        #       the archetype
         if not able_to_generate_with_few_shot:
             prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
             completions, model_id = get_custom_completion_for_client(
