@@ -17,3 +17,14 @@ class AdversaryTrainingPoint(db.Model):
 
     use_in_training = db.Column(db.Boolean, nullable=False)
     used_in_past_training = db.Column(db.Boolean, nullable=False)
+
+
+class AdversaryFineTuneHistory(db.Model):
+    __tablename__ = "adversary_fine_tune_history"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    model_name = db.Column(db.String, nullable=False)
+    new_training_points = db.Column(db.ARRAY(db.Integer), nullable=True)
+    active = db.Column(db.Boolean, nullable=True)
+    
