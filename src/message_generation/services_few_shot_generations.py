@@ -32,6 +32,21 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 def generate_prompt_with_instruction(
     prospect_id: int, instruction_id: int, incomplete: bool = False, notes: str = ""
 ):
+    """Generates a prompt for a prospect with an instruction for few shot generation. Prompt looks like
+
+    ```
+    prompt: {INFO ABOUT PROSPECT HERE}
+
+    instruction: {AN INSTRUCTION SENTENCE}
+
+    completion: {A COMPLETION MESSAGE}
+
+    Args:
+        prospect_id (int): prospect id
+        instruction_id (int): instruction id
+        incomplete (bool, optional): whether to generate an incomplete prompt. Defaults to False.
+        notes (str, optional):  notes to add to the prompt. Defaults to "".
+    """
     instruction: GeneratedMessageInstruction = GeneratedMessageInstruction.query.get(
         instruction_id
     )
@@ -69,6 +84,9 @@ def generate_prompt_with_instruction(
 
 
 def get_similar_prospects(prospect_id, n=2):
+    """
+    Gets similar prospects to the prospect with prospect_id so we can use their messages to generate new few shot messages
+    """
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
         return None
@@ -89,41 +107,10 @@ def get_similar_prospects(prospect_id, n=2):
     return [i[0].id for i in similar_prospects]
 
 
-def generate_few_shot_generation_for_prospect(prospect_id, instruction_id, cta_id):
-
-    # START
-    p: Prospect = Prospect.query.get(prospect_id)
-    archetype_id = p.archetype_id
-
-    # check if messages exist, if do don't do anything extra
-    research: ResearchPayload = ResearchPayload.query.filter(
-        ResearchPayload.prospect_id == prospect_id
-    ).first()
-    if not research:
-        return []
-
-    research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
-        ResearchPoints.research_payload_id == research.id
-    ).all()
-
-    perms = generate_batches_of_research_points(points=research_points_list, n=2)
-
-    outreaches = []
-    for perm in perms:
-        notes, research_points, cta = get_notes_and_points_from_perm(perm, cta_id)
-        # END
-
-        completions, model_id, prompt = generate_few_shot_generation_completion(
-            prospect_id, notes
-        )
-
-        for completion in completions:
-            outreaches.append(completion)
-
-    return outreaches
-
-
 def generate_few_shot_generation_completion(prospect_id, notes):
+    """
+    Generates a few shot generation completion for a prospect using similar prospects and their 'good messages
+    """
     instruction_id = 1
 
     p: Prospect = Prospect.query.get(prospect_id)
@@ -160,6 +147,9 @@ def generate_few_shot_generation_completion(prospect_id, notes):
 
 
 def can_generate_with_few_shot(prospect_id: int):
+    """
+    Checks if we can generate a few shot message for a prospect by seeing if there are at least two 'good samples' for the prospect's persona
+    """
     return len(get_similar_prospects(prospect_id, 2)) > 0
 
 
@@ -181,6 +171,9 @@ def clear_all_good_messages_by_archetype_id(archetype_id: int):
 
 
 def toggle_message_as_good_message(message_id: int):
+    """
+    Toggles a message as a good message
+    """
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     if not message:
         return False
@@ -192,6 +185,9 @@ def toggle_message_as_good_message(message_id: int):
 
 
 def mark_messages_as_good_message(generated_message_ids: list):
+    """
+    Marks a list of messages as good messages
+    """
     GeneratedMessage.query.filter(
         GeneratedMessage.id.in_(generated_message_ids)
     ).update({"good_message": True})
