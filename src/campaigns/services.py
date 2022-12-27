@@ -105,6 +105,50 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
     db.session.add(campaign)
     db.session.commit()
 
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    sdr = get_client_sdr(campaign.client_sdr_id)
+    sdr_name = sdr.name
+    client_id = sdr.client_id
+    client_company = get_client(client_id).company
+
+    campaign_name = campaign.name.split(",")[0]
+    campaign_type = campaign.campaign_type.value
+
+    if status == OutboundCampaignStatus.COMPLETE:
+        send_slack_message(
+            message="{} - {}'s Campaign #{} is complete! :tada::tada::tada:".format(
+                client_company, sdr_name, campaign_id
+            ),
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "{} - {}'s Campaign #{} is `{}`! :tada::tada::tada:".format(
+                            client_company, sdr_name, campaign_id, status.value
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Campaign Name:* {}".format(campaign_name),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Campaign Type #:* {}".format(campaign_type),
+                    },
+                },
+            ],
+            webhook_urls=[URL_MAP["operations-ready-campaigns"]],
+        )
+
+    return True
+
 
 def mark_campaign_as_ready_to_send(campaign_id: int):
     """Marks the campaign as ready to send
