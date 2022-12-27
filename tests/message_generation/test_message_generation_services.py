@@ -155,13 +155,16 @@ def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
 
 @use_app_context
 @mock.patch(
+    "src.message_generation.services.run_adversary", return_value=["test mistake", "test fix", 200]
+)
+@mock.patch(
     "src.message_generation.services.get_custom_completion_for_client",
     return_value=[["completion 1", "completion 2"], 5],
 )
 @mock.patch(
     "src.message_generation.services.get_adversarial_ai_approval", return_value=True
 )
-def test_generate_outreaches_new(ai_patch, completion_patch):
+def test_generate_outreaches_new(ai_patch, completion_patch, adversary_patch):
     payload = create_client(company="test", contact_name="test", contact_email="test", linkedin_outbound_enabled=True,
         email_outbound_enabled=True,)
     client: Client = Client.query.get(payload["client_id"])
@@ -198,6 +201,7 @@ def test_generate_outreaches_new(ai_patch, completion_patch):
     assert len(outreaches) == 8
     assert ai_patch.called is True
     assert completion_patch.called is True
+    assert adversary_patch.called is True
 
     generated_messages: list = GeneratedMessage.query.all()
     assert len(generated_messages) == 8
@@ -205,6 +209,8 @@ def test_generate_outreaches_new(ai_patch, completion_patch):
         assert gm.message_type == GeneratedMessageType.LINKEDIN
         assert gm.message_cta == cta.id
         assert gm.batch_id == "123123123"
+        assert gm.adversary_identified_mistake == "test mistake"
+        assert gm.adversary_identified_fix == "test fix"
 
 
 @use_app_context

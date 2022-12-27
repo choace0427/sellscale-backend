@@ -12,6 +12,7 @@ from model_import import (
     GeneratedMessageJobStatus,
 )
 from src.ml.adverserial_ai import adversarial_ai_ruleset
+from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
@@ -272,6 +273,13 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             outreaches.append(completion)
 
             prediction = get_adversarial_ai_approval(prompt=completion)
+            
+            try:
+                mistake, fix, _ = run_adversary(prompt, completion)
+            except:
+                mistake = "ADVERSARY FAILED"
+                fix = "NONE"
+                # TODO: Include logging here in future
 
             message: GeneratedMessage = GeneratedMessage(
                 prospect_id=prospect_id,
@@ -286,6 +294,8 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
                 message_type=GeneratedMessageType.LINKEDIN,
                 generated_message_instruction_id=instruction_id,
                 few_shot_prompt=few_shot_prompt,
+                adversary_identified_mistake=mistake,
+                adversary_identified_fix=fix,
             )
             db.session.add(message)
             db.session.commit()

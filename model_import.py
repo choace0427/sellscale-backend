@@ -25,7 +25,7 @@ from src.email_outbound.models import (
     EmailCustomizedFieldTypes,
     ProspectEmail,
 )
+from src.ml_adversary.models import AdversaryTrainingPoint, AdversaryFineTuneHistory
 from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus
 from src.response_ai.models import ResponseConfiguration
 from src.onboarding.models import SightOnboarding
-from src.ml_adversary.models import AdversaryTrainingPoint, AdversaryFineTuneHistory
