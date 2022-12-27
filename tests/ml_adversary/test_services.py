@@ -1,50 +1,64 @@
 from app import db, app
-from test_utils import (
-    test_app,
-    basic_client,
-    basic_client_sdr,
-    basic_archetype,
-    basic_prospect,
-    basic_gnlp_model,
-    basic_generated_message,
-)
+from test_utils import test_app
 from src.ml_adversary.services import (
+    run_adversary,
+    get_mistake_fix_from_adversary_output,
     preview_fix,
     create_adversary_training_point,
     toggle_adversary_training_point,
     edit_adversary_training_point,
 )
-from model_import import (AdversaryTrainingPoint, GeneratedMessage)
+from model_import import (AdversaryTrainingPoint, GeneratedMessage, AdversaryFineTuneHistory)
 from decorators import use_app_context
 import mock
+import pytest
+
+from helpers import (
+    fake_openai_response, 
+    fake_openai_response_fail, 
+    fake_adversary_response, 
+    setup_generated_message
+)
 
 
-fake_openai_response = {
-    "choices": [
-        {
-            "text": "test completion    "
-        }
-    ]
-}
+@use_app_context
+@mock.patch("openai.Completion.create", return_value=fake_adversary_response)
+def test_run_adversary(openai_patch):
+    # Test that we can't run the adversary if the prompt OR completion is empty
+    with pytest.raises(ValueError):
+        run_adversary(prompt="", completion="test completion")
+        run_adversary(prompt="test prompt", completion="")
 
-fake_openai_response_fail = {
-    "choices": []
-}
+    tune_history: AdversaryFineTuneHistory = AdversaryFineTuneHistory.query.filter_by(active=True).first()
+    current_model = tune_history.model_name    
+    openai_prompt = "instruction: Given the prompt and the completion, find the mistake in the completion, if any. If mistake found, propose a fix.\n---\nprompt: \"\"\"test prompt\"\"\"\n---\ncompletion: \"\"\"test completion\"\"\"\n---\nmistake:"
+
+    # Test that we can run the adversary
+    response = run_adversary(prompt="test prompt", completion="test completion")
+    mistake, fix, status_code = response[0], response[1], response[2]
+    assert status_code == 200
+    assert openai_patch.called == 1
+    assert openai_patch.called_with(
+        model=current_model,
+        prompt=openai_prompt,
+        max_tokens=200,
+        temperature=0.1,
+        stop=["XXX_END_GEN_XXX"],
+    )
+    assert mistake == "test mistake."
+    assert fix == "test fix."
 
 
-def setup_generated_message():
-    """ Helper method to setup a generated message for testing. Removes redundant code.
+@use_app_context
+def test_get_mistake_fix_from_adversary_output():
+    with pytest.raises(ValueError):
+        get_mistake_fix_from_adversary_output(adversary_output="")
 
-    Returns:
-        GeneratedMessage: A generated message object
-    """
-    c = basic_client()
-    archetype = basic_archetype(client=c)
-    prospect = basic_prospect(client=c, archetype=archetype)
-    gnlp_model = basic_gnlp_model(archetype=archetype)
-    generated_message = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model)
-    return generated_message
+    test_output =  "\"\"\"test mistake.\"\"\"\n---\nfix: \"\"\"test fix.\"\"\"\n---\n."
+
+    mistake, fix = get_mistake_fix_from_adversary_output(adversary_output=test_output)
+    assert mistake == "test mistake."
+    assert fix == "test fix."
 
 
 @use_app_context

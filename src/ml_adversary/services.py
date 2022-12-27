@@ -2,9 +2,72 @@ import openai
 import os
 
 from app import db
-from model_import import AdversaryTrainingPoint, GeneratedMessage
+from model_import import AdversaryTrainingPoint, GeneratedMessage, AdversaryFineTuneHistory
 
 openai.api_key = os.getenv("OPENAI_KEY")
+
+
+def run_adversary(prompt: str, completion: str):
+    """ Runs the adversary model on a given prompt and completion.
+
+    Args:
+        prompt (str): Prompt to run the adversary model on.
+        completion (str): Completion to run the adversary model on.
+
+    Returns:
+        str: Adversary model's output.
+    """
+    if prompt == "" or completion == "":
+        raise ValueError("Prompt or completion not provided")
+
+    max_tokens_length = 200
+    prompt = prompt.strip()
+    completion = completion.strip()
+
+    tune_history: AdversaryFineTuneHistory = AdversaryFineTuneHistory.query.filter_by(active=True).first()
+    current_model = tune_history.model_name
+
+    processed_prompt = "instruction: Given the prompt and the completion, find the mistake in the completion, if any. If mistake found, propose a fix." + "\n---\n" + "prompt: \"\"\"" + prompt + "\"\"\"" + "\n---\n" + "completion: \"\"\"" + completion + "\"\"\"" + "\n---\n" + "mistake:"
+
+    response = openai.Completion.create(
+        model=current_model,
+        prompt=processed_prompt,
+        max_tokens=max_tokens_length,
+        temperature=0.1,
+        stop=["XXX_END_GEN_XXX"]
+    )
+    if response is None or response['choices'] is None or len(response['choices']) == 0:
+        return "Error generating adversary output", 400
+
+    choices = response['choices']
+    top_choice = choices[0]
+    adversary_output = top_choice['text'].strip()
+
+    mistake, fix = get_mistake_fix_from_adversary_output(adversary_output)
+
+    return mistake, fix, 200
+
+
+def get_mistake_fix_from_adversary_output(adversary_output: str):
+    """ Gets the mistake and fix from the adversary output.
+
+    Args:
+        adversary_output (str): Adversary output to parse.
+
+    Returns:
+        str: Mistake identified by the adversary model.
+        str: Fix proposed by the adversary model.
+    """
+    if adversary_output == "":
+        raise ValueError("Adversary output not provided")
+
+    splitted = adversary_output.split("\n---\n")
+    full_mistake, full_fix  = splitted[0].strip(), splitted[1].strip()
+    stripped_mistake = full_mistake.replace("\"\"\"", "").strip()
+    stripped_fix = full_fix.replace("\"\"\"", "").replace("fix: ", "").strip()
+
+    return stripped_mistake, stripped_fix
+
 
 def preview_fix(completion: str, fix: str):
     """ Previews the fix for a given completion.
