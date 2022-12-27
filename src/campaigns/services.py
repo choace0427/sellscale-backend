@@ -125,7 +125,7 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
                     "text": {
                         "type": "plain_text",
                         "text": "{} - {}'s Campaign #{} is `{}`! :tada::tada::tada:".format(
-                            client_company, sdr_name, campaign_id, status.value
+                            client_company, sdr_name, campaign_id, status
                         ),
                     },
                 },
