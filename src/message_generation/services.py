@@ -324,6 +324,15 @@ def update_message(message_id: int, update: str):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.completion = update
     message.human_edited = True
+
+    try:
+        mistake, fix, _ = run_adversary(message.prompt, message.completion)
+        message.adversary_identified_mistake = mistake
+        message.adversary_identified_fix = fix
+    except:
+        # TODO: Include logging here in future
+        pass
+
     db.session.add(message)
     db.session.commit()
 
@@ -349,6 +358,15 @@ def approve_message(message_id: int):
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.message_status = GeneratedMessageStatus.APPROVED
+    
+    try:
+        mistake, fix, _ = run_adversary(message.prompt, message.completion)
+        message.adversary_identified_mistake = mistake
+        message.adversary_identified_fix = fix
+    except:
+        # TODO: Include logging here in future
+        pass
+
     db.session.add(message)
 
     message_id = message.id
