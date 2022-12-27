@@ -114,7 +114,7 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
     campaign_name = campaign.name.split(",")[0]
     campaign_type = campaign.campaign_type.value
 
-    if status == OutboundCampaignStatus.COMPLETE:
+    if status == OutboundCampaignStatus.COMPLETE.value:
         send_slack_message(
             message="{} - {}'s Campaign #{} is complete! :tada::tada::tada:".format(
                 client_company, sdr_name, campaign_id
