@@ -445,3 +445,36 @@ def merge_outbound_campaigns(campaign_ids: list):
         db.session.commit()
 
     return campaign.id
+
+
+def batch_update_campaigns(payload: dict):
+    """Batch update campaigns
+
+    payload looks like
+    ```
+    [{"client":"Parker #14","campaign_id":148,"archetype":"Online shop owners","name":"Martin Mrozowski","campaign_specs":"#148 LINKEDIN","campaign_start_date":"2022-12-14","campaign_end_date":"2023-01-14","status":"READY_TO_SEND","uuid":"4y8idpRlNXyvNth2Iy7Ei0Z4YOl5vjnT","campaign_name":"Pierce, Bash 1, Online shop owners, 75, 2022-12-26","auth_token":"PvVELxlEfi52pcKJ5ms8GJnVcFyQgKWg","num_prospects":"75","num_generated":"73","num_edited":"73","num_sent":"2"}]
+    ```
+
+    Args:
+        payload (dict): Payload containing the campaigns to update
+    """
+    for campaign_payload in payload:
+        campaign_id = campaign_payload["campaign_id"]
+        campaign_start_date = datetime.datetime.strptime(
+            campaign_payload["campaign_start_date"], "%Y-%m-%d"
+        )
+        campaign_end_date = datetime.datetime.strptime(
+            campaign_payload["campaign_end_date"], "%Y-%m-%d"
+        )
+        status = campaign_payload["status"]
+        campaign_name = campaign_payload["campaign_name"]
+
+        campaign = OutboundCampaign.query.get(campaign_id)
+        campaign.campaign_start_date = campaign_start_date
+        campaign.campaign_end_date = campaign_end_date
+        campaign.status = OutboundCampaignStatus[status]
+        campaign.name = campaign_name
+        db.session.add(campaign)
+        db.session.commit()
+
+    return True

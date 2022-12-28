@@ -13,6 +13,7 @@ from src.campaigns.services import (
     update_campaign_dates,
     update_campaign_name,
     merge_outbound_campaigns,
+    batch_update_campaigns,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -64,6 +65,15 @@ def patch_change_campaign_status():
     status = get_request_parameter("status", request, json=True, required=True)
     change_campaign_status(campaign_id=campaign_id, status=status)
     return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/batch", methods=["PATCH"])
+def patch_batch_update_campaigns():
+    payload = get_request_parameter("payload", request, json=True, required=True)
+    success = batch_update_campaigns(payload=payload)
+    if success:
+        return "OK", 200
+    return "Failed to update", 400
 
 
 @CAMPAIGN_BLUEPRINT.route("/generate", methods=["POST"])
