@@ -27,8 +27,7 @@ def get_adversarial_ai_approval(prompt):
     return choice == "TRUE"
 
 
-@celery.task(bind=True, max_retries=3)
-def adversarial_ai_ruleset(self, message_id: int):
+def run_adversarial_ai_ruleset(message_id: int):
     """Adversarial AI ruleset.
 
     Args:
@@ -37,55 +36,52 @@ def adversarial_ai_ruleset(self, message_id: int):
     Returns:
         bool: Whether the message passes the ruleset.
     """
-    try:
-        from src.message_generation.services import (
-            generated_message_has_entities_not_in_prompt,
+    from src.message_generation.services import (
+        run_check_message_has_bad_entities,
+    )
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    prompt = message.prompt
+    completion = message.completion
+
+    if message.unknown_named_entities == None:
+        run_check_message_has_bad_entities(message_id)
+
+    problems = []
+    if len(message.unknown_named_entities) > 0:
+        problems.append(
+            "Unknown named entities: {}".format(
+                '", "'.join(message.unknown_named_entities)
+            )
         )
 
-        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-        prompt = message.prompt
-        completion = message.completion
+    if "i have " in completion.lower():
+        problems.append("Uses first person 'I have'.")
 
-        if message.unknown_named_entities == None:
-            generated_message_has_entities_not_in_prompt(message_id)
+    if "www." in completion.lower():
+        problems.append("Contains a URL.")
 
-        problems = []
-        if len(message.unknown_named_entities) > 0:
-            problems.append(
-                "Unknown named entities: {}".format(
-                    '", "'.join(message.unknown_named_entities)
-                )
-            )
+    if " me " in completion.lower():
+        problems.append("Contains 'me'.")
 
-        if "i have " in completion.lower():
-            problems.append("Uses first person 'I have'.")
+    if "MD" in prompt and "Dr" not in completion:
+        problems.append("Contains 'MD' but not 'Dr'. in title")
 
-        if "www." in completion.lower():
-            problems.append("Contains a URL.")
+    if "they've worked " in completion.lower():
+        problems.append("Contains 'they've worked'.")
 
-        if " me " in completion.lower():
-            problems.append("Contains 'me'.")
+    if "i've spent" in completion.lower():
+        problems.append("Contains 'i've spent'.")
 
-        if "MD" in prompt and "Dr" not in completion:
-            problems.append("Contains 'MD' but not 'Dr'. in title")
+    if (
+        len(completion) > 300
+        and message.message_type == GeneratedMessageType.LINKEDIN
+    ):
+        problems.append("Linkedin message is > 300 characters.")
 
-        if "they've worked " in completion.lower():
-            problems.append("Contains 'they've worked'.")
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message.problems = problems
+    db.session.add(message)
+    db.session.commit()
 
-        if "i've spent" in completion.lower():
-            problems.append("Contains 'i've spent'.")
-
-        if (
-            len(completion) > 300
-            and message.message_type == GeneratedMessageType.LINKEDIN
-        ):
-            problems.append("Linkedin message is > 300 characters.")
-
-        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-        message.problems = problems
-        db.session.add(message)
-        db.session.commit()
-
-        return problems
-    except Exception as e:
-        raise self.retry(exc=e, countdown=10 * self.request.retries)
+    return problems

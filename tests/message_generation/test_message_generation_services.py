@@ -284,8 +284,7 @@ def test_batch_update_messages(update_message_mock):
 
 
 @use_app_context
-@mock.patch("src.message_generation.services.adversarial_ai_ruleset.delay")
-def test_approve_message(adversarial_ai_ruleset_mock):
+def test_approve_message():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -312,8 +311,6 @@ def test_approve_message(adversarial_ai_ruleset_mock):
 
     message: GeneratedMessage = GeneratedMessage.query.first()
     assert message.message_status == GeneratedMessageStatus.APPROVED
-
-    assert adversarial_ai_ruleset_mock.called is True
 
 
 @use_app_context
@@ -762,8 +759,7 @@ def test_change_prospect_email_status():
 
 
 @use_app_context
-@mock.patch("src.message_generation.services.adversarial_ai_ruleset.delay")
-def test_batch_approve_message_generations_by_heuristic(adversarial_ai_ruleset_mock):
+def test_batch_approve_message_generations_by_heuristic():
     prospect_ids = []
 
     client = basic_client()
@@ -824,17 +820,11 @@ def test_batch_approve_message_generations_by_heuristic(adversarial_ai_ruleset_m
         assert prospect.status == ProspectStatus.PROSPECTED
         assert prospect.approved_outreach_message_id == None
 
-    assert adversarial_ai_ruleset_mock.call_count == 10
-
 
 @use_app_context
 @mock.patch(
     "src.message_generation.services.get_named_entities",
-    return_value=[
-        {"entity_group": "PER", "word": "Hey Marla!"},
-        {"entity_group": "PER", "word": "Megan"},
-        {"entity_group": "PER", "word": "Zuma"},
-    ],
+    return_value=["Marla", "Zuma", "Megan"],
 )
 def test_get_named_entities_for_generated_message(get_named_entities_patch):
     client = basic_client()
@@ -842,61 +832,49 @@ def test_get_named_entities_for_generated_message(get_named_entities_patch):
     prospect = basic_prospect(client, archetype)
     gnlp_model = basic_gnlp_model(archetype)
     generated_message = basic_generated_message(prospect, gnlp_model)
-    generated_message.completion = " Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
+    generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
     db.session.add(generated_message)
     db.session.commit()
 
     entities = get_named_entities_for_generated_message(generated_message.id)
     assert len(entities) == 3
 
-    for e in entities:
-        entity = e["entity"]
-        type = e["type"]
-        assert entity in [
-            "marla",
-            "megan",
-            "zuma",
-        ]
-        assert type in ["PER"]
-
 
 @use_app_context
 @mock.patch(
     "src.message_generation.services.get_named_entities",
-    return_value=[
-        {"entity_group": "PER", "word": "Hey Marla !"},
-        {"entity_group": "PER", "word": "Megan"},
-        {"entity_group": "PER", "word": "Zuma"},
-    ],
+    return_value=["Marla", "Megan", "Zuma"],
+
 )
-def test_generated_message_has_entities_not_in_prompt(get_named_entities_patch):
+def test_run_check_message_has_bad_entities(get_named_entities_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
     gnlp_model = basic_gnlp_model(archetype)
     generated_message = basic_generated_message(prospect, gnlp_model)
     generated_message_id = generated_message.id
-    generated_message.completion = " Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
+    generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
+    generated_message.prompt = "Oh no."
     db.session.add(generated_message)
     db.session.commit()
 
     assert generated_message.unknown_named_entities == None
 
-    x, entities = generated_message_has_entities_not_in_prompt(generated_message.id)
+    x, entities = run_check_message_has_bad_entities(generated_message.id)
 
     assert x == True
     assert len(entities) == 3
 
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
-    assert gm.unknown_named_entities == ["Hey Marla !", "Megan", "Zuma"]
+    assert gm.unknown_named_entities == ["Marla", "Megan", "Zuma"]
 
 
 @use_app_context
 @mock.patch(
     "src.message_generation.services.get_named_entities",
-    return_value=[{"entity_group": "PER", "word": "Dr. Drozd!"}],
+    return_value=["Dr. Drozd"],
 )
-def test_generated_message_has_entities_not_in_prompt_with_dr(get_named_entities_patch):
+def test_bad_entities_check_with_exceptions(get_named_entities_patch):
     client = basic_client()
     client.company = "Curative"
     client_id = client.id
@@ -909,17 +887,39 @@ def test_generated_message_has_entities_not_in_prompt_with_dr(get_named_entities
     gnlp_model = basic_gnlp_model(archetype)
     generated_message = basic_generated_message(prospect, gnlp_model)
     generated_message_id = generated_message.id
-    generated_message.prompt = "name: Dan Drozd, MD MSc<>industry: Computer Software<>company: PicnicHealth<>title: Physician Executive & Scientist | Advisor | Investor | Digital Health Technologist | CMO @PicnicHealth<>notes: - Chief Medical Officer and leads product strategy and roadmap at PicnicHealth n-21+ years of experience in industryn-Would love to talk about what issues you're seeing in provider staffing.<>response:"
-    generated_message.completion = " Hi Dr. Drozd! I read your profile and wanted to say how impressed I am by your 21+ years of experience in the industry. I'd love to talk - I work at Curative, and we're building a staffing platform to solve the exact issues you've seen in the provider staffing industry."
+    generated_message.prompt = "Dan Drozd, MD"
+    generated_message.completion = "Hi Dr. Drozd!"
     db.session.add(generated_message)
     db.session.commit()
 
     assert generated_message.unknown_named_entities == None
 
-    x, entities = generated_message_has_entities_not_in_prompt(generated_message.id)
+    x, entities = run_check_message_has_bad_entities(generated_message.id)
 
+    print(entities)
     assert x == False
     assert len(entities) == 0
 
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     assert gm.unknown_named_entities == []
+
+
+@use_app_context
+@mock.patch('openai.Completion.create', return_value=None)
+def test_get_named_entities_fail(openai_mock):
+    entities = get_named_entities("")
+    assert len(entities) == 0
+
+    entities = get_named_entities("Sellscale tester - David")
+    assert openai_mock.call_count == 1
+    assert len(entities) == 0
+
+
+@use_app_context
+@mock.patch('openai.Completion.create', return_value={'choices': [{'text': '\n\nSellscale // David'}]})
+def test_get_named_entities_fail(openai_mock):
+    entities = get_named_entities("Sellscale tester - David")
+    assert openai_mock.call_count == 1
+    assert len(entities) == 2
+    assert entities[0] == "Sellscale"
+    assert entities[1] == "David"

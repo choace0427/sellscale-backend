@@ -11,7 +11,7 @@ from model_import import (
     GeneratedMessageJob,
     GeneratedMessageJobStatus,
 )
-from src.ml.adverserial_ai import adversarial_ai_ruleset
+from src.ml.adverserial_ai import run_adversarial_ai_ruleset
 from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
@@ -23,6 +23,7 @@ from ..ml.fine_tuned_models import (
     get_custom_completion_for_client,
 )
 from src.email_outbound.services import create_prospect_email
+from src.message_generation.ner_exceptions import ner_exceptions
 from ..utils.abstract.attr_utils import deep_get
 import random
 from app import db, celery
@@ -30,7 +31,6 @@ from tqdm import tqdm
 import openai
 import re
 import os
-
 import datetime
 
 
@@ -300,6 +300,8 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             db.session.add(message)
             db.session.commit()
 
+            run_adversarial_ai_ruleset(message_id=message.id)
+
     return outreaches
 
 
@@ -336,6 +338,8 @@ def update_message(message_id: int, update: str):
     db.session.add(message)
     db.session.commit()
 
+    run_adversarial_ai_ruleset(message_id=message_id)
+
     return True
 
 
@@ -370,7 +374,7 @@ def approve_message(message_id: int):
     db.session.add(message)
 
     message_id = message.id
-    adversarial_ai_ruleset.delay(message_id=message_id)
+    run_adversarial_ai_ruleset(message_id=message_id)
 
     prospect_id = message.prospect_id
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -957,109 +961,77 @@ Output:
 
 
 def get_named_entities(string: str):
+    """ Get named entities from a string (completion message)
+
+    We use the OpenAI davinci-03 completion model to generate the named entities.
     """
-    Get named entities from a string
-    """
-    import requests
+    if string == "":
+        return []
+    
+    # Unlikely to have more than 50 tokens (words)
+    max_tokens_length = 50 
+    message = string.strip()
 
-    API_URL = "https://api-inference.huggingface.co/models/flair/ner-english"
-    headers = {"Authorization": "Bearer {}".format(HUGGING_FACE_KEY)}
+    instruction = "Return a list of all named entities, including persons's names, separated by ' // '."
+    prompt = "message: " + message + "\n\n" + "instruction: " + instruction
 
-    def query(payload):
-        response = requests.post(API_URL, headers=headers, json=payload)
-        return response.json()
-
-    output = query(
-        {
-            "inputs": string,
-        }
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt=prompt,
+        max_tokens = max_tokens_length,
+        temperature=0.7,
     )
+    if response is None or response['choices'] is None or len(response['choices']) == 0:
+        return []
+    
+    choices = response['choices']
+    top_choice = choices[0]
+    entities_dirty = top_choice['text'].strip()
+    entities_clean = entities_dirty.replace("\n", "").split(' // ')
 
-    return output
-
-
-def replace_words(message_id: int):
-    from model_import import Client
-
-    prospect_id: int = GeneratedMessage.query.get(message_id).prospect_id
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    client: Client = Client.query.get(prospect.client_id)
-    client_name = client.company
-
-    words_to_ignore = [
-        "hey ",
-        "hello ",
-        "hi ",
-        "yo ",
-        client_name.lower(),
-        "linkedin",
-        "dr. ",
-    ]
-
-    return words_to_ignore
+    return(entities_clean)
 
 
 def get_named_entities_for_generated_message(message_id: int):
-    """
-    Get named entities for a generated message
+    """ Get named entities for a generated message
     """
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     entities = get_named_entities(message.completion)
 
-    return_entities = []
-    for e in entities:
-        tag = e["entity_group"]
-        original_entity = e["word"]
-        entity = e["word"]
-        entity = entity.lower()
-        words_to_replace = replace_words(message_id=message_id)
-        for word in words_to_replace:
-            entity = entity.replace(word, "")
-
-        sanitize_entity = re.sub(
-            "[^0-9a-zA-Z]+",
-            " ",
-            entity,
-        ).strip()
-
-        return_entities.append(
-            {"entity": sanitize_entity, "type": tag, "original_entity": original_entity}
-        )
-
-    return return_entities
+    return entities
 
 
-@celery.task(bind=True, max_retries=3)
-def generated_message_has_entities_not_in_prompt(self, message_id: int):
+def run_check_message_has_bad_entities(message_id: int):
+    """ Check if the message has any entities that are not in the prompt
+    
+    If there are any entities that are not in the prompt, we flag the message and include the unknown entities.
     """
-    Check if the message has any entities that are not in the prompt
-    """
-    try:
-        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-        entities = get_named_entities_for_generated_message(message_id=message_id)
 
-        has_entity_not_in_prompt = False
-        flagged_entities = []
-        for entity in entities:
-            prompt = message.prompt
-            sanitized_prompt = re.sub(
-                "[^0-9a-zA-Z]+",
-                " ",
-                prompt.lower(),
-            ).strip()
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    entities = get_named_entities_for_generated_message(message_id=message_id)
 
-            if entity["entity"] not in sanitized_prompt:
-                has_entity_not_in_prompt = True
-                flagged_entities.append(entity["original_entity"])
+    prompt = message.prompt
+    sanitized_prompt = re.sub(
+        "[^0-9a-zA-Z]+",
+        " ",
+        prompt,
+    ).strip()
 
-        generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-        generated_message.unknown_named_entities = flagged_entities
-        db.session.add(generated_message)
-        db.session.commit()
+    flagged_entities = []
+    for entity in entities:
+        for exception in ner_exceptions:
+            if exception in entity:
+                entity = entity.replace(exception, "").strip()
 
-        return has_entity_not_in_prompt, flagged_entities
-    except Exception as e:
-        raise self.retry(exc=e, countdown=2**self.request.retries)
+        if entity not in sanitized_prompt:
+            flagged_entities.append(entity)
+
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    generated_message.unknown_named_entities = flagged_entities
+    db.session.add(generated_message)
+    db.session.commit()
+
+    return len(flagged_entities) > 0, flagged_entities
 
 
 def clear_all_generated_message_jobs():
