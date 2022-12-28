@@ -52,6 +52,7 @@ def find_points_from_website(url):
                 "see overview",
                 "news",
                 "see all",
+                "cookies",
             ]
         )
     )
