@@ -148,6 +148,12 @@ def mass_update_generated_messages():
     payload = get_request_parameter("payload", request, json=True, required=True)
     ids = []
     for item in payload:
+        if "Message" not in item:
+            return "`Message` column not in CSV", 400
+
+        if "Prospect ID" not in item:
+            return "`Prospect ID` column not in CSV", 400
+
         prospect_id = item["Prospect ID"]
         update = item["Message"]
 

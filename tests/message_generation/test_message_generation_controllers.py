@@ -200,3 +200,78 @@ def test_post_mark_messages_as_good_message():
     gm_list = GeneratedMessage.query.all()
     assert len(gm_list) == 1
     assert gm_list[0].good_message == True
+
+
+@use_app_context
+def test_post_mass_update():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client=client, archetype=archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(
+        prospect=prospect, gnlp_model=gnlp_model
+    )
+    generated_message.completion = "123123"
+    db.session.add(generated_message)
+    db.session.commit()
+    prospect.approved_outreach_message_id = generated_message.id
+    db.session.add(prospect)
+    db.session.commit()
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].completion == "123123"
+    assert prospect.approved_outreach_message_id == generated_message.id
+
+    response = app.test_client().post(
+        "message_generation/mass_update",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "Message": "Swag swag swag",
+                        "Prospect ID": prospect.id,
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    gm_list = GeneratedMessage.query.all()
+    assert len(gm_list) == 1
+    assert gm_list[0].completion == "Swag swag swag"
+    assert prospect.approved_outreach_message_id == generated_message.id
+
+    response = app.test_client().post(
+        "message_generation/mass_update",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "Prospect ID": prospect.id,
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 400
+    assert response.text == "`Message` column not in CSV"
+
+    response = app.test_client().post(
+        "message_generation/mass_update",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "Message": "Swag swag swag",
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 400
+    assert response.text == "`Prospect ID` column not in CSV"
