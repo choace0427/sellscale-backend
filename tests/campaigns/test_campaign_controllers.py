@@ -294,6 +294,57 @@ def test_change_campaign_status_to_edit_complete():
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.status.value == "INITIAL_EDIT_COMPLETE"
 
+    response = app.test_client().patch(
+        "campaigns/batch",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"payload": []}),
+    )
+
+    assert response.status_code == 200
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "INITIAL_EDIT_COMPLETE"
+
+    response = app.test_client().patch(
+        "campaigns/batch",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"payload": []}),
+    )
+    assert response.status_code == 200
+
+    response = app.test_client().patch(
+        "campaigns/batch",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "client": "Parker #14",
+                        "campaign_id": campaign.id,
+                        "archetype": "Online shop owners",
+                        "name": "Martin Mrozowski",
+                        "campaign_specs": "#148 LINKEDIN",
+                        "campaign_start_date": "2022-12-14",
+                        "campaign_end_date": "2023-01-14",
+                        "status": "READY_TO_SEND",
+                        "uuid": "4y8idpRlNXyvNth2Iy7Ei0Z4YOl5vjnT",
+                        "campaign_name": "Pierce, Bash 1, Online shop owners, 75, 2022-12-26",
+                        "auth_token": "PvVELxlEfi52pcKJ5ms8GJnVcFyQgKWg",
+                        "num_prospects": "75",
+                        "num_generated": "73",
+                        "num_edited": "73",
+                        "num_sent": "2",
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "READY_TO_SEND"
+    assert campaign.campaign_start_date.isoformat() == "2022-12-14T00:00:00"
+    assert campaign.campaign_end_date.isoformat() == "2023-01-14T00:00:00"
+    assert campaign.name == "Pierce, Bash 1, Online shop owners, 75, 2022-12-26"
+
 
 @use_app_context
 def test_merge_multiple_linkedin_campaigns_succeed():
