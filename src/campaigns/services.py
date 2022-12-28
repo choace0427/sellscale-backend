@@ -461,10 +461,10 @@ def batch_update_campaigns(payload: dict):
     for campaign_payload in payload:
         campaign_id = campaign_payload["campaign_id"]
         campaign_start_date = datetime.datetime.strptime(
-            campaign_payload["campaign_start_date"], "%Y-%m-%d"
+            campaign_payload["campaign_start_date"][0:10], "%Y-%m-%d"
         )
         campaign_end_date = datetime.datetime.strptime(
-            campaign_payload["campaign_end_date"], "%Y-%m-%d"
+            campaign_payload["campaign_end_date"][0:10], "%Y-%m-%d"
         )
         status = campaign_payload["status"]
         campaign_name = campaign_payload["campaign_name"]
