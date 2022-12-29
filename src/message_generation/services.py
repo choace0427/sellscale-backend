@@ -589,7 +589,7 @@ def get_personalized_first_line_from_prompt(
     prospect_id: int,
     batch_id: int,
 ):
-    completion, model_id = get_personalized_first_line_for_client(
+    completion, model_id, few_shot_prompt = get_personalized_first_line_for_client(
         archetype_id=archetype_id,
         model_type=model_type,
         prompt=prompt,
@@ -604,6 +604,7 @@ def get_personalized_first_line_from_prompt(
         message_status=GeneratedMessageStatus.DRAFT,
         message_type=GeneratedMessageType.EMAIL,
         batch_id=batch_id,
+        few_shot_prompt=few_shot_prompt,
     )
     db.session.add(personalized_first_line)
     db.session.commit()
