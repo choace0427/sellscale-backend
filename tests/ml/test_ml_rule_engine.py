@@ -11,6 +11,7 @@ from decorators import use_app_context
 from src.ml.rule_engine import (
     run_message_rule_engine,
     wipe_problems,
+    format_entities,
     rule_no_url,
 )
 from model_import import GeneratedMessage
@@ -40,6 +41,17 @@ def test_wipe_problems():
 
 
 @use_app_context
+def test_format_entities():
+    problems = []
+    format_entities(["test"], problems)
+    assert problems == ["Potential wrong name: 'test'"]
+
+    problems = []
+    format_entities(["test", "test2"], problems)
+    assert problems == ["Potential wrong name: 'test'", "Potential wrong name: 'test2'"]
+
+
+@use_app_context
 def test_rule_no_url():
     problems = []
     rule_no_url("pass", problems)
@@ -47,4 +59,3 @@ def test_rule_no_url():
 
     rule_no_url("https://www.google.com", problems)
     assert problems == ["Contains a URL."]
-    

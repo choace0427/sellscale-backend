@@ -54,20 +54,18 @@ def run_message_rule_engine(message_id: int):
     )
 
     wipe_problems(message_id)
-    run_check_message_has_bad_entities(message_id)
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     prompt = message.prompt
     completion = message.completion.lower()
     
     problems = []
-    if len(message.unknown_named_entities) > 0:
-        problems.append(
-            "Potential wrong name: {}".format(
-                ', '.join(message.unknown_named_entities)
-            )
-        )
 
+    # NER AI
+    run_check_message_has_bad_entities(message_id)
+    format_entities(message.unknown_named_entities, problems)
+
+    # General Rules
     rule_no_url(completion, problems)
 
     if "i have " in completion:
@@ -99,6 +97,19 @@ def run_message_rule_engine(message_id: int):
     return problems
 
 
+def format_entities(unknown_entities: list, problems: list):
+    """ Formats the unknown entities for the problem message.
+
+    Each unknown entity will appear on its own line.
+    """
+    if len(unknown_entities) > 0:
+        for entity in unknown_entities:
+            problems.append(
+                "Potential wrong name: '{}'".format(entity)
+            )
+    return
+
+
 def rule_no_url(completion: str, problems: list):
     """ Rule: No URL
 
@@ -106,5 +117,5 @@ def rule_no_url(completion: str, problems: list):
     """
     if "www." in completion:
         problems.append("Contains a URL.")
-
+        
     return
