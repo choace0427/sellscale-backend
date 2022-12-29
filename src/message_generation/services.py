@@ -274,7 +274,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             outreaches.append(completion)
 
             prediction = get_adversarial_ai_approval(prompt=completion)
-            
+
             # try:
             #     mistake, fix, _ = run_adversary(prompt, completion)
             # except:
@@ -295,8 +295,6 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
                 message_type=GeneratedMessageType.LINKEDIN,
                 generated_message_instruction_id=instruction_id,
                 few_shot_prompt=few_shot_prompt,
-                adversary_identified_mistake=mistake,
-                adversary_identified_fix=fix,
             )
             db.session.add(message)
             db.session.commit()
@@ -310,13 +308,9 @@ def generate_outreaches_for_batch_of_prospects(
     prospect_list: list, batch_id: str, cta_id: str = None
 ):
     for prospect_id in tqdm(prospect_list):
-        try:
-            generate_outreaches_new(
-                prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
-            )
-        except Exception as e:
-            print(e)
-            pass
+        generate_outreaches_new(
+            prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
+        )
 
     return True
 
