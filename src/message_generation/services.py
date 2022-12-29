@@ -1013,6 +1013,10 @@ def get_named_entities(string: str):
     top_choice = choices[0]
     entities_dirty = top_choice["text"].strip()
     entities_clean = entities_dirty.replace("\n", "").split(" // ")
+    
+    # OpenAI returns "NONE" if there are no entities
+    if len(entities_clean) == 1 and entities_clean[0] == "NONE":
+        return []
 
     return entities_clean
 

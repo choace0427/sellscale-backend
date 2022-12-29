@@ -937,6 +937,19 @@ def test_run_check_message_has_bad_entities_with_sanitization(get_named_entities
 
 
 @use_app_context
+@mock.patch(
+    "openai.Completion.create",
+    return_value={"choices": [{"text": "\n\nSellscale // David"}]},
+)
+def test_get_named_entities(openai_mock):
+    entities = get_named_entities("Sellscale tester - David")
+    assert openai_mock.call_count == 1
+    assert len(entities) == 2
+    assert entities[0] == "Sellscale"
+    assert entities[1] == "David"
+
+
+@use_app_context
 @mock.patch("openai.Completion.create", return_value=None)
 def test_get_named_entities_fail(openai_mock):
     entities = get_named_entities("")
@@ -950,11 +963,9 @@ def test_get_named_entities_fail(openai_mock):
 @use_app_context
 @mock.patch(
     "openai.Completion.create",
-    return_value={"choices": [{"text": "\n\nSellscale // David"}]},
+    return_value={"choices": [{"text": "\n\nNONE"}]},
 )
-def test_get_named_entities_fail(openai_mock):
+def test_get_named_entities_no_return(openai_mock):
     entities = get_named_entities("Sellscale tester - David")
     assert openai_mock.call_count == 1
-    assert len(entities) == 2
-    assert entities[0] == "Sellscale"
-    assert entities[1] == "David"
+    assert len(entities) == 0
