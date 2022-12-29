@@ -21,6 +21,7 @@ from ..ml.fine_tuned_models import (
     get_basic_openai_completion,
     get_completion,
     get_custom_completion_for_client,
+    get_personalized_first_line_for_client,
 )
 from src.email_outbound.services import create_prospect_email
 from src.message_generation.ner_exceptions import ner_exceptions
@@ -273,7 +274,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             outreaches.append(completion)
 
             prediction = get_adversarial_ai_approval(prompt=completion)
-            
+
             try:
                 mistake, fix, _ = run_adversary(prompt, completion)
             except:
@@ -362,7 +363,7 @@ def approve_message(message_id: int):
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.message_status = GeneratedMessageStatus.APPROVED
-    
+
     try:
         mistake, fix, _ = run_adversary(message.prompt, message.completion)
         message.adversary_identified_mistake = mistake
@@ -580,6 +581,36 @@ def toggle_cta_active(cta_id: int):
     return True
 
 
+def get_personalized_first_line_from_prompt(
+    archetype_id: int,
+    model_type: GNLPModelType,
+    prompt: str,
+    research_points: list,
+    prospect_id: int,
+    batch_id: int,
+):
+    completion, model_id = get_personalized_first_line_for_client(
+        archetype_id=archetype_id,
+        model_type=model_type,
+        prompt=prompt,
+    )
+
+    personalized_first_line = GeneratedMessage(
+        prospect_id=prospect_id,
+        gnlp_model_id=model_id,
+        research_points=research_points,
+        prompt=prompt,
+        completion=completion,
+        message_status=GeneratedMessageStatus.DRAFT,
+        message_type=GeneratedMessageType.EMAIL,
+        batch_id=batch_id,
+    )
+    db.session.add(personalized_first_line)
+    db.session.commit()
+
+    return personalized_first_line
+
+
 def get_personalized_first_line(
     archetype_id: int,
     model_type: GNLPModelType,
@@ -686,7 +717,7 @@ def generate_prospect_email(
                 )
                 continue
 
-            personalized_first_line = get_personalized_first_line(
+            personalized_first_line = get_personalized_first_line_from_prompt(
                 archetype_id=archetype_id,
                 model_type=GNLPModelType.EMAIL_FIRST_LINE,
                 prompt=prompt,
@@ -961,16 +992,16 @@ Output:
 
 
 def get_named_entities(string: str):
-    """ Get named entities from a string (completion message)
+    """Get named entities from a string (completion message)
 
     We use the OpenAI davinci-03 completion model to generate the named entities.
     """
     if string == "":
         return []
-    
+
     # Unlikely to have more than 50 tokens (words)
-    max_tokens_length = 50 
-    message = "\"" + string.strip() + "\""
+    max_tokens_length = 50
+    message = '"' + string.strip() + '"'
 
     instruction = "Return a list of all named entities, including persons's names, separated by ' // '."
     prompt = "message: " + message + "\n\n" + "instruction: " + instruction
@@ -978,23 +1009,22 @@ def get_named_entities(string: str):
     response = openai.Completion.create(
         model="text-davinci-003",
         prompt=prompt,
-        max_tokens = max_tokens_length,
+        max_tokens=max_tokens_length,
         temperature=0.7,
     )
-    if response is None or response['choices'] is None or len(response['choices']) == 0:
+    if response is None or response["choices"] is None or len(response["choices"]) == 0:
         return []
-    
-    choices = response['choices']
-    top_choice = choices[0]
-    entities_dirty = top_choice['text'].strip()
-    entities_clean = entities_dirty.replace("\n", "").split(' // ')
 
-    return(entities_clean)
+    choices = response["choices"]
+    top_choice = choices[0]
+    entities_dirty = top_choice["text"].strip()
+    entities_clean = entities_dirty.replace("\n", "").split(" // ")
+
+    return entities_clean
 
 
 def get_named_entities_for_generated_message(message_id: int):
-    """ Get named entities for a generated message
-    """
+    """Get named entities for a generated message"""
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     entities = get_named_entities(message.completion)
 
@@ -1002,8 +1032,8 @@ def get_named_entities_for_generated_message(message_id: int):
 
 
 def run_check_message_has_bad_entities(message_id: int):
-    """ Check if the message has any entities that are not in the prompt
-    
+    """Check if the message has any entities that are not in the prompt
+
     If there are any entities that are not in the prompt, we flag the message and include the unknown entities.
     """
 
