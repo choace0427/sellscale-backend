@@ -1,4 +1,4 @@
-from src.ml.adverserial_ai import get_adversarial_ai_approval
+from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
 from model_import import (
     GeneratedMessageType,
@@ -11,7 +11,7 @@ from model_import import (
     GeneratedMessageJob,
     GeneratedMessageJobStatus,
 )
-from src.ml.adverserial_ai import run_adversarial_ai_ruleset
+from src.ml.rule_engine import run_message_rule_engine
 from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
@@ -300,7 +300,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             db.session.add(message)
             db.session.commit()
 
-            run_adversarial_ai_ruleset(message_id=message.id)
+            run_message_rule_engine(message_id=message.id)
 
     return outreaches
 
@@ -338,7 +338,7 @@ def update_message(message_id: int, update: str):
     db.session.add(message)
     db.session.commit()
 
-    run_adversarial_ai_ruleset(message_id=message_id)
+    run_message_rule_engine(message_id=message_id)
 
     return True
 
@@ -374,7 +374,7 @@ def approve_message(message_id: int):
     db.session.add(message)
 
     message_id = message.id
-    run_adversarial_ai_ruleset(message_id=message_id)
+    run_message_rule_engine(message_id=message_id)
 
     prospect_id = message.prospect_id
     prospect: Prospect = Prospect.query.get(prospect_id)

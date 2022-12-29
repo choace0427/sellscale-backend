@@ -27,7 +27,7 @@ def get_adversarial_ai_approval(prompt):
     return choice == "TRUE"
 
 
-def run_adversarial_ai_ruleset(message_id: int):
+def run_message_rule_engine(message_id: int):
     """Adversarial AI ruleset.
 
     Args:
@@ -40,13 +40,13 @@ def run_adversarial_ai_ruleset(message_id: int):
         run_check_message_has_bad_entities,
     )
 
+    wipe_problems(message_id)
+    run_check_message_has_bad_entities(message_id)
+
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     prompt = message.prompt
     completion = message.completion
-
-    if message.unknown_named_entities == None:
-        run_check_message_has_bad_entities(message_id)
-
+    
     problems = []
     if len(message.unknown_named_entities) > 0:
         problems.append(
@@ -85,3 +85,16 @@ def run_adversarial_ai_ruleset(message_id: int):
     db.session.commit()
 
     return problems
+
+
+def wipe_problems(message_id: int):
+    """Wipe problems for a message. Used to reset the problems for a message to recheck.
+
+    Args:
+        message_id (int): The message ID to wipe problems for.
+    """
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message.problems = []
+    message.unknown_named_entities = []
+    db.session.add(message)
+    db.session.commit()
