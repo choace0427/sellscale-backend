@@ -155,7 +155,8 @@ def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
 
 @use_app_context
 @mock.patch(
-    "src.message_generation.services.run_adversary", return_value=["test mistake", "test fix", 200]
+    "src.message_generation.services.run_adversary",
+    return_value=["test mistake", "test fix", 200],
 )
 @mock.patch(
     "src.message_generation.services.get_custom_completion_for_client",
@@ -165,8 +166,13 @@ def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
     "src.message_generation.services.get_adversarial_ai_approval", return_value=True
 )
 def test_generate_outreaches_new(ai_patch, completion_patch, adversary_patch):
-    payload = create_client(company="test", contact_name="test", contact_email="test", linkedin_outbound_enabled=True,
-        email_outbound_enabled=True,)
+    payload = create_client(
+        company="test",
+        contact_name="test",
+        contact_email="test",
+        linkedin_outbound_enabled=True,
+        email_outbound_enabled=True,
+    )
     client: Client = Client.query.get(payload["client_id"])
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -363,7 +369,7 @@ def test_delete_message():
 
 @use_app_context
 @mock.patch(
-    "src.message_generation.services.get_custom_completion_for_client",
+    "src.message_generation.services.get_personalized_first_line_for_client",
     return_value=("completion", 5),
 )
 def test_generate_prospect_email(get_custom_completion_for_client_mock):
@@ -391,7 +397,7 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     assert len(messages) == 3
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
-        assert message.gnlp_model_id == 5
+        assert message.gnlp_model_id == None
         assert message.completion == "completion"
         assert message.batch_id == "123123"
 
@@ -424,7 +430,7 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
 
 @use_app_context
 @mock.patch(
-    "src.message_generation.services.get_custom_completion_for_client",
+    "src.message_generation.services.get_personalized_first_line_for_client",
     return_value=("completion", 5),
 )
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
@@ -465,7 +471,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     assert len(messages) == 3
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
-        assert message.gnlp_model_id == 5
+        assert message.gnlp_model_id == None
         assert message.completion == "completion"
         assert message.batch_id == "123123"
 
@@ -844,7 +850,6 @@ def test_get_named_entities_for_generated_message(get_named_entities_patch):
 @mock.patch(
     "src.message_generation.services.get_named_entities",
     return_value=["Marla", "Megan", "Zuma"],
-
 )
 def test_run_check_message_has_bad_entities(get_named_entities_patch):
     client = basic_client()
@@ -905,7 +910,7 @@ def test_bad_entities_check_with_exceptions(get_named_entities_patch):
 
 
 @use_app_context
-@mock.patch('openai.Completion.create', return_value=None)
+@mock.patch("openai.Completion.create", return_value=None)
 def test_get_named_entities_fail(openai_mock):
     entities = get_named_entities("")
     assert len(entities) == 0
@@ -916,7 +921,10 @@ def test_get_named_entities_fail(openai_mock):
 
 
 @use_app_context
-@mock.patch('openai.Completion.create', return_value={'choices': [{'text': '\n\nSellscale // David'}]})
+@mock.patch(
+    "openai.Completion.create",
+    return_value={"choices": [{"text": "\n\nSellscale // David"}]},
+)
 def test_get_named_entities_fail(openai_mock):
     entities = get_named_entities("Sellscale tester - David")
     assert openai_mock.call_count == 1
