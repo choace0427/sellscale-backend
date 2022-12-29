@@ -27,7 +27,9 @@ class GeneratedMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
-    gnlp_model_id = db.Column(db.Integer, db.ForeignKey("gnlp_models.id"))
+    gnlp_model_id = db.Column(
+        db.Integer, db.ForeignKey("gnlp_models.id"), nullable=True
+    )
     research_points = db.Column(db.ARRAY(db.Integer), nullable=False)
     prompt = db.Column(db.String, nullable=False)
     completion = db.Column(db.String, nullable=False)

@@ -589,7 +589,7 @@ def get_personalized_first_line_from_prompt(
     prospect_id: int,
     batch_id: int,
 ):
-    completion, model_id, few_shot_prompt = get_personalized_first_line_for_client(
+    completion, few_shot_prompt = get_personalized_first_line_for_client(
         archetype_id=archetype_id,
         model_type=model_type,
         prompt=prompt,
@@ -597,7 +597,6 @@ def get_personalized_first_line_from_prompt(
 
     personalized_first_line = GeneratedMessage(
         prospect_id=prospect_id,
-        gnlp_model_id=model_id,
         research_points=research_points,
         prompt=prompt,
         completion=completion,
