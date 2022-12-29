@@ -970,7 +970,7 @@ def get_named_entities(string: str):
     
     # Unlikely to have more than 50 tokens (words)
     max_tokens_length = 50 
-    message = string.strip()
+    message = "\"" + string.strip() + "\""
 
     instruction = "Return a list of all named entities, including persons's names, separated by ' // '."
     prompt = "message: " + message + "\n\n" + "instruction: " + instruction
