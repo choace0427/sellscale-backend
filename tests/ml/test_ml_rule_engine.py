@@ -12,6 +12,7 @@ from src.ml.rule_engine import (
     run_message_rule_engine,
     wipe_problems,
     format_entities,
+    rule_no_profanity,
     rule_no_url,
 )
 from model_import import GeneratedMessage
@@ -49,6 +50,20 @@ def test_format_entities():
     problems = []
     format_entities(["test", "test2"], problems)
     assert problems == ["Potential wrong name: 'test'", "Potential wrong name: 'test2'"]
+
+
+@use_app_context
+def test_rule_no_profanity():
+    problems = []
+    rule_no_profanity("pass", problems)
+    assert problems == []
+
+    rule_no_profanity("Oh shit this one will definitely get flagged", problems)
+    assert problems == ["Contains profanity: 'shit'"]
+
+    problems = []
+    rule_no_profanity("fuck shit bitch", problems)
+    assert problems == ["Contains profanity: 'fuck', 'shit', 'bitch'"]
 
 
 @use_app_context

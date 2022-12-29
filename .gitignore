@@ -16,3 +16,5 @@ training_set_temp.jsonl
 Procfile
 
 cov.xml
+
+!profanity.csv

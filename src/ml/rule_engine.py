@@ -1,11 +1,14 @@
 import requests
 import json
+import csv
 from model_import import GeneratedMessage, GeneratedMessageType
 from app import db, celery
 
 # View experiment here: https://www.notion.so/sellscale/Adversarial-AI-v0-Experiment-901a97de91a845d5a83063f3d6606a4a
 ADVERSARIAL_MODEL = "curie:ft-personal-2022-10-27-20-07-22"
 
+# This MUST be changed when the relative path of the profanity changes.
+profanity_csv_path = r'src/../datasets/profanity.csv'
 
 def get_adversarial_ai_approval(prompt):
     OPENAI_URL = "https://api.openai.com/v1/completions"
@@ -66,6 +69,7 @@ def run_message_rule_engine(message_id: int):
     format_entities(message.unknown_named_entities, problems)
 
     # General Rules
+    rule_no_profanity(completion, problems)
     rule_no_url(completion, problems)
 
     if "i have " in completion:
@@ -107,6 +111,27 @@ def format_entities(unknown_entities: list, problems: list):
             problems.append(
                 "Potential wrong name: '{}'".format(entity)
             )
+    return
+
+
+def rule_no_profanity(completion: str, problems: list):
+    """ Rule: No Profanity
+
+    No profanity allowed in the completion.
+    """
+    with open(profanity_csv_path, newline='') as f:
+        reader = csv.reader(f)
+        profanity = set([row[0] for row in reader])
+    
+    detected_profanities = []
+    for word in completion.split():
+        if word in profanity:
+            detected_profanities.append("\'"+word+"\'")
+
+    if len(detected_profanities) > 0:
+        problem_string = ", ".join(detected_profanities)
+        problems.append("Contains profanity: {}".format(problem_string))
+    
     return
 
 
