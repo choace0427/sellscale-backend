@@ -27,6 +27,19 @@ def get_adversarial_ai_approval(prompt):
     return choice == "TRUE"
 
 
+def wipe_problems(message_id: int):
+    """Wipe problems for a message. Used to reset the problems for a message to recheck.
+
+    Args:
+        message_id (int): The message ID to wipe problems for.
+    """
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message.problems = []
+    message.unknown_named_entities = []
+    db.session.add(message)
+    db.session.commit()
+
+
 def run_message_rule_engine(message_id: int):
     """Adversarial AI ruleset.
 
@@ -45,32 +58,31 @@ def run_message_rule_engine(message_id: int):
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     prompt = message.prompt
-    completion = message.completion
+    completion = message.completion.lower()
     
     problems = []
     if len(message.unknown_named_entities) > 0:
         problems.append(
-            "Unknown named entities: {}".format(
-                '", "'.join(message.unknown_named_entities)
+            "Potential wrong name: {}".format(
+                ', '.join(message.unknown_named_entities)
             )
         )
 
-    if "i have " in completion.lower():
+    rule_no_url(completion, problems)
+
+    if "i have " in completion:
         problems.append("Uses first person 'I have'.")
 
-    if "www." in completion.lower():
-        problems.append("Contains a URL.")
-
-    if " me " in completion.lower():
+    if " me " in completion:
         problems.append("Contains 'me'.")
 
     if "MD" in prompt and "Dr" not in completion:
         problems.append("Contains 'MD' but not 'Dr'. in title")
 
-    if "they've worked " in completion.lower():
+    if "they've worked " in completion:
         problems.append("Contains 'they've worked'.")
 
-    if "i've spent" in completion.lower():
+    if "i've spent" in completion:
         problems.append("Contains 'i've spent'.")
 
     if (
@@ -87,14 +99,12 @@ def run_message_rule_engine(message_id: int):
     return problems
 
 
-def wipe_problems(message_id: int):
-    """Wipe problems for a message. Used to reset the problems for a message to recheck.
+def rule_no_url(completion: str, problems: list):
+    """ Rule: No URL
 
-    Args:
-        message_id (int): The message ID to wipe problems for.
+    No URL's allowed in the completion.
     """
-    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    message.problems = []
-    message.unknown_named_entities = []
-    db.session.add(message)
-    db.session.commit()
+    if "www." in completion:
+        problems.append("Contains a URL.")
+
+    return

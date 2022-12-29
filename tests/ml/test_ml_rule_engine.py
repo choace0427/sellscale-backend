@@ -11,6 +11,7 @@ from decorators import use_app_context
 from src.ml.rule_engine import (
     run_message_rule_engine,
     wipe_problems,
+    rule_no_url,
 )
 from model_import import GeneratedMessage
 
@@ -36,3 +37,14 @@ def test_wipe_problems():
 
     assert GeneratedMessage.query.get(generated_message.id).problems == []
     assert GeneratedMessage.query.get(generated_message.id).unknown_named_entities == []
+
+
+@use_app_context
+def test_rule_no_url():
+    problems = []
+    rule_no_url("pass", problems)
+    assert problems == []
+
+    rule_no_url("https://www.google.com", problems)
+    assert problems == ["Contains a URL."]
+    

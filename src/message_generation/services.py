@@ -274,13 +274,13 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             outreaches.append(completion)
 
             prediction = get_adversarial_ai_approval(prompt=completion)
-
-            try:
-                mistake, fix, _ = run_adversary(prompt, completion)
-            except:
-                mistake = "ADVERSARY FAILED"
-                fix = "NONE"
-                # TODO: Include logging here in future
+            
+            # try:
+            #     mistake, fix, _ = run_adversary(prompt, completion)
+            # except:
+            #     mistake = "ADVERSARY FAILED"
+            #     fix = "NONE"
+            #     # TODO: Include logging here in future
 
             message: GeneratedMessage = GeneratedMessage(
                 prospect_id=prospect_id,
@@ -328,13 +328,13 @@ def update_message(message_id: int, update: str):
     message.completion = update
     message.human_edited = True
 
-    try:
-        mistake, fix, _ = run_adversary(message.prompt, message.completion)
-        message.adversary_identified_mistake = mistake
-        message.adversary_identified_fix = fix
-    except:
-        # TODO: Include logging here in future
-        pass
+    # try:
+    #     mistake, fix, _ = run_adversary(message.prompt, message.completion)
+    #     message.adversary_identified_mistake = mistake
+    #     message.adversary_identified_fix = fix
+    # except:
+    #     # TODO: Include logging here in future
+    #     pass
 
     db.session.add(message)
     db.session.commit()
@@ -364,13 +364,13 @@ def approve_message(message_id: int):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.message_status = GeneratedMessageStatus.APPROVED
 
-    try:
-        mistake, fix, _ = run_adversary(message.prompt, message.completion)
-        message.adversary_identified_mistake = mistake
-        message.adversary_identified_fix = fix
-    except:
-        # TODO: Include logging here in future
-        pass
+    # try:
+    #     mistake, fix, _ = run_adversary(message.prompt, message.completion)
+    #     message.adversary_identified_mistake = mistake
+    #     message.adversary_identified_fix = fix
+    # except:
+    #     # TODO: Include logging here in future
+    #     pass
 
     db.session.add(message)
 
