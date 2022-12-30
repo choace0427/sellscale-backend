@@ -53,6 +53,16 @@ def find_points_from_website(url):
                 "news",
                 "see all",
                 "cookies",
+                "cookie",
+                "javascript",
+                "browser",
+                "terms & conditions",
+                "terms and conditions",
+                "privacy",
+                "collects data",
+                "server buy",
+                "tech gift",
+                "sms mark",
             ]
         )
     )

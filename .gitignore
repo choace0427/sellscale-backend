@@ -18,3 +18,4 @@ Procfile
 cov.xml
 
 !profanity.csv
+!web_blacklist.csv

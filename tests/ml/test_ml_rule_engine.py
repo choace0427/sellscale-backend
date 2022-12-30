@@ -13,9 +13,12 @@ from src.ml.rule_engine import (
     wipe_problems,
     format_entities,
     rule_no_profanity,
+    rule_no_cookies,
     rule_no_url,
+    rule_linkedin_length,
+    rule_address_doctor,
 )
-from model_import import GeneratedMessage
+from model_import import GeneratedMessage, GeneratedMessageType
 
 @use_app_context
 def test_run_message_rule_engine():
@@ -71,6 +74,16 @@ def test_rule_no_profanity():
 
 
 @use_app_context
+def test_rule_no_cookies():
+    problems = []
+    rule_no_cookies("pass", problems)
+    assert problems == []
+
+    rule_no_cookies("Wow you use javascript in your browser? That's advanced!", problems)
+    assert problems == ["Contains web related words: 'javascript', 'browser'. Please check for relevance."]
+
+
+@use_app_context
 def test_rule_no_url():
     problems = []
     rule_no_url("pass", problems)
@@ -78,3 +91,38 @@ def test_rule_no_url():
 
     rule_no_url("https://www.google.com", problems)
     assert problems == ["Contains a URL."]
+
+
+@use_app_context
+def test_rule_linkedin_length():
+    problems = []
+    rule_linkedin_length(GeneratedMessageType.EMAIL, "pass", problems)
+    assert problems == []
+
+    rule_linkedin_length(GeneratedMessageType.LINKEDIN, "pass", problems)
+    assert problems == []
+
+    big_message = "long"
+    for i in range(300):
+        big_message += "message"
+    
+    assert len(big_message) > 300
+    rule_linkedin_length(GeneratedMessageType.LINKEDIN, big_message, problems)
+    assert problems == ["LinkedIn message is > 300 characters."]
+
+
+@use_app_context
+def test_rule_address_doctor():
+    problems = []
+    rule_address_doctor("David - not a doctor", "pass", problems)
+    assert problems == []
+
+    rule_address_doctor("Dr. David", "pass", problems)
+    assert problems == []
+
+    rule_address_doctor("David, MD", "Dr. David", problems)
+    assert problems == []
+
+    rule_address_doctor("David, MD", "David", problems)
+    assert problems == ["Prompt contains 'MD' but no 'Dr'. in message"]
+    

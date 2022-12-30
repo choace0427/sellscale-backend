@@ -17,6 +17,7 @@ def test_find_points_from_website():
     points = find_points_from_website(url)
 
     assert len(points[0]) > 0
+    assert "javascript" not in points[0]
 
 
 @mock.patch(

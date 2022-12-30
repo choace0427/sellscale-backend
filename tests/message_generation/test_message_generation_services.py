@@ -910,6 +910,15 @@ def test_run_check_message_has_bad_entities_with_exceptions(get_named_entities_p
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     assert gm.unknown_named_entities == []
 
+    generated_message.prompt = "dan drozd, MD"
+    generated_message.completion = "Hi Dr. Drozd!"
+    db.session.add(generated_message)
+    db.session.commit()
+
+    x, entities = run_check_message_has_bad_entities(generated_message.id)
+    assert x == False
+    assert len(entities) == 0
+
 
 @use_app_context
 @mock.patch(

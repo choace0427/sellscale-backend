@@ -299,8 +299,6 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             db.session.add(message)
             db.session.commit()
 
-            run_message_rule_engine(message_id=message.id)
-
     batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
 
     return outreaches
@@ -997,10 +995,20 @@ def get_named_entities(string: str):
 
     # Unlikely to have more than 50 tokens (words)
     max_tokens_length = 50
-    message = '"' + string.strip() + '"'
+    message = string.strip()
+    instruction = "instruction: Return a list of all named entities, including persons's names, separated by ' // '. If no entities are detected, return 'NONE'."
 
-    instruction = "Return a list of all named entities, including persons's names, separated by ' // '."
-    prompt = "message: " + message + "\n\n" + "instruction: " + instruction
+    fewshot_1_message = "message: Hey David, I really like your background in computer security. I also really enjoyed reading the recommendation Aakash left for you. Impressive since you've been in the industry for 9+ years! You must have had a collection of amazing work experiences, given that you've been with Gusto, Naropa University, and Stratosphere in the past."
+    fewshot_1_entities = "entities: David // Aakash // Gusto // Naropa University // Stratosphere"
+    fewshot_1 = fewshot_1_message + "\n\n" + instruction + "\n\n" + fewshot_1_entities
+
+    fewshot_2_message = "message: I'd like to commend you for being in the industry for 16+ years. That is no small feat!"
+    fewshot_2_entities = "entities: NONE"
+    fewshot_2 = fewshot_2_message + "\n\n" + instruction + "\n\n" + fewshot_2_entities
+
+    target = "message: " + message + "\n\n" + instruction + "\n\n" + "entities:"
+    
+    prompt = fewshot_1 + "\n\n--\n\n" + fewshot_2 + "\n\n--\n\n" + target
 
     response = openai.Completion.create(
         model="text-davinci-003",
@@ -1045,7 +1053,7 @@ def run_check_message_has_bad_entities(message_id: int):
     sanitized_prompt = re.sub(
         "[^0-9a-zA-Z]+",
         " ",
-        prompt,
+        prompt.lower(),
     ).strip()
 
     flagged_entities = []
@@ -1057,7 +1065,7 @@ def run_check_message_has_bad_entities(message_id: int):
         sanitized_entity = re.sub(
             "[^0-9a-zA-Z]+",
             " ",
-            entity,
+            entity.lower(),
         ).strip()
 
         if sanitized_entity not in sanitized_prompt:
