@@ -1013,6 +1013,10 @@ def get_named_entities(string: str):
     top_choice = choices[0]
     entities_dirty = top_choice["text"].strip()
     entities_clean = entities_dirty.replace("\n", "").split(" // ")
+    
+    # OpenAI returns "NONE" if there are no entities
+    if len(entities_clean) == 1 and entities_clean[0] == "NONE":
+        return []
 
     return entities_clean
 
@@ -1032,6 +1036,7 @@ def run_check_message_has_bad_entities(message_id: int):
     """
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+
     entities = get_named_entities_for_generated_message(message_id=message_id)
 
     prompt = message.prompt
@@ -1047,7 +1052,13 @@ def run_check_message_has_bad_entities(message_id: int):
             if exception in entity:
                 entity = entity.replace(exception, "").strip()
 
-        if entity not in sanitized_prompt:
+        sanitized_entity = re.sub(
+            "[^0-9a-zA-Z]+",
+            " ",
+            entity,
+        ).strip()
+
+        if sanitized_entity not in sanitized_prompt:
             flagged_entities.append(entity)
 
     generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
