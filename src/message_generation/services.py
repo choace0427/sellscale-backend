@@ -1006,7 +1006,7 @@ def get_named_entities(string: str):
         model="text-davinci-003",
         prompt=prompt,
         max_tokens=max_tokens_length,
-        temperature=0.7,
+        temperature=0,
     )
     if response is None or response["choices"] is None or len(response["choices"]) == 0:
         return []
