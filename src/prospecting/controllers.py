@@ -151,17 +151,20 @@ def add_prospect_from_csv_payload():
     csv_payload = get_request_parameter(
         "csv_payload", request, json=True, required=True
     )
+    email_enabled = get_request_parameter(
+        "email_enabled", request, json=True, required=False
+    )
 
-    validated, reason = validate_prospect_json_payload(payload=csv_payload)
+    validated, reason = validate_prospect_json_payload(payload=csv_payload, email_enabled=email_enabled)
     if not validated:
         return reason, 400
 
-    success, couldnt_add = add_prospects_from_json_payload(
+    response, duplicate_count = add_prospects_from_json_payload(
         client_id=client_id, archetype_id=archetype_id, payload=csv_payload
     )
 
-    if success:
-        return "OK", 200
+    if response:
+        return "Uploaded prospects - detected and removed {} duplicates".format(duplicate_count), 200
 
     return "Error", 400
 

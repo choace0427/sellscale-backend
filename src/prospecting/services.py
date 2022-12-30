@@ -573,7 +573,7 @@ def mark_prospect_reengagement(prospect_id: int):
     return True
 
 
-def validate_prospect_json_payload(payload: dict):
+def validate_prospect_json_payload(payload: dict, email_enabled: bool = False):
     """Validate the CSV payload sent by the SDR through Retool.
     This is in respect to validating a prospect.
 
@@ -600,15 +600,22 @@ def validate_prospect_json_payload(payload: dict):
         (bool, str): A tuple of (is_valid, error_message)
     """
     if len(payload) == 0:
-        return False, "No prospects were sent."
+        return False, "No prospects were received."
 
     for prospect in payload:
         email = prospect.get("email")
         linkedin_url = prospect.get("linkedin_url")
-        if not email and not linkedin_url:
+
+        if not linkedin_url:
             return (
                 False,
-                "Could not find the 'email' or 'linkedin_url' field. Please check your CSV, or make sure each Prospect has either an email or a linkedin_url field.",
+                "Could not find the required 'linkedin_url' field. Please check your CSV, or make sure each Prospect has a linkedin_url field.",
+            )
+
+        if email_enabled and not email:
+            return (
+                False,
+                "Could not find the required 'email' field. Please check your CSV, or make sure each Prospect has an email field.",
             )
 
     return True, "No Error"
@@ -629,12 +636,20 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
         ....
     ]
     """
-    couldnt_add = []
     batch_id = generate_random_alphanumeric(32)
 
-    payload = [x for x in payload if len(x.get("full_name", "")) > 0]
-    num_prospects = len(payload)
+    seen_linkedin_urls = set()
+    no_duplicates_payload = []
+    duplicate_count = 0
+    for prospect in payload:
+        linkedin_url = prospect.get("linkedin_url")
+        if linkedin_url not in seen_linkedin_urls:
+            seen_linkedin_urls.add(linkedin_url)
+            no_duplicates_payload.append(prospect)
+        else:
+            duplicate_count += 1
 
+    num_prospects = len(no_duplicates_payload)
     prospect_upload_batch: ProspectUploadBatch = ProspectUploadBatch(
         archetype_id=archetype_id,
         batch_id=batch_id,
@@ -643,35 +658,30 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
     db.session.add(prospect_upload_batch)
     db.session.commit()
 
-    for prospect in payload:
+    for prospect in no_duplicates_payload:
+        # These have been validated by the time we get here.
         linkedin_url = prospect.get("linkedin_url")
         email = prospect.get("email")
 
-        if not linkedin_url and not email:
-            couldnt_add.append(prospect.get("full_name"))
-            continue
+        create_prospect_from_linkedin_link.delay(
+            archetype_id=archetype_id, 
+            url=linkedin_url, 
+            batch=batch_id, 
+            email=email
+        )
 
-        if linkedin_url:
-            create_prospect_from_linkedin_link.delay(
-                archetype_id=archetype_id, url=linkedin_url, batch=batch_id, email=email
-            )
-        else:
-            add_prospect.delay(
-                client_id=client_id,
-                archetype_id=archetype_id,
-                company=prospect.get("company"),
-                company_url=prospect.get("company_url"),
-                email=prospect.get("email"),
-                full_name=prospect.get("full_name"),
-                linkedin_url=prospect.get("linkedin_url"),
-                title=prospect.get("title"),
-                batch=batch_id,
-            )
+        # In case the csv has a field, we should stay true to those fields.
+        # manual_add_prospect: Prospect = Prospect.query.get(prospect_id)
+        # if prospect.get("company"):
+        #     manual_add_prospect.company = prospect.get("company")
+        # if prospect.get("company_url"):
+        #     manual_add_prospect.company_url = prospect.get("company_url")
+        # if prospect.get("full_name"):
+        #     manual_add_prospect.full_name = prospect.get("full_name")
+        # if prospect.get("title"):
+        #     manual_add_prospect.title = prospect.get("title")
 
-    if len(couldnt_add) > 0:
-        return False, couldnt_add
-
-    return True, []
+    return "Success", duplicate_count
 
 
 def create_prospect_note(prospect_id: int, note: str):

@@ -269,8 +269,7 @@ def test_get_sales_nav_slug_from_url():
 
 @use_app_context
 @mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.delay")
-@mock.patch("src.prospecting.services.add_prospect.delay")
-def test_add_prospects_from_json_payload(mock_add_prospect, mock_create_from_linkedin):
+def test_add_prospects_from_json_payload(mock_create_from_linkedin):
     payload = [
         {
             "company": "Athelas",
@@ -283,25 +282,25 @@ def test_add_prospects_from_json_payload(mock_add_prospect, mock_create_from_lin
         {
             "company": "Athelas",
             "company_url": "https://athelas.com/",
-            "email": "aakash.adesara@gmail.com",  # duplicate shouldn't add
+            "email": "aakash.adesara@gmail.com",
             "full_name": "Aakash Adesara",
-            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/", # duplicate
             "title": "Growth Engineer",
         },
         {
             "company": "Athelas",
             "company_url": "https://athelas.com/",
             "email": "aakash.adesara@gmail.com",
-            "full_name": "Ishan Sharma",  # different name
-            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "full_name": "Ishan Sharma",
+            "linkedin_url": "https://www.linkedin.com/in/aaadesara/", # duplicate
             "title": "Growth Engineer",
         },
         {
             "company": "Athelas",
             "company_url": "https://athelas.com/",
             "email": "aakash.adesara@gmail.com",
-            "full_name": "Ishan No Linkedin",  # no linkeidn
-            "linkedin_url": "",
+            "full_name": "Ishan No Linkedin",
+            "linkedin_url": "some_linkedin",
             "title": "Growth Engineer",
         },
         {
@@ -309,7 +308,7 @@ def test_add_prospects_from_json_payload(mock_add_prospect, mock_create_from_lin
             "company_url": "https://athelas.com/",
             "email": "",  # no  email
             "full_name": "Ishan No Email",
-            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "linkedin_url": "another_linkedin",
             "title": "Growth Engineer",
         },
         {
@@ -317,7 +316,7 @@ def test_add_prospects_from_json_payload(mock_add_prospect, mock_create_from_lin
             "company_url": "https://athelas.com/",
             "email": "",  # no  email
             "full_name": "",
-            "linkedin_url": "https://www.linkedin.com/in/aaadesara/",
+            "linkedin_url": "final_linkedin",
             "title": "Growth Engineer",
         },
     ]
@@ -333,21 +332,22 @@ def test_add_prospects_from_json_payload(mock_add_prospect, mock_create_from_lin
                 "client_id": client_id,
                 "archetype_id": archetype_id,
                 "csv_payload": payload,
+                "email_enabled": False,
             }
         ),
     )
     assert response.status_code == 200
+    assert response.data == b'Uploaded prospects - detected and removed 2 duplicates'
 
     batches: list = ProspectUploadBatch.query.all()
     assert len(batches) == 1
 
     batch_0: ProspectUploadBatch = batches[0]
     assert batch_0.archetype_id == archetype_id
-    assert batch_0.num_prospects == 5
+    assert batch_0.num_prospects == 4
 
     prospects = Prospect.query.all()
     assert len(prospects) == 0
-    assert mock_add_prospect.call_count == 1
     assert mock_create_from_linkedin.call_count == 4
 
     for i in prospects:
@@ -417,17 +417,30 @@ def test_validate_prospect_json_payload_invalid():
     """
     Tests that a bad payload is rejected
     """
-    bad_email_li_payload = [
+    bad_li_payload = [
         {
             "company": "Athelas",
             "company_url": "https://athelas.com/",
-            "emailBAD": "",
+            "email": "",
             "full_name": "Aakash Adesara",
             "linkedin_urlBAD": "",
             "title": "Growth Engineer",
         },
     ]
-    validated, _ = validate_prospect_json_payload(bad_email_li_payload)
+    validated, _ = validate_prospect_json_payload(payload=bad_li_payload, email_enabled=False)
+    assert validated == False
+
+    bad_email_payload = [
+        {
+            "company": "Athelas",
+            "company_url": "https://athelas.com/",
+            "emailBAD": "",
+            "full_name": "Aakash Adesara",
+            "linkedin_url": "some_url",
+            "title": "Growth Engineer",
+        },
+    ]
+    validated, _ = validate_prospect_json_payload(payload=bad_email_payload, email_enabled=True)
     assert validated == False
 
     correct_payload = [
@@ -440,7 +453,7 @@ def test_validate_prospect_json_payload_invalid():
             "title": "Growth Engineer",
         },
     ]
-    validated, _ = validate_prospect_json_payload(correct_payload)
+    validated, _ = validate_prospect_json_payload(payload=correct_payload, email_enabled=True)
     assert validated == True
 
 
@@ -459,11 +472,10 @@ def test_add_prospects_from_json_payload_invalid():
     client = basic_client()
     archetype = basic_archetype(client)
 
-    success, couldnt_add = add_prospects_from_json_payload(
+    response = add_prospects_from_json_payload(
         client.id, archetype.id, payload
     )
-    assert success == False
-    assert couldnt_add == ["Aakash Adesara"]
+    assert response == ("Success", 0)
 
     prospects = Prospect.query.all()
     assert len(prospects) == 0
