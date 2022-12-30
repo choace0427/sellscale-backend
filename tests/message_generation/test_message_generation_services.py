@@ -215,8 +215,14 @@ def test_generate_outreaches_new(ai_patch, completion_patch, adversary_patch):
         assert gm.message_type == GeneratedMessageType.LINKEDIN
         assert gm.message_cta == cta.id
         assert gm.batch_id == "123123123"
+
+        prospect = Prospect.query.get(gm.prospect_id)
+        assert prospect.approved_outreach_message_id is not None
         # assert gm.adversary_identified_mistake == "test mistake"
         # assert gm.adversary_identified_fix == "test fix"
+
+    prospect = Prospect.query.get(prospect.id)
+    assert prospect.approved_outreach_message_id > 0
 
 
 @use_app_context

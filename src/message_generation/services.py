@@ -301,6 +301,8 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
 
             run_message_rule_engine(message_id=message.id)
 
+    batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
+
     return outreaches
 
 
@@ -879,7 +881,7 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
     return True
 
 
-def batch_approve_message_generations_by_heuristic(prospect_ids: int):
+def batch_approve_message_generations_by_heuristic(prospect_ids: list):
     from src.message_generation.services import (
         approve_message,
     )
@@ -1013,7 +1015,7 @@ def get_named_entities(string: str):
     top_choice = choices[0]
     entities_dirty = top_choice["text"].strip()
     entities_clean = entities_dirty.replace("\n", "").split(" // ")
-    
+
     # OpenAI returns "NONE" if there are no entities
     if len(entities_clean) == 1 and entities_clean[0] == "NONE":
         return []
