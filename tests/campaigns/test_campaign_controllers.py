@@ -131,7 +131,14 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
 
 
 @use_app_context
-def test_change_campaign_status():
+@mock.patch("src.campaigns.services.batch_generate_prospect_emails")
+@mock.patch(
+    "src.campaigns.services.generate_outreaches_for_prospect_list_from_multiple_ctas"
+)
+def test_change_campaign_status(
+    generate_outreaches_for_prospect_list_from_multiple_ctas_patch,
+    batch_generate_prospect_emails_patch,
+):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -237,6 +244,24 @@ def test_change_campaign_status():
         ),
     )
     assert response.status_code == 400
+
+    response = app.test_client().post(
+        "campaigns/generate",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.status.value == "NEEDS_REVIEW"
+
+    assert batch_generate_prospect_emails_patch.call_count == 0
+    assert (
+        generate_outreaches_for_prospect_list_from_multiple_ctas_patch.call_count == 1
+    )
 
 
 @use_app_context

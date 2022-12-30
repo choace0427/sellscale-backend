@@ -78,7 +78,7 @@ def generate_campaign(campaign_id: int):
         campaign_id (int): Campaign id
     """
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    campaign.status = OutboundCampaignStatus.IN_PROGRESS
+    campaign.status = OutboundCampaignStatus.NEEDS_REVIEW
     db.session.add(campaign)
     db.session.commit()
 

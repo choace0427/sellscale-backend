@@ -207,7 +207,7 @@ def test_generate_outreaches_new(ai_patch, completion_patch, adversary_patch):
     assert len(outreaches) == 8
     assert ai_patch.called is True
     assert completion_patch.called is True
-    assert adversary_patch.called is True
+    assert adversary_patch.called is False
 
     generated_messages: list = GeneratedMessage.query.all()
     assert len(generated_messages) == 8
