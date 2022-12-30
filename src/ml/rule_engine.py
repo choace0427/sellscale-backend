@@ -1,6 +1,7 @@
 import requests
 import json
 import csv
+import re
 from model_import import GeneratedMessage, GeneratedMessageType
 from app import db, celery
 
@@ -125,8 +126,15 @@ def rule_no_profanity(completion: str, problems: list):
     
     detected_profanities = []
     for word in completion.split():
+        stripped_word = re.sub(
+            "[^0-9a-zA-Z]+",
+            "",
+            word,
+        ).strip()
         if word in profanity:
             detected_profanities.append("\'"+word+"\'")
+        elif stripped_word in profanity:
+            detected_profanities.append("\'"+stripped_word+"\'")
 
     if len(detected_profanities) > 0:
         problem_string = ", ".join(detected_profanities)

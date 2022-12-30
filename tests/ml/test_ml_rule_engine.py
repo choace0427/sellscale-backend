@@ -65,6 +65,10 @@ def test_rule_no_profanity():
     rule_no_profanity("fuck shit bitch", problems)
     assert problems == ["Contains profanity: 'fuck', 'shit', 'bitch'"]
 
+    problems = []
+    rule_no_profanity("shit!", problems)
+    assert problems == ["Contains profanity: 'shit'"]
+
 
 @use_app_context
 def test_rule_no_url():
