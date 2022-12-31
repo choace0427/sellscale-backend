@@ -33,6 +33,9 @@ import openai
 import re
 import os
 import datetime
+from src.research.linkedin.services import (
+    delete_research_points_and_payload_by_prospect_id,
+)
 
 
 HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
@@ -856,7 +859,10 @@ def batch_mark_prospect_email_sent(prospect_ids: list):
 
 def wipe_prospect_email_and_generations_and_research(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if prospect.status != ProspectStatus.PROSPECTED:
+    if (
+        prospect.status != ProspectStatus.PROSPECTED
+        and prospect.approved_prospect_email_id != None
+    ):
         return False
 
     prospect_emails: list = ProspectEmail.query.filter(
@@ -864,7 +870,6 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
     ).all()
 
     prospect.approved_prospect_email_id = None
-    prospect.approved_outreach_message_id = None
     db.session.add(prospect)
     db.session.commit()
 
@@ -872,9 +877,14 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
         personalized_line = GeneratedMessage.query.get(
             prospect_email.personalized_first_line
         )
+        if personalized_line.message_type != GeneratedMessageType.EMAIL:
+            continue
         db.session.delete(personalized_line)
         db.session.delete(prospect_email)
         db.session.commit()
+
+    if prospect.approved_outreach_message_id == None:
+        delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
 
     return True
 

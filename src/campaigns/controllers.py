@@ -14,6 +14,7 @@ from src.campaigns.services import (
     update_campaign_name,
     merge_outbound_campaigns,
     batch_update_campaigns,
+    split_outbound_campaigns,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -152,3 +153,17 @@ def post_merge_campaigns():
     except Exception as e:
         return str(e), 400
     return jsonify({"new_campaign_id": campaign_id})
+
+
+@CAMPAIGN_BLUEPRINT.route("/split", methods=["POST"])
+def post_split_campaigns():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    num_campaigns = get_request_parameter(
+        "num_campaigns", request, json=True, required=True
+    )
+    campaign_ids = split_outbound_campaigns(
+        original_campaign_id=campaign_id, num_campaigns=num_campaigns
+    )
+    return jsonify({"campaign_ids": campaign_ids})
