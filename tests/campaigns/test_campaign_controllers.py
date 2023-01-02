@@ -498,6 +498,7 @@ def test_make_fake_campaign_with_10_prospect_ids_then_split_into_5_parts():
         ctas=[1, 2, 3],
     )
 
+    original_campaign_id = campaign1.id
     response = app.test_client().post(
         "campaigns/split",
         headers={"Content-Type": "application/json"},
@@ -510,6 +511,11 @@ def test_make_fake_campaign_with_10_prospect_ids_then_split_into_5_parts():
     )
     assert response.status_code == 200
     campaign_ids = json.loads(response.data.decode("utf-8"))["campaign_ids"]
+
+    # assert original campaign is cancelled
+    campaign = OutboundCampaign.query.get(original_campaign_id)
+    assert campaign.status.value == "CANCELLED"
+
     assert len(campaign_ids) == 5
     assert campaign_ids[0] > 0
     assert campaign_ids[1] > 0
