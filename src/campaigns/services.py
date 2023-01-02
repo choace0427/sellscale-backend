@@ -447,6 +447,55 @@ def merge_outbound_campaigns(campaign_ids: list):
     return campaign.id
 
 
+def split(a, n):
+    k, m = divmod(len(a), n)
+    return (a[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n))
+
+
+def split_outbound_campaigns(original_campaign_id: int, num_campaigns: int):
+    """Splits a campaign into multiple campaigns
+
+    Returns:
+        list: List of campaign ids
+    """
+    original_campaign: OutboundCampaign = OutboundCampaign.query.get(
+        original_campaign_id
+    )
+    original_campaign_status = original_campaign.status
+    if not original_campaign:
+        raise Exception("Campaign does not exist")
+
+    prospect_ids = original_campaign.prospect_ids
+    prospect_id_batches = list(split(prospect_ids, num_campaigns))
+
+    campaign_ids = []
+    for i, prospect_id_batch in enumerate(prospect_id_batches):
+        campaign: OutboundCampaign = create_outbound_campaign(
+            prospect_ids=prospect_id_batch,
+            campaign_type=original_campaign.campaign_type,
+            client_archetype_id=original_campaign.client_archetype_id,
+            client_sdr_id=original_campaign.client_sdr_id,
+            campaign_start_date=original_campaign.campaign_start_date,
+            campaign_end_date=original_campaign.campaign_end_date,
+            ctas=original_campaign.ctas,
+            email_schema_id=original_campaign.email_schema_id,
+        )
+        campaign.status = original_campaign_status
+        campaign.name = "Split - Batch#{i} of {num_campaigns} ({original})".format(
+            i=i + 1, num_campaigns=num_campaigns, original=original_campaign.name
+        )
+        db.session.add(campaign)
+        db.session.commit()
+        campaign_ids.append(campaign.id)
+
+    original_campaign = OutboundCampaign.query.get(original_campaign_id)
+    original_campaign.status = OutboundCampaignStatus.CANCELLED
+    db.session.add(original_campaign)
+    db.session.commit()
+
+    return campaign_ids
+
+
 def batch_update_campaigns(payload: dict):
     """Batch update campaigns
 

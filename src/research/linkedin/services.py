@@ -3,7 +3,6 @@ import json
 import os
 from app import db, celery
 from src.client.models import ClientArchetype
-from src.message_generation.services import delete_message_generation_by_prospect_id
 from src.prospecting.models import Prospect
 from src.research.website.general_website_transformer import (
     generate_general_website_research_points,
@@ -274,6 +273,8 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
 
 @celery.task
 def reset_prospect_research_and_messages(prospect_id: int):
+    from src.message_generation.services import delete_message_generation_by_prospect_id
+
     reset_prospect_approved_status(prospect_id=prospect_id)
     delete_message_generation_by_prospect_id(prospect_id=prospect_id)
     delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)

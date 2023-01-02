@@ -372,13 +372,14 @@ def test_change_campaign_status_to_edit_complete():
 
 
 @use_app_context
-def test_merge_multiple_linkedin_campaigns_succeed():
+def test_merge_then_split_multiple_linkedin_campaigns_succeed():
     client = basic_client()
     archetype = basic_archetype(client)
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
 
+    # test merging campaigns
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2],
         campaign_type="LINKEDIN",
@@ -419,6 +420,147 @@ def test_merge_multiple_linkedin_campaigns_succeed():
     assert campaign.client_archetype_id == archetype_id
     assert campaign.client_sdr_id == client_sdr_id
     assert campaign.ctas == [1, 2, 3, 4]
+
+    # test splitting campaigns
+    split_campaign_id = campaign_id
+    response = app.test_client().post(
+        "campaigns/split",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": split_campaign_id,
+                "num_campaigns": 3,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign_ids = json.loads(response.data.decode("utf-8"))["campaign_ids"]
+    assert len(campaign_ids) == 3
+    assert campaign_ids[0] > 0
+    assert campaign_ids[1] > 0
+    assert campaign_ids[2] > 0
+    campaign1: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[0])
+    campaign2: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[1])
+    campaign3: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[2])
+
+    assert len(campaign1.prospect_ids) in [1, 2]
+    assert len(campaign2.prospect_ids) in [1, 2]
+    assert len(campaign3.prospect_ids) in [1, 2]
+
+    # test sum of length of all campaigns adds up to 4
+    assert (
+        len(campaign1.prospect_ids)
+        + len(campaign2.prospect_ids)
+        + len(campaign3.prospect_ids)
+        == 4
+    )
+    # assert set of sum of length all campaigns is 4
+    assert set(
+        campaign1.prospect_ids + campaign2.prospect_ids + campaign3.prospect_ids
+    ) == set([1, 2, 3, 4])
+
+    # in a for loop, assert all campaigns are pending, have same start and end date, have same campaign type value, and have same archetype and client sdr id
+    for c in [campaign1, campaign2, campaign3]:
+        assert c.status.value == "PENDING"
+        assert c.campaign_end_date == datetime.datetime(2021, 1, 5)
+        assert c.campaign_start_date == datetime.datetime(2021, 1, 1)
+        assert c.campaign_type.value == "LINKEDIN"
+        assert c.client_archetype_id == archetype_id
+        assert c.client_sdr_id == client_sdr_id
+        assert c.ctas == [1, 2, 3, 4]
+
+    # assrt original campaign is cancelled
+    campaign = OutboundCampaign.query.get(split_campaign_id)
+    assert campaign.status.value == "CANCELLED"
+
+    # test the intersection of the prospect ids in a double for loop
+    for c1 in [campaign1, campaign2, campaign3]:
+        for c2 in [campaign1, campaign2, campaign3]:
+            if c1.id != c2.id:
+                assert set(c1.prospect_ids).isdisjoint(set(c2.prospect_ids))
+
+
+@use_app_context
+def test_make_fake_campaign_with_10_prospect_ids_then_split_into_5_parts():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+
+    campaign1 = create_outbound_campaign(
+        prospect_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        campaign_type="LINKEDIN",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        ctas=[1, 2, 3],
+    )
+
+    response = app.test_client().post(
+        "campaigns/split",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign1.id,
+                "num_campaigns": 5,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign_ids = json.loads(response.data.decode("utf-8"))["campaign_ids"]
+    assert len(campaign_ids) == 5
+    assert campaign_ids[0] > 0
+    assert campaign_ids[1] > 0
+    assert campaign_ids[2] > 0
+    assert campaign_ids[3] > 0
+    assert campaign_ids[4] > 0
+    campaign1: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[0])
+    campaign2: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[1])
+    campaign3: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[2])
+    campaign4: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[3])
+    campaign5: OutboundCampaign = OutboundCampaign.query.get(campaign_ids[4])
+
+    assert len(campaign1.prospect_ids) == 2
+    assert len(campaign2.prospect_ids) == 2
+    assert len(campaign3.prospect_ids) == 2
+    assert len(campaign4.prospect_ids) == 2
+    assert len(campaign5.prospect_ids) == 2
+
+    # test sum of length of all campaigns adds up to 10
+    assert (
+        len(campaign1.prospect_ids)
+        + len(campaign2.prospect_ids)
+        + len(campaign3.prospect_ids)
+        + len(campaign4.prospect_ids)
+        + len(campaign5.prospect_ids)
+        == 10
+    )
+    # assert set of sum of length all campaigns is 10
+    assert set(
+        campaign1.prospect_ids
+        + campaign2.prospect_ids
+        + campaign3.prospect_ids
+        + campaign4.prospect_ids
+        + campaign5.prospect_ids
+    ) == set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+    # in a for loop, assert all campaigns are pending, have same start and end date, have same campaign type value, and have same archetype and client sdr id
+    for c in [campaign1, campaign2, campaign3, campaign4, campaign5]:
+        assert c.status.value == "PENDING"
+        assert c.campaign_end_date == datetime.datetime(2021, 1, 1)
+        assert c.campaign_start_date == datetime.datetime(2021, 1, 1)
+        assert c.campaign_type.value == "LINKEDIN"
+        assert c.client_archetype_id == archetype_id
+        assert c.client_sdr_id == client_sdr_id
+        assert c.ctas == [1, 2, 3]
+
+    # test the intersection of the sets of each campaign to ensure no overlap in a double for-loop
+    for c1 in [campaign1, campaign2, campaign3, campaign4, campaign5]:
+        for c2 in [campaign1, campaign2, campaign3, campaign4, campaign5]:
+            if c1.id != c2.id:
+                assert len(set(c1.prospect_ids).intersection(set(c2.prospect_ids))) == 0
 
 
 @use_app_context
