@@ -14,6 +14,7 @@ from src.message_generation.services import (
     batch_mark_prospect_email_approved_by_prospect_ids,
     mark_random_new_prospect_email,
     clear_all_generated_message_jobs,
+    batch_update_generated_message_ctas,
 )
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
@@ -313,3 +314,14 @@ def post_mark_messages_as_good_message():
     if success:
         return "OK", 200
     return "Failed to mark messages as good message", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/update_ctas", methods=["POST"])
+def post_update_ctas():
+    payload = get_request_parameter("payload", request, json=True, required=True)
+    success = batch_update_generated_message_ctas(
+        payload=payload,
+    )
+    if success:
+        return "OK", 200
+    return "Failed to update ctas", 400

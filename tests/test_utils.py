@@ -127,6 +127,17 @@ def basic_gnlp_model(archetype: ClientArchetype):
     return g
 
 
+def basic_generated_message_cta(archetype: ClientArchetype):
+    from model_import import GeneratedMessageCTA
+
+    g = GeneratedMessageCTA(
+        archetype_id=archetype.id, text_value="test_cta", active=True
+    )
+    db.session.add(g)
+    db.session.commit()
+    return g
+
+
 def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel):
     from model_import import (
         GeneratedMessage,
