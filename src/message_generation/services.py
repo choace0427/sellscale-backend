@@ -10,6 +10,7 @@ from model_import import (
     GeneratedMessageFeedback,
     GeneratedMessageJob,
     GeneratedMessageJobStatus,
+    GeneratedMessageCTA,
 )
 from src.ml.rule_engine import run_message_rule_engine
 from src.ml_adversary.services import run_adversary
@@ -1009,7 +1010,9 @@ def get_named_entities(string: str):
     instruction = "instruction: Return a list of all named entities, including persons's names, separated by ' // '. If no entities are detected, return 'NONE'."
 
     fewshot_1_message = "message: Hey David, I really like your background in computer security. I also really enjoyed reading the recommendation Aakash left for you. Impressive since you've been in the industry for 9+ years! You must have had a collection of amazing work experiences, given that you've been with Gusto, Naropa University, and Stratosphere in the past."
-    fewshot_1_entities = "entities: David // Aakash // Gusto // Naropa University // Stratosphere"
+    fewshot_1_entities = (
+        "entities: David // Aakash // Gusto // Naropa University // Stratosphere"
+    )
     fewshot_1 = fewshot_1_message + "\n\n" + instruction + "\n\n" + fewshot_1_entities
 
     fewshot_2_message = "message: I'd like to commend you for being in the industry for 16+ years. That is no small feat!"
@@ -1017,7 +1020,7 @@ def get_named_entities(string: str):
     fewshot_2 = fewshot_2_message + "\n\n" + instruction + "\n\n" + fewshot_2_entities
 
     target = "message: " + message + "\n\n" + instruction + "\n\n" + "entities:"
-    
+
     prompt = fewshot_1 + "\n\n--\n\n" + fewshot_2 + "\n\n--\n\n" + target
 
     response = openai.Completion.create(
@@ -1094,4 +1097,25 @@ def clear_all_generated_message_jobs():
     for gm_job in gm_jobs:
         db.session.delete(gm_job)
         db.session.commit()
+    return True
+
+
+def batch_update_generated_message_ctas(payload: dict):
+    """
+    Update the active status of a batch of generated message CTAs
+
+    payload looks like:
+    [{"id":93,"text_value":"As a finance leader, how are you placing controls on company spend ? Would love to show you how Ramp can help.","active":false,"archetype_id":31,"archetype":"(Tim) CFOs at SaaS companies 11-500 FTE","prospects":"42","accepted_prospects":"4","accepted_percent":0.09523809523809523,"array_agg":["Tim Signorile"]}]
+    """
+    for cta in payload:
+        cta_id = cta["id"]
+        cta_active = cta["active"]
+
+        generated_message_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(
+            cta_id
+        )
+        generated_message_cta.active = cta_active
+        db.session.add(generated_message_cta)
+        db.session.commit()
+
     return True

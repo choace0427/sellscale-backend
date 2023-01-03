@@ -10,6 +10,7 @@ from test_utils import (
     basic_prospect_email,
     basic_research_payload,
     basic_research_point,
+    basic_generated_message_cta,
 )
 from decorators import use_app_context
 from src.message_generation.services import *
@@ -275,3 +276,34 @@ def test_post_mass_update():
     )
     assert response.status_code == 400
     assert response.text == "`Prospect ID` column not in CSV"
+
+
+@use_app_context
+def test_create_sample_cta_and_batch_update_ctas():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    cta = basic_generated_message_cta(archetype=archetype)
+    cta2 = basic_generated_message_cta(archetype=archetype)
+
+    response = app.test_client().post(
+        "message_generation/update_ctas",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {"id": cta.id, "active": False},
+                    {"id": cta2.id, "active": True},
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    cta_list = GeneratedMessageCTA.query.all()
+    assert len(cta_list) == 2
+
+    cta1 = GeneratedMessageCTA.query.filter_by(id=cta.id).first()
+    assert cta1.active == False
+
+    cta2 = GeneratedMessageCTA.query.filter_by(id=cta2.id).first()
+    assert cta2.active == True
