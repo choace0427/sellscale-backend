@@ -42,7 +42,9 @@ class ClientArchetype(db.Model):
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
 
-    disable_ai_after_prospect_engaged = db.Column(db.Boolean, nullable=True, default=False)
+    disable_ai_after_prospect_engaged = db.Column(
+        db.Boolean, nullable=True, default=False
+    )
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
 
@@ -57,6 +59,7 @@ class ClientSDR(db.Model):
     email = db.Column(db.String)
 
     weekly_li_outbound_target = db.Column(db.Integer, nullable=True)
+    weekly_email_outbound_target = db.Column(db.Integer, nullable=True)
     scheduling_link = db.Column(db.String, nullable=True)
 
     auth_token = db.Column(db.String, nullable=True)
