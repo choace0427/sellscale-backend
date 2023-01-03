@@ -14,10 +14,10 @@ def scrape_all_inboxes_job():
 
     if os.environ.get("FLASK_ENV") == "production":
         scrape_all_inboxes.delay()
-        send_slack_message(
-            message="Scraped all inboxes today!",
-            webhook_urls=[URL_MAP["eng-sandbox"]],
-        )
+        # send_slack_message(
+        #     message="Scraped all inboxes today!",
+        #     webhook_urls=[URL_MAP["eng-sandbox"]],
+        # )
 
 
 def refresh_fine_tune_statuses_job():
