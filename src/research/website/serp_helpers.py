@@ -1,0 +1,57 @@
+import os
+from serpapi import GoogleSearch
+
+
+def search_google_news(query: str, intext: list[str] = [], exclude: list[str] = []):
+    """ Use SERP API to search Google News for a given Query. Returns the top 3 results.
+
+    Helpful websearch commands: 
+    - https://support.google.com/websearch/answer/2466433?hl=en
+    - https://www.searchenginejournal.com/google-search-operators-commands/215331/
+
+    TODO: Create default exclude list
+    TODO: Create heuristic for selecting top result
+
+    Args:
+        query (str): The query to search for.
+        intext (list[str]): A list of strings to search for in the results.
+        exclude (list[str]): A list of strings to exclude from the results.
+
+    Returns:
+        dict: Dictionary of fields from SERP API's top result.
+    """
+    serp_api_key = os.getenv('SERP_API_KEY')
+
+    # Sample full_q: '"SellScale" (intext:"skyrocket" OR intext:"growth" OR intext:"fundraise" OR intext:"market") -lost -fear'
+    full_q = f'"{query}"'
+    if intext:
+        full_q += f' (intext:"{intext[0]}"'
+        for i in range(1, len(intext)):
+            full_q += f' OR intext:"{intext[i]}"'
+        full_q += ')'
+    if exclude:
+        for e in exclude:
+            full_q += f' -{e}'
+
+    params = {
+        "api_key": serp_api_key,
+        "engine": "google",
+        "q": full_q,
+        "tbm": "nws",
+        "gl": "us",  # US only
+        "hl": "en",
+        "tbm": "nws",
+    }
+    search = GoogleSearch(params)
+    results = search.get_dict()
+    top_result = results['news_results'][0]
+
+    return {
+        'title': top_result['title'],
+        'link': top_result['link'],
+        'date': top_result['date'],
+        'source': top_result['source'],
+        'snippet': top_result['snippet'],
+        'category': top_result['category'],
+        'thumbnail': top_result['thumbnail'],
+    }

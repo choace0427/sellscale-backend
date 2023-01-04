@@ -193,6 +193,9 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "general_website_transformer",
             generate_general_website_research_points,
         ),
+        # (
+        #     ResearchPointType
+        # ),
     ]
 
     bullets = {}
