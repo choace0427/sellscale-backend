@@ -18,7 +18,13 @@ def get_client(client_id: int):
     return c
 
 
-def create_client(company: str, contact_name: str, contact_email: str, linkedin_outbound_enabled: bool, email_outbound_enabled: bool):
+def create_client(
+    company: str,
+    contact_name: str,
+    contact_email: str,
+    linkedin_outbound_enabled: bool,
+    email_outbound_enabled: bool,
+):
     from model_import import Client
 
     c: Client = Client.query.filter_by(company=company).first()
@@ -63,7 +69,11 @@ def create_client_archetype(
         return None
 
     client_archetype = ClientArchetype(
-        client_id=client_id, client_sdr_id=client_sdr_id, archetype=archetype, filters=filters, disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        archetype=archetype,
+        filters=filters,
+        disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -96,7 +106,7 @@ def create_client_archetype(
 
 
 def get_client_sdr(client_sdr_id: int):
-    """ Gets a Client SDR
+    """Gets a Client SDR
 
     Args:
         client_sdr_id (int): The ID of the Client SDR
@@ -347,5 +357,26 @@ def verify_client_sdr_auth_token(auth_token: str):
     client_sdr: ClientSDR = ClientSDR.query.filter_by(auth_token=auth_token).first()
     if not client_sdr:
         return None
+
+    return True
+
+
+def update_client_sdr_manual_warning_message(client_sdr_id: int, manual_warning: str):
+    """Update the manual warning text value for a Client SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        manual_warning_message (str): Manual warning text
+
+    Returns:
+        bool: True if successful, None otherwise
+    """
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not csdr:
+        return None
+
+    csdr.manual_warning_message = manual_warning
+    db.session.add(csdr)
+    db.session.commit()
 
     return True

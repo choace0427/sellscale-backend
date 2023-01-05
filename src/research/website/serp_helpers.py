@@ -2,10 +2,10 @@ import os
 from serpapi import GoogleSearch
 
 
-def search_google_news(query: str, intext: list[str] = [], exclude: list[str] = []):
-    """ Use SERP API to search Google News for a given Query. Returns the top 3 results.
+def search_google_news(query: str, intext: any = [], exclude: any = []):
+    """Use SERP API to search Google News for a given Query. Returns the top 3 results.
 
-    Helpful websearch commands: 
+    Helpful websearch commands:
     - https://support.google.com/websearch/answer/2466433?hl=en
     - https://www.searchenginejournal.com/google-search-operators-commands/215331/
 
@@ -20,7 +20,7 @@ def search_google_news(query: str, intext: list[str] = [], exclude: list[str] = 
     Returns:
         dict: Dictionary of fields from SERP API's top result.
     """
-    serp_api_key = os.getenv('SERP_API_KEY')
+    serp_api_key = os.getenv("SERP_API_KEY")
 
     # Sample full_q: '"SellScale" (intext:"skyrocket" OR intext:"growth" OR intext:"fundraise" OR intext:"market") -lost -fear'
     full_q = f'"{query}"'
@@ -28,10 +28,10 @@ def search_google_news(query: str, intext: list[str] = [], exclude: list[str] = 
         full_q += f' (intext:"{intext[0]}"'
         for i in range(1, len(intext)):
             full_q += f' OR intext:"{intext[i]}"'
-        full_q += ')'
+        full_q += ")"
     if exclude:
         for e in exclude:
-            full_q += f' -{e}'
+            full_q += f" -{e}"
 
     params = {
         "api_key": serp_api_key,
@@ -44,14 +44,14 @@ def search_google_news(query: str, intext: list[str] = [], exclude: list[str] = 
     }
     search = GoogleSearch(params)
     results = search.get_dict()
-    top_result = results['news_results'][0]
+    top_result = results["news_results"][0]
 
     return {
-        'title': top_result['title'],
-        'link': top_result['link'],
-        'date': top_result['date'],
-        'source': top_result['source'],
-        'snippet': top_result['snippet'],
-        'category': top_result['category'],
-        'thumbnail': top_result['thumbnail'],
+        "title": top_result["title"],
+        "link": top_result["link"],
+        "date": top_result["date"],
+        "source": top_result["source"],
+        "snippet": top_result["snippet"],
+        "category": top_result["category"],
+        "thumbnail": top_result["thumbnail"],
     }
