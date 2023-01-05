@@ -380,3 +380,26 @@ def update_client_sdr_manual_warning_message(client_sdr_id: int, manual_warning:
     db.session.commit()
 
     return True
+
+
+def update_client_sdr_weekly_li_outbound_target(
+    client_sdr_id: int, weekly_li_outbound_target: int
+):
+    """Update the weekly LinkedIn outbound target for a Client SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        weekly_li_outbound_target (int): Weekly LinkedIn outbound target
+
+    Returns:
+        bool: True if successful, None otherwise
+    """
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not csdr:
+        return None
+
+    csdr.weekly_li_outbound_target = weekly_li_outbound_target
+    db.session.add(csdr)
+    db.session.commit()
+
+    return True
