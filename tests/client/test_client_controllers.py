@@ -118,3 +118,27 @@ def test_patch_update_sdr_weekly_li_outbound_target():
 
     client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
     assert client_sdr.weekly_li_outbound_target == 10
+
+
+@use_app_context
+def test_patch_update_sdr_weekly_email_outbound_target():
+    """Test that we can update the weekly email outbound target for an SDR"""
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+
+    assert client_sdr.weekly_email_outbound_target is None
+
+    response = app.test_client().patch(
+        "client/sdr/update_weekly_email_outbound_target",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_sdr_id": client_sdr.id,
+                "weekly_email_outbound_target": 10,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
+    assert client_sdr.weekly_email_outbound_target == 10
