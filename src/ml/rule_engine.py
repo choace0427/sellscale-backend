@@ -91,6 +91,7 @@ def run_message_rule_engine(message_id: int):
 
     # Warnings
     rule_no_cookies(completion, problems)
+    rule_no_symbols(completion, problems)
 
     if "i have " in completion:
         problems.append("Uses first person 'I have'.")
