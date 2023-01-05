@@ -69,3 +69,5 @@ class ClientSDR(db.Model):
         db.ARRAY(sa.Enum(ProspectStatus, create_constraint=False)),
         nullable=True,
     )
+
+    manual_warning_message = db.Column(db.String, nullable=True)
