@@ -16,6 +16,7 @@ from src.client.services import (
     approve_stytch_client_sdr_token,
     verify_client_sdr_auth_token,
     update_client_sdr_manual_warning_message,
+    update_client_sdr_weekly_li_outbound_target,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -293,4 +294,20 @@ def post_update_sdr_manual_warning_message():
     )
     if not success:
         return "Failed to update manual warning message", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/update_weekly_li_outbound_target", methods=["PATCH"])
+def patch_update_sdr_weekly_li_outbound_target():
+    client_sdr_id: int = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    weekly_li_outbound_target: int = get_request_parameter(
+        "weekly_li_outbound_target", request, json=True, required=True
+    )
+    success = update_client_sdr_weekly_li_outbound_target(
+        client_sdr_id=client_sdr_id, weekly_li_outbound_target=weekly_li_outbound_target
+    )
+    if not success:
+        return "Failed to update weekly LI outbound target", 400
     return "OK", 200
