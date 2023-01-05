@@ -1,7 +1,7 @@
 import requests
 import json
 import csv
-import re
+import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType
 from app import db, celery
 
@@ -112,6 +112,21 @@ def run_message_rule_engine(message_id: int):
     return problems
 
 
+def rule_no_symbols(completion: str, problems: list):
+    """ Rule: No Symbols
+
+    No symbols allowed in the completion.
+
+    \p{S} matches any math symbols, currency signs, dingbats, box-drawing characters, etc
+    """
+    match = re.findall(r'[\p{S}]', completion)
+    if match and len(match) > 0:
+        print(match)
+        problems.append("Completion contains uncommon symbols: {}".format(', '.join(match)))
+
+    return
+
+
 def rule_address_doctor(prompt: str, completion: str, problems: list):
     """ Rule: Address Doctor
 
@@ -122,8 +137,8 @@ def rule_address_doctor(prompt: str, completion: str, problems: list):
         prompt,
     )
 
-    if search is not None and "Dr." not in completion:
-        problems.append("Prompt contains 'MD' but no 'Dr'. in message")
+    if search is not None and "dr." not in completion:
+        problems.append("Prompt contains 'MD' but no 'dr'. in message")
 
     return
 

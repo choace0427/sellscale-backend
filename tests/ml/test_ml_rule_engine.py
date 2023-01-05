@@ -17,8 +17,10 @@ from src.ml.rule_engine import (
     rule_no_url,
     rule_linkedin_length,
     rule_address_doctor,
+    rule_no_symbols,
 )
 from model_import import GeneratedMessage, GeneratedMessageType
+
 
 @use_app_context
 def test_run_message_rule_engine():
@@ -120,9 +122,26 @@ def test_rule_address_doctor():
     rule_address_doctor("Dr. David", "pass", problems)
     assert problems == []
 
-    rule_address_doctor("David, MD", "Dr. David", problems)
+    rule_address_doctor("David, MD", "dr. David", problems)
     assert problems == []
 
+    problems = []
     rule_address_doctor("David, MD", "David", problems)
-    assert problems == ["Prompt contains 'MD' but no 'Dr'. in message"]
-    
+    assert problems == ["Prompt contains 'MD' but no 'dr'. in message"]
+
+
+@use_app_context
+def test_rule_no_symbols():
+    problems = []
+    rule_no_symbols("pass", problems)
+    assert problems == []
+
+    rule_no_symbols("This is a message with a passing symbol: !", problems)
+    assert problems == []
+
+    rule_no_symbols("This is a message with a failing symbol: $", problems)
+    assert problems == ["Completion contains uncommon symbols: $"]
+
+    problems = []
+    rule_no_symbols("This is a message with a failing symbol: $ ®", problems)
+    assert problems == ["Completion contains uncommon symbols: $, ®"]
