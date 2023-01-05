@@ -25,6 +25,8 @@ class Client(db.Model):
     linkedin_outbound_enabled = db.Column(db.Boolean, nullable=True)
     email_outbound_enabled = db.Column(db.Boolean, nullable=True)
 
+    super_sight_link = db.Column(db.String, nullable=True)
+
 
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"
