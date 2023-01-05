@@ -70,3 +70,27 @@ def test_approve_auth_token(authenticate_stytch_client_sdr_token_mock):
         ),
     )
     assert response.status_code == 200
+
+
+@use_app_context
+def test_post_update_sdr_manual_warning_message():
+    """Test that we can update the manual warning message for an SDR"""
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+
+    assert client_sdr.manual_warning_message is None
+
+    response = app.test_client().post(
+        "client/update_sdr_manual_warning_message",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_sdr_id": client_sdr.id,
+                "manual_warning_message": "This is a test",
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
+    assert client_sdr.manual_warning_message == "This is a test"

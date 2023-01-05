@@ -15,6 +15,7 @@ from src.client.services import (
     send_stytch_magic_link,
     approve_stytch_client_sdr_token,
     verify_client_sdr_auth_token,
+    update_client_sdr_manual_warning_message,
 )
 
 from src.utils.request_helpers import get_request_parameter
@@ -45,7 +46,11 @@ def create():
     )
 
     resp = create_client(
-        company=company, contact_name=contact_name, contact_email=contact_email, linkedin_outbound_enabled=linkedin_outbound_enabled, email_outbound_enabled=email_outbound_enabled
+        company=company,
+        contact_name=contact_name,
+        contact_email=contact_email,
+        linkedin_outbound_enabled=linkedin_outbound_enabled,
+        email_outbound_enabled=email_outbound_enabled,
     )
 
     return jsonify(resp)
@@ -272,4 +277,20 @@ def post_verify_client_sdr_auth_token():
     )
     if not success:
         return "Failed to verify auth token", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/update_sdr_manual_warning_message", methods=["POST"])
+def post_update_sdr_manual_warning_message():
+    client_sdr_id: int = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    manual_warning_message: str = get_request_parameter(
+        "manual_warning_message", request, json=True, required=True
+    )
+    success = update_client_sdr_manual_warning_message(
+        client_sdr_id=client_sdr_id, manual_warning=manual_warning_message
+    )
+    if not success:
+        return "Failed to update manual warning message", 404
     return "OK", 200
