@@ -45,6 +45,9 @@ def search_google_news(query: str, intext: any = [], exclude: any = []):
     search = GoogleSearch(params)
     results = search.get_dict()
 
+    news_results: list = results.get("news_results", [])
+    if len(news_results) == 0:
+        return {}
     top_result = results["news_results"][0]
 
     return {
