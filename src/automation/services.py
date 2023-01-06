@@ -2,11 +2,10 @@ import json
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from model_import import Client, ClientSDR
 from src.automation.models import PhantomBusterAgent
-from app import db
+from app import db, celery
 import requests
 import os
 from tqdm import tqdm
-from app import celery
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 GET_PHANTOMBUSTER_AGENTS_URL = "https://api.phantombuster.com/api/v2/agents/fetch-all"
