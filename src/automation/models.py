@@ -23,3 +23,6 @@ class PhantomBusterConfig(db.Model):
 
     phantom_name = db.Column(db.String)
     phantom_uuid = db.Column(db.String)
+
+    last_run_date = db.Column(db.DateTime, nullable=True)
+    error_message = db.Column(db.String, nullable=True)
