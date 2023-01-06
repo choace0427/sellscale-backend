@@ -152,7 +152,9 @@ def research_and_generate_emails_for_prospect(prospect_id: int, email_schema_id:
     from src.research.linkedin.services import get_research_and_bullet_points_new
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    generate_prospect_email(prospect_id=prospect_id, email_schema_id=email_schema_id)
+    generate_prospect_email(
+        prospect_id=prospect_id, email_schema_id=email_schema_id, batch_id=None
+    )
 
 
 def generate_prompt(prospect_id: int, notes: str = ""):
@@ -691,14 +693,9 @@ def generate_prospect_email(
 
         archetype_id = prospect.archetype_id
 
-        research: ResearchPayload = ResearchPayload.query.filter(
-            ResearchPayload.prospect_id == prospect_id
-        ).first()
-        research_id = research.id
-
-        research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
-            ResearchPoints.research_payload_id == research_id
-        ).all()
+        research_points_list = ResearchPoints.get_research_points_by_prospect_id(
+            prospect_id
+        )
 
         NUM_GENERATIONS = 3  # number of ProspectEmail's to make
         perms = generate_batches_of_research_points(

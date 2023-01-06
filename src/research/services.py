@@ -112,4 +112,10 @@ def get_all_research_point_types():
             "example": "I saw your website and the Small Miracles Academy and was wondering why parents are sending their children there",
             "deprecated": False,
         },
+        {
+            "transformer": ResearchPointType.SERP_NEWS_SUMMARY.value,
+            "description": "Extracts the SERP news summary",
+            "example": "Saw the article on TechCrunch about your company",
+            "deprecated": False,
+        },
     ]

@@ -9,7 +9,7 @@ from src.research.website.general_website_transformer import (
 )
 from src.utils.abstract.attr_utils import deep_get
 
-
+from model_import import Client
 from src.research.models import (
     ResearchPayload,
     ResearchPointType,
@@ -31,6 +31,9 @@ from .extractors.experience import (
 from .extractors.current_company import (
     get_current_company_description,
     get_current_company_specialties,
+)
+from src.research.website.serp_news_extractor_transformer import (
+    SerpNewsExtractorTransformer,
 )
 
 from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
@@ -240,6 +243,11 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
         if bullets[key]:
             final_bullets[key] = bullets[key].strip()
 
+    client: Client = Client.query.get(prospect.client_id)
+    if client.id == 9:  # TODO only run for AdQuick for now
+        serp_extractor = SerpNewsExtractorTransformer(prospect_id=prospect_id)
+        serp_extractor.run()
+
     return {"raw_data": info, "bullets": final_bullets}
 
 
@@ -256,22 +264,24 @@ def reset_prospect_approved_status(prospect_id: int):
 
 
 def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
-    research_payload = ResearchPayload.query.filter(
+    research_payloads = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
-    ).first()
-    if not research_payload:
-        return
-    research_payload_id = research_payload.id
-
-    research_points: list = ResearchPoints.query.filter(
-        ResearchPoints.research_payload_id == research_payload_id
     ).all()
-    for rp in research_points:
-        db.session.delete(rp)
-        db.session.commit()
+    if len(research_payloads) == 0:
+        return
 
-    db.session.delete(research_payload)
-    db.session.commit()
+    for research_payload in research_payloads:
+        research_payload_id = research_payload.id
+
+        research_points: list = ResearchPoints.query.filter(
+            ResearchPoints.research_payload_id == research_payload_id
+        ).all()
+        for rp in research_points:
+            db.session.delete(rp)
+            db.session.commit()
+
+        db.session.delete(research_payload)
+        db.session.commit()
 
 
 @celery.task

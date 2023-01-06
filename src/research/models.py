@@ -38,8 +38,10 @@ class ResearchPayload(db.Model):
     def get_by_id(id):
         return ResearchPayload.query.filter_by(id=id).first()
 
-    def get_by_prospect_id(prospect_id: int):
-        return ResearchPayload.query.filter_by(prospect_id=prospect_id).first()
+    def get_by_prospect_id(prospect_id: int, payload_type: ResearchType):
+        return ResearchPayload.query.filter_by(
+            prospect_id=prospect_id, research_type=payload_type
+        ).first()
 
 
 class ResearchPoints(db.Model):
@@ -55,3 +57,14 @@ class ResearchPoints(db.Model):
 
     def get_by_payload_id(payload_id: int) -> list:
         return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()
+
+    def get_research_points_by_prospect_id(prospect_id: int):
+        research_payloads = ResearchPayload.query.filter_by(
+            prospect_id=prospect_id
+        ).all()
+        research_points = []
+        for payload in research_payloads:
+            research_points.extend(
+                ResearchPoints.query.filter_by(research_payload_id=payload.id).all()
+            )
+        return research_points
