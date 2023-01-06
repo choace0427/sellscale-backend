@@ -103,7 +103,7 @@ def get_years_of_experience_at_current_job(data):
         )
     else:
         frame = "Spent {x} months at {company}".format(
-            x=round(months_at_job, 1), company=company_name
+            x=math.ceil(12 * (time_at_job % 1)), company=company_name
         )
 
     if not company_name:
