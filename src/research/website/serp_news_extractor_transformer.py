@@ -37,8 +37,9 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
     """
 
     def __init__(self, prospect_id):
-        self.prospect: Prospect = Prospect.get_by_id(prospect_id)
+        super().__init__(prospect_id)
 
+        self.prospect: Prospect = Prospect.get_by_id(prospect_id)
         self.configuration = {
             "recent_company_news": {
                 "query": self.prospect.company,
@@ -46,11 +47,9 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
                 "exclude": ["lost", "fear"],  # TODO replace with client exclusions
             },
         }
-
-        self.payload = ResearchPayload.get_by_prospect_id(prospect_id)
+        self.payload = ResearchPayload.get_by_prospect_id(prospect_id, ResearchType.SERP_PAYLOAD)
         if self.payload:
             self.research_points = ResearchPoints.get_by_payload_id(self.payload.id)
-        super().__init__(prospect_id)
 
     def from_payload_create_points(self, payload_id):
         rp: ResearchPayload = ResearchPayload.get_by_id(payload_id)
@@ -73,7 +72,6 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
             result.update({"query": query, "intext": intext, "exclude": exclude})
             payload[config_key] = result
 
-        # Create the payload
         payload_id = create_research_payload(
             prospect_id=self.prospect_id,
             research_type=ResearchType.SERP_PAYLOAD,

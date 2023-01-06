@@ -26,7 +26,7 @@ from src.ml.fine_tuned_models import get_latest_custom_model
 from sqlalchemy.sql.expression import func
 
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_KEY")
 
 
 def generate_prompt_with_instruction(
