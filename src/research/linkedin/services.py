@@ -245,6 +245,7 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
 
     client: Client = Client.query.get(prospect.client_id)
     if client.id == 9:  # TODO only run for AdQuick for now
+        print("Running SERP Extractor for AdQuick")
         serp_extractor = SerpNewsExtractorTransformer(prospect_id=prospect_id)
         serp_extractor.run()
 
