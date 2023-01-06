@@ -48,8 +48,12 @@ def get_years_of_experience(data):
 
     positions = data.get("personal", {}).get("position_groups", [])
     current_year = datetime.now().year
-    oldest_position_start = positions[len(positions) - 1].get("date", {}).get("start")["year"]
-    newest_position_end = positions[0].get("date", {}).get("end")["year"] or current_year
+    oldest_position_start = (
+        positions[len(positions) - 1].get("date", {}).get("start")["year"]
+    )
+    newest_position_end = (
+        positions[0].get("date", {}).get("end")["year"] or current_year
+    )
     yoe = newest_position_end - oldest_position_start
 
     if not newest_position_end or not oldest_position_start or yoe < 1:
@@ -59,7 +63,7 @@ def get_years_of_experience(data):
             raw_data = {"years_of_experience": "1 year of experience in industry"}
         else:
             raw_data = {
-                "years_of_experience": str(yoe)+ "+ years of experience in industry"
+                "years_of_experience": str(yoe) + "+ years of experience in industry"
             }
 
     return {"raw_data": raw_data, "response": raw_data["years_of_experience"]}
@@ -82,27 +86,23 @@ def get_years_of_experience_at_current_job(data):
     time_at_job = (current_year - newest_year) + ((current_month - newest_month) / 12)
 
     if time_at_job % 1 > 0.9:
-        frame = "Your {x} year anniversary at {company} is right around the corner! Kudos".format(
+        frame = "{x} year anniversary at {company} is coming up".format(
             x=math.ceil(time_at_job), company=company_name
         )
     elif time_at_job % 1 > 0.8:
-        frame = "Noticed that you're coming up on {x} years at {company}. Early congratulations!".format(
+        frame = "Coming up on {x} years at {company}".format(
             x=math.ceil(time_at_job), company=company_name
         )
     elif time_at_job % 1 < 0.3 and years_at_job > 0:
-        frame = "Congrats on your recent {x} year anniversary at {company}!".format(
-            x=math.floor(time_at_job), company=company_name
-        )
-    elif time_at_job % 1 < 0.15 and years_at_job > 0:
-        frame = "{x} year anniversary at {company}. What a run - congrats!".format(
+        frame = "Had a recent {x} year anniversary at {company}".format(
             x=math.floor(time_at_job), company=company_name
         )
     elif years_at_job == 0:
-        frame = "I saw that you've spent {x} months at {company}".format(
+        frame = "Spent {x} months at {company}".format(
             x=round(months_at_job, 1), company=company_name
         )
     else:
-        frame = "I saw that you've spent {x} years at {company}".format(
+        frame = "Spent {x} years at {company}".format(
             x=round(years_at_job, 1), company=company_name
         )
 
