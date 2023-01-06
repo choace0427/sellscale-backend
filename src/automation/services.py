@@ -1,9 +1,12 @@
 import json
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from model_import import Client, ClientSDR
+from src.automation.models import PhantomBusterAgent
 from app import db
 import requests
 import os
+from tqdm import tqdm
+from app import celery
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 GET_PHANTOMBUSTER_AGENTS_URL = "https://api.phantombuster.com/api/v2/agents/fetch-all"
@@ -382,3 +385,46 @@ def create_new_auto_connect_phantom(
     )
 
     return inbox_scraper_pb_config, auto_connect_pb_config
+
+
+def get_all_phantom_buster_ids():
+    import requests
+
+    url = "https://api.phantombuster.com/api/v2/agents/fetch-all"
+
+    payload = {}
+    headers = {
+        "X-Phantombuster-Key": PHANTOMBUSTER_API_KEY,
+        "accept": "application/json",
+    }
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+    data = response.json()
+    return [x["id"] for x in data]
+
+
+def update_all_phantom_buster_run_statuses():
+    phantom_buster_ids = get_all_phantom_buster_ids()
+
+    for phantom_id in tqdm(phantom_buster_ids):
+        update_phantom_buster_run_status.delay(phantom_id)
+
+
+@celery.task
+def update_phantom_buster_run_status(phantom_id: str):
+    pb_agent: PhantomBusterAgent = PhantomBusterAgent(
+        id=phantom_id, api_key=PHANTOMBUSTER_API_KEY
+    )
+    last_run_date = pb_agent.get_last_run_date()
+    error_message = pb_agent.get_error_message()
+
+    pb_config = PhantomBusterConfig.query.filter(
+        PhantomBusterConfig.phantom_uuid == phantom_id
+    ).first()
+
+    if pb_config:
+        pb_config.last_run_date = last_run_date
+        pb_config.error_message = error_message
+        db.session.add(pb_config)
+        db.session.commit()
