@@ -44,14 +44,15 @@ def search_google_news(query: str, intext: any = [], exclude: any = []):
     }
     search = GoogleSearch(params)
     results = search.get_dict()
+
     top_result = results["news_results"][0]
 
     return {
-        "title": top_result["title"],
-        "link": top_result["link"],
-        "date": top_result["date"],
-        "source": top_result["source"],
-        "snippet": top_result["snippet"],
-        "category": top_result["category"],
-        "thumbnail": top_result["thumbnail"],
+        "title": top_result.get("title"),
+        "link": top_result.get("link"),
+        "date": top_result.get("date"),
+        "source": top_result.get("source"),
+        "snippet": top_result.get("snippet"),
+        "category": top_result.get("category"),
+        "thumbnail": top_result.get("thumbnail"),
     }
