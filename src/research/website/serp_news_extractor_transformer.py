@@ -47,12 +47,17 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
                 "exclude": ["lost", "fear"],  # TODO replace with client exclusions
             },
         }
-        self.payload = ResearchPayload.get_by_prospect_id(prospect_id, ResearchType.SERP_PAYLOAD)
+        self.payload = ResearchPayload.get_by_prospect_id(
+            prospect_id, ResearchType.SERP_PAYLOAD
+        )
         if self.payload:
             self.research_points = ResearchPoints.get_by_payload_id(self.payload.id)
 
     def from_payload_create_points(self, payload_id):
         rp: ResearchPayload = ResearchPayload.get_by_id(payload_id)
+        if not rp:
+            return None
+
         payload: dict = rp.payload
 
         self.help_create_company_news_summary(payload_id, payload)
