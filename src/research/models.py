@@ -38,6 +38,9 @@ class ResearchPayload(db.Model):
     def get_by_id(id):
         return ResearchPayload.query.filter_by(id=id).first()
 
+    def get_by_prospect_id(prospect_id: int):
+        return ResearchPayload.query.filter_by(prospect_id=prospect_id).first()
+
 
 class ResearchPoints(db.Model):
     __tablename__ = "research_point"
@@ -49,3 +52,6 @@ class ResearchPoints(db.Model):
     value = db.Column(db.String, nullable=False)
 
     flagged = db.Column(db.Boolean, nullable=True)
+
+    def get_by_payload_id(payload_id: int) -> list:
+        return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()

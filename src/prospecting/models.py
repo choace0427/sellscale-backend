@@ -67,6 +67,9 @@ class Prospect(db.Model):
 
     deactivate_ai_engagement = db.Column(db.Boolean, nullable=True)
 
+    def get_by_id(prospect_id: int):
+        return Prospect.query.filter_by(id=prospect_id).first()
+
 
 class ProspectUploadBatch(db.Model):
     __tablename__ = "prospect_upload_batch"
