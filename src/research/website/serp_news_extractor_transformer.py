@@ -1,5 +1,11 @@
-from model_import import ResearchPayload, ResearchPoints
-
+from model_import import (
+    ResearchPayload,
+    ResearchPointType,
+    ResearchType,
+    ResearchPoints,
+    Prospect,
+)
+from src.research.services import create_research_payload, create_research_point
 from src.research.extractor_transformer import ExtractorAndTransformer
 from src.research.website.serp_helpers import search_google_news
 from src.research.website.serp_company_news import create_company_news_summary_point
@@ -30,9 +36,27 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
     TODO: Add heuristics for article selection
     """
 
-    def __init__(self, prospect_id, configuration):
-        self.configuration = configuration
+    def __init__(self, prospect_id):
+        self.prospect: Prospect = Prospect.get_by_id(prospect_id)
+
+        self.configuration = {
+            "recent_company_news": {
+                "query": self.prospect.company,
+                "intext": ["growth", "marketing"],  # TODO replace with client tags
+                "exclude": ["lost", "fear"],  # TODO replace with client exclusions
+            },
+        }
+
+        self.payload = ResearchPayload.get_by_prospect_id(prospect_id)
+        if self.payload:
+            self.research_points = ResearchPoints.get_by_payload_id(self.payload.id)
         super().__init__(prospect_id)
+
+    def from_payload_create_points(self, payload_id):
+        rp: ResearchPayload = ResearchPayload.get_by_id(payload_id)
+        payload: dict = rp.payload
+
+        self.help_create_company_news_summary(payload_id, payload)
 
     def create_payload(self):
         payload = {}
@@ -43,22 +67,21 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
             exclude = config_val["exclude"]
             result = search_google_news(query=query, intext=intext, exclude=exclude)
 
+            if not result.get("title"):
+                return None
+
             result.update({"query": query, "intext": intext, "exclude": exclude})
             payload[config_key] = result
 
         # Create the payload
-        # Return the payload_id
+        payload_id = create_research_payload(
+            prospect_id=self.prospect_id,
+            research_type=ResearchType.SERP_PAYLOAD,
+            payload=payload,
+        )
+        return payload_id
 
-        return payload
-
-    def from_payload_create_points(self, payload_id):
-        payload = ResearchPayload.get_by_id(payload_id)
-
-        self.help_create_company_news_summary(payload)
-
-        pass
-
-    def help_create_company_news_summary(self, payload):
+    def help_create_company_news_summary(self, payload_id: int, payload: dict):
         if "recent_company_news" in payload:
             payload_item = payload["recent_company_news"]
             query = payload_item["query"]
@@ -67,13 +90,17 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
             article_snippet = payload_item["snippet"]
             article_source = payload_item["source"]
 
-            response = create_company_news_summary_point(
+            research_point_text = create_company_news_summary_point(
                 company_name=query,
                 article_title=article_title,
                 article_date=article_date,
                 article_snippet=article_snippet,
                 article_source=article_source,
             )
+            create_research_point(
+                payload_id=payload_id,
+                research_point_type=ResearchPointType.SERP_NEWS_SUMMARY,
+                text=research_point_text,
+            )
 
-            # Create the point
-        return
+        return True

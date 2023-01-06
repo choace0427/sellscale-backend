@@ -1,6 +1,34 @@
-from model_import import ResearchPoints
+from model_import import ResearchPoints, ResearchPayload, ResearchType
 from app import db
 from src.research.models import ResearchPointType
+
+
+def create_research_payload(
+    prospect_id: int, research_type: ResearchType, payload: dict
+):
+    """Creates a research payload"""
+    payload = ResearchPayload(
+        prospect_id=prospect_id, research_type=research_type, payload=payload
+    )
+    db.session.add(payload)
+    db.session.commit()
+
+    return payload.id
+
+
+def create_research_point(
+    payload_id: int, research_point_type: ResearchPointType, text: str
+):
+    """Creates a research point"""
+    research_point = ResearchPoints(
+        research_payload_id=payload_id,
+        research_point_type=research_point_type,
+        value=text,
+    )
+    db.session.add(research_point)
+    db.session.commit()
+
+    return research_point.id
 
 
 def flag_research_point(research_point_id: int):
