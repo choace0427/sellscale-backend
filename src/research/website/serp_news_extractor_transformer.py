@@ -1,12 +1,12 @@
-from model_import import ResearchPayload, ResearchPoint
+from model_import import ResearchPayload, ResearchPoints
 
-from extractor_transformer import ExtractorTransformer
-from serp_helpers import search_google_news
-from serp_company_news import create_company_news_summary_point
+from src.research.extractor_transformer import ExtractorAndTransformer
+from src.research.website.serp_helpers import search_google_news
+from src.research.website.serp_company_news import create_company_news_summary_point
 
 
-class SerpNewsExtractorTransformer(ExtractorTransformer):
-    """ Takes a prospect_id and configuration to create a payload and points.
+class SerpNewsExtractorTransformer(ExtractorAndTransformer):
+    """Takes a prospect_id and configuration to create a payload and points.
 
     This class will take the user provided configuration and use it to create a research payload which includes SERP returned fields.
     These fields will then be summarized by OpenAI. The top result from each search will be used, pending a heuristic.
@@ -36,21 +36,25 @@ class SerpNewsExtractorTransformer(ExtractorTransformer):
 
     def create_payload(self):
         payload = {}
-        for config_key, config_val in self.configuration:
+        for config_key in self.configuration:
+            config_val = self.configuration[config_key]
             query = config_val["query"]
             intext = config_val["intext"]
             exclude = config_val["exclude"]
             result = search_google_news(query=query, intext=intext, exclude=exclude)
-            payload[config_key] = result.update({"query": query, "intext": intext, "exclude": exclude})
-        
+
+            result.update({"query": query, "intext": intext, "exclude": exclude})
+            payload[config_key] = result
+
         # Create the payload
         # Return the payload_id
-    
+
+        return payload
+
     def from_payload_create_points(self, payload_id):
         payload = ResearchPayload.get_by_id(payload_id)
 
         self.help_create_company_news_summary(payload)
-        
 
         pass
 
@@ -73,4 +77,3 @@ class SerpNewsExtractorTransformer(ExtractorTransformer):
 
             # Create the point
         return
-

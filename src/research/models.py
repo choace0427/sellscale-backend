@@ -4,6 +4,7 @@ import enum
 
 class ResearchType(enum.Enum):
     LINKEDIN_ISCRAPER = "LINKEDIN_ISCRAPER"
+    SERP_PAYLOAD = "SERP_PAYLOAD"
 
 
 class ResearchPointType(enum.Enum):
@@ -16,6 +17,8 @@ class ResearchPointType(enum.Enum):
     RECENT_PATENTS = "RECENT_PATENTS"
     RECENT_RECOMMENDATIONS = "RECENT_RECOMMENDATIONS"
     GENERAL_WEBSITE_TRANSFORMER = "GENERAL_WEBSITE_TRANSFORMER"
+
+    SERP_NEWS_SUMMARY = "SERP_NEWS_SUMMARY"
 
     # EXPERIENCE = "EXPERIENCE"
     # CURRENT_JOB = "CURRENT_JOB"
@@ -31,6 +34,9 @@ class ResearchPayload(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     research_type = db.Column(db.Enum(ResearchType), nullable=False)
     payload = db.Column(db.JSON, nullable=False)
+
+    def get_by_id(id):
+        return ResearchPayload.query.filter_by(id=id).first()
 
 
 class ResearchPoints(db.Model):
