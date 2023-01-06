@@ -165,7 +165,10 @@ def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
 @mock.patch(
     "src.message_generation.services.get_adversarial_ai_approval", return_value=True
 )
-def test_generate_outreaches_new(ai_patch, completion_patch, adversary_patch):
+@mock.patch(
+    "src.ml.rule_engine.run_message_rule_engine", return_value=[]
+)
+def test_generate_outreaches_new(rule_engine_patch, ai_patch, completion_patch, adversary_patch):
     payload = create_client(
         company="test",
         contact_name="test",
@@ -771,7 +774,10 @@ def test_change_prospect_email_status():
 
 
 @use_app_context
-def test_batch_approve_message_generations_by_heuristic():
+@mock.patch(
+    "src.ml.rule_engine.run_message_rule_engine", return_value=[]
+)
+def test_batch_approve_message_generations_by_heuristic(rule_engine_mock):
     prospect_ids = []
 
     client = basic_client()
