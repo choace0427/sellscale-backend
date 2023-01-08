@@ -13,7 +13,12 @@ from test_utils import (
 )
 from decorators import use_app_context
 from src.message_generation.services import *
-from model_import import GeneratedMessageCTA, GeneratedMessage, GeneratedMessageStatus
+from model_import import (
+    GeneratedMessageCTA,
+    GeneratedMessage,
+    GeneratedMessageStatus,
+    GeneratedMessageEditRecord,
+)
 from src.research.models import ResearchPointType, ResearchType
 from src.client.services import create_client
 from model_import import Client, ProspectStatus
@@ -165,10 +170,10 @@ def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
 @mock.patch(
     "src.message_generation.services.get_adversarial_ai_approval", return_value=True
 )
-@mock.patch(
-    "src.ml.rule_engine.run_message_rule_engine", return_value=[]
-)
-def test_generate_outreaches_new(rule_engine_patch, ai_patch, completion_patch, adversary_patch):
+@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
+def test_generate_outreaches_new(
+    rule_engine_patch, ai_patch, completion_patch, adversary_patch
+):
     payload = create_client(
         company="test",
         contact_name="test",
@@ -262,6 +267,9 @@ def test_update_message():
     message = messages[0]
     assert message.completion == "this is an update copy"
     assert message.human_edited == True
+
+    edit_records: list = GeneratedMessageEditRecord.query.all()
+    assert len(edit_records) == 1
 
 
 @mock.patch("src.message_generation.controllers.update_message")
@@ -774,9 +782,7 @@ def test_change_prospect_email_status():
 
 
 @use_app_context
-@mock.patch(
-    "src.ml.rule_engine.run_message_rule_engine", return_value=[]
-)
+@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
 def test_batch_approve_message_generations_by_heuristic(rule_engine_mock):
     prospect_ids = []
 
