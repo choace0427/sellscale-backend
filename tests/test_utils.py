@@ -27,6 +27,7 @@ from model_import import (
     SightOnboarding,
     AdversaryTrainingPoint,
     Editor,
+    GeneratedMessageEditRecord,
 )
 
 
@@ -49,6 +50,7 @@ def test_app():
             prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
+        clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
         clear_all_entities(ResponseConfiguration)
