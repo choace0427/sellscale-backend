@@ -37,3 +37,5 @@ class OutboundCampaign(db.Model):
     status = db.Column(db.Enum(OutboundCampaignStatus), nullable=False)
 
     uuid = db.Column(db.String(255), nullable=True)
+
+    editor_id = db.Column(db.Integer, db.ForeignKey("editor.id"), nullable=True)

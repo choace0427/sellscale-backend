@@ -527,3 +527,18 @@ def batch_update_campaigns(payload: dict):
         db.session.commit()
 
     return True
+
+
+def assign_editor_to_campaign(editor_id: int, campaign_id: int):
+    """Assigns an editor to a campaign
+
+    Args:
+        editor_id (int): Editor id
+        campaign_id (int): Campaign id
+    """
+    campaign = OutboundCampaign.query.get(campaign_id)
+    campaign.editor_id = editor_id
+    db.session.add(campaign)
+    db.session.commit()
+
+    return True
