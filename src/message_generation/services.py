@@ -11,6 +11,7 @@ from model_import import (
     GeneratedMessageJob,
     GeneratedMessageJobStatus,
     GeneratedMessageCTA,
+    GeneratedMessageEditRecord,
 )
 from src.ml.rule_engine import run_message_rule_engine
 from src.ml_adversary.services import run_adversary
@@ -321,10 +322,38 @@ def generate_outreaches_for_batch_of_prospects(
     return True
 
 
-def update_message(message_id: int, update: str):
+def create_new_edit_message_record(
+    generated_message_id: int,
+    original_text: str,
+    edited_text: str,
+    editor_id=None,
+):
+    edit: GeneratedMessageEditRecord = GeneratedMessageEditRecord(
+        generated_message_id=generated_message_id,
+        original_text=original_text,
+        edited_text=edited_text,
+        editor_id=editor_id,
+    )
+    db.session.add(edit)
+    db.session.commit()
+
+    return True
+
+
+def update_message(message_id: int, update: str, editor_id=None):
     from model_import import GeneratedMessage
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+
+    original_text = message.completion
+    edited_text = update
+    create_new_edit_message_record(
+        generated_message_id=message_id,
+        original_text=original_text,
+        edited_text=edited_text,
+        editor_id=editor_id,
+    )
+
     message.completion = update
     message.human_edited = True
 
