@@ -641,4 +641,4 @@ def test_get_recent_recommendation_summary(get_completion_patch):
     }
 
     data = get_years_of_experience_at_current_job(info_with_no_recommendation)
-    assert data["response"] == "Spent 3 months at Gitlab"
+    assert data["response"] == "Spent 3 months at GitLab"
