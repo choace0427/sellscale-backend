@@ -104,3 +104,16 @@ class GeneratedMessageJob(db.Model):
     batch_id = db.Column(db.String, nullable=True)
 
     status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
+
+
+class GeneratedMessageEditRecord(db.Model):
+    __tablename__ = "generated_message_edit_record"
+
+    id = db.Column(db.Integer, primary_key=True)
+    generated_message_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message.id"), nullable=False
+    )
+    original_text = db.Column(db.String, nullable=False)
+    edited_text = db.Column(db.String, nullable=False)
+
+    editor_id = db.Column(db.Integer, db.ForeignKey("editor.id"), nullable=True)
