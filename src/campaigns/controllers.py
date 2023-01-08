@@ -15,6 +15,7 @@ from src.campaigns.services import (
     merge_outbound_campaigns,
     batch_update_campaigns,
     split_outbound_campaigns,
+    assign_editor_to_campaign,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -167,3 +168,13 @@ def post_split_campaigns():
         original_campaign_id=campaign_id, num_campaigns=num_campaigns
     )
     return jsonify({"campaign_ids": campaign_ids})
+
+
+@CAMPAIGN_BLUEPRINT.route("/assign_editor", methods=["POST"])
+def post_assign_editor():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    editor_id = get_request_parameter("editor_id", request, json=True, required=True)
+    assign_editor_to_campaign(editor_id=editor_id, campaign_id=campaign_id)
+    return "OK", 200

@@ -11,6 +11,7 @@ from test_utils import (
     basic_client_sdr,
     basic_email_schema,
     basic_prospect,
+    basic_editor,
 )
 from src.campaigns.services import create_outbound_campaign
 from model_import import OutboundCampaign
@@ -733,3 +734,42 @@ def test_merge_multiple_email_campaigns_failed_for_archetype():
     campaign2 = OutboundCampaign.query.get(campaign2_id)
     assert campaign1.status.value == "PENDING"
     assert campaign2.status.value == "PENDING"
+
+
+@use_app_context
+def test_assign_editor_to_campaign():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    email_schema = basic_email_schema(archetype=archetype)
+    email_schema_id = email_schema.id
+
+    campaign = create_outbound_campaign(
+        prospect_ids=[1, 2],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        email_schema_id=email_schema_id,
+    )
+    campaign_id = campaign.id
+
+    editor = basic_editor()
+    editor_id = editor.id
+
+    response = app.test_client().post(
+        f"campaigns/assign_editor",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "editor_id": editor_id,
+                "campaign_id": campaign_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.editor_id == editor_id

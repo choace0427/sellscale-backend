@@ -26,6 +26,7 @@ from model_import import (
     ResponseConfiguration,
     SightOnboarding,
     AdversaryTrainingPoint,
+    Editor,
 )
 
 
@@ -70,6 +71,7 @@ def test_app():
         clear_all_entities(ClientArchetype)
         clear_all_entities(ClientSDR)
         clear_all_entities(Client)
+        clear_all_entities(Editor)
 
     return app
 
@@ -83,6 +85,17 @@ def basic_client() -> Client:
     db.session.add(c)
     db.session.commit()
     return c
+
+
+def basic_editor() -> Editor:
+    e = Editor(
+        name="Testing Editor",
+        email="email",
+        editor_type="SELLSCALE_ADMIN",
+    )
+    db.session.add(e)
+    db.session.commit()
+    return e
 
 
 def basic_archetype(client: Client) -> ClientArchetype:
