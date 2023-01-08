@@ -75,6 +75,7 @@ def register_blueprints(app):
     from src.response_ai.controllers import RESPONSE_AI_BLUEPRINT
     from src.onboarding.controllers import ONBOARDING_BLUEPRINT
     from src.ml_adversary.controllers import ML_ADVERSARY_BLUEPRINT
+    from src.editor.controllers import EDITOR_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -93,6 +94,7 @@ def register_blueprints(app):
     app.register_blueprint(RESPONSE_AI_BLUEPRINT, url_prefix="/response_ai")
     app.register_blueprint(ONBOARDING_BLUEPRINT, url_prefix="/onboarding")
     app.register_blueprint(ML_ADVERSARY_BLUEPRINT, url_prefix="/adversary")
+    app.register_blueprint(EDITOR_BLUEPRINT, url_prefix="/editor")
 
     db.init_app(app)
 
