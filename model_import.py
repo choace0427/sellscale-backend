@@ -34,3 +34,4 @@ from src.ml_adversary.models import AdversaryTrainingPoint, AdversaryFineTuneHis
 from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus
 from src.response_ai.models import ResponseConfiguration
 from src.onboarding.models import SightOnboarding
+from src.editor.models import Editor, EditorTypes
