@@ -7,7 +7,7 @@ from test_utils import (
     basic_client_sdr,
 )
 from src.prospecting.services import match_prospect_as_sent_outreach
-from model_import import Prospect, ProspectStatus
+from model_import import Prospect, ProspectStatus, ProspectNote
 from decorators import use_app_context
 from app import app
 import json
@@ -111,3 +111,25 @@ def test_post_batch_mark_sent(match_prospect_as_sent_outreach_patch):
     )
     assert response.status_code == 200
     assert match_prospect_as_sent_outreach_patch.call_count == 2
+
+
+@use_app_context
+def test_post_add_note():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+
+    response = app.test_client().post(
+        "prospect/add_note",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_id": prospect_id,
+                "note": "some note",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    notes: ProspectNote = ProspectNote.query.filter_by(prospect_id=prospect_id).all()
+    assert len(notes) == 1

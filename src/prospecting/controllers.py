@@ -12,6 +12,7 @@ from src.prospecting.services import (
     add_prospects_from_json_payload,
     toggle_ai_engagement,
     send_slack_reminder_for_prospect,
+    create_prospect_note,
 )
 from src.client.models import ClientArchetype
 from src.client.services import get_client_archetype
@@ -155,7 +156,9 @@ def add_prospect_from_csv_payload():
         "email_enabled", request, json=True, required=False
     )
 
-    validated, reason = validate_prospect_json_payload(payload=csv_payload, email_enabled=email_enabled)
+    validated, reason = validate_prospect_json_payload(
+        payload=csv_payload, email_enabled=email_enabled
+    )
     if not validated:
         return reason, 400
 
@@ -164,7 +167,12 @@ def add_prospect_from_csv_payload():
     )
 
     if response:
-        return "Uploaded prospects - detected and removed {} duplicates".format(duplicate_count), 200
+        return (
+            "Uploaded prospects - detected and removed {} duplicates".format(
+                duplicate_count
+            ),
+            200,
+        )
 
     return "Error", 400
 
@@ -193,3 +201,14 @@ def post_toggle_ai_engagement():
         return "OK", 200
 
     return "Failed to toggle AI engagement", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/add_note", methods=["POST"])
+def post_add_note():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    note = get_request_parameter("note", request, json=True, required=True)
+
+    data = create_prospect_note(prospect_id=prospect_id, note=note)
+    return jsonify(data)
