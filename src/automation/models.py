@@ -4,6 +4,7 @@ import sqlalchemy as sa
 import enum
 import requests
 import datetime
+import json
 
 
 class PhantomBusterType(enum.Enum):
@@ -68,3 +69,39 @@ class PhantomBusterAgent:
         if "Session cookie not valid" in output:
             return "Session cookie not valid anymore. Please update the cookie."
         return None
+
+    def get_arguments(self):
+        url = self.FETCH_AGENT_URL.format(phantom_uuid=self.id)
+        payload = {}
+        headers = {
+            "X-Phantombuster-Key": self.api_key,
+            "accept": "application/json",
+        }
+        response = requests.request("GET", url, headers=headers, data=payload)
+        data: dict = response.json()
+
+        arguments = json.loads(data.get("argument", ""))
+
+        return arguments
+
+    def update_argument(self, key: str, new_value: str):
+        arguments = self.get_arguments()
+        arguments[key] = new_value
+
+        new_arguments = json.dumps(arguments)
+        url = "https://api.phantombuster.com/api/v2/agents/save"
+
+        payload = json.dumps(
+            {
+                "id": self.id,
+                "argument": new_arguments,
+            }
+        )
+        headers = {
+            "X-Phantombuster-Key": self.api_key,
+            "accept": "application/json",
+            "Content-Type": "application/json",
+        }
+
+        requests.request("POST", url, headers=headers, data=payload)
+        return True
