@@ -9,8 +9,9 @@ from app import db, celery
 ADVERSARIAL_MODEL = "curie:ft-personal-2022-10-27-20-07-22"
 
 # This MUST be changed when the relative path of the csv's changes.
-profanity_csv_path = r'src/../datasets/profanity.csv'
-web_blacklist_path = r'src/../datasets/web_blacklist.csv'
+profanity_csv_path = r"src/../datasets/profanity.csv"
+web_blacklist_path = r"src/../datasets/web_blacklist.csv"
+
 
 def get_adversarial_ai_approval(prompt):
     OPENAI_URL = "https://api.openai.com/v1/completions"
@@ -46,15 +47,13 @@ def wipe_problems(message_id: int):
 
 
 def format_entities(unknown_entities: list, problems: list):
-    """ Formats the unknown entities for the problem message.
+    """Formats the unknown entities for the problem message.
 
     Each unknown entity will appear on its own line.
     """
     if len(unknown_entities) > 0:
         for entity in unknown_entities:
-            problems.append(
-                "Potential wrong name: '{}'".format(entity)
-            )
+            problems.append("Potential wrong name: '{}'".format(entity))
     return
 
 
@@ -76,7 +75,7 @@ def run_message_rule_engine(message_id: int):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     prompt = message.prompt
     completion = message.completion.lower()
-    
+
     problems = []
 
     # NER AI
@@ -114,22 +113,25 @@ def run_message_rule_engine(message_id: int):
 
 
 def rule_no_symbols(completion: str, problems: list):
-    """ Rule: No Symbols
+    """Rule: No Symbols
 
     No symbols allowed in the completion.
 
     \p{S} matches any math symbols, currency signs, dingbats, box-drawing characters, etc
     """
-    match = re.findall(r'[\p{S}]', completion)
+    ALLOWED_SYMBOLS = ["+"]
+    unfiltered_match = re.findall(r"[\p{S}]", completion)
+    match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
     if match and len(match) > 0:
-        print(match)
-        problems.append("Completion contains uncommon symbols: {}".format(', '.join(match)))
+        problems.append(
+            "Completion contains uncommon symbols: {}".format(", ".join(match))
+        )
 
     return
 
 
 def rule_address_doctor(prompt: str, completion: str, problems: list):
-    """ Rule: Address Doctor
+    """Rule: Address Doctor
 
     The completion must address the doctor.
     """
@@ -145,14 +147,14 @@ def rule_address_doctor(prompt: str, completion: str, problems: list):
 
 
 def rule_no_profanity(completion: str, problems: list):
-    """ Rule: No Profanity
+    """Rule: No Profanity
 
     No profanity allowed in the completion.
     """
-    with open(profanity_csv_path, newline='') as f:
+    with open(profanity_csv_path, newline="") as f:
         reader = csv.reader(f)
         profanity = set([row[0] for row in reader])
-    
+
     detected_profanities = []
     for word in completion.split():
         stripped_word = re.sub(
@@ -161,23 +163,23 @@ def rule_no_profanity(completion: str, problems: list):
             word,
         ).strip()
         if word in profanity:
-            detected_profanities.append("\'"+word+"\'")
+            detected_profanities.append("'" + word + "'")
         elif stripped_word in profanity:
-            detected_profanities.append("\'"+stripped_word+"\'")
+            detected_profanities.append("'" + stripped_word + "'")
 
     if len(detected_profanities) > 0:
         problem_string = ", ".join(detected_profanities)
         problems.append("Contains profanity: {}".format(problem_string))
-    
+
     return
 
 
 def rule_no_cookies(completion: str, problems: list):
-    """ Rule: No Cookies!
+    """Rule: No Cookies!
 
     No cookies, or any other web related things, allowed in the completion.
     """
-    with open(web_blacklist_path, newline='') as f:
+    with open(web_blacklist_path, newline="") as f:
         reader = csv.reader(f)
         web_blacklist = set([row[0] for row in reader])
 
@@ -189,34 +191,40 @@ def rule_no_cookies(completion: str, problems: list):
             word,
         ).strip()
         if word in web_blacklist:
-            detected_cookies.append("\'"+word+"\'")
+            detected_cookies.append("'" + word + "'")
         elif stripped_word in web_blacklist:
-            detected_cookies.append("\'"+stripped_word+"\'")
+            detected_cookies.append("'" + stripped_word + "'")
 
     if len(detected_cookies) > 0:
         problem_string = ", ".join(detected_cookies)
-        problems.append("Contains web related words: {}. Please check for relevance.".format(problem_string))
-        
+        problems.append(
+            "Contains web related words: {}. Please check for relevance.".format(
+                problem_string
+            )
+        )
+
     return
 
 
 def rule_no_url(completion: str, problems: list):
-    """ Rule: No URL
+    """Rule: No URL
 
     No URL's allowed in the completion.
     """
     if "www." in completion:
         problems.append("Contains a URL.")
-        
+
     return
 
 
-def rule_linkedin_length(message_type: GeneratedMessageType, completion: str, problems: list):
-    """ Rule: Linkedin Length
+def rule_linkedin_length(
+    message_type: GeneratedMessageType, completion: str, problems: list
+):
+    """Rule: Linkedin Length
 
     Linkedin messages must be less than 300 characters.
     """
     if message_type == GeneratedMessageType.LINKEDIN and len(completion) > 300:
         problems.append("LinkedIn message is > 300 characters.")
-        
+
     return
