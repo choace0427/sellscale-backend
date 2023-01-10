@@ -19,6 +19,10 @@ from src.client.services import (
     update_client_sdr_weekly_li_outbound_target,
     update_client_sdr_weekly_email_outbound_target,
 )
+from src.client.services_client_archetype import (
+    update_transformer_blocklist,
+    replicate_transformer_blocklist,
+)
 
 from src.utils.request_helpers import get_request_parameter
 
@@ -329,3 +333,42 @@ def patch_update_sdr_weekly_email_outbound_target():
     if not success:
         return "Failed to update weekly email outbound target", 400
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/set_transformer_blocklist", methods=["POST"])
+def post_archetype_set_transformer_blocklist():
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    new_blocklist: list = get_request_parameter(
+        "new_blocklist", request, json=True, required=True
+    )
+
+    success, message = update_transformer_blocklist(
+        client_archetype_id=client_archetype_id, new_blocklist=new_blocklist
+    )
+
+    if success:
+        return "OK", 200
+
+    return "400", message
+
+
+@CLIENT_BLUEPRINT.route("/archetype/replicate_transformer_blocklist", methods=["POST"])
+def post_archetype_replicate_transformer_blocklist():
+    source_client_archetype_id = get_request_parameter(
+        "source_client_archetype_id", request, json=True, required=True
+    )
+    destination_client_archetype_id = get_request_parameter(
+        "destination_client_archetype_id", request, json=True, required=True
+    )
+
+    success, message = replicate_transformer_blocklist(
+        source_client_archetype_id=source_client_archetype_id,
+        destination_client_archetype_id=destination_client_archetype_id,
+    )
+
+    if success:
+        return "OK", 200
+
+    return "400", message

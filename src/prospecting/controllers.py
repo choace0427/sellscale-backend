@@ -14,8 +14,6 @@ from src.prospecting.services import (
     send_slack_reminder_for_prospect,
     create_prospect_note,
 )
-from src.client.models import ClientArchetype
-from src.client.services import get_client_archetype
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.services import (
     batch_update_prospect_statuses,

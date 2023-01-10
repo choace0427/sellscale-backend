@@ -25,6 +25,10 @@ class ResearchPointType(enum.Enum):
     # PROJECT = "PROJECT"
     # RECOMMENDATION = "RECOMMENDATION"
 
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
 
 class ResearchPayload(db.Model):
     __tablename__ = "research_payload"

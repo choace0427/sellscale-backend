@@ -1,16 +1,10 @@
-from src.client.services import (
-    create_client,
-    get_client,
-    create_client_archetype,
-    create_client_sdr,
-    reset_client_sdr_sight_auth_token,
-)
 from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr
+from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype
 from app import app, db
 import json
 import mock
+from model_import import ResearchPointType
 
 
 @use_app_context
@@ -142,3 +136,58 @@ def test_patch_update_sdr_weekly_email_outbound_target():
 
     client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
     assert client_sdr.weekly_email_outbound_target == 10
+
+
+@use_app_context
+def test_post_archetype_set_transformer_blocklist():
+    client = basic_client()
+    client_archetype = basic_archetype(client=client)
+    client_archetype_id = client_archetype.id
+
+    assert client_archetype.transformer_blocklist == None
+
+    response = app.test_client().post(
+        "client/archetype/set_transformer_blocklist",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_archetype_id": client_archetype_id,
+                "new_blocklist": [
+                    "CURRENT_EXPERIENCE_DESCRIPTION",
+                    "RECENT_RECOMMENDATIONS",
+                ],
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    client_archetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    assert client_archetype.transformer_blocklist == [
+        ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION,
+        ResearchPointType.RECENT_RECOMMENDATIONS,
+    ]
+
+    new_client_archetype = basic_archetype(client=client)
+    new_client_archetype_id = new_client_archetype.id
+
+    assert new_client_archetype.transformer_blocklist == None
+
+    response = app.test_client().post(
+        "client/archetype/replicate_transformer_blocklist",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "source_client_archetype_id": client_archetype_id,
+                "destination_client_archetype_id": new_client_archetype_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    new_client_archetype = ClientArchetype.query.filter_by(
+        id=new_client_archetype_id
+    ).first()
+    assert new_client_archetype.transformer_blocklist == [
+        ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION,
+        ResearchPointType.RECENT_RECOMMENDATIONS,
+    ]

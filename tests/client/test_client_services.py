@@ -2,8 +2,6 @@ from src.client.services import (
     create_client,
     get_client,
     create_client_archetype,
-    create_client_sdr,
-    reset_client_sdr_sight_auth_token,
 )
 from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
@@ -59,7 +57,7 @@ def test_add_client_and_archetype():
         data=json.dumps(
             {
                 "client_id": c.id,
-                "client_sdr_id": c_sdr.id, 
+                "client_sdr_id": c_sdr.id,
                 "archetype": "testing",
                 "filters": {},
                 "disable_ai_after_prospect_engaged": True,
@@ -172,7 +170,9 @@ def test_add_client_and_archetype_and_sdr():
     assert c.id == clients[0].id
     c_sdr: ClientSDR = basic_client_sdr(c)
 
-    create_client_archetype(client_id=c.id, client_sdr_id=c_sdr.id, archetype="testing", filters={})
+    create_client_archetype(
+        client_id=c.id, client_sdr_id=c_sdr.id, archetype="testing", filters={}
+    )
     client_archetypes: list = ClientArchetype.query.all()
     assert len(client_archetypes) == 1
     assert client_archetypes[0].client_sdr_id == c_sdr.id
@@ -291,7 +291,7 @@ def test_patch_update_pipeline_webhook(mock_send_slack_message):
 @use_app_context
 @mock.patch("src.client.services.send_slack_message")
 def test_patch_update_pipeline_client_sdr_webhook(mock_send_slack_message):
-    """ Tests the updating of a Client SDR's slack webhook endpoint.
+    """Tests the updating of a Client SDR's slack webhook endpoint.
 
     Args:
         mock_send_slack_message (Mock): Mocks the send_slack_message function.
@@ -320,7 +320,9 @@ def test_patch_update_pipeline_client_sdr_webhook(mock_send_slack_message):
         "client/test_sdr_webhook",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
-            {"client_sdr_id": client_sdr_id,}
+            {
+                "client_sdr_id": client_sdr_id,
+            }
         ),
     )
     assert response.status_code == 200
