@@ -232,15 +232,9 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
     if len(messages) > 1:
         return None
 
-    research: ResearchPayload = ResearchPayload.query.filter(
-        ResearchPayload.prospect_id == prospect_id
-    ).first()
-    if not research:
-        return []
-
-    research_points_list: list[ResearchPoints] = ResearchPoints.query.filter(
-        ResearchPoints.research_payload_id == research.id
-    ).all()
+    research_points_list: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
     perms = generate_batches_of_research_points(points=research_points_list, n=4)
 

@@ -63,6 +63,14 @@ class ResearchPoints(db.Model):
         return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()
 
     def get_research_points_by_prospect_id(prospect_id: int):
+        from model_import import ClientArchetype, Prospect
+
+        prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+        client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+            id=prospect.archetype_id
+        ).first()
+        transformer_blocklist = client_archetype.transformer_blocklist
+
         research_payloads = ResearchPayload.query.filter_by(
             prospect_id=prospect_id
         ).all()
@@ -71,4 +79,11 @@ class ResearchPoints(db.Model):
             research_points.extend(
                 ResearchPoints.query.filter_by(research_payload_id=payload.id).all()
             )
+
+        research_points = [
+            point
+            for point in research_points
+            if point.research_point_type not in transformer_blocklist
+        ]
+
         return research_points
