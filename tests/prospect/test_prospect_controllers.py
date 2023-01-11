@@ -151,8 +151,8 @@ def test_post_batch_mark_as_lead():
             {
                 "payload": [
                     {
-                        "prospect_id": prospect_id,
-                        "note": "some note",
+                        "id": prospect_id,
+                        "is_lead": False,
                     }
                 ]
             }
@@ -161,4 +161,23 @@ def test_post_batch_mark_as_lead():
     assert response.status_code == 200
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    assert prospect.is_lead
+    assert prospect.is_lead == False
+
+    response = app.test_client().post(
+        "prospect/batch_mark_as_lead",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "id": prospect_id,
+                        "is_lead": True,
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.is_lead == True

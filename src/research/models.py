@@ -80,6 +80,9 @@ class ResearchPoints(db.Model):
                 ResearchPoints.query.filter_by(research_payload_id=payload.id).all()
             )
 
+        if not transformer_blocklist:
+            return research_points
+
         research_points = [
             point
             for point in research_points
