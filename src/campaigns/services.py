@@ -542,3 +542,30 @@ def assign_editor_to_campaign(editor_id: int, campaign_id: int):
     db.session.commit()
 
     return True
+
+
+def batch_assign_editors(payload: list):
+    """
+    payload = [
+        {
+            'campaign_id': 1, # campaign_id
+            'editor_id': 2 # editor id
+        },
+        ...
+    ]
+    """
+    if len(payload) == 0:
+        return False, "No changes"
+
+    if "campaign_id" not in payload[0]:
+        return False, "No campaign id"
+
+    if "editor_id" not in payload[0]:
+        return False, "No editor id"
+
+    for entry in payload:
+        campaign_id = entry["campaign_id"]
+        editor_id = entry["editor_id"]
+        assign_editor_to_campaign(editor_id, campaign_id)
+
+    return True

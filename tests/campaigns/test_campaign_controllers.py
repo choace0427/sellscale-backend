@@ -773,3 +773,68 @@ def test_assign_editor_to_campaign():
     assert response.status_code == 200
     campaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.editor_id == editor_id
+
+
+@use_app_context
+def test_batch_assign_editors():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    email_schema = basic_email_schema(archetype=archetype)
+    email_schema_id = email_schema.id
+
+    campaign1 = create_outbound_campaign(
+        prospect_ids=[1, 2],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        email_schema_id=email_schema_id,
+    )
+    campaign1_id = campaign1.id
+
+    editor1 = basic_editor()
+    editor1_id = editor1.id
+
+    campaign2 = create_outbound_campaign(
+        prospect_ids=[1, 2],
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        email_schema_id=email_schema_id,
+    )
+    campaign2_id = campaign2.id
+
+    editor2 = basic_editor()
+    editor2_id = editor2.id
+
+    response = app.test_client().post(
+        f"campaigns/batch_assign_editors",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "editor_id": editor1_id,
+                        "campaign_id": campaign1_id,
+                    },
+                    {
+                        "editor_id": editor2_id,
+                        "campaign_id": campaign2_id,
+                    },
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    campaign1 = OutboundCampaign.query.get(campaign1_id)
+    campaign2 = OutboundCampaign.query.get(campaign2_id)
+
+    assert campaign1.editor_id == editor1_id
+    assert campaign2.editor_id == editor2_id
