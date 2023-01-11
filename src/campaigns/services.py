@@ -532,6 +532,41 @@ def batch_update_campaigns(payload: dict):
     return True
 
 
+def batch_update_campaign_editing_attributes(payload: dict):
+    """Batch update campaigns from editing portal
+
+    payload looks like
+    ```
+    [{
+        "campaign_id": int,
+        "reported_time_in_hours": int,
+        "reviewed_feedback": bool,
+        "sellscale_grade": str,
+        "brief_feedback_summary": str,
+        "detailed_feedback_link": str
+    }]
+    ```
+    """
+    for entry in payload:
+        campaign_id = entry["campaign_id"]
+        reported_time_in_hours = entry["reported_time_in_hours"]
+        reviewed_feedback = entry["reviewed_feedback"]
+        sellscale_grade = entry["sellscale_grade"]
+        brief_feedback_summary = entry["brief_feedback_summary"]
+        detailed_feedback_link = entry["detailed_feedback_link"]
+
+        campaign = OutboundCampaign.query.get(campaign_id)
+        campaign.reported_time_in_hours = reported_time_in_hours
+        campaign.reviewed_feedback = reviewed_feedback
+        campaign.sellscale_grade = sellscale_grade
+        campaign.brief_feedback_summary = brief_feedback_summary
+        campaign.detailed_feedback_link = detailed_feedback_link
+
+        db.session.add(campaign)
+        db.session.commit()
+    return True
+
+
 def assign_editor_to_campaign(editor_id: int, campaign_id: int):
     """Assigns an editor to a campaign
 

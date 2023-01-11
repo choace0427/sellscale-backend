@@ -373,6 +373,33 @@ def test_change_campaign_status_to_edit_complete():
     assert campaign.campaign_end_date.isoformat() == "2023-01-14T00:00:00"
     assert campaign.name == "Pierce, Bash 1, Online shop owners, 75, 2022-12-26"
 
+    response = app.test_client().patch(
+        "campaigns/batch_editing_attributes",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "campaign_id": campaign.id,
+                        "reported_time_in_hours": 2,
+                        "reviewed_feedback": True,
+                        "sellscale_grade": "A",
+                        "brief_feedback_summary": "this is feedback",
+                        "detailed_feedback_link": "https://www.google.com",
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.reported_time_in_hours == 2
+    assert campaign.reviewed_feedback
+    assert campaign.sellscale_grade == "A"
+    assert campaign.brief_feedback_summary == "this is feedback"
+    assert campaign.detailed_feedback_link == "https://www.google.com"
+
 
 @use_app_context
 def test_merge_then_split_multiple_linkedin_campaigns_succeed():

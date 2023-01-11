@@ -39,3 +39,8 @@ class OutboundCampaign(db.Model):
     uuid = db.Column(db.String(255), nullable=True)
 
     editor_id = db.Column(db.Integer, db.ForeignKey("editor.id"), nullable=True)
+    reported_time_in_hours = db.Column(db.Integer, nullable=True)
+    reviewed_feedback = db.Column(db.Boolean, nullable=True)
+    sellscale_grade = db.Column(db.String(255), nullable=True)
+    brief_feedback_summary = db.Column(db.String, nullable=True)
+    detailed_feedback_link = db.Column(db.String, nullable=True)
