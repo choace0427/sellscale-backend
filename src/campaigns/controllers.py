@@ -16,7 +16,6 @@ from src.campaigns.services import (
     batch_update_campaigns,
     split_outbound_campaigns,
     assign_editor_to_campaign,
-    batch_assign_editors,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -179,12 +178,3 @@ def post_assign_editor():
     editor_id = get_request_parameter("editor_id", request, json=True, required=True)
     assign_editor_to_campaign(editor_id=editor_id, campaign_id=campaign_id)
     return "OK", 200
-
-
-@CAMPAIGN_BLUEPRINT.route("/batch_assign_editors", methods=["POST"])
-def post_batch_assign_editors():
-    payload = get_request_parameter("payload", request, json=True, required=True)
-    success = batch_assign_editors(payload=payload)
-    if success:
-        return "OK", 200
-    return "Failed to update", 400

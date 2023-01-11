@@ -517,12 +517,15 @@ def batch_update_campaigns(payload: dict):
         )
         status = campaign_payload["status"]
         campaign_name = campaign_payload["campaign_name"]
+        editor_id = campaign_payload["editor_id"]
 
         campaign = OutboundCampaign.query.get(campaign_id)
         campaign.campaign_start_date = campaign_start_date
         campaign.campaign_end_date = campaign_end_date
         campaign.status = OutboundCampaignStatus[status]
         campaign.name = campaign_name
+        campaign.editor_id = editor_id
+
         db.session.add(campaign)
         db.session.commit()
 
@@ -540,32 +543,5 @@ def assign_editor_to_campaign(editor_id: int, campaign_id: int):
     campaign.editor_id = editor_id
     db.session.add(campaign)
     db.session.commit()
-
-    return True
-
-
-def batch_assign_editors(payload: list):
-    """
-    payload = [
-        {
-            'campaign_id': 1, # campaign_id
-            'editor_id': 2 # editor id
-        },
-        ...
-    ]
-    """
-    if len(payload) == 0:
-        return False, "No changes"
-
-    if "campaign_id" not in payload[0]:
-        return False, "No campaign id"
-
-    if "editor_id" not in payload[0]:
-        return False, "No editor id"
-
-    for entry in payload:
-        campaign_id = entry["campaign_id"]
-        editor_id = entry["editor_id"]
-        assign_editor_to_campaign(editor_id, campaign_id)
 
     return True
