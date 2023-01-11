@@ -133,3 +133,32 @@ def test_post_add_note():
     assert response.status_code == 200
     notes: ProspectNote = ProspectNote.query.filter_by(prospect_id=prospect_id).all()
     assert len(notes) == 1
+
+
+@use_app_context
+def test_post_batch_mark_as_lead():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+
+    assert not prospect.is_lead
+
+    response = app.test_client().post(
+        "prospect/batch_mark_as_lead",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "payload": [
+                    {
+                        "prospect_id": prospect_id,
+                        "note": "some note",
+                    }
+                ]
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.is_lead

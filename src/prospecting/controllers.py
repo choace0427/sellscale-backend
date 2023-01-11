@@ -6,7 +6,7 @@ from src.prospecting.services import (
     batch_mark_prospects_as_sent_outreach,
     create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,
-    prospect_exists_for_archetype,
+    batch_mark_as_lead,
     update_prospect_status,
     validate_prospect_json_payload,
     add_prospects_from_json_payload,
@@ -210,3 +210,12 @@ def post_add_note():
 
     data = create_prospect_note(prospect_id=prospect_id, note=note)
     return jsonify(data)
+
+
+@PROSPECTING_BLUEPRINT.route("/batch_mark_as_lead", methods=["POST"])
+def post_batch_mark_as_lead():
+    payload = get_request_parameter("payload", request, json=True, required=True)
+    success = batch_mark_as_lead(payload=payload)
+    if success:
+        return "OK", 200
+    return "Failed to mark as lead", 400

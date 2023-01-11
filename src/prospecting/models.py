@@ -67,6 +67,8 @@ class Prospect(db.Model):
 
     deactivate_ai_engagement = db.Column(db.Boolean, nullable=True)
 
+    is_lead = db.Column(db.Boolean, nullable=True)
+
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
 

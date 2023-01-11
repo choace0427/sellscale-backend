@@ -664,10 +664,7 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
         email = prospect.get("email")
 
         create_prospect_from_linkedin_link.delay(
-            archetype_id=archetype_id, 
-            url=linkedin_url, 
-            batch=batch_id, 
-            email=email
+            archetype_id=archetype_id, url=linkedin_url, batch=batch_id, email=email
         )
 
         # In case the csv has a field, we should stay true to those fields.
@@ -713,5 +710,27 @@ def toggle_ai_engagement(prospect_id: int):
     prospect.deactivate_ai_engagement = not prospect.deactivate_ai_engagement
     db.session.add(prospect)
     db.session.commit()
+
+    return True
+
+
+def batch_mark_as_lead(payload: int):
+    """Updates prospects as is_lead
+
+    payload = [
+        {'id': 1, 'is_lead': True},
+        ...
+    ]
+    """
+    for entry in payload:
+        prospect_id = entry["id"]
+        is_lead = entry["is_lead"]
+
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect:
+            continue
+        prospect.is_lead = is_lead
+        db.session.add(prospect)
+        db.session.commit()
 
     return True
