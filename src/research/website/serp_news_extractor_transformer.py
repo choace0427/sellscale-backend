@@ -44,7 +44,12 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
             "recent_company_news": {
                 "query": self.prospect.company,
                 "intext": ["growth", "marketing"],  # TODO replace with client tags
-                "exclude": ["lost", "fear"],  # TODO replace with client exclusions
+                "exclude": [
+                    "lost",
+                    "fear",
+                    "short interest",
+                    "downgrade",
+                ],  # TODO replace with client exclusions
             },
         }
         self.payload = ResearchPayload.get_by_prospect_id(
