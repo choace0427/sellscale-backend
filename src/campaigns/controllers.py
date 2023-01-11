@@ -16,6 +16,7 @@ from src.campaigns.services import (
     batch_update_campaigns,
     split_outbound_campaigns,
     assign_editor_to_campaign,
+    batch_update_campaign_editing_attributes,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -73,6 +74,15 @@ def patch_change_campaign_status():
 def patch_batch_update_campaigns():
     payload = get_request_parameter("payload", request, json=True, required=True)
     success = batch_update_campaigns(payload=payload)
+    if success:
+        return "OK", 200
+    return "Failed to update", 400
+
+
+@CAMPAIGN_BLUEPRINT.route("/batch_editing_attributes", methods=["PATCH"])
+def patch_batch_update_campaign_editing_attributes():
+    payload = get_request_parameter("payload", request, json=True, required=True)
+    success = batch_update_campaign_editing_attributes(payload=payload)
     if success:
         return "OK", 200
     return "Failed to update", 400
