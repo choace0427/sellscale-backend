@@ -185,7 +185,10 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "list_of_past_jobs",
             get_list_of_past_jobs,
         ),
-        (ResearchPointType.RECENT_PATENTS, "recent_patent", get_recent_patent),
+        (   ResearchPointType.RECENT_PATENTS, 
+            "recent_patent", 
+            get_recent_patent,
+        ),
         (
             ResearchPointType.RECENT_RECOMMENDATIONS,
             "recent_recommendation",
@@ -196,9 +199,6 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "general_website_transformer",
             generate_general_website_research_points,
         ),
-        # (
-        #     ResearchPointType
-        # ),
     ]
 
     bullets = {}

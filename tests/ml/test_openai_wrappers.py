@@ -43,11 +43,11 @@ def test_wrapped_create_completion(openai_mock):
     assert openai_mock.call_args[1] == {
         'model': 'test',
         'prompt': 'test',
-        'suffix': None,
-        'max_tokens': None,
-        'temperature': None,
-        'top_p': None,
-        'n': None,
-        'frequency_penalty': None,
-        'stop': None
+        'suffix': DEFAULT_SUFFIX,
+        'max_tokens': DEFAULT_MAX_TOKENS,
+        'temperature': DEFAULT_TEMPERATURE,
+        'top_p': DEFAULT_TOP_P,
+        'n': DEFAULT_N,
+        'frequency_penalty': DEFAULT_FREQUENCY_PENALTY,
+        'stop': DEFAULT_STOP
     }

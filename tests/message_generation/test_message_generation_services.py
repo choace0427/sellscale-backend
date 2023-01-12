@@ -783,7 +783,8 @@ def test_change_prospect_email_status():
 
 @use_app_context
 @mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
-def test_batch_approve_message_generations_by_heuristic(rule_engine_mock):
+@mock.patch("src.research.linkedin.extractors.current_company.wrapped_create_completion", return_value="test")
+def test_batch_approve_message_generations_by_heuristic(openai_wrapper_mock, rule_engine_mock):
     prospect_ids = []
 
     client = basic_client()
