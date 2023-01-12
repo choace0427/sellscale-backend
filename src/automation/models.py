@@ -5,7 +5,9 @@ import enum
 import requests
 import datetime
 import json
+import os
 
+PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 
 class PhantomBusterType(enum.Enum):
     INBOX_SCRAPER = "INBOX_SCRAPER"
@@ -39,9 +41,9 @@ class PhantomBusterAgent:
         "https://api.phantombuster.com/api/v2/agents/fetch-output?id={phantom_uuid}"
     )
 
-    def __init__(self, id: int, api_key: str):
+    def __init__(self, id: int):
         self.id = id
-        self.api_key = api_key
+        self.api_key = PHANTOMBUSTER_API_KEY
 
     def get_last_run_date(self):
         url = self.FETCH_AGENT_URL.format(phantom_uuid=self.id)

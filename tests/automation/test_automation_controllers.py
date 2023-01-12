@@ -57,3 +57,24 @@ def test_configure_phantom_agents(request_patch):
     )
     assert response.status_code == 200
     assert request_patch.call_count == 2
+
+
+@use_app_context
+@mock.patch("src.automation.controllers.update_phantom_buster_li_at", return_value=(200, "Success"))
+def test_update_phantom_li_at(update_phantom_buster_li_at_mock):
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    sdr_id = sdr.id
+
+    response = app.test_client().post(
+        "/automation/update_phantom_li_at",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_sdr_id": sdr_id,
+                "linkedin_authentication_token": "TEST_LINKEDIN_AT_TOKEN",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert update_phantom_buster_li_at_mock.call_count == 1
