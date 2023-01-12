@@ -126,7 +126,7 @@ def update_phantom_li_at():
 
     response = update_phantom_buster_li_at(
         client_sdr_id=client_sdr_id,
-        linkedin_session_cookie=linkedin_authentication_token
+        li_at=linkedin_authentication_token
     )
 
     return jsonify(response)
