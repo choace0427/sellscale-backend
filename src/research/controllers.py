@@ -6,7 +6,7 @@ from src.research.linkedin.iscraper import (
 )
 
 from src.utils.request_helpers import get_request_parameter
-from src.research.services import flag_research_point
+from src.research.services import flag_research_point, get_all_research_point_types
 
 from .linkedin.services import (
     get_research_and_bullet_points_new,
@@ -80,3 +80,8 @@ def flag_research():
     if success:
         return "OK", 200
     return "Failed to flag point", 500
+
+
+@RESEARCH_BLUEPRINT.route("/all_research_point_types_details", methods=["GET"])
+def get_all_research_point_types_details():
+    return jsonify(get_all_research_point_types())
