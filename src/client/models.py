@@ -73,3 +73,5 @@ class ClientSDR(db.Model):
     )
 
     manual_warning_message = db.Column(db.String, nullable=True)
+
+    li_at_token = db.Column(db.String)
