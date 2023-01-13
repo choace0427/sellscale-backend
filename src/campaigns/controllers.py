@@ -47,17 +47,20 @@ def create_new_campaign():
         "email_schema_id", request, json=True, required=False
     )
 
-    campaign: OutboundCampaign = create_outbound_campaign(
-        prospect_ids=prospect_ids,
-        campaign_type=campaign_type,
-        ctas=ctas,
-        email_schema_id=email_schema_id,
-        client_archetype_id=client_archetype_id,
-        client_sdr_id=client_sdr_id,
-        campaign_start_date=campaign_start_date,
-        campaign_end_date=campaign_end_date,
-    )
-    return jsonify({"campaign_id": campaign.id}), 200
+    try:
+        campaign: OutboundCampaign = create_outbound_campaign(
+            prospect_ids=prospect_ids,
+            campaign_type=campaign_type,
+            ctas=ctas,
+            email_schema_id=email_schema_id,
+            client_archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
+            campaign_start_date=campaign_start_date,
+            campaign_end_date=campaign_end_date,
+        )
+        return jsonify({"campaign_id": campaign.id}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @CAMPAIGN_BLUEPRINT.route("/", methods=["PATCH"])
