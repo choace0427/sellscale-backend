@@ -62,7 +62,7 @@ def create_outbound_campaign(
         prospect1
         and not can_generate_with_few_shot(prospect1.id)
         and len(prospect_ids) > 10
-        and campaign_type == GeneratedMessageType.LINKEDIN
+        and campaign_type == GeneratedMessageType.LINKEDIN.value
     ):
         raise Exception(
             "Cannot generate Linkedin campaign of more than 10 prospects without few shot generation enabled. Enable few shot first!"
