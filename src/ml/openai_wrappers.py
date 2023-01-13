@@ -11,17 +11,24 @@ OPENAI_KEY = os.environ.get("OPENAI_KEY")
 openai.api_key = OPENAI_KEY
 
 CURRENT_OPENAI_DAVINCI_MODEL = "text-davinci-003"
+DEFAULT_SUFFIX = None
+DEFAULT_MAX_TOKENS = 16
+DEFAULT_TEMPERATURE = 1
+DEFAULT_TOP_P = 1
+DEFAULT_N = 1
+DEFAULT_FREQUENCY_PENALTY = 0
+DEFAULT_STOP = None
 
 def wrapped_create_completion(
         model: str,
         prompt: str,
-        suffix: Optional[Union[str, list]] = None,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        n: Optional[int] = None,
-        frequency_penalty: Optional[float] = None,
-        stop: Optional[Union[str, list]] = None):
+        suffix: Optional[Union[str, list]] = DEFAULT_SUFFIX,
+        max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+        temperature: Optional[float] = DEFAULT_TEMPERATURE,
+        top_p: Optional[float] = DEFAULT_TOP_P,
+        n: Optional[int] = DEFAULT_N,
+        frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
+        stop: Optional[Union[str, list]] = DEFAULT_STOP):
     """ Wrapper for OpenAI's Completion API.
 
     Only model and prompt are required

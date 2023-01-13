@@ -229,6 +229,28 @@ def basic_research_point(research_payload: ResearchPayload):
     return r
 
 
+def basic_phantom_buster_configs(client: Client, client_sdr: ClientSDR):
+    from model_import import PhantomBusterConfig, PhantomBusterType
+
+    inboxp = PhantomBusterConfig(
+        client_id = client.id,
+        client_sdr_id = client_sdr.id,
+        pb_type = PhantomBusterType.INBOX_SCRAPER,
+        phantom_uuid = "1"
+    )
+
+    outboundp = PhantomBusterConfig(
+        client_id = client.id,
+        client_sdr_id = client_sdr.id,
+        pb_type = PhantomBusterType.OUTBOUND_ENGINE,
+        phantom_uuid = "2"
+    )
+
+    db.session.add_all([inboxp, outboundp])
+    db.session.commit()
+    return inboxp, outboundp
+
+
 def clear_all_entities(SQLAlchemyObject):
     echos = SQLAlchemyObject.query.all()
     for e in echos:

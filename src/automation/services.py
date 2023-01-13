@@ -412,9 +412,7 @@ def update_all_phantom_buster_run_statuses():
 
 @celery.task
 def update_phantom_buster_run_status(phantom_id: str):
-    pb_agent: PhantomBusterAgent = PhantomBusterAgent(
-        id=phantom_id, api_key=PHANTOMBUSTER_API_KEY
-    )
+    pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=phantom_id)
     last_run_date = pb_agent.get_last_run_date()
     error_message = pb_agent.get_error_message()
 
@@ -427,3 +425,37 @@ def update_phantom_buster_run_status(phantom_id: str):
         pb_config.error_message = error_message
         db.session.add(pb_config)
         db.session.commit()
+
+
+def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
+    """ Updates a PhantomBuster's LinkedIn authentication token
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        li_at (str): LinkedIn authentication token
+
+    Returns:
+        status_code (int), message (str): HTTP status code 
+    """
+    pbs: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+        PhantomBusterConfig.client_sdr_id == client_sdr_id
+    ).all()
+    if not pbs:
+        return "No phantoms found for this client sdr", 400
+
+    for pb in pbs:
+        pb_id = pb.phantom_uuid
+        pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=pb_id)
+        arguments = pb_agent.get_arguments()
+        if 'sessionCookie' in arguments:
+            pb_agent.update_argument(key='sessionCookie', new_value=li_at)
+    
+    sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    if not sdr:
+        return "No client sdr found with this id", 400 
+
+    sdr.li_at_token = li_at
+    db.session.add(sdr)
+    db.session.commit()
+
+    return "OK", 200

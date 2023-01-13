@@ -61,6 +61,10 @@ def get_years_of_experience(data):
     else:
         if yoe == 1:
             raw_data = {"years_of_experience": "1 year of experience in industry"}
+        elif yoe == 5:
+            raw_data = {"years_of_experience": "Half a decade of experience in industry"}
+        elif yoe == 10:
+            raw_data = {"years_of_experience": "A decade of experience in industry"}
         else:
             raw_data = {
                 "years_of_experience": str(yoe) + "+ years of experience in industry"

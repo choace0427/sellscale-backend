@@ -25,7 +25,7 @@ from src.prospecting.models import (
     ProspectNote,
 )
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs
-from src.automation.models import PhantomBusterConfig
+from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.email_outbound.models import (
     EmailSchema,
     EmailCustomizedFieldTypes,

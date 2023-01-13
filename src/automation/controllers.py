@@ -1,11 +1,9 @@
 import json
 from flask import Blueprint, request, jsonify
 from src.automation.models import PhantomBusterType
-from src.automation.services import create_phantom_buster_config
-from src.automation.services import get_all_phantom_busters
+from src.automation.services import (create_phantom_buster_config, get_all_phantom_busters, create_new_auto_connect_phantom, update_phantom_buster_li_at)
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
-from src.automation.services import create_new_auto_connect_phantom
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
@@ -116,3 +114,19 @@ def configure_phantom_agents():
             "auto_connect_pb_config": auto_connect_pb_config,
         }
     )
+
+@AUTOMATION_BLUEPRINT.route("/update_phantom_li_at", methods=["POST"])
+def update_phantom_li_at():
+    client_sdr_id: int = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    linkedin_authentication_token: str = get_request_parameter(
+        "linkedin_authentication_token", request, json=True, required=True
+    )
+
+    response = update_phantom_buster_li_at(
+        client_sdr_id=client_sdr_id,
+        li_at=linkedin_authentication_token
+    )
+
+    return jsonify(response)
