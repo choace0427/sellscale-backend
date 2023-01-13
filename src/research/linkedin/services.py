@@ -38,6 +38,9 @@ from src.research.website.serp_news_extractor_transformer import (
 
 from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
 
+from src.utils.converters.string_converters import clean_company_name
+
+
 LINKEDIN_SEARCH_URL = "https://api.iscraper.io/v2/linkedin-search"
 PROFILE_DETAILS_URL = "https://api.iscraper.io/v2/profile-details"
 DATA_TYPES_URL = "https://api.iscraper.io/v2/data-types"
@@ -121,6 +124,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
                 pass
 
     payload = {"personal": personal_info, "company": company_info}
+    payload = sanitize_payload(payload)
 
     rp: ResearchPayload = ResearchPayload(
         prospect_id=prospect_id,
@@ -138,6 +142,35 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
     db.session.commit()
 
     return payload
+
+
+def sanitize_payload(payload: dict):
+    """Sanitize payload to remove any empty values
+
+    Sanitizes:
+    - Cleans company names
+    """
+    personal_payload = payload.get("personal", {})
+    company_payload = payload.get("company", {})
+
+    if personal_payload:
+        position_groups = personal_payload.get("position_groups", [])
+        for position in position_groups:
+            if position.get("company", {}).get("name"):
+                position["company"]["name"] = clean_company_name(
+                    position["company"]["name"]
+                )
+        pass
+
+    if company_payload:
+        current_company_name = company_payload.get("details", {}).get("name")
+        if current_company_name:
+            company_payload["details"]["name"] = clean_company_name(current_company_name)
+
+    new_payload = {"personal": personal_payload, "company": company_payload}
+
+    return new_payload
+
 
 
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):

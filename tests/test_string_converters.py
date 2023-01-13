@@ -1,6 +1,7 @@
 from src.utils.converters.string_converters import (
     get_first_name_from_full_name,
     get_last_name_from_full_name,
+    clean_company_name,
 )
 
 
@@ -93,3 +94,30 @@ def test_get_last_name_from_linkedin_full_name():
     assert get_last_name_from_full_name("Marc Cordon, MPH, ACC") == "Cordon"
     assert get_last_name_from_full_name("Dan Layish MD") == "Layish"
     assert get_last_name_from_full_name("Martin CJ Mongiello MBA MA MCFE") == "Cj"
+
+
+def test_clean_company_name():
+    assert clean_company_name("Company Name") == "Company Name"
+    assert clean_company_name("Company Name ") == "Company Name"
+    assert clean_company_name(" Company Name") == "Company Name"
+    assert clean_company_name(" Company Name ") == "Company Name"
+    assert clean_company_name("A & A Auto Parts") == "A & A Auto Parts"
+    assert clean_company_name("A & A Auto Parts Inc") == "A & A Auto Parts"
+    assert clean_company_name("A & A Auto Parts Inc.") == "A & A Auto Parts"
+    assert clean_company_name("A & A Auto Parts, Inc.") == "A & A Auto Parts"
+    assert clean_company_name("A & A Auto Parts, Inc") == "A & A Auto Parts"
+    assert clean_company_name("A & A Auto Parts, Inc.") == "A & A Auto Parts"
+    assert clean_company_name("A & A Auto Parts, Inc. ") == "A & A Auto Parts"
+    assert clean_company_name("Satellite Healthcare / WellBound") == "Satellite Healthcare"
+    assert clean_company_name("Curative (acq. Doximity)") == "Curative"
+    assert clean_company_name("Sun OS (prev. Sunshine)") == "Sun OS"
+    assert clean_company_name("Mi-One Brands (Mi-Pod / VaporLax)") == "Mi-One Brands"
+    assert clean_company_name("Mark-Taylor, Inc.") == "Mark-Taylor"
+    assert clean_company_name("Mark-Tayler, Inc. (acq. American Residential Communities)") == "Mark-Tayler"
+    assert clean_company_name("BACtrack | The Leader in Breathalyzers") == "BACtrack"
+    assert clean_company_name("HEAL Security | Cognitive Cybersecurity Intelligence for the Healthcare Sector") == "HEAL Security"
+    assert clean_company_name("Cassia - An Augustana | Elim Affiliation") == "Cassia"
+    assert clean_company_name("ATI | Advanced Technology International") == "ATI"
+    assert clean_company_name("| GrayMatter |") == "GrayMatter"
+    assert clean_company_name("Sphere (by holo|one)") == "Sphere"
+    

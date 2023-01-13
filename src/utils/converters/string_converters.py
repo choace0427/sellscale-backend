@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any
+from cleanco import basename
 import re
 
 from src.utils.converters.base_converter import BaseConverter
@@ -115,3 +116,48 @@ def get_last_name_from_full_name(full_name: str):
         name = name.title()
 
     return name
+
+
+def clean_company_name(name: str) -> str:
+    """ Cleans the company name to only use the basename. Refer to the tests for a comprehensive view.
+
+    Uses cleanco.basename python package for help removing words such as "Inc." or "LLC."
+
+    Uses custom heuristic to clean up other issues:
+    - Removes the last open and close parentheses substring. "Curative (acq. Doximity)" -> "Curative"
+    - Removes any symbols which may be delimiting. "Sattelite Healthcare / Wellbound" -> "Sattelite Healthcare"
+
+    delimiting_symbols = ['/', '-', '|']
+
+    Args:
+        name (str): The company name to clean.
+
+    Returns:
+        str: The cleaned company name.
+    """
+    if name is None or "":
+        return name
+
+    delimiting_symbols = ['/', '-', '|']
+
+    name = basename(name).strip() # Quirk of basename function is it will remove a trailing ')'
+
+    last_index = len(name) - 1
+    for index in range(last_index, 0, -1):
+        if name[index] == '(':
+            close_parentheses_index = name.rfind(')')
+            if close_parentheses_index == -1:
+                name = name[:index]
+                break
+            else:
+                name = name[index] + name[close_parentheses_index + 1:]
+                break
+        elif name[index] in delimiting_symbols:
+            if name[index - 1] == ' ':
+                name = name[:index]
+
+    for symbol in delimiting_symbols:
+        name = name.strip(symbol)
+    name = basename(name).strip() # One last time for good measure
+
+    return name.strip()

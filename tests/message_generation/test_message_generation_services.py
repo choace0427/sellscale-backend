@@ -234,7 +234,8 @@ def test_generate_outreaches_new(
 
 
 @use_app_context
-def test_update_message():
+@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
+def test_update_message(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -307,7 +308,8 @@ def test_batch_update_messages(update_message_mock):
 
 
 @use_app_context
-def test_approve_message():
+@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
+def test_approve_message(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -782,7 +784,7 @@ def test_change_prospect_email_status():
 
 
 @use_app_context
-@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
+@mock.patch("src.message_generation.services.run_message_rule_engine", return_value=[])
 @mock.patch("src.research.linkedin.extractors.current_company.wrapped_create_completion", return_value="test")
 def test_batch_approve_message_generations_by_heuristic(openai_wrapper_mock, rule_engine_mock):
     prospect_ids = []
