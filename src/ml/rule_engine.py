@@ -141,7 +141,7 @@ def rule_address_doctor(prompt: str, completion: str, problems: list):
     )
 
     if search is not None and "dr." not in completion:
-        problems.append("Prompt contains 'MD' but no 'dr'. in message")
+        problems.append("Prompt contains 'MD' but no 'Dr.' in message")
 
     return
 

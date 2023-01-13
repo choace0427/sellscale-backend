@@ -11,4 +11,5 @@ For example:
 """
 ner_exceptions = [
     "Dr.",
+    "Dr"
 ]

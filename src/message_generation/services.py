@@ -362,7 +362,7 @@ def update_message(message_id: int, update: str, editor_id=None):
     db.session.add(message)
     db.session.commit()
 
-    run_message_rule_engine(message_id=message_id)
+    run_message_rule_engine(message_id=message.id)
 
     return True
 
@@ -398,7 +398,6 @@ def approve_message(message_id: int):
     db.session.add(message)
 
     message_id = message.id
-    run_message_rule_engine(message_id=message_id)
 
     prospect_id = message.prospect_id
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -406,6 +405,7 @@ def approve_message(message_id: int):
     db.session.add(prospect)
 
     db.session.commit()
+    run_message_rule_engine(message_id=message_id)
 
     return True
 

@@ -127,7 +127,7 @@ def test_rule_address_doctor():
 
     problems = []
     rule_address_doctor("David, MD", "David", problems)
-    assert problems == ["Prompt contains 'MD' but no 'dr'. in message"]
+    assert problems == ["Prompt contains 'MD' but no 'Dr.' in message"]
 
 
 @use_app_context
