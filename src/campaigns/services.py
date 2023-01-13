@@ -1,6 +1,10 @@
 from app import db
 from src.campaigns.models import *
 from src.client.services import get_client, get_client_sdr
+from model_import import Prospect
+from src.message_generation.services_few_shot_generations import (
+    can_generate_with_few_shot,
+)
 
 from model_import import OutboundCampaign, OutboundCampaignStatus, GeneratedMessageType
 import datetime
@@ -52,6 +56,17 @@ def create_outbound_campaign(
         raise Exception("LinkedIn campaign type requires a list of CTAs")
 
     uuid = generate_random_alphanumeric(32)
+
+    prospect1 = Prospect.query.get(prospect_ids[0])
+    if (
+        prospect1
+        and not can_generate_with_few_shot(prospect1.id)
+        and len(prospect_ids) > 10
+        and campaign_type == GeneratedMessageType.LINKEDIN
+    ):
+        raise Exception(
+            "Cannot generate Linkedin campaign of more than 10 prospects without few shot generation enabled. Enable few shot first!"
+        )
 
     campaign = OutboundCampaign(
         name=name,
