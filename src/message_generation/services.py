@@ -1086,6 +1086,8 @@ def run_check_message_has_bad_entities(message_id: int):
     """
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    cta_id = message.message_cta
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
 
     entities = get_named_entities_for_generated_message(message_id=message_id)
 
@@ -1094,6 +1096,16 @@ def run_check_message_has_bad_entities(message_id: int):
         "[^0-9a-zA-Z]+",
         " ",
         prompt.lower(),
+    ).strip()
+
+    if cta is not None:
+        cta_text = cta.text_value
+    else:
+        cta_text = prompt
+    sanitized_cta_text = re.sub(
+        "[^0-9a-zA-Z]+",
+        " ",
+        cta_text.lower(),
     ).strip()
 
     flagged_entities = []
@@ -1108,7 +1120,7 @@ def run_check_message_has_bad_entities(message_id: int):
             entity.lower(),
         ).strip()
 
-        if sanitized_entity not in sanitized_prompt:
+        if sanitized_entity not in sanitized_prompt and sanitized_entity not in sanitized_cta_text:
             flagged_entities.append(entity)
 
     generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)

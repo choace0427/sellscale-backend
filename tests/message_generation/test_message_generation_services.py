@@ -4,6 +4,7 @@ from test_utils import (
     basic_client,
     basic_archetype,
     basic_generated_message,
+    basic_generated_message_cta_with_text,
     basic_gnlp_model,
     basic_prospect,
     basic_email_schema,
@@ -964,6 +965,68 @@ def test_run_check_message_has_bad_entities_with_sanitization(get_named_entities
 
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     assert gm.unknown_named_entities == []
+
+
+@use_app_context
+@mock.patch(
+    "src.message_generation.services.get_named_entities",
+    return_value=["Marla", "Megan", "Zuma"],
+)
+def test_run_check_message_has_bad_entities_with_no_ner_cta(get_named_entities_patch):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+    generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
+    generated_message.prompt = "Oh no."
+    generated_message_cta = basic_generated_message_cta_with_text(archetype, "No entities here.")
+    generated_message.message_cta = generated_message_cta.id
+    db.session.add(generated_message)
+    db.session.add(generated_message_cta)
+    db.session.commit()
+
+    assert generated_message.unknown_named_entities == None
+
+    x, entities = run_check_message_has_bad_entities(generated_message.id)
+
+    assert x == True
+    assert len(entities) == 3
+
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    assert gm.unknown_named_entities == ["Marla", "Megan", "Zuma"]
+
+
+@use_app_context
+@mock.patch(
+    "src.message_generation.services.get_named_entities",
+    return_value=["Marla", "Megan", "Zuma"],
+)
+def test_run_check_message_has_bad_entities_with_ner_cta(get_named_entities_patch):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+    generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
+    generated_message.prompt = "Oh no."
+    generated_message_cta = basic_generated_message_cta_with_text(archetype, "Marla is here.")
+    generated_message.message_cta = generated_message_cta.id
+    db.session.add(generated_message)
+    db.session.add(generated_message_cta)
+    db.session.commit()
+
+    assert generated_message.unknown_named_entities == None
+
+    x, entities = run_check_message_has_bad_entities(generated_message.id)
+
+    assert x == True
+    assert len(entities) == 2
+
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    assert gm.unknown_named_entities == ["Megan", "Zuma"]
 
 
 @use_app_context
