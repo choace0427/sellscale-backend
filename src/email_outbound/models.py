@@ -36,6 +36,31 @@ class ProspectEmailStatus(enum.Enum):
     SENT = "SENT"
 
 
+class ProspectEmailOutreachStatus(enum.Enum):
+    """
+    - UNKNOWN: used for null values in the future
+    - NOT_SENT: email has not been sent
+    - SENT_OUTREACH: email has been sent
+    - EMAIL_OPENED: email has been opened
+    - ACCEPTED: email has been accepted (clicked on link)
+    - ACTIVE_CONVO: email has been accepted and a conversation has been started
+    - SCHEDULING: a is being scheduled following a conversation
+    - DEMO_SET: a demo has been set
+    - DEMO_WON: a demo has been won
+    - DEMO_LOST: a demo has been lost
+    """
+    UNKNOWN = "UNKNOWN"
+    NOT_SENT = "NOT_SENT"
+    SENT_OUTREACH = "SENT_OUTREACH"
+    EMAIL_OPENED = "EMAIL_OPENED"
+    ACCEPTED = "ACCEPTED"
+    ACTIVE_CONVO = "ACTIVE_CONVO"
+    SCHEDULING = "SCHEDULING"
+    DEMO_SET = "DEMO_SET"
+    DEMO_WON = "DEMO_WON"
+    DEMO_LOST = "DEMO_LOST"
+
+
 class ProspectEmail(db.Model):
     __tablename__ = "prospect_email"
 
@@ -45,6 +70,7 @@ class ProspectEmail(db.Model):
     )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
     email_status = db.Column(db.Enum(ProspectEmailStatus), nullable=True)
+    outreach_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=True)
 
     personalized_first_line = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")
