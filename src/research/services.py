@@ -76,12 +76,12 @@ def get_all_research_point_types():
             "example": "Founder of The Volta Group, an automotive coaching and training firm, focusing on sales growth and customer experience optimization",
             "deprecated": False,
         },
-        {
-            "transformer": ResearchPointType.YEARS_OF_EXPERIENCE.value,
-            "description": "Extracts the years of experience",
-            "example": "14+ years of experience in industry",
-            "deprecated": False,
-        },
+        # {
+        #     "transformer": ResearchPointType.YEARS_OF_EXPERIENCE.value,
+        #     "description": "Extracts the years of experience",
+        #     "example": "14+ years of experience in industry",
+        #     "deprecated": False,
+        # },
         {
             "transformer": ResearchPointType.YEARS_OF_EXPERIENCE_AT_CURRENT_JOB.value,
             "description": "Extracts the years of experience at current job",
