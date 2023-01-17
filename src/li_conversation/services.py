@@ -1,6 +1,47 @@
 from model_import import LinkedinConversationEntry
 from datetime import datetime
 from app import db
+from src.automation.models import PhantomBusterAgent
+from tqdm import tqdm
+
+
+def update_linkedin_conversation_entries():
+    """
+    Update the LinkedinConversationEntry table with new entries
+    """
+    LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID = 3365881184675991
+    p: PhantomBusterAgent = PhantomBusterAgent(LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
+    data = p.get_output()
+
+    all_messages = []
+    for conversation_obj in data:
+        if not conversation_obj.get("conversationUrl"):
+            continue
+
+        messages = conversation_obj.get("messages")
+        all_messages = all_messages + messages
+
+    bulk_objects = []
+    for message in tqdm(all_messages):
+        bulk_objects.append(
+            create_linkedin_conversation_entry(
+                conversation_url=message.get("conversationUrl"),
+                author=message.get("author"),
+                first_name=message.get("firstName"),
+                last_name=message.get("lastName"),
+                date=message.get("date"),
+                profile_url=message.get("profileUrl"),
+                headline=message.get("headline"),
+                img_url=message.get("imgUrl"),
+                connection_degree=message.get("connectionDegree"),
+                li_url=message.get("url"),
+                message=message.get("message"),
+            )
+        )
+    print("saving objects ...")
+    db.session.bulk_save_objects(bulk_objects)
+    db.session.commit()
+    print("Done saving!")
 
 
 def check_for_duplicate_linkedin_conversation_entry(
@@ -11,14 +52,11 @@ def check_for_duplicate_linkedin_conversation_entry(
     """
     Check for duplicates and return True if duplicate exists
     """
-    return (
-        LinkedinConversationEntry.query.filter_by(
-            conversation_url=conversation_url,
-            author=author,
-            message=message,
-        ).first()
-        is not None
-    )
+    return LinkedinConversationEntry.query.filter(
+        LinkedinConversationEntry.conversation_url == conversation_url,
+        LinkedinConversationEntry.author == author,
+        LinkedinConversationEntry.message == message,
+    ).first()
 
 
 def create_linkedin_conversation_entry(
@@ -56,7 +94,6 @@ def create_linkedin_conversation_entry(
             li_url=li_url,
             message=message,
         )
-        db.session.add(new_linkedin_conversation_entry)
-        db.session.commit()
         return new_linkedin_conversation_entry
-    return None
+    else:
+        return None

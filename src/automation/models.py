@@ -9,6 +9,7 @@ import os
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 
+
 class PhantomBusterType(enum.Enum):
     INBOX_SCRAPER = "INBOX_SCRAPER"
     OUTBOUND_ENGINE = "OUTBOUND_ENGINE"
@@ -45,7 +46,7 @@ class PhantomBusterAgent:
         self.id = id
         self.api_key = PHANTOMBUSTER_API_KEY
 
-    def get_last_run_date(self):
+    def get_agent_data(self):
         url = self.FETCH_AGENT_URL.format(phantom_uuid=self.id)
         payload = {}
         headers = {
@@ -54,6 +55,10 @@ class PhantomBusterAgent:
         }
         response = requests.request("GET", url, headers=headers, data=payload)
         data: dict = response.json()
+        return data
+
+    def get_last_run_date(self):
+        data = self.get_agent_data()
         return datetime.datetime.fromtimestamp(data.get("updatedAt") / 1000.0)
 
     def get_error_message(self):
@@ -107,3 +112,20 @@ class PhantomBusterAgent:
 
         requests.request("POST", url, headers=headers, data=payload)
         return True
+
+    def get_output(self):
+        data = self.get_agent_data()
+        s3_folder = data.get("s3Folder")
+        orgS3Folder = data.get("orgS3Folder")
+
+        return self.get_phantom_buster_payload(s3_folder, orgS3Folder)
+
+    def get_phantom_buster_payload(self, s3Folder, orgS3Folder):
+        url = "https://phantombuster.s3.amazonaws.com/{orgS3Folder}/{s3Folder}/result.json".format(
+            orgS3Folder=orgS3Folder, s3Folder=s3Folder
+        )
+
+        headers = {"X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ"}
+        response = requests.request("GET", url, headers=headers, data={})
+
+        return json.loads(response.text)
