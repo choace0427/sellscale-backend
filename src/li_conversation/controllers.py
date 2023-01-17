@@ -15,7 +15,7 @@ def get_li_conversation(client_id):
     ).all()
 
     linkedin_urls = [
-        {"linkedin_url": prospect.linkedin_url}
+        {"linkedin_url": "https://www." + prospect.linkedin_url}
         for prospect in prospects
         if prospect.linkedin_url
     ]
