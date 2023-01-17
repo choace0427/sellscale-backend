@@ -165,12 +165,13 @@ def sanitize_payload(payload: dict):
     if company_payload:
         current_company_name = company_payload.get("details", {}).get("name")
         if current_company_name:
-            company_payload["details"]["name"] = clean_company_name(current_company_name)
+            company_payload["details"]["name"] = clean_company_name(
+                current_company_name
+            )
 
     new_payload = {"personal": personal_payload, "company": company_payload}
 
     return new_payload
-
 
 
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
@@ -203,11 +204,11 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "current_experience_description",
             get_current_experience_description,
         ),
-        (
-            ResearchPointType.YEARS_OF_EXPERIENCE,
-            "years_of_experience",
-            get_years_of_experience,
-        ),
+        # (
+        #     ResearchPointType.YEARS_OF_EXPERIENCE,
+        #     "years_of_experience",
+        #     get_years_of_experience,
+        # ),
         (
             ResearchPointType.YEARS_OF_EXPERIENCE_AT_CURRENT_JOB,
             "years_of_experience_at_current_job",
@@ -218,8 +219,9 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "list_of_past_jobs",
             get_list_of_past_jobs,
         ),
-        (   ResearchPointType.RECENT_PATENTS, 
-            "recent_patent", 
+        (
+            ResearchPointType.RECENT_PATENTS,
+            "recent_patent",
             get_recent_patent,
         ),
         (
