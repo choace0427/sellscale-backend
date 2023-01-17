@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 LI_CONVERASTION_BLUEPRINT = Blueprint("li_conversation", __name__)
 
 
-@LI_CONVERASTION_BLUEPRINT.route("/")
-def get_li_conversation():
+@LI_CONVERASTION_BLUEPRINT.route("/<client_id>")
+def get_li_conversation(client_id):
     prospects = Prospect.query.filter(
-        Prospect.client_id == 9,
-        Prospect.li_last_message_timestamp > datetime.now() - timedelta(days=24),
+        Prospect.client_id == client_id,
+        Prospect.li_last_message_timestamp > datetime.now() - timedelta(days=1),
     ).all()
 
     linkedin_urls = [
