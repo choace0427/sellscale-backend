@@ -25,7 +25,12 @@ def get_inbox_scraper_config(client_sdr_id: int):
 
 
 def get_phantom_buster_agent(config: PhantomBusterConfig):
-    """Get the payload of a phantom buster config"""
+    """Get the payload of a phantom buster config
+
+    config = {
+        'phantom_uuid': '123456789',
+    }
+    """
     phantom_uuid = config.phantom_uuid
     url = "https://api.phantombuster.com/api/v2/agents/fetch?id={}".format(phantom_uuid)
 
