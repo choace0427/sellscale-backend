@@ -17,6 +17,8 @@ def test_get_li_conversation():
     prospect = basic_prospect(client=client, archetype=archetype)
 
     prospect.li_last_message_timestamp = datetime.now() - timedelta(days=1)
+    db.session.add(prospect)
+    db.session.commit()
 
     response = app.test_client().get("/li_conversation/")
     assert response.status_code == 200
