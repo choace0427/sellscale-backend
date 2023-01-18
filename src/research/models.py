@@ -8,7 +8,9 @@ class ResearchType(enum.Enum):
 
 
 class ResearchPointType(enum.Enum):
-    CURRENT_JOB_DESCRIPTION = "CURRENT_JOB_DESCRIPTION" # Description of Current Company
+    CURRENT_JOB_DESCRIPTION = (
+        "CURRENT_JOB_DESCRIPTION"  # Description of Current Company
+    )
     CURRENT_JOB_SPECIALTIES = "CURRENT_JOB_SPECIALTIES"
     CURRENT_EXPERIENCE_DESCRIPTION = "CURRENT_EXPERIENCE_DESCRIPTION"
     YEARS_OF_EXPERIENCE = "YEARS_OF_EXPERIENCE"
@@ -43,9 +45,13 @@ class ResearchPayload(db.Model):
         return ResearchPayload.query.filter_by(id=id).first()
 
     def get_by_prospect_id(prospect_id: int, payload_type: ResearchType):
-        return ResearchPayload.query.filter_by(
+        rp = ResearchPayload.query.filter_by(
             prospect_id=prospect_id, research_type=payload_type
         ).first()
+        if not rp:
+            return None
+
+        return rp
 
 
 class ResearchPoints(db.Model):
