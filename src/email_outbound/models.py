@@ -52,11 +52,15 @@ class ProspectEmailOutreachStatus(enum.Enum):
     UNKNOWN = "UNKNOWN"
     NOT_SENT = "NOT_SENT"
     SENT_OUTREACH = "SENT_OUTREACH"
+
     EMAIL_OPENED = "EMAIL_OPENED"
     ACCEPTED = "ACCEPTED"
     ACTIVE_CONVO = "ACTIVE_CONVO"
     SCHEDULING = "SCHEDULING"
+
+    NOT_INTERESTED = "NOT_INTERESTED"
     DEMO_SET = "DEMO_SET"
+
     DEMO_WON = "DEMO_WON"
     DEMO_LOST = "DEMO_LOST"
 
@@ -78,3 +82,13 @@ class ProspectEmail(db.Model):
 
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
+
+
+class ProspectEmailStatusRecords(db.Model):
+    """ Records the status changes of a prospect_email """
+    __tablename__ = "prospect_email_status_records"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_email_id = db.Column(db.Integer, db.ForeignKey("prospect_email.id"))
+    from_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
+    to_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
