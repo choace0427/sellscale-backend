@@ -9,6 +9,8 @@ from test_utils import (
     basic_gnlp_model,
     basic_prospect,
     basic_generated_message,
+    basic_email_schema,
+    basic_prospect_email
 )
 from decorators import use_app_context
 from test_utils import test_app
@@ -203,3 +205,68 @@ def test_post_batch_update_emails_failed():
     personalized_first_line_id = all_prospect_emails[0].personalized_first_line
     personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
     assert personalized_first_line.completion == "original"
+
+
+@use_app_context
+@mock.patch("src.email_outbound.controllers.update_status_from_csv", return_value=(True, "OK"))
+@mock.patch("src.email_outbound.controllers.validate_outreach_csv_payload", return_value=(True, "OK"))
+def test_update_status_from_csv_payload(validate_payload_mock, update_status_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    email_schema = basic_email_schema(archetype)
+    prospect.email = "test-email"
+    db.session.add(prospect)
+    db.session.commit()
+    prospect_email = basic_prospect_email(prospect, email_schema)
+    prospect_email.email_status = ProspectEmailStatus.SENT
+    db.session.add(prospect_email)
+    db.session.commit()
+
+    response = app.test_client().post(
+        "/email_generation/update_status/csv",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "csv_payload": [
+                    {
+                        "Email": "test-email",
+                        "Sequence State": "Finished",
+                        "Emailed?": "Yes",
+                        "Opened?": "No",
+                        "Clicked?": "No",
+                        "Replied?": "No",
+                    }
+                ],
+                "client_id": client.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert validate_payload_mock.call_count == 1
+    assert validate_payload_mock.called_with(
+        csv_payload=[
+                    {
+                        "Email": "test-email",
+                        "Sequence State": "Finished",
+                        "Emailed?": "Yes",
+                        "Opened?": "No",
+                        "Clicked?": "No",
+                        "Replied?": "No",
+                    }
+                ]
+    )
+    assert update_status_mock.call_count == 1
+    assert update_status_mock.called_with(
+        csv_payload=[
+            {
+                "Email": "test-email",
+                "Sequence State": "Finished",
+                "Emailed?": "Yes",
+                "Opened?": "No",
+                "Clicked?": "No",
+                "Replied?": "No",
+            }
+        ],
+        client_id=client.id,
+    )

@@ -30,6 +30,9 @@ from src.email_outbound.models import (
     EmailSchema,
     EmailCustomizedFieldTypes,
     ProspectEmail,
+    ProspectEmailStatus,
+    ProspectEmailStatusRecords,
+    ProspectEmailOutreachStatus,
 )
 from src.ml_adversary.models import AdversaryTrainingPoint, AdversaryFineTuneHistory
 from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus

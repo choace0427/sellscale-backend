@@ -13,7 +13,6 @@ generate_email_for_client()
 create new prospect email
 """
 
-
 class EmailCustomizedFieldTypes(enum.Enum):
     EMAIL_FIRST_LINE = "EMAIL_FIRST_LINE"  # email outbound first line
 

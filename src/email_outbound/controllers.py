@@ -6,6 +6,7 @@ from src.message_generation.services import (
     mark_prospect_email_approved,
 )
 from src.email_outbound.services import create_email_schema, batch_update_emails
+from src.email_outbound.outreach_io.services import *
 from src.utils.request_helpers import get_request_parameter
 from src.message_generation.services import batch_mark_prospect_email_sent
 from tqdm import tqdm
@@ -88,3 +89,19 @@ def post_batch_update_emails():
     if success:
         return message, 200
     return message, 400
+
+
+@EMAIL_GENERATION_BLUEPRINT.route("/update_status/csv", methods=["POST"])
+def update_status_from_csv_payload():
+    csv_payload: list = get_request_parameter("csv_payload", request, json=True, required=True)    
+    client_id: int = get_request_parameter("client_id", request, json=True, required=True)
+
+    validated, message = validate_outreach_csv_payload(csv_payload)
+    if not validated:
+        return message, 400
+
+    success, message = update_status_from_csv(csv_payload, client_id)
+    if not success:
+        return message, 400
+
+    return message, 200

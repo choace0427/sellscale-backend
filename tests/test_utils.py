@@ -10,6 +10,7 @@ from model_import import (
     ClientSDR,
     EmailSchema,
     GeneratedMessage,
+    ProspectEmailStatusRecords,
     ProspectEmail,
     GeneratedMessageCTA,
     ResearchPayload,
@@ -57,6 +58,7 @@ def test_app():
         clear_all_entities(GeneratedMessageFeedback)
         clear_all_entities(OutboundCampaign)
         clear_all_entities(SightOnboarding)
+        clear_all_entities(ProspectEmailStatusRecords)
         clear_all_entities(ProspectEmail)
         clear_all_entities(EmailSchema)
         clear_all_entities(AdversaryTrainingPoint)
