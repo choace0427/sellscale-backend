@@ -44,3 +44,5 @@ class OutboundCampaign(db.Model):
     sellscale_grade = db.Column(db.String(255), nullable=True)
     brief_feedback_summary = db.Column(db.String, nullable=True)
     detailed_feedback_link = db.Column(db.String, nullable=True)
+
+    editing_due_date = db.Column(db.DateTime, nullable=True)
