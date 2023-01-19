@@ -5,6 +5,7 @@ from test_utils import (
     basic_prospect,
     test_app,
     basic_client_sdr,
+    basic_research_payload,
 )
 from src.prospecting.services import match_prospect_as_sent_outreach
 from model_import import Prospect, ProspectStatus, ProspectNote
@@ -181,3 +182,20 @@ def test_post_batch_mark_as_lead():
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.is_lead == True
+
+
+@use_app_context
+def test_get_prospect_details():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+
+    rp = basic_research_payload(prospect)
+
+    response = app.test_client().get(
+        f"prospect/{prospect_id}",
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+    assert len(response.json.keys()) > 0

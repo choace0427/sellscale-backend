@@ -19,6 +19,8 @@ from src.utils.converters.string_converters import (
     get_last_name_from_full_name,
     get_first_name_from_full_name,
 )
+from model_import import LinkedinConversationEntry
+from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 
 
 def prospect_exists_for_archetype(full_name: str, client_id: int):
@@ -734,3 +736,52 @@ def batch_mark_as_lead(payload: int):
         db.session.commit()
 
     return True
+
+
+def get_prospect_details(prospect_id: int):
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return {}
+
+    li_conversation_thread = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
+    li_conversation_thread = [x.to_dict() for x in li_conversation_thread]
+
+    iset: IScraperExtractorTransformer = IScraperExtractorTransformer(prospect_id)
+    company_logo = iset.get_company_logo()
+    company_name = iset.get_company_name()
+    company_location = iset.get_company_location()
+    company_tags = iset.get_company_tags()
+    company_tagline = iset.get_company_tagline()
+    company_description = iset.get_company_description()
+    company_url = iset.get_company_url()
+    company_employee_count = iset.get_company_staff_count()
+
+    return {
+        "details": {
+            "id": p.id,
+            "full_name": p.full_name,
+            "title": p.title,
+            "status": p.status.value,
+            "profile_pic": "",
+            "ai_responses_disabled": p.deactivate_ai_engagement,
+            "notes": [],
+        },
+        "li": {
+            "li_conversation_url": p.li_conversation_thread_id,
+            "li_conversation_thread": li_conversation_thread,
+            "li_profile": p.linkedin_url,
+        },
+        "email": {"email": p.email, "email_status": ""},
+        "company": {
+            "logo": company_logo,
+            "name": company_name,
+            "location": company_location,
+            "tags": company_tags,
+            "tagline": company_tagline,
+            "description": company_description,
+            "url": company_url,
+            "employee_count": company_employee_count,
+        },
+    }
