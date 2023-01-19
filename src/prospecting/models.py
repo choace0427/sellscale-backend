@@ -98,6 +98,20 @@ class ProspectNote(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     note = db.Column(db.String, nullable=False)
 
+    def get_prospect_notes(prospect_id: int):
+        return (
+            ProspectNote.query.filter(ProspectNote.prospect_id == prospect_id)
+            .order_by(ProspectNote.created_at.desc())
+            .all()
+        )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "note": self.note,
+        }
+
 
 # map of to_status and from status
 # ensure that the prospect's from_status is in the array of the value of
