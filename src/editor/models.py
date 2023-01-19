@@ -18,8 +18,19 @@ class Editor(db.Model):
     email = db.Column(db.String(255), nullable=False)
     editor_type = db.Column(db.Enum(EditorTypes), nullable=False)
 
+    active = db.Column(db.Boolean, default=True, nullable=True)
+
     def __repr__(self):
         return f"{self.name} ({self.email})"
 
     def __str__(self):
         return self.__repr__()
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "editor_type": self.editor_type.value,
+            "active": self.active,
+        }
