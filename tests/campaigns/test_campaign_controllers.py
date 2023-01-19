@@ -379,6 +379,7 @@ def test_change_campaign_status_to_edit_complete():
                         "num_edited": "73",
                         "num_sent": "2",
                         "editor_id": None,
+                        "editing_due_date": "2022-12-26",
                     }
                 ]
             }
@@ -390,6 +391,8 @@ def test_change_campaign_status_to_edit_complete():
     assert campaign.campaign_start_date.isoformat() == "2022-12-14T00:00:00"
     assert campaign.campaign_end_date.isoformat() == "2023-01-14T00:00:00"
     assert campaign.name == "Pierce, Bash 1, Online shop owners, 75, 2022-12-26"
+    assert campaign.name == "Pierce, Bash 1, Online shop owners, 75, 2022-12-26"
+    assert campaign.editing_due_date == datetime.datetime(2022, 12, 26)
 
     response = app.test_client().patch(
         "campaigns/batch_editing_attributes",

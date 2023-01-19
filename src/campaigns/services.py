@@ -551,6 +551,7 @@ def batch_update_campaigns(payload: dict):
         status = campaign_payload["status"]
         campaign_name = campaign_payload["campaign_name"]
         editor_id = campaign_payload["editor_id"]
+        editing_due_date = campaign_payload["editing_due_date"]
 
         campaign = OutboundCampaign.query.get(campaign_id)
         campaign.campaign_start_date = campaign_start_date
@@ -558,6 +559,7 @@ def batch_update_campaigns(payload: dict):
         campaign.status = OutboundCampaignStatus[status]
         campaign.name = campaign_name
         campaign.editor_id = editor_id
+        campaign.editing_due_date = editing_due_date
 
         db.session.add(campaign)
         db.session.commit()
