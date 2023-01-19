@@ -65,6 +65,8 @@ class ResearchPoints(db.Model):
 
     flagged = db.Column(db.Boolean, nullable=True)
 
+    research_point_metadata = db.Column(db.JSON, nullable=True)
+
     def get_by_payload_id(payload_id: int) -> list:
         return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()
 
