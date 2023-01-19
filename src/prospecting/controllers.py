@@ -13,6 +13,7 @@ from src.prospecting.services import (
     toggle_ai_engagement,
     send_slack_reminder_for_prospect,
     create_prospect_note,
+    get_prospect_details,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.services import (
@@ -26,6 +27,12 @@ from src.prospecting.services import delete_prospect_by_id
 from src.utils.random_string import generate_random_alphanumeric
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>", methods=["GET"])
+def get_prospect_details_endpoint(prospect_id):
+    prospect: dict = get_prospect_details(prospect_id)
+    return jsonify(prospect), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
