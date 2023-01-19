@@ -1,5 +1,6 @@
 import os
 import openai
+from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
 
 
 def create_company_news_summary_point(
@@ -40,3 +41,20 @@ def create_company_news_summary_point(
         return ""
 
     return response["choices"][0]["text"].strip()
+
+
+def analyze_serp_article_sentiment(article_title: str, article_snippet: str):
+    """Analyze the sentiment of an article using OpenAI's davinci-03 API.
+
+    Args:
+        article_title (str): The title of the article.
+        article_snippet (str): The snippet of the article.
+
+    Returns:
+        dict: Dictionary of sentiment analysis results.
+    """
+    instruction = "Is this article 'positive' or 'negative' sentiment based on the title and snippet?"
+    prompt = f"title: {article_title}\nsnippet: {article_snippet}\ninstruction: {instruction}\nsentiment:"
+    response = wrapped_create_completion(model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=1)
+    
+    return response

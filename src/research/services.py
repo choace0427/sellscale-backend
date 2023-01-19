@@ -17,13 +17,14 @@ def create_research_payload(
 
 
 def create_research_point(
-    payload_id: int, research_point_type: ResearchPointType, text: str
+    payload_id: int, research_point_type: ResearchPointType, text: str, research_point_metadata: dict = None
 ):
     """Creates a research point"""
     research_point = ResearchPoints(
         research_payload_id=payload_id,
         research_point_type=research_point_type,
         value=text,
+        research_point_metadata = research_point_metadata
     )
     db.session.add(research_point)
     db.session.commit()

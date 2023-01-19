@@ -8,7 +8,7 @@ from model_import import (
 from src.research.services import create_research_payload, create_research_point
 from src.research.extractor_transformer import ExtractorAndTransformer
 from src.research.website.serp_helpers import search_google_news
-from src.research.website.serp_company_news import create_company_news_summary_point
+from src.research.website.serp_company_news import create_company_news_summary_point, analyze_serp_article_sentiment
 
 
 class SerpNewsExtractorTransformer(ExtractorAndTransformer):
@@ -105,10 +105,15 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
                 article_snippet=article_snippet,
                 article_source=article_source,
             )
+            article_sentiment = analyze_serp_article_sentiment(
+                article_title=article_title,
+                article_snippet=article_snippet,
+            )
             create_research_point(
                 payload_id=payload_id,
                 research_point_type=ResearchPointType.SERP_NEWS_SUMMARY,
                 text=research_point_text,
+                research_point_metadata={"article_sentiment": article_sentiment},
             )
 
         return True
