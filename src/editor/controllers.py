@@ -2,7 +2,7 @@ from app import db
 
 from flask import Blueprint, request, jsonify
 from src.utils.request_helpers import get_request_parameter
-from src.editor.services import create_editor, update_editor
+from src.editor.services import create_editor, update_editor, toggle_editor_active
 
 
 EDITOR_BLUEPRINT = Blueprint("editor", __name__)
@@ -31,6 +31,16 @@ def post_update_editor():
     )
 
     editor = update_editor(name=name, email=email, editor_type=editor_type)
+    if editor:
+        return "OK", 200
+    return "Could not update editor.", 400
+
+
+@EDITOR_BLUEPRINT.route("/toggle_active", methods=["POST"])
+def post_toggle_editor_active():
+    editor_id = get_request_parameter("editor_id", request, json=True, required=True)
+
+    editor = toggle_editor_active(editor_id=editor_id)
     if editor:
         return "OK", 200
     return "Could not update editor.", 400

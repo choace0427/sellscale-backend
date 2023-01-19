@@ -29,3 +29,13 @@ def update_editor(
     editor.editor_type = editor_type
     db.session.commit()
     return editor
+
+
+def toggle_editor_active(editor_id: int):
+    editor = Editor.query.filter(Editor.id == editor_id).first()
+    if not editor:
+        raise Exception(f"Editor not found for id {editor_id}")
+    editor.active = not editor.active
+    db.session.add(editor)
+    db.session.commit()
+    return editor
