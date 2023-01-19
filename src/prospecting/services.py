@@ -748,7 +748,12 @@ def get_prospect_details(prospect_id: int):
     )
     li_conversation_thread = [x.to_dict() for x in li_conversation_thread]
 
+    prospect_notes = ProspectNote.get_prospect_notes(prospect_id)
+    prospect_notes = [x.to_dict() for x in prospect_notes]
+
     iset: IScraperExtractorTransformer = IScraperExtractorTransformer(prospect_id)
+    personal_profile_picture = iset.get_personal_profile_picture()
+
     company_logo = iset.get_company_logo()
     company_name = iset.get_company_name()
     company_location = iset.get_company_location()
@@ -764,9 +769,9 @@ def get_prospect_details(prospect_id: int):
             "full_name": p.full_name,
             "title": p.title,
             "status": p.status.value,
-            "profile_pic": "",
+            "profile_pic": personal_profile_picture,
             "ai_responses_disabled": p.deactivate_ai_engagement,
-            "notes": [],
+            "notes": prospect_notes,
         },
         "li": {
             "li_conversation_url": p.li_conversation_thread_id,

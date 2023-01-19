@@ -26,6 +26,10 @@ class IScraperExtractorTransformer:
         """Get's the company payload from the payload"""
         return self.payload.get("company")
 
+    def get_personal_profile_picture(self):
+        """Get's the personal profile picture from the payload"""
+        return deep_get(self.payload, "personal.profile_picture")
+
     def get_slug(self):
         """Get's the linkedin slug from the payload"""
         return deep_get(self.payload, "personal.profile_id")
