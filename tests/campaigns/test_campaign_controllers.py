@@ -130,6 +130,24 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
     assert message_gen_call_patch.call_count == 0
     assert gen_email_patch.call_count == 1
 
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.editing_due_date > datetime.datetime.now()
+
+    # test adjusting editing due date
+    response = app.test_client().post(
+        "campaigns/adjust_editing_due_date",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+                "new_date": "2021-01-01",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.editing_due_date == datetime.datetime(2021, 1, 1)
+
 
 @use_app_context
 @mock.patch("src.campaigns.services.batch_generate_prospect_emails")

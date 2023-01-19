@@ -18,6 +18,8 @@ from src.utils.random_string import generate_random_alphanumeric
 from model_import import ClientArchetype
 from src.utils.slack import send_slack_message, URL_MAP
 
+NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
+
 
 def create_outbound_campaign(
     prospect_ids: list,
@@ -94,6 +96,9 @@ def generate_campaign(campaign_id: int):
     """
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     campaign.status = OutboundCampaignStatus.NEEDS_REVIEW
+    campaign.editing_due_date = datetime.datetime.now() + datetime.timedelta(
+        days=NUM_DAYS_AFTER_GENERATION_TO_EDIT
+    )
     db.session.add(campaign)
     db.session.commit()
 
@@ -106,6 +111,19 @@ def generate_campaign(campaign_id: int):
             prospect_ids=campaign.prospect_ids,
             cta_ids=campaign.ctas,
         )
+
+
+def adjust_editing_due_date(campaign_id: int, new_date: datetime):
+    """Adjusts the due date of a campaign
+
+    Args:
+        campaign_id (int): Campaign id
+        new_date (datetime): New due date
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign.editing_due_date = new_date
+    db.session.add(campaign)
+    db.session.commit()
 
 
 def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
