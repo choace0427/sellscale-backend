@@ -46,8 +46,16 @@ class IScraperExtractorTransformer:
         )
         return f"{city}, {geographic_area}"
 
-    def get_company_headline(self):
+    def get_company_tagline(self):
+        """Get's the company tagline from the payload"""
+        return deep_get(self.payload, "company.details.tagline")
+
+    def get_company_description(self):
         """Get's the company headline from the payload"""
+        return deep_get(self.payload, "company.details.description")
+
+    def get_company_url(self):
+        """Get's the company URL from the payload"""
         return deep_get(self.payload, "company.details.urls.company_page")
 
     def get_company_tags(self):
