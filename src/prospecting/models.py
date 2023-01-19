@@ -107,6 +107,7 @@ class ProspectNote(db.Model):
 
     def to_dict(self):
         return {
+            "created_at": self.created_at,
             "id": self.id,
             "prospect_id": self.prospect_id,
             "note": self.note,
