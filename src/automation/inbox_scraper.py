@@ -79,7 +79,7 @@ def process_inbox(message_payload, client_id):
             is_group_message = len(message["linkedInUrls"]) > 1
             is_last_message_from_me = message["isLastMessageFromMe"]
             thread_url = message["threadUrl"]
-            li_last_message_timestamp = message["timestamp"]
+            li_last_message_timestamp = message["lastMessageDate"]
             recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
 
             prospect: Prospect = find_prospect_by_linkedin_slug(
