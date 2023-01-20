@@ -21,7 +21,10 @@ from model_import import ResearchPoints, ResearchPayload
     "src.research.website.serp_news_extractor_transformer.create_company_news_summary_point",
     return_value="this is a sample research text",
 )
-def test_serp_news_extractor_transformer_class(point_patch, serp_patch):
+@mock.patch(
+    "src.research.website.serp_news_extractor_transformer.analyze_serp_article_sentiment", return_value="positive"
+)
+def test_serp_news_extractor_transformer_class(sentiment_patch, point_patch, serp_patch):
     """Test the SerpNewsExtractorTransformer class."""
     client = basic_client()
     archetype = basic_archetype(client)
@@ -45,6 +48,7 @@ def test_serp_news_extractor_transformer_class(point_patch, serp_patch):
 
     serp_et.run()
     assert point_patch.call_count == 1
+    assert sentiment_patch.call_count == 1
 
     serp_et = SerpNewsExtractorTransformer(prospect.id)
     assert serp_et.payload is not None

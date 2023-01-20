@@ -119,4 +119,10 @@ def get_all_research_point_types():
             "example": "Saw the article on TechCrunch about your company",
             "deprecated": False,
         },
+        {
+            "transformer": ResearchPointType.LINKEDIN_BIO_SUMMARY.value,
+            "description": "Extracts the linkedin bio and creates a summary using OpenAI",
+            "example": "David Wei is passionate about distributed systems and highly scalable infrastructure.",
+            "deprecated": False,
+        }
     ]

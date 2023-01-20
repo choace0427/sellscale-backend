@@ -2,6 +2,7 @@ from datetime import datetime
 
 from ....utils.abstract.attr_utils import deep_get
 from ....ml.fine_tuned_models import get_completion
+from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
 import math
 import random
 from src.utils.converters.string_converters import sanitize_string
@@ -177,3 +178,25 @@ def get_list_of_past_jobs(data):
         response = "Saw you've worked at {}".format(positions_str)
 
     return {"raw_data": raw_data, "response": response}
+
+
+def get_linkedin_bio_summary(data):
+    summary = deep_get(data, "personal.summary")
+    if not summary:                         # No bio
+        return {"response": ""}
+
+    first_name = deep_get(data, "personal.first_name")
+    last_name = deep_get(data, "personal.last_name")
+    if not first_name or not last_name:     # No name
+        return {"response": ""}
+    name = first_name + " " + last_name
+
+    
+
+    summary = summary.replace("\n", " ")    # We may eventually need to replace strange symbols as well
+    
+    instruction = "Summarize the individual's bio in 30 words or less."
+    prompt = f'individual: {name}\nbio: {summary}\n\ninstruction: {instruction}\n\nsummary:'
+    response = wrapped_create_completion(model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=35)
+    
+    return {"response": response.strip()}
