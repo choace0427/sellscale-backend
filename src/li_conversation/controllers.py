@@ -25,7 +25,7 @@ def get_li_conversation_csv(client_sdr_id):
     """Returns a CSV of prospects who have had a LinkedIn conversation extracted in the last 24 hours."""
     prospects = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
-        Prospect.li_last_message_timestamp > datetime.now() - timedelta(days=1),
+        Prospect.li_last_message_timestamp > datetime.now() - timedelta(days=90),
     ).all()
 
     linkedin_urls = [
