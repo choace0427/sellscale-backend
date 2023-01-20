@@ -126,7 +126,6 @@ def process_inbox(message_payload, client_id):
                 prospect.status
                 == ProspectStatus.ACCEPTED  # Check if prospect has been bumped
                 and is_last_message_from_me
-                and client_id in (1, 8)  # TODO: FIX THIS
             ):
                 sent_message: GeneratedMessage = GeneratedMessage.query.get(
                     prospect.approved_outreach_message_id
