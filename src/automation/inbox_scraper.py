@@ -127,7 +127,8 @@ def process_inbox(message_payload, client_id):
                 and is_last_message_from_me
                 and client_id == 1  # TODO: FIX THIS
             ):
-                sent_message: str = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+                sent_message: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+                sent_message = sent_message.completion
                 pure_sent_message = sent_message.strip().lower()            # Strip and lower case the message
                 pure_last_message = message["message"].strip().lower()      # Strip and lower case the message
                 if fuzz.ratio(pure_sent_message, pure_last_message) < 90:   # Check if the message is similar - less than 90 most likely means the message is a bump.
