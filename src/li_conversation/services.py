@@ -3,6 +3,8 @@ from datetime import datetime
 from app import db
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
+from model_import import ClientSDR
+from src.automation.models import PhantomBusterAgent
 
 
 def update_linkedin_conversation_entries():
@@ -25,20 +27,21 @@ def update_linkedin_conversation_entries():
     for message in tqdm(all_messages):
         bulk_objects.append(
             create_linkedin_conversation_entry(
-                conversation_url=message.get("conversationUrl"),
-                author=message.get("author"),
-                first_name=message.get("firstName"),
-                last_name=message.get("lastName"),
-                date=message.get("date"),
-                profile_url=message.get("profileUrl"),
-                headline=message.get("headline"),
-                img_url=message.get("imgUrl"),
-                connection_degree=message.get("connectionDegree"),
-                li_url=message.get("url"),
-                message=message.get("message"),
+                conversation_url=message.get("conversationUrl", ""),
+                author=message.get("author", ""),
+                first_name=message.get("firstName", ""),
+                last_name=message.get("lastName", ""),
+                date=message.get("date", ""),
+                profile_url=message.get("profileUrl", ""),
+                headline=message.get("headline", ""),
+                img_url=message.get("imgUrl", ""),
+                connection_degree=message.get("connectionDegree", ""),
+                li_url=message.get("url", ""),
+                message=message.get("message", ""),
             )
         )
     print("saving objects ...")
+    bulk_objects = [obj for obj in bulk_objects if obj]
     db.session.bulk_save_objects(bulk_objects)
     db.session.commit()
     print("Done saving!")
@@ -97,3 +100,27 @@ def create_linkedin_conversation_entry(
         return new_linkedin_conversation_entry
     else:
         return None
+
+
+def update_li_conversation_extractor_phantom(client_sdr_id) -> (str, int):
+    """
+    Update the LinkedIn conversation extractor phantom
+    """
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    li_at_token = client_sdr.li_at_token
+    client_id = client_sdr.client_id
+
+    CLIENT_CSV_LINK = (
+        "https://sellscale-api-prod.onrender.com/li_conversation/{client_id}".format(
+            client_id=client_id
+        )
+    )
+
+    if not li_at_token:
+        return "No LinkedIn access token found for this SDR.", 400
+
+    pb_agent = PhantomBusterAgent(3365881184675991)
+    pb_agent.update_argument("sessionCookie", li_at_token)
+    pb_agent.update_argument("spreadsheetUrl", CLIENT_CSV_LINK)
+
+    print(pb_agent.get_arguments())
