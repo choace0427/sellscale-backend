@@ -105,7 +105,7 @@ def process_inbox(message_payload, client_id):
                     prospect_id=prospect.id,
                     new_status=ProspectStatus.ACCEPTED,
                     message=message,
-                )                    
+                )
             elif (
                 prospect.status
                 in (
@@ -123,15 +123,23 @@ def process_inbox(message_payload, client_id):
                 )
 
             if (
-                prospect.status == ProspectStatus.ACCEPTED  # Check if prospect has been bumped
+                prospect.status
+                == ProspectStatus.ACCEPTED  # Check if prospect has been bumped
                 and is_last_message_from_me
-                and client_id == 1  # TODO: FIX THIS
+                and client_id in (1, 8)  # TODO: FIX THIS
             ):
-                sent_message: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
-                sent_message = sent_message.completion
-                pure_sent_message = sent_message.strip().lower()            # Strip and lower case the message
-                pure_last_message = message["message"].strip().lower()      # Strip and lower case the message
-                if fuzz.ratio(pure_sent_message, pure_last_message) < 90:   # Check if the message is similar - less than 90 most likely means the message is a bump.
+                sent_message: GeneratedMessage = GeneratedMessage.query.get(
+                    prospect.approved_outreach_message_id
+                ).completion
+                pure_sent_message = (
+                    sent_message.strip().lower()
+                )  # Strip and lower case the message
+                pure_last_message = (
+                    message["message"].strip().lower()
+                )  # Strip and lower case the message
+                if (
+                    fuzz.ratio(pure_sent_message, pure_last_message) < 90
+                ):  # Check if the message is similar - less than 90 most likely means the message is a bump.
                     update_prospect_status(
                         prospect_id=prospect.id,
                         new_status=ProspectStatus.RESPONDED,

@@ -108,19 +108,19 @@ def update_li_conversation_extractor_phantom(client_sdr_id) -> (str, int):
     """
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     li_at_token = client_sdr.li_at_token
-    client_id = client_sdr.client_id
+    client_sdr_id = client_sdr.id
 
-    CLIENT_CSV_LINK = (
-        "https://sellscale-api-prod.onrender.com/li_conversation/{client_id}".format(
-            client_id=client_id
-        )
+    CLIENT_CSV_LINK = "https://sellscale-api-prod.onrender.com/li_conversation/{client_sdr_id}".format(
+        client_sdr_id=client_sdr_id
     )
 
     if not li_at_token:
         return "No LinkedIn access token found for this SDR.", 400
 
-    pb_agent = PhantomBusterAgent(3365881184675991)
+    pb_agent = PhantomBusterAgent("3365881184675991")
     pb_agent.update_argument("sessionCookie", li_at_token)
     pb_agent.update_argument("spreadsheetUrl", CLIENT_CSV_LINK)
 
-    print(pb_agent.get_arguments())
+    pb_agent.run_phantom()
+
+    return "OK", 200

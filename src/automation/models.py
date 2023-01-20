@@ -41,10 +41,21 @@ class PhantomBusterAgent:
     FETCH_AGENT_OUTPUT = (
         "https://api.phantombuster.com/api/v2/agents/fetch-output?id={phantom_uuid}"
     )
+    LAUNCH_AGENT = "https://api.phantombuster.com/api/v1/agent/{phantom_uuid}/launch"
 
     def __init__(self, id: int):
         self.id = id
         self.api_key = PHANTOMBUSTER_API_KEY
+
+    def run_phantom(self):
+        url = self.LAUNCH_AGENT.format(phantom_uuid=self.id)
+        headers = {
+            "accept": "application/json",
+            "X-Phantombuster-Key": self.api_key,
+        }
+        response = requests.post(url, headers=headers)
+
+        return response
 
     def get_agent_data(self):
         url = self.FETCH_AGENT_URL.format(phantom_uuid=self.id)
@@ -110,7 +121,8 @@ class PhantomBusterAgent:
             "Content-Type": "application/json",
         }
 
-        requests.request("POST", url, headers=headers, data=payload)
+        resp = requests.request("POST", url, headers=headers, data=payload)
+
         return True
 
     def get_output(self):
