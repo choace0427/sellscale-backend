@@ -26,7 +26,7 @@ from .extractors.experience import (
     get_list_of_past_jobs,
     get_years_of_experience,
     get_years_of_experience_at_current_job,
-    get_linkedin_bio_summary
+    get_linkedin_bio_summary,
 )
 
 from .extractors.current_company import (
@@ -234,12 +234,12 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             ResearchPointType.GENERAL_WEBSITE_TRANSFORMER,
             "general_website_transformer",
             generate_general_website_research_points,
-        ),
-        (
-            ResearchPointType.LINKEDIN_BIO_SUMMARY,
-            "linkedin_bio_summary",
-            get_linkedin_bio_summary,
         )
+        # (
+        #     ResearchPointType.LINKEDIN_BIO_SUMMARY,
+        #     "linkedin_bio_summary",
+        #     get_linkedin_bio_summary,
+        # )
     ]
 
     bullets = {}
