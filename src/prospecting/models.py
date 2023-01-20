@@ -9,7 +9,7 @@ class ProspectStatus(enum.Enum):
     SENT_OUTREACH = "SENT_OUTREACH"
 
     ACCEPTED = "ACCEPTED"
-    RESPONDED = "RESPONDED"  # responded / followed up
+    RESPONDED = "RESPONDED"  # responded / followed up / bumped
     ACTIVE_CONVO = "ACTIVE_CONVO"
     SCHEDULING = "SCHEDULING"
 
