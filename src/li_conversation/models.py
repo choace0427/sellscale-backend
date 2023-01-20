@@ -7,7 +7,7 @@ class LinkedinConversationEntry(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    conversation_url = db.Column(db.String, nullable=True)
+    conversation_url = db.Column(db.String, index=True, nullable=True)
     author = db.Column(db.String, nullable=True)
     first_name = db.Column(db.String, nullable=True)
     last_name = db.Column(db.String, nullable=True)
