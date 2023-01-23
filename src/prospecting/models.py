@@ -160,7 +160,7 @@ class ProspectUploadsRawCSV(db.Model):
     client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
 
-    csv_data = db.Column(db.LargeBinary, nullable=False) # NOTE: db.LargeBinary is a BYTEA in Postgres
+    csv_data = db.Column(JSONB, nullable=False)
     csv_data_hash = db.Column(db.String, nullable=False)
 
 
