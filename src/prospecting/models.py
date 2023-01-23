@@ -1,4 +1,5 @@
 from app import db
+from sqlalchemy.dialects.postgresql import JSONB
 import enum
 
 
@@ -112,6 +113,88 @@ class ProspectNote(db.Model):
             "prospect_id": self.prospect_id,
             "note": self.note,
         }
+
+
+class ProspectUploadsStatus(enum.Enum):
+    """Enumeration of the statuses of a ProspectUpload.
+
+    Attributes:
+        UPLOAD_COMPLETE: The upload has completed successfully.
+        UPLOAD_QUEUED: The upload is queued for processing.
+        UPLOAD_FAILED: The upload has failed (external errors, such as iScraper API).
+        UPLOAD_IN_PROGRESS: The upload is in progress (worker is attempting to create Prospect records). 
+        UPLOAD_NOT_STARTED: The upload has not started (this row has not been picked up by a worker).
+        DISQUALIFIED: The upload has been disqualified (this row has been disqualified, example: duplicate).
+    """
+    UPLOAD_COMPLETE = "UPLOAD_COMPLETE"
+    UPLOAD_QUEUED = "UPLOAD_QUEUED"
+    UPLOAD_IN_PROGRESS = "UPLOAD_IN_PROGRESS"
+    UPLOAD_FAILED = "UPLOAD_FAILED"
+    UPLOAD_NOT_STARTED = "UPLOAD_NOT_STARTED"
+
+    DISQUALIFIED = "DISQUALIFIED"
+
+
+class ProspectUploadsErrorType(enum.Enum):
+    """Enumeration of the error type for a ProspectUpload.
+
+    Attributes:
+        DUPLICATE: The upload has been disqualified because it is a duplicate.
+        ISCRAPER_FAILED: The upload has failed because iScraper failed. (Note this will populate the iscraper_error_message field)
+    """
+    DUPLICATE = "DUPLICATE"
+    ISCRAPER_FAILED = "ISCRAPER_FAILED"
+
+
+class ProspectUploadsRawCSV(db.Model):
+    """Stores the raw CSV data for a prospect upload.
+    
+    Useful if we need to reference the raw CSV for a prospect upload in order to debug.
+
+    Should be referenced by the ProspectUploads model.
+    """
+    __tablename__ = "prospect_uploads_raw_csv"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    csv_data = db.Column(db.LargeBinary, nullable=False) # NOTE: db.LargeBinary is a BYTEA in Postgres
+    csv_data_hash = db.Column(db.String, nullable=False)
+
+
+class ProspectUploads(db.Model):
+    """Each row is a prospect to be uploaded by a worker.
+
+    Attributes:
+        id: The id of the prospect upload.
+        client_id: The id of the client. (used for matching)
+        client_archetype_id: The id of the client archetype. (used for matching)
+        client_sdr_id: The id of the client sdr. (used for matching)
+        prospect_uploads_raw_csv_id: The id of the raw CSV data for this prospect upload.
+
+        csv_row_data: The row data from the CSV, stored as a JSONB (slower to write, faster to read).
+        csv_row_data_hash: The hash of the csv_row_data. (used for matching)
+        upload_attempts: The number of times this prospect upload has been attempted.
+        status: The status of the prospect upload.
+        error_type: The error type of the prospect upload.
+        iscraper_error_message: The error message from iScraper (because iScraper API is trash).
+    """
+    __tablename__ = "prospect_uploads"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+    prospect_uploads_raw_csv_id = db.Column(db.Integer, db.ForeignKey("prospect_uploads_raw_csv.id"))
+
+    csv_row_data = db.Column(JSONB, nullable=False)
+    csv_row_hash = db.Column(db.String, nullable=False)
+    upload_attempts = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.Enum(ProspectUploadsStatus), nullable=False)
+    error_type = db.Column(db.Enum(ProspectUploadsErrorType), nullable=True)
+    iscraper_error_message = db.Column(db.String, nullable=True)
 
 
 # map of to_status and from status
