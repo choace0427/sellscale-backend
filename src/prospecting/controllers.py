@@ -167,20 +167,20 @@ def add_prospect_from_csv_payload():
 
     # Create prospect_uploads_csv_raw with a single entry
     raw_csv_entry_id = create_raw_csv_entry_from_json_payload(
-        client_id=client_id, archetype_id=archetype_id, client_sdr_id=client_sdr_id, payload=csv_payload
+        client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id, payload=csv_payload
     )
     if raw_csv_entry_id == -1:
         return "Failed to create raw csv entry, check duplicate?", 400
 
     # Populate prospect_uploads table with multiple entries
     success = populate_prospect_uploads_from_json_payload(
-        client_id=client_id, archetype_id=archetype_id, client_sdr_id=client_sdr_id, payload=csv_payload
+        client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id, prospect_uploads_raw_csv_id=raw_csv_entry_id, payload=csv_payload
     )
     if not success:
         return "Failed to create prospect uploads", 400
     
     # Collect eligible prospect rows and create prospects
-    success = collect_and_run_celery_jobs_for_upload(client_id=client_id, archetype_id=archetype_id, client_sdr_id=client_sdr_id)
+    success = collect_and_run_celery_jobs_for_upload(client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id)
     if not success:
         return "Something went wrong with collection and scheduling of celery jobs", 400
 
