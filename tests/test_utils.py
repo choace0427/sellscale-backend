@@ -6,6 +6,8 @@ from model_import import (
     ClientArchetype,
     Echo,
     Prospect,
+    ProspectUploadsRawCSV,
+    ProspectUploads,
     GNLPModel,
     ClientSDR,
     EmailSchema,
@@ -69,6 +71,8 @@ def test_app():
         clear_all_entities(ProspectStatusRecords)
         clear_all_entities(PhantomBusterConfig)
         clear_all_entities(ProspectNote)
+        clear_all_entities(ProspectUploads)
+        clear_all_entities(ProspectUploadsRawCSV)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(GNLPModelFineTuneJobs)
@@ -266,6 +270,21 @@ def basic_phantom_buster_configs(client: Client, client_sdr: ClientSDR):
     db.session.add_all([inboxp, outboundp])
     db.session.commit()
     return inboxp, outboundp
+
+
+def basic_prospect_uploads_raw_csv(client: Client, client_sdr: ClientSDR, client_archetype: ClientArchetype):
+    from model_import import ProspectUploadsRawCSV
+
+    p = ProspectUploadsRawCSV(
+        client_id=client.id,
+        client_archetype_id=client_archetype.id,
+        client_sdr_id=client_sdr.id,
+        csv_data = {"test": "test"},
+        csv_data_hash = "1234567890"
+    )
+    db.session.add(p)
+    db.session.commit()
+    return p
 
 
 def clear_all_entities(SQLAlchemyObject):

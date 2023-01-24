@@ -1,6 +1,7 @@
 from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 import enum
+import json
 
 
 class ProspectStatus(enum.Enum):

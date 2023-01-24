@@ -7,6 +7,10 @@ from src.prospecting.models import (
     Prospect,
     ProspectStatus,
     ProspectUploadBatch,
+    ProspectUploadsRawCSV,
+    ProspectUploads,
+    ProspectUploadsStatus,
+    ProspectUploadsErrorType,
     ProspectNote,
 )
 from model_import import ResearchPayload
@@ -21,6 +25,8 @@ from src.utils.converters.string_converters import (
 )
 from model_import import LinkedinConversationEntry
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
+import json
+import hashlib
 
 
 def prospect_exists_for_archetype(full_name: str, client_id: int):
@@ -440,7 +446,7 @@ def create_prospects_from_linkedin_link_list(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_linkedin_link(
-    self, archetype_id: int, url: str, batch: str, email: str = None
+    self, archetype_id: int, url: str, batch: str = None, email: str = None
 ):
     try:
         if "/in/" in url:

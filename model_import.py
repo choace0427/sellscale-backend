@@ -22,6 +22,10 @@ from src.prospecting.models import (
     ProspectStatus,
     ProspectStatusRecords,
     ProspectUploadBatch,
+    ProspectUploadsRawCSV,
+    ProspectUploads,
+    ProspectUploadsStatus,
+    ProspectUploadsErrorType,
     ProspectNote,
 )
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs

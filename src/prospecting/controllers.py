@@ -14,12 +14,14 @@ from src.prospecting.services import (
     send_slack_reminder_for_prospect,
     create_prospect_note,
     get_prospect_details,
-)
-from src.utils.request_helpers import get_request_parameter
-from src.prospecting.services import (
     batch_update_prospect_statuses,
     mark_prospect_reengagement,
 )
+from src.prospecting.upload.services import ( 
+    create_raw_csv_entry_from_json_payload,
+    populate_prospect_uploads_from_json_payload
+)
+from src.utils.request_helpers import get_request_parameter
 
 from tqdm import tqdm
 from src.prospecting.services import delete_prospect_by_id
@@ -151,21 +153,34 @@ def send_slack_reminder():
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
 def add_prospect_from_csv_payload():
     client_id = get_request_parameter("client_id", request, json=True, required=True)
-    archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True
-    )
-    csv_payload = get_request_parameter(
-        "csv_payload", request, json=True, required=True
-    )
-    email_enabled = get_request_parameter(
-        "email_enabled", request, json=True, required=False
-    )
+    archetype_id = get_request_parameter("archetype_id", request, json=True, required=True)
+    #client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+    csv_payload = get_request_parameter("csv_payload", request, json=True, required=True)
+    email_enabled = get_request_parameter("email_enabled", request, json=True, required=False)
 
     validated, reason = validate_prospect_json_payload(
         payload=csv_payload, email_enabled=email_enabled
     )
     if not validated:
         return reason, 400
+
+
+    # Create prospect_uploads_csv_raw with a single entry
+    # raw_csv_entry_id = create_raw_csv_entry_from_json_payload(
+    #     client_id=client_id, archetype_id=archetype_id, client_sdr_id=client_sdr_id, payload=csv_payload
+    # )
+    # if raw_csv_entry_id == -1:
+    #     return "Failed to create raw csv entry, check duplicate?", 400
+
+    # Populate prospect_uploads table with multiple entries
+    # success = populate_prospect_uploads_from_json_payload(
+    #     client_id=client_id, archetype_id=archetype_id, client_sdr_id=client_sdr_id, payload=csv_payload
+    # )
+    # if not success:
+    #     return "Failed to create prospect uploads", 400
+
+    #TODO: Make orchestrator queues prospect creation jobs
+
 
     response, duplicate_count = add_prospects_from_json_payload(
         client_id=client_id, archetype_id=archetype_id, payload=csv_payload
