@@ -17,14 +17,17 @@ def create_research_payload(
 
 
 def create_research_point(
-    payload_id: int, research_point_type: ResearchPointType, text: str, research_point_metadata: dict = None
+    payload_id: int,
+    research_point_type: ResearchPointType,
+    text: str,
+    research_point_metadata: dict = None,
 ):
     """Creates a research point"""
     research_point = ResearchPoints(
         research_payload_id=payload_id,
         research_point_type=research_point_type,
         value=text,
-        research_point_metadata = research_point_metadata
+        research_point_metadata=research_point_metadata,
     )
     db.session.add(research_point)
     db.session.commit()
@@ -77,12 +80,12 @@ def get_all_research_point_types():
             "example": "Founder of The Volta Group, an automotive coaching and training firm, focusing on sales growth and customer experience optimization",
             "deprecated": False,
         },
-        # {
-        #     "transformer": ResearchPointType.YEARS_OF_EXPERIENCE.value,
-        #     "description": "Extracts the years of experience",
-        #     "example": "14+ years of experience in industry",
-        #     "deprecated": False,
-        # },
+        {
+            "transformer": ResearchPointType.YEARS_OF_EXPERIENCE.value,
+            "description": "Extracts the years of experience",
+            "example": "14+ years of experience in industry",
+            "deprecated": True,
+        },
         {
             "transformer": ResearchPointType.YEARS_OF_EXPERIENCE_AT_CURRENT_JOB.value,
             "description": "Extracts the years of experience at current job",
@@ -124,5 +127,5 @@ def get_all_research_point_types():
             "description": "Extracts the linkedin bio and creates a summary using OpenAI",
             "example": "David Wei is passionate about distributed systems and highly scalable infrastructure.",
             "deprecated": False,
-        }
+        },
     ]
