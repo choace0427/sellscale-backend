@@ -8,7 +8,8 @@ from typing import Optional
 import json, hashlib
 
 from src.utils.slack import send_slack_message, URL_MAP
-ENG_SANDBOX = URL_MAP.get("eng-sandbox")
+ENG_SANDBOX = [URL_MAP.get("eng-sandbox")]
+
 
 
 def create_raw_csv_entry_from_json_payload(
