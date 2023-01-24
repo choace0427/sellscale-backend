@@ -342,11 +342,9 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
     return True
 
 
-@celery.task
 def add_prospect(
     client_id: int,
     archetype_id: int,
-    batch: str,
     company: Optional[str] = None,
     company_url: Optional[str] = None,
     employee_count: Optional[str] = None,
@@ -357,7 +355,7 @@ def add_prospect(
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
     email: Optional[str] = None,
-):
+) -> bool:
     status = ProspectStatus.PROSPECTED
 
     prospect_exists = prospect_exists_for_archetype(
@@ -387,12 +385,13 @@ def add_prospect(
             linkedin_bio=linkedin_bio,
             title=title,
             twitter_url=twitter_url,
-            batch=batch,
             status=status,
             email=email,
         )
         db.session.add(prospect)
         db.session.commit()
+
+    return True
 
 
 def find_prospect_by_linkedin_slug(slug: str, client_id: int):

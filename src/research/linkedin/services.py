@@ -175,6 +175,24 @@ def sanitize_payload(payload: dict):
     return new_payload
 
 
+def get_iscraper_payload_error(payload: dict) -> str:
+    """Get errors from iscraper payload"""
+    if not payload:
+        return "iScraper error not provided"
+    elif deep_get(payload, "first_name"):
+        raise ValueError("No error in payload")
+
+    message = deep_get(payload, "message")
+    if message:
+        return message
+    
+    detail = deep_get(payload, "detail")
+    if detail:
+        return detail
+    
+    return "iScraper error not provided"
+
+
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
     prospect: Prospect = Prospect.query.get(prospect_id)

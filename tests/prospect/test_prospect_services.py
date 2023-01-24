@@ -356,7 +356,7 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
 
 @use_app_context
 @mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.delay")
-@mock.patch("src.prospecting.services.add_prospect.delay")
+@mock.patch("src.prospecting.services.add_prospect")
 def test_add_2_prospects_from_csv(mock_add_prospect, mock_create_from_linkedin):
     payload = [
         {
