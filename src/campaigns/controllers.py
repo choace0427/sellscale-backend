@@ -18,6 +18,7 @@ from src.campaigns.services import (
     assign_editor_to_campaign,
     batch_update_campaign_editing_attributes,
     adjust_editing_due_date,
+    remove_ungenerated_prospects_from_campaign,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -201,4 +202,13 @@ def post_adjust_editing_due_date():
     )
     new_date = get_request_parameter("new_date", request, json=True, required=True)
     adjust_editing_due_date(campaign_id=campaign_id, new_date=new_date)
+    return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/remove_ungenerated_prospects", methods=["POST"])
+def post_remove_ungenerated_prospects():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    remove_ungenerated_prospects_from_campaign(campaign_id=campaign_id)
     return "OK", 200

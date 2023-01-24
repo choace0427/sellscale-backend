@@ -17,6 +17,7 @@ from src.utils.random_string import generate_random_alphanumeric
 
 from model_import import ClientArchetype
 from src.utils.slack import send_slack_message, URL_MAP
+from model_import import GeneratedMessage
 
 NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
 
@@ -618,6 +619,42 @@ def assign_editor_to_campaign(editor_id: int, campaign_id: int):
     """
     campaign = OutboundCampaign.query.get(campaign_id)
     campaign.editor_id = editor_id
+    db.session.add(campaign)
+    db.session.commit()
+
+    return True
+
+
+def remove_ungenerated_prospects_from_campaign(campaign_id: int):
+    """Removes ungenerated prospects from a campaign
+
+    Args:
+        campaign_id (int): Campaign id
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    prospect_ids = campaign.prospect_ids
+
+    not_generated_prospects = []
+    if campaign.campaign_type == GeneratedMessageType.EMAIL:
+        not_generated_prospects = Prospect.query.filter(
+            Prospect.id.in_(prospect_ids),
+            Prospect.approved_prospect_email_id == None,
+        ).all()
+    elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
+        not_generated_prospects = Prospect.query.filter(
+            Prospect.id.in_(prospect_ids),
+            Prospect.approved_outreach_message_id == None,
+        ).all()
+
+    not_generated_prospect_ids = [prospect.id for prospect in not_generated_prospects]
+
+    new_list = []
+    for prospect_id in prospect_ids:
+        if prospect_id not in not_generated_prospect_ids:
+            new_list.append(prospect_id)
+
+    campaign = OutboundCampaign.query.get(campaign_id)
+    campaign.prospect_ids = new_list
     db.session.add(campaign)
     db.session.commit()
 

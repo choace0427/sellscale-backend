@@ -12,6 +12,7 @@ from test_utils import (
     basic_email_schema,
     basic_prospect,
     basic_editor,
+    basic_prospect_email,
 )
 from src.campaigns.services import create_outbound_campaign
 from model_import import OutboundCampaign
@@ -875,3 +876,48 @@ def test_assign_editor_to_campaign():
     assert response.status_code == 200
     campaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.editor_id == editor_id
+
+
+@use_app_context
+def test_post_remove_ungenerated_prospects():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    email_schema = basic_email_schema(archetype=archetype)
+    email_schema_id = email_schema.id
+
+    prospect = basic_prospect(archetype=archetype, client=client)
+    prospect2 = basic_prospect(archetype=archetype, client=client)
+    prospect3 = basic_prospect(archetype=archetype, client=client)
+    email = basic_prospect_email(prospect=prospect, email_schema=email_schema)
+    prospect3.approved_prospect_email_id = email.id
+    db.session.add(prospect3)
+    db.session.commit()
+    prospect_ids = [prospect.id, prospect2.id, prospect3.id]
+    prospect_3_id = prospect3.id
+
+    campaign = create_outbound_campaign(
+        prospect_ids=prospect_ids,
+        campaign_type="EMAIL",
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        campaign_start_date="2021-01-01",
+        campaign_end_date="2021-01-01",
+        email_schema_id=email_schema_id,
+    )
+    campaign_id = campaign.id
+
+    response = app.test_client().post(
+        f"campaigns/remove_ungenerated_prospects",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.prospect_ids == [prospect_3_id]
