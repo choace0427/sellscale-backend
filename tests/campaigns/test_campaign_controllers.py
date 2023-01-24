@@ -629,6 +629,8 @@ def test_merge_multiple_email_campaigns_succeed():
     client_sdr_id = client_sdr.id
     email_schema = basic_email_schema(archetype=archetype)
     email_schema_id = email_schema.id
+    editor = basic_editor()
+    editor_2 = basic_editor()
 
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2],
@@ -639,6 +641,10 @@ def test_merge_multiple_email_campaigns_succeed():
         campaign_end_date="2021-01-01",
         email_schema_id=email_schema_id,
     )
+    campaign1.editor_id = editor.id
+    db.session.add(campaign1)
+    db.session.commit()
+
     campaign1_id = campaign1.id
     campaign2 = create_outbound_campaign(
         prospect_ids=[2, 3, 4],
@@ -649,6 +655,9 @@ def test_merge_multiple_email_campaigns_succeed():
         campaign_end_date="2021-01-05",
         email_schema_id=email_schema_id,
     )
+    campaign2.editor_id = editor.id
+    db.session.add(campaign2)
+    db.session.commit()
     campaign2_id = campaign2.id
 
     response = app.test_client().post(
@@ -784,6 +793,49 @@ def test_merge_multiple_email_campaigns_failed_for_archetype():
     campaign2 = OutboundCampaign.query.get(campaign2_id)
     assert campaign1.status.value == "PENDING"
     assert campaign2.status.value == "PENDING"
+
+    campaign1 = OutboundCampaign.query.get(campaign1_id)
+    campaign2 = OutboundCampaign.query.get(campaign2_id)
+    editor1 = basic_editor()
+    editor2 = basic_editor()
+
+    campaign1.editor_id = editor1.id
+    campaign2.editor_id = editor2.id
+    campaign2.client_archetype_id = campaign1.client_archetype_id
+    db.session.add(campaign1)
+    db.session.add(campaign2)
+    db.session.commit()
+
+    response = app.test_client().post(
+        "campaigns/merge",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_ids": [campaign1.id, campaign2.id],
+            }
+        ),
+    )
+    assert response.status_code == 400
+    assert (
+        response.text
+        == "Campaigns must have the same editor assigned to edit! Please consolidate the editors."
+    )
+
+    campaign2 = OutboundCampaign.query.get(campaign2_id)
+    campaign2.editor_id = editor1.id
+    db.session.add(campaign2)
+    db.session.commit()
+
+    response = app.test_client().post(
+        "campaigns/merge",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_ids": [campaign1.id, campaign2.id],
+            }
+        ),
+    )
+    assert response.status_code == 200
 
 
 @use_app_context

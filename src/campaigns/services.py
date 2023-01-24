@@ -447,6 +447,12 @@ def merge_outbound_campaigns(campaign_ids: list):
     if len(campaign_statuses) > 1:
         raise Exception("Campaigns must be of the same status")
 
+    editor_ids = set([c.editor_id for c in campaigns])
+    if len(editor_ids) > 1:
+        raise Exception(
+            "Campaigns must have the same editor assigned to edit! Please consolidate the editors."
+        )
+
     name = "Merged - Campaigns: " + ", ".join([str(c.id) for c in campaigns])
     prospect_ids = list(set().union(*[c.prospect_ids for c in campaigns]))
     campaign_type = campaigns[0].campaign_type
@@ -468,6 +474,7 @@ def merge_outbound_campaigns(campaign_ids: list):
         email_schema_id=email_schema_id,
     )
     campaign.status = campaigns[0].status
+    campaign.editor_id = campaigns[0].editor_id
     campaign.name = name
     db.session.add(campaign)
     db.session.commit()
