@@ -184,7 +184,7 @@ def add_prospect_from_csv_payload():
     if not success:
         return "Something went wrong with collection and scheduling of celery jobs", 400
 
-    return "Upload jobs successfully collected and scheduled.", 400
+    return "Upload jobs successfully collected and scheduled.", 200
 
 
 @PROSPECTING_BLUEPRINT.route("/delete_prospect", methods=["DELETE"])
