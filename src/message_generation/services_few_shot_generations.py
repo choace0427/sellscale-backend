@@ -150,7 +150,7 @@ def can_generate_with_few_shot(prospect_id: int):
     """
     Checks if we can generate a few shot message for a prospect by seeing if there are at least two 'good samples' for the prospect's persona
     """
-    return len(get_similar_prospects(prospect_id, 2)) > 0
+    return len(get_similar_prospects(prospect_id, 2)) >= 2
 
 
 def clear_all_good_messages_by_archetype_id(archetype_id: int):
