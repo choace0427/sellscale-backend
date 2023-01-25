@@ -494,7 +494,6 @@ def create_prospect_from_linkedin_link(
             linkedin_bio=linkedin_bio,
             title=title,
             twitter_url=twitter_url,
-            batch=batch,
             email=email,
         )
 

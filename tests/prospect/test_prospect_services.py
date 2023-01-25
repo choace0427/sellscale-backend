@@ -46,7 +46,6 @@ def test_update_prospect_status_with_note():
         employee_count="10-100",
         full_name="testing",
         industry="saas",
-        batch="123",
         linkedin_url=None,
         linkedin_bio=None,
         title="testing",
@@ -57,7 +56,6 @@ def test_update_prospect_status_with_note():
     assert len(prospects) == 1
     assert prospects[0].client_id == client_id
     assert prospects[0].archetype_id == archetype_id
-    assert prospects[0].batch == "123"
 
     prospect0 = prospects[0]
     prospect_id = prospect0.id
@@ -89,7 +87,6 @@ def test_update_prospect_status_active_convo_disable_ai():
         employee_count="10-100",
         full_name="testing",
         industry="saas",
-        batch="123",
         linkedin_url=None,
         linkedin_bio=None,
         title="testing",
@@ -121,7 +118,6 @@ def test_update_prospect_status_active_convo_disable_ai():
         employee_count="10-100",
         full_name="testing",
         industry="saas",
-        batch="123",
         linkedin_url=None,
         linkedin_bio=None,
         title="testing",
@@ -158,7 +154,6 @@ def test_add_prospect():
         employee_count="10-100",
         full_name="testing testoro",
         industry="saas",
-        batch="123",
         linkedin_url=None,
         linkedin_bio=None,
         title="testing",
@@ -169,18 +164,16 @@ def test_add_prospect():
     assert len(prospects) == 1
     assert prospects[0].client_id == client_id
     assert prospects[0].archetype_id == archetype_id
-    assert prospects[0].batch == "123"
     assert prospects[0].first_name == "Testing"
     assert prospects[0].last_name == "Testoro"
 
     client = Client.query.get(client_id)
     archetype2 = basic_archetype(client)
     archetype_id2 = archetype2.id
-    add_prospect(client_id=client_id, archetype_id=archetype_id2, batch="456")
+    add_prospect(client_id=client_id, archetype_id=archetype_id2)
 
     prospects = Prospect.query.order_by(Prospect.id.asc()).all()
     assert len(prospects) == 2
-    assert prospects[1].batch == "456"
     assert prospects[1].archetype_id == archetype_id2
 
     assert archetype_id != archetype_id2
@@ -193,7 +186,6 @@ def test_add_prospect():
         employee_count="10-100",
         full_name="testing testoro",
         industry="saas",
-        batch="123",
         linkedin_url=None,
         linkedin_bio=None,
         title="testing",
@@ -210,7 +202,6 @@ def test_add_prospect():
         employee_count="10-100",
         full_name="testing testoro",
         industry="saas",
-        batch="123",
         linkedin_url="12381",
         linkedin_bio=None,
         title="testing",
@@ -227,7 +218,6 @@ def test_add_prospect():
         employee_count="10-100",
         full_name="testing sara",  # new name here
         industry="saas",
-        batch="123",
         linkedin_url="12381",
         linkedin_bio=None,
         title="testing",
@@ -324,12 +314,15 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
     client_id = client.id
     archetype = basic_archetype(client)
     archetype_id = archetype.id
+    sdr = basic_client_sdr(client)
+    sdr_id = sdr.id
     response = app.test_client().post(
         "prospect/add_prospect_from_csv_payload",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
                 "client_id": client_id,
+                "client_sdr_id": sdr_id,
                 "archetype_id": archetype_id,
                 "csv_payload": payload,
                 "email_enabled": False,
@@ -337,21 +330,6 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
         ),
     )
     assert response.status_code == 200
-    assert response.data == b"Uploaded prospects - detected and removed 2 duplicates"
-
-    batches: list = ProspectUploadBatch.query.all()
-    assert len(batches) == 1
-
-    batch_0: ProspectUploadBatch = batches[0]
-    assert batch_0.archetype_id == archetype_id
-    assert batch_0.num_prospects == 4
-
-    prospects = Prospect.query.all()
-    assert len(prospects) == 0
-    assert mock_create_from_linkedin.call_count == 4
-
-    for i in prospects:
-        assert i.company_url == "https://athelas.com/"
 
 
 @use_app_context
@@ -383,12 +361,15 @@ def test_add_2_prospects_from_csv(mock_add_prospect, mock_create_from_linkedin):
     client_id = client.id
     archetype = basic_archetype(client)
     archetype_id = archetype.id
+    sdr = basic_client_sdr(client)
+    sdr_id = sdr.id
     response = app.test_client().post(
         "prospect/add_prospect_from_csv_payload",
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
                 "client_id": client_id,
+                "client_sdr_id": sdr_id,
                 "archetype_id": archetype_id,
                 "csv_payload": payload,
             }
@@ -396,17 +377,9 @@ def test_add_2_prospects_from_csv(mock_add_prospect, mock_create_from_linkedin):
     )
     assert response.status_code == 200
 
-    batches: list = ProspectUploadBatch.query.all()
-    assert len(batches) == 1
-
-    batch_0: ProspectUploadBatch = batches[0]
-    assert batch_0.archetype_id == archetype_id
-    assert batch_0.num_prospects == 2
-
     prospects = Prospect.query.all()
     assert len(prospects) == 0
     assert mock_add_prospect.call_count == 0
-    assert mock_create_from_linkedin.call_count == 2
 
     for i in prospects:
         assert i.company_url == "https://athelas.com/"
@@ -632,7 +605,6 @@ def test_create_prospect_from_linkedin_link(research_personal_profile_details_pa
     prospect = Prospect.query.first()
     assert prospect.client_id == client_id
     assert prospect.archetype_id == archetype_id
-    assert prospect.batch == "123"
     assert prospect.email == "johnny@sellscale.com"
     assert prospect.employee_count == "1001-5000"
     assert prospect.industry == "Information Technology & Services"

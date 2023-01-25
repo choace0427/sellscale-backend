@@ -153,6 +153,12 @@ def send_slack_reminder():
 
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
 def add_prospect_from_csv_payload():
+    """ Adds prospect from CSV payload (given as JSON) from Retool
+
+    First stores the entire csv in `prospect_uploads_raw_csv` table
+    Then populates the `prospect_uploads` table
+    Then runs the celery job to create prospects from the `prospect_uploads` table
+    """
     client_id = get_request_parameter("client_id", request, json=True, required=True)
     archetype_id = get_request_parameter("archetype_id", request, json=True, required=True)
     client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
@@ -180,6 +186,26 @@ def add_prospect_from_csv_payload():
         return "Failed to create prospect uploads", 400
     
     # Collect eligible prospect rows and create prospects
+    success = collect_and_run_celery_jobs_for_upload(client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id)
+    if not success:
+        return "Something went wrong with collection and scheduling of celery jobs", 400
+
+    return "Upload jobs successfully collected and scheduled.", 200
+
+
+@PROSPECTING_BLUEPRINT.route("/retrigger_upload_job", methods=["POST"])
+def retrigger_upload_prospect_job():
+    """ Retriggers a prospect upload job that may have failed for some reason.
+
+    Only runs on FAILED and NOT_STARTED jobs at the moment.
+
+    Notable use case(s):
+    - When iScraper fails
+    """
+    client_id = get_request_parameter("client_id", request, json=True, required=True)
+    archetype_id = get_request_parameter("archetype_id", request, json=True, required=True)
+    client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+
     success = collect_and_run_celery_jobs_for_upload(client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id)
     if not success:
         return "Something went wrong with collection and scheduling of celery jobs", 400
