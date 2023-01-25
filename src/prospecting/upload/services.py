@@ -177,7 +177,7 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
 
         # Create the prospect using the LinkedIn URL.
         create_prospect_from_linkedin_link.delay(
-            prospect_upload_id=prospect_upload.client_archetype_id,
+            prospect_upload_id=prospect_upload.id,
         )
 
         # Future ways to create the prospect can go below
