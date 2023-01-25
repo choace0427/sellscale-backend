@@ -260,7 +260,11 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str
             db.session.commit()
             return True
         else:
-            raise(Exception("Prospect could not be added."))
+            prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED
+            prospect_upload.error_type = ProspectUploadsErrorType.DUPLICATE
+            db.session.add(prospect_upload)
+            db.session.commit()
+            return False
     except Exception as e:
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
