@@ -24,6 +24,7 @@ from ..ml.fine_tuned_models import (
     get_completion,
     get_custom_completion_for_client,
     get_personalized_first_line_for_client,
+    get_few_shot_baseline_prompt,
 )
 from src.email_outbound.services import create_prospect_email
 from src.message_generation.ner_exceptions import ner_exceptions
@@ -250,13 +251,15 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
         #       the archetype
         if not able_to_generate_with_few_shot:
             prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
-            completions, model_id = get_custom_completion_for_client(
-                archetype_id=archetype_id,
-                model_type=GNLPModelType.OUTREACH,
-                prompt=prompt,
-                max_tokens=90,
-                n=2,
-            )
+            model_id = 5
+            completions = get_few_shot_baseline_prompt(prompt=prompt)
+            # completions, model_id = get_custom_completion_for_client(
+            #     archetype_id=archetype_id,
+            #     model_type=GNLPModelType.OUTREACH,
+            #     prompt=prompt,
+            #     max_tokens=90,
+            #     n=2,
+            # )
 
             instruction_id = None
             few_shot_prompt = None
@@ -1120,7 +1123,10 @@ def run_check_message_has_bad_entities(message_id: int):
             entity.lower(),
         ).strip()
 
-        if sanitized_entity not in sanitized_prompt and sanitized_entity not in sanitized_cta_text:
+        if (
+            sanitized_entity not in sanitized_prompt
+            and sanitized_entity not in sanitized_cta_text
+        ):
             flagged_entities.append(entity)
 
     generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
