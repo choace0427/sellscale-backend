@@ -390,6 +390,8 @@ def add_prospect(
         )
         db.session.add(prospect)
         db.session.commit()
+    else:
+        return False
 
     return True
 
