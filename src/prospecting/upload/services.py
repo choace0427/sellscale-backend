@@ -7,10 +7,6 @@ from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
 import json, hashlib
 
-from src.utils.slack import send_slack_message, URL_MAP
-ENG_SANDBOX = [URL_MAP.get("eng-sandbox")]
-
-
 
 def create_raw_csv_entry_from_json_payload(
     client_id: int, client_archetype_id: int, client_sdr_id: int, payload: list
@@ -147,7 +143,6 @@ def collect_and_run_celery_jobs_for_upload(client_id: int, client_archetype_id: 
             prospect_upload.status = ProspectUploadsStatus.UPLOAD_QUEUED
             db.session.add(prospect_upload)
             db.session.commit()
-            send_slack_message("Prospect upload queued for row ID: " + str(prospect_upload.id), ENG_SANDBOX)
             create_prospect_from_prospect_upload_row.delay(prospect_upload_id = prospect_upload.id)
     
     return True
@@ -170,7 +165,6 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
         None: Returns nothing.
     """
     try:
-        send_slack_message("create_prospect_from_prosect_upload_row on: " + str(prospect_upload_id), ENG_SANDBOX)
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
             return
@@ -202,7 +196,6 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str
         bool: True if the prospect was created successfully. Errors otherwise.
     """
     try:
-        send_slack_message("create_prospect_from_linkedin_link on: " + str(prospect_upload_id), ENG_SANDBOX)
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
             return False
