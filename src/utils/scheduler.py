@@ -52,7 +52,10 @@ scheduler.add_job(
     func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
 )
 scheduler.add_job(
-    func=run_next_client_sdr_li_conversation_scraper_job, trigger="interval", minutes=10
+    func=run_next_client_sdr_li_conversation_scraper_job,
+    trigger="cron",
+    minute="*/10",
+    hour="*",
 )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
 scheduler.start()
