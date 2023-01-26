@@ -75,3 +75,4 @@ class ClientSDR(db.Model):
     manual_warning_message = db.Column(db.String, nullable=True)
 
     li_at_token = db.Column(db.String)
+    last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
