@@ -9,6 +9,7 @@ from src.li_conversation.services import (
     update_li_conversation_extractor_phantom,
 )
 
+LI_CONVERSATION_SCRAPE_INTERVAL = 2
 LI_CONVERASTION_BLUEPRINT = Blueprint("li_conversation", __name__)
 
 
@@ -26,7 +27,7 @@ def get_li_conversation_csv(client_sdr_id):
     prospects = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.li_last_message_timestamp
-        > datetime.now() - timedelta(days=90),  # change this to 2 days
+        > datetime.now() - timedelta(days=LI_CONVERSATION_SCRAPE_INTERVAL),
     ).all()
 
     linkedin_urls = [
