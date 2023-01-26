@@ -73,30 +73,52 @@ def populate_prospect_uploads_from_json_payload(
         bool: True if the ProspectUploads table was populated successfully. Errors otherwise.
     """
 
+    # Create prospect_list which preserves all rows from the payload.
+    # prospect_list = [
+    #   {"prospect_hash": "1234", "prospect": "something"},
+    #   {"prospect_hash": "1234", "prospect": "something"}
+    #   {"prospect_hash": "4321", "prospect": "not-something"}
+    # ]
+    # Create prospect_hashes which track unique hashes.
+    # prospect_hashes = {"1234", "4321"}
+    prospect_list = []
+    prospect_hashes = []
+    for prospect_row in payload:
+        prospect_hash_value = hashlib.sha256(json.dumps(prospect_row).encode()).hexdigest()
+        prospect_list.append({
+            "prospect_hash": prospect_hash_value,
+            "prospect_data": prospect_row,
+        })
+        prospect_hashes.append(prospect_hash_value)
+
+    # Get ProspectUploads that match the prospect_hashes, and create a set off the existent hashes.
+    existing_prospect_uploads = ProspectUploads.query.filter(
+        ProspectUploads.client_id == client_id,
+        ProspectUploads.client_archetype_id == client_archetype_id,
+        ProspectUploads.client_sdr_id == client_sdr_id,
+        ProspectUploads.csv_row_hash.in_(prospect_hashes)
+    ).all()
+    existing_prospect_hash = set()
+    for existing_prospect_upload in existing_prospect_uploads:
+        existing_prospect_hash.add(existing_prospect_upload.csv_row_hash)
+
+
+    # Create ProspectUploads
     prospect_uploads = []
-    for prospect in payload:
-        prospect_hash_value = hashlib.sha256(json.dumps(prospect).encode()).hexdigest()
+    for prospect_dic in prospect_list:
         status = ProspectUploadsStatus.UPLOAD_NOT_STARTED
         error_type = None
-        exists = ProspectUploads.query.filter_by(  # Check for duplicates
-            client_id=client_id,
-            client_archetype_id=client_archetype_id,
-            client_sdr_id=client_sdr_id,
-            csv_row_hash=prospect_hash_value,
-        ).first()
-        if exists:
-            status = (
-                ProspectUploadsStatus.DISQUALIFIED
-            )  # If duplicate, mark as disqualified
+        if prospect_dic["prospect_hash"] in existing_prospect_hash:
+            status = ProspectUploadsStatus.DISQUALIFIED  # If duplicate, mark as disqualified
             error_type = ProspectUploadsErrorType.DUPLICATE
-
-        prospect_upload: ProspectUploads = ProspectUploads(
+        
+        prospect_upload = ProspectUploads(
             client_id=client_id,
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
             prospect_uploads_raw_csv_id=prospect_uploads_raw_csv_id,
-            csv_row_data=prospect,
-            csv_row_hash=prospect_hash_value,
+            csv_row_data=prospect_dic["prospect_data"],
+            csv_row_hash=prospect_dic["prospect_hash"],
             upload_attempts=0,
             status=status,
             error_type=error_type,
