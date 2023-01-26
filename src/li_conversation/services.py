@@ -123,4 +123,9 @@ def update_li_conversation_extractor_phantom(client_sdr_id) -> (str, int):
 
     pb_agent.run_phantom()
 
+    client_sdr = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client_sdr.last_li_conversation_scrape_date = datetime.now()
+    db.session.add(client_sdr)
+    db.session.commit()
+
     return "OK", 200
