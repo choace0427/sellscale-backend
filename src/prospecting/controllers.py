@@ -186,11 +186,9 @@ def add_prospect_from_csv_payload():
         return "Failed to create prospect uploads", 400
     
     # Collect eligible prospect rows and create prospects
-    success = collect_and_run_celery_jobs_for_upload(client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id)
-    if not success:
-        return "Something went wrong with collection and scheduling of celery jobs", 400
+    collect_and_run_celery_jobs_for_upload.delay(client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id)
 
-    return "Upload jobs successfully collected and scheduled.", 200
+    return "Upload job scheduled.", 200
 
 
 @PROSPECTING_BLUEPRINT.route("/retrigger_upload_job", methods=["POST"])

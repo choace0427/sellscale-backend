@@ -109,8 +109,8 @@ def populate_prospect_uploads_from_json_payload(
 
     return True
 
-
-def collect_and_run_celery_jobs_for_upload(client_id: int, client_archetype_id: int, client_sdr_id: int) -> bool:
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
+def collect_and_run_celery_jobs_for_upload(self, client_id: int, client_archetype_id: int, client_sdr_id: int) -> bool:
     """ Collects the rows eligible for upload and runs the celery jobs for them.
 
     Args:
@@ -121,31 +121,36 @@ def collect_and_run_celery_jobs_for_upload(client_id: int, client_archetype_id: 
     Returns:
         bool: True if the celery jobs were collected and scheduled successfully. Errors otherwise.
     """
-    not_started_rows: ProspectUploads = ProspectUploads.query.filter_by(             # Get all not_started rows  
-        client_id=client_id,
-        client_archetype_id=client_archetype_id,
-        client_sdr_id=client_sdr_id,
-        status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
-    ).all()
-    failed_rows: ProspectUploads = ProspectUploads.query.filter_by(                  # Get all failed rows  
-        client_id=client_id,
-        client_archetype_id=client_archetype_id,
-        client_sdr_id=client_sdr_id,
-        status=ProspectUploadsStatus.UPLOAD_FAILED,
-    ).all()
-    
-    eligible_rows = not_started_rows + failed_rows
-    for row in eligible_rows:
-        row: ProspectUploads = row
-        prospect_row_id = row.id
-        prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_row_id)
-        if prospect_upload:
-            prospect_upload.status = ProspectUploadsStatus.UPLOAD_QUEUED
-            db.session.add(prospect_upload)
-            db.session.commit()
-            create_prospect_from_prospect_upload_row.delay(prospect_upload_id = prospect_upload.id)
-    
-    return True
+    try:
+        not_started_rows: ProspectUploads = ProspectUploads.query.filter_by(             # Get all not_started rows  
+            client_id=client_id,
+            client_archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
+            status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
+        ).all()
+        failed_rows: ProspectUploads = ProspectUploads.query.filter_by(                  # Get all failed rows  
+            client_id=client_id,
+            client_archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
+            status=ProspectUploadsStatus.UPLOAD_FAILED,
+        ).all()
+        
+        eligible_rows = not_started_rows + failed_rows
+        for row in eligible_rows:
+            row: ProspectUploads = row
+            prospect_row_id = row.id
+            prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_row_id)
+            if prospect_upload:
+                prospect_upload.status = ProspectUploadsStatus.UPLOAD_QUEUED
+                db.session.add(prospect_upload)
+                db.session.commit()
+                create_prospect_from_prospect_upload_row.delay(prospect_upload_id = prospect_upload.id)
+        
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
