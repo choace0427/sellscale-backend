@@ -121,12 +121,14 @@ def update_li_conversation_extractor_phantom(client_sdr_id) -> (str, int):
     pb_agent.update_argument("sessionCookie", li_at_token)
     pb_agent.update_argument("spreadsheetUrl", CLIENT_CSV_LINK)
 
-    pb_agent.run_phantom()
+    status = pb_agent.run_phantom()
+    status_code = status.status_code
 
-    client_sdr = ClientSDR.query.filter_by(id=client_sdr_id).first()
-    client_sdr.last_li_conversation_scrape_date = datetime.now()
-    db.session.add(client_sdr)
-    db.session.commit()
+    if status_code == 200:
+        client_sdr = ClientSDR.query.filter_by(id=client_sdr_id).first()
+        client_sdr.last_li_conversation_scrape_date = datetime.now()
+        db.session.add(client_sdr)
+        db.session.commit()
 
     return "OK", 200
 
