@@ -176,7 +176,7 @@ def add_prospect_from_csv_payload():
         client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id, payload=csv_payload
     )
     if raw_csv_entry_id == -1:
-        return "Failed to create raw csv entry, check duplicate?", 400
+        return "Duplicate CSVs are not allowed! Check that you're uploading a new CSV.", 400
 
     # Populate prospect_uploads table with multiple entries
     success = populate_prospect_uploads_from_json_payload(
