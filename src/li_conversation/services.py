@@ -129,3 +129,27 @@ def update_li_conversation_extractor_phantom(client_sdr_id) -> (str, int):
     db.session.commit()
 
     return "OK", 200
+
+
+def get_next_client_sdr_to_scrape():
+    data = db.session.execute(
+        """
+        select 
+            client_sdr.id
+        from client_sdr
+            join client on client.id = client_sdr.client_id
+        where client.active
+            and client_sdr.li_at_token is not null
+            and 
+                (client_sdr.last_li_conversation_scrape_date is Null
+                    or client_sdr.last_li_conversation_scrape_date < NOW() - '24 hours'::INTERVAL)
+        order by last_li_conversation_scrape_date desc
+        limit 1;
+    """
+    ).fetchall()
+
+    client_sdr_id = None
+    if len(data) > 0:
+        client_sdr_id = data[0][0]
+
+    return client_sdr_id
