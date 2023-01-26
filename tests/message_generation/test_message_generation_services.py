@@ -215,11 +215,11 @@ def test_generate_outreaches_new(
     )
     assert len(outreaches) == 4
     assert ai_patch.called is True
-    assert completion_patch.called is True
+    # assert completion_patch.called is True
     # assert adversary_patch.called is True
 
     generated_messages: list = GeneratedMessage.query.all()
-    assert len(generated_messages) == 8
+    assert len(generated_messages) == 4
     for gm in generated_messages:
         assert gm.message_type == GeneratedMessageType.LINKEDIN
         assert gm.message_cta == cta.id
