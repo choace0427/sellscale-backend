@@ -178,6 +178,7 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
         # HERE
 
     except Exception as e:
+        db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
@@ -266,6 +267,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str
             db.session.commit()
             return False
     except Exception as e:
+        db.session.rollback()
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
             return False
