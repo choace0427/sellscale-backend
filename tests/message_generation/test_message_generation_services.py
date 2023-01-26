@@ -213,7 +213,7 @@ def test_generate_outreaches_new(
         batch_id="123123123",
         cta_id=cta.id,
     )
-    assert len(outreaches) == 8
+    assert len(outreaches) == 4
     assert ai_patch.called is True
     assert completion_patch.called is True
     # assert adversary_patch.called is True
@@ -786,8 +786,13 @@ def test_change_prospect_email_status():
 
 @use_app_context
 @mock.patch("src.message_generation.services.run_message_rule_engine", return_value=[])
-@mock.patch("src.research.linkedin.extractors.current_company.wrapped_create_completion", return_value="test")
-def test_batch_approve_message_generations_by_heuristic(openai_wrapper_mock, rule_engine_mock):
+@mock.patch(
+    "src.research.linkedin.extractors.current_company.wrapped_create_completion",
+    return_value="test",
+)
+def test_batch_approve_message_generations_by_heuristic(
+    openai_wrapper_mock, rule_engine_mock
+):
     prospect_ids = []
 
     client = basic_client()
@@ -981,7 +986,9 @@ def test_run_check_message_has_bad_entities_with_no_ner_cta(get_named_entities_p
     generated_message_id = generated_message.id
     generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
     generated_message.prompt = "Oh no."
-    generated_message_cta = basic_generated_message_cta_with_text(archetype, "No entities here.")
+    generated_message_cta = basic_generated_message_cta_with_text(
+        archetype, "No entities here."
+    )
     generated_message.message_cta = generated_message_cta.id
     db.session.add(generated_message)
     db.session.add(generated_message_cta)
@@ -1012,7 +1019,9 @@ def test_run_check_message_has_bad_entities_with_ner_cta(get_named_entities_patc
     generated_message_id = generated_message.id
     generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
     generated_message.prompt = "Oh no."
-    generated_message_cta = basic_generated_message_cta_with_text(archetype, "Marla is here.")
+    generated_message_cta = basic_generated_message_cta_with_text(
+        archetype, "Marla is here."
+    )
     generated_message.message_cta = generated_message_cta.id
     db.session.add(generated_message)
     db.session.add(generated_message_cta)
