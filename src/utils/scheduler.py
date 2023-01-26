@@ -53,9 +53,8 @@ scheduler.add_job(
 )
 scheduler.add_job(
     func=run_next_client_sdr_li_conversation_scraper_job,
-    trigger="cron",
-    minute="*/10",
-    hour="*",
+    trigger="interval",
+    minutes=10,
 )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
 scheduler.start()
