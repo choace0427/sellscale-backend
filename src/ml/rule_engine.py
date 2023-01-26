@@ -11,6 +11,7 @@ ADVERSARIAL_MODEL = "curie:ft-personal-2022-10-27-20-07-22"
 # This MUST be changed when the relative path of the csv's changes.
 profanity_csv_path = r"src/../datasets/profanity.csv"
 web_blacklist_path = r"src/../datasets/web_blacklist.csv"
+dr_positions_path = r"src/../datasets/dr_positions.csv"
 
 
 def get_adversarial_ai_approval(prompt):
@@ -142,7 +143,22 @@ def rule_address_doctor(prompt: str, completion: str, problems: list):
 
     if search is not None and "dr." not in completion:
         problems.append("Prompt contains 'MD' but no 'Dr.' in message")
+        return
 
+    # Look in the title for position which implies a doctor
+    title_section = ''
+    for section in prompt.split('<>'):
+        if section.startswith('title:'):
+            title_section = section.lower()
+    with open(dr_positions_path, newline="") as f:
+        reader = csv.reader(f)
+        dr_positions = set([row[0] for row in reader])
+        title_splitted = title_section.split(' ')
+        for title in title_splitted:
+            if title in dr_positions and "dr." not in completion:
+                problems.append("Prompt contains a doctor position '{}' but no 'Dr.' in message".format(title))
+                return
+                
     return
 
 

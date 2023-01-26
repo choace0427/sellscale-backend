@@ -129,6 +129,14 @@ def test_rule_address_doctor():
     rule_address_doctor("David, MD", "David", problems)
     assert problems == ["Prompt contains 'MD' but no 'Dr.' in message"]
 
+    problems = []
+    rule_address_doctor("David Wei<>title: physician at some hospital<>something:dddd", "David, MD", problems)
+    assert problems == ["Prompt contains a doctor position 'physician' but no 'Dr.' in message"]
+
+    problems = []
+    rule_address_doctor("David Wei, <>title: neurosurgeon at some hospital<>something:dddd", "David, MD", problems)
+    assert problems == ["Prompt contains a doctor position 'neurosurgeon' but no 'Dr.' in message"]
+
 
 @use_app_context
 def test_rule_no_symbols():
