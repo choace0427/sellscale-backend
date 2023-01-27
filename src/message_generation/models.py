@@ -84,6 +84,11 @@ class GeneratedMessageCTA(db.Model):
     text_value = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True)
 
+    def get_active_ctas_for_archetype(archetype_id):
+        return GeneratedMessageCTA.query.filter_by(
+            archetype_id=archetype_id, active=True
+        ).all()
+
 
 class GeneratedMessageFeedback(db.Model):
     __tablename__ = "generated_message_feedback"
