@@ -2,11 +2,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import time
 import os
-from src.utils.slack import URL_MAP
 
 ENV = os.environ.get("FLASK_ENV")
-
-from src.utils.slack import send_slack_message
 
 
 def scrape_all_inboxes_job():
@@ -31,19 +28,10 @@ def update_all_phantom_buster_run_statuses_job():
 
 
 def run_next_client_sdr_li_conversation_scraper_job():
-    from src.li_conversation.services import get_next_client_sdr_to_scrape
-    from src.li_conversation.controllers import update_li_conversation_extractor_phantom
+    from src.li_conversation.services import run_next_client_sdr_scrape
 
-    client_sdr_id = get_next_client_sdr_to_scrape()
-    if client_sdr_id:
-        if os.environ.get("FLASK_ENV") == "production":
-            update_li_conversation_extractor_phantom(client_sdr_id)
-            send_slack_message(
-                "💬 LinkedIn conversation scraper ran for client_sdr_id: {client_sdr_id}".format(
-                    client_sdr_id=client_sdr_id
-                ),
-                webhook_urls=[URL_MAP["eng-sandbox"]],
-            )
+    if os.environ.get("FLASK_ENV") == "production":
+        run_next_client_sdr_scrape.delay()
 
 
 scheduler = BackgroundScheduler()

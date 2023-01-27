@@ -1,10 +1,13 @@
 from model_import import LinkedinConversationEntry
 from datetime import datetime
-from app import db
+from app import db, celery
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
 from model_import import ClientSDR
 from src.automation.models import PhantomBusterAgent
+
+from src.utils.slack import URL_MAP
+from src.utils.slack import send_slack_message
 
 
 def update_linkedin_conversation_entries():
@@ -155,3 +158,16 @@ def get_next_client_sdr_to_scrape():
         client_sdr_id = data[0][0]
 
     return client_sdr_id
+
+
+@celery.task
+def run_next_client_sdr_scrape():
+    client_sdr_id = get_next_client_sdr_to_scrape()
+    if client_sdr_id:
+        update_li_conversation_extractor_phantom(client_sdr_id)
+        send_slack_message(
+            "💬 LinkedIn conversation scraper ran for client_sdr_id: {client_sdr_id}".format(
+                client_sdr_id=client_sdr_id
+            ),
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
