@@ -18,6 +18,7 @@ from src.ml.rule_engine import (
     rule_linkedin_length,
     rule_address_doctor,
     rule_no_symbols,
+    rule_no_companies
 )
 from model_import import GeneratedMessage, GeneratedMessageType
 
@@ -153,3 +154,17 @@ def test_rule_no_symbols():
     problems = []
     rule_no_symbols("This is a message with a failing symbol: $ ®", problems)
     assert problems == ["Completion contains uncommon symbols: $, ®"]
+
+
+@use_app_context
+def test_rule_no_companies():
+    problems = []
+    rule_no_companies("pass", problems)
+    assert problems == []
+
+    rule_no_companies("This is a message with a an abbreviation: Something inc", problems)
+    assert problems == ["Please check for relevance. Contains company abbreviations: inc"]
+
+    problems = []
+    rule_no_companies("This is a message with a an abbreviation: Something inc. and another one: Something else ltd.", problems)
+    assert problems == ["Please check for relevance. Contains company abbreviations: inc, ltd"]

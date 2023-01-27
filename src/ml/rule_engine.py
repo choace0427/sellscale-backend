@@ -12,6 +12,7 @@ ADVERSARIAL_MODEL = "curie:ft-personal-2022-10-27-20-07-22"
 profanity_csv_path = r"src/../datasets/profanity.csv"
 web_blacklist_path = r"src/../datasets/web_blacklist.csv"
 dr_positions_path = r"src/../datasets/dr_positions.csv"
+company_abbrev_csv_path = r"src/../datasets/company_abbreviations.csv"
 
 
 def get_adversarial_ai_approval(prompt):
@@ -92,6 +93,7 @@ def run_message_rule_engine(message_id: int):
     # Warnings
     rule_no_cookies(completion, problems)
     rule_no_symbols(completion, problems)
+    rule_no_companies(completion, problems)
 
     if "i have " in completion:
         problems.append("Uses first person 'I have'.")
@@ -233,14 +235,42 @@ def rule_no_url(completion: str, problems: list):
     return
 
 
-def rule_linkedin_length(
-    message_type: GeneratedMessageType, completion: str, problems: list
-):
+def rule_linkedin_length(message_type: GeneratedMessageType, completion: str, problems: list):
     """Rule: Linkedin Length
 
     Linkedin messages must be less than 300 characters.
     """
     if message_type == GeneratedMessageType.LINKEDIN and len(completion) > 300:
         problems.append("LinkedIn message is > 300 characters.")
+
+    return
+
+
+def rule_no_companies(completion: str, problems: list):
+    """Rule: No companies
+
+    No company abbreviations allowed in the completion. ie 'LLC', 'Inc.'
+    """
+    with open(company_abbrev_csv_path, newline="") as f:
+        reader = csv.reader(f)
+        company_abbreviations = set([row[0] for row in reader])
+
+    detected_abbreviations = []
+    for word in completion.split():
+        stripped_word = re.sub(
+            "[^0-9a-zA-Z]+",
+            "",
+            word,
+        ).strip()
+        if stripped_word in company_abbreviations:
+            detected_abbreviations.append(stripped_word)
+
+    if len(detected_abbreviations) > 0:
+        problem_string = ", ".join(detected_abbreviations)
+        problems.append(
+            "Please check for relevance. Contains company abbreviations: {}".format(
+                problem_string
+            )
+        )
 
     return
