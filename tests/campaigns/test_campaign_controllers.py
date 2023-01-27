@@ -13,6 +13,7 @@ from test_utils import (
     basic_prospect,
     basic_editor,
     basic_prospect_email,
+    basic_generated_message_cta,
 )
 from src.campaigns.services import create_outbound_campaign
 from model_import import OutboundCampaign
@@ -888,6 +889,11 @@ def test_post_remove_ungenerated_prospects():
     email_schema = basic_email_schema(archetype=archetype)
     email_schema_id = email_schema.id
 
+    cta = basic_generated_message_cta(archetype=archetype)
+    cta.active = True
+    db.session.add(cta)
+    db.session.commit()
+
     prospect = basic_prospect(archetype=archetype, client=client)
     prospect2 = basic_prospect(archetype=archetype, client=client)
     prospect3 = basic_prospect(archetype=archetype, client=client)
@@ -921,3 +927,28 @@ def test_post_remove_ungenerated_prospects():
     assert response.status_code == 200
     campaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.prospect_ids == [prospect_3_id]
+
+    # test creating a LI campaign from this email campaign
+    response = app.test_client().post(
+        "campaigns/create_li_campaign_from_email",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "campaign_id": campaign_id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    campaign_id = response.json["campaign_id"]
+    assert campaign_id > 0
+
+    campaign = OutboundCampaign.query.get(campaign_id)
+    assert campaign.campaign_type.value == "LINKEDIN"
+    assert campaign.prospect_ids == [prospect_3_id]
+    assert campaign.client_archetype_id == archetype_id
+    assert campaign.ctas == [cta.id]
+    assert campaign.client_sdr_id == client_sdr_id
+    assert campaign.email_schema_id is None
+
+    all_campaigns = OutboundCampaign.query.all()
+    assert len(all_campaigns) == 2

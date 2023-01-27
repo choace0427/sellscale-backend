@@ -19,6 +19,7 @@ from src.campaigns.services import (
     batch_update_campaign_editing_attributes,
     adjust_editing_due_date,
     remove_ungenerated_prospects_from_campaign,
+    create_new_li_campaign_from_existing_email_campaign,
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -212,3 +213,12 @@ def post_remove_ungenerated_prospects():
     )
     remove_ungenerated_prospects_from_campaign(campaign_id=campaign_id)
     return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/create_li_campaign_from_email", methods=["POST"])
+def post_create_li_campaign_from_email():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    campaign = create_new_li_campaign_from_existing_email_campaign(campaign_id)
+    return jsonify({"campaign_id": campaign.id})

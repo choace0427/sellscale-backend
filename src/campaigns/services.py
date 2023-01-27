@@ -1,7 +1,7 @@
 from app import db
 from src.campaigns.models import *
 from src.client.services import get_client, get_client_sdr
-from model_import import Prospect
+from model_import import Prospect, GeneratedMessageCTA
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_few_shot,
 )
@@ -659,3 +659,33 @@ def remove_ungenerated_prospects_from_campaign(campaign_id: int):
     db.session.commit()
 
     return True
+
+
+def create_new_li_campaign_from_existing_email_campaign(email_campaign_id: int):
+    """Creates a new LinkedIn campaign from an existing email campaign
+
+    Args:
+        email_campaign_id (int): Email campaign id
+    """
+    email_campaign = OutboundCampaign.query.get(email_campaign_id)
+    if not email_campaign:
+        raise Exception("Email campaign not found")
+    if email_campaign.campaign_type != GeneratedMessageType.EMAIL:
+        raise Exception("Campaign is not an email campaign")
+
+    new_campaign = create_outbound_campaign(
+        prospect_ids=email_campaign.prospect_ids,
+        campaign_type=GeneratedMessageType.LINKEDIN,
+        client_archetype_id=email_campaign.client_archetype_id,
+        client_sdr_id=email_campaign.client_sdr_id,
+        campaign_start_date=email_campaign.campaign_start_date,
+        campaign_end_date=email_campaign.campaign_end_date,
+        ctas=[
+            cta.id
+            for cta in GeneratedMessageCTA.get_active_ctas_for_archetype(
+                email_campaign.client_archetype_id
+            )
+        ],
+    )
+
+    return new_campaign
