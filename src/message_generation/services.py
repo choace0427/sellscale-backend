@@ -161,12 +161,13 @@ def research_and_generate_emails_for_prospect(prospect_id: int, email_schema_id:
 
 def generate_prompt(prospect_id: int, notes: str = ""):
     from model_import import Prospect
+    from src.utils.converters.string_converters import clean_company_name
 
     p: Prospect = Prospect.query.get(prospect_id)
     bio_data = {
         "full_name": p.full_name,
         "industry": p.industry,
-        "company": p.company,
+        "company": clean_company_name(p.company),
         "title": p.title,
         "notes": notes,
         "cleaned_bio": p.linkedin_bio,
