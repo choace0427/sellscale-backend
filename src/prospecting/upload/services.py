@@ -264,7 +264,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str
         industry = deep_get(iscraper_payload, "industry")
         linkedin_url = "linkedin.com/in/{}".format(deep_get(iscraper_payload, "profile_id"))
         linkedin_bio = deep_get(iscraper_payload, "summary")
-        title = deep_get(iscraper_payload, "sub_title")
+        title = deep_get(iscraper_payload, "position_groups.0.profile_positions.0.title") or deep_get(iscraper_payload, "sub_title")
         twitter_url = None
 
         # Add prospect
