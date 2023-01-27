@@ -94,7 +94,7 @@ def run_message_rule_engine(message_id: int):
     rule_no_cookies(completion, problems)
     rule_no_symbols(completion, problems)
     rule_no_companies(completion, problems)
-    rule_catch_strange_titles(prompt, problems)
+    rule_catch_strange_titles(completion, prompt, problems)
 
     if "i have " in completion:
         problems.append("Uses first person 'I have'.")
@@ -277,20 +277,32 @@ def rule_no_companies(completion: str, problems: list):
     return
 
 
-def rule_catch_strange_titles(prompt: str, problems: list):
+def rule_catch_strange_titles(completion: str, prompt: str, problems: list):
     title_section = ''
     for section in prompt.split('<>'):
         if section.startswith('title:'):
-            title_section = section.lower().split('title:')[1]      # Get everything after 'title:'
+            title_section = section.lower().split('title:')[1].strip()      # Get everything after 'title:'
     
-    if len(title_section) > 50:                                     # If the title is too long, it's probably not a title, or has fluff (>50 chars)
-        problems.append("WARNING: Title is very long. Please check message quality.")
+    if title_section == '':                                         # No title, no problem   
         return
-    
-    ALLOWED_SYMBOLS = ["'"]
-    unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
-    match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
-    if match and len(match) > 0:
-        problems.append("WARNING: Title contains symbols, check for relevance and length. '{}'".format(", ".join(match)))
+
+    splitted_title_section = title_section.split(' ')
+    if len(splitted_title_section) >= 2:
+        first_words = splitted_title_section[:2]                    # Get the first 2 words
+    elif len(splitted_title_section) == 1:
+        first_words = splitted_title_section[0]                     # Get the first word                     
+
+    first_words = ' '.join(first_words).strip()
+    completion = completion.lower()
+    if completion.find(first_words) >= 0:                           # Only run title check if the completion mentions the title.
+        if len(title_section) > 50:                                 # If the title is too long, it's probably not a title, or has fluff (>50 chars)
+            problems.append("WARNING: Title is mentioned but original title is too long, check for quality.")
+            return
+        
+        ALLOWED_SYMBOLS = ["'"]
+        unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
+        match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
+        if match and len(match) > 0:
+            problems.append("WARNING: Title is mentioned but original title contains symbols, check for quality.")
 
     return

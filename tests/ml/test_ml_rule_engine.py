@@ -174,15 +174,15 @@ def test_rule_no_companies():
 @use_app_context
 def test_rule_catch_strange_titles():
     problems = []
-    rule_catch_strange_titles("pass", problems)
+    rule_catch_strange_titles("pass", "pass", problems)
     assert problems == []
 
-    rule_catch_strange_titles("David Wei<>title: Software Engineer at SellScale<>something:dddd", problems)
+    rule_catch_strange_titles("pass", "David Wei<>title: Software Engineer at SellScale<>something:dddd", problems)
     assert problems == []
 
-    rule_catch_strange_titles("David Wei<>title: Software Engineer | Growth Man<>something:dddd", problems)
-    assert problems == ["WARNING: Title contains symbols, check for relevance and length. '|'"]
+    rule_catch_strange_titles("I like what you do as a Software Engineer", "David Wei<>title: Software Engineer | Growth Man<>something:dddd", problems)
+    assert problems == ["WARNING: Title is mentioned but original title contains symbols, check for quality."]
 
     problems = []
-    rule_catch_strange_titles("David Wei<>title: Software Engineer at SellScale but way too many characters here<>something:", problems)
-    assert problems == ["WARNING: Title is very long. Please check message quality."]
+    rule_catch_strange_titles("I like what you do as a Software Engineer", "David Wei<>title: Software Engineer at SellScale but way too many characters here<>something:", problems)
+    assert problems == ["WARNING: Title is mentioned but original title is too long, check for quality."]
