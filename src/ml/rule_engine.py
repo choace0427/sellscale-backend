@@ -94,6 +94,7 @@ def run_message_rule_engine(message_id: int):
     rule_no_cookies(completion, problems)
     rule_no_symbols(completion, problems)
     rule_no_companies(completion, problems)
+    rule_catch_strange_titles(prompt, problems)
 
     if "i have " in completion:
         problems.append("Uses first person 'I have'.")
@@ -272,5 +273,24 @@ def rule_no_companies(completion: str, problems: list):
                 problem_string
             )
         )
+
+    return
+
+
+def rule_catch_strange_titles(prompt: str, problems: list):
+    title_section = ''
+    for section in prompt.split('<>'):
+        if section.startswith('title:'):
+            title_section = section.lower().split('title:')[1]      # Get everything after 'title:'
+    
+    if len(title_section) > 50:                                     # If the title is too long, it's probably not a title, or has fluff (>50 chars)
+        problems.append("WARNING: Title is very long. Please check message quality.")
+        return
+    
+    ALLOWED_SYMBOLS = ["'"]
+    unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
+    match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
+    if match and len(match) > 0:
+        problems.append("WARNING: Title contains symbols, check for relevance and length. '{}'".format(", ".join(match)))
 
     return

@@ -18,7 +18,8 @@ from src.ml.rule_engine import (
     rule_linkedin_length,
     rule_address_doctor,
     rule_no_symbols,
-    rule_no_companies
+    rule_no_companies,
+    rule_catch_strange_titles
 )
 from model_import import GeneratedMessage, GeneratedMessageType
 
@@ -168,3 +169,20 @@ def test_rule_no_companies():
     problems = []
     rule_no_companies("This is a message with a an abbreviation: Something inc. and another one: Something else ltd.", problems)
     assert problems == ["Please check for relevance. Contains company abbreviations: inc, ltd"]
+
+
+@use_app_context
+def test_rule_catch_strange_titles():
+    problems = []
+    rule_catch_strange_titles("pass", problems)
+    assert problems == []
+
+    rule_catch_strange_titles("David Wei<>title: Software Engineer at SellScale<>something:dddd", problems)
+    assert problems == []
+
+    rule_catch_strange_titles("David Wei<>title: Software Engineer | Growth Man<>something:dddd", problems)
+    assert problems == ["WARNING: Title contains symbols, check for relevance and length. '|'"]
+
+    problems = []
+    rule_catch_strange_titles("David Wei<>title: Software Engineer at SellScale but way too many characters here<>something:", problems)
+    assert problems == ["WARNING: Title is very long. Please check message quality."]
