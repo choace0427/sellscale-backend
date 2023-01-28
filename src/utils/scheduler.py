@@ -34,7 +34,7 @@ def run_next_client_sdr_li_conversation_scraper_job():
         run_next_client_sdr_scrape.delay()
 
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
 scheduler.add_job(
     func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
@@ -42,8 +42,7 @@ scheduler.add_job(
 scheduler.add_job(
     func=run_next_client_sdr_li_conversation_scraper_job,
     trigger="cron",
-    # only run from 9am to 5pm PST
-    hour="0-2,17-23",
+    hour="9-17",
     minute="*/10",
 )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
