@@ -42,8 +42,8 @@ scheduler.add_job(
 scheduler.add_job(
     func=run_next_client_sdr_li_conversation_scraper_job,
     trigger="cron",
-    # only run from 9am to 5pm pst
-    hour="9-17",
+    # only run from 9am to 5pm PST
+    hour="0-2,17-23",
     minute="*/10",
 )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
