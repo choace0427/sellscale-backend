@@ -17,11 +17,9 @@ from src.research.models import (
     ResearchType,
 )
 
-from .extractors.recommendations import get_recent_recommendation_summary
-
-from .extractors.projects import get_recent_patent
-
-from .extractors.experience import (
+from src.research.linkedin.extractors.recommendations import get_recent_recommendation_summary
+from src.research.linkedin.extractors.projects import get_recent_patent
+from src.research.linkedin.extractors.experience import (
     get_current_experience_description,
     get_list_of_past_jobs,
     get_years_of_experience,

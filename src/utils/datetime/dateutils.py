@@ -30,3 +30,11 @@ def datetime_interval_generator(start: datetime, end: datetime, delta: timedelta
     while curr < end:
         yield curr
         curr += delta
+
+
+def get_current_month():
+    return datetime.now().month
+
+
+def get_current_year():
+    return datetime.now().year

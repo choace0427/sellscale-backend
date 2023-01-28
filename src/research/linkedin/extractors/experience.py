@@ -1,11 +1,11 @@
-from datetime import datetime
-
-from ....utils.abstract.attr_utils import deep_get
-from ....ml.fine_tuned_models import get_completion
-from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
 import math
 import random
+from datetime import datetime
+from src.utils.abstract.attr_utils import deep_get
+from src.ml.fine_tuned_models import get_completion
+from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
 from src.utils.converters.string_converters import sanitize_string
+from src.utils.datetime.dateutils import get_current_month, get_current_year
 
 
 def get_current_experience_description(data):
@@ -83,32 +83,57 @@ def get_years_of_experience_at_current_job(data):
     newest_month = newest_position["month"] or 1
     newest_year = newest_position["year"]
 
-    current_month = datetime.now().month
-    current_year = datetime.now().year
+    current_month = get_current_month()
+    current_year = get_current_year()
 
     months_at_job = current_month - newest_month
     years_at_job = current_year - newest_year
     time_at_job = (current_year - newest_year) + ((current_month - newest_month) / 12)
 
-    if time_at_job % 1 > 0.9:
-        frame = "{x} year anniversary at {company} is coming up".format(
-            x=math.ceil(time_at_job), company=company_name
-        )
-    elif time_at_job % 1 > 0.8:
-        frame = "Coming up on {x} years at {company}".format(
-            x=math.ceil(time_at_job), company=company_name
-        )
-    elif time_at_job % 1 < 0.15 and years_at_job > 1:
-        frame = "Had a recent {x} year anniversary at {company}".format(
-            x=math.floor(years_at_job), company=company_name
-        )
-    elif math.floor(time_at_job) > 0:
-        frame = "Spent {x} years at {company}".format(
-            x=round(years_at_job, 1), company=company_name
+    # FIRST (fallback): Just give the raw numbers
+    if math.floor(time_at_job) > 0:
+        frame = "Spent {x} years at {company}.".format(
+            x=math.floor(time_at_job), company=company_name
         )
     else:
-        frame = "Spent {x} months at {company}".format(
+        frame = "Spent {x} months at {company}.".format(
             x=math.ceil(12 * (time_at_job % 1)), company=company_name
+        )
+
+    # SECOND (mid-priority): Try to grab a colloquial phrase
+    if time_at_job <= 0.4:                                  # Less than 5 months (5/12 ~ 0.417)
+        frame = "Just started at {company}.".format(company=company_name)
+    elif time_at_job > 0.4 and time_at_job < .6:            # 5-7 months
+        frame = "Been at {company} for half a year.".format(company=company_name)
+    elif time_at_job >= 40:                                  # 40+ years          
+        frame = "Been at {company} for over {time} decades.".format(company=company_name, time = math.floor(time_at_job // 10))
+    elif time_at_job >= 39:                                 # 39-40 years             
+        frame = "Been at {company} for nearly 4 decades.".format(company=company_name)
+    elif time_at_job > 30:                                  # 30-39 years     
+        frame = "Been at {company} for over 3 decades.".format(company=company_name)
+    elif time_at_job >= 29:                                 # 29-30 years
+        frame = "Been at {company} for nearly 3 decades.".format(company=company_name)
+    elif time_at_job > 20:                                  # 20-29 years   
+        frame = "Been at {company} for over 2 decades.".format(company=company_name)
+    elif time_at_job >= 19:                                 # 19-20 years
+        frame = "Been at {company} for nearly 2 decades.".format(company=company_name)
+    elif time_at_job > 10:                                  # 10-19 years
+        frame = "Been at {company} for over a decade.".format(company=company_name)
+    elif time_at_job >= 9:                                  # 9-10 years
+        frame = "Been at {company} for nearly a decade.".format(company=company_name)
+    elif time_at_job > 5:                                   # 5-9 years
+        frame = "Been at {company} for over half a decade.".format(company=company_name)
+    elif time_at_job < 2 and time_at_job > 1.2:             # 14-24 months
+        frame = "Been at {company} for over a year.".format(company=company_name)
+
+    # THIRD (high priority): Check for anniversary
+    if time_at_job % 1 > 0.9:
+        frame = "{x}-year anniversary at {company} is coming up.".format(
+            x=math.ceil(time_at_job), company=company_name
+        )
+    elif time_at_job % 1 < 0.15 and years_at_job >= 1:
+        frame = "Had a recent {x}-year anniversary at {company}.".format(
+            x=math.floor(years_at_job), company=company_name
         )
 
     if not company_name:

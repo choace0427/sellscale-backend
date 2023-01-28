@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from ....ml.fine_tuned_models import get_completion
+from src.ml.fine_tuned_models import get_completion
 
-from ....utils.abstract.attr_utils import deep_get
+from src.utils.abstract.attr_utils import deep_get
 
 
 def get_recent_recommendation_summary(data):
