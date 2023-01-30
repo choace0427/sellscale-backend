@@ -113,13 +113,17 @@ def basic_archetype(client: Client) -> ClientArchetype:
     return a
 
 
-def basic_prospect(client: Client, archetype: ClientArchetype):
+def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None):
+    client_sdr_id = None
+    if client_sdr:
+        client_sdr_id = client_sdr.id
     p = Prospect(
         client_id=client.id,
         archetype_id=archetype.id,
         full_name="Testing Testasara",
         title="Testing Director",
         status=ProspectStatus.PROSPECTED,
+        client_sdr_id=client_sdr_id,
     )
     db.session.add(p)
     db.session.commit()

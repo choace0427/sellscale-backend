@@ -29,7 +29,7 @@ import json
 import hashlib
 
 
-def search_prospects(query: str, limit: int = 10, offset: int = 0) -> list[Prospect]:
+def search_prospects(query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0) -> list[Prospect]:
     """Search prospects by full name, company, or title
 
     Args:
@@ -42,11 +42,14 @@ def search_prospects(query: str, limit: int = 10, offset: int = 0) -> list[Prosp
     """
     lowered_query = query.lower()
     prospects = Prospect.query.filter(
+        Prospect.client_id == client_id,
+        Prospect.client_sdr_id == client_sdr_id,
         Prospect.full_name.ilike(f"%{lowered_query}%")
         | Prospect.company.ilike(f"%{lowered_query}%")
         | Prospect.email.ilike(f"%{lowered_query}%")
         | Prospect.linkedin_url.ilike(f"%{lowered_query}%")
     ).limit(limit).offset(offset).all()
+    print(prospects)
     return prospects
 
 

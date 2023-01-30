@@ -37,12 +37,13 @@ import json
 def test_search_prospects():
     c = basic_client()
     a = basic_archetype(c)
-    prospect = basic_prospect(c, a)         # Testing Testasara
+    c_sdr = basic_client_sdr(c)
+    prospect = basic_prospect(c, a, c_sdr)         # Testing Testasara
 
-    prospects = search_prospects(query="test", limit=10)
+    prospects = search_prospects(query="test", client_id=c.id, client_sdr_id=c_sdr.id, limit=10)
     assert len(prospects) == 1
 
-    prospects = search_prospects(query="NO MATCH", limit=10)
+    prospects = search_prospects(query="NO MATCH", client_id=c.id, client_sdr_id=c_sdr.id, limit=10)
     assert len(prospects) == 0
 
 

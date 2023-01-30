@@ -19,15 +19,16 @@ import mock
 def test_search_prospects_endpoint():
     c = basic_client()
     a = basic_archetype(c)
-    p = basic_prospect(c, a)
+    c_sdr = basic_client_sdr(c)
+    p = basic_prospect(c, a, c_sdr)
 
-    response = app.test_client().get("prospect/search?query=test&limit=10")
+    response = app.test_client().get(f"prospect/search?query=test&client_id={c.id}&client_sdr_id={c_sdr.id}&limit=10")
     data = json.loads(response.data)
     assert len(data) == 1
     assert data.pop().get("id") == p.id
     assert response.status_code == 200
 
-    response = app.test_client().get("prospect/search?query=notfound&limit=10")
+    response = app.test_client().get(f"prospect/search?query=notfound&client_id={c.id}&client_sdr_id={c_sdr.id}&limit=10")
     data = json.loads(response.data)
     assert len(data) == 0
     assert response.status_code == 200

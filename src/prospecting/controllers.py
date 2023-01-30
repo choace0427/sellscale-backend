@@ -52,9 +52,12 @@ def search_prospects_endpoint():
         A list of prospect matches in json format
     """
     query =  get_request_parameter("query", request, json=False, required=True)
+    client_id = get_request_parameter("client_id", request, json=False, required=True)
+    client_sdr_id = get_request_parameter("client_sdr_id", request, json=False, required=True)
     limit = get_request_parameter("limit", request, json=False, required=False) or 10
     offset = get_request_parameter("offset", request, json=False, required=False) or 0
-    prospects: list[Prospect] = search_prospects(query, limit, offset)
+
+    prospects: list[Prospect] = search_prospects(query, int(client_id), int(client_sdr_id), limit, offset)
 
     return jsonify([p.to_dict() for p in prospects]), 200
 
