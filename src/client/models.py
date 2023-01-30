@@ -76,3 +76,5 @@ class ClientSDR(db.Model):
 
     li_at_token = db.Column(db.String)
     last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
+
+    monthly_revenue = db.Column(db.Integer, nullable=True)
