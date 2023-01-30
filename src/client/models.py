@@ -27,6 +27,7 @@ class Client(db.Model):
 
     super_sight_link = db.Column(db.String, nullable=True)
     monthly_revenue = db.Column(db.Integer, nullable=True)
+    seat_expansion_opportunity = db.Column(db.Integer, nullable=True)
 
 
 class ClientArchetype(db.Model):
