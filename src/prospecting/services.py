@@ -29,7 +29,9 @@ import json
 import hashlib
 
 
-def search_prospects(query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0) -> list[Prospect]:
+def search_prospects(
+    query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0
+):
     """Search prospects by full name, company, or title
 
     Args:
@@ -41,14 +43,19 @@ def search_prospects(query: str, client_id: int, client_sdr_id: int, limit: int 
         list[Prospect]: List of prospects
     """
     lowered_query = query.lower()
-    prospects = Prospect.query.filter(
-        Prospect.client_id == client_id,
-        Prospect.client_sdr_id == client_sdr_id,
-        Prospect.full_name.ilike(f"%{lowered_query}%")
-        | Prospect.company.ilike(f"%{lowered_query}%")
-        | Prospect.email.ilike(f"%{lowered_query}%")
-        | Prospect.linkedin_url.ilike(f"%{lowered_query}%")
-    ).limit(limit).offset(offset).all()
+    prospects = (
+        Prospect.query.filter(
+            Prospect.client_id == client_id,
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.full_name.ilike(f"%{lowered_query}%")
+            | Prospect.company.ilike(f"%{lowered_query}%")
+            | Prospect.email.ilike(f"%{lowered_query}%")
+            | Prospect.linkedin_url.ilike(f"%{lowered_query}%"),
+        )
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
     print(prospects)
     return prospects
 
@@ -57,7 +64,9 @@ def prospect_exists_for_archetype(full_name: str, client_id: int, archetype_id: 
     from src.prospecting.models import Prospect
 
     p: Prospect = Prospect.query.filter(
-        Prospect.full_name == full_name, Prospect.client_id == client_id, Prospect.archetype_id == archetype_id
+        Prospect.full_name == full_name,
+        Prospect.client_id == client_id,
+        Prospect.archetype_id == archetype_id,
     ).first()
 
     if p:
@@ -793,6 +802,9 @@ def get_prospect_details(prospect_id: int):
     company_url = iset.get_company_url()
     company_employee_count = iset.get_company_staff_count()
 
+    archetype: ClientArchetype = ClientArchetype.query.get(p.archetype_id)
+    archetype_name = archetype.archetype if archetype else None
+
     return {
         "details": {
             "id": p.id,
@@ -802,6 +814,7 @@ def get_prospect_details(prospect_id: int):
             "profile_pic": personal_profile_picture,
             "ai_responses_disabled": p.deactivate_ai_engagement,
             "notes": prospect_notes,
+            "persona": archetype_name,
         },
         "li": {
             "li_conversation_url": p.li_conversation_thread_id,
