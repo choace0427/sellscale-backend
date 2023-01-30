@@ -3,7 +3,10 @@ import random
 from datetime import datetime
 from src.utils.abstract.attr_utils import deep_get
 from src.ml.fine_tuned_models import get_completion
-from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
+from src.ml.openai_wrappers import (
+    wrapped_create_completion,
+    CURRENT_OPENAI_DAVINCI_MODEL,
+)
 from src.utils.converters.string_converters import sanitize_string
 from src.utils.datetime.dateutils import get_current_month, get_current_year
 
@@ -63,7 +66,9 @@ def get_years_of_experience(data):
         if yoe == 1:
             raw_data = {"years_of_experience": "1 year of experience in industry"}
         elif yoe == 5:
-            raw_data = {"years_of_experience": "Half a decade of experience in industry"}
+            raw_data = {
+                "years_of_experience": "Half a decade of experience in industry"
+            }
         elif yoe == 10:
             raw_data = {"years_of_experience": "A decade of experience in industry"}
         else:
@@ -76,9 +81,9 @@ def get_years_of_experience(data):
 
 def get_years_of_experience_at_current_job(data):
     # been in current job for X years
-    company_name = data.get("company").get("details", {}).get("name")
+    company_name = deep_get(data, "company.details.name")
 
-    positions = data.get("personal", {}).get("position_groups", [])
+    positions = deep_get(data, "personal.position_groups", [])
     newest_position = positions[0].get("date", {}).get("start")
     newest_month = newest_position["month"] or 1
     newest_year = newest_position["year"]
@@ -101,29 +106,31 @@ def get_years_of_experience_at_current_job(data):
         )
 
     # SECOND (mid-priority): Try to grab a colloquial phrase
-    if time_at_job <= 0.4:                                  # Less than 5 months (5/12 ~ 0.417)
+    if time_at_job <= 0.4:  # Less than 5 months (5/12 ~ 0.417)
         frame = "Just started at {company}.".format(company=company_name)
-    elif time_at_job > 0.4 and time_at_job < .6:            # 5-7 months
+    elif time_at_job > 0.4 and time_at_job < 0.6:  # 5-7 months
         frame = "Been at {company} for half a year.".format(company=company_name)
-    elif time_at_job >= 40:                                  # 40+ years          
-        frame = "Been at {company} for over {time} decades.".format(company=company_name, time = math.floor(time_at_job // 10))
-    elif time_at_job >= 39:                                 # 39-40 years             
+    elif time_at_job >= 40:  # 40+ years
+        frame = "Been at {company} for over {time} decades.".format(
+            company=company_name, time=math.floor(time_at_job // 10)
+        )
+    elif time_at_job >= 39:  # 39-40 years
         frame = "Been at {company} for nearly 4 decades.".format(company=company_name)
-    elif time_at_job > 30:                                  # 30-39 years     
+    elif time_at_job > 30:  # 30-39 years
         frame = "Been at {company} for over 3 decades.".format(company=company_name)
-    elif time_at_job >= 29:                                 # 29-30 years
+    elif time_at_job >= 29:  # 29-30 years
         frame = "Been at {company} for nearly 3 decades.".format(company=company_name)
-    elif time_at_job > 20:                                  # 20-29 years   
+    elif time_at_job > 20:  # 20-29 years
         frame = "Been at {company} for over 2 decades.".format(company=company_name)
-    elif time_at_job >= 19:                                 # 19-20 years
+    elif time_at_job >= 19:  # 19-20 years
         frame = "Been at {company} for nearly 2 decades.".format(company=company_name)
-    elif time_at_job > 10:                                  # 10-19 years
+    elif time_at_job > 10:  # 10-19 years
         frame = "Been at {company} for over a decade.".format(company=company_name)
-    elif time_at_job >= 9:                                  # 9-10 years
+    elif time_at_job >= 9:  # 9-10 years
         frame = "Been at {company} for nearly a decade.".format(company=company_name)
-    elif time_at_job > 5:                                   # 5-9 years
+    elif time_at_job > 5:  # 5-9 years
         frame = "Been at {company} for over half a decade.".format(company=company_name)
-    elif time_at_job < 2 and time_at_job > 1.2:             # 14-24 months
+    elif time_at_job < 2 and time_at_job > 1.2:  # 14-24 months
         frame = "Been at {company} for over a year.".format(company=company_name)
 
     # THIRD (high priority): Check for anniversary
@@ -207,21 +214,25 @@ def get_list_of_past_jobs(data):
 
 def get_linkedin_bio_summary(data):
     summary = deep_get(data, "personal.summary")
-    if not summary:                         # No bio
+    if not summary:  # No bio
         return {"response": ""}
 
     first_name = deep_get(data, "personal.first_name")
     last_name = deep_get(data, "personal.last_name")
-    if not first_name or not last_name:     # No name
+    if not first_name or not last_name:  # No name
         return {"response": ""}
     name = first_name + " " + last_name
 
-    
+    summary = summary.replace(
+        "\n", " "
+    )  # We may eventually need to replace strange symbols as well
 
-    summary = summary.replace("\n", " ")    # We may eventually need to replace strange symbols as well
-    
     instruction = "Summarize the individual's bio in 30 words or less."
-    prompt = f'individual: {name}\nbio: {summary}\n\ninstruction: {instruction}\n\nsummary:'
-    response = wrapped_create_completion(model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=35)
-    
+    prompt = (
+        f"individual: {name}\nbio: {summary}\n\ninstruction: {instruction}\n\nsummary:"
+    )
+    response = wrapped_create_completion(
+        model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=35
+    )
+
     return {"response": response.strip()}
