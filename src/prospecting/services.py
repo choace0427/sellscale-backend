@@ -29,6 +29,27 @@ import json
 import hashlib
 
 
+def search_prospects(query: str, limit: int = 10, offset: int = 0) -> list[Prospect]:
+    """Search prospects by full name, company, or title
+
+    Args:
+        query (str): Search query
+        limit (int, optional): The number of results to return. Defaults to 10.
+        offset (int, optional): The offset to start from. Defaults to 0.
+
+    Returns:
+        list[Prospect]: List of prospects
+    """
+    lowered_query = query.lower()
+    prospects = Prospect.query.filter(
+        Prospect.full_name.ilike(f"%{lowered_query}%")
+        | Prospect.company.ilike(f"%{lowered_query}%")
+        | Prospect.email.ilike(f"%{lowered_query}%")
+        | Prospect.linkedin_url.ilike(f"%{lowered_query}%")
+    ).limit(limit).offset(offset).all()
+    return prospects
+
+
 def prospect_exists_for_archetype(full_name: str, client_id: int, archetype_id: int):
     from src.prospecting.models import Prospect
 

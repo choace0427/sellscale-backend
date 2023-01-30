@@ -74,6 +74,40 @@ class Prospect(db.Model):
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "archetype_id": self.archetype_id,
+            "company": self.company,
+            "company_url": self.company_url,
+            "employee_count": self.employee_count,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "full_name": self.full_name,
+            "industry": self.industry,
+            "linkedin_url": self.linkedin_url,
+            "linkedin_bio": self.linkedin_bio,
+            "title": self.title,
+            "last_position": self.last_position,
+            "twitter_url": self.twitter_url,
+            "email": self.email,
+            "batch": self.batch,
+            "status": self.status.value,
+            "approved_outreach_message_id": self.approved_outreach_message_id,
+            "approved_prospect_email_id": self.approved_prospect_email_id,
+            "client_sdr_id": self.client_sdr_id,
+            "li_conversation_thread_id": self.li_conversation_thread_id,
+            "li_last_message_timestamp": self.li_last_message_timestamp,
+            "li_is_last_message_from_sdr": self.li_is_last_message_from_sdr,
+            "li_last_message_from_prospect": self.li_last_message_from_prospect,
+            "last_reviewed": self.last_reviewed,
+            "times_bumped": self.times_bumped,
+            "deactivate_ai_engagement": self.deactivate_ai_engagement,
+            "is_lead": self.is_lead,
+        }
+
+
 
 class ProspectUploadBatch(db.Model):
     __tablename__ = "prospect_upload_batch"

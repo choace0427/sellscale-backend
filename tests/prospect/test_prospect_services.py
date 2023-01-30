@@ -8,6 +8,7 @@ from test_utils import (
 )
 from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
 from src.prospecting.services import (
+    search_prospects,
     add_prospect,
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
@@ -30,6 +31,19 @@ import mock
 import src.utils.slack
 from app import app
 import json
+
+
+@use_app_context
+def test_search_prospects():
+    c = basic_client()
+    a = basic_archetype(c)
+    prospect = basic_prospect(c, a)         # Testing Testasara
+
+    prospects = search_prospects(query="test", limit=10)
+    assert len(prospects) == 1
+
+    prospects = search_prospects(query="NO MATCH", limit=10)
+    assert len(prospects) == 0
 
 
 @use_app_context

@@ -16,6 +16,24 @@ import mock
 
 
 @use_app_context
+def test_search_prospects_endpoint():
+    c = basic_client()
+    a = basic_archetype(c)
+    p = basic_prospect(c, a)
+
+    response = app.test_client().get("prospect/search?query=test&limit=10")
+    data = json.loads(response.data)
+    assert len(data) == 1
+    assert data.pop().get("id") == p.id
+    assert response.status_code == 200
+
+    response = app.test_client().get("prospect/search?query=notfound&limit=10")
+    data = json.loads(response.data)
+    assert len(data) == 0
+    assert response.status_code == 200
+    
+
+@use_app_context
 def test_patch_update_status_endpoint():
     client = basic_client()
     archetype = basic_archetype(client)

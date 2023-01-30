@@ -1,8 +1,9 @@
 from app import db
 
 from flask import Blueprint, jsonify, request
-from src.prospecting.models import ProspectStatus
+from src.prospecting.models import Prospect
 from src.prospecting.services import (
+    search_prospects,
     batch_mark_prospects_as_sent_outreach,
     create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,
@@ -36,6 +37,26 @@ PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 def get_prospect_details_endpoint(prospect_id):
     prospect: dict = get_prospect_details(prospect_id)
     return jsonify(prospect), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/search", methods=["GET"])
+def search_prospects_endpoint():
+    """Search for prospects
+
+    Parameters:
+        - query (str): The search query
+        - limit (int): The number of results to return
+        - offset (int): The offset to start from
+
+    Returns:
+        A list of prospect matches in json format
+    """
+    query =  get_request_parameter("query", request, json=False, required=True)
+    limit = get_request_parameter("limit", request, json=False, required=False) or 10
+    offset = get_request_parameter("offset", request, json=False, required=False) or 0
+    prospects: list[Prospect] = search_prospects(query, limit, offset)
+
+    return jsonify([p.to_dict() for p in prospects]), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
