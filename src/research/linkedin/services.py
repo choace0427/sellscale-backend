@@ -17,7 +17,9 @@ from src.research.models import (
     ResearchType,
 )
 
-from src.research.linkedin.extractors.recommendations import get_recent_recommendation_summary
+from src.research.linkedin.extractors.recommendations import (
+    get_recent_recommendation_summary,
+)
 from src.research.linkedin.extractors.projects import get_recent_patent
 from src.research.linkedin.extractors.experience import (
     get_current_experience_description,
@@ -183,11 +185,11 @@ def get_iscraper_payload_error(payload: dict) -> str:
     message = deep_get(payload, "message")
     if message:
         return message
-    
+
     detail = deep_get(payload, "detail")
     if detail:
         return detail
-    
+
     return "iScraper error not provided"
 
 
@@ -250,12 +252,12 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             ResearchPointType.GENERAL_WEBSITE_TRANSFORMER,
             "general_website_transformer",
             generate_general_website_research_points,
-        )
-        # (
-        #     ResearchPointType.LINKEDIN_BIO_SUMMARY,
-        #     "linkedin_bio_summary",
-        #     get_linkedin_bio_summary,
-        # )
+        ),
+        (
+            ResearchPointType.LINKEDIN_BIO_SUMMARY,
+            "linkedin_bio_summary",
+            get_linkedin_bio_summary,
+        ),
     ]
 
     bullets = {}
