@@ -166,7 +166,7 @@ def collect_and_run_celery_jobs_for_upload(self, client_id: int, client_archetyp
                 prospect_upload.status = ProspectUploadsStatus.UPLOAD_QUEUED
                 db.session.add(prospect_upload)
                 db.session.commit()
-                create_prospect_from_prospect_upload_row.delay(prospect_upload_id = prospect_upload.id)
+                create_prospect_from_prospect_upload_row.apply_async(args=[prospect_upload.id], queue="prospecting", routing_key="prospecting", priority=2)
         
         return True
     except Exception as e:
@@ -197,8 +197,8 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
             return
 
         # Create the prospect using the LinkedIn URL.
-        create_prospect_from_linkedin_link.delay(
-            prospect_upload_id=prospect_upload.id,
+        create_prospect_from_linkedin_link.apply_async(
+            args=[prospect_upload.id], queue="prospecting", routing_key="prospecting", priority=2
         )
 
         # Future ways to create the prospect can go below

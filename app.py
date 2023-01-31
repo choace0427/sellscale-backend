@@ -1,4 +1,6 @@
 import os
+
+from kombu import Queue, Exchange
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 
@@ -20,6 +22,21 @@ def make_celery(app):
         broker=app.config["CELERY_BROKER_URL"],
     )
     celery.conf.update(app.config)
+
+    celery.conf.broker_transport_options = {
+        'queue_order_strategy': 'priority',
+    }
+
+    default_exchange = Exchange('default', type='direct')
+    prospecting_exchange = Exchange('prospecting', type='direct')
+    celery.conf.task_queues = (
+        Queue('default', default_exchange, routing_key='default'),
+        Queue('prospecting', prospecting_exchange, routing_key='prospecting'),
+    )
+    celery.conf.task_default_queue = 'default'
+    celery.conf.task_default_exchange = 'default'
+    celery.conf.task_default_routing_key = 'default'
+    celery.conf.task_default_priority = 5               # 0 is the highest
 
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):
