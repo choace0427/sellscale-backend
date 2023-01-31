@@ -13,6 +13,8 @@ def send_slack_block(
     client: Client = Client.query.get(prospect.client_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
+    li_last_message_from_prospect = prospect.li_last_message_from_prospect
+
     webhook_urls = [URL_MAP["sellscale_pipeline_all_clients"]]
     if (
         client.pipeline_notifications_webhook_url
@@ -21,7 +23,8 @@ def send_slack_block(
     ):
         webhook_urls.append(client.pipeline_notifications_webhook_url)
     if (
-        client_sdr and client_sdr.pipeline_notifications_webhook_url
+        client_sdr
+        and client_sdr.pipeline_notifications_webhook_url
         and client_sdr.notification_allowlist
         and new_status in client_sdr.notification_allowlist
     ):
@@ -45,7 +48,14 @@ def send_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Title:* {}".format(prospect.title),
+                    "text": "*Title:* {title}\n{last_message}".format(
+                        title=prospect.title,
+                        last_message=""
+                        if not li_last_message_from_prospect
+                        else '*Last Message*: "{}"'.format(
+                            li_last_message_from_prospect
+                        ),
+                    ),
                 },
             },
             {
