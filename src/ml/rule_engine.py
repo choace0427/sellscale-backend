@@ -139,28 +139,48 @@ def rule_address_doctor(prompt: str, completion: str, problems: list):
 
     The completion must address the doctor.
     """
-    search = re.search(
-        "[^a-zA-Z]?[mM][.]?[dD][^a-zA-Z]?",
-        prompt,
-    )
 
-    if search is not None and "dr." not in completion:
-        problems.append("Prompt contains 'MD' but no 'Dr.' in message")
-        return
-
-    # Look in the title for position which implies a doctor
+    # Grab the title and name section.
     title_section = ''
+    name_section = ''
     for section in prompt.split('<>'):
         if section.startswith('title:'):
             title_section = section.lower()
+        if section.startswith('name:'):
+            name_section = section.lower()
+
+    # Check if the title and name section contains a doctor title or 'MD'.
     with open(dr_positions_path, newline="") as f:
         reader = csv.reader(f)
         dr_positions = set([row[0] for row in reader])
+        
         title_splitted = title_section.split(' ')
         for title in title_splitted:
             if title in dr_positions and "dr." not in completion:
-                problems.append("Prompt contains a doctor position '{}' but no 'Dr.' in message".format(title))
+                problems.append("Title contains a doctor position '{}' but no 'Dr.' in message".format(title))
                 return
+
+        title_search = re.search(
+            "[^a-zA-Z]?[mM][.]?[dD][^a-zA-Z]?",
+            title_section,
+        )
+        if title_search is not None and "dr." not in completion:
+            problems.append("Title contains 'MD' but no 'Dr.' in message")
+            return
+
+        name_splitted = name_section.split(' ')
+        for name in name_splitted:
+            if name in dr_positions and "dr." not in completion:
+                problems.append("Name contains a doctor position '{}' but no 'Dr.' in message".format(name))
+                return
+
+        name_search = re.search(
+            "[^a-zA-Z]?[mM][.]?[dD][^a-zA-Z]?",
+            name_section,
+        )
+        if name_search is not None and "dr." not in completion:
+            problems.append("Name contains 'MD' but no 'Dr.' in message")
+            return
                 
     return
 

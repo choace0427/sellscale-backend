@@ -118,26 +118,34 @@ def test_rule_linkedin_length():
 @use_app_context
 def test_rule_address_doctor():
     problems = []
-    rule_address_doctor("David - not a doctor", "pass", problems)
+    rule_address_doctor("name: David<>title: ", "pass", problems)
     assert problems == []
 
-    rule_address_doctor("Dr. David", "pass", problems)
+    rule_address_doctor("name: Dr. David<>title:", "pass", problems)
     assert problems == []
 
-    rule_address_doctor("David, MD", "dr. David", problems)
+    rule_address_doctor("name: David, MD<>title:", "dr. David", problems)
     assert problems == []
 
     problems = []
-    rule_address_doctor("David, MD", "David", problems)
-    assert problems == ["Prompt contains 'MD' but no 'Dr.' in message"]
+    rule_address_doctor("name: David, MD<>title:", "David", problems)
+    assert problems == ["Name contains 'MD' but no 'Dr.' in message"]
 
     problems = []
-    rule_address_doctor("David Wei<>title: physician at some hospital<>something:dddd", "David, MD", problems)
-    assert problems == ["Prompt contains a doctor position 'physician' but no 'Dr.' in message"]
+    rule_address_doctor("name: David Wei<>title: physician at some hospital<>", "David, MD", problems)
+    assert problems == ["Title contains a doctor position 'physician' but no 'Dr.' in message"]
 
     problems = []
-    rule_address_doctor("David Wei, <>title: neurosurgeon at some hospital<>something:dddd", "David, MD", problems)
-    assert problems == ["Prompt contains a doctor position 'neurosurgeon' but no 'Dr.' in message"]
+    rule_address_doctor("name: David Wei, <>title: neurosurgeon at some hospital", "David, MD", problems)
+    assert problems == ["Title contains a doctor position 'neurosurgeon' but no 'Dr.' in message"]
+
+    problems = []
+    rule_address_doctor("name: David Wei, <>title: M.D. at Kaiser", "David, MD", problems)
+    assert problems == ["Title contains 'MD' but no 'Dr.' in message"]
+
+    problems = []
+    rule_address_doctor("name: David Wei, Neurosurgeon<>title: nothing", "David, MD", problems)
+    assert problems == ["Name contains a doctor position 'neurosurgeon' but no 'Dr.' in message"]
 
 
 @use_app_context
