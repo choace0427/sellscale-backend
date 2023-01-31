@@ -307,22 +307,19 @@ def rule_catch_strange_titles(completion: str, prompt: str, problems: list):
         return
 
     splitted_title_section = title_section.split(' ')
-    if len(splitted_title_section) >= 2:
-        first_words = splitted_title_section[:2]                    # Get the first 2 words
-    elif len(splitted_title_section) == 1:
-        first_words = splitted_title_section[0]                     # Get the first word                     
-
-    first_words = ' '.join(first_words).strip()
-    completion = completion.lower()
-    if completion.find(first_words) >= 0:                           # Only run title check if the completion mentions the title.
-        if len(title_section) > 50:                                 # If the title is too long, it's probably not a title, or has fluff (>50 chars)
-            problems.append("WARNING: Title is mentioned but original title is too long, check for quality.")
+    if len(splitted_title_section) >= 4:
+        first_words = splitted_title_section[:4]                    # Get the first 4 words
+        first_words = ' '.join(first_words).strip()
+        if first_words in completion.lower():                       # 4 words is too long for a title
+            problems.append("WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)")
             return
-        
-        ALLOWED_SYMBOLS = ["'"]
-        unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
-        match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
-        if match and len(match) > 0:
-            problems.append("WARNING: Title is mentioned but original title contains symbols, check for quality.")
+    else:
+        first_words = ' '.join(splitted_title_section).strip()
+        if first_words in completion.lower():                       # 4 words is too long for a title
+            ALLOWED_SYMBOLS = ["'"]
+            unfiltered_match = re.findall(r"[\p{S}\p{P}]", first_words)
+            match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
+            if match and len(match) > 0:
+                problems.append("WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols.")
 
     return

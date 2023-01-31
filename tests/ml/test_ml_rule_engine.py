@@ -188,9 +188,15 @@ def test_rule_catch_strange_titles():
     rule_catch_strange_titles("pass", "David Wei<>title: Software Engineer at SellScale<>something:dddd", problems)
     assert problems == []
 
-    rule_catch_strange_titles("I like what you do as a Software Engineer", "David Wei<>title: Software Engineer | Growth Man<>something:dddd", problems)
-    assert problems == ["WARNING: Title is mentioned but original title contains symbols, check for quality."]
+    rule_catch_strange_titles("Hi David, I really like what you do as the VP of Engineering", "David Wei<>title: VP of Engineering and Growth", problems)
+    assert problems == []
+
+    rule_catch_strange_titles("I like what you do as a Software Engineer", "David Wei<>title: Software @ Engineer", problems)
+    assert problems == []
+
+    rule_catch_strange_titles("Hi David, I really like what you do as the VP of Engineering and Growth", "David Wei<>title: VP of Engineering and Growth", problems)
+    assert problems == ["WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"]
 
     problems = []
-    rule_catch_strange_titles("I like what you do as a Software Engineer", "David Wei<>title: Software Engineer at SellScale but way too many characters here<>something:", problems)
-    assert problems == ["WARNING: Title is mentioned but original title is too long, check for quality."]
+    rule_catch_strange_titles("Hi David, I really like what you do as the Software @@ Engineering", "David Wei<>title: Software @@ Engineering", problems)
+    assert problems == ["WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."]
