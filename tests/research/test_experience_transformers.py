@@ -20,6 +20,38 @@ def test_get_recent_recommendation_summary(
         get_years_of_experience_at_current_job,
     )
 
+    edge_case_month_wrap = {
+        "personal": {
+            "position_groups": [
+                {
+                    "date": {
+                        "start": {"year": 2022, "month": 12},
+                        "end": {"year": None, "month": None},
+                    }
+                }
+            ]
+        },
+        "company": {"details": {"name": "SellScale"}},
+    }
+    data = get_years_of_experience_at_current_job(edge_case_month_wrap)
+    assert data["response"] == "Just started at SellScale."
+
+    edge_case_year_wrap = {
+        "personal": {
+            "position_groups": [
+                {
+                    "date": {
+                        "start": {"year": 2021, "month": 12},
+                        "end": {"year": None, "month": None},
+                    }
+                }
+            ]
+        },
+        "company": {"details": {"name": "SellScale"}},
+    }
+    data = get_years_of_experience_at_current_job(edge_case_year_wrap)
+    assert data["response"] == "Had a recent 1-year anniversary at SellScale."
+
     anniversary_within_1_month = {
         "personal": {
             "position_groups": [

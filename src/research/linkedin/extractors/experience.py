@@ -138,9 +138,9 @@ def get_years_of_experience_at_current_job(data):
         frame = "{x}-year anniversary at {company} is coming up.".format(
             x=math.ceil(time_at_job), company=company_name
         )
-    elif time_at_job % 1 < 0.15 and years_at_job >= 1:
+    elif time_at_job % 1 < 0.15 and time_at_job >= 1:
         frame = "Had a recent {x}-year anniversary at {company}.".format(
-            x=math.floor(years_at_job), company=company_name
+            x=math.floor(time_at_job), company=company_name
         )
 
     if not company_name:
