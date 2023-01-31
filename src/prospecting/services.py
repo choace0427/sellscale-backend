@@ -388,6 +388,7 @@ def add_prospect(
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
     email: Optional[str] = None,
+    client_sdr_id: Optional[int] = None,
 ) -> bool:
     status = ProspectStatus.PROSPECTED
 
@@ -420,6 +421,7 @@ def add_prospect(
             twitter_url=twitter_url,
             status=status,
             email=email,
+            client_sdr_id=client_sdr_id,
         )
         db.session.add(prospect)
         db.session.commit()
@@ -528,6 +530,7 @@ def create_prospect_from_linkedin_link(
             title=title,
             twitter_url=twitter_url,
             email=email,
+            client_sdr_id=client_archetype.client_sdr_id,
         )
 
         return True
