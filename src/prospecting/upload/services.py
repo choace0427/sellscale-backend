@@ -281,6 +281,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str
             title=title,
             twitter_url=twitter_url,
             email=email,
+            client_sdr_id=prospect_upload.client_sdr_id,
         )
         if added:
             prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE
