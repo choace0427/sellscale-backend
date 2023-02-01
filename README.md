@@ -134,8 +134,8 @@ The following steps assume that you have the above prerequisites installed - any
 9.  Now you can upgrade your empty databases with the correct schemas. After running the following commands, use Postico to validate.
 
     ```
-    source .env && flask upgrade db
-    source .envtesting && flask upgrade db
+    source .env && flask db upgrade
+    source .envtesting && flask db upgrade
     ```
 
 10. Make sure that setup worked by running two tests.
@@ -221,6 +221,31 @@ Do not run migrations late at night or on Friday nights when you want to go home
 **Please, please use PyDoc to document your code.** It makes it easier for others to understand your code.
 
 The following is a helpful VSCode extension for generating PyDoc comments: [autoDocstring](https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring)
+
+## Precommit Hooks
+
+We use [pre-commit](https://pre-commit.com/) to run a series of checks before committing code.
+
+Python specific:
+
+- **Black** - auto-formatter for Python
+- **Flake8** - linter for Python
+- **PyLint** - linter for Python
+- **Bandit** - security linter for Python
+- **pydocstyle** - linter for Python docstrings
+- **isort** - auto-import sorter for Python
+- **autoflake** - auto-import remover for Python
+
+Generic:
+- **trailing-whitespace** - removes trailing whitespace
+- **end-of-file-fixer** - ensures files end with a newline
+- **check-yaml** - checks YAML files for syntax errors
+- **check-added-large-files** - checks for large files added to the repo
+- **double-quote-string-fixer** - ensures strings are double-quoted
+- **name-tests-test** - ensures test files are named correctly
+- **requirements-txt-fixer** - ensures requirements.txt is sorted
+- **debug-statements** - ensures debug statements are removed
+
 
 ## Helpful Bash Profiles
 
