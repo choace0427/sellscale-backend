@@ -1,32 +1,56 @@
-from app import db, app
+import json
+
+import mock
+from decorators import use_app_context
 from test_utils import (
-    test_app,
-    basic_client,
     basic_archetype,
+    basic_client,
+    basic_email_schema,
     basic_generated_message,
     basic_generated_message_cta_with_text,
     basic_gnlp_model,
     basic_prospect,
-    basic_email_schema,
     basic_prospect_email,
     basic_research_payload,
     basic_research_point,
+    test_app,
 )
-from decorators import use_app_context
-from src.message_generation.services import *
+
+from app import app, db
 from model_import import (
-    GeneratedMessageCTA,
+    Client,
     GeneratedMessage,
-    GeneratedMessageStatus,
+    GeneratedMessageCTA,
     GeneratedMessageEditRecord,
+    GeneratedMessageStatus,
+    ProspectStatus,
+)
+from src.client.services import create_client
+from src.message_generation.services import (
+    GeneratedMessageType,
+    Prospect,
+    ProspectEmail,
+    ProspectEmailStatus,
+    ResearchPayload,
+    ResearchPoints,
+    batch_generate_prospect_emails,
+    clear_prospect_approved_email,
+    create_cta,
+    delete_cta,
+    delete_message_generation_by_prospect_id,
+    few_shot_generations,
+    generate_outreaches_new,
+    generate_prospect_email,
+    get_named_entities,
+    get_named_entities_for_generated_message,
+    mark_prospect_email_approved,
+    mark_prospect_email_sent,
+    research_and_generate_outreaches_for_prospect,
+    run_check_message_has_bad_entities,
+    toggle_cta_active,
+    wipe_prospect_email_and_generations_and_research,
 )
 from src.research.models import ResearchPointType, ResearchType
-from src.client.services import create_client
-from model_import import Client, ProspectStatus
-from src.message_generation.services import get_named_entities_for_generated_message
-from app import db
-import mock
-import json
 
 
 @use_app_context
@@ -202,7 +226,7 @@ def test_generate_outreaches_new(
     for i in ["research 1", "research 2"]:
         rp: ResearchPoints = ResearchPoints(
             research_payload_id=research_payload.id,
-            research_point_type=ResearchPointType.GENERAL_WEBSITE_TRANSFORMER,
+            research_point_type=ResearchPointType.YEARS_OF_EXPERIENCE_AT_CURRENT_JOB,
             value=i,
         )
         db.session.add(rp)
@@ -461,7 +485,6 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     prospect_id = prospect.id
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
-    gnlp_model_id = 5
     db.session.add(gnlp_model)
     db.session.commit()
     email_schema = basic_email_schema(archetype)
@@ -485,7 +508,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     assert get_custom_completion_for_client_mock.called is True
 
     messages: list = GeneratedMessage.query.all()
-    batch_id = messages[0].batch_id
+    messages[0].batch_id
     assert len(messages) == 3
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
@@ -640,7 +663,7 @@ def test_change_prospect_email_status_sent():
     assert response.status_code == 200
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
-    prospect_email_id = prospect_email.id
+    prospect_email.id
     generated_message: GeneratedMessage = GeneratedMessage.query.get(
         generated_message_id
     )

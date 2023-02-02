@@ -1,46 +1,43 @@
-import requests
 import json
 import os
-from app import db, celery
+
+import requests
+
+from app import celery, db
+from model_import import Client
 from src.client.models import ClientArchetype
 from src.prospecting.models import Prospect
-from src.research.website.general_website_transformer import (
-    generate_general_website_research_points,
-)
-from src.utils.abstract.attr_utils import deep_get
-
-from model_import import Client
-from src.research.models import (
-    ResearchPayload,
-    ResearchPointType,
-    ResearchPoints,
-    ResearchType,
-)
-
-from src.research.linkedin.extractors.recommendations import (
-    get_recent_recommendation_summary,
-)
-from src.research.linkedin.extractors.projects import get_recent_patent
 from src.research.linkedin.extractors.experience import (
     get_current_experience_description,
+    get_linkedin_bio_summary,
     get_list_of_past_jobs,
     get_years_of_experience,
     get_years_of_experience_at_current_job,
-    get_linkedin_bio_summary,
 )
-
-from .extractors.current_company import (
-    get_current_company_description,
-    get_current_company_specialties,
+from src.research.linkedin.extractors.projects import get_recent_patent
+from src.research.linkedin.extractors.recommendations import (
+    get_recent_recommendation_summary,
+)
+from src.research.models import (
+    ResearchPayload,
+    ResearchPoints,
+    ResearchPointType,
+    ResearchType,
+)
+from src.research.website.general_website_transformer import (
+    generate_general_website_research_points,
 )
 from src.research.website.serp_news_extractor_transformer import (
     SerpNewsExtractorTransformer,
 )
-
-from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
-
+from src.utils.abstract.attr_utils import deep_get
 from src.utils.converters.string_converters import clean_company_name
 
+from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
+from .extractors.current_company import (
+    get_current_company_description,
+    get_current_company_specialties,
+)
 
 LINKEDIN_SEARCH_URL = "https://api.iscraper.io/v2/linkedin-search"
 PROFILE_DETAILS_URL = "https://api.iscraper.io/v2/profile-details"
@@ -161,7 +158,6 @@ def sanitize_payload(payload: dict):
                 position["company"]["name"] = clean_company_name(
                     position["company"]["name"]
                 )
-        pass
 
     if company_payload:
         current_company_name = company_payload.get("details", {}).get("name")
@@ -197,7 +193,7 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    company_url = str(prospect.company_url)
+    str(prospect.company_url)
     archetype_id = prospect.archetype_id
     ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
     blocked_transformers = ca.transformer_blocklist
@@ -248,11 +244,11 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "recent_recommendation",
             get_recent_recommendation_summary,
         ),
-        (
-            ResearchPointType.GENERAL_WEBSITE_TRANSFORMER,
-            "general_website_transformer",
-            generate_general_website_research_points,
-        ),
+        # (
+        #     ResearchPointType.GENERAL_WEBSITE_TRANSFORMER,
+        #     "general_website_transformer",
+        #     generate_general_website_research_points,
+        # ),
         (
             ResearchPointType.LINKEDIN_BIO_SUMMARY,
             "linkedin_bio_summary",
@@ -275,10 +271,10 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             if blocked_transformers and t[0] in blocked_transformers:
                 continue
 
-            if t[0] == ResearchPointType.GENERAL_WEBSITE_TRANSFORMER:
-                input_payload = company_url
-            else:
-                input_payload = info
+            # if t[0] == ResearchPointType.GENERAL_WEBSITE_TRANSFORMER:
+            #     input_payload = company_url
+            # else:
+            input_payload = info
 
             value = t[2](input_payload).get("response", "")
 
