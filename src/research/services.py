@@ -1,5 +1,5 @@
-from model_import import ResearchPoints, ResearchPayload, ResearchType
 from app import db
+from model_import import ResearchPayload, ResearchPoints, ResearchType
 from src.research.models import ResearchPointType
 
 
@@ -114,7 +114,7 @@ def get_all_research_point_types():
             "transformer": ResearchPointType.GENERAL_WEBSITE_TRANSFORMER.value,
             "description": "Extracts the general website transformer",
             "example": "I saw your website and the Small Miracles Academy and was wondering why parents are sending their children there",
-            "deprecated": False,
+            "deprecated": True,
         },
         {
             "transformer": ResearchPointType.SERP_NEWS_SUMMARY.value,
