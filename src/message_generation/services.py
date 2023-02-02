@@ -254,14 +254,6 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
             prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
             model_id = 5
             completions = get_few_shot_baseline_prompt(prompt=prompt)
-            # completions, model_id = get_custom_completion_for_client(
-            #     archetype_id=archetype_id,
-            #     model_type=GNLPModelType.OUTREACH,
-            #     prompt=prompt,
-            #     max_tokens=90,
-            #     n=2,
-            # )
-
             instruction_id = None
             few_shot_prompt = None
         else:
@@ -278,15 +270,6 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
         for completion in completions:
             outreaches.append(completion)
 
-            prediction = get_adversarial_ai_approval(prompt=completion)
-
-            # try:
-            #     mistake, fix, _ = run_adversary(prompt, completion)
-            # except:
-            #     mistake = "ADVERSARY FAILED"
-            #     fix = "NONE"
-            #     # TODO: Include logging here in future
-
             message: GeneratedMessage = GeneratedMessage(
                 prospect_id=prospect_id,
                 gnlp_model_id=model_id,
@@ -295,7 +278,7 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
                 completion=completion,
                 message_status=GeneratedMessageStatus.DRAFT,
                 batch_id=batch_id,
-                adversarial_ai_prediction=prediction,
+                adversarial_ai_prediction=False,
                 message_cta=cta.id if cta else None,
                 message_type=GeneratedMessageType.LINKEDIN,
                 generated_message_instruction_id=instruction_id,
@@ -480,90 +463,6 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
             db.session.commit()
 
         db.session.delete(message)
-        db.session.commit()
-
-    return True
-
-
-def generate_few_shot_generation_prompt(generated_message_ids: list, prospect_id: int):
-    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
-
-    messages: list = GeneratedMessage.query.filter(
-        GeneratedMessage.id.in_(generated_message_ids)
-    ).all()
-
-    full_prompt = ""
-    for m in messages:
-        gm: GeneratedMessage = m
-        prospect: Prospect = Prospect.query.get(gm.prospect_id)
-        full_name = prospect.full_name
-        research_point_ids: list = gm.research_points
-        research_points: list = random.sample(
-            ResearchPoints.query.filter(
-                ResearchPoints.id.in_(research_point_ids)
-            ).all(),
-            2,
-        )
-
-        prompt = (
-            """name: {name}\nresearch: {research}\nmessage: {message}\n--\n""".format(
-                name=full_name,
-                research=". ".join([x.value.strip() for x in research_points]),
-                message=gm.completion,
-            )
-        )
-        full_prompt += prompt
-
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    research_payload: ResearchPayload = ResearchPayload.query.filter(
-        ResearchPayload.prospect_id == prospect_id
-    ).first()
-    new_research_points_all: list = ResearchPoints.query.filter(
-        ResearchPoints.research_payload_id == research_payload.id
-    ).all()
-    new_research_points = random.sample(
-        new_research_points_all, min(len(new_research_points_all), 3)
-    )
-
-    new_name = prospect.full_name
-    new_research = ". ".join([x.value.strip() for x in new_research_points])
-
-    full_prompt += """name: {new_name}\nresearch: {new_research}\nmessage:""".format(
-        new_name=new_name, new_research=new_research
-    )
-
-    return full_prompt, [x.id for x in new_research_points]
-
-
-def few_shot_generations(prospect_id: int, example_ids: list, cta_prompt: str = None):
-    from src.research.linkedin.services import get_research_and_bullet_points_new
-    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
-
-    gm: GeneratedMessage = GeneratedMessage.query.filter(
-        GeneratedMessage.prospect_id == prospect_id
-    ).first()
-    if gm:
-        return
-
-    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-
-    prompt, research_points = generate_few_shot_generation_prompt(
-        generated_message_ids=example_ids, prospect_id=prospect_id
-    )
-
-    completions = get_basic_openai_completion(prompt=prompt, max_tokens=60, n=4)
-
-    for completion in completions:
-        gm: GeneratedMessage = GeneratedMessage(
-            prospect_id=prospect_id,
-            gnlp_model_id=5,
-            research_points=research_points,
-            prompt=prompt,
-            completion=completion,
-            message_status=GeneratedMessageStatus.DRAFT,
-            message_type=GeneratedMessageType.LINKEDIN,
-        )
-        db.session.add(gm)
         db.session.commit()
 
     return True
