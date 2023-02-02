@@ -38,7 +38,6 @@ from src.message_generation.services import (
     create_cta,
     delete_cta,
     delete_message_generation_by_prospect_id,
-    few_shot_generations,
     generate_outreaches_new,
     generate_prospect_email,
     get_named_entities,
@@ -148,42 +147,6 @@ def test_delete_cta_with_generated_message():
 
 
 @use_app_context
-@mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
-@mock.patch(
-    "src.message_generation.services.generate_few_shot_generation_prompt",
-    return_value=["test", []],
-)
-@mock.patch(
-    "src.message_generation.services.get_basic_openai_completion",
-    return_value=["completion 1", "completion 2"],
-)
-def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
-    client = basic_client()
-    archetype = basic_archetype(client)
-    gnlp_model = basic_gnlp_model(archetype)
-    gnlp_model.id = 5
-    db.session.add(gnlp_model)
-    db.session.commit()
-
-    prospect = basic_prospect(client, archetype)
-    example_ids = []
-    cta_prompt = "This is a prompt CTA."
-
-    success = few_shot_generations(
-        prospect_id=prospect.id, example_ids=example_ids, cta_prompt=cta_prompt
-    )
-    assert success is True
-    assert openai_patch.called is True
-    assert prompt_patch.called is True
-    assert bullets_patch.called is True
-
-    gm_list: list = GeneratedMessage.query.all()
-    assert len(gm_list) == 2
-    for gm in gm_list:
-        assert gm.message_type == GeneratedMessageType.LINKEDIN
-
-
-@use_app_context
 @mock.patch(
     "src.message_generation.services.run_adversary",
     return_value=["test mistake", "test fix", 200],
@@ -238,7 +201,7 @@ def test_generate_outreaches_new(
         cta_id=cta.id,
     )
     assert len(outreaches) == 8
-    assert ai_patch.called is True
+    assert ai_patch.called is False
 
     generated_messages: list = GeneratedMessage.query.all()
     assert len(generated_messages) == 8
