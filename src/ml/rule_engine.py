@@ -48,7 +48,7 @@ def wipe_problems(message_id: int):
     db.session.commit()
 
 
-def format_entities(unknown_entities: list, problems: list):
+def format_entities(unknown_entities: list, problems: list, highlighted_words: list):
     """Formats the unknown entities for the problem message.
 
     Each unknown entity will appear on its own line.
@@ -56,6 +56,7 @@ def format_entities(unknown_entities: list, problems: list):
     if len(unknown_entities) > 0:
         for entity in unknown_entities:
             problems.append("Potential wrong name: '{}'".format(entity))
+            highlighted_words.append(entity)
     return
 
 
@@ -79,44 +80,50 @@ def run_message_rule_engine(message_id: int):
     completion = message.completion.lower()
 
     problems = []
+    highlighted_words = []
 
     # NER AI
     run_check_message_has_bad_entities(message_id)
-    format_entities(message.unknown_named_entities, problems)
+    format_entities(message.unknown_named_entities, problems, highlighted_words)
 
     # Strict Rules
-    rule_no_profanity(completion, problems)
-    rule_no_url(completion, problems)
-    rule_linkedin_length(message.message_type, completion, problems)
-    rule_address_doctor(prompt, completion, problems)
+    rule_no_profanity(completion, problems, highlighted_words)
+    rule_no_url(completion, problems, highlighted_words)
+    rule_linkedin_length(message.message_type, completion, problems, highlighted_words)
+    rule_address_doctor(prompt, completion, problems, highlighted_words)
 
     # Warnings
-    rule_no_cookies(completion, problems)
-    rule_no_symbols(completion, problems)
-    rule_no_companies(completion, problems)
-    rule_catch_strange_titles(completion, prompt, problems)
+    rule_no_cookies(completion, problems, highlighted_words)
+    rule_no_symbols(completion, problems, highlighted_words)
+    rule_no_companies(completion, problems, highlighted_words)
+    rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
 
     if "i have " in completion:
         problems.append("Uses first person 'I have'.")
+        highlighted_words.append("i have")
 
     if " me " in completion:
         problems.append("Contains 'me'.")
+        highlighted_words.append("me")
 
     if "they've worked " in completion:
         problems.append("Contains 'they've worked'.")
+        highlighted_words.append("they've worked")
 
     if "i've spent" in completion:
         problems.append("Contains 'i've spent'.")
+        highlighted_words.append("i've spent")
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.problems = problems
+    message.highlighted_words = highlighted_words
     db.session.add(message)
     db.session.commit()
 
     return problems
 
 
-def rule_no_symbols(completion: str, problems: list):
+def rule_no_symbols(completion: str, problems: list, highlighted_words: list):
     """Rule: No Symbols
 
     No symbols allowed in the completion.
@@ -134,30 +141,38 @@ def rule_no_symbols(completion: str, problems: list):
     return
 
 
-def rule_address_doctor(prompt: str, completion: str, problems: list):
+def rule_address_doctor(
+    prompt: str, completion: str, problems: list, highlighted_words: list
+):
     """Rule: Address Doctor
 
     The completion must address the doctor.
     """
 
     # Grab the title and name section.
-    title_section = ''
-    name_section = ''
-    for section in prompt.split('<>'):
-        if section.startswith('title:'):
+    title_section = ""
+    name_section = ""
+    for section in prompt.split("<>"):
+        if section.startswith("title:"):
             title_section = section.lower()
-        if section.startswith('name:'):
+        if section.startswith("name:"):
             name_section = section.lower()
 
     # Check if the title and name section contains a doctor title or 'MD'.
     with open(dr_positions_path, newline="") as f:
         reader = csv.reader(f)
         dr_positions = set([row[0] for row in reader])
-        
-        title_splitted = title_section.split(' ')
+
+        title_splitted = title_section.split(" ")
+        name_splitted = name_section.split(" ")
         for title in title_splitted:
             if title in dr_positions and "dr." not in completion:
-                problems.append("Title contains a doctor position '{}' but no 'Dr.' in message".format(title))
+                problems.append(
+                    "Title contains a doctor position '{}' but no 'Dr.' in message".format(
+                        title
+                    )
+                )
+                highlighted_words.extend(name_splitted)
                 return
 
         title_search = re.search(
@@ -166,12 +181,17 @@ def rule_address_doctor(prompt: str, completion: str, problems: list):
         )
         if title_search is not None and "dr." not in completion:
             problems.append("Title contains 'MD' but no 'Dr.' in message")
+            highlighted_words.extend(name_splitted)
             return
 
-        name_splitted = name_section.split(' ')
         for name in name_splitted:
             if name in dr_positions and "dr." not in completion:
-                problems.append("Name contains a doctor position '{}' but no 'Dr.' in message".format(name))
+                problems.append(
+                    "Name contains a doctor position '{}' but no 'Dr.' in message".format(
+                        name
+                    )
+                )
+                highlighted_words.extend(name_splitted)
                 return
 
         name_search = re.search(
@@ -180,12 +200,13 @@ def rule_address_doctor(prompt: str, completion: str, problems: list):
         )
         if name_search is not None and "dr." not in completion:
             problems.append("Name contains 'MD' but no 'Dr.' in message")
+            highlighted_words.extend(name_splitted)
             return
-                
+
     return
 
 
-def rule_no_profanity(completion: str, problems: list):
+def rule_no_profanity(completion: str, problems: list, highlighted_words: list):
     """Rule: No Profanity
 
     No profanity allowed in the completion.
@@ -210,10 +231,14 @@ def rule_no_profanity(completion: str, problems: list):
         problem_string = ", ".join(detected_profanities)
         problems.append("Contains profanity: {}".format(problem_string))
 
+        words = problem_string.split(", ")
+        for word in words:
+            highlighted_words.append(word.replace("'", ""))
+
     return
 
 
-def rule_no_cookies(completion: str, problems: list):
+def rule_no_cookies(completion: str, problems: list, highlighted_words: list):
     """Rule: No Cookies!
 
     No cookies, or any other web related things, allowed in the completion.
@@ -241,22 +266,31 @@ def rule_no_cookies(completion: str, problems: list):
                 problem_string
             )
         )
+        words = problem_string.split(", ")
+        for word in words:
+            highlighted_words.append(word.replace("'", ""))
 
     return
 
 
-def rule_no_url(completion: str, problems: list):
+def rule_no_url(completion: str, problems: list, highlighted_words: list):
     """Rule: No URL
 
     No URL's allowed in the completion.
     """
     if "www." in completion:
         problems.append("Contains a URL.")
+        highlighted_words.append("www.")
 
     return
 
 
-def rule_linkedin_length(message_type: GeneratedMessageType, completion: str, problems: list):
+def rule_linkedin_length(
+    message_type: GeneratedMessageType,
+    completion: str,
+    problems: list,
+    highlighted_words: list,
+):
     """Rule: Linkedin Length
 
     Linkedin messages must be less than 300 characters.
@@ -267,7 +301,7 @@ def rule_linkedin_length(message_type: GeneratedMessageType, completion: str, pr
     return
 
 
-def rule_no_companies(completion: str, problems: list):
+def rule_no_companies(completion: str, problems: list, highlighted_words: list):
     """Rule: No companies
 
     No company abbreviations allowed in the completion. ie 'LLC', 'Inc.'
@@ -297,29 +331,37 @@ def rule_no_companies(completion: str, problems: list):
     return
 
 
-def rule_catch_strange_titles(completion: str, prompt: str, problems: list):
-    title_section = ''
-    for section in prompt.split('<>'):
-        if section.startswith('title:'):
-            title_section = section.lower().split('title:')[1].strip()      # Get everything after 'title:'
-    
-    if title_section == '':                                         # No title, no problem   
+def rule_catch_strange_titles(
+    completion: str, prompt: str, problems: list, highlighted_words: list
+):
+    title_section = ""
+    for section in prompt.split("<>"):
+        if section.startswith("title:"):
+            title_section = (
+                section.lower().split("title:")[1].strip()
+            )  # Get everything after 'title:'
+
+    if title_section == "":  # No title, no problem
         return
 
-    splitted_title_section = title_section.split(' ')
+    splitted_title_section = title_section.split(" ")
     if len(splitted_title_section) >= 4:
-        first_words = splitted_title_section[:4]                    # Get the first 4 words
-        first_words = ' '.join(first_words).strip()
-        if first_words in completion.lower():                       # 4 words is too long for a title
-            problems.append("WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)")
+        first_words = splitted_title_section[:4]  # Get the first 4 words
+        first_words = " ".join(first_words).strip()
+        if first_words in completion.lower():  # 4 words is too long for a title
+            problems.append(
+                "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
+            )
             return
     else:
-        first_words = ' '.join(splitted_title_section).strip()
-        if first_words in completion.lower():                       # 4 words is too long for a title
+        first_words = " ".join(splitted_title_section).strip()
+        if first_words in completion.lower():  # 4 words is too long for a title
             ALLOWED_SYMBOLS = ["'"]
             unfiltered_match = re.findall(r"[\p{S}\p{P}]", first_words)
             match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
             if match and len(match) > 0:
-                problems.append("WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols.")
+                problems.append(
+                    "WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."
+                )
 
     return
