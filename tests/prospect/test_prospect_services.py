@@ -38,12 +38,16 @@ def test_search_prospects():
     c = basic_client()
     a = basic_archetype(c)
     c_sdr = basic_client_sdr(c)
-    prospect = basic_prospect(c, a, c_sdr)         # Testing Testasara
+    prospect = basic_prospect(c, a, c_sdr)  # Testing Testasara
 
-    prospects = search_prospects(query="test", client_id=c.id, client_sdr_id=c_sdr.id, limit=10)
+    prospects = search_prospects(
+        query="test", client_id=c.id, client_sdr_id=c_sdr.id, limit=10
+    )
     assert len(prospects) == 1
 
-    prospects = search_prospects(query="NO MATCH", client_id=c.id, client_sdr_id=c_sdr.id, limit=10)
+    prospects = search_prospects(
+        query="NO MATCH", client_id=c.id, client_sdr_id=c_sdr.id, limit=10
+    )
     assert len(prospects) == 0
 
 
@@ -273,8 +277,13 @@ def test_get_sales_nav_slug_from_url():
 
 
 @use_app_context
-@mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.delay")
-def test_add_prospects_from_json_payload(mock_create_from_linkedin):
+@mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.apply_async")
+@mock.patch(
+    "src.prospecting.controllers.collect_and_run_celery_jobs_for_upload.apply_async"
+)
+def test_add_prospects_from_json_payload(
+    collect_and_run_celery_jobs_for_upload_mock, mock_create_from_linkedin
+):
     payload = [
         {
             "company": "Athelas",
@@ -348,9 +357,16 @@ def test_add_prospects_from_json_payload(mock_create_from_linkedin):
 
 
 @use_app_context
-@mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.delay")
+@mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.apply_async")
+@mock.patch(
+    "src.prospecting.controllers.collect_and_run_celery_jobs_for_upload.apply_async"
+)
 @mock.patch("src.prospecting.services.add_prospect")
-def test_add_2_prospects_from_csv(mock_add_prospect, mock_create_from_linkedin):
+def test_add_2_prospects_from_csv(
+    mock_add_prospect,
+    mock_collect_and_run_celery_jobs_for_upload,
+    mock_create_from_linkedin,
+):
     payload = [
         {
             "First Name": "Suzanne",

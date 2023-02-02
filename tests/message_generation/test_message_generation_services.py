@@ -165,13 +165,13 @@ def test_few_shot_generations(openai_patch, prompt_patch, bullets_patch):
     return_value=["test mistake", "test fix", 200],
 )
 @mock.patch(
-    "src.message_generation.services.get_custom_completion_for_client",
+    "src.message_generation.services.get_few_shot_baseline_prompt",
     return_value=[["completion 1", "completion 2"], 5],
 )
 @mock.patch(
     "src.message_generation.services.get_adversarial_ai_approval", return_value=True
 )
-@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
+@mock.patch("src.message_generation.services.run_message_rule_engine")
 def test_generate_outreaches_new(
     rule_engine_patch, ai_patch, completion_patch, adversary_patch
 ):
@@ -213,13 +213,11 @@ def test_generate_outreaches_new(
         batch_id="123123123",
         cta_id=cta.id,
     )
-    assert len(outreaches) == 4
+    assert len(outreaches) == 8
     assert ai_patch.called is True
-    # assert completion_patch.called is True
-    # assert adversary_patch.called is True
 
     generated_messages: list = GeneratedMessage.query.all()
-    assert len(generated_messages) == 4
+    assert len(generated_messages) == 8
     for gm in generated_messages:
         assert gm.message_type == GeneratedMessageType.LINKEDIN
         assert gm.message_cta == cta.id
@@ -227,15 +225,15 @@ def test_generate_outreaches_new(
 
         prospect = Prospect.query.get(gm.prospect_id)
         assert prospect.approved_outreach_message_id is not None
-        # assert gm.adversary_identified_mistake == "test mistake"
-        # assert gm.adversary_identified_fix == "test fix"
 
     prospect = Prospect.query.get(prospect.id)
     assert prospect.approved_outreach_message_id > 0
 
+    assert rule_engine_patch.called is True
+
 
 @use_app_context
-@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
+@mock.patch("src.message_generation.services.run_message_rule_engine")
 def test_update_message(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
@@ -309,7 +307,7 @@ def test_batch_update_messages(update_message_mock):
 
 
 @use_app_context
-@mock.patch("src.ml.rule_engine.run_message_rule_engine", return_value=[])
+@mock.patch("src.message_generation.services.run_message_rule_engine")
 def test_approve_message(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
@@ -543,7 +541,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 
 @use_app_context
 @mock.patch(
-    "src.message_generation.services.get_custom_completion_for_client",
+    "src.message_generation.services.get_few_shot_baseline_prompt",
     return_value=("completion", 5),
 )
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
