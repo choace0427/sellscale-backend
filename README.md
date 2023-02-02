@@ -6,10 +6,10 @@
 <br/>
 <br/>
 
-<span><img src="https://shields.io/badge/coverage-79%25-yellow">
+<span><img src="https://shields.io/badge/coverage-84%25-yellow">
 <img src="https://img.shields.io/badge/Flask-API-blue">
 <img src="https://img.shields.io/badge/PostgreSQL-Database-blue">
-<img src="https://img.shields.io/badge/Testing-111 unit tests-red"></span>
+<img src="https://img.shields.io/badge/Testing-212 unit tests-red"></span>
 
 # Table of Contents
 
@@ -237,6 +237,7 @@ Python specific:
 - **autoflake** - auto-import remover for Python
 
 Generic:
+
 - **trailing-whitespace** - removes trailing whitespace
 - **end-of-file-fixer** - ensures files end with a newline
 - **check-yaml** - checks YAML files for syntax errors
@@ -245,7 +246,6 @@ Generic:
 - **name-tests-test** - ensures test files are named correctly
 - **requirements-txt-fixer** - ensures requirements.txt is sorted
 - **debug-statements** - ensures debug statements are removed
-
 
 ## Helpful Bash Profiles
 
