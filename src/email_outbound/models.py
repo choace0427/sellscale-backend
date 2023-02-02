@@ -1,6 +1,8 @@
-from app import db
 import enum
 
+from sqlalchemy.dialects.postgresql import JSONB
+
+from app import db
 
 """
 Create new email schema:
@@ -12,6 +14,7 @@ generate_email_for_client()
 - get template
 create new prospect email
 """
+
 
 class EmailCustomizedFieldTypes(enum.Enum):
     EMAIL_FIRST_LINE = "EMAIL_FIRST_LINE"  # email outbound first line
@@ -48,6 +51,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     - DEMO_WON: a demo has been won
     - DEMO_LOST: a demo has been lost
     """
+
     UNKNOWN = "UNKNOWN"
     NOT_SENT = "NOT_SENT"
     SENT_OUTREACH = "SENT_OUTREACH"
@@ -84,10 +88,85 @@ class ProspectEmail(db.Model):
 
 
 class ProspectEmailStatusRecords(db.Model):
-    """ Records the status changes of a prospect_email """
+    """Records the status changes of a prospect_email"""
+
     __tablename__ = "prospect_email_status_records"
 
     id = db.Column(db.Integer, primary_key=True)
     prospect_email_id = db.Column(db.Integer, db.ForeignKey("prospect_email.id"))
     from_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
     to_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
+
+
+class EmailInteractionState(enum.Enum):
+    """
+    - EMAIL_SENT: email has been sent
+    - EMAIL_OPENED: email has been opened
+    - EMAIL_CLICKED: email has been clicked
+    - EMAIL_REPLIED: email has been replied to
+    """
+
+    EMAIL_SENT = "EMAIL_SENT"
+    EMAIL_OPENED = "EMAIL_OPENED"
+    EMAIL_CLICKED = "EMAIL_CLICKED"
+    EMAIL_REPLIED = "EMAIL_REPLIED"
+
+
+class EmailSequenceState(enum.Enum):
+    """
+    - IN_PROGRESS: email sequence is in progress
+    - COMPLETED: email sequence is completed
+    - BOUNCED: email has bounced
+    - OUT_OF_OFFICE: recipient replied with out of office message
+    """
+
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+
+    BOUNCED = "BOUNCED"
+    OUT_OF_OFFICE = "OUT_OF_OFFICE"
+
+
+class SalesEngagementInteractionSource(enum.Enum):
+    """
+    - OUTREACH: outreach interaction
+    - SALESLOFT: salesloft interaction
+    """
+
+    OUTREACH = "OUTREACH"
+    SALESLOFT = "SALESLOFT"
+
+
+class SalesEngagementInteractionRaw(db.Model):
+    __tablename__ = "sales_engagement_interaction_raw"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
+
+    csv_data = db.Column(JSONB, nullable=False)
+    csv_data_hash = db.Column(db.String, nullable=False)
+    source = db.Column(db.Enum(SalesEngagementInteractionSource), nullable=False)
+
+
+class SalesEngagementInteractionSS(db.Model):
+    __tablename__ = "sales_engagement_interaction_ss"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
+    sales_engagement_interaction_raw_id = db.Column(
+        db.Integer, db.ForeignKey("sales_engagement_interaction_raw.id"), nullable=False
+    )
+
+    ss_status_data = db.Column(JSONB, nullable=False)
