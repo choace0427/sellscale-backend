@@ -100,8 +100,6 @@ def update_status_from_csv_payload():
     if not validated:
         return message, 400
 
-    success, message = update_status_from_csv(csv_payload, client_id)
-    if not success:
-        return message, 400
+    update_status_from_csv.delay(payload=csv_payload, client_id=client_id)
 
-    return message, 200
+    return "Status update is in progress", 200

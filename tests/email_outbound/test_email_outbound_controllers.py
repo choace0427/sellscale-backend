@@ -208,7 +208,7 @@ def test_post_batch_update_emails_failed():
 
 
 @use_app_context
-@mock.patch("src.email_outbound.controllers.update_status_from_csv", return_value=(True, "OK"))
+@mock.patch("src.email_outbound.controllers.update_status_from_csv.delay", return_value=(True, "OK"))
 @mock.patch("src.email_outbound.controllers.validate_outreach_csv_payload", return_value=(True, "OK"))
 def test_update_status_from_csv_payload(validate_payload_mock, update_status_mock):
     client = basic_client()

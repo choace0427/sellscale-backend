@@ -1,4 +1,4 @@
-from app import db
+from app import db, celery
 from model_import import (
     Prospect,
     ProspectEmail,
@@ -41,8 +41,9 @@ def validate_outreach_csv_payload(payload: list) -> tuple:
     
     return True, "OK"
 
-
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def update_status_from_csv(
+    self,
     payload: list,
     client_id: int,
 ) -> tuple:
@@ -57,68 +58,71 @@ def update_status_from_csv(
 
     TODO: ProspectEmail is currently not a one-to-one mapping to Prospect. It needs to be in the future.
     """
-    if len(payload) == 0:
-        return False, "No rows in payload"
-    
-    # This list will be used to return the emails that were not found belonging to the specified client id
-    failed_email_list = []
-    update_count = 0
-
-    for prospect_dict in payload:
-        email = prospect_dict.get(EMAIL)
-        sequence_state = prospect_dict.get(SEQUENCE_STATE)
-        if sequence_state != FINISHED:
-            continue
+    try:
+        if len(payload) == 0:
+            return False, "No rows in payload"
         
-        # Get the correct prospect. Needs to match on email AND client id
-        prospect_list = Prospect.query.filter_by(email=email).all()
-        prospect: Prospect = None
-        for p in prospect_list:
-            if p.client_id == client_id:
-                prospect = p
-                break
-        if not prospect:
-            failed_email_list.append(email)
-            continue
+        # This list will be used to return the emails that were not found belonging to the specified client id
+        failed_email_list = []
+        update_count = 0
 
-        prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
-            prospect_id=prospect.id,
-            email_status=ProspectEmailStatus.SENT,
-        ).first()
-        if not prospect_email:
-            failed_email_list.append(email)
-            continue
-
-        old_outreach_status = prospect_email.outreach_status
-        new_outreach_status = get_new_status(prospect_dict)
-        if old_outreach_status == new_outreach_status:
-            continue
-        
-        if old_outreach_status == None:
-            prospect_email.outreach_status = new_outreach_status
-            old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
-        else:
-            if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
-                prospect_email.outreach_status = new_outreach_status
-            else:
+        for prospect_dict in payload:
+            email = prospect_dict.get(EMAIL)
+            sequence_state = prospect_dict.get(SEQUENCE_STATE)
+            if sequence_state != FINISHED:
+                continue
+            
+            # Get the correct prospect. Needs to match on email AND client id
+            prospect_list = Prospect.query.filter_by(email=email).all()
+            prospect: Prospect = None
+            for p in prospect_list:
+                if p.client_id == client_id:
+                    prospect = p
+                    break
+            if not prospect:
                 failed_email_list.append(email)
                 continue
-        
-        db.session.add(ProspectEmailStatusRecords(
-            prospect_email_id=prospect_email.id, 
-            from_status=old_outreach_status,
-            to_status=new_outreach_status)
-        )
-        db.session.add(prospect_email)
-        db.session.commit()
-        update_count += 1
+
+            prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
+                prospect_id=prospect.id,
+                email_status=ProspectEmailStatus.SENT,
+            ).first()
+            prospect_email_id = prospect_email.id
+            if not prospect_email:
+                failed_email_list.append(email)
+                continue
+
+            old_outreach_status = prospect_email.outreach_status
+            new_outreach_status = get_new_status(prospect_dict)
+            if old_outreach_status == new_outreach_status:
+                continue
+            
+            if old_outreach_status == None:
+                prospect_email.outreach_status = new_outreach_status
+                old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
+            else:
+                if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
+                    prospect_email.outreach_status = new_outreach_status
+                else:
+                    failed_email_list.append(email)
+                    continue
+            
+            db.session.add(ProspectEmailStatusRecords(
+                prospect_email_id=prospect_email_id, 
+                from_status=old_outreach_status,
+                to_status=new_outreach_status)
+            )
+            db.session.add(prospect_email)
+            db.session.commit()
+            update_count += 1
 
 
-    if len(failed_email_list) > 0:
-        return True, "Warning: Impartial write, the following emails were not found or not updatable: " + str(failed_email_list)
+        if len(failed_email_list) > 0:
+            return True, "Warning: Impartial write, the following emails were not found or not updatable: " + str(failed_email_list)
 
-    return True, "Made updates to {}/{} prospects.".format(update_count, len(payload))
-
+        return True, "Made updates to {}/{} prospects.".format(update_count, len(payload))
+    except Exception as e: 
+        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 def get_new_status(prospect: dict) -> ProspectEmailOutreachStatus:
     """ Gets the new status from the prospect dict (from payload)
