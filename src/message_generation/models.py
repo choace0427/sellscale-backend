@@ -50,6 +50,7 @@ class GeneratedMessage(db.Model):
 
     unknown_named_entities = db.Column(db.ARRAY(db.String), nullable=True)
     problems = db.Column(db.ARRAY(db.String), nullable=True)
+    highlighted_words = db.Column(db.ARRAY(db.String), nullable=True)
 
     good_message = db.Column(db.Boolean, nullable=True)
     few_shot_prompt = db.Column(db.String, nullable=True)

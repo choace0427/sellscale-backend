@@ -19,14 +19,14 @@ from src.ml.rule_engine import (
     rule_address_doctor,
     rule_no_symbols,
     rule_no_companies,
-    rule_catch_strange_titles
+    rule_catch_strange_titles,
 )
 from model_import import GeneratedMessage, GeneratedMessageType
 
 
 @use_app_context
 def test_run_message_rule_engine():
-    #TODO Add specific tests for each rule
+    # TODO Add specific tests for each rule
     pass
 
 
@@ -51,152 +51,271 @@ def test_wipe_problems():
 @use_app_context
 def test_format_entities():
     problems = []
-    format_entities(["test"], problems)
+    highlighted_words = []
+    format_entities(["test"], problems, highlighted_words)
+
     assert problems == ["Potential wrong name: 'test'"]
+    assert highlighted_words == ["test"]
 
     problems = []
-    format_entities(["test", "test2"], problems)
+    highlighted_words = []
+    format_entities(["test", "test2"], problems, highlighted_words)
     assert problems == ["Potential wrong name: 'test'", "Potential wrong name: 'test2'"]
+    assert highlighted_words == ["test", "test2"]
 
 
 @use_app_context
 def test_rule_no_profanity():
     problems = []
-    rule_no_profanity("pass", problems)
+    highlighted_words = []
+    rule_no_profanity("pass", problems, highlighted_words)
     assert problems == []
 
-    rule_no_profanity("Oh shit this one will definitely get flagged", problems)
+    rule_no_profanity(
+        "Oh shit this one will definitely get flagged", problems, highlighted_words
+    )
     assert problems == ["Contains profanity: 'shit'"]
+    assert highlighted_words == ["shit"]
 
     problems = []
-    rule_no_profanity("fuck shit bitch", problems)
+    highlighted_words = []
+    rule_no_profanity("fuck shit bitch", problems, highlighted_words)
     assert problems == ["Contains profanity: 'fuck', 'shit', 'bitch'"]
+    assert highlighted_words == ["fuck", "shit", "bitch"]
 
     problems = []
-    rule_no_profanity("shit!", problems)
+    highlighted_words = []
+    rule_no_profanity("shit!", problems, highlighted_words)
     assert problems == ["Contains profanity: 'shit'"]
+    assert highlighted_words == ["shit"]
 
 
 @use_app_context
 def test_rule_no_cookies():
     problems = []
-    rule_no_cookies("pass", problems)
+    highlighted_words = []
+    rule_no_cookies("pass", problems, highlighted_words)
     assert problems == []
 
-    rule_no_cookies("Wow you use javascript in your browser? That's advanced!", problems)
-    assert problems == ["Contains web related words: 'javascript', 'browser'. Please check for relevance."]
+    rule_no_cookies(
+        "Wow you use javascript in your browser? That's advanced!",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Contains web related words: 'javascript', 'browser'. Please check for relevance."
+    ]
+    assert highlighted_words == ["javascript", "browser"]
 
 
 @use_app_context
 def test_rule_no_url():
     problems = []
-    rule_no_url("pass", problems)
+    highlighted_words = []
+    rule_no_url("pass", problems, highlighted_words)
     assert problems == []
 
-    rule_no_url("https://www.google.com", problems)
+    rule_no_url("https://www.google.com", problems, highlighted_words)
     assert problems == ["Contains a URL."]
+    assert highlighted_words == ["www."]
 
 
 @use_app_context
 def test_rule_linkedin_length():
     problems = []
-    rule_linkedin_length(GeneratedMessageType.EMAIL, "pass", problems)
+    highlighted_words = []
+    rule_linkedin_length(
+        GeneratedMessageType.EMAIL, "pass", problems, highlighted_words
+    )
     assert problems == []
 
-    rule_linkedin_length(GeneratedMessageType.LINKEDIN, "pass", problems)
+    rule_linkedin_length(
+        GeneratedMessageType.LINKEDIN, "pass", problems, highlighted_words
+    )
     assert problems == []
 
     big_message = "long"
     for i in range(300):
         big_message += "message"
-    
+
     assert len(big_message) > 300
-    rule_linkedin_length(GeneratedMessageType.LINKEDIN, big_message, problems)
+    rule_linkedin_length(
+        GeneratedMessageType.LINKEDIN, big_message, problems, highlighted_words
+    )
     assert problems == ["LinkedIn message is > 300 characters."]
 
 
 @use_app_context
 def test_rule_address_doctor():
     problems = []
-    rule_address_doctor("name: David<>title: ", "pass", problems)
+    highlighted_words = []
+    rule_address_doctor("name: David<>title: ", "pass", problems, highlighted_words)
     assert problems == []
 
-    rule_address_doctor("name: Dr. David<>title:", "pass", problems)
+    rule_address_doctor("name: Dr. David<>title:", "pass", problems, highlighted_words)
     assert problems == []
 
-    rule_address_doctor("name: David, MD<>title:", "dr. David", problems)
+    rule_address_doctor(
+        "name: David, MD<>title:", "dr. David", problems, highlighted_words
+    )
     assert problems == []
 
     problems = []
-    rule_address_doctor("name: David, MD<>title:", "David", problems)
+    highlighted_words = []
+    rule_address_doctor("name: David, MD<>title:", "David", problems, highlighted_words)
     assert problems == ["Name contains 'MD' but no 'Dr.' in message"]
+    assert highlighted_words == ["name:", "david,", "md"]
 
     problems = []
-    rule_address_doctor("name: David Wei<>title: physician at some hospital<>", "David, MD", problems)
-    assert problems == ["Title contains a doctor position 'physician' but no 'Dr.' in message"]
+    rule_address_doctor(
+        "name: David Wei<>title: physician at some hospital<>",
+        "David, MD",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Title contains a doctor position 'physician' but no 'Dr.' in message"
+    ]
+    assert highlighted_words == ["name:", "david,", "md", "name:", "david", "wei"]
 
     problems = []
-    rule_address_doctor("name: David Wei, <>title: neurosurgeon at some hospital", "David, MD", problems)
-    assert problems == ["Title contains a doctor position 'neurosurgeon' but no 'Dr.' in message"]
+    highlighted_words = []
+    rule_address_doctor(
+        "name: David Wei, <>title: neurosurgeon at some hospital",
+        "David, MD",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Title contains a doctor position 'neurosurgeon' but no 'Dr.' in message"
+    ]
+    assert highlighted_words == ["name:", "david", "wei,", ""]
 
     problems = []
-    rule_address_doctor("name: David Wei, <>title: M.D. at Kaiser", "David, MD", problems)
+    highlighted_words = []
+    rule_address_doctor(
+        "name: David Wei, <>title: M.D. at Kaiser",
+        "David, MD",
+        problems,
+        highlighted_words,
+    )
     assert problems == ["Title contains 'MD' but no 'Dr.' in message"]
+    assert highlighted_words == ["name:", "david", "wei,", ""]
 
     problems = []
-    rule_address_doctor("name: David Wei, Neurosurgeon<>title: nothing", "David, MD", problems)
-    assert problems == ["Name contains a doctor position 'neurosurgeon' but no 'Dr.' in message"]
+    highlighted_words = []
+    rule_address_doctor(
+        "name: David Wei, Neurosurgeon<>title: nothing",
+        "David, MD",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Name contains a doctor position 'neurosurgeon' but no 'Dr.' in message"
+    ]
+    assert highlighted_words == ["name:", "david", "wei,", "neurosurgeon"]
 
 
 @use_app_context
 def test_rule_no_symbols():
     problems = []
-    rule_no_symbols("pass", problems)
+    highlighted_words = []
+    rule_no_symbols("pass", problems, highlighted_words)
     assert problems == []
 
-    rule_no_symbols("This is a message with a passing symbol: !", problems)
+    rule_no_symbols(
+        "This is a message with a passing symbol: !", problems, highlighted_words
+    )
     assert problems == []
 
-    rule_no_symbols("This is a message with a failing symbol: $", problems)
+    rule_no_symbols(
+        "This is a message with a failing symbol: $", problems, highlighted_words
+    )
     assert problems == ["Completion contains uncommon symbols: $"]
 
     problems = []
-    rule_no_symbols("This is a message with a failing symbol: $ ®", problems)
+    rule_no_symbols(
+        "This is a message with a failing symbol: $ ®", problems, highlighted_words
+    )
     assert problems == ["Completion contains uncommon symbols: $, ®"]
 
 
 @use_app_context
 def test_rule_no_companies():
     problems = []
-    rule_no_companies("pass", problems)
+    highlighted_words = []
+    rule_no_companies("pass", problems, highlighted_words)
     assert problems == []
 
-    rule_no_companies("This is a message with a an abbreviation: Something inc", problems)
-    assert problems == ["Please check for relevance. Contains company abbreviations: inc"]
+    rule_no_companies(
+        "This is a message with a an abbreviation: Something inc",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Please check for relevance. Contains company abbreviations: inc"
+    ]
 
     problems = []
-    rule_no_companies("This is a message with a an abbreviation: Something inc. and another one: Something else ltd.", problems)
-    assert problems == ["Please check for relevance. Contains company abbreviations: inc, ltd"]
+    rule_no_companies(
+        "This is a message with a an abbreviation: Something inc. and another one: Something else ltd.",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Please check for relevance. Contains company abbreviations: inc, ltd"
+    ]
 
 
 @use_app_context
 def test_rule_catch_strange_titles():
     problems = []
-    rule_catch_strange_titles("pass", "pass", problems)
+    highlighted_words = []
+    rule_catch_strange_titles("pass", "pass", problems, highlighted_words)
     assert problems == []
 
-    rule_catch_strange_titles("pass", "David Wei<>title: Software Engineer at SellScale<>something:dddd", problems)
+    rule_catch_strange_titles(
+        "pass",
+        "David Wei<>title: Software Engineer at SellScale<>something:dddd",
+        problems,
+        highlighted_words,
+    )
     assert problems == []
 
-    rule_catch_strange_titles("Hi David, I really like what you do as the VP of Engineering", "David Wei<>title: VP of Engineering and Growth", problems)
+    rule_catch_strange_titles(
+        "Hi David, I really like what you do as the VP of Engineering",
+        "David Wei<>title: VP of Engineering and Growth",
+        problems,
+        highlighted_words,
+    )
     assert problems == []
 
-    rule_catch_strange_titles("I like what you do as a Software Engineer", "David Wei<>title: Software @ Engineer", problems)
+    rule_catch_strange_titles(
+        "I like what you do as a Software Engineer",
+        "David Wei<>title: Software @ Engineer",
+        problems,
+        highlighted_words,
+    )
     assert problems == []
 
-    rule_catch_strange_titles("Hi David, I really like what you do as the VP of Engineering and Growth", "David Wei<>title: VP of Engineering and Growth", problems)
-    assert problems == ["WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"]
+    rule_catch_strange_titles(
+        "Hi David, I really like what you do as the VP of Engineering and Growth",
+        "David Wei<>title: VP of Engineering and Growth",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
+    ]
 
     problems = []
-    rule_catch_strange_titles("Hi David, I really like what you do as the Software @@ Engineering", "David Wei<>title: Software @@ Engineering", problems)
-    assert problems == ["WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."]
+    highlighted_words = []
+    rule_catch_strange_titles(
+        "Hi David, I really like what you do as the Software @@ Engineering",
+        "David Wei<>title: Software @@ Engineering",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."
+    ]
