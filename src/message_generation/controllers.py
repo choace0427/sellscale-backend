@@ -18,6 +18,7 @@ from src.message_generation.services import (
 )
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
+    edit_stack_ranked_configuration_instruction,
 )
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
@@ -368,6 +369,26 @@ def post_create_stack_ranked_configuration():
         name=name,
         client_id=client_id,
         archetype_id=archetype_id,
+    )
+    if success:
+        return "OK", 200
+    return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/edit_stack_ranked_configuration/instruction", methods=["POST"]
+)
+def post_edit_stack_ranked_configuration_instruction():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    instruction = get_request_parameter(
+        "instruction", request, json=True, required=True
+    )
+
+    success, message = edit_stack_ranked_configuration_instruction(
+        stack_ranked_configuration_id=configuration_id,
+        instruction=instruction,
     )
     if success:
         return "OK", 200
