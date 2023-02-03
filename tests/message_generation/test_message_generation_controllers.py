@@ -20,6 +20,7 @@ from model_import import (
     GeneratedMessageStatus,
     GeneratedMessageFeedback,
     GeneratedMessageJobStatus,
+    StackRankedMessageGenerationConfiguration,
 )
 from src.research.models import ResearchPointType, ResearchType
 from src.client.services import create_client
@@ -307,3 +308,34 @@ def test_create_sample_cta_and_batch_update_ctas():
 
     cta2 = GeneratedMessageCTA.query.filter_by(id=cta2.id).first()
     assert cta2.active == True
+
+
+@use_app_context
+def test_post_create_stack_ranked_configuration():
+    client = basic_client()
+    archetype = basic_archetype(client)
+
+    response = app.test_client().post(
+        "message_generation/create_stack_ranked_configuration",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "configuration_type": "STRICT",
+                "research_point_types": [],
+                "generated_message_ids": [],
+                "instruction": "Swag swag swag",
+                "name": "Swag",
+                "client_id": client.id,
+                "archetype_id": archetype.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    configs = StackRankedMessageGenerationConfiguration.query.all()
+    assert len(configs) == 1
+
+    config = StackRankedMessageGenerationConfiguration.query.first()
+    assert config.configuration_type.value == "STRICT"
+    assert config.instruction == "Swag swag swag"
+    assert config.name == "Swag"
