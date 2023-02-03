@@ -16,6 +16,9 @@ from src.message_generation.services import (
     clear_all_generated_message_jobs,
     batch_update_generated_message_ctas,
 )
+from src.message_generation.services_stack_ranked_configurations import (
+    create_stack_ranked_configuration,
+)
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
     toggle_message_as_good_message,
@@ -325,3 +328,47 @@ def post_update_ctas():
     if success:
         return "OK", 200
     return "Failed to update ctas", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/create_stack_ranked_configuration", methods=["POST"]
+)
+def post_create_stack_ranked_configuration():
+    """configuration_type: ConfigurationType,
+    research_point_types: list[ResearchPointType],
+    generated_message_ids: list[int],
+    instruction: str,
+    name: Optional[str] = None,
+    client_id: Optional[int] = None,
+    archetype_id: Optional[int] = None,
+    """
+    configuration_type = get_request_parameter(
+        "configuration_type", request, json=True, required=True
+    )
+    research_point_types = get_request_parameter(
+        "research_point_types", request, json=True, required=True
+    )
+    generated_message_ids = get_request_parameter(
+        "generated_message_ids", request, json=True, required=True
+    )
+    instruction = get_request_parameter(
+        "instruction", request, json=True, required=True
+    )
+    name = get_request_parameter("name", request, json=True, required=False)
+    client_id = get_request_parameter("client_id", request, json=True, required=False)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=False
+    )
+
+    success, message = create_stack_ranked_configuration(
+        configuration_type=configuration_type,
+        research_point_types=research_point_types,
+        generated_message_ids=generated_message_ids,
+        instruction=instruction,
+        name=name,
+        client_id=client_id,
+        archetype_id=archetype_id,
+    )
+    if success:
+        return "OK", 200
+    return message, 400

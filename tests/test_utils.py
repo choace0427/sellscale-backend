@@ -33,6 +33,7 @@ from model_import import (
     GeneratedMessageEditRecord,
     SalesEngagementInteractionRaw,
     SalesEngagementInteractionSS,
+    StackRankedMessageGenerationConfiguration,
 )
 from typing import Optional
 
@@ -81,6 +82,7 @@ def test_app():
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(GNLPModelFineTuneJobs)
+        clear_all_entities(StackRankedMessageGenerationConfiguration)
         clear_all_entities(ClientArchetype)
         clear_all_entities(ClientSDR)
         clear_all_entities(Client)
@@ -118,7 +120,9 @@ def basic_archetype(client: Client) -> ClientArchetype:
     return a
 
 
-def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None):
+def basic_prospect(
+    client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None
+):
     client_sdr_id = None
     if client_sdr:
         client_sdr_id = client_sdr.id
@@ -195,7 +199,7 @@ def basic_generated_message_cta_with_text(archetype: ClientArchetype, text_value
     )
 
     g_cta = GeneratedMessageCTA(
-        archetype_id = archetype.id,
+        archetype_id=archetype.id,
         text_value=text_value or "test_cta",
         active=True,
     )
@@ -263,17 +267,17 @@ def basic_phantom_buster_configs(client: Client, client_sdr: ClientSDR):
     from model_import import PhantomBusterConfig, PhantomBusterType
 
     inboxp = PhantomBusterConfig(
-        client_id = client.id,
-        client_sdr_id = client_sdr.id,
-        pb_type = PhantomBusterType.INBOX_SCRAPER,
-        phantom_uuid = "1"
+        client_id=client.id,
+        client_sdr_id=client_sdr.id,
+        pb_type=PhantomBusterType.INBOX_SCRAPER,
+        phantom_uuid="1",
     )
 
     outboundp = PhantomBusterConfig(
-        client_id = client.id,
-        client_sdr_id = client_sdr.id,
-        pb_type = PhantomBusterType.OUTBOUND_ENGINE,
-        phantom_uuid = "2"
+        client_id=client.id,
+        client_sdr_id=client_sdr.id,
+        pb_type=PhantomBusterType.OUTBOUND_ENGINE,
+        phantom_uuid="2",
     )
 
     db.session.add_all([inboxp, outboundp])
@@ -281,15 +285,17 @@ def basic_phantom_buster_configs(client: Client, client_sdr: ClientSDR):
     return inboxp, outboundp
 
 
-def basic_prospect_uploads_raw_csv(client: Client, client_sdr: ClientSDR, client_archetype: ClientArchetype):
+def basic_prospect_uploads_raw_csv(
+    client: Client, client_sdr: ClientSDR, client_archetype: ClientArchetype
+):
     from model_import import ProspectUploadsRawCSV
 
     p = ProspectUploadsRawCSV(
         client_id=client.id,
         client_archetype_id=client_archetype.id,
         client_sdr_id=client_sdr.id,
-        csv_data = {"test": "test"},
-        csv_data_hash = "1234567890"
+        csv_data={"test": "test"},
+        csv_data_hash="1234567890",
     )
     db.session.add(p)
     db.session.commit()
@@ -309,18 +315,26 @@ def basic_prospect_uploads(
         client_archetype_id=client_archetype.id,
         client_sdr_id=client_sdr.id,
         prospect_uploads_raw_csv_id=prospect_uploads_raw_csv.id,
-        csv_row_data = {"linkedin_url": "https://www.linkedin.com/in/davidmwei"},
-        csv_row_hash = "1234567890",
-        upload_attempts = 0,
-        status = ProspectUploadsStatus.UPLOAD_NOT_STARTED,
+        csv_row_data={"linkedin_url": "https://www.linkedin.com/in/davidmwei"},
+        csv_row_hash="1234567890",
+        upload_attempts=0,
+        status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
     )
     db.session.add(pu)
     db.session.commit()
     return pu
 
 
-def basic_sei_raw(client: Client, client_sdr: ClientSDR, client_archetype: ClientArchetype, csv_data: Optional[list[dict]] = [{"test": "test"}]):
-    from model_import import SalesEngagementInteractionRaw, SalesEngagementInteractionSource
+def basic_sei_raw(
+    client: Client,
+    client_sdr: ClientSDR,
+    client_archetype: ClientArchetype,
+    csv_data: Optional[list[dict]] = [{"test": "test"}],
+):
+    from model_import import (
+        SalesEngagementInteractionRaw,
+        SalesEngagementInteractionSource,
+    )
 
     s = SalesEngagementInteractionRaw(
         client_id=client.id,

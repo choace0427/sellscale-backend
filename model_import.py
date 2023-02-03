@@ -16,7 +16,8 @@ from src.message_generation.models import (
     GeneratedMessageJobStatus,
     GeneratedMessageInstruction,
     GeneratedMessageEditRecord,
-    StackRankedMessageGenerationConfiguration
+    StackRankedMessageGenerationConfiguration,
+    ConfigurationType,
 )
 from src.prospecting.models import (
     Prospect,
