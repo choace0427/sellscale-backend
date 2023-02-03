@@ -93,7 +93,7 @@ def post_batch_update_emails():
 
 @EMAIL_GENERATION_BLUEPRINT.route("/update_status/csv", methods=["POST"])
 def update_status_from_csv_payload():
-    csv_payload: list = get_request_parameter("csv_payload", request, json=True, required=True)    
+    csv_payload: list = get_request_parameter("csv_payload", request, json=True, required=True)
     client_id: int = get_request_parameter("client_id", request, json=True, required=True)
 
     validated, message = validate_outreach_csv_payload(csv_payload)
@@ -103,3 +103,9 @@ def update_status_from_csv_payload():
     update_status_from_csv.delay(payload=csv_payload, client_id=client_id)
 
     return "Status update is in progress", 200
+
+    ## TODO:
+    # 1. Depending on csv type, Validate payload
+    # 2. Create raw entry
+    # 3. Depending on csv type, convert raw entry into SS data (celery)
+    # 4. Update status using SS data (celery)

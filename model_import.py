@@ -37,6 +37,11 @@ from src.email_outbound.models import (
     ProspectEmailStatus,
     ProspectEmailStatusRecords,
     ProspectEmailOutreachStatus,
+    EmailSequenceState,
+    EmailInteractionState,
+    SalesEngagementInteractionRaw,
+    SalesEngagementInteractionSource,
+    SalesEngagementInteractionSS,
 )
 from src.ml_adversary.models import AdversaryTrainingPoint, AdversaryFineTuneHistory
 from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus

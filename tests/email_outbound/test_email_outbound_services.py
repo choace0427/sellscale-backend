@@ -1,8 +1,9 @@
-from src.email_outbound.models import EmailCustomizedFieldTypes
+from src.email_outbound.models import EmailCustomizedFieldTypes, SalesEngagementInteractionSource, SalesEngagementInteractionRaw, SalesEngagementInteractionSS, EmailInteractionState, EmailSequenceState
 from src.ml.models import GNLPModelType
-from src.email_outbound.services import create_email_schema, create_prospect_email
+from src.email_outbound.services import create_email_schema, create_prospect_email, create_sales_engagement_interaction_raw, create_ss_prospect_dic
 from test_utils import (
     basic_client,
+    basic_client_sdr,
     basic_archetype,
     basic_gnlp_model,
     basic_prospect,
@@ -70,3 +71,40 @@ def test_create_prospect_email():
     assert all_prospect_emails[0].personalized_first_line == personalized_first_line.id
     assert all_prospect_emails[0].email_status == ProspectEmailStatus.DRAFT
     assert all_prospect_emails[0].batch_id == "123123123"
+
+
+@use_app_context
+def test_create_sales_engagement_interaction_raw():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    sdr = basic_client_sdr(client)
+
+    client_id = client.id
+    client_archetype_id = archetype.id
+    client_sdr_id = sdr.id
+    payload = [{"test" : "test"}]
+    source = SalesEngagementInteractionSource.OUTREACH
+    sei_raw_id = create_sales_engagement_interaction_raw(client_id, client_archetype_id, client_sdr_id, payload, source)
+    assert len(SalesEngagementInteractionRaw.query.all()) == 1
+    sei_raw: SalesEngagementInteractionRaw =  SalesEngagementInteractionRaw.query.get(sei_raw_id)
+    assert sei_raw.client_id == client_id
+    assert sei_raw.client_archetype_id == client_archetype_id
+    assert sei_raw.client_sdr_id == client_sdr_id
+    assert sei_raw.csv_data == payload
+    assert sei_raw.source == source
+
+    # No duplicates
+    sei_raw_id = create_sales_engagement_interaction_raw(client_id, client_archetype_id, client_sdr_id, payload, source)
+    assert len(SalesEngagementInteractionRaw.query.all()) == 1
+    assert sei_raw_id == -1
+
+
+@use_app_context
+def test_create_ss_prospect_dic():
+    email = 'test@sellscale.com'
+    email_interaction_state = EmailInteractionState.EMAIL_CLICKED
+    email_sequence_state = EmailSequenceState.BOUNCED
+    ss_prospect_dic = create_ss_prospect_dic(email, email_interaction_state, email_sequence_state)
+    assert ss_prospect_dic['EMAIL'] == email
+    assert ss_prospect_dic['EMAIL_INTERACTION_STATE'] == email_interaction_state.value
+    assert ss_prospect_dic['EMAIL_SEQUENCE_STATE'] == email_sequence_state.value

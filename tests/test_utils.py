@@ -31,6 +31,8 @@ from model_import import (
     AdversaryTrainingPoint,
     Editor,
     GeneratedMessageEditRecord,
+    SalesEngagementInteractionRaw,
+    SalesEngagementInteractionSS,
 )
 
 
@@ -53,6 +55,8 @@ def test_app():
             prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
+        clear_all_entities(SalesEngagementInteractionSS)
+        clear_all_entities(SalesEngagementInteractionRaw)
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)

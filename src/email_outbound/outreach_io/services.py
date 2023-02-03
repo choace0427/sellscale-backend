@@ -5,6 +5,9 @@ from model_import import (
     ProspectEmailOutreachStatus,
     ProspectEmailStatusRecords,
     ProspectEmailStatus,
+    SalesEngagementInteractionRaw,
+    SalesEngagementInteractionSource,
+    SalesEngagementInteractionSS,
 )
 
 EMAIL = "Email"
@@ -38,8 +41,31 @@ def validate_outreach_csv_payload(payload: list) -> tuple:
     missing = all_required_fields - fields_in_csv
     if len(missing) > 0:
         return False, "CSV payload is missing required fields: {}".format(missing)
-    
+
     return True, "OK"
+
+
+def convert_and_update_outreach_payload(
+    client_id: int,
+    client_archetype_id: int,
+    client_sdr_id: int,
+    sales_engagement_interaction_raw_id: int,
+    payload: list,
+):
+    for prospect in payload:
+        sales_engagement_ss = SalesEngagementInteractionSS(
+            client_id=client_id,
+            client_archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
+            sales_engagement_interaction_raw_id=sales_engagement_interaction_raw_id,
+            email=prospect[EMAIL],
+            sequence_state=prospect[SEQUENCE_STATE],
+            emailed=prospect[EMAILED],
+            opened=prospect[OPENED],
+            clicked=prospect[CLICKED],
+            replied=prospect[REPLIED],
+        )
+
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def update_status_from_csv(
@@ -61,7 +87,7 @@ def update_status_from_csv(
     try:
         if len(payload) == 0:
             return False, "No rows in payload"
-        
+
         # This list will be used to return the emails that were not found belonging to the specified client id
         failed_email_list = []
         update_count = 0
@@ -71,7 +97,7 @@ def update_status_from_csv(
             sequence_state = prospect_dict.get(SEQUENCE_STATE)
             if sequence_state != FINISHED:
                 continue
-            
+
             # Get the correct prospect. Needs to match on email AND client id
             prospect_list = Prospect.query.filter_by(email=email).all()
             prospect: Prospect = None
@@ -96,7 +122,7 @@ def update_status_from_csv(
             new_outreach_status = get_new_status(prospect_dict)
             if old_outreach_status == new_outreach_status:
                 continue
-            
+
             if old_outreach_status == None:
                 prospect_email.outreach_status = new_outreach_status
                 old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
@@ -106,9 +132,9 @@ def update_status_from_csv(
                 else:
                     failed_email_list.append(email)
                     continue
-            
+
             db.session.add(ProspectEmailStatusRecords(
-                prospect_email_id=prospect_email_id, 
+                prospect_email_id=prospect_email_id,
                 from_status=old_outreach_status,
                 to_status=new_outreach_status)
             )
@@ -121,7 +147,7 @@ def update_status_from_csv(
             return True, "Warning: Impartial write, the following emails were not found or not updatable: " + str(failed_email_list)
 
         return True, "Made updates to {}/{} prospects.".format(update_count, len(payload))
-    except Exception as e: 
+    except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 def get_new_status(prospect: dict) -> ProspectEmailOutreachStatus:
