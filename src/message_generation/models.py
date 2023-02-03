@@ -3,6 +3,7 @@ import enum
 import sqlalchemy as sa
 from src.research.models import ResearchPointType
 
+
 class GeneratedMessageStatus(enum.Enum):
     DRAFT = "DRAFT"
     BLOCKED = "BLOCKED"
@@ -125,10 +126,17 @@ class GeneratedMessageEditRecord(db.Model):
 
     editor_id = db.Column(db.Integer, db.ForeignKey("editor.id"), nullable=True)
 
+
+class ConfigurationType(enum.Enum):
+    STRICT = "STRICT"  # all transformers must be present to use configuration
+    DEFAULT = "DEFAULT"  # if not better configuration present, use this configuration
+
+
 class StackRankedMessageGenerationConfiguration(db.Model):
     __tablename__ = "stack_ranked_message_generation_configuration"
 
     id = db.Column(db.Integer, primary_key=True)
+    configuration_type = db.Column(db.Enum(ConfigurationType), nullable=False)
     research_point_types = db.Column(
         db.ARRAY(db.String),
         nullable=True,
