@@ -311,7 +311,7 @@ def test_create_sample_cta_and_batch_update_ctas():
 
 
 @use_app_context
-def test_post_create_stack_ranked_configuration():
+def test_post_create_and_edit_stack_ranked_configuration():
     client = basic_client()
     archetype = basic_archetype(client)
 
@@ -339,3 +339,19 @@ def test_post_create_stack_ranked_configuration():
     assert config.configuration_type.value == "STRICT"
     assert config.instruction == "Swag swag swag"
     assert config.name == "Swag"
+    config_id = config.id
+
+    response = app.test_client().post(
+        "message_generation/edit_stack_ranked_configuration/instruction",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "configuration_id": config_id,
+                "instruction": "Swag swag swag 2",
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    config = StackRankedMessageGenerationConfiguration.query.first()
+    assert config.instruction == "Swag swag swag 2"

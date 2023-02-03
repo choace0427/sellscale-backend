@@ -23,7 +23,7 @@ def create_stack_ranked_configuration(
     name: Optional[str] = None,
     client_id: Optional[int] = None,
     archetype_id: Optional[int] = None,
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str]:
     """Create a new stack ranked message generation configuration"""
     for generated_message_id in generated_message_ids:
         generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
@@ -76,9 +76,19 @@ def create_stack_ranked_configuration(
 def edit_stack_ranked_configuration_instruction(
     stack_ranked_configuration_id: int,
     instruction: str,
-):
+) -> tuple[bool, str]:
     """Edit the instruction of a stack ranked message generation configuration"""
-    pass
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=stack_ranked_configuration_id
+        ).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    srmgc.instruction = instruction
+    db.session.add(srmgc)
+    db.session.commit()
+    return True, "OK"
 
 
 def edit_stack_ranked_configuration_research_point_types(
