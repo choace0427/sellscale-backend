@@ -156,6 +156,7 @@ class SalesEngagementInteractionRaw(db.Model):
     csv_data = db.Column(JSONB, nullable=False)
     csv_data_hash = db.Column(db.String, nullable=False)
     source = db.Column(db.Enum(SalesEngagementInteractionSource), nullable=False)
+    sequence_name = db.Column(db.String, nullable=False)
 
 
 class SalesEngagementInteractionSS(db.Model):

@@ -82,7 +82,7 @@ def test_create_sales_engagement_interaction_raw():
     client_id = client.id
     client_archetype_id = archetype.id
     client_sdr_id = sdr.id
-    payload = [{"test" : "test"}]
+    payload = [{"Sequence Name" : "test-sequence"}]
     source = SalesEngagementInteractionSource.OUTREACH
     sei_raw_id = create_sales_engagement_interaction_raw(client_id, client_archetype_id, client_sdr_id, payload, source)
     assert len(SalesEngagementInteractionRaw.query.all()) == 1
@@ -92,6 +92,7 @@ def test_create_sales_engagement_interaction_raw():
     assert sei_raw.client_sdr_id == client_sdr_id
     assert sei_raw.csv_data == payload
     assert sei_raw.source == source
+    assert sei_raw.sequence_name == "test-sequence"
 
     # No duplicates
     sei_raw_id = create_sales_engagement_interaction_raw(client_id, client_archetype_id, client_sdr_id, payload, source)

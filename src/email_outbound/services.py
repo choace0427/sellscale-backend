@@ -123,6 +123,12 @@ def create_sales_engagement_interaction_raw(
     ).first()
     if exists:
         return -1
+
+    if source == SalesEngagementInteractionSource.OUTREACH:
+        sequence_name = payload[0]["Sequence Name"]
+    else:
+        sequence_name = "Unknown"
+
     # Create a SalesEngagementInteractionRaw entry using the payload as csv_data.
     raw_entry: SalesEngagementInteractionRaw = SalesEngagementInteractionRaw(
         client_id=client_id,
@@ -131,6 +137,7 @@ def create_sales_engagement_interaction_raw(
         csv_data=payload,
         csv_data_hash=payload_hash_value,
         source=source.value,
+        sequence_name=sequence_name,
     )
     db.session.add(raw_entry)
     db.session.commit()

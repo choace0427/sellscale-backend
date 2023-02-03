@@ -329,6 +329,7 @@ def basic_sei_raw(client: Client, client_sdr: ClientSDR, client_archetype: Clien
         csv_data=csv_data,
         csv_data_hash="1234567890",
         source=SalesEngagementInteractionSource.OUTREACH,
+        sequence_name="test-sequence",
     )
     db.session.add(s)
     db.session.commit()

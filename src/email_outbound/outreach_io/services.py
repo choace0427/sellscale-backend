@@ -67,7 +67,7 @@ def convert_outreach_payload_to_ss(
     Returns:
         int: The SalesEngagementInteractionSS ID
     """
-    set_ss_prospects = set()
+    list_ss_prospects = []
     for prospect_dict in payload:
         email = prospect_dict.get(EMAIL)
         outreach_sequence_state = prospect_dict.get(SEQUENCE_STATE)
@@ -98,9 +98,8 @@ def convert_outreach_payload_to_ss(
             email_interaction_state=interaction_state,
             email_sequence_state=sequence_state,
         )
-        set_ss_prospects.add(ss_prospect_dict)
+        list_ss_prospects.append(ss_prospect_dict)
 
-    list_ss_prospects = list(set_ss_prospects)
     sei_ss = SalesEngagementInteractionSS(
         client_id=client_id,
         client_archetype_id=client_archetype_id,
