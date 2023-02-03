@@ -8,7 +8,10 @@ from model_import import (
     SalesEngagementInteractionRaw,
     SalesEngagementInteractionSource,
     SalesEngagementInteractionSS,
+    EmailInteractionState,
+    EmailSequenceState
 )
+from src.email_outbound.services import (create_ss_prospect_dict)
 
 EMAIL = "Email"
 SEQUENCE_STATE = "Sequence State"
@@ -45,26 +48,69 @@ def validate_outreach_csv_payload(payload: list) -> tuple:
     return True, "OK"
 
 
-def convert_and_update_outreach_payload(
+def convert_outreach_payload_to_ss(
     client_id: int,
     client_archetype_id: int,
     client_sdr_id: int,
     sales_engagement_interaction_raw_id: int,
     payload: list,
-):
-    for prospect in payload:
-        sales_engagement_ss = SalesEngagementInteractionSS(
-            client_id=client_id,
-            client_archetype_id=client_archetype_id,
-            client_sdr_id=client_sdr_id,
-            sales_engagement_interaction_raw_id=sales_engagement_interaction_raw_id,
-            email=prospect[EMAIL],
-            sequence_state=prospect[SEQUENCE_STATE],
-            emailed=prospect[EMAILED],
-            opened=prospect[OPENED],
-            clicked=prospect[CLICKED],
-            replied=prospect[REPLIED],
+) -> int:
+    """Converts the Outreach.io payload into a SalesEngagementInteractionSS entry
+
+    Args:
+        client_id (int): The client ID
+        client_archetype_id (int): The client archetype ID
+        client_sdr_id (int): The client SDR ID
+        sales_engagement_interaction_raw_id (int): The SalesEngagementInteractionRaw ID
+        payload (list): The Outreach.io payload
+
+    Returns:
+        int: The SalesEngagementInteractionSS ID
+    """
+    set_ss_prospects = set()
+    for prospect_dict in payload:
+        email = prospect_dict.get(EMAIL)
+        outreach_sequence_state = prospect_dict.get(SEQUENCE_STATE)
+        if outreach_sequence_state == "Finished":
+            sequence_state = EmailSequenceState.COMPLETED
+        elif outreach_sequence_state == "Bounced":
+            sequence_state = EmailSequenceState.BOUNCED
+        elif outreach_sequence_state == "Paused OOTO":
+            sequence_state = EmailSequenceState.OUT_OF_OFFICE
+        elif outreach_sequence_state == "Active":
+            sequence_state = EmailSequenceState.IN_PROGRESS
+        else:
+            sequence_state = EmailSequenceState.UNKNOWN
+
+        if prospect_dict.get(REPLIED):
+            interaction_state = EmailInteractionState.EMAIL_REPLIED
+        elif prospect_dict.get(CLICKED):
+            interaction_state = EmailInteractionState.EMAIL_CLICKED
+        elif prospect_dict.get(OPENED):
+            interaction_state = EmailInteractionState.EMAIL_OPENED
+        elif prospect_dict.get(EMAILED):
+            interaction_state = EmailInteractionState.EMAIL_SENT
+        else:
+            interaction_state = EmailInteractionState.UNKNOWN
+
+        ss_prospect_dict = create_ss_prospect_dict(
+            email=email,
+            email_interaction_state=interaction_state,
+            email_sequence_state=sequence_state,
         )
+        set_ss_prospects.add(ss_prospect_dict)
+
+    list_ss_prospects = list(set_ss_prospects)
+    sei_ss = SalesEngagementInteractionSS(
+        client_id=client_id,
+        client_archetype_id=client_archetype_id,
+        client_sdr_id=client_sdr_id,
+        sales_engagement_interaction_raw_id=sales_engagement_interaction_raw_id,
+        ss_status_data=list_ss_prospects,
+    )
+    db.session.add(sei_ss)
+    db.session.commit()
+    return sei_ss.id
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)

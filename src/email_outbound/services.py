@@ -137,7 +137,7 @@ def create_sales_engagement_interaction_raw(
     return raw_entry.id
 
 
-def create_ss_prospect_dic(
+def create_ss_prospect_dict(
     email: str,
     email_interaction_state: EmailInteractionState,
     email_sequence_state: EmailSequenceState,

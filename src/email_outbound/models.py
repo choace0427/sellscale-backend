@@ -100,11 +100,13 @@ class ProspectEmailStatusRecords(db.Model):
 
 class EmailInteractionState(enum.Enum):
     """
+    - UNKNOWN: used for null values in the future
     - EMAIL_SENT: email has been sent
     - EMAIL_OPENED: email has been opened
     - EMAIL_CLICKED: email has been clicked
     - EMAIL_REPLIED: email has been replied to
     """
+    UNKNOWN = "UNKNOWN"
 
     EMAIL_SENT = "EMAIL_SENT"
     EMAIL_OPENED = "EMAIL_OPENED"
@@ -114,11 +116,13 @@ class EmailInteractionState(enum.Enum):
 
 class EmailSequenceState(enum.Enum):
     """
+    - UNKNOWN: used for null values in the future
     - IN_PROGRESS: email sequence is in progress
     - COMPLETED: email sequence is completed
     - BOUNCED: email has bounced
     - OUT_OF_OFFICE: recipient replied with out of office message
     """
+    UNKNOWN = "UNKNOWN"
 
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"

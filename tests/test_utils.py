@@ -34,6 +34,7 @@ from model_import import (
     SalesEngagementInteractionRaw,
     SalesEngagementInteractionSS,
 )
+from typing import Optional
 
 
 @pytest.fixture
@@ -316,6 +317,22 @@ def basic_prospect_uploads(
     db.session.add(pu)
     db.session.commit()
     return pu
+
+
+def basic_sei_raw(client: Client, client_sdr: ClientSDR, client_archetype: ClientArchetype, csv_data: Optional[list[dict]] = [{"test": "test"}]):
+    from model_import import SalesEngagementInteractionRaw, SalesEngagementInteractionSource
+
+    s = SalesEngagementInteractionRaw(
+        client_id=client.id,
+        client_archetype_id=client_archetype.id,
+        client_sdr_id=client_sdr.id,
+        csv_data=csv_data,
+        csv_data_hash="1234567890",
+        source=SalesEngagementInteractionSource.OUTREACH,
+    )
+    db.session.add(s)
+    db.session.commit()
+    return s
 
 
 def clear_all_entities(SQLAlchemyObject):

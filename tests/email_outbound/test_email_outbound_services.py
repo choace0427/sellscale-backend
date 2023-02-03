@@ -1,6 +1,6 @@
 from src.email_outbound.models import EmailCustomizedFieldTypes, SalesEngagementInteractionSource, SalesEngagementInteractionRaw, SalesEngagementInteractionSS, EmailInteractionState, EmailSequenceState
 from src.ml.models import GNLPModelType
-from src.email_outbound.services import create_email_schema, create_prospect_email, create_sales_engagement_interaction_raw, create_ss_prospect_dic
+from src.email_outbound.services import create_email_schema, create_prospect_email, create_sales_engagement_interaction_raw, create_ss_prospect_dict
 from test_utils import (
     basic_client,
     basic_client_sdr,
@@ -100,11 +100,11 @@ def test_create_sales_engagement_interaction_raw():
 
 
 @use_app_context
-def test_create_ss_prospect_dic():
+def test_create_ss_prospect_dict():
     email = 'test@sellscale.com'
     email_interaction_state = EmailInteractionState.EMAIL_CLICKED
     email_sequence_state = EmailSequenceState.BOUNCED
-    ss_prospect_dic = create_ss_prospect_dic(email, email_interaction_state, email_sequence_state)
+    ss_prospect_dic = create_ss_prospect_dict(email, email_interaction_state, email_sequence_state)
     assert ss_prospect_dic['EMAIL'] == email
     assert ss_prospect_dic['EMAIL_INTERACTION_STATE'] == email_interaction_state.value
     assert ss_prospect_dic['EMAIL_SEQUENCE_STATE'] == email_sequence_state.value
