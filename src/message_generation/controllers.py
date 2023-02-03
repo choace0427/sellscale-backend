@@ -19,6 +19,10 @@ from src.message_generation.services import (
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
     edit_stack_ranked_configuration_instruction,
+    edit_stack_ranked_configuration_research_point_types,
+    edit_stack_ranked_configuration_generated_message_ids,
+    edit_stack_ranked_configuration_name,
+    delete_stack_ranked_configuration,
 )
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
@@ -335,14 +339,6 @@ def post_update_ctas():
     "/create_stack_ranked_configuration", methods=["POST"]
 )
 def post_create_stack_ranked_configuration():
-    """configuration_type: ConfigurationType,
-    research_point_types: list[ResearchPointType],
-    generated_message_ids: list[int],
-    instruction: str,
-    name: Optional[str] = None,
-    client_id: Optional[int] = None,
-    archetype_id: Optional[int] = None,
-    """
     configuration_type = get_request_parameter(
         "configuration_type", request, json=True, required=True
     )
@@ -389,6 +385,78 @@ def post_edit_stack_ranked_configuration_instruction():
     success, message = edit_stack_ranked_configuration_instruction(
         stack_ranked_configuration_id=configuration_id,
         instruction=instruction,
+    )
+    if success:
+        return "OK", 200
+    return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/edit_stack_ranked_configuration/research_point_types", methods=["POST"]
+)
+def post_edit_stack_ranked_configuration_research_point_types():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    research_point_types = get_request_parameter(
+        "research_point_types", request, json=True, required=True
+    )
+
+    success, message = edit_stack_ranked_configuration_research_point_types(
+        stack_ranked_configuration_id=configuration_id,
+        research_point_types=research_point_types,
+    )
+    if success:
+        return "OK", 200
+    return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/edit_stack_ranked_configuration/generated_message_ids", methods=["POST"]
+)
+def post_edit_stack_ranked_configuration_generated_message_ids():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    generated_message_ids = get_request_parameter(
+        "generated_message_ids", request, json=True, required=True
+    )
+
+    success, message = edit_stack_ranked_configuration_generated_message_ids(
+        stack_ranked_configuration_id=configuration_id,
+        generated_message_ids=generated_message_ids,
+    )
+    if success:
+        return "OK", 200
+    return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/edit_stack_ranked_configuration/name", methods=["POST"]
+)
+def post_edit_stack_ranked_configuration_name():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    name = get_request_parameter("name", request, json=True, required=True)
+
+    success, message = edit_stack_ranked_configuration_name(
+        stack_ranked_configuration_id=configuration_id,
+        name=name,
+    )
+    if success:
+        return "OK", 200
+    return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/stack_ranked_configuration", methods=["DELETE"])
+def delete_stack_ranked_configuration_endpoint():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+
+    success, message = delete_stack_ranked_configuration(
+        stack_ranked_configuration_id=configuration_id,
     )
     if success:
         return "OK", 200

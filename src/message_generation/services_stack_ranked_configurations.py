@@ -96,7 +96,17 @@ def edit_stack_ranked_configuration_research_point_types(
     research_point_types: list[ResearchPointType],
 ):
     """Edit the research point types of a stack ranked message generation configuration"""
-    pass
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=stack_ranked_configuration_id
+        ).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    srmgc.research_point_types = research_point_types
+    db.session.add(srmgc)
+    db.session.commit()
+    return True, "OK"
 
 
 def edit_stack_ranked_configuration_generated_message_ids(
@@ -104,7 +114,17 @@ def edit_stack_ranked_configuration_generated_message_ids(
     generated_message_ids: list[int],
 ):
     """Edit the generated message ids of a stack ranked message generation configuration"""
-    pass
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=stack_ranked_configuration_id
+        ).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    srmgc.generated_message_ids = generated_message_ids
+    db.session.add(srmgc)
+    db.session.commit()
+    return True, "OK"
 
 
 def edit_stack_ranked_configuration_name(
@@ -112,11 +132,30 @@ def edit_stack_ranked_configuration_name(
     name: str,
 ):
     """Edit the name of a stack ranked message generation configuration"""
-    pass
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=stack_ranked_configuration_id
+        ).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    srmgc.name = name
+    db.session.add(srmgc)
+    db.session.commit()
+    return True, "OK"
 
 
 def delete_stack_ranked_configuration(
     stack_ranked_configuration_id: int,
-):
+) -> tuple[bool, str]:
     """Delete a stack ranked message generation configuration"""
-    pass
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=stack_ranked_configuration_id
+        ).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    db.session.delete(srmgc)
+    db.session.commit()
+    return True, "OK"
