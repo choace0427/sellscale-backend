@@ -1,6 +1,7 @@
 from app import db
 import enum
-
+import sqlalchemy as sa
+from src.research.models import ResearchPointType
 
 class GeneratedMessageStatus(enum.Enum):
     DRAFT = "DRAFT"
@@ -123,3 +124,21 @@ class GeneratedMessageEditRecord(db.Model):
     edited_text = db.Column(db.String, nullable=False)
 
     editor_id = db.Column(db.Integer, db.ForeignKey("editor.id"), nullable=True)
+
+class StackRankedMessageGenerationConfiguration(db.Model):
+    __tablename__ = "stack_ranked_message_generation_configuration"
+
+    id = db.Column(db.Integer, primary_key=True)
+    research_point_types = db.Column(
+        db.ARRAY(db.String),
+        nullable=True,
+    )
+    generated_message_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
+    instruction = db.Column(db.String, nullable=False)
+    computed_prompt = db.Column(db.String, nullable=False)
+
+    name = db.Column(db.String, nullable=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
+    archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
