@@ -89,5 +89,6 @@ def test_send_slack_block_with_webhook_config_and_allowlist(mock_send_slack_mess
 
 
 @mock.patch("src.utils.slack.WebhookClient")
-def test_send_slack_message(webhook_client_mock):
-    send_slack_message("testing123", "webhook123", blocks=[])
+@mock.patch("os.environ.get", return_value="production")
+def test_send_slack_message(os_get, webhook_client_mock):
+    send_slack_message("testing123", ["webhook123"], blocks=[])
