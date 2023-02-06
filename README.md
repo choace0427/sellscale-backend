@@ -160,10 +160,10 @@ In general, when making changes, follow these guidelines:
 1. Make a new branch:
 
 ```
-<YOUR_NAME>_<DESCRIPTION-SEPARATED-BY-HYPHENS>
+<YOUR_NAME>_<YEAR-MONTH-DAY>_<DESCRIPTION-SEPARATED-BY-HYPHENS>
 ```
 
-Examples would be `aakash_adding-delete-api-for-prospects` or `david_generate-new-hash-keys`
+Examples would be `aakash_2023-01-01_adding-delete-api-for-prospects` or `david_2023-01-02_generate-new-hash-keys`
 
 2. Check out the new branch, and make your feature changes. **INCLUDE DOC**
 
