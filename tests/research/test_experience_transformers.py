@@ -116,6 +116,22 @@ def test_get_recent_recommendation_summary(
     data = get_years_of_experience_at_current_job(half_a_year)
     assert data["response"] == "Been at SellScale for half a year."
 
+    over_half_a_year = {
+        "personal": {
+            "position_groups": [
+                {
+                    "date": {
+                        "start": {"year": 2022, "month": 5},
+                        "end": {"year": None, "month": None},
+                    }
+                }
+            ]
+        },
+        "company": {"details": {"name": "SellScale"}},
+    }
+    data = get_years_of_experience_at_current_job(over_half_a_year)
+    assert data["response"] == "Been at SellScale for over half a year."
+
     over_a_year = {
         "personal": {
             "position_groups": [
@@ -131,6 +147,22 @@ def test_get_recent_recommendation_summary(
     }
     data = get_years_of_experience_at_current_job(over_a_year)
     assert data["response"] == "Been at SellScale for over a year."
+
+    over_2_years = {
+        "personal": {
+            "position_groups": [
+                {
+                    "date": {
+                        "start": {"year": 2020, "month": 10},
+                        "end": {"year": None, "month": None},
+                    }
+                }
+            ]
+        },
+        "company": {"details": {"name": "SellScale"}},
+    }
+    data = get_years_of_experience_at_current_job(over_2_years)
+    assert data["response"] == "Been at SellScale for over 2 years."
 
     half_a_decade = {
         "personal": {

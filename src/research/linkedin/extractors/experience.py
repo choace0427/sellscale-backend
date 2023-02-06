@@ -110,26 +110,30 @@ def get_years_of_experience_at_current_job(data):
         frame = "Just started at {company}.".format(company=company_name)
     elif time_at_job > 0.4 and time_at_job < 0.6:  # 5-7 months
         frame = "Been at {company} for half a year.".format(company=company_name)
+    elif time_at_job >= 0.6 and time_at_job < .84:  # 7-10 months:
+        frame = "Been at {company} for over half a year.".format(company=company_name)
     elif time_at_job >= 40:  # 40+ years
         frame = "Been at {company} for over {time} decades.".format(
             company=company_name, time=math.floor(time_at_job // 10)
         )
     elif time_at_job >= 39:  # 39-40 years
         frame = "Been at {company} for nearly 4 decades.".format(company=company_name)
-    elif time_at_job > 30:  # 30-39 years
+    elif time_at_job >= 30:  # 30-39 years
         frame = "Been at {company} for over 3 decades.".format(company=company_name)
     elif time_at_job >= 29:  # 29-30 years
         frame = "Been at {company} for nearly 3 decades.".format(company=company_name)
-    elif time_at_job > 20:  # 20-29 years
+    elif time_at_job >= 20:  # 20-29 years
         frame = "Been at {company} for over 2 decades.".format(company=company_name)
     elif time_at_job >= 19:  # 19-20 years
         frame = "Been at {company} for nearly 2 decades.".format(company=company_name)
-    elif time_at_job > 10:  # 10-19 years
+    elif time_at_job >= 10:  # 10-19 years
         frame = "Been at {company} for over a decade.".format(company=company_name)
     elif time_at_job >= 9:  # 9-10 years
         frame = "Been at {company} for nearly a decade.".format(company=company_name)
-    elif time_at_job > 5:  # 5-9 years
+    elif time_at_job >= 5:  # 5-9 years
         frame = "Been at {company} for over half a decade.".format(company=company_name)
+    elif time_at_job >= 2:  # 2-5 years
+        frame = "Been at {company} for over {years} years.".format(company=company_name, years=math.floor(time_at_job))
     elif time_at_job < 2 and time_at_job > 1.2:  # 14-24 months
         frame = "Been at {company} for over a year.".format(company=company_name)
 
