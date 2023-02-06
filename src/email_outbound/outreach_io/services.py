@@ -11,7 +11,7 @@ from model_import import (
     EmailInteractionState,
     EmailSequenceState
 )
-from src.email_outbound.services import (create_ss_prospect_dict)
+from src.email_outbound.ss_data import SSData
 
 EMAIL = "Email"
 SEQUENCE_STATE = "Sequence State"
@@ -47,8 +47,9 @@ def validate_outreach_csv_payload(payload: list) -> tuple:
 
     return True, "OK"
 
-
+@celery.task(bind=True, max_retries=3)
 def convert_outreach_payload_to_ss(
+    self: any,
     client_id: int,
     client_archetype_id: int,
     client_sdr_id: int,
@@ -67,180 +68,185 @@ def convert_outreach_payload_to_ss(
     Returns:
         int: The SalesEngagementInteractionSS ID
     """
-    list_ss_prospects = []
-    for prospect_dict in payload:
-        email = prospect_dict.get(EMAIL)
-        outreach_sequence_state = prospect_dict.get(SEQUENCE_STATE)
-        if outreach_sequence_state == "Finished":
-            sequence_state = EmailSequenceState.COMPLETED
-        elif outreach_sequence_state == "Bounced":
-            sequence_state = EmailSequenceState.BOUNCED
-        elif outreach_sequence_state == "Paused OOTO":
-            sequence_state = EmailSequenceState.OUT_OF_OFFICE
-        elif outreach_sequence_state == "Active":
-            sequence_state = EmailSequenceState.IN_PROGRESS
-        else:
-            sequence_state = EmailSequenceState.UNKNOWN
-
-        if prospect_dict.get(REPLIED):
-            interaction_state = EmailInteractionState.EMAIL_REPLIED
-        elif prospect_dict.get(CLICKED):
-            interaction_state = EmailInteractionState.EMAIL_CLICKED
-        elif prospect_dict.get(OPENED):
-            interaction_state = EmailInteractionState.EMAIL_OPENED
-        elif prospect_dict.get(EMAILED):
-            interaction_state = EmailInteractionState.EMAIL_SENT
-        else:
-            interaction_state = EmailInteractionState.UNKNOWN
-
-        ss_prospect_dict = create_ss_prospect_dict(
-            email=email,
-            email_interaction_state=interaction_state,
-            email_sequence_state=sequence_state,
-        )
-        list_ss_prospects.append(ss_prospect_dict)
-
-    sei_ss = SalesEngagementInteractionSS(
-        client_id=client_id,
-        client_archetype_id=client_archetype_id,
-        client_sdr_id=client_sdr_id,
-        sales_engagement_interaction_raw_id=sales_engagement_interaction_raw_id,
-        ss_status_data=list_ss_prospects,
-    )
-    db.session.add(sei_ss)
-    db.session.commit()
-    return sei_ss.id
-
-
-@celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def update_status_from_csv(
-    self,
-    payload: list,
-    client_id: int,
-) -> tuple:
-    """ Updates the status of the prospects from the CSV payload from Outreach.io (submitted from Retool)
-
-    Args:
-        payload (list): The payload from Outreach.io
-        client_id (int): The client id, used to verify the prospect belongs to the client
-
-    Returns:
-        tuple: (bool, str) - (True if valid, message)
-
-    TODO: ProspectEmail is currently not a one-to-one mapping to Prospect. It needs to be in the future.
-    """
     try:
-        if len(payload) == 0:
-            return False, "No rows in payload"
-
-        # This list will be used to return the emails that were not found belonging to the specified client id
-        failed_email_list = []
-        update_count = 0
-
+        list_ss_prospects = []
         for prospect_dict in payload:
             email = prospect_dict.get(EMAIL)
-            sequence_state = prospect_dict.get(SEQUENCE_STATE)
-            if sequence_state != FINISHED:
-                continue
-
-            # Get the correct prospect. Needs to match on email AND client id
-            prospect_list = Prospect.query.filter_by(email=email).all()
-            prospect: Prospect = None
-            for p in prospect_list:
-                if p.client_id == client_id:
-                    prospect = p
-                    break
-            if not prospect:
-                failed_email_list.append(email)
-                continue
-
-            prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
-                prospect_id=prospect.id,
-                email_status=ProspectEmailStatus.SENT,
-            ).first()
-            prospect_email_id = prospect_email.id
-            if not prospect_email:
-                failed_email_list.append(email)
-                continue
-
-            old_outreach_status = prospect_email.outreach_status
-            new_outreach_status = get_new_status(prospect_dict)
-            if old_outreach_status == new_outreach_status:
-                continue
-
-            if old_outreach_status == None:
-                prospect_email.outreach_status = new_outreach_status
-                old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
+            outreach_sequence_state = prospect_dict.get(SEQUENCE_STATE)
+            if outreach_sequence_state == "Finished":
+                sequence_state = EmailSequenceState.COMPLETED
+            elif outreach_sequence_state == "Bounced":
+                sequence_state = EmailSequenceState.BOUNCED
+            elif outreach_sequence_state == "Paused OOTO":
+                sequence_state = EmailSequenceState.OUT_OF_OFFICE
+            elif outreach_sequence_state == "Active":
+                sequence_state = EmailSequenceState.IN_PROGRESS
             else:
-                if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
-                    prospect_email.outreach_status = new_outreach_status
-                else:
-                    failed_email_list.append(email)
-                    continue
+                sequence_state = EmailSequenceState.UNKNOWN
 
-            db.session.add(ProspectEmailStatusRecords(
-                prospect_email_id=prospect_email_id,
-                from_status=old_outreach_status,
-                to_status=new_outreach_status)
+            if prospect_dict.get(REPLIED) == "Yes":
+                interaction_state = EmailInteractionState.EMAIL_REPLIED
+            elif prospect_dict.get(CLICKED) == "Yes":
+                interaction_state = EmailInteractionState.EMAIL_CLICKED
+            elif prospect_dict.get(OPENED) == "Yes":
+                interaction_state = EmailInteractionState.EMAIL_OPENED
+            elif prospect_dict.get(EMAILED) == "Yes":
+                interaction_state = EmailInteractionState.EMAIL_SENT
+            else:
+                interaction_state = EmailInteractionState.UNKNOWN
+
+            ss_prospect_dict = SSData(
+                email=email,
+                email_interaction_state=interaction_state,
+                email_sequence_state=sequence_state,
             )
-            db.session.add(prospect_email)
-            db.session.commit()
-            update_count += 1
+            list_ss_prospects.append(ss_prospect_dict.to_str_dict())
 
-
-        if len(failed_email_list) > 0:
-            return True, "Warning: Impartial write, the following emails were not found or not updatable: " + str(failed_email_list)
-
-        return True, "Made updates to {}/{} prospects.".format(update_count, len(payload))
+        sei_ss = SalesEngagementInteractionSS(
+            client_id=client_id,
+            client_archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
+            sales_engagement_interaction_raw_id=sales_engagement_interaction_raw_id,
+            ss_status_data=list_ss_prospects,
+        )
+        db.session.add(sei_ss)
+        db.session.commit()
+        return sei_ss.id
     except Exception as e:
+        db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
-def get_new_status(prospect: dict) -> ProspectEmailOutreachStatus:
-    """ Gets the new status from the prospect dict (from payload)
 
-    Args:
-        prospect (dict): The prospect dict
+# @celery.task(bind=True, max_retries=3, default_retry_delay=10)
+# def update_status_from_csv(
+#     self,
+#     payload: list,
+#     client_id: int,
+# ) -> tuple:
+#     """ Updates the status of the prospects from the CSV payload from Outreach.io (submitted from Retool)
 
-    Returns:
-        ProspectEmailOutreachStatus: The new status
-    """
-    replied = prospect.get(REPLIED)
-    clicked = prospect.get(CLICKED)
-    opened = prospect.get(OPENED)
-    emailed = prospect.get(EMAILED)
-    if replied == "Yes":
-        return ProspectEmailOutreachStatus.ACTIVE_CONVO
-    elif clicked == "Yes":
-        return ProspectEmailOutreachStatus.ACCEPTED
-    elif opened == "Yes":
-        return ProspectEmailOutreachStatus.EMAIL_OPENED
-    elif emailed == "Yes":
-        return ProspectEmailOutreachStatus.SENT_OUTREACH
+#     Args:
+#         payload (list): The payload from Outreach.io
+#         client_id (int): The client id, used to verify the prospect belongs to the client
+
+#     Returns:
+#         tuple: (bool, str) - (True if valid, message)
+
+#     TODO: ProspectEmail is currently not a one-to-one mapping to Prospect. It needs to be in the future.
+#     """
+#     try:
+#         if len(payload) == 0:
+#             return False, "No rows in payload"
+
+#         # This list will be used to return the emails that were not found belonging to the specified client id
+#         failed_email_list = []
+#         update_count = 0
+
+#         for prospect_dict in payload:
+#             email = prospect_dict.get(EMAIL)
+#             sequence_state = prospect_dict.get(SEQUENCE_STATE)
+#             if sequence_state != FINISHED:
+#                 continue
+
+#             # Get the correct prospect. Needs to match on email AND client id
+#             prospect_list = Prospect.query.filter_by(email=email).all()
+#             prospect: Prospect = None
+#             for p in prospect_list:
+#                 if p.client_id == client_id:
+#                     prospect = p
+#                     break
+#             if not prospect:
+#                 failed_email_list.append(email)
+#                 continue
+
+#             prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
+#                 prospect_id=prospect.id,
+#                 email_status=ProspectEmailStatus.SENT,
+#             ).first()
+#             prospect_email_id = prospect_email.id
+#             if not prospect_email:
+#                 failed_email_list.append(email)
+#                 continue
+
+#             old_outreach_status = prospect_email.outreach_status
+#             new_outreach_status = get_new_status(prospect_dict)
+#             if old_outreach_status == new_outreach_status:
+#                 continue
+
+#             if old_outreach_status == None:
+#                 prospect_email.outreach_status = new_outreach_status
+#                 old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
+#             else:
+#                 if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
+#                     prospect_email.outreach_status = new_outreach_status
+#                 else:
+#                     failed_email_list.append(email)
+#                     continue
+
+#             db.session.add(ProspectEmailStatusRecords(
+#                 prospect_email_id=prospect_email_id,
+#                 from_status=old_outreach_status,
+#                 to_status=new_outreach_status)
+#             )
+#             db.session.add(prospect_email)
+#             db.session.commit()
+#             update_count += 1
 
 
-# key (new_status) : value (list of valid statuses to update from)
-VALID_UPDATE_STATUSES_MAP = {
-    ProspectEmailOutreachStatus.EMAIL_OPENED: [ProspectEmailOutreachStatus.SENT_OUTREACH],
-    ProspectEmailOutreachStatus.ACCEPTED: [ProspectEmailOutreachStatus.EMAIL_OPENED, ProspectEmailOutreachStatus.SENT_OUTREACH],
-    ProspectEmailOutreachStatus.ACTIVE_CONVO: [
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.EMAIL_OPENED,
-    ],
-    ProspectEmailOutreachStatus.SCHEDULING: [
-        ProspectEmailOutreachStatus.ACTIVE_CONVO,
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.EMAIL_OPENED,
-    ],
-    ProspectEmailOutreachStatus.NOT_INTERESTED: [
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.ACTIVE_CONVO,
-        ProspectEmailOutreachStatus.SCHEDULING,
-    ],
-    ProspectEmailOutreachStatus.DEMO_SET: [
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.ACTIVE_CONVO,
-        ProspectEmailOutreachStatus.SCHEDULING,
-    ],
-    ProspectEmailOutreachStatus.DEMO_WON: [ProspectEmailOutreachStatus.DEMO_SET],
-    ProspectEmailOutreachStatus.DEMO_LOST: [ProspectEmailOutreachStatus.DEMO_SET],
-}
+#         if len(failed_email_list) > 0:
+#             return True, "Warning: Impartial write, the following emails were not found or not updatable: " + str(failed_email_list)
+
+#         return True, "Made updates to {}/{} prospects.".format(update_count, len(payload))
+#     except Exception as e:
+#         db.session.rollback()
+#         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+# def get_new_status(prospect: dict) -> ProspectEmailOutreachStatus:
+#     """ Gets the new status from the prospect dict (from payload)
+
+#     Args:
+#         prospect (dict): The prospect dict
+
+#     Returns:
+#         ProspectEmailOutreachStatus: The new status
+#     """
+#     replied = prospect.get(REPLIED)
+#     clicked = prospect.get(CLICKED)
+#     opened = prospect.get(OPENED)
+#     emailed = prospect.get(EMAILED)
+#     if replied == "Yes":
+#         return ProspectEmailOutreachStatus.ACTIVE_CONVO
+#     elif clicked == "Yes":
+#         return ProspectEmailOutreachStatus.ACCEPTED
+#     elif opened == "Yes":
+#         return ProspectEmailOutreachStatus.EMAIL_OPENED
+#     elif emailed == "Yes":
+#         return ProspectEmailOutreachStatus.SENT_OUTREACH
+
+
+# # key (new_status) : value (list of valid statuses to update from)
+# VALID_UPDATE_STATUSES_MAP = {
+#     ProspectEmailOutreachStatus.EMAIL_OPENED: [ProspectEmailOutreachStatus.SENT_OUTREACH],
+#     ProspectEmailOutreachStatus.ACCEPTED: [ProspectEmailOutreachStatus.EMAIL_OPENED, ProspectEmailOutreachStatus.SENT_OUTREACH],
+#     ProspectEmailOutreachStatus.ACTIVE_CONVO: [
+#         ProspectEmailOutreachStatus.ACCEPTED,
+#         ProspectEmailOutreachStatus.EMAIL_OPENED,
+#     ],
+#     ProspectEmailOutreachStatus.SCHEDULING: [
+#         ProspectEmailOutreachStatus.ACTIVE_CONVO,
+#         ProspectEmailOutreachStatus.ACCEPTED,
+#         ProspectEmailOutreachStatus.EMAIL_OPENED,
+#     ],
+#     ProspectEmailOutreachStatus.NOT_INTERESTED: [
+#         ProspectEmailOutreachStatus.ACCEPTED,
+#         ProspectEmailOutreachStatus.ACTIVE_CONVO,
+#         ProspectEmailOutreachStatus.SCHEDULING,
+#     ],
+#     ProspectEmailOutreachStatus.DEMO_SET: [
+#         ProspectEmailOutreachStatus.ACCEPTED,
+#         ProspectEmailOutreachStatus.ACTIVE_CONVO,
+#         ProspectEmailOutreachStatus.SCHEDULING,
+#     ],
+#     ProspectEmailOutreachStatus.DEMO_WON: [ProspectEmailOutreachStatus.DEMO_SET],
+#     ProspectEmailOutreachStatus.DEMO_LOST: [ProspectEmailOutreachStatus.DEMO_SET],
+# }

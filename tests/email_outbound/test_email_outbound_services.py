@@ -1,6 +1,12 @@
 from src.email_outbound.models import EmailCustomizedFieldTypes, SalesEngagementInteractionSource, SalesEngagementInteractionRaw, SalesEngagementInteractionSS, EmailInteractionState, EmailSequenceState
 from src.ml.models import GNLPModelType
-from src.email_outbound.services import create_email_schema, create_prospect_email, create_sales_engagement_interaction_raw, create_ss_prospect_dict
+from src.email_outbound.services import (
+    create_email_schema,
+    create_prospect_email,
+    create_sales_engagement_interaction_raw,
+    collect_and_update_status_from_ss_data,
+    update_status_from_ss_data
+)
 from test_utils import (
     basic_client,
     basic_client_sdr,
@@ -8,12 +14,22 @@ from test_utils import (
     basic_gnlp_model,
     basic_prospect,
     basic_generated_message,
+    basic_sei_raw,
+    basic_sei_ss,
+    basic_prospect_email,
+    basic_email_schema
 )
 from decorators import use_app_context
 from test_utils import test_app
 from app import db
-from src.email_outbound.models import EmailSchema, ProspectEmail, ProspectEmailStatus
-
+from src.email_outbound.models import (
+    EmailSchema,
+    ProspectEmail,
+    ProspectEmailStatus,
+    ProspectEmailOutreachStatus,
+    ProspectEmailStatusRecords
+)
+import mock
 
 def test_email_field_types():
     email_customized_values = [e.value for e in EmailCustomizedFieldTypes]
@@ -83,7 +99,7 @@ def test_create_sales_engagement_interaction_raw():
     client_archetype_id = archetype.id
     client_sdr_id = sdr.id
     payload = [{"Sequence Name" : "test-sequence"}]
-    source = SalesEngagementInteractionSource.OUTREACH
+    source = SalesEngagementInteractionSource.OUTREACH.value
     sei_raw_id = create_sales_engagement_interaction_raw(client_id, client_archetype_id, client_sdr_id, payload, source)
     assert len(SalesEngagementInteractionRaw.query.all()) == 1
     sei_raw: SalesEngagementInteractionRaw =  SalesEngagementInteractionRaw.query.get(sei_raw_id)
@@ -91,7 +107,7 @@ def test_create_sales_engagement_interaction_raw():
     assert sei_raw.client_archetype_id == client_archetype_id
     assert sei_raw.client_sdr_id == client_sdr_id
     assert sei_raw.csv_data == payload
-    assert sei_raw.source == source
+    assert sei_raw.source.value == source
     assert sei_raw.sequence_name == "test-sequence"
 
     # No duplicates
@@ -101,11 +117,69 @@ def test_create_sales_engagement_interaction_raw():
 
 
 @use_app_context
-def test_create_ss_prospect_dict():
-    email = 'test@sellscale.com'
-    email_interaction_state = EmailInteractionState.EMAIL_CLICKED
-    email_sequence_state = EmailSequenceState.BOUNCED
-    ss_prospect_dic = create_ss_prospect_dict(email, email_interaction_state, email_sequence_state)
-    assert ss_prospect_dic['EMAIL'] == email
-    assert ss_prospect_dic['EMAIL_INTERACTION_STATE'] == email_interaction_state.value
-    assert ss_prospect_dic['EMAIL_SEQUENCE_STATE'] == email_sequence_state.value
+@mock.patch('src.email_outbound.services.update_status_from_ss_data.apply_async')
+def test_collect_and_update_status_from_ss_data(update_status_from_ss_data_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    sdr = basic_client_sdr(client)
+    sei_raw = basic_sei_raw(client, sdr, archetype)
+    sei_ss = basic_sei_ss(client, sdr, archetype, sei_raw)
+    sei_ss_id = sei_ss.id
+
+    complete = collect_and_update_status_from_ss_data(sei_ss_id)
+    assert complete == True
+    assert update_status_from_ss_data_mock.called == True
+    assert update_status_from_ss_data_mock.call_count == 1
+
+
+@use_app_context
+def test_update_status_from_ss_data():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, sdr)
+    email_schema = basic_email_schema(archetype)
+    prospect_email = basic_prospect_email(prospect, email_schema, ProspectEmailStatus.SENT)
+    sei_raw = basic_sei_raw(client, sdr, archetype)
+    sei_ss = basic_sei_ss(client, sdr, archetype, sei_raw)
+    client_id = client.id
+    archetype_id = archetype.id
+    sdr_id = sdr.id
+    prospect_id = prospect.id
+    prospect_email_id = prospect_email.id
+    sei_ss_id = sei_ss.id
+
+    # Email sent
+    prospect_dict = {
+        'email': 'test@email.com',
+        'email_interaction_state': 'EMAIL_SENT',
+        'email_sequence_state': 'COMPLETED'
+    }
+    updated = update_status_from_ss_data(client_id, archetype_id, sdr_id, prospect_dict)
+    assert updated
+    assert len(ProspectEmail.query.all()) == 1
+    pe: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    assert pe.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+    sr = ProspectEmailStatusRecords.query.all()
+    assert len(sr) == 1
+    assert sr[0].prospect_email_id == prospect_email_id
+    assert sr[0].from_status == ProspectEmailOutreachStatus.UNKNOWN
+    assert sr[0].to_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+
+    # Email opened
+    opened_dict = {
+        'email': 'test@email.com',
+        'email_interaction_state': 'EMAIL_OPENED',
+        'email_sequence_state': 'COMPLETED'
+    }
+    updated = update_status_from_ss_data(client_id, archetype_id, sdr_id, opened_dict)
+    assert updated
+    assert len(ProspectEmail.query.all()) == 1
+    pe: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    assert pe.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED
+    sr = ProspectEmailStatusRecords.query.all()
+    assert len(sr) == 2
+    assert sr[1].prospect_email_id == prospect_email_id
+    assert sr[1].from_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+    assert sr[1].to_status == ProspectEmailOutreachStatus.EMAIL_OPENED
+

@@ -5,6 +5,7 @@ from src.ml.models import GNLPModelType
 from src.email_outbound.services import create_email_schema, create_prospect_email
 from test_utils import (
     basic_client,
+    basic_client_sdr,
     basic_archetype,
     basic_gnlp_model,
     basic_prospect,
@@ -14,7 +15,7 @@ from test_utils import (
 )
 from decorators import use_app_context
 from test_utils import test_app
-from src.email_outbound.models import EmailSchema, ProspectEmail, ProspectEmailStatus
+from src.email_outbound.models import EmailSchema, ProspectEmail, ProspectEmailStatus, SalesEngagementInteractionRaw
 from app import app
 import json
 import mock
@@ -208,20 +209,15 @@ def test_post_batch_update_emails_failed():
 
 
 @use_app_context
-@mock.patch("src.email_outbound.controllers.update_status_from_csv.delay", return_value=(True, "OK"))
-@mock.patch("src.email_outbound.controllers.validate_outreach_csv_payload", return_value=(True, "OK"))
-def test_update_status_from_csv_payload(validate_payload_mock, update_status_mock):
+@mock.patch("src.email_outbound.controllers.convert_outreach_payload_to_ss.apply_async", return_value=1)
+@mock.patch("src.email_outbound.controllers.collect_and_update_status_from_ss_data.s", return_value=True)
+def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_mock):
     client = basic_client()
+    sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
     email_schema = basic_email_schema(archetype)
-    prospect.email = "test-email"
-    db.session.add(prospect)
-    db.session.commit()
     prospect_email = basic_prospect_email(prospect, email_schema)
-    prospect_email.email_status = ProspectEmailStatus.SENT
-    db.session.add(prospect_email)
-    db.session.commit()
 
     response = app.test_client().post(
         "/email_generation/update_status/csv",
@@ -230,8 +226,9 @@ def test_update_status_from_csv_payload(validate_payload_mock, update_status_moc
             {
                 "csv_payload": [
                     {
-                        "Email": "test-email",
+                        "Email": "test@email.com",
                         "Sequence State": "Finished",
+                        "Sequence Name": "test-sequence",
                         "Emailed?": "Yes",
                         "Opened?": "No",
                         "Clicked?": "No",
@@ -239,34 +236,17 @@ def test_update_status_from_csv_payload(validate_payload_mock, update_status_moc
                     }
                 ],
                 "client_id": client.id,
+                "client_archetype_id": archetype.id,
+                "client_sdr_id": sdr.id,
+                "payload_source": "OUTREACH"
             }
         ),
     )
     assert response.status_code == 200
-    assert validate_payload_mock.call_count == 1
-    assert validate_payload_mock.called_with(
-        csv_payload=[
-                    {
-                        "Email": "test-email",
-                        "Sequence State": "Finished",
-                        "Emailed?": "Yes",
-                        "Opened?": "No",
-                        "Clicked?": "No",
-                        "Replied?": "No",
-                    }
-                ]
-    )
-    assert update_status_mock.call_count == 1
-    assert update_status_mock.called_with(
-        csv_payload=[
-            {
-                "Email": "test-email",
-                "Sequence State": "Finished",
-                "Emailed?": "Yes",
-                "Opened?": "No",
-                "Clicked?": "No",
-                "Replied?": "No",
-            }
-        ],
-        client_id=client.id,
-    )
+    assert response.data == b'Status update is in progress'
+    assert SalesEngagementInteractionRaw.query.count() == 1
+    se = SalesEngagementInteractionRaw.query.first()
+    assert convert_to_ss_mock.called_once()
+    assert convert_to_ss_mock.called_with(args=[se.id], link=collect_and_update_mock)
+    assert collect_and_update_mock.called_once()
+    assert collect_and_update_mock.called_with(1)

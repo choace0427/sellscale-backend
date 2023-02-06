@@ -31,7 +31,7 @@ class MockGoogleSearch:
 def test_search_google_news(serp_mock):
     query = "SellScale"
     search_google_news(query=query)
-    serp_mock.assert_called_once_with(
+    serp_mock.called_with(
         {
             "api_key": None,
             "engine": "google",

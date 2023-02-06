@@ -5,8 +5,16 @@ from src.message_generation.services import (
     batch_generate_prospect_emails,
     mark_prospect_email_approved,
 )
-from src.email_outbound.services import create_email_schema, batch_update_emails
-from src.email_outbound.outreach_io.services import *
+from src.email_outbound.services import (
+    create_email_schema,
+    batch_update_emails,
+    create_sales_engagement_interaction_raw,
+    collect_and_update_status_from_ss_data
+)
+from src.email_outbound.outreach_io.services import (
+    validate_outreach_csv_payload,
+    convert_outreach_payload_to_ss
+)
 from src.utils.request_helpers import get_request_parameter
 from src.message_generation.services import batch_mark_prospect_email_sent
 from tqdm import tqdm
@@ -95,17 +103,34 @@ def post_batch_update_emails():
 def update_status_from_csv_payload():
     csv_payload: list = get_request_parameter("csv_payload", request, json=True, required=True)
     client_id: int = get_request_parameter("client_id", request, json=True, required=True)
+    client_archetype_id: int = get_request_parameter("client_archetype_id", request, json=True, required=True)
+    client_sdr_id: int = get_request_parameter("client_sdr_id", request, json=True, required=True)
+    payload_source: str = get_request_parameter("payload_source", request, json=True, required=True)
 
-    validated, message = validate_outreach_csv_payload(csv_payload)
-    if not validated:
-        return message, 400
+    # Validate the payload
+    if payload_source == "OUTREACH":
+        validated, message = validate_outreach_csv_payload(csv_payload)
+        if not validated:
+            return message, 400
 
-    update_status_from_csv.delay(payload=csv_payload, client_id=client_id)
+    # Create raw entry
+    sei_raw_id = create_sales_engagement_interaction_raw(
+        client_id,
+        client_archetype_id,
+        client_sdr_id,
+        csv_payload,
+        payload_source,
+    )
+    if sei_raw_id is None:
+        return "Failed to ingest third-party CSV.", 400
+    elif sei_raw_id == -1:
+        return "This third-party CSV already exists, check for duplicate upload?", 400
+
+    # Depending on csv type, convert raw entry into SS data (celery)
+    # Then chain update status using SS data (celery)
+    if payload_source == "OUTREACH":
+        convert_outreach_payload_to_ss.apply_async(
+            args=[sei_raw_id],
+            link=collect_and_update_status_from_ss_data.s())
 
     return "Status update is in progress", 200
-
-    ## TODO:
-    # 1. Depending on csv type, Validate payload
-    # 2. Create raw entry
-    # 3. Depending on csv type, convert raw entry into SS data (celery)
-    # 4. Update status using SS data (celery)

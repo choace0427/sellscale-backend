@@ -34,6 +34,8 @@ from model_import import (
     SalesEngagementInteractionRaw,
     SalesEngagementInteractionSS,
     StackRankedMessageGenerationConfiguration,
+    ProspectEmail,
+    ProspectEmailStatus
 )
 from typing import Optional
 
@@ -120,9 +122,8 @@ def basic_archetype(client: Client) -> ClientArchetype:
     return a
 
 
-def basic_prospect(
-    client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None
-):
+
+def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None, email: Optional[str] = 'test@email.com'):
     client_sdr_id = None
     if client_sdr:
         client_sdr_id = client_sdr.id
@@ -133,6 +134,7 @@ def basic_prospect(
         title="Testing Director",
         status=ProspectStatus.PROSPECTED,
         client_sdr_id=client_sdr_id,
+        email=email,
     )
     db.session.add(p)
     db.session.commit()
@@ -223,14 +225,13 @@ def basic_email_schema(archetype: ClientArchetype):
 def basic_prospect_email(
     prospect: Prospect,
     email_schema: EmailSchema,
+    email_status: ProspectEmailStatus = ProspectEmailStatus.DRAFT,
 ) -> ProspectEmail:
-    from model_import import ProspectEmail
-    from src.email_outbound.models import ProspectEmailStatus
 
     p = ProspectEmail(
         email_schema_id=email_schema.id,
         prospect_id=prospect.id,
-        email_status=ProspectEmailStatus.DRAFT,
+        email_status=email_status,
     )
     db.session.add(p)
     db.session.commit()
@@ -344,6 +345,21 @@ def basic_sei_raw(
         csv_data_hash="1234567890",
         source=SalesEngagementInteractionSource.OUTREACH,
         sequence_name="test-sequence",
+    )
+    db.session.add(s)
+    db.session.commit()
+    return s
+
+
+def basic_sei_ss(client: Client, client_sdr: ClientSDR, client_archetype: ClientArchetype, sei_raw: SalesEngagementInteractionRaw):
+    from model_import import SalesEngagementInteractionSS
+
+    s = SalesEngagementInteractionSS(
+        client_id=client.id,
+        client_archetype_id=client_archetype.id,
+        client_sdr_id=client_sdr.id,
+        sales_engagement_interaction_raw_id=sei_raw.id,
+        ss_status_data=[{"test": "test"}],
     )
     db.session.add(s)
     db.session.commit()

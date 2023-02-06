@@ -21,9 +21,7 @@ from src.email_outbound.models import (
 )
 from src.email_outbound.outreach_io.services import (
     validate_outreach_csv_payload,
-    convert_outreach_payload_to_ss,
-    update_status_from_csv,
-    get_new_status,
+    convert_outreach_payload_to_ss
 )
 import mock
 
@@ -63,58 +61,59 @@ def test_validate_outreach_csv_payload():
 
 
 @use_app_context
-@mock.patch("src.email_outbound.outreach_io.services.create_ss_prospect_dict", return_value={})
-def test_convert_outreach_payload(create_ss_prospect_dict_mock):
+def test_convert_outreach_payload():
     client = basic_client()
+    client_id = client.id
     archetype = basic_archetype(client)
+    archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
     sei_raw = basic_sei_raw(client, client_sdr, archetype)
+    sei_raw_id = sei_raw.id
 
-    opened_payload = [
-        {
-            "Email": "test-email",
-            "Sequence State": "Finished",
-            "Emailed?": "Yes",
-            "Opened?": "Yes",
-            "Clicked?": "No",
-            "Replied?": "No",
-        }
-    ]
-    sei_ss_id = convert_outreach_payload_to_ss(client.id, archetype.id, client_sdr.id, sei_raw.id, opened_payload)
+    opened_payload = [{
+        "Email": "test-email",
+        "Sequence State": "Finished",
+        "Emailed?": "Yes",
+        "Opened?": "Yes",
+        "Clicked?": "No",
+        "Replied?": "No",
+    }]
+    sei_ss_id = convert_outreach_payload_to_ss(client_id, archetype_id, client_sdr_id, sei_raw_id, opened_payload)
     assert len(SalesEngagementInteractionSS.query.all()) == 1
     sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(sei_ss_id)
-    assert sei_ss.client_id == client.id
-    assert sei_ss.client_archetype_id == archetype.id
-    assert sei_ss.client_sdr_id == client_sdr.id
-    assert sei_ss.sales_engagement_interaction_raw_id == sei_raw.id
-    assert create_ss_prospect_dict_mock.called_with(
-        email="test-email",
-        email_interaction_state=EmailInteractionState.EMAIL_OPENED,
-        email_sequence_state=EmailSequenceState.COMPLETED,
-    )
+    assert sei_ss.client_id == client_id
+    assert sei_ss.client_archetype_id == archetype_id
+    assert sei_ss.client_sdr_id == client_sdr_id
+    assert sei_ss.sales_engagement_interaction_raw_id == sei_raw_id
 
-    bounced_payload = [
-        {
-            "Email": "test-email",
-            "Sequence State": "Bounced",
-            "Emailed?": "No",
-            "Opened?": "No",
-            "Clicked?": "No",
-            "Replied?": "No",
-        }
-    ]
-    sei_ss_id = convert_outreach_payload_to_ss(client.id, archetype.id, client_sdr.id, sei_raw.id, bounced_payload)
+    bounced_payload = [{
+        "Email": "test-email",
+        "Sequence State": "Bounced",
+        "Emailed?": "No",
+        "Opened?": "No",
+        "Clicked?": "No",
+        "Replied?": "No",
+    }]
+    sei_ss_id = convert_outreach_payload_to_ss(client_id, archetype_id, client_sdr_id, sei_raw_id, bounced_payload)
     assert len(SalesEngagementInteractionSS.query.all()) == 2
     sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(sei_ss_id)
-    assert sei_ss.client_id == client.id
-    assert sei_ss.client_archetype_id == archetype.id
-    assert sei_ss.client_sdr_id == client_sdr.id
-    assert sei_ss.sales_engagement_interaction_raw_id == sei_raw.id
-    assert create_ss_prospect_dict_mock.called_with(
-        email="test-email",
-        email_interaction_state=EmailInteractionState.UNKNOWN,
-        email_sequence_state=EmailSequenceState.BOUNCED,
-    )
+    assert sei_ss.client_id == client_id
+    assert sei_ss.client_archetype_id == archetype_id
+    assert sei_ss.client_sdr_id == client_sdr_id
+    assert sei_ss.sales_engagement_interaction_raw_id == sei_raw_id
+
+    ooo_payload = [{
+        "Email": "test-email",
+        "Sequence State": "Paused OOTO",
+    }]
+    sei_ss_id = convert_outreach_payload_to_ss(client_id, archetype_id, client_sdr_id, sei_raw_id, ooo_payload)
+    assert len(SalesEngagementInteractionSS.query.all()) == 3
+    sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(sei_ss_id)
+    assert sei_ss.client_id == client_id
+    assert sei_ss.client_archetype_id == archetype_id
+    assert sei_ss.client_sdr_id == client_sdr_id
+    assert sei_ss.sales_engagement_interaction_raw_id == sei_raw_id
 
 
 # @use_app_context
@@ -378,13 +377,13 @@ def test_convert_outreach_payload(create_ss_prospect_dict_mock):
 #     )
 
 
-@use_app_context
-def test_get_new_status():
-    dict_replied = {"Replied?": "Yes"}
-    dict_clicked = {"Clicked?": "Yes"}
-    dict_opened = {"Opened?": "Yes"}
-    dict_emailed = {"Emailed?": "Yes"}
-    assert get_new_status(dict_replied) == ProspectEmailOutreachStatus.ACTIVE_CONVO
-    assert get_new_status(dict_clicked) == ProspectEmailOutreachStatus.ACCEPTED
-    assert get_new_status(dict_opened) == ProspectEmailOutreachStatus.EMAIL_OPENED
-    assert get_new_status(dict_emailed) == ProspectEmailOutreachStatus.SENT_OUTREACH
+# @use_app_context
+# def test_get_new_status():
+#     dict_replied = {"Replied?": "Yes"}
+#     dict_clicked = {"Clicked?": "Yes"}
+#     dict_opened = {"Opened?": "Yes"}
+#     dict_emailed = {"Emailed?": "Yes"}
+#     assert get_new_status(dict_replied) == ProspectEmailOutreachStatus.ACTIVE_CONVO
+#     assert get_new_status(dict_clicked) == ProspectEmailOutreachStatus.ACCEPTED
+#     assert get_new_status(dict_opened) == ProspectEmailOutreachStatus.EMAIL_OPENED
+#     assert get_new_status(dict_emailed) == ProspectEmailOutreachStatus.SENT_OUTREACH
