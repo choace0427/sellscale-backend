@@ -111,7 +111,7 @@ def populate_prospect_uploads_from_json_payload(
         if prospect_dic["prospect_hash"] in existing_prospect_hash:
             status = ProspectUploadsStatus.DISQUALIFIED  # If duplicate, mark as disqualified
             error_type = ProspectUploadsErrorType.DUPLICATE
-        
+
         prospect_upload = ProspectUploads(
             client_id=client_id,
             client_archetype_id=client_archetype_id,
@@ -144,19 +144,19 @@ def collect_and_run_celery_jobs_for_upload(self, client_id: int, client_archetyp
         bool: True if the celery jobs were collected and scheduled successfully. Errors otherwise.
     """
     try:
-        not_started_rows: ProspectUploads = ProspectUploads.query.filter_by(             # Get all not_started rows  
+        not_started_rows: ProspectUploads = ProspectUploads.query.filter_by(             # Get all not_started rows
             client_id=client_id,
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
             status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
         ).all()
-        failed_rows: ProspectUploads = ProspectUploads.query.filter_by(                  # Get all failed rows  
+        failed_rows: ProspectUploads = ProspectUploads.query.filter_by(                  # Get all failed rows
             client_id=client_id,
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
             status=ProspectUploadsStatus.UPLOAD_FAILED,
         ).all()
-        
+
         eligible_rows = not_started_rows + failed_rows
         for row in eligible_rows:
             row: ProspectUploads = row
@@ -167,7 +167,7 @@ def collect_and_run_celery_jobs_for_upload(self, client_id: int, client_archetyp
                 db.session.add(prospect_upload)
                 db.session.commit()
                 create_prospect_from_prospect_upload_row.apply_async(args=[prospect_upload.id], queue="prospecting", routing_key="prospecting", priority=2)
-        
+
         return True
     except Exception as e:
         db.session.rollback()
@@ -210,7 +210,7 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str = None) -> bool:
+def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
     """ Celery task for creating a prospect from a LinkedIn URL.
 
     Args:
@@ -227,13 +227,14 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
             return False
-        
+
         # Mark the prospect upload row as UPLOAD_IN_PROGRESS.
         prospect_upload.upload_attempts += 1
         prospect_upload.status = ProspectUploadsStatus.UPLOAD_IN_PROGRESS
         db.session.add(prospect_upload)
         db.session.commit()
 
+        email = prospect_upload.csv_row_data.get("email", None)
         linkedin_url = prospect_upload.csv_row_data.get("linkedin_url")
         # Get the LinkedIn URL profile id for iScraper.
         if "/in/" in linkedin_url:
@@ -251,7 +252,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, email: str
             db.session.add(prospect_upload)
             db.session.commit()
             return False
-        
+
         # Get Prospect fields - needs change in future
         company_name = deep_get(iscraper_payload, "position_groups.0.company.name")
         company_url = deep_get(iscraper_payload, "position_groups.0.company.url")
