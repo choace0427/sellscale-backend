@@ -1,4 +1,3 @@
-import openai
 from app import db
 from src.daily_notifications.models import DailyNotifications
 from src.prospecting.models import Prospect
@@ -24,12 +23,13 @@ def fill_in_daily_notifications():
 
     for client_sdr in db.session.query(ClientSDR).all():
 
-
+        # TODO For testing, remove this:
         print('Client SDR: {0}'.format(client_sdr.id))
         
         prospects = db.session.query(Prospect).filter_by(client_sdr_id=client_sdr.id).all()
         for prospect in prospects:
 
+            # TODO For testing, remove this:
             print('Prospect Name: '.format(prospect.name))
 
             latest_message = db.session.query(LinkedinConversationEntry).order_by(LinkedinConversationEntry.date.desc()).first()
@@ -41,6 +41,7 @@ def fill_in_daily_notifications():
                     prospect_id=prospect.id,
                     client_sdr_id=client_sdr.id,
                     status='PENDING',
+                    # TODO Should be leave the text of this title and description hardcoded?
                     title='Unread message from {prospect_name}'.format(prospect_name=prospect.name),
                     description='Send a message to {prospect_name}.'.format(prospect_name=prospect.name),
                     due_date=datetime.datetime.now()+datetime.timedelta(days=1) # 1 day from now
