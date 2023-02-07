@@ -157,4 +157,6 @@ class StackRankedMessageGenerationConfiguration(db.Model):
     archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
-    priority = db.Column(db.Integer, nullable=True)
+    priority = db.Column(
+        db.Integer, nullable=True
+    )  # lower = less priority; higher = more priority
