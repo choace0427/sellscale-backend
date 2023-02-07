@@ -63,6 +63,12 @@ class GeneratedMessage(db.Model):
     adversary_identified_mistake = db.Column(db.String, nullable=True)
     adversary_identified_fix = db.Column(db.String, nullable=True)
 
+    stack_ranked_message_generation_configuration_id = db.Column(
+        db.Integer,
+        db.ForeignKey("stack_ranked_message_generation_configuration.id"),
+        nullable=True,
+    )
+
 
 class GeneratedMessageInstruction(db.Model):
     __tablename__ = "generated_message_instruction"
