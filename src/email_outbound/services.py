@@ -198,7 +198,7 @@ def update_status_from_ss_data(self, client_id: int, client_archetype_id: int, c
         prospect = Prospect.query.filter_by(
             client_id=client_id,
             archetype_id=client_archetype_id,
-            client_sdr_id=client_sdr_id,
+            # client_sdr_id=client_sdr_id, # TODO: Uncomment this once we have the client_sdr_id in the prospect table
             email=email
         ).first()
         if not prospect:
