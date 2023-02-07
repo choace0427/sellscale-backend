@@ -6,6 +6,7 @@ from src.client.models import ClientSDR
 from src.li_conversation.models import LinkedinConversationEntry
 from datetime import datetime
 
+
 def update_daily_notification_status(id: str, status: str):
     """
     Updates the status of the daily notification with id to status.
@@ -22,6 +23,7 @@ def fill_in_daily_notifications():
     """
 
     for client_sdr in db.session.query(ClientSDR).all():
+
 
         print('Client SDR: {0}'.format(client_sdr.id))
         
@@ -45,6 +47,19 @@ def fill_in_daily_notifications():
                 )
                 db.session.add(daily_notification)
 
+    db.session.commit()
+
+    return 'OK', 200
+
+
+def clear_daily_notifications():
+    """Clears all daily notifications.
+
+    Returns:
+        HTTPS response: 200 if successful.
+    """
+
+    db.session.query(DailyNotifications).delete()
     db.session.commit()
 
     return 'OK', 200

@@ -16,10 +16,21 @@ def scrape_all_inboxes_job():
 def fill_in_daily_notifications():
     from src.daily_notifications.services import fill_in_daily_notifications
 
+    # TODO For testing, remove this:
     fill_in_daily_notifications()
 
     if os.environ.get("FLASK_ENV") == "production":
         fill_in_daily_notifications()
+
+
+def clear_daily_notifications():
+    from src.daily_notifications.services import clear_daily_notifications
+
+    # TODO For testing, remove this:
+    clear_daily_notifications()
+
+    if os.environ.get("FLASK_ENV") == "production":
+        clear_daily_notifications()
 
 
 def refresh_fine_tune_statuses_job():
@@ -55,7 +66,9 @@ scheduler.add_job(
     minute="*/10",
 )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
-scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=24)
+scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", days=1)
+scheduler.add_job(func=clear_daily_notifications, trigger="interval", days=7)
+# TODO For testing, remove this:
 scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", minutes=1)
 scheduler.start()
 
