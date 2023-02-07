@@ -32,6 +32,10 @@ def datetime_interval_generator(start: datetime, end: datetime, delta: timedelta
         curr += delta
 
 
+def get_datetime_now():
+    return datetime.now()
+
+
 def get_current_month():
     return datetime.now().month
 
