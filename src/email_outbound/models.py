@@ -155,9 +155,6 @@ class SalesEngagementInteractionRaw(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
-    client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
-    )
     client_sdr_id = db.Column(
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )
@@ -173,9 +170,6 @@ class SalesEngagementInteractionSS(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
-    client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
-    )
     client_sdr_id = db.Column(
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )

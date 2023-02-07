@@ -44,7 +44,6 @@ def validate_outreach_csv_payload(payload: list) -> tuple:
 def convert_outreach_payload_to_ss(
     self: any,
     client_id: int,
-    client_archetype_id: int,
     client_sdr_id: int,
     sales_engagement_interaction_raw_id: int,
     payload: list,
@@ -97,7 +96,6 @@ def convert_outreach_payload_to_ss(
 
         sei_ss = SalesEngagementInteractionSS(
             client_id=client_id,
-            client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
             sales_engagement_interaction_raw_id=sales_engagement_interaction_raw_id,
             ss_status_data=list_ss_prospects,

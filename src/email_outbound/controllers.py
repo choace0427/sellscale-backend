@@ -103,7 +103,6 @@ def post_batch_update_emails():
 def update_status_from_csv_payload():
     csv_payload: list = get_request_parameter("csv_payload", request, json=True, required=True)
     client_id: int = get_request_parameter("client_id", request, json=True, required=True)
-    client_archetype_id: int = get_request_parameter("client_archetype_id", request, json=True, required=True)
     client_sdr_id: int = get_request_parameter("client_sdr_id", request, json=True, required=True)
     payload_source: str = get_request_parameter("payload_source", request, json=True, required=True)
 
@@ -116,7 +115,6 @@ def update_status_from_csv_payload():
     # Create raw entry
     sei_raw_id = create_sales_engagement_interaction_raw(
         client_id,
-        client_archetype_id,
         client_sdr_id,
         csv_payload,
         payload_source,
@@ -130,7 +128,7 @@ def update_status_from_csv_payload():
     # Then chain update status using SS data (celery)
     if payload_source == "OUTREACH":
         convert_outreach_payload_to_ss.apply_async(
-            args=[client_id, client_archetype_id, client_sdr_id, sei_raw_id, csv_payload],
+            args=[client_id, client_sdr_id, sei_raw_id, csv_payload],
             link=collect_and_update_status_from_ss_data.s())
 
     return "Status update is in progress", 200

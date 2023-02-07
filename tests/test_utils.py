@@ -329,7 +329,6 @@ def basic_prospect_uploads(
 def basic_sei_raw(
     client: Client,
     client_sdr: ClientSDR,
-    client_archetype: ClientArchetype,
     csv_data: Optional[list[dict]] = [{"test": "test"}],
 ):
     from model_import import (
@@ -339,7 +338,6 @@ def basic_sei_raw(
 
     s = SalesEngagementInteractionRaw(
         client_id=client.id,
-        client_archetype_id=client_archetype.id,
         client_sdr_id=client_sdr.id,
         csv_data=csv_data,
         csv_data_hash="1234567890",
@@ -351,12 +349,11 @@ def basic_sei_raw(
     return s
 
 
-def basic_sei_ss(client: Client, client_sdr: ClientSDR, client_archetype: ClientArchetype, sei_raw: SalesEngagementInteractionRaw):
+def basic_sei_ss(client: Client, client_sdr: ClientSDR, sei_raw: SalesEngagementInteractionRaw):
     from model_import import SalesEngagementInteractionSS
 
     s = SalesEngagementInteractionSS(
         client_id=client.id,
-        client_archetype_id=client_archetype.id,
         client_sdr_id=client_sdr.id,
         sales_engagement_interaction_raw_id=sei_raw.id,
         ss_status_data=[{"test": "test"}],
