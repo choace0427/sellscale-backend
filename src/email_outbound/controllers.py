@@ -130,7 +130,7 @@ def update_status_from_csv_payload():
     # Then chain update status using SS data (celery)
     if payload_source == "OUTREACH":
         convert_outreach_payload_to_ss.apply_async(
-            args=[sei_raw_id],
+            args=[client_id, client_archetype_id, client_sdr_id, sei_raw_id, csv_payload],
             link=collect_and_update_status_from_ss_data.s())
 
     return "Status update is in progress", 200
