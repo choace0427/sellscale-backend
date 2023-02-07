@@ -20,6 +20,7 @@ def create_stack_ranked_configuration(
     research_point_types: list[ResearchPointType],
     generated_message_ids: list[int],
     instruction: str,
+    generated_message_type: str,
     name: Optional[str] = None,
     client_id: Optional[int] = None,
     archetype_id: Optional[int] = None,
@@ -62,6 +63,7 @@ def create_stack_ranked_configuration(
             name=name,
             client_id=client_id,
             archetype_id=archetype_id,
+            generated_message_type=generated_message_type,
         )
     )
     db.session.add(srmgc)

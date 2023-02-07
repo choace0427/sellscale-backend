@@ -356,6 +356,9 @@ def post_create_stack_ranked_configuration():
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=False
     )
+    generated_message_type = get_request_parameter(
+        "generated_message_type", request, json=True, required=False
+    )
 
     success, message = create_stack_ranked_configuration(
         configuration_type=configuration_type,
@@ -365,6 +368,7 @@ def post_create_stack_ranked_configuration():
         name=name,
         client_id=client_id,
         archetype_id=archetype_id,
+        generated_message_type=generated_message_type,
     )
     if success:
         return "OK", 200
