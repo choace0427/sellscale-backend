@@ -8,11 +8,19 @@ from datetime import datetime, timedelta
 
 
 def update_daily_notification_status(id: str, status: str):
-    """
-    Updates the status of the daily notification with id to status.
+    """Updates the status of the daily notification with id to status.
+
+    Args:
+        daily_notification_id (int): ID of the DailyNotification
+        status (str): Either 'COMPLETE', 'CANCELLED', or 'PENDING'
+
+    Returns:
+        HTTPS response: 200 if successful.
     """
     db.session.query(DailyNotification).filter_by(id=id).update({"status": status})
     db.session.commit()
+
+    return 'OK', 200
 
 
 @celery.task

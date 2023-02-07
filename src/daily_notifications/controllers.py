@@ -19,6 +19,4 @@ def put_update_status():
     if status != "COMPLETE" and status != "CANCELLED":
         return "Invalid status.", 400
 
-    update_daily_notification_status(id=id, status=status)
-
-    return "OK", 200
+    return update_daily_notification_status(id=id, status=status)
