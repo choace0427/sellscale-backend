@@ -135,7 +135,7 @@ class GeneratedMessageEditRecord(db.Model):
 
 class ConfigurationType(enum.Enum):
     STRICT = "STRICT"  # all transformers must be present to use configuration
-    DEFAULT = "DEFAULT"  # if not better configuration present, use this configuration
+    DEFAULT = "DEFAULT"  # if no better configuration present, use this configuration. randomly samples from selected transformers.
 
 
 class StackRankedMessageGenerationConfiguration(db.Model):
@@ -143,6 +143,7 @@ class StackRankedMessageGenerationConfiguration(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     configuration_type = db.Column(db.Enum(ConfigurationType), nullable=False)
+    generated_message_type = db.Column(db.Enum(GeneratedMessageType), nullable=False)
     research_point_types = db.Column(
         db.ARRAY(db.String),
         nullable=True,
