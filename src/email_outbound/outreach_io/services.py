@@ -1,12 +1,5 @@
 from app import db, celery
 from model_import import (
-    Prospect,
-    ProspectEmail,
-    ProspectEmailOutreachStatus,
-    ProspectEmailStatusRecords,
-    ProspectEmailStatus,
-    SalesEngagementInteractionRaw,
-    SalesEngagementInteractionSource,
     SalesEngagementInteractionSS,
     EmailInteractionState,
     EmailSequenceState
