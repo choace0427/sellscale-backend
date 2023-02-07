@@ -102,7 +102,7 @@ pre-commit==2.20.0
 prometheus-client==0.14.1
 prompt-toolkit==3.0.30
 psutil==5.9.4
-psycopg2==2.9.3
+psycopg2-binary==2.9.3
 ptyprocess==0.7.0
 pure-eval==0.2.2
 pycodestyle==2.10.0
