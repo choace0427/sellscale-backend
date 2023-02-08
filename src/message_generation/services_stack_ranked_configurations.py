@@ -6,6 +6,7 @@ from model_import import (
     Client,
     ClientArchetype,
 )
+from sqlalchemy import or_, and_, text
 from typing import Optional
 from app import db
 
@@ -20,6 +21,7 @@ def create_stack_ranked_configuration(
     research_point_types: list[ResearchPointType],
     generated_message_ids: list[int],
     instruction: str,
+    generated_message_type: str,
     name: Optional[str] = None,
     client_id: Optional[int] = None,
     archetype_id: Optional[int] = None,
@@ -62,6 +64,7 @@ def create_stack_ranked_configuration(
             name=name,
             client_id=client_id,
             archetype_id=archetype_id,
+            generated_message_type=generated_message_type,
         )
     )
     db.session.add(srmgc)
@@ -159,3 +162,41 @@ def delete_stack_ranked_configuration(
     db.session.delete(srmgc)
     db.session.commit()
     return True, "OK"
+
+
+def get_stack_ranked_config_ordering(
+    generated_message_type: str,
+    archetype_id: Optional[int] = None,
+    client_id: Optional[int] = None,
+):
+    """Get the stack ranked message generation configuration ordering for a client archetype"""
+    ordered_srmgcs = (
+        StackRankedMessageGenerationConfiguration.query.filter(
+            or_(
+                and_(  # default configurations
+                    StackRankedMessageGenerationConfiguration.archetype_id == None,
+                    StackRankedMessageGenerationConfiguration.client_id == None,
+                ),
+                and_(  # archetype specific configurations
+                    StackRankedMessageGenerationConfiguration.archetype_id
+                    == archetype_id,
+                    StackRankedMessageGenerationConfiguration.client_id == client_id,
+                ),
+                and_(  # client specific configurations
+                    StackRankedMessageGenerationConfiguration.archetype_id == None,
+                    StackRankedMessageGenerationConfiguration.client_id == client_id,
+                ),
+            ),
+        )
+        .filter(
+            StackRankedMessageGenerationConfiguration.generated_message_type
+            == generated_message_type,
+        )
+        .order_by(
+            text("archetype_id is null"),
+            text("client_id is null"),
+            StackRankedMessageGenerationConfiguration.priority,
+        )
+        .all()
+    )
+    return [srmgc.to_dict() for srmgc in ordered_srmgcs]

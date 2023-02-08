@@ -4,6 +4,7 @@ from src.daily_notifications.models import DailyNotification
 from app import app, db
 import json
 
+
 @use_app_context
 def test_daily_notification_fetch_all():
     """Test that we can fetch all daily notification for a given client_sdr."""
@@ -11,7 +12,7 @@ def test_daily_notification_fetch_all():
     client_sdr = basic_client_sdr(client=client)
 
     response = app.test_client().get(
-        "/daily_notifications/"+str(client_sdr.id),
+        "/daily_notifications/" + str(client_sdr.id),
         headers={"Content-Type": "application/json"},
     )
 
@@ -28,7 +29,9 @@ def test_daily_notification_status_update():
     """Test that we can update the status of a daily notification."""
     client = basic_client()
     client_sdr = basic_client_sdr(client=client)
-    daily_notification = basic_daily_notification(client_sdr=client_sdr, status='PENDING')
+    daily_notification = basic_daily_notification(
+        client_sdr=client_sdr, status="PENDING"
+    )
 
     response = app.test_client().put(
         "/daily_notifications/update_status",
