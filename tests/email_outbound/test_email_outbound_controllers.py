@@ -250,3 +250,23 @@ def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_m
     assert convert_to_ss_mock.called_with(args=[se.id], link=collect_and_update_mock)
     assert collect_and_update_mock.called_once()
     assert collect_and_update_mock.called_with(1)
+
+
+@use_app_context
+@mock.patch("src.email_outbound.controllers.batch_mark_prospect_email_sent", return_value="something")
+def test_batch_mark_sent(batch_mark_mock):
+    response = app.test_client().post(
+        "/email_generation/batch/mark_sent",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "prospect_ids": "1",
+                "campaign_id": "1",
+            }
+        ),
+    )
+
+    assert response.status_code == 200
+    assert response.data == b"OK"
+    assert batch_mark_mock.called_once()
+    assert batch_mark_mock.called_with(1, 1)

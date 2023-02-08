@@ -8,6 +8,7 @@ from src.message_generation.services import (
 from src.email_outbound.services import (
     create_email_schema,
     batch_update_emails,
+    batch_mark_prospect_email_sent,
     create_sales_engagement_interaction_raw,
     collect_and_update_status_from_ss_data
 )
@@ -16,7 +17,6 @@ from src.email_outbound.outreach_io.services import (
     convert_outreach_payload_to_ss
 )
 from src.utils.request_helpers import get_request_parameter
-from src.message_generation.services import batch_mark_prospect_email_sent
 from tqdm import tqdm
 from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
@@ -73,8 +73,15 @@ def batch_mark_sent():
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True
     )
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
 
-    batch_mark_prospect_email_sent(prospect_ids=prospect_ids)
+    prospect_ids = [int(prospect_id) for prospect_id in prospect_ids]
+    campaign_id = int(campaign_id)
+
+    # TODO: something with this message later
+    broadcasted = batch_mark_prospect_email_sent(prospect_ids=prospect_ids, campaign_id=campaign_id)
 
     return "OK", 200
 

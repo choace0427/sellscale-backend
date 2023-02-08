@@ -1,5 +1,5 @@
 from app import db
-from src.message_generation.services import GeneratedMessageType
+from src.message_generation.models import GeneratedMessageType
 
 import enum
 

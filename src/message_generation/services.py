@@ -780,12 +780,33 @@ def mark_prospect_email_sent(prospect_email_id: int):
     )
 
 
-def batch_mark_prospect_email_sent(prospect_ids: list):
-    for prospect_id in prospect_ids:
-        prospect: Prospect = Prospect.query.get(prospect_id)
-        if prospect.approved_prospect_email_id:
-            mark_prospect_email_sent(prospect.approved_prospect_email_id)
-    return True
+# def batch_mark_prospect_email_sent(prospect_ids: list):
+#     prospects: list[Prospect] = Prospect.query.filter(Prospect.id.in_(prospect_ids)).all()
+#     for prospect in prospects:
+#         if prospect.approved_prospect_email_id:
+#             # prospect email updates
+#             prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+#             prospect_email.email_status = ProspectEmailStatus.SENT
+#             prospect_email.date_sent = datetime.datetime.now()
+#             # prospect updates
+#             prospect.status = ProspectStatus.SENT_OUTREACH
+#             # message updates
+#             personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_first_line)
+#             personalized_first_line.message_status = GeneratedMessageStatus.SENT
+#             # campaign updates
+#             campaign: OutboundCampaign = OutboundCampaign.query.get(prospect.campaign_id)
+#             if campaign and campaign.campaign_type == GeneratedMessageType.EMAIL:
+#                 campaign.status=OutboundCampaignStatus.COMPLETE
+#                 db.session.add(campaign)
+#             # commit
+#             db.session.add(prospect_email)
+#             db.session.add(prospect)
+#             db.session.add(personalized_first_line)
+#             db.session.commit()
+#         else:
+#             return "Prospect {} does not have an approved prospect email".format(prospect.id), False
+
+#     return "", True
 
 
 def wipe_prospect_email_and_generations_and_research(prospect_id: int):
@@ -891,7 +912,7 @@ def generate_cta_examples(company_name: str, persona: str, with_what: str):
         prompt=(
             """
 Make 6 CTAs that are comma separated for the company.
-    
+
 Example: Curative helps healthcare leaders with getting access to top physicians looking for new opportunities and achieve staffing goals.
 Output:
 - [Feedback] I wanted to get your thoughts on a staffing solution I'm building for providers - open to chat?

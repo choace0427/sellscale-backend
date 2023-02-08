@@ -35,7 +35,8 @@ from model_import import (
     SalesEngagementInteractionSS,
     StackRankedMessageGenerationConfiguration,
     ProspectEmail,
-    ProspectEmailStatus
+    ProspectEmailStatus,
+    GeneratedMessageType
 )
 from src.daily_notifications.models import DailyNotification, NotificationStatus
 from typing import Optional
@@ -179,6 +180,30 @@ def basic_gnlp_model(archetype: ClientArchetype):
     db.session.add(g)
     db.session.commit()
     return g
+
+
+def basic_outbound_campaign(
+    prospect_ids: list[int],
+    campaign_type: GeneratedMessageType,
+    client_archetype: ClientArchetype,
+    client_sdr: ClientSDR,
+):
+    from model_import import OutboundCampaignStatus
+    from datetime import datetime
+
+    o = OutboundCampaign(
+        name="test_campaign",
+        prospect_ids=prospect_ids,
+        campaign_type=campaign_type,
+        client_archetype_id=client_archetype.id,
+        client_sdr_id=client_sdr.id,
+        campaign_start_date=datetime.now(),
+        campaign_end_date=datetime.now(),
+        status=OutboundCampaignStatus.READY_TO_SEND,
+    )
+    db.session.add(o)
+    db.session.commit()
+    return o
 
 
 def basic_generated_message_cta(archetype: ClientArchetype):

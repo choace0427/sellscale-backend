@@ -3,6 +3,8 @@ from src.ml.models import GNLPModelType
 from src.email_outbound.services import (
     create_email_schema,
     create_prospect_email,
+    batch_mark_prospect_email_sent,
+    update_prospect_email_flow_statuses,
     create_sales_engagement_interaction_raw,
     collect_and_update_status_from_ss_data,
     update_status_from_ss_data
@@ -16,6 +18,7 @@ from test_utils import (
     basic_generated_message,
     basic_sei_raw,
     basic_sei_ss,
+    basic_outbound_campaign,
     basic_prospect_email,
     basic_email_schema
 )
@@ -28,6 +31,15 @@ from src.email_outbound.models import (
     ProspectEmailStatus,
     ProspectEmailOutreachStatus,
     ProspectEmailStatusRecords
+)
+from model_import import (
+    GeneratedMessageType,
+    GeneratedMessageStatus,
+    OutboundCampaignStatus,
+    ProspectStatus,
+    Prospect,
+    GeneratedMessage,
+    OutboundCampaign,
 )
 import mock
 
@@ -87,6 +99,64 @@ def test_create_prospect_email():
     assert all_prospect_emails[0].personalized_first_line == personalized_first_line.id
     assert all_prospect_emails[0].email_status == ProspectEmailStatus.DRAFT
     assert all_prospect_emails[0].batch_id == "123123123"
+
+
+@use_app_context
+@mock.patch("src.email_outbound.services.update_prospect_email_flow_statuses.apply_async", return_value=None)
+def test_batch_mark_prospect_email_sent(update_mock):
+    prospect_ids: list[int] = [1, 2, 3]
+    assert update_mock.call_count == 0
+    success = batch_mark_prospect_email_sent(prospect_ids, campaign_id=123)
+    assert success
+    assert update_mock.call_count == 3
+
+    prospect_ids: list[int] = [1]
+    success = batch_mark_prospect_email_sent(prospect_ids, campaign_id=123)
+    assert success
+    assert update_mock.call_count == 4
+    assert update_mock.called_with(args=[1, 123])
+
+
+@use_app_context
+def test_update_prospect_email_flow_statuses():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client)
+    gnlp_model = basic_gnlp_model(archetype)
+    sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, sdr)
+    prospect_id = prospect.id
+    email_schema = basic_email_schema(archetype)
+    prospect_email = basic_prospect_email(prospect, email_schema, ProspectEmailStatus.APPROVED)
+    prospect_email_id = prospect_email.id
+    personalized_first_line = basic_generated_message(prospect, gnlp_model)
+    personalized_first_line_id = personalized_first_line.id
+    outbound_campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, sdr)
+    outbound_campaign_id = outbound_campaign.id
+
+
+    prospect.approved_prospect_email_id = prospect_email.id
+    prospect_email.personalized_first_line = personalized_first_line.id
+    outbound_campaign_id = outbound_campaign.id
+    db.session.add(prospect)
+    db.session.add(personalized_first_line)
+    db.session.commit()
+
+    assert prospect_email.email_status == ProspectEmailStatus.APPROVED
+    assert prospect.status == ProspectStatus.PROSPECTED
+    assert personalized_first_line.message_status == GeneratedMessageStatus.DRAFT
+    assert outbound_campaign.status == OutboundCampaignStatus.READY_TO_SEND
+    message, success = update_prospect_email_flow_statuses(prospect_id, outbound_campaign_id)
+    assert success
+    prospect_email = ProspectEmail.query.get(prospect_email_id)
+    prospect = Prospect.query.get(prospect_id)
+    personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
+    outbound_campaign = OutboundCampaign.query.get(outbound_campaign_id)
+
+    assert prospect_email.email_status == ProspectEmailStatus.SENT
+    assert prospect.status == ProspectStatus.SENT_OUTREACH
+    assert personalized_first_line.message_status == GeneratedMessageStatus.SENT
+    assert outbound_campaign.status == OutboundCampaignStatus.COMPLETE
 
 
 @use_app_context

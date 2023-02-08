@@ -1,12 +1,23 @@
 import hashlib
 import json
+import datetime
 
 from app import db, celery
-from model_import import ClientArchetype, GeneratedMessage, GNLPModel, Prospect
+from model_import import (
+    ClientArchetype,
+    GeneratedMessage,
+    Prospect,
+    ProspectStatus,
+    GeneratedMessageStatus,
+    GeneratedMessageType
+)
+from src.campaigns.models import (
+    OutboundCampaign,
+    OutboundCampaignStatus,
+)
 from src.email_outbound.models import (
     EmailInteractionState,
     EmailSchema,
-    EmailSequenceState,
     ProspectEmail,
     ProspectEmailStatus,
     SalesEngagementInteractionRaw,
@@ -80,7 +91,8 @@ def batch_update_emails(
 
         prospect: Prospect = Prospect.query.get(prospect_id_payload)
         prospect_email_id: int = prospect.approved_prospect_email_id
-        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect_email_id)
 
         if not prospect_email:
             continue
@@ -95,6 +107,79 @@ def batch_update_emails(
         db.session.commit()
 
     return True, "OK"
+
+
+def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) -> bool:
+    """Uses the prospect_ids list to broadcast tasks to celery to upload the elevant prospect email statuses
+
+    Args:
+        prospect_ids (list[int]): List of prospect IDs
+        campaign_id (int): ID of the campaign
+
+    Returns:
+        bool: True if successful
+
+    """
+    for prospect_id in prospect_ids:
+        update_prospect_email_flow_statuses.apply_async(args=[prospect_id, campaign_id])
+
+    return True
+
+
+@celery.task(bind=True, max_retries=1)
+def update_prospect_email_flow_statuses(self, prospect_id: int, campaign_id: int) -> tuple[str, bool]:
+    """Updates all the statuses as part of the prospect_email flow
+
+    prospect_email -> email_status, date_sent
+    prospect -> status
+    generated_message -> message_status
+    outbound_campaign -> status
+
+    Args:
+        prospect_id (int): ID of the prospect
+
+    Returns:
+        tuple[str, bool]: (error message, success)
+    """
+    try:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect:
+            return "Prospect {} not found".format(prospect_id), False
+
+        if prospect.approved_prospect_email_id:
+            # Updates to prospect_email
+            prospect_email: ProspectEmail = ProspectEmail.query.get(
+                prospect.approved_prospect_email_id)
+            prospect_email.email_status = ProspectEmailStatus.SENT
+            prospect_email.date_sent = datetime.datetime.now()
+
+            # Updates to prospect
+            prospect.status = ProspectStatus.SENT_OUTREACH
+
+            # Updates to generated_message
+            personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_first_line)
+            personalized_first_line.message_status = GeneratedMessageStatus.SENT
+
+            # Updates to outbound_campaign
+            campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+            if campaign and campaign.campaign_type == GeneratedMessageType.LINKEDIN:
+                return "Campaign {} is not an email campaign".format(campaign.id), False
+            campaign.status = OutboundCampaignStatus.COMPLETE
+
+            # Commit
+            db.session.add(campaign)
+            db.session.add(prospect_email)
+            db.session.add(prospect)
+            db.session.add(personalized_first_line)
+            db.session.commit()
+        else:
+            return "Prospect {} does not have an approved prospect email".format(prospect.id), False
+
+        return "", True
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=Exception("Retrying task"))
 
 
 def create_sales_engagement_interaction_raw(
@@ -157,7 +242,8 @@ def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
         Returns:
             bool: _description_
         """
-        sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(sei_ss_id)
+        sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(
+            sei_ss_id)
         if not sei_ss:
             return False
 
