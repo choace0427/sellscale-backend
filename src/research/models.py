@@ -75,6 +75,8 @@ class ResearchPoints(db.Model):
         from model_import import ClientArchetype, Prospect
 
         prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+        if not prospect:
+            return []
         client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
             id=prospect.archetype_id
         ).first()

@@ -165,6 +165,21 @@ def delete_stack_ranked_configuration(
     return True, "OK"
 
 
+def get_top_stack_ranked_config_ordering(
+    generated_message_type: str,
+    archetype_id: Optional[int] = -1,
+    client_id: Optional[int] = -1,
+    prospect_id: Optional[int] = -1,
+):
+    """Get the top stack ranked message generation configuration ordering for a client archetype"""
+    stack_ranked_config_ordering: list = get_stack_ranked_config_ordering(
+        generated_message_type, archetype_id, client_id, prospect_id
+    )
+    if len(stack_ranked_config_ordering) > 0:
+        return stack_ranked_config_ordering[0]
+    return None
+
+
 def get_stack_ranked_config_ordering(
     generated_message_type: str,
     archetype_id: Optional[int] = -1,
@@ -195,9 +210,7 @@ def get_stack_ranked_config_ordering(
             == generated_message_type,
         )
         .order_by(
-            text("archetype_id is null"),
-            text("client_id is null"),
-            StackRankedMessageGenerationConfiguration.priority,
+            StackRankedMessageGenerationConfiguration.priority.desc(),
         )
         .all()
     )
