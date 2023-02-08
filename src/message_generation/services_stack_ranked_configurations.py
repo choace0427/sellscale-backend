@@ -217,7 +217,7 @@ def get_stack_ranked_config_ordering(
         .all()
     )
 
-    if prospect_id:
+    if prospect_id and prospect_id != -1:
         research_points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
         research_point_types = [
             research_point.research_point_type.value
