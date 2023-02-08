@@ -266,7 +266,7 @@ def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
 
 
 @celery.task(bind=True, max_retries=3)
-def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospect_dict: dict) -> bool:
+def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospect_dict: dict) -> tuple[str, bool]:
     try:
         ssdata = SSData.from_dict(prospect_dict)
         email = ssdata.get_email()
@@ -276,26 +276,26 @@ def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospec
             return False
 
         # Grab prospect and prospect_email
-        prospect = Prospect.query.filter_by(
+        prospect: Prospect = Prospect.query.filter_by(
             client_id=client_id,
             client_sdr_id=client_sdr_id,
             email=email
         ).first()
         if not prospect:
-            return False
+            return "Prospect with email {} could not be found for sdr {}".format(email, client_sdr_id), False
 
         prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
             prospect_id=prospect.id,
             email_status=ProspectEmailStatus.SENT,
         ).first()
         if not prospect_email:
-            return False
+            return "Prospect {} does not have an approved prospect email".format(prospect.id), False
 
         # Update the prospect_email
         old_outreach_status = prospect_email.outreach_status
         new_outreach_status = EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS[email_interaction_state]
         if old_outreach_status == new_outreach_status:
-            return False
+            return "No update needed".format(prospect_email.id, new_outreach_status), True
 
         if old_outreach_status == None:
             prospect_email.outreach_status = new_outreach_status
@@ -304,7 +304,7 @@ def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospec
             if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
                 prospect_email.outreach_status = new_outreach_status
             else:
-                return False
+                return "Invalid update from {} to {}".format(old_outreach_status, new_outreach_status), False
 
         # Create ProspectEmailStatusRecords entry and save ProspectEmail.
         db.session.add(ProspectEmailStatusRecords(
