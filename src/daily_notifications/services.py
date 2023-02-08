@@ -31,7 +31,7 @@ def fill_in_daily_notifications():
         HTTPS response: 200 if successful.
     """
 
-    for client_sdr in db.session.query(ClientSDR).all():
+    for client_sdr in ClientSDR.query.all():
         
         prospects = db.session.query(Prospect).filter_by(client_sdr_id=client_sdr.id).filter_by(status='ACTIVE_CONVO').all()
         for prospect in prospects:
