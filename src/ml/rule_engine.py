@@ -77,6 +77,7 @@ def run_message_rule_engine(message_id: int):
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     prompt = message.prompt
+    case_preserved_completion = message.completion
     completion = message.completion.lower()
 
     problems = []
@@ -97,6 +98,7 @@ def run_message_rule_engine(message_id: int):
     rule_no_symbols(completion, problems, highlighted_words)
     rule_no_companies(completion, problems, highlighted_words)
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
+    rule_no_hard_years(completion, prompt, problems, highlighted_words)
 
     if "i have " in completion:
         problems.append("Uses first person 'I have'.")
@@ -334,12 +336,17 @@ def rule_no_companies(completion: str, problems: list, highlighted_words: list):
 def rule_catch_strange_titles(
     completion: str, prompt: str, problems: list, highlighted_words: list
 ):
+    """Rule: Catch Strange Titles
+
+    Catch titles that are too long.
+    """
     title_section = ""
     for section in prompt.split("<>"):
         if section.startswith("title:"):
             title_section = (
                 section.lower().split("title:")[1].strip()
             )  # Get everything after 'title:'
+            title_section_case_preserved = section.split("title:")[1].strip()
 
     if title_section == "":  # No title, no problem
         return
@@ -349,19 +356,46 @@ def rule_catch_strange_titles(
         first_words = splitted_title_section[:4]  # Get the first 4 words
         first_words = " ".join(first_words).strip()
         if first_words in completion.lower():  # 4 words is too long for a title
+            first_words_case_preserved = title_section_case_preserved.split(" ")[:4]
+            first_words_case_preserved = " ".join(first_words_case_preserved).strip()
+            highlighted_words.append(first_words_case_preserved)
             problems.append(
                 "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
             )
             return
     else:
-        first_words = " ".join(splitted_title_section).strip()
-        if first_words in completion.lower():  # 4 words is too long for a title
+        if title_section in completion.lower():
             ALLOWED_SYMBOLS = ["'"]
-            unfiltered_match = re.findall(r"[\p{S}\p{P}]", first_words)
+            unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
             match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
             if match and len(match) > 0:
+                highlighted_words.append(title_section_case_preserved)
                 problems.append(
                     "WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."
                 )
+
+    return
+
+
+def rule_no_hard_years(
+    completion: str, prompt:str, problems: list, highlighted_words:list
+):
+    """Rule: No Hard Years
+
+    If 'decade' is in the prompt, then 'years' should not be in the completion.
+
+    This heuristic is imperfect.
+    """
+    if "decade" in prompt:
+        if "decade" not in completion and 'years' in completion:
+            problems.append("Please reference years in colloquial terms. (e.g. 5 years → half a decade)")
+
+            # Highlight the word 'years' and the word before it. Imperfect heurstic, may need change.
+            splitted = completion.split()
+            for i in range(len(splitted)):
+                word=splitted[i]
+                if word == "years":
+                    highlighted_words.append(splitted[i-1] + " " + word)
+                    break
 
     return
