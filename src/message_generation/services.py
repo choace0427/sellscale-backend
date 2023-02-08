@@ -13,6 +13,7 @@ from model_import import (
     GeneratedMessageCTA,
     GeneratedMessageEditRecord,
     StackRankedMessageGenerationConfiguration,
+    ConfigurationType,
 )
 from typing import Optional
 from src.ml.rule_engine import run_message_rule_engine
@@ -208,17 +209,19 @@ def generate_batch_of_research_points_from_config(
         return generate_batches_of_research_points(
             points=all_research_points, n=n, num_per_perm=2
         )
-    allowed_research_point_types_in_config = [
-        x.value for x in config.research_point_types
-    ]
+    allowed_research_point_types_in_config = [x for x in config.research_point_types]
 
     research_points = [
         x
         for x in all_research_points
-        if x.research_point_type in allowed_research_point_types_in_config
+        if x.research_point_type.value in allowed_research_point_types_in_config
     ]
 
-    num_per_perm = len(config.research_point_types) if config.type == "STRICT" else 2
+    num_per_perm = (
+        len(config.research_point_types)
+        if config.configuration_type == ConfigurationType.STRICT
+        else 2
+    )
 
     return generate_batches_of_research_points(
         points=research_points, n=n, num_per_perm=num_per_perm
@@ -664,9 +667,9 @@ def generate_prospect_email(
 
         archetype_id = prospect.archetype_id
 
-        research_points_list = ResearchPoints.get_research_points_by_prospect_id(
-            prospect_id
-        )
+        # research_points_list = ResearchPoints.get_research_points_by_prospect_id(
+        #     prospect_id
+        # )
 
         NUM_GENERATIONS = 3  # number of ProspectEmail's to make
         TOP_CONFIGURATION = get_top_stack_ranked_config_ordering(
