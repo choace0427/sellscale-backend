@@ -11,14 +11,16 @@ class NotificationStatus(enum.Enum):
 class DailyNotification(db.Model):
     __tablename__ = "daily_notifications"
 
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), primary_key=True)
-    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
 
     status = db.Column(db.Enum(NotificationStatus), nullable=False)
 
     title = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=False)
     due_date = db.Column(db.DateTime, nullable=False)
+
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), unique=True, nullable=True)
 
     def to_dict(self):
         return {
