@@ -238,4 +238,4 @@ def get_stack_ranked_config_ordering(
                     filtered_ordered_srmgcs.append(srmgc)
         ordered_srmgcs = filtered_ordered_srmgcs
 
-    return [srmgc.to_dict() for srmgc in ordered_srmgcs]
+    return ordered_srmgcs

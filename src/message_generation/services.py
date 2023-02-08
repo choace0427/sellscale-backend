@@ -12,7 +12,9 @@ from model_import import (
     GeneratedMessageJobStatus,
     GeneratedMessageCTA,
     GeneratedMessageEditRecord,
+    StackRankedMessageGenerationConfiguration,
 )
+from typing import Optional
 from src.ml.rule_engine import run_message_rule_engine
 from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
@@ -20,10 +22,9 @@ from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from model_import import Prospect
 from ..ml.fine_tuned_models import (
-    get_basic_openai_completion,
-    get_completion,
     get_custom_completion_for_client,
     get_personalized_first_line_for_client,
+    get_config_completion,
     get_few_shot_baseline_prompt,
 )
 from src.email_outbound.services import create_prospect_email
@@ -38,6 +39,9 @@ import os
 import datetime
 from src.research.linkedin.services import (
     delete_research_points_and_payload_by_prospect_id,
+)
+from src.message_generation.services_stack_ranked_configurations import (
+    get_top_stack_ranked_config_ordering,
 )
 
 
@@ -190,6 +194,35 @@ def generate_batches_of_research_points(
         sample = [x for x in random.sample(points, min(len(points), num_per_perm))]
         perms.append(sample)
     return perms
+
+
+def generate_batch_of_research_points_from_config(
+    prospect_id: int,
+    config: Optional[StackRankedMessageGenerationConfiguration],
+    n: int = 1,
+):
+    all_research_points: list = ResearchPoints.get_research_points_by_prospect_id(
+        prospect_id=prospect_id
+    )
+    if not config:
+        return generate_batches_of_research_points(
+            points=all_research_points, n=n, num_per_perm=2
+        )
+    allowed_research_point_types_in_config = [
+        x.value for x in config.research_point_types
+    ]
+
+    research_points = [
+        x
+        for x in all_research_points
+        if x.research_point_type in allowed_research_point_types_in_config
+    ]
+
+    num_per_perm = len(config.research_point_types) if config.type == "STRICT" else 2
+
+    return generate_batches_of_research_points(
+        points=research_points, n=n, num_per_perm=num_per_perm
+    )
 
 
 def get_notes_and_points_from_perm(perm, cta_id: int = None):
@@ -521,12 +554,16 @@ def get_personalized_first_line_from_prompt(
     research_points: list,
     prospect_id: int,
     batch_id: int,
+    config: Optional[StackRankedMessageGenerationConfiguration],
 ):
-    completion, few_shot_prompt = get_personalized_first_line_for_client(
-        archetype_id=archetype_id,
-        model_type=model_type,
-        prompt=prompt,
-    )
+    if not config:
+        completion, few_shot_prompt = get_personalized_first_line_for_client(
+            archetype_id=archetype_id,
+            model_type=model_type,
+            prompt=prompt,
+        )
+    else:
+        completion, few_shot_prompt = get_config_completion(config, prompt)
 
     personalized_first_line = GeneratedMessage(
         prospect_id=prospect_id,
@@ -537,6 +574,7 @@ def get_personalized_first_line_from_prompt(
         message_type=GeneratedMessageType.EMAIL,
         batch_id=batch_id,
         few_shot_prompt=few_shot_prompt,
+        stack_ranked_message_generation_configuration_id=config.id if config else None,
     )
     db.session.add(personalized_first_line)
     db.session.commit()
@@ -631,8 +669,15 @@ def generate_prospect_email(
         )
 
         NUM_GENERATIONS = 3  # number of ProspectEmail's to make
-        perms = generate_batches_of_research_points(
-            points=research_points_list, n=NUM_GENERATIONS, num_per_perm=3
+        TOP_CONFIGURATION = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.EMAIL.value,
+            prospect_id=prospect_id,
+        )
+        # perms = generate_batches_of_research_points(
+        #     points=research_points_list, n=NUM_GENERATIONS, num_per_perm=3
+        # )
+        perms = generate_batch_of_research_points_from_config(
+            prospect_id=prospect_id, config=TOP_CONFIGURATION, n=NUM_GENERATIONS
         )
 
         for perm in perms:
@@ -652,6 +697,7 @@ def generate_prospect_email(
                 research_points=research_points,
                 prospect_id=prospect_id,
                 batch_id=batch_id,
+                config=TOP_CONFIGURATION,
             )
 
             create_prospect_email(

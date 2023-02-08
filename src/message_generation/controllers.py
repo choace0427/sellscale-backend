@@ -483,10 +483,10 @@ def get_stack_ranked_configuration_priority_endpoint():
         "prospect_id", request, json=False, required=False
     )
 
-    configuration = get_stack_ranked_config_ordering(
+    configurations = get_stack_ranked_config_ordering(
         generated_message_type=generated_message_type,
         archetype_id=archetype_id,
         client_id=client_id,
         prospect_id=prospect_id,
     )
-    return jsonify(configuration), 200
+    return jsonify([config.to_dict() for config in configurations]), 200

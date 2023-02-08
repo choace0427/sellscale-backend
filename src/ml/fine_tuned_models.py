@@ -3,8 +3,12 @@ import json
 import os
 
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
-from model_import import ClientArchetype
+from model_import import ClientArchetype, StackRankedMessageGenerationConfiguration
 from app import db
+from src.ml.openai_wrappers import (
+    wrapped_create_completion,
+    CURRENT_OPENAI_DAVINCI_MODEL,
+)
 import openai
 
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
@@ -139,6 +143,20 @@ def get_custom_completion_for_client(
         ),
         model_id,
     )
+
+
+def get_config_completion(
+    config: StackRankedMessageGenerationConfiguration,
+    prompt: str,
+):
+    few_shot_prompt: str = config.computed_prompt.format(prompt=prompt)
+    response = wrapped_create_completion(
+        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        prompt=few_shot_prompt,
+        temperature=0.7,
+        max_tokens=256,
+    )
+    return (response, few_shot_prompt)
 
 
 def get_personalized_first_line_for_client(
