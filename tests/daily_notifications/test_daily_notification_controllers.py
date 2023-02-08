@@ -5,6 +5,18 @@ import json
 import mock
 
 @use_app_context
+def test_daily_notification_fetch_all():
+    """Test that we can fetch all daily notification for a given client_sdr."""
+    client = basic_client()
+    client_sdr = basic_client_sdr(client=client)
+
+    response = app.test_client().put(
+        "/daily_notifications/"+client_sdr.id,
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+
+@use_app_context
 def test_daily_notification_status_update():
     """Test that we can update the status of a daily notification."""
     client = basic_client()
