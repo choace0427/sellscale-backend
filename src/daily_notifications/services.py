@@ -4,7 +4,7 @@ from src.prospecting.models import Prospect
 from src.client.models import ClientSDR
 from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.datetime.dateutils import get_datetime_now
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 
 def update_daily_notification_status(client_sdr_id: str, prospect_id: str, type: NotificationType, status: str):
@@ -30,7 +30,7 @@ def fill_in_daily_notifications():
     """Finds all prospects with unread messages and creates a daily notification for them.
 
     Returns:
-        HTTPS response: 200 if successful.
+        HTTPS response: 201 if successful.
     """
 
     for client_sdr in ClientSDR.query.all():
@@ -53,14 +53,11 @@ def fill_in_daily_notifications():
                     due_date=get_datetime_now() + timedelta(days=1) # 1 day from now
                 )
 
-                if prospect.id:
-                    db.session.merge(daily_notification)
-                else:
-                    db.session.add(daily_notification)
+                db.session.merge(daily_notification)
 
     db.session.commit()
 
-    return 'OK', 200
+    return 'Created', 201
 
 
 @celery.task
