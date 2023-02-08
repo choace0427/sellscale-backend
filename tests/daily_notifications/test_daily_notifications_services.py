@@ -91,27 +91,6 @@ def populate_db():
         'https://www.linkedin.com/messaging/thread/2',
     )
 
-    """
-        for n in range(10):
-        basic_prospect(
-            client,
-            archetype,
-            client_sdr,
-            email='test@email.com',
-            li_conversation_thread_id='https://www.linkedin.com/messaging/thread/'+str(n),
-            status=ProspectStatus.ACTIVE_CONVO,
-        )
-        for i in range(10):
-            add_linkedin_conversation_entry(
-                i if n % 3 == 0 else 0,
-                'Person '+str(i),
-                'Last',
-                'You' if i % 4 == 1 else '1st' if i % 4 == 2 else '2nd' if i % 4 == 3 else '3rd',
-                'Hello',
-                'https://www.linkedin.com/messaging/thread/'+str(n),
-            )
-    """
-
 
 def add_linkedin_conversation_entry(day_offset: int, first_name: str, last_name: str, connection_degree: str, message: str, conversation_url: str):
     """Test create_linkedin_conversation_entry"""
