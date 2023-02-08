@@ -257,6 +257,7 @@ def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
                     sei_ss.client_id,
                     sei_ss.client_sdr_id,
                     prospect_dict,
+                    sei_ss.id
                 )
             )
 
@@ -266,7 +267,21 @@ def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
 
 
 @celery.task(bind=True, max_retries=3)
-def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospect_dict: dict) -> tuple[str, bool]:
+def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospect_dict: dict, sei_ss_id: int) -> tuple[str, bool]:
+    """Updates the status of a prospect based on the data from a SalesEngagementInteractionSS entry.
+
+    Args:
+        client_id (int): ID of the client.
+        client_sdr_id (int): ID of the client SDR.
+        prospect_dict (dict): the dictionary representing the SS Data
+        sei_ss_id (int): ID of the SalesEngagementInteractionSS entry.
+
+    Raises:
+        self.retry: If the task fails, it will be retried up to 3 times.
+
+    Returns:
+        tuple[str, bool]: A tuple containing the error message and a boolean indicating whether the task succeeded.
+    """
     try:
         ssdata = SSData.from_dict(prospect_dict)
         email = ssdata.get_email()
@@ -295,7 +310,7 @@ def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospec
         old_outreach_status = prospect_email.outreach_status
         new_outreach_status = EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS[email_interaction_state]
         if old_outreach_status == new_outreach_status:
-            return "No update needed".format(prospect_email.id, new_outreach_status), True
+            return "No update needed: {} to {}".format(old_outreach_status, new_outreach_status), True
 
         if old_outreach_status == None:
             prospect_email.outreach_status = new_outreach_status
@@ -311,6 +326,7 @@ def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospec
             prospect_email_id=prospect_email.id,
             from_status=old_outreach_status,
             to_status=new_outreach_status,
+            sales_engagement_interaction_ss_id=sei_ss_id,
         ))
         db.session.add(prospect_email)
         db.session.commit()

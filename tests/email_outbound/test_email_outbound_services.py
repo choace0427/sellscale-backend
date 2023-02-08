@@ -221,7 +221,7 @@ def test_update_status_from_ss_data():
         'email_interaction_state': 'EMAIL_SENT',
         'email_sequence_state': 'COMPLETED'
     }
-    updated = update_status_from_ss_data(client_id, sdr_id, prospect_dict)
+    updated = update_status_from_ss_data(client_id, sdr_id, prospect_dict, sei_ss_id)
     assert updated
     assert len(ProspectEmail.query.all()) == 1
     pe: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
@@ -238,7 +238,7 @@ def test_update_status_from_ss_data():
         'email_interaction_state': 'EMAIL_OPENED',
         'email_sequence_state': 'COMPLETED'
     }
-    updated = update_status_from_ss_data(client_id, sdr_id, opened_dict)
+    updated = update_status_from_ss_data(client_id, sdr_id, opened_dict, sei_ss_id)
     assert updated
     assert len(ProspectEmail.query.all()) == 1
     pe: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
