@@ -49,11 +49,7 @@ def fill_in_daily_notifications():
                     description='Reply to {prospect_name} and update their status if necessary'.format(prospect_name=prospect.full_name),
                     due_date=get_datetime_now() + timedelta(days=1) # 1 day from now
                 )
-
-                if prospect.id:
-                    db.session.merge(daily_notification)
-                else:
-                    db.session.add(daily_notification)
+                db.session.merge(daily_notification)
 
     db.session.commit()
 
