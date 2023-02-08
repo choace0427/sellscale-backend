@@ -165,13 +165,13 @@ def delete_stack_ranked_configuration(
     return True, "OK"
 
 
-def get_top_stack_ranked_config_ordering(
-    generated_message_type: str,
-    archetype_id: Optional[int] = -1,
-    client_id: Optional[int] = -1,
-    prospect_id: Optional[int] = -1,
-):
+def get_top_stack_ranked_config_ordering(generated_message_type: str, prospect_id: int):
     """Get the top stack ranked message generation configuration ordering for a client archetype"""
+    from model_import import Prospect
+
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    client_id = prospect.client_id
+    archetype_id = prospect.archetype_id
     stack_ranked_config_ordering: list = get_stack_ranked_config_ordering(
         generated_message_type, archetype_id, client_id, prospect_id
     )
