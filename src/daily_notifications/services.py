@@ -1,5 +1,5 @@
 from app import db, celery
-from src.daily_notifications.models import DailyNotification
+from src.daily_notifications.models import DailyNotification, NotificationType
 from src.prospecting.models import Prospect
 from src.client.models import ClientSDR
 from src.li_conversation.models import LinkedinConversationEntry
@@ -7,17 +7,19 @@ from src.utils.datetime.dateutils import get_datetime_now
 from datetime import datetime, timedelta
 
 
-def update_daily_notification_status(id: str, status: str):
+def update_daily_notification_status(client_sdr_id: str, prospect_id: str, type: NotificationType, status: str):
     """Updates the status of the daily notification with id to status.
 
     Args:
-        daily_notification_id (int): ID of the DailyNotification
+        client_sdr_id (str): ID of the client SDR
+        prospect_id (str): ID of the prospect
+        type (NotificationType): Type of the notification
         status (str): Either 'COMPLETE', 'CANCELLED', or 'PENDING'
 
     Returns:
         HTTPS response: 200 if successful.
     """
-    db.session.query(DailyNotification).filter_by(id=id).update({"status": status})
+    db.session.query(DailyNotification).filter_by(client_sdr_id=client_sdr_id, prospect_id=prospect_id, type=type).update({"status": status})
     db.session.commit()
 
     return 'OK', 200

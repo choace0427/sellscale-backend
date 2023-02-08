@@ -1,7 +1,7 @@
-"""Added third composite key to daily notifcations: notification type
+"""Added third composite key to daily notifications: notification type
 
 Revision ID: fd2ac700e956
-Revises: 0eedc10a7000
+Revises: d18acc0f8e88
 Create Date: 2023-02-08 09:38:39.395879
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "fd2ac700e956"
-down_revision = "d18acc0f8e88"
+revision = 'fd2ac700e956'
+down_revision = 'd18acc0f8e88'
 branch_labels = None
 depends_on = None
 

@@ -24,6 +24,7 @@ def test_daily_notification_fetch_all():
     #    DailyNotification.status == "PENDING",
     #).all())
 
+
 @use_app_context
 def test_daily_notification_status_update():
     """Test that we can update the status of a daily notification."""
@@ -38,7 +39,9 @@ def test_daily_notification_status_update():
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "id": daily_notification.id,
+                "client_sdr_id": daily_notification.client_sdr_id,
+                "prospect_id": daily_notification.prospect_id,
+                "type": daily_notification.type.value,
                 "status": "COMPLETE",
             }
         ),
