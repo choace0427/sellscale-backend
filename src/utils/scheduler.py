@@ -13,6 +13,20 @@ def scrape_all_inboxes_job():
         scrape_all_inboxes.delay()
 
 
+def fill_in_daily_notifications():
+    from src.daily_notifications.services import fill_in_daily_notifications
+
+    if os.environ.get("FLASK_ENV") == "production":
+        fill_in_daily_notifications.delay()
+
+
+def clear_daily_notifications():
+    from src.daily_notifications.services import clear_daily_notifications
+
+    if os.environ.get("FLASK_ENV") == "production":
+        clear_daily_notifications.delay()
+
+
 def refresh_fine_tune_statuses_job():
     from src.ml.services import check_statuses_of_fine_tune_jobs
 
@@ -46,6 +60,8 @@ scheduler.add_job(
     minute="*/10",
 )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
+scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=24)
+scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=24)
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())

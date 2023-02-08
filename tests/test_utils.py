@@ -37,7 +37,9 @@ from model_import import (
     ProspectEmail,
     ProspectEmailStatus
 )
+from src.daily_notifications.models import DailyNotification, NotificationStatus
 from typing import Optional
+from datetime import datetime
 
 
 @pytest.fixture
@@ -78,6 +80,7 @@ def test_app():
         clear_all_entities(ResearchPayload)
         clear_all_entities(ProspectStatusRecords)
         clear_all_entities(PhantomBusterConfig)
+        clear_all_entities(DailyNotification)
         clear_all_entities(ProspectNote)
         clear_all_entities(ProspectUploads)
         clear_all_entities(ProspectUploadsRawCSV)
@@ -123,7 +126,7 @@ def basic_archetype(client: Client) -> ClientArchetype:
 
 
 
-def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None, email: Optional[str] = 'test@email.com'):
+def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None, email: Optional[str] = 'test@email.com', li_conversation_thread_id: Optional[str] = '', status = ProspectStatus.PROSPECTED):
     client_sdr_id = None
     if client_sdr:
         client_sdr_id = client_sdr.id
@@ -132,9 +135,10 @@ def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: Clien
         archetype_id=archetype.id,
         full_name="Testing Testasara",
         title="Testing Director",
-        status=ProspectStatus.PROSPECTED,
+        status=status,
         client_sdr_id=client_sdr_id,
         email=email,
+        li_conversation_thread_id=li_conversation_thread_id,
     )
     db.session.add(p)
     db.session.commit()
@@ -146,6 +150,20 @@ def basic_client_sdr(client: Client) -> ClientSDR:
     db.session.add(sdr)
     db.session.commit()
     return sdr
+
+
+def basic_daily_notification(client_sdr: ClientSDR, status: NotificationStatus) -> DailyNotification:
+    dnot = DailyNotification(
+        client_sdr_id=client_sdr.id,
+        status=status,
+        title="Testing title",
+        description="Testing description",
+        due_date=datetime.now(),
+        prospect_id=None,
+    )
+    db.session.add(dnot)
+    db.session.commit()
+    return dnot
 
 
 def basic_gnlp_model(archetype: ClientArchetype):

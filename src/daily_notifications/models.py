@@ -8,7 +8,7 @@ class NotificationStatus(enum.Enum):
     CANCELLED = "CANCELLED"
 
 
-class DailyNotifications(db.Model):
+class DailyNotification(db.Model):
     __tablename__ = "daily_notifications"
 
     id = db.Column(db.Integer, primary_key=True)
