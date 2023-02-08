@@ -20,7 +20,7 @@ class DailyNotification(db.Model):
     description = db.Column(db.String, nullable=False)
     due_date = db.Column(db.DateTime, nullable=False)
 
-    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), unique=True, nullable=True)
 
     def to_dict(self):
         return {
