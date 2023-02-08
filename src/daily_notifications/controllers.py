@@ -14,7 +14,7 @@ def get_daily_notifications(client_sdr_id):
         DailyNotification.client_sdr_id == client_sdr_id,
     ).order_by(DailyNotification.due_date.desc()).all()
 
-    return jsonify([notification.to_dict() for notification in notifications]), 200
+    return jsonify([dict(notification) for notification in notifications]), 200
 
 
 @DAILY_NOTIFICATIONS_BLUEPRINT.route("/update_status", methods=["PUT"])
