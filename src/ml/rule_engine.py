@@ -178,7 +178,7 @@ def rule_address_doctor(
                 return
 
         title_search = re.search(
-            "[^a-zA-Z]?[mM][.]?[dD][^a-zA-Z]?",
+            "[^a-zA-Z][mM][.]?[dD][.]?[^a-zA-Z]?",
             title_section,
         )
         if title_search is not None and "dr." not in completion:
@@ -197,7 +197,7 @@ def rule_address_doctor(
                 return
 
         name_search = re.search(
-            "[^a-zA-Z]?[mM][.]?[dD][^a-zA-Z]?",
+            "[^a-zA-Z][mM][.]?[dD][.]?[^a-zA-Z]?",
             name_section,
         )
         if name_search is not None and "dr." not in completion:
