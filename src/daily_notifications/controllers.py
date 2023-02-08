@@ -13,6 +13,7 @@ def get_daily_notifications(client_sdr_id):
     notifications = DailyNotification.query.filter(
         DailyNotification.client_sdr_id == client_sdr_id,
         DailyNotification.status == "PENDING",
+        
     ).order_by(DailyNotification.due_date.desc()).all()
 
     return jsonify([notification.to_dict() for notification in notifications]), 200
@@ -36,4 +37,4 @@ def put_update_status():
     if status != "COMPLETE" and status != "CANCELLED":
         return "Invalid status.", 400
 
-    return update_daily_notification_status(id=id, status=status)
+    return update_daily_notification_status(client_sdr_id=client_sdr_id, prospect_id=prospect_id, type=type, status=status)
