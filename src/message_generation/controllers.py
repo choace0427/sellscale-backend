@@ -468,21 +468,23 @@ def delete_stack_ranked_configuration_endpoint():
     return message, 400
 
 
-# @MESSAGE_GENERATION_BLUEPRINT.route("/stack_ranked_configuration_priority", methods=["GET"])
-# def get_stack_ranked_configuration_priority_endpoint(client_id, client_sdr_id):
-#     generated_message_type = get_request_parameter(
-#         "generated_message_type", request, json=False, required=True
-#     )
-#     client_id = get_request_parameter("client_id", request, json=False, required=False)
-#     client_sdr_id = get_request_parameter(
-#         "client_sdr_id", request, json=False, required=False
-#     )
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_priority", methods=["GET"]
+)
+def get_stack_ranked_configuration_priority_endpoint():
+    generated_message_type = get_request_parameter(
+        "generated_message_type", request, json=False, required=True
+    )
+    client_id = get_request_parameter("client_id", request, json=False, required=False)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=False
+    )
 
-
-#     configuration = get_stack_ranked_config_ordering(
-#         client_id=client_id,
-#         client_sdr_id=client_sdr_id,
-#     )
-#     if configuration:
-#         return jsonify(configuration), 200
-#     return "No configuration found", 400
+    configuration = get_stack_ranked_config_ordering(
+        generated_message_type=generated_message_type,
+        archetype_id=archetype_id,
+        client_id=client_id,
+    )
+    if configuration:
+        return jsonify(configuration), 200
+    return "No configuration found", 400
