@@ -160,3 +160,18 @@ class StackRankedMessageGenerationConfiguration(db.Model):
     priority = db.Column(
         db.Integer, nullable=True
     )  # lower = less priority; higher = more priority
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "configuration_type": self.configuration_type.value,
+            "generated_message_type": self.generated_message_type.value,
+            "research_point_types": self.research_point_types,
+            "generated_message_ids": self.generated_message_ids,
+            "instruction": self.instruction,
+            "computed_prompt": self.computed_prompt,
+            "name": self.name,
+            "client_id": self.client_id,
+            "archetype_id": self.archetype_id,
+            "priority": self.priority,
+        }

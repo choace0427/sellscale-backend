@@ -23,6 +23,7 @@ from src.message_generation.services_stack_ranked_configurations import (
     edit_stack_ranked_configuration_generated_message_ids,
     edit_stack_ranked_configuration_name,
     delete_stack_ranked_configuration,
+    get_stack_ranked_config_ordering,
 )
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
@@ -465,3 +466,23 @@ def delete_stack_ranked_configuration_endpoint():
     if success:
         return "OK", 200
     return message, 400
+
+
+# @MESSAGE_GENERATION_BLUEPRINT.route("/stack_ranked_configuration_priority", methods=["GET"])
+# def get_stack_ranked_configuration_priority_endpoint(client_id, client_sdr_id):
+#     generated_message_type = get_request_parameter(
+#         "generated_message_type", request, json=False, required=True
+#     )
+#     client_id = get_request_parameter("client_id", request, json=False, required=False)
+#     client_sdr_id = get_request_parameter(
+#         "client_sdr_id", request, json=False, required=False
+#     )
+
+
+#     configuration = get_stack_ranked_config_ordering(
+#         client_id=client_id,
+#         client_sdr_id=client_sdr_id,
+#     )
+#     if configuration:
+#         return jsonify(configuration), 200
+#     return "No configuration found", 400
