@@ -20,8 +20,14 @@ def get_daily_notifications(client_sdr_id):
 
 @DAILY_NOTIFICATIONS_BLUEPRINT.route("/update_status", methods=["PUT"])
 def put_update_status():
-    id = get_request_parameter(
-        "id", request, json=True, required=True
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    type = get_request_parameter(
+        "type", request, json=True, required=True
     )
     status = get_request_parameter(
         "status", request, json=True, required=True
