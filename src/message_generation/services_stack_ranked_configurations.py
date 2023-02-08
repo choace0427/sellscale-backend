@@ -211,6 +211,8 @@ def get_stack_ranked_config_ordering(
         )
         .order_by(
             StackRankedMessageGenerationConfiguration.priority.desc(),
+            text("archetype_id IS NULL"),
+            text("client_id IS NULL"),
         )
         .all()
     )

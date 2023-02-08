@@ -630,7 +630,7 @@ def generate_prospect_email(
             prospect_id
         )
 
-        NUM_GENERATIONS = 1  # number of ProspectEmail's to make
+        NUM_GENERATIONS = 3  # number of ProspectEmail's to make
         perms = generate_batches_of_research_points(
             points=research_points_list, n=NUM_GENERATIONS, num_per_perm=3
         )
