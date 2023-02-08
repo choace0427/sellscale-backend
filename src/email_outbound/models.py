@@ -88,7 +88,14 @@ class ProspectEmail(db.Model):
 
 
 class ProspectEmailStatusRecords(db.Model):
-    """Records the status changes of a prospect_email"""
+    """Records the status changes of a prospect_email
+
+    `id`: id of the record
+    `prospect_email_id`: id of the prospect_email
+    `from_status`: status before the change
+    `to_status`: status after the change
+    `sales_engagement_interaction_ss_id`: id of the sales engagement interaction that caused the change
+    """
 
     __tablename__ = "prospect_email_status_records"
 
@@ -96,6 +103,8 @@ class ProspectEmailStatusRecords(db.Model):
     prospect_email_id = db.Column(db.Integer, db.ForeignKey("prospect_email.id"))
     from_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
     to_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
+
+    sales_engagement_interaction_ss_id = db.Column(db.Integer, db.ForeignKey("sales_engagement_interaction_ss.id"), nullable=True)
 
 
 class EmailInteractionState(enum.Enum):
@@ -146,9 +155,6 @@ class SalesEngagementInteractionRaw(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
-    client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
-    )
     client_sdr_id = db.Column(
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )
@@ -164,9 +170,6 @@ class SalesEngagementInteractionSS(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
-    client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
-    )
     client_sdr_id = db.Column(
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )

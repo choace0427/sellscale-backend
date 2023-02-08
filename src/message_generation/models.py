@@ -63,6 +63,12 @@ class GeneratedMessage(db.Model):
     adversary_identified_mistake = db.Column(db.String, nullable=True)
     adversary_identified_fix = db.Column(db.String, nullable=True)
 
+    stack_ranked_message_generation_configuration_id = db.Column(
+        db.Integer,
+        db.ForeignKey("stack_ranked_message_generation_configuration.id"),
+        nullable=True,
+    )
+
 
 class GeneratedMessageInstruction(db.Model):
     __tablename__ = "generated_message_instruction"
@@ -129,7 +135,7 @@ class GeneratedMessageEditRecord(db.Model):
 
 class ConfigurationType(enum.Enum):
     STRICT = "STRICT"  # all transformers must be present to use configuration
-    DEFAULT = "DEFAULT"  # if not better configuration present, use this configuration
+    DEFAULT = "DEFAULT"  # if no better configuration present, use this configuration. randomly samples from selected transformers.
 
 
 class StackRankedMessageGenerationConfiguration(db.Model):
@@ -137,6 +143,7 @@ class StackRankedMessageGenerationConfiguration(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     configuration_type = db.Column(db.Enum(ConfigurationType), nullable=False)
+    generated_message_type = db.Column(db.Enum(GeneratedMessageType), nullable=False)
     research_point_types = db.Column(
         db.ARRAY(db.String),
         nullable=True,
@@ -150,3 +157,21 @@ class StackRankedMessageGenerationConfiguration(db.Model):
     archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
+    priority = db.Column(
+        db.Integer, nullable=True
+    )  # lower = less priority; higher = more priority
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "configuration_type": self.configuration_type.value,
+            "generated_message_type": self.generated_message_type.value,
+            "research_point_types": self.research_point_types,
+            "generated_message_ids": self.generated_message_ids,
+            "instruction": self.instruction,
+            "computed_prompt": self.computed_prompt,
+            "name": self.name,
+            "client_id": self.client_id,
+            "archetype_id": self.archetype_id,
+            "priority": self.priority,
+        }

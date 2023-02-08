@@ -77,7 +77,7 @@ def test_get_one_accepted_prospect():
     assert prospect0["prospect_full_name"] == "Testing Testasara"
     assert prospect0["prospect_title"] == "Testing Director"
     assert prospect0["prospect_linkedin"] == None
-    assert prospect0["prospect_linkedin_conversation_thread"] == None
+    assert prospect0["prospect_linkedin_conversation_thread"] == ""
     assert prospect0["prospect_sdr_name"] == "Test SDR"
     assert prospect0["prospect_client_name"] == "Testing Company"
     assert prospect0["prospect_status"] == "ACCEPTED"

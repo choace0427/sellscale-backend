@@ -20,6 +20,7 @@ from src.ml.rule_engine import (
     rule_no_symbols,
     rule_no_companies,
     rule_catch_strange_titles,
+    rule_no_hard_years
 )
 from model_import import GeneratedMessage, GeneratedMessageType
 
@@ -215,6 +216,17 @@ def test_rule_address_doctor():
     ]
     assert highlighted_words == ["name:", "david", "wei,", "neurosurgeon"]
 
+    problems = []
+    highlighted_words = []
+    rule_address_doctor(
+        "name: Darshan Kamdar, <>title: something",
+        "Hey Darshan, something",
+        problems,
+        highlighted_words,
+    )
+    assert problems == []
+    assert highlighted_words == []
+
 
 @use_app_context
 def test_rule_no_symbols():
@@ -273,6 +285,7 @@ def test_rule_catch_strange_titles():
     highlighted_words = []
     rule_catch_strange_titles("pass", "pass", problems, highlighted_words)
     assert problems == []
+    assert highlighted_words == []
 
     rule_catch_strange_titles(
         "pass",
@@ -281,6 +294,7 @@ def test_rule_catch_strange_titles():
         highlighted_words,
     )
     assert problems == []
+    assert highlighted_words == []
 
     rule_catch_strange_titles(
         "Hi David, I really like what you do as the VP of Engineering",
@@ -289,6 +303,7 @@ def test_rule_catch_strange_titles():
         highlighted_words,
     )
     assert problems == []
+    assert highlighted_words == []
 
     rule_catch_strange_titles(
         "I like what you do as a Software Engineer",
@@ -297,6 +312,7 @@ def test_rule_catch_strange_titles():
         highlighted_words,
     )
     assert problems == []
+    assert highlighted_words == []
 
     rule_catch_strange_titles(
         "Hi David, I really like what you do as the VP of Engineering and Growth",
@@ -307,6 +323,7 @@ def test_rule_catch_strange_titles():
     assert problems == [
         "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
     ]
+    assert highlighted_words == ["VP of Engineering and"]
 
     problems = []
     highlighted_words = []
@@ -319,3 +336,17 @@ def test_rule_catch_strange_titles():
     assert problems == [
         "WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."
     ]
+    assert highlighted_words == ["Software @@ Engineering"]
+
+
+@use_app_context
+def test_rule_no_hard_years():
+    problems = []
+    highlighted_words = []
+    rule_no_hard_years("pass", "pass", problems, highlighted_words)
+    assert problems == []
+    assert highlighted_words == []
+
+    rule_no_hard_years("I see you've been at SellScale for 5 years", "half a decade", problems, highlighted_words)
+    assert problems == ["Please reference years in colloquial terms. (e.g. 5 years → half a decade)"]
+    assert highlighted_words == ["5 years"]

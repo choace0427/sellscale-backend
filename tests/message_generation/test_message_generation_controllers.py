@@ -327,6 +327,7 @@ def test_post_create_and_edit_stack_ranked_configuration():
                 "name": "Swag",
                 "client_id": client.id,
                 "archetype_id": archetype.id,
+                "generated_message_type": "LINKEDIN",
             }
         ),
     )

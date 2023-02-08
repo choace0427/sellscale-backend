@@ -5,25 +5,15 @@ from test_utils import (
     basic_client,
     basic_client_sdr,
     basic_archetype,
-    basic_prospect,
-    basic_prospect_email,
-    basic_email_schema,
     basic_sei_raw,
 )
 from src.email_outbound.models import (
-    ProspectEmail,
-    ProspectEmailStatus,
-    ProspectEmailOutreachStatus,
-    ProspectEmailStatusRecords,
     SalesEngagementInteractionSS,
-    EmailInteractionState,
-    EmailSequenceState,
 )
 from src.email_outbound.outreach_io.services import (
     validate_outreach_csv_payload,
     convert_outreach_payload_to_ss
 )
-import mock
 
 
 @use_app_context
@@ -68,7 +58,7 @@ def test_convert_outreach_payload():
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
-    sei_raw = basic_sei_raw(client, client_sdr, archetype)
+    sei_raw = basic_sei_raw(client, client_sdr)
     sei_raw_id = sei_raw.id
 
     opened_payload = [{
@@ -79,11 +69,10 @@ def test_convert_outreach_payload():
         "Clicked?": "No",
         "Replied?": "No",
     }]
-    sei_ss_id = convert_outreach_payload_to_ss(client_id, archetype_id, client_sdr_id, sei_raw_id, opened_payload)
+    sei_ss_id = convert_outreach_payload_to_ss(client_id, client_sdr_id, sei_raw_id, opened_payload)
     assert len(SalesEngagementInteractionSS.query.all()) == 1
     sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(sei_ss_id)
     assert sei_ss.client_id == client_id
-    assert sei_ss.client_archetype_id == archetype_id
     assert sei_ss.client_sdr_id == client_sdr_id
     assert sei_ss.sales_engagement_interaction_raw_id == sei_raw_id
 
@@ -95,11 +84,10 @@ def test_convert_outreach_payload():
         "Clicked?": "No",
         "Replied?": "No",
     }]
-    sei_ss_id = convert_outreach_payload_to_ss(client_id, archetype_id, client_sdr_id, sei_raw_id, bounced_payload)
+    sei_ss_id = convert_outreach_payload_to_ss(client_id, client_sdr_id, sei_raw_id, bounced_payload)
     assert len(SalesEngagementInteractionSS.query.all()) == 2
     sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(sei_ss_id)
     assert sei_ss.client_id == client_id
-    assert sei_ss.client_archetype_id == archetype_id
     assert sei_ss.client_sdr_id == client_sdr_id
     assert sei_ss.sales_engagement_interaction_raw_id == sei_raw_id
 
@@ -107,11 +95,10 @@ def test_convert_outreach_payload():
         "Email": "test-email",
         "Sequence State": "Paused OOTO",
     }]
-    sei_ss_id = convert_outreach_payload_to_ss(client_id, archetype_id, client_sdr_id, sei_raw_id, ooo_payload)
+    sei_ss_id = convert_outreach_payload_to_ss(client_id, client_sdr_id, sei_raw_id, ooo_payload)
     assert len(SalesEngagementInteractionSS.query.all()) == 3
     sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(sei_ss_id)
     assert sei_ss.client_id == client_id
-    assert sei_ss.client_archetype_id == archetype_id
     assert sei_ss.client_sdr_id == client_sdr_id
     assert sei_ss.sales_engagement_interaction_raw_id == sei_raw_id
 
