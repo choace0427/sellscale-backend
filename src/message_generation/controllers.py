@@ -479,12 +479,14 @@ def get_stack_ranked_configuration_priority_endpoint():
     archetype_id = get_request_parameter(
         "archetype_id", request, json=False, required=False
     )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=False
+    )
 
     configuration = get_stack_ranked_config_ordering(
         generated_message_type=generated_message_type,
         archetype_id=archetype_id,
         client_id=client_id,
+        prospect_id=prospect_id,
     )
-    if configuration:
-        return jsonify(configuration), 200
-    return "No configuration found", 400
+    return jsonify(configuration), 200

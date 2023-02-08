@@ -19,6 +19,7 @@ from model_import import (
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
     GeneratedMessageType,
+    ResearchPointType,
 )
 from app import app, db
 
@@ -34,6 +35,9 @@ def test_get_stack_ranked_configuration_priority():
 
     client_2 = basic_client()
     client_2_id = client_2.id
+
+    prospect = basic_prospect(client=client_1, archetype=archetype_1)
+    prospect_id = prospect.id
 
     default_stack_ranked_email_configuration_client_1 = (
         StackRankedMessageGenerationConfiguration(
@@ -67,7 +71,7 @@ def test_get_stack_ranked_configuration_priority():
 
     default_stack_ranked_linkedin_configuration_client_1 = (
         StackRankedMessageGenerationConfiguration(
-            configuration_type=ConfigurationType.DEFAULT,
+            configuration_type=ConfigurationType.STRICT,
             generated_message_type=GeneratedMessageType.LINKEDIN,
             research_point_types=[],
             generated_message_ids=[],
@@ -84,7 +88,9 @@ def test_get_stack_ranked_configuration_priority():
         StackRankedMessageGenerationConfiguration(
             configuration_type=ConfigurationType.DEFAULT,
             generated_message_type=GeneratedMessageType.EMAIL,
-            research_point_types=[],
+            research_point_types=[
+                ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION.value
+            ],
             generated_message_ids=[],
             instruction="",
             computed_prompt="",
@@ -96,9 +102,12 @@ def test_get_stack_ranked_configuration_priority():
 
     default_stack_ranked_linkedin_configuration_archetype_1_client_1 = (
         StackRankedMessageGenerationConfiguration(
-            configuration_type=ConfigurationType.DEFAULT,
+            configuration_type=ConfigurationType.STRICT,
             generated_message_type=GeneratedMessageType.EMAIL,
-            research_point_types=[],
+            research_point_types=[
+                ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION.value,
+                ResearchPointType.CURRENT_JOB_DESCRIPTION.value,
+            ],
             generated_message_ids=[],
             instruction="",
             computed_prompt="",
@@ -137,7 +146,8 @@ def test_get_stack_ranked_configuration_priority():
         ),
         headers={"Content-Type": "application/json"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert json.loads(response.data) == []
 
     # get just the default Email config: no client id; no archetype id
     #   should return: [CONFIG_D_ID]
@@ -198,3 +208,57 @@ def test_get_stack_ranked_configuration_priority():
     )
     assert response.status_code == 200
     assert [x["id"] for x in json.loads(response.data)] == [CONFIG_F_ID, CONFIG_C_ID]
+
+    # get the available configs for prospect 1
+    # response should be [] since no research points exist
+    response = app.test_client().get(
+        "message_generation/stack_ranked_configuration_priority?client_id={}&archetype_id={}&prospect_id={}&generated_message_type={}".format(
+            client_1_id,
+            archetype_1_id,
+            prospect_id,
+            GeneratedMessageType.EMAIL.value,
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+
+    research_payload = basic_research_payload(prospect=prospect)
+    research_point = basic_research_point(research_payload=research_payload)
+    research_point.research_point_type = (
+        ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION
+    )
+    db.session.add(research_point)
+    db.session.commit()
+
+    # get the available configs for prospect 1
+    # response should be [CONFIG_D_ID]
+    response = app.test_client().get(
+        "message_generation/stack_ranked_configuration_priority?client_id={}&archetype_id={}&prospect_id={}&generated_message_type={}".format(
+            client_1_id,
+            archetype_1_id,
+            prospect_id,
+            GeneratedMessageType.EMAIL.value,
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_D_ID]
+
+    research_point = basic_research_point(research_payload=research_payload)
+    research_point.research_point_type = ResearchPointType.CURRENT_JOB_DESCRIPTION
+    db.session.add(research_point)
+    db.session.commit()
+
+    # get the available configs for prospect 1
+    # response should be [CONFIG_E_ID, CONFIG_D_ID]
+    response = app.test_client().get(
+        "message_generation/stack_ranked_configuration_priority?client_id={}&archetype_id={}&prospect_id={}&generated_message_type={}".format(
+            client_1_id,
+            archetype_1_id,
+            prospect_id,
+            GeneratedMessageType.EMAIL.value,
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_E_ID, CONFIG_D_ID]

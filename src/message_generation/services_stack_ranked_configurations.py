@@ -5,6 +5,7 @@ from model_import import (
     GeneratedMessage,
     Client,
     ClientArchetype,
+    ResearchPoints,
 )
 from sqlalchemy import or_, and_, text
 from typing import Optional
@@ -166,8 +167,9 @@ def delete_stack_ranked_configuration(
 
 def get_stack_ranked_config_ordering(
     generated_message_type: str,
-    archetype_id: Optional[int] = None,
-    client_id: Optional[int] = None,
+    archetype_id: Optional[int] = -1,
+    client_id: Optional[int] = -1,
+    prospect_id: Optional[int] = -1,
 ):
     """Get the stack ranked message generation configuration ordering for a client archetype"""
     ordered_srmgcs = (
@@ -199,4 +201,26 @@ def get_stack_ranked_config_ordering(
         )
         .all()
     )
+
+    if prospect_id:
+        research_points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+        research_point_types = [
+            research_point.research_point_type.value
+            for research_point in research_points
+        ]
+
+        filtered_ordered_srmgcs = []
+        for srmgc in ordered_srmgcs:
+            if srmgc.configuration_type == ConfigurationType.DEFAULT:
+                if any(
+                    [rpt in research_point_types for rpt in srmgc.research_point_types]
+                ):
+                    filtered_ordered_srmgcs.append(srmgc)
+            elif srmgc.configuration_type == ConfigurationType.STRICT:
+                if all(
+                    [rpt in research_point_types for rpt in srmgc.research_point_types]
+                ):
+                    filtered_ordered_srmgcs.append(srmgc)
+        ordered_srmgcs = filtered_ordered_srmgcs
+
     return [srmgc.to_dict() for srmgc in ordered_srmgcs]
