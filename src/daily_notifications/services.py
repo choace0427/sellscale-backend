@@ -38,9 +38,7 @@ def fill_in_daily_notifications():
 
             latest_message = db.session.query(LinkedinConversationEntry).filter_by(conversation_url=prospect.li_conversation_thread_id).order_by(LinkedinConversationEntry.date.desc()).first()
             
-            print(latest_message, latest_message.connection_degree)
-
-            if latest_message.connection_degree != 'You':
+            if latest_message and latest_message.connection_degree != 'You':
 
                 # create daily notification
                 daily_notification = DailyNotification(
