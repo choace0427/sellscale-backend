@@ -38,7 +38,7 @@ from model_import import (
     ProspectEmailStatus,
     GeneratedMessageType
 )
-from src.daily_notifications.models import DailyNotification, NotificationStatus
+from src.daily_notifications.models import DailyNotification, NotificationStatus, NotificationType
 from typing import Optional
 from datetime import datetime
 
@@ -153,9 +153,10 @@ def basic_client_sdr(client: Client) -> ClientSDR:
     return sdr
 
 
-def basic_daily_notification(client_sdr: ClientSDR, status: NotificationStatus) -> DailyNotification:
+def basic_daily_notification(client_sdr: ClientSDR, status: NotificationStatus, type: NotificationType = 'UNKNOWN') -> DailyNotification:
     dnot = DailyNotification(
         client_sdr_id=client_sdr.id,
+        type=type,
         status=status,
         title="Testing title",
         description="Testing description",

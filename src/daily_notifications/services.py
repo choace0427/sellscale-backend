@@ -44,9 +44,10 @@ def fill_in_daily_notifications():
                 daily_notification = DailyNotification(
                     prospect_id=prospect.id,
                     client_sdr_id=client_sdr.id,
-                    status='PENDING',
+                    type='UNREAD_MESSAGE',
                     title='Unread message from {prospect_name}'.format(prospect_name=prospect.full_name),
                     description='Reply to {prospect_name} and update their status if necessary'.format(prospect_name=prospect.full_name),
+                    status='PENDING',
                     due_date=get_datetime_now() + timedelta(days=1) # 1 day from now
                 )
 
