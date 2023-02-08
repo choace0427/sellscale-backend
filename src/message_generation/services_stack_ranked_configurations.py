@@ -172,9 +172,6 @@ def get_stack_ranked_config_ordering(
     """Get the stack ranked message generation configuration ordering for a client archetype"""
     ordered_srmgcs = (
         StackRankedMessageGenerationConfiguration.query.filter(
-            generated_message_type == generated_message_type,
-        )
-        .filter(
             or_(
                 and_(  # default configurations
                     StackRankedMessageGenerationConfiguration.archetype_id == None,
@@ -189,7 +186,11 @@ def get_stack_ranked_config_ordering(
                     StackRankedMessageGenerationConfiguration.archetype_id == None,
                     StackRankedMessageGenerationConfiguration.client_id == client_id,
                 ),
-            )
+            ),
+        )
+        .filter(
+            StackRankedMessageGenerationConfiguration.generated_message_type
+            == generated_message_type,
         )
         .order_by(
             text("archetype_id is null"),
