@@ -71,6 +71,7 @@ If setting up from a fresh machine, make sure you have the following installed b
 
 - Python3 (For OSX `xcode-select --install`)
 - Pip (For OSX `xcode-select --install`)
+- [Postgres](https://www.postgresql.org/)
 - [Brew](https://brew.sh/)
 
 The following steps assume that you have the above prerequisites installed - any necessary installations should be added to the list above.
@@ -99,8 +100,8 @@ The following steps assume that you have the above prerequisites installed - any
 5.  In Postgres App, click any database - this should open a psql terminal window. Create two new databases through the terminal: `sellscale` for local testing, `testing` for unit testing (note that this db gets wiped between unit tests).
 
     ```
-    create database sellscale
-    create database testing
+    create database sellscale;
+    create database testing;
     ```
 
 6.  Download [Postico 2](https://eggerapps.at/postico2/) - or your own PostgresSQL navigator of choice - to validate that the databases have been created (For Postico 2: New Server -> Fill in Database field with `sellscale` -> Connect. Repeat for `testing`).
