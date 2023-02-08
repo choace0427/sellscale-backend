@@ -62,8 +62,6 @@ def test_app():
             prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
-        clear_all_entities(SalesEngagementInteractionSS)
-        clear_all_entities(SalesEngagementInteractionRaw)
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
@@ -73,6 +71,8 @@ def test_app():
         clear_all_entities(SightOnboarding)
         clear_all_entities(ProspectEmailStatusRecords)
         clear_all_entities(ProspectEmail)
+        clear_all_entities(SalesEngagementInteractionSS)
+        clear_all_entities(SalesEngagementInteractionRaw)
         clear_all_entities(EmailSchema)
         clear_all_entities(AdversaryTrainingPoint)
         clear_all_entities(GeneratedMessage)
