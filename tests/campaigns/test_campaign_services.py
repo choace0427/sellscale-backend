@@ -61,6 +61,7 @@ def test_get_email_campaign_analytics():
         "campaign_name": campaign.name,
         "campaign_start_date": campaign.campaign_start_date,
         "campaign_end_date": campaign.campaign_end_date,
+        "all_prospects": [prospect_0.id, prospect_1.id],
         "not_sent": [],
         "email_bounced": [],
         "email_sent": [prospect_0.id],

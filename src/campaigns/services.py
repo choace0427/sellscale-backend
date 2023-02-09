@@ -714,6 +714,12 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
     """Gets analytics for an email campaign
 
     This endpoint returns the following metrics, with the prospect ids for each:
+    - Campaign ID
+    - Campaign type
+    - Campaign name
+    - Campaign start date
+    - Campaign end date
+    - All prospects
     - Not sent
     - Email bounced
     - Email sent
@@ -792,6 +798,7 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
         "campaign_name": campaign.name,
         "campaign_start_date": campaign.campaign_start_date,
         "campaign_end_date": campaign.campaign_end_date,
+        "all_prospects": prospect_ids,
         "not_sent": not_sent,
         "email_bounced": email_bounced,
         "email_sent": email_sent,
