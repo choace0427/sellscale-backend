@@ -79,13 +79,17 @@ def get_config_completion_endpoint():
     from model_import import StackRankedMessageGenerationConfiguration
 
     config_id = get_request_parameter("config_id", request, json=False, required=True)
-    prompt = get_request_parameter("prompt", request, json=False, required=True)
+    prospect_prompt = get_request_parameter(
+        "prospect_prompt", request, json=False, required=True
+    )
 
     configuration: StackRankedMessageGenerationConfiguration = (
         StackRankedMessageGenerationConfiguration.query.get(config_id)
     )
     if configuration is None:
         return jsonify({"error": "Configuration not found"}), 400
+
+    prompt = configuration.computed_prompt.format(prompt=prospect_prompt)
 
     response, few_shot_prompt = get_config_completion(configuration, prompt)
 
