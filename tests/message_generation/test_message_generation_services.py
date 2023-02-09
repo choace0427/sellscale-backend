@@ -325,37 +325,7 @@ def test_approve_message(rule_engine_mock):
 
 
 @use_app_context
-def test_delete_message():
-    client = basic_client()
-    archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    message: GeneratedMessage = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
-    db.session.add(message)
-    db.session.commit()
-
-    message: GeneratedMessage = GeneratedMessage.query.first()
-    assert message.message_status == GeneratedMessageStatus.DRAFT
-
-    response = app.test_client().post(
-        "message_generation/delete",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "message_id": message.id,
-            }
-        ),
-    )
-    assert response.status_code == 200
-
-    message: GeneratedMessage = GeneratedMessage.query.first()
-    assert message == None
-
-
-@use_app_context
-def test_delete_message():
+def test_delete_message_generation_by_prospect_id():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)

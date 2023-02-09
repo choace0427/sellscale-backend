@@ -467,21 +467,6 @@ def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
     return True
 
 
-def delete_message(message_id: int):
-    from model_import import GeneratedMessage, GeneratedMessageStatus, Prospect
-
-    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    prospect: Prospect = Prospect.query.get(message.prospect_id)
-    prospect.approved_outreach_message_id = None
-    db.session.add(prospect)
-    db.session.commit()
-
-    db.session.delete(message)
-    db.session.commit()
-
-    return True
-
-
 def delete_message_generation_by_prospect_id(prospect_id: int):
     from model_import import GeneratedMessage
 

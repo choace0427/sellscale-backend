@@ -3,7 +3,6 @@ from app import db
 from flask import Blueprint, request, jsonify
 from src.message_generation.services import (
     approve_message,
-    delete_message,
     research_and_generate_outreaches_for_prospect_list,
     update_message,
     batch_approve_message_generations_by_heuristic,
@@ -136,17 +135,6 @@ def post_batch_disapprove_message_generations_by_heuristic():
     )
 
     success = batch_disapprove_message_generations(prospect_ids=prospect_ids)
-    if success:
-        return "OK", 200
-
-    return "Failed to update", 400
-
-
-@MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["DELETE"])
-def delete():
-    message_id = get_request_parameter("message_id", request, json=True, required=True)
-
-    success = delete_message(message_id=message_id)
     if success:
         return "OK", 200
 
