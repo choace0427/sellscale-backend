@@ -12,7 +12,7 @@ def update_daily_notification_status(client_sdr_id: str, prospect_id: str, type:
 
     Args:
         client_sdr_id (str): ID of the client SDR
-        prospect_id (str): ID of the prospect
+        prospect_id (str): ID of the prospect, or -1 for none
         type (NotificationType): Type of the notification
         status (str): Either 'COMPLETE', 'CANCELLED', or 'PENDING'
 

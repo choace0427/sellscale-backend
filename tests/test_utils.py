@@ -153,7 +153,7 @@ def basic_client_sdr(client: Client) -> ClientSDR:
     return sdr
 
 
-def basic_daily_notification(client_sdr: ClientSDR, status: NotificationStatus, type: NotificationType = 'UNKNOWN') -> DailyNotification:
+def basic_daily_notification(client_sdr: ClientSDR, status: NotificationStatus, type: NotificationType = 'UNKNOWN', prospect_id: int = -1) -> DailyNotification:
     dnot = DailyNotification(
         client_sdr_id=client_sdr.id,
         type=type,
@@ -161,7 +161,7 @@ def basic_daily_notification(client_sdr: ClientSDR, status: NotificationStatus, 
         title="Testing title",
         description="Testing description",
         due_date=datetime.now(),
-        prospect_id=None,
+        prospect_id=prospect_id,
     )
     db.session.add(dnot)
     db.session.commit()
