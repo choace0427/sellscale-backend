@@ -5,10 +5,10 @@ from src.ml.fine_tuned_models import get_latest_custom_model
 from src.ml.models import GNLPModelType
 from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
-    create_upload_jsonl_file,
     get_fine_tune_timeline,
     initiate_fine_tune_job,
 )
+from src.ml.fine_tuned_models import get_config_completion,
 
 from src.message_generation.models import GeneratedMessage
 from src.utils.request_helpers import get_request_parameter
@@ -72,3 +72,21 @@ def post_create_profane_word():
     words = get_request_parameter("words", request, json=False, required=True)
     profane_words = create_profane_word(words=words)
     return jsonify({"profane_word_id": profane_words.id})
+
+
+@ML_BLUEPRINT.route("/get_config_completion", methods=["GET"])
+def get_config_completion_endpoint():
+    from model_import import StackRankedMessageGenerationConfiguration
+
+    config_id = get_request_parameter("config_id", request, json=False, required=True)
+    prompt = get_request_parameter("prompt", request, json=False, required=True)
+
+    configuration: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.get(config_id)
+    )
+    if configuration is None:
+        return jsonify({"error": "Configuration not found"}), 400
+
+    response, few_shot_prompt = get_config_completion(configuration, prompt)
+
+    return jsonify({"response": response, "few_shot_prompt": few_shot_prompt})
