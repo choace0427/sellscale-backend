@@ -757,15 +757,9 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
     prospect_demo_won = []
     prospect_demo_lost = []
 
-    # Get all prospects in campaign
-    prospects: list[Prospect] = Prospect.query.filter(
-        Prospect.id.in_(campaign.prospect_ids)
-    ).all()
-    prospect_ids = [prospect.id for prospect in prospects]
-
     # Get all prospects that have been sent an email
     email_prospects: list[ProspectEmail] = ProspectEmail.query.filter(
-        ProspectEmail.prospect_id.in_(prospect_ids),
+        ProspectEmail.prospect_id.in_(campaign.prospect_ids),
     ).all()
     for email_prospect in email_prospects:
         if email_prospect.email_status != ProspectEmailStatus.SENT:
@@ -798,7 +792,7 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
         "campaign_name": campaign.name,
         "campaign_start_date": campaign.campaign_start_date,
         "campaign_end_date": campaign.campaign_end_date,
-        "all_prospects": prospect_ids,
+        "all_prospects": campaign.prospect_ids,
         "not_sent": not_sent,
         "email_bounced": email_bounced,
         "email_sent": email_sent,
