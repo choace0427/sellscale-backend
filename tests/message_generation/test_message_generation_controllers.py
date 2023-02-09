@@ -415,3 +415,35 @@ def test_post_create_and_edit_stack_ranked_configuration():
 
     configs = StackRankedMessageGenerationConfiguration.query.all()
     assert len(configs) == 0
+
+
+@use_app_context
+@mock.patch("src.message_generation.services.run_message_rule_engine", return_value=[])
+def test_post_pick_new_approved_message(rule_engine_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+    gnlp_model = basic_gnlp_model(archetype)
+
+    generated_message1 = basic_generated_message(prospect, gnlp_model)
+    gm_1_id = generated_message1.id
+    generated_message2 = basic_generated_message(prospect, gnlp_model)
+    gm_2_id = generated_message2.id
+
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    prospect.approved_outreach_message_id = gm_1_id
+    db.session.add(prospect)
+    db.session.commit()
+
+    response = app.test_client().post(
+        "message_generation/pick_new_approved_message",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id, "message_id": gm_1_id}),
+    )
+    assert response.status_code == 200
+
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    assert prospect.approved_outreach_message_id == gm_2_id
+
+    assert rule_engine_mock.call_count == 1
