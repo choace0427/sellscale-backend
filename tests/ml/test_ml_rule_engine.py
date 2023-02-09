@@ -20,7 +20,8 @@ from src.ml.rule_engine import (
     rule_no_symbols,
     rule_no_companies,
     rule_catch_strange_titles,
-    rule_no_hard_years
+    rule_no_hard_years,
+    rule_catch_im_a,
 )
 from model_import import GeneratedMessage, GeneratedMessageType
 
@@ -347,6 +348,51 @@ def test_rule_no_hard_years():
     assert problems == []
     assert highlighted_words == []
 
-    rule_no_hard_years("I see you've been at SellScale for 5 years", "half a decade", problems, highlighted_words)
-    assert problems == ["Please reference years in colloquial terms. (e.g. 5 years → half a decade)"]
+    rule_no_hard_years(
+        "I see you've been at SellScale for 5 years",
+        "half a decade",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Please reference years in colloquial terms. (e.g. 5 years → half a decade)"
+    ]
     assert highlighted_words == ["5 years"]
+
+
+@use_app_context
+def test_rule_no_im_a():
+    problems = []
+    highlighted_words = []
+    rule_catch_im_a(
+        "I'm a physician recruiter and this is a lie!",
+        "pass",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        'Found "I\'m a" in the completion. Ensure that the completion is not making false claims.'
+    ]
+    assert highlighted_words == ["I'm a"]
+
+    problems = []
+    highlighted_words = []
+    rule_catch_im_a(
+        "I'm a physician recruiter and that's for real!",
+        "I'm a physician recruiter",
+        problems,
+        highlighted_words,
+    )
+    assert problems == []
+    assert highlighted_words == []
+
+    problems = []
+    highlighted_words = []
+    rule_catch_im_a(
+        "I'm a huge fan of your work!",
+        "pass",
+        problems,
+        highlighted_words,
+    )
+    assert problems == []
+    assert highlighted_words == []
