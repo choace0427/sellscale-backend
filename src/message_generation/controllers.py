@@ -24,6 +24,8 @@ from src.message_generation.services_stack_ranked_configurations import (
     edit_stack_ranked_configuration_name,
     delete_stack_ranked_configuration,
     get_stack_ranked_config_ordering,
+    add_generated_message_id_to_config,
+    delete_generated_message_id_from_config,
 )
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
@@ -490,3 +492,43 @@ def get_stack_ranked_configuration_priority_endpoint():
         prospect_id=prospect_id,
     )
     return jsonify([config.to_dict() for config in configurations]), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_priority/add_generated_message_id", methods=["POST"]
+)
+def post_stack_ranked_configuration_priority_add_generated_message_id_endpoint():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    generated_message_id = get_request_parameter(
+        "generated_message_id", request, json=True, required=True
+    )
+
+    success, message = add_generated_message_id_to_config(
+        config_id=configuration_id,
+        generated_message_id=generated_message_id,
+    )
+    if success:
+        return "OK", 200
+    return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_priority/delete_generated_message_id", methods=["POST"]
+)
+def post_stack_ranked_configuration_priority_delete_generated_message_id_endpoint():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    generated_message_id = get_request_parameter(
+        "generated_message_id", request, json=True, required=True
+    )
+
+    success, message = delete_generated_message_id_from_config(
+        config_id=configuration_id,
+        generated_message_id=generated_message_id,
+    )
+    if success:
+        return "OK", 200
+    return message, 400

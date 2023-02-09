@@ -8,6 +8,7 @@ from model_import import (
     ResearchPoints,
 )
 from sqlalchemy import or_, and_, text
+from sqlalchemy.orm import attributes
 from typing import Optional
 from app import db
 
@@ -250,6 +251,7 @@ def delete_generated_message_id_from_config(generated_message_id: int, config_id
         return False, "Stack ranked message generation configuration does not exist"
     if generated_message_id in srmgc.generated_message_ids:
         srmgc.generated_message_ids.remove(generated_message_id)
+        attributes.flag_modified(srmgc, "generated_message_ids")
         db.session.add(srmgc)
         db.session.commit()
     return True, "OK"
@@ -264,6 +266,7 @@ def add_generated_message_id_to_config(generated_message_id: int, config_id: int
         return False, "Stack ranked message generation configuration does not exist"
     if generated_message_id not in srmgc.generated_message_ids:
         srmgc.generated_message_ids.append(generated_message_id)
+        attributes.flag_modified(srmgc, "generated_message_ids")
         db.session.add(srmgc)
         db.session.commit()
     return True, "OK"
