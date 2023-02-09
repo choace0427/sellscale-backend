@@ -36,7 +36,8 @@ from model_import import (
     StackRankedMessageGenerationConfiguration,
     ProspectEmail,
     ProspectEmailStatus,
-    GeneratedMessageType
+    ProspectEmailOutreachStatus,
+    GeneratedMessageType,
 )
 from src.daily_notifications.models import DailyNotification, NotificationStatus, NotificationType
 from typing import Optional
@@ -270,12 +271,14 @@ def basic_prospect_email(
     prospect: Prospect,
     email_schema: EmailSchema,
     email_status: ProspectEmailStatus = ProspectEmailStatus.DRAFT,
+    outreach_status: ProspectEmailOutreachStatus = ProspectEmailOutreachStatus.UNKNOWN,
 ) -> ProspectEmail:
 
     p = ProspectEmail(
         email_schema_id=email_schema.id,
         prospect_id=prospect.id,
         email_status=email_status,
+        outreach_status=outreach_status,
     )
     db.session.add(p)
     db.session.commit()

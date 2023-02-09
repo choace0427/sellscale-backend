@@ -20,6 +20,7 @@ from src.campaigns.services import (
     adjust_editing_due_date,
     remove_ungenerated_prospects_from_campaign,
     create_new_li_campaign_from_existing_email_campaign,
+    get_outbound_campaign_analytics
 )
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -222,3 +223,16 @@ def post_create_li_campaign_from_email():
     )
     campaign = create_new_li_campaign_from_existing_email_campaign(campaign_id)
     return jsonify({"campaign_id": campaign.id})
+
+
+@CAMPAIGN_BLUEPRINT.route("/get_campaign_analytics", methods=["GET"])
+def get_campaign_analytics() -> tuple[dict, int]:
+    """Gets campaign analytics, given a campaign_id
+
+    Returns:
+        tuple[dict, int]: A tuple containing a dictionary of campaign analytics and a status code
+    """
+    campaign_id = get_request_parameter("campaign_id", request, json=False, required=True)
+    campaign_analytics = get_outbound_campaign_analytics(campaign_id)
+
+    return campaign_analytics, 200

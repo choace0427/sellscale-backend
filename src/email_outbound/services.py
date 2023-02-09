@@ -346,6 +346,7 @@ EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS = {
 
 # key (new_status) : value (list of valid statuses to update from)
 VALID_UPDATE_STATUSES_MAP = {
+    ProspectEmailOutreachStatus.SENT_OUTREACH: [ProspectEmailOutreachStatus.UNKNOWN, ProspectEmailOutreachStatus.NOT_SENT],
     ProspectEmailOutreachStatus.EMAIL_OPENED: [ProspectEmailOutreachStatus.SENT_OUTREACH],
     ProspectEmailOutreachStatus.ACCEPTED: [ProspectEmailOutreachStatus.EMAIL_OPENED, ProspectEmailOutreachStatus.SENT_OUTREACH],
     ProspectEmailOutreachStatus.ACTIVE_CONVO: [

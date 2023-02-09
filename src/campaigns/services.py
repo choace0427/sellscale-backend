@@ -1,7 +1,7 @@
 from app import db
 from src.campaigns.models import *
 from src.client.services import get_client, get_client_sdr
-from model_import import Prospect, GeneratedMessageCTA
+from model_import import Prospect, GeneratedMessageCTA, ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_few_shot,
 )
@@ -689,3 +689,122 @@ def create_new_li_campaign_from_existing_email_campaign(email_campaign_id: int):
     )
 
     return new_campaign
+
+
+def get_outbound_campaign_analytics(campaign_id: int) -> dict:
+    """Gets analytics for a campaign
+
+    Gateway for getting either Email analytics or LinkedIn analytics
+
+    Args:
+        campaign_id (int): Campaign id
+
+    Returns:
+        dict: analytics metrics
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+
+    if campaign.campaign_type == GeneratedMessageType.EMAIL:
+        return get_email_campaign_analytics(campaign_id)
+    elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
+        return get_linkedin_campaign_analytics(campaign_id)
+
+
+def get_email_campaign_analytics(campaign_id: int) -> dict:
+    """Gets analytics for an email campaign
+
+    This endpoint returns the following metrics, with the prospect ids for each:
+    - Not sent
+    - Email bounced
+    - Email sent
+    - Email opened
+    - Email accepted
+    - Email replied
+    - Prospect scheduling
+    - Prospect not interested
+    - Prospect demo set
+    - Prospect demo won
+
+    Args:
+        campaign_id (int): Campaign id
+
+    Returns:
+        dict: analytics metrics
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        raise Exception("Campaign not found")
+    elif campaign.campaign_type != GeneratedMessageType.EMAIL:
+        raise Exception("Campaign is not an email campaign")
+
+    not_sent = []
+    email_bounced = []
+
+    email_sent = []
+    email_opened = []
+    email_accepted = []
+    email_replied = []
+    prospect_scheduling = []
+
+    prospect_not_interested = []
+    prospect_demo_set = []
+    prospect_demo_won = []
+    prospect_demo_lost = []
+
+    # Get all prospects in campaign
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(campaign.prospect_ids)
+    ).all()
+    prospect_ids = [prospect.id for prospect in prospects]
+
+    # Get all prospects that have been sent an email
+    email_prospects: list[ProspectEmail] = ProspectEmail.query.filter(
+        ProspectEmail.prospect_id.in_(prospect_ids),
+    ).all()
+    for email_prospect in email_prospects:
+        if email_prospect.email_status != ProspectEmailStatus.SENT:
+            not_sent.append(email_prospect.prospect_id)
+            continue
+
+        outreach_status = email_prospect.outreach_status
+        if outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH:
+            email_sent.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED:
+            email_opened.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.ACCEPTED:
+            email_accepted.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.ACTIVE_CONVO:
+            email_replied.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.SCHEDULING:
+            prospect_scheduling.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.NOT_INTERESTED:
+            prospect_not_interested.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.DEMO_SET:
+            prospect_demo_set.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.DEMO_WON:
+            prospect_demo_won.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.DEMO_LOST:
+            prospect_demo_lost.append(email_prospect.prospect_id)
+
+    return {
+        "campaign_id": campaign_id,
+        "campaign_type": campaign.campaign_type.value,
+        "campaign_name": campaign.name,
+        "campaign_start_date": campaign.campaign_start_date,
+        "campaign_end_date": campaign.campaign_end_date,
+        "not_sent": not_sent,
+        "email_bounced": email_bounced,
+        "email_sent": email_sent,
+        "email_opened": email_opened,
+        "email_accepted": email_accepted,
+        "email_replied": email_replied,
+        "prospect_scheduling": prospect_scheduling,
+        "prospect_not_interested": prospect_not_interested,
+        "prospect_demo_set": prospect_demo_set,
+        "prospect_demo_won": prospect_demo_won,
+        "prospect_demo_lost": prospect_demo_lost,
+    }
+
+
+def get_linkedin_campaign_analytics():
+    return "Not yet implemented"

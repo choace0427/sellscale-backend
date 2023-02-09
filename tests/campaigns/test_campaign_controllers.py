@@ -14,9 +14,10 @@ from test_utils import (
     basic_editor,
     basic_prospect_email,
     basic_generated_message_cta,
+    basic_outbound_campaign,
 )
 from src.campaigns.services import create_outbound_campaign
-from model_import import OutboundCampaign
+from model_import import OutboundCampaign, GeneratedMessageType, ProspectEmailStatus, ProspectEmailOutreachStatus
 import mock
 
 
@@ -952,3 +953,36 @@ def test_post_remove_ungenerated_prospects():
 
     all_campaigns = OutboundCampaign.query.all()
     assert len(all_campaigns) == 2
+
+
+@use_app_context
+def test_get_campaign_analytics():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    email_schema = basic_email_schema(archetype=archetype)
+    prospect = basic_prospect(archetype=archetype, client=client)
+    prospect2 = basic_prospect(archetype=archetype, client=client)
+    prospect3 = basic_prospect(archetype=archetype, client=client)
+    email = basic_prospect_email(prospect=prospect, email_schema=email_schema, email_status=ProspectEmailStatus.SENT, outreach_status=ProspectEmailOutreachStatus.SENT_OUTREACH)
+    email2 = basic_prospect_email(prospect=prospect2, email_schema=email_schema, email_status=ProspectEmailStatus.SENT, outreach_status=ProspectEmailOutreachStatus.ACCEPTED)
+    email3 = basic_prospect_email(prospect=prospect3, email_schema=email_schema, email_status=ProspectEmailStatus.SENT, outreach_status=ProspectEmailOutreachStatus.ACTIVE_CONVO)
+    prospect_ids = [prospect.id, prospect2.id, prospect3.id]
+
+    campaign = basic_outbound_campaign(prospect_ids, GeneratedMessageType.EMAIL, archetype, client_sdr)
+    campaign_id = campaign.id
+
+    response = app.test_client().get(
+        "campaigns/get_campaign_analytics?campaign_id={}".format(
+            campaign_id
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+    assert response.json["campaign_id"] == str(campaign_id)
+    assert response.json["campaign_type"] == "EMAIL"
+    assert response.json["campaign_name"] == campaign.name
+    assert response.json["not_sent"] == []
+    assert response.json["email_sent"] == [prospect.id]
+    assert response.json["email_accepted"] == [prospect2.id]
+    assert response.json["email_replied"] == [prospect3.id]
