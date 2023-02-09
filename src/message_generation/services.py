@@ -449,6 +449,7 @@ def disapprove_message(message_id: int):
 
 
 def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
+    """Given a prospect, selects a new generated message that is not message_id."""
     data = db.session.execute(
         """
             select length(completion), *
