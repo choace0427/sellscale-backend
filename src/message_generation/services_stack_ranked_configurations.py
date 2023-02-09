@@ -239,3 +239,31 @@ def get_stack_ranked_config_ordering(
         ordered_srmgcs = filtered_ordered_srmgcs
 
     return ordered_srmgcs
+
+
+def delete_generated_message_id_from_config(generated_message_id: int, config_id: int):
+    """Delete a generated message id from a stack ranked message generation configuration if it exists"""
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(id=config_id).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    if generated_message_id in srmgc.generated_message_ids:
+        srmgc.generated_message_ids.remove(generated_message_id)
+        db.session.add(srmgc)
+        db.session.commit()
+    return True, "OK"
+
+
+def add_generated_message_id_to_config(generated_message_id: int, config_id: int):
+    """Add a generated message id to a stack ranked message generation configuration if generated_message_id is not already in the list"""
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(id=config_id).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    if generated_message_id not in srmgc.generated_message_ids:
+        srmgc.generated_message_ids.append(generated_message_id)
+        db.session.add(srmgc)
+        db.session.commit()
+    return True, "OK"
