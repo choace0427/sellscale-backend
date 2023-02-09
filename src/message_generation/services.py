@@ -585,37 +585,6 @@ def get_personalized_first_line_from_prompt(
     return personalized_first_line
 
 
-def get_personalized_first_line(
-    archetype_id: int,
-    model_type: GNLPModelType,
-    prompt: str,
-    research_points: list,
-    prospect_id: int,
-    batch_id: int,
-):
-    completion, model_id = get_custom_completion_for_client(
-        archetype_id=archetype_id,
-        model_type=GNLPModelType.EMAIL_FIRST_LINE,
-        prompt=prompt,
-        max_tokens=100,
-        n=1,
-    )
-    personalized_first_line = GeneratedMessage(
-        prospect_id=prospect_id,
-        gnlp_model_id=model_id,
-        research_points=research_points,
-        prompt=prompt,
-        completion=completion,
-        message_status=GeneratedMessageStatus.DRAFT,
-        message_type=GeneratedMessageType.EMAIL,
-        batch_id=batch_id,
-    )
-    db.session.add(personalized_first_line)
-    db.session.commit()
-
-    return personalized_first_line
-
-
 def batch_generate_prospect_emails(prospect_ids: list, email_schema_id: int):
     batch_id = generate_random_alphanumeric(32)
     for prospect_id in prospect_ids:
