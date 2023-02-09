@@ -6,6 +6,9 @@ from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.datetime.dateutils import get_datetime_now
 from datetime import timedelta
 
+DUE_DATE_DAYS = 1
+CLEAR_DAYS = 7
+SCHEDULING_CHECK_DAYS = 2
 
 def update_daily_notification_status(client_sdr_id: str, prospect_id: str, type: NotificationType, status: str):
     """Updates the status of the daily notification with id to status.
@@ -35,29 +38,83 @@ def fill_in_daily_notifications():
 
     for client_sdr in ClientSDR.query.all():
         
-        prospects = db.session.query(Prospect).filter_by(client_sdr_id=client_sdr.id).filter_by(status='ACTIVE_CONVO').all()
-        for prospect in prospects:
-
-            latest_message = db.session.query(LinkedinConversationEntry).filter_by(conversation_url=prospect.li_conversation_thread_id).order_by(LinkedinConversationEntry.date.desc()).first()
-            
-            if latest_message and latest_message.connection_degree != 'You':
-
-                # create daily notification
-                daily_notification = DailyNotification(
-                    prospect_id=prospect.id,
-                    client_sdr_id=client_sdr.id,
-                    type='UNREAD_MESSAGE',
-                    title='Unread message from {prospect_name}'.format(prospect_name=prospect.full_name),
-                    description='Reply to {prospect_name} and update their status if necessary'.format(prospect_name=prospect.full_name),
-                    status='PENDING',
-                    due_date=get_datetime_now() + timedelta(days=1) # 1 day from now
-                )
-
-                db.session.merge(daily_notification)
+        add_unread_messages(client_sdr)
+        add_schedulings(client_sdr)
 
     db.session.commit()
 
     return 'Created', 201
+
+
+def add_unread_messages(client_sdr):
+    """Adds unread messages to the daily notifications table.
+    """
+
+    prospects = db.session.query(Prospect).filter_by(client_sdr_id=client_sdr.id).filter_by(status='ACTIVE_CONVO').all()
+    for prospect in prospects:
+
+        latest_message = db.session.query(LinkedinConversationEntry).filter_by(conversation_url=prospect.li_conversation_thread_id).order_by(LinkedinConversationEntry.date.desc()).first()
+
+        if latest_message and latest_message.connection_degree != 'You':
+
+            existing_record = DailyNotification.query.filter_by(
+                client_sdr_id=client_sdr.id,
+                prospect_id=prospect.id,
+                type='UNREAD_MESSAGE',
+            ).first()
+
+            # create daily notification
+            daily_notification = DailyNotification(
+                client_sdr_id=client_sdr.id,
+                prospect_id=prospect.id,
+                type='UNREAD_MESSAGE',
+                title='Unread message from {prospect_name}'.format(prospect_name=prospect.full_name),
+                description='Reply to {prospect_name} and update their status if necessary'.format(prospect_name=prospect.full_name),
+                status='PENDING',
+                due_date=get_datetime_now() + timedelta(days=DUE_DATE_DAYS) # DUE_DATE_DAYS days from now
+            )
+
+            # If it's non-existent, cancelled, or complete, we want to create a new one
+            if not existing_record:
+                db.session.add(daily_notification)
+            elif existing_record.status.value == 'CANCELLED' or existing_record.status.value == 'COMPLETE':
+                db.session.merge(daily_notification)
+
+            
+def add_schedulings(client_sdr):
+    """Adds schedulings to the daily notifications table.
+    """
+
+    prospects = db.session.query(Prospect).filter_by(client_sdr_id=client_sdr.id).filter_by(status='SCHEDULING').all()
+    for prospect in prospects:
+
+        latest_message = db.session.query(LinkedinConversationEntry).filter_by(conversation_url=prospect.li_conversation_thread_id).order_by(LinkedinConversationEntry.date.desc()).first()
+
+        # If the latest message is older than SCHEDULING_CHECK_DAYS days, create a daily notification
+        if latest_message and latest_message.updated_at < get_datetime_now() - timedelta(days=SCHEDULING_CHECK_DAYS):
+
+            existing_record = DailyNotification.query.filter_by(
+                client_sdr_id=client_sdr.id,
+                prospect_id=prospect.id,
+                type='SCHEDULING',
+            ).first()
+
+            # create daily notification
+            daily_notification = DailyNotification(
+                client_sdr_id=client_sdr.id,
+                prospect_id=prospect.id,
+                type='SCHEDULING',
+                title='Previous scheduling with {prospect_name}'.format(prospect_name=prospect.full_name),
+                description='Follow up with {prospect_name} and update their status if necessary'.format(prospect_name=prospect.full_name),
+                status='PENDING',
+                due_date=get_datetime_now() + timedelta(days=DUE_DATE_DAYS) # DUE_DATE_DAYS days from now
+            )
+
+            # If it's non-existent, cancelled, or complete, we want to create a new one
+            if not existing_record:
+                db.session.add(daily_notification)
+            elif existing_record.status.value == 'CANCELLED' or existing_record.status.value == 'COMPLETE':
+                db.session.merge(daily_notification)
 
 
 @celery.task
@@ -69,8 +126,8 @@ def clear_daily_notifications():
     """
 
     for daily_notification in db.session.query(DailyNotification).all():
-        # Check if it's more than 7 days old
-        if daily_notification.due_date < get_datetime_now() - timedelta(days=7):
+        # Check if it's more than CLEAR_DAYS days old
+        if daily_notification.due_date < get_datetime_now() - timedelta(days=CLEAR_DAYS):
             db.session.delete(daily_notification)
 
     db.session.commit()

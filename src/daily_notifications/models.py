@@ -1,6 +1,5 @@
 import enum
 from app import db
-from sqlalchemy import PrimaryKeyConstraint
 
 
 class NotificationStatus(enum.Enum):
@@ -27,7 +26,7 @@ class DailyNotification(db.Model):
     description = db.Column(db.String, nullable=False)
     due_date = db.Column(db.DateTime, nullable=False)
 
-    __table_args__ = (PrimaryKeyConstraint('client_sdr_id', 'prospect_id', 'type'),)
+    __table_args__ = (db.PrimaryKeyConstraint('client_sdr_id', 'prospect_id', 'type'),)
 
     def to_dict(self):
         return {
