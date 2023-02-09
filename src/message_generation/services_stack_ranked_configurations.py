@@ -270,3 +270,24 @@ def add_generated_message_id_to_config(generated_message_id: int, config_id: int
         db.session.add(srmgc)
         db.session.commit()
     return True, "OK"
+
+
+def get_prompts_from_stack_ranked_config(
+    configuration_id: int, prospect_id: int, list_of_research_points: list
+):
+    from src.message_generation.services import generate_prompt
+
+    prospect_prompt = generate_prompt(
+        prospect_id,
+        "\n-".join(list_of_research_points),
+    )
+
+    config = StackRankedMessageGenerationConfiguration.query.filter_by(
+        id=configuration_id
+    ).first()
+    full_prompt = config.computed_prompt.format(prompt=prospect_prompt)
+
+    return {
+        "prospect_prompt": prospect_prompt,
+        "full_prompt": full_prompt,
+    }
