@@ -60,13 +60,11 @@ def search_prospects(
     return prospects
 
 
-def prospect_exists_for_archetype(full_name: str, client_id: int, archetype_id: int):
+def prospect_exists_for_client(full_name: str, client_id: int):
     from src.prospecting.models import Prospect
 
     p: Prospect = Prospect.query.filter(
-        Prospect.full_name == full_name,
-        Prospect.client_id == client_id,
-        Prospect.archetype_id == archetype_id,
+        Prospect.full_name == full_name, Prospect.client_id == client_id
     ).first()
 
     if p:
@@ -392,8 +390,8 @@ def add_prospect(
 ) -> bool:
     status = ProspectStatus.PROSPECTED
 
-    prospect_exists = prospect_exists_for_archetype(
-        full_name=full_name, client_id=client_id, archetype_id=archetype_id
+    prospect_exists = prospect_exists_for_client(
+        full_name=full_name, client_id=client_id
     )
 
     if linkedin_url and len(linkedin_url) > 0:
