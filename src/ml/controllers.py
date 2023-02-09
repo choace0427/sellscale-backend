@@ -8,7 +8,7 @@ from src.ml.services import (
     get_fine_tune_timeline,
     initiate_fine_tune_job,
 )
-from src.ml.fine_tuned_models import get_config_completion,
+from src.ml.fine_tuned_models import get_config_completion
 
 from src.message_generation.models import GeneratedMessage
 from src.utils.request_helpers import get_request_parameter
