@@ -99,6 +99,7 @@ def run_message_rule_engine(message_id: int):
     rule_no_companies(completion, problems, highlighted_words)
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
+    rule_catch_im_a(completion, prompt, problems, highlighted_words)
 
     if "i have " in completion:
         problems.append("Uses first person 'I have'.")
@@ -378,7 +379,7 @@ def rule_catch_strange_titles(
 
 
 def rule_no_hard_years(
-    completion: str, prompt:str, problems: list, highlighted_words:list
+    completion: str, prompt: str, problems: list, highlighted_words: list
 ):
     """Rule: No Hard Years
 
@@ -387,15 +388,41 @@ def rule_no_hard_years(
     This heuristic is imperfect.
     """
     if "decade" in prompt:
-        if "decade" not in completion and 'years' in completion:
-            problems.append("Please reference years in colloquial terms. (e.g. 5 years → half a decade)")
+        if "decade" not in completion and "years" in completion:
+            problems.append(
+                "Please reference years in colloquial terms. (e.g. 5 years → half a decade)"
+            )
 
             # Highlight the word 'years' and the word before it. Imperfect heurstic, may need change.
             splitted = completion.split()
             for i in range(len(splitted)):
-                word=splitted[i]
+                word = splitted[i]
                 if word == "years":
-                    highlighted_words.append(splitted[i-1] + " " + word)
+                    highlighted_words.append(splitted[i - 1] + " " + word)
                     break
+
+    return
+
+
+def rule_catch_im_a(
+    completion: str, prompt: str, problems: list, highlighted_words: list
+):
+    """Rule: Catch 'I'm a'
+
+    Catch 'I'm a' in the completion.
+    """
+    if "i'm a" in prompt.lower():
+        return
+    if (
+        "i'm a" in completion.lower()
+        and "big" not in completion.lower()
+        and "massive" not in completion.lower()
+        and "huge" not in completion.lower()
+        and "fan" not in completion.lower()
+    ):
+        problems.append(
+            'Found "I\'m a" in the completion. Ensure that the completion is not making false claims.'
+        )
+        highlighted_words.append("I'm a")
 
     return
