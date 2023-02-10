@@ -110,7 +110,7 @@ def get_years_of_experience_at_current_job(data):
         frame = "Just started at {company}.".format(company=company_name)
     elif time_at_job > 0.4 and time_at_job < 0.6:  # 5-7 months
         frame = "Been at {company} for half a year.".format(company=company_name)
-    elif time_at_job >= 0.6 and time_at_job < .84:  # 7-10 months:
+    elif time_at_job >= 0.6 and time_at_job < 0.84:  # 7-10 months:
         frame = "Been at {company} for over half a year.".format(company=company_name)
     elif time_at_job >= 40:  # 40+ years
         frame = "Been at {company} for over {time} decades.".format(
@@ -133,7 +133,9 @@ def get_years_of_experience_at_current_job(data):
     elif time_at_job >= 5:  # 5-9 years
         frame = "Been at {company} for over half a decade.".format(company=company_name)
     elif time_at_job >= 2:  # 2-5 years
-        frame = "Been at {company} for over {years} years.".format(company=company_name, years=math.floor(time_at_job))
+        frame = "Been at {company} for over {years} years.".format(
+            company=company_name, years=math.floor(time_at_job)
+        )
     elif time_at_job < 2 and time_at_job > 1.2:  # 14-24 months
         frame = "Been at {company} for over a year.".format(company=company_name)
 
@@ -231,7 +233,7 @@ def get_linkedin_bio_summary(data):
         "\n", " "
     )  # We may eventually need to replace strange symbols as well
 
-    instruction = "Summarize the individual's bio in 30 words or less."
+    instruction = 'Summarize the individual\'s bio in 30 words or less. Use "they" and "their" to refer to the individual.'
     prompt = (
         f"individual: {name}\nbio: {summary}\n\ninstruction: {instruction}\n\nsummary:"
     )
