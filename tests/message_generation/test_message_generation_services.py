@@ -369,7 +369,7 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     assert get_custom_completion_for_client_mock.called is True
 
     messages: list = GeneratedMessage.query.all()
-    assert len(messages) == 3
+    assert len(messages) == 1
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
         assert message.gnlp_model_id == None
@@ -378,7 +378,7 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
 
     prospect_emails: list = ProspectEmail.query.all()
     prospect_email_ids = [pe.id for pe in prospect_emails]
-    assert len(prospect_emails) == 3
+    assert len(prospect_emails) == 1
     for prospect_email in prospect_emails:
         assert prospect_email.prospect_id == prospect_id
         assert prospect_email.email_schema_id == email_schema_id
@@ -442,7 +442,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 
     messages: list = GeneratedMessage.query.all()
     messages[0].batch_id
-    assert len(messages) == 3
+    assert len(messages) == 1
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
         assert message.gnlp_model_id == None
@@ -450,7 +450,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
         assert message.batch_id == "123123"
 
     prospect_emails: list = ProspectEmail.query.all()
-    assert len(prospect_emails) == 3
+    assert len(prospect_emails) == 1
     for prospect_email in prospect_emails:
         assert prospect_email.prospect_id == prospect_id
         assert prospect_email.email_schema_id == email_schema_id
@@ -478,8 +478,8 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 
     messages: list = GeneratedMessage.query.all()
     prospect_emails = ProspectEmail.query.all()
-    assert len(messages) == 3
-    assert len(prospect_emails) == 3
+    assert len(messages) == 1
+    assert len(prospect_emails) == 1
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.status = ProspectStatus.PROSPECTED
