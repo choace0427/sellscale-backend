@@ -123,6 +123,12 @@ def get_all_research_point_types():
             "deprecated": False,
         },
         {
+            "transformer": ResearchPointType.SERP_NEWS_SUMMARY_NEGATIVE.value,
+            "description": "Extracts the negative SERP news summary",
+            "example": "Saw the article on TechCrunch about your company losing $1M in funding to a competitor",
+            "deprecated": False,
+        },
+        {
             "transformer": ResearchPointType.LINKEDIN_BIO_SUMMARY.value,
             "description": "Extracts the linkedin bio and creates a summary using OpenAI",
             "example": "David Wei is passionate about distributed systems and highly scalable infrastructure.",
