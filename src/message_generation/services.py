@@ -626,7 +626,7 @@ def generate_prospect_email(
         #     prospect_id
         # )
 
-        NUM_GENERATIONS = 3  # number of ProspectEmail's to make
+        NUM_GENERATIONS = 1  # number of ProspectEmail's to make
         TOP_CONFIGURATION = get_top_stack_ranked_config_ordering(
             generated_message_type=GeneratedMessageType.EMAIL.value,
             prospect_id=prospect_id,
