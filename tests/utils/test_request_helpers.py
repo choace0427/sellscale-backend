@@ -35,6 +35,21 @@ def test_get_request_parameter():
         raised_flag = True
     assert raised_flag == True
 
+    raised_flag = False
+    try:
+        value = get_request_parameter(
+            key="test",
+            req=request,
+            json=False,
+            required=True,
+            parameter_type=int,
+        )
+    except Exception as e:
+        assert str(e) == "Invalid request. Parameter `test` must be of type `<class 'int'>` but was `<class 'str'>`."
+        raised_flag = True
+    assert raised_flag == True
+
+
 
 def test_get_auth_token():
     request = mock.Mock(headers={"Authorization": "Bearer SAMPLE_TOKEN"})

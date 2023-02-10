@@ -1,9 +1,14 @@
 from decimal import InvalidOperation
 from flask import Request
+from typing import Optional
 
 
 def get_request_parameter(
-    key: str, req: Request, json: bool = False, required: bool = False
+    key: str,
+    req: Request,
+    json: bool = False,
+    required: bool = False,
+    parameter_type: Optional[type] = None,
 ) -> any:
     if json:
         values = req.get_json()
@@ -16,6 +21,13 @@ def get_request_parameter(
             raise InvalidOperation(message)
         else:
             return None
+
+    value = values.get(key)
+    if parameter_type != None and type(value) != parameter_type:
+        message = "Invalid request. Parameter `{}` must be of type `{}` but was `{}`.".format(
+            key, parameter_type, type(value)
+        )
+        raise InvalidOperation(message)
 
     return values.get(key)
 
