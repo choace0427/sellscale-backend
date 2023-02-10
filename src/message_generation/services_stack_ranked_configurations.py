@@ -176,8 +176,10 @@ def get_top_stack_ranked_config_ordering(generated_message_type: str, prospect_i
     stack_ranked_config_ordering: list = get_stack_ranked_config_ordering(
         generated_message_type, archetype_id, client_id, prospect_id
     )
-    if len(stack_ranked_config_ordering) > 0:
-        return stack_ranked_config_ordering[0]
+    # return first config that is `active`
+    for srmgc in stack_ranked_config_ordering:
+        if srmgc.active:
+            return srmgc
     return None
 
 
@@ -209,7 +211,6 @@ def get_stack_ranked_config_ordering(
         .filter(
             StackRankedMessageGenerationConfiguration.generated_message_type
             == generated_message_type,
-            StackRankedMessageGenerationConfiguration.active == True,
         )
         .order_by(
             StackRankedMessageGenerationConfiguration.priority.desc(),
