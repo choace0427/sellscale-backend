@@ -1,6 +1,7 @@
 from app import db
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.message_generation.models import GeneratedMessageCTA
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import ProspectStatus
@@ -25,8 +26,6 @@ def create_client(
     linkedin_outbound_enabled: bool,
     email_outbound_enabled: bool,
 ):
-    from model_import import Client
-
     c: Client = Client.query.filter_by(company=company).first()
     if c:
         return {"client_id": c.id}
@@ -426,3 +425,16 @@ def update_client_sdr_weekly_email_outbound_target(
     db.session.commit()
 
     return True
+
+
+def get_ctas(client_archetype_id: int):
+    """Get all CTAs for a Client Archetype
+
+    Args:
+        client_archetype_id (int): ID of the Client Archetype
+
+    Returns:
+        list: List of CTAs
+    """
+    ctas = GeneratedMessageCTA.query.filter_by(archetype_id=client_archetype_id).all()
+    return ctas

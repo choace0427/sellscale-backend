@@ -1,6 +1,6 @@
 from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype
+from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_generated_message_cta
 from app import app, db
 import json
 import mock
@@ -191,3 +191,26 @@ def test_post_archetype_set_transformer_blocklist():
         ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION,
         ResearchPointType.RECENT_RECOMMENDATIONS,
     ]
+
+@use_app_context
+def test_get_ctas_endpoint():
+    client = basic_client()
+    client_archetype = basic_archetype(client=client)
+    cta = basic_generated_message_cta(client_archetype)
+
+    response = app.test_client().post(
+        "client/archetype/get_ctas",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_archetype_id": client_archetype.id,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    assert response.json == [{
+        "id": cta.id,
+        "archetype_id": client_archetype.id,
+        "text_value": "test_cta",
+        "active": True,
+    }]

@@ -2,10 +2,17 @@ from src.client.services import (
     create_client,
     get_client,
     create_client_archetype,
+    get_ctas,
 )
 from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr
+from test_utils import (
+    test_app,
+    basic_client,
+    basic_client_sdr,
+    basic_archetype,
+    basic_generated_message_cta
+)
 from app import app, db
 import json
 import mock
@@ -327,3 +334,14 @@ def test_patch_update_pipeline_client_sdr_webhook(mock_send_slack_message):
     )
     assert response.status_code == 200
     assert mock_send_slack_message.call_count == 1
+
+
+@use_app_context
+def test_get_ctas():
+    client = basic_client()
+    client_archetype = basic_archetype(client)
+    cta = basic_generated_message_cta(client_archetype)
+
+    ctas = get_ctas(client_archetype.id)
+    assert len(ctas) == 1
+    assert ctas[0].id == cta.id

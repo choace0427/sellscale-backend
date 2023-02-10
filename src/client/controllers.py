@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.client.models import ClientArchetype
+from src.message_generation.models import GeneratedMessageCTA
 from src.client.services import (
     create_client,
     create_client_archetype,
@@ -18,6 +19,7 @@ from src.client.services import (
     update_client_sdr_manual_warning_message,
     update_client_sdr_weekly_li_outbound_target,
     update_client_sdr_weekly_email_outbound_target,
+    get_ctas
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -372,3 +374,19 @@ def post_archetype_replicate_transformer_blocklist():
         return "OK", 200
 
     return "400", message
+
+
+@CLIENT_BLUEPRINT.route("/archetype/get_ctas", methods=["POST"])
+def get_ctas_endpoint():
+    """Get all CTAs for a client archetype"""
+
+    #WARNING WARNING WARNING
+    #TODO(David): THIS NEEDS VERIFICATION. IT IS NOT SECURE
+    try:
+        client_archetype_id = get_request_parameter("client_archetype_id", request, json=True, required=True, parameter_type=int)
+    except Exception as e:
+        return e.args[0], 400
+
+    ctas: list[GeneratedMessageCTA] = get_ctas(client_archetype_id=client_archetype_id)
+
+    return jsonify([cta.to_dict() for cta in ctas]), 200
