@@ -138,8 +138,8 @@ def research_and_generate_outreaches_for_prospect(
 
         try:
             get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-            generate_outreaches_for_batch_of_prospects(
-                prospect_list=[prospect_id], cta_id=cta_id, batch_id=batch_id
+            generate_linkedin_outreaches(
+                prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
             )
         except:
             update_generated_message_job_status(
@@ -247,7 +247,7 @@ def get_notes_and_points_from_perm(perm, cta_id: int = None):
     return notes, research_points, cta
 
 
-def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None):
+def generate_linkedin_outreaches(prospect_id: int, batch_id: str, cta_id: str = None):
     from model_import import (
         GeneratedMessage,
         GeneratedMessageStatus,
@@ -326,17 +326,6 @@ def generate_outreaches_new(prospect_id: int, batch_id: str, cta_id: str = None)
     batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
 
     return outreaches
-
-
-def generate_outreaches_for_batch_of_prospects(
-    prospect_list: list, batch_id: str, cta_id: str = None
-):
-    for prospect_id in tqdm(prospect_list):
-        generate_outreaches_new(
-            prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
-        )
-
-    return True
 
 
 def create_new_edit_message_record(

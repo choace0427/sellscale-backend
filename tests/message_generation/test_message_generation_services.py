@@ -38,7 +38,7 @@ from src.message_generation.services import (
     create_cta,
     delete_cta,
     delete_message_generation_by_prospect_id,
-    generate_outreaches_new,
+    generate_linkedin_outreaches,
     generate_prospect_email,
     get_named_entities,
     get_named_entities_for_generated_message,
@@ -159,7 +159,7 @@ def test_delete_cta_with_generated_message():
     "src.message_generation.services.get_adversarial_ai_approval", return_value=True
 )
 @mock.patch("src.message_generation.services.run_message_rule_engine")
-def test_generate_outreaches_new(
+def test_generate_linkedin_outreaches(
     rule_engine_patch, ai_patch, completion_patch, adversary_patch
 ):
     payload = create_client(
@@ -195,7 +195,7 @@ def test_generate_outreaches_new(
         db.session.add(rp)
         db.session.commit()
 
-    outreaches = generate_outreaches_new(
+    outreaches = generate_linkedin_outreaches(
         prospect_id=prospect.id,
         batch_id="123123123",
         cta_id=cta.id,
@@ -545,9 +545,9 @@ def test_research_and_generate_outreaches_for_prospect_list(
 
 @use_app_context
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
-@mock.patch("src.message_generation.services.generate_outreaches_new")
+@mock.patch("src.message_generation.services.generate_linkedin_outreaches")
 def test_research_and_generate_outreaches_for_prospect_individual(
-    generate_outreaches_new_patch,
+    generate_linkedin_outreaches_patch,
     linkedin_research_patch,
 ):
     client = basic_client()
@@ -558,7 +558,7 @@ def test_research_and_generate_outreaches_for_prospect_individual(
         prospect_id=prospect.id,
         batch_id="123123",
     )
-    assert generate_outreaches_new_patch.call_count == 1
+    assert generate_linkedin_outreaches_patch.call_count == 1
     assert linkedin_research_patch.call_count == 1
 
 
