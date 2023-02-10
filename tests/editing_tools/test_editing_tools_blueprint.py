@@ -1,6 +1,17 @@
-from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from decorators import use_app_context
-from test_utils import test_app
+from app import db
+from model_import import ResearchType
+from test_utils import (
+    test_app,
+    basic_client,
+    basic_archetype,
+    basic_prospect,
+    basic_generated_message,
+    basic_gnlp_model,
+    basic_research_payload,
+    basic_research_point,
+    basic_generated_message_cta,
+)
 from app import app, db
 import json
 import mock
@@ -22,3 +33,46 @@ def test_editing_tools_endpoint(openai_mock):
 
     assert response.status_code == 200
     assert openai_mock.call_count == 1
+
+
+@use_app_context
+def test_get_editing_details():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    cta = basic_generated_message_cta(archetype)
+    cta_id = cta.id
+
+    li_payload = basic_research_payload(prospect)
+    li_payload.research_type = ResearchType.LINKEDIN_ISCRAPER
+    db.session.add(li_payload)
+    db.session.commit()
+    li_point = basic_research_point(li_payload)
+    li_point_id = li_point.id
+
+    serp_payload = basic_research_payload(prospect)
+    serp_payload.research_type = ResearchType.SERP_PAYLOAD
+    db.session.add(serp_payload)
+    db.session.commit()
+    serp_point = basic_research_point(serp_payload)
+    serp_point_id = serp_point.id
+
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message.message_cta = cta_id
+    generated_message.research_points = [li_point_id, serp_point_id]
+    db.session.add(generated_message)
+    db.session.commit()
+
+    response = app.test_client().get(
+        "editing_tools/editing_details/{}".format(generated_message.id)
+    )
+    assert response.status_code == 200
+    assert response.json["cta"] == cta.to_dict()
+    assert response.json["linkedin_payload"] == li_payload.payload
+    assert response.json["serp_payload"] == serp_payload.payload
+    assert response.json["prospect"] == prospect.to_dict()
+    assert response.json["research_points"] == [
+        li_point.to_dict(),
+        serp_point.to_dict(),
+    ]

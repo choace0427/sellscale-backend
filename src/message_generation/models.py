@@ -98,6 +98,14 @@ class GeneratedMessageCTA(db.Model):
             archetype_id=archetype_id, active=True
         ).all()
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "archetype_id": self.archetype_id,
+            "text_value": self.text_value,
+            "active": self.active,
+        }
+
 
 class GeneratedMessageFeedback(db.Model):
     __tablename__ = "generated_message_feedback"

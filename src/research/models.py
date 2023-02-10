@@ -71,6 +71,16 @@ class ResearchPoints(db.Model):
 
     research_point_metadata = db.Column(db.JSON, nullable=True)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "research_payload_id": self.research_payload_id,
+            "research_point_type": self.research_point_type.value,
+            "value": self.value,
+            "flagged": self.flagged,
+            "research_point_metadata": self.research_point_metadata,
+        }
+
     def get_by_payload_id(payload_id: int) -> list:
         return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()
 

@@ -1,7 +1,7 @@
 from app import db
 
 from flask import Blueprint, request, jsonify
-from src.editing_tools.services import get_edited_options
+from src.editing_tools.services import get_edited_options, get_editing_details
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
 
@@ -21,3 +21,8 @@ def post_edit_message():
         instruction=instruction, message_copy=message_copy
     )
     return jsonify({"options": edited_options})
+
+
+@EDITING_TOOLS_BLUEPRINT.route("/editing_details/<message_id>", methods=["GET"])
+def get_editing_details_endpoint(message_id: int):
+    return jsonify(get_editing_details(message_id))
