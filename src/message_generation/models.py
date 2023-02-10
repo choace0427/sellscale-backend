@@ -175,4 +175,5 @@ class StackRankedMessageGenerationConfiguration(db.Model):
             "client_id": self.client_id,
             "archetype_id": self.archetype_id,
             "priority": self.priority,
+            "active": self.active,
         }
