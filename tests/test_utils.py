@@ -128,15 +128,16 @@ def basic_archetype(client: Client) -> ClientArchetype:
 
 
 
-def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None, email: Optional[str] = 'test@email.com', li_conversation_thread_id: Optional[str] = '', status = ProspectStatus.PROSPECTED):
+def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None, email: Optional[str] = 'test@email.com', li_conversation_thread_id: Optional[str] = '', status = ProspectStatus.PROSPECTED, full_name: Optional[str] = 'Testing Testasara', title: Optional[str] = 'Testing Director', company: Optional[str] = '') -> Prospect:
     client_sdr_id = None
     if client_sdr:
         client_sdr_id = client_sdr.id
     p = Prospect(
+        company=company,
         client_id=client.id,
         archetype_id=archetype.id,
-        full_name="Testing Testasara",
-        title="Testing Director",
+        full_name=full_name,
+        title=title,
         status=status,
         client_sdr_id=client_sdr_id,
         email=email,

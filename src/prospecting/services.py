@@ -56,7 +56,80 @@ def search_prospects(
         .offset(offset)
         .all()
     )
-    print(prospects)
+    return prospects
+
+
+def get_prospects(
+    client_id: int, client_sdr_id: int, query: str = "", limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
+) -> list[Prospect]:
+    """ Gets prospects belonging to the SDR, with optional query and filters.
+
+    Args:
+        client_id (int): ID of the client
+        client_sdr_id (int): ID of the SDR
+        query (str, optional): Query. Defaults to "".
+        limit (int, optional): Number of records to return. Defaults to 50.
+        offset (int, optional): The offset to start returning from. Defaults to 0.
+        filters (list, optional): Filters to apply. See below. Defaults to [].
+
+    Ordering logic is as follows
+        The filters list should have the following tuples:
+            - prospect_name: 1 or -1, indicating ascending or descending order
+            - company_name: 1 or -1, indicating ascending or descending order
+            - status: 1 or -1, indicating ascending or descending order
+            - last_updated: 1 or -1, indicating ascending or descending order
+        The query will be ordered by these fields in the order provided
+    """
+    # Construct ordering array
+    ordering = []
+    for filt in filters:
+        filter_name = filt.get('field')
+        filter_direction = filt.get('direction')
+        if filter_name == "prospect_name":
+            if filter_direction == 1:
+                ordering.append(Prospect.full_name.asc())
+            elif filter_direction == -1:
+                ordering.append(Prospect.full_name.desc())
+        elif filter_name == "company_name":
+            if filter_direction == 1:
+                ordering.append(Prospect.company.asc())
+            elif filter_direction == -1:
+                ordering.append(Prospect.company.desc())
+        elif filter_name == "status":
+            if filter_direction == 1:
+                ordering.append(Prospect.status.asc())
+            elif filter_direction == -1:
+                ordering.append(Prospect.status.desc())
+        elif filter_name == "last_updated":
+            if filter_direction == 1:
+                ordering.append(Prospect.updated_at.asc())
+            elif filter_direction == -1:
+                ordering.append(Prospect.updated_at.desc())
+        else:
+            ordering.insert(0, None)
+
+    # Pad ordering array with None values, set to number of ordering options: 4
+    while len(ordering) < 4:
+        ordering.insert(0, None)
+
+    # Construct query
+    prospects = (
+        Prospect.query.filter(
+            Prospect.client_id == client_id,
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.full_name.ilike(f"%{query}%")
+            | Prospect.company.ilike(f"%{query}%")
+            | Prospect.email.ilike(f"%{query}%")
+            | Prospect.linkedin_url.ilike(f"%{query}%"),
+        )
+        .order_by(ordering[0])
+        .order_by(ordering[1])
+        .order_by(ordering[2])
+        .order_by(ordering[3])
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
     return prospects
 
 

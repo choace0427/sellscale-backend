@@ -32,7 +32,77 @@ def test_search_prospects_endpoint():
     data = json.loads(response.data)
     assert len(data) == 0
     assert response.status_code == 200
-    
+
+@use_app_context
+def test_get_prospects():
+    c = basic_client()
+    a = basic_archetype(c)
+    c_sdr = basic_client_sdr(c)
+    prospect = basic_prospect(c, a, c_sdr, full_name="david", company="SellScale")
+    prospect_2 = basic_prospect(c, a, c_sdr, full_name="adam", company="SellScale")
+    prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
+
+    response = app.test_client().post(
+        "prospect/get_prospects",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": c.id,
+                "client_sdr_id": c_sdr.id,
+            }
+        ),
+    )
+    assert len(response.json) == 3
+    assert response.status_code == 200
+
+    prospect_4 = basic_prospect(c, a, c_sdr, full_name="adam", company="Apple")
+
+    response = app.test_client().post(
+        "prospect/get_prospects",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": c.id,
+                "client_sdr_id": c_sdr.id,
+                "query": "adam"
+            }
+        ),
+    )
+    assert len(response.json) == 2
+    assert response.status_code == 200
+
+    response = app.test_client().post(
+        "prospect/get_prospects",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": c.id,
+                "client_sdr_id": c_sdr.id,
+                "query": "adam",
+                "ordering": [{"field": "company_name", "direction": 1}] # ORDER BY company_name ASC
+            }
+        ),
+    )
+    assert len(response.json) == 2
+    assert response.json[0].get("company") == "Apple"
+    assert response.status_code == 200
+
+    bad_filters_response = app.test_client().post(
+        "prospect/get_prospects",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": c.id,
+                "client_sdr_id": c_sdr.id,
+                "query": "adam",
+                "ordering": [{"bad_key": "bad_field", "direction": 1}]
+            }
+        ),
+    )
+    assert bad_filters_response.status_code == 400
+    assert bad_filters_response.data == b'Invalid filters supplied to API'
+
+
 
 @use_app_context
 def test_patch_update_status_endpoint():

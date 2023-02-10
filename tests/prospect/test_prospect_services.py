@@ -9,6 +9,7 @@ from test_utils import (
 from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
 from src.prospecting.services import (
     search_prospects,
+    get_prospects,
     add_prospect,
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
@@ -49,6 +50,77 @@ def test_search_prospects():
         query="NO MATCH", client_id=c.id, client_sdr_id=c_sdr.id, limit=10
     )
     assert len(prospects) == 0
+
+
+@use_app_context
+def test_get_prospects():
+    c = basic_client()
+    a = basic_archetype(c)
+    c_sdr = basic_client_sdr(c)
+    prospect = basic_prospect(c, a, c_sdr, full_name="david", company="SellScale")
+    prospect_2 = basic_prospect(c, a, c_sdr, full_name="adam", company="SellScale")
+    prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
+
+    filter_1 = [{
+        "field": "prospect_name",
+        "direction": 1              # 1 = ascending, -1 = descending
+    }]
+    prospects = get_prospects(c.id, c_sdr.id, limit=10, offset=0, filters=filter_1)
+    assert len(prospects) == 3
+    assert prospects[0].full_name == "adam"
+    assert prospects[1].full_name == "ben"
+    assert prospects[2].full_name == "david"
+
+    prospect_4 = basic_prospect(c, a, c_sdr, full_name="adam", company="Apple")
+    prospect_5 = basic_prospect(c, a, c_sdr, full_name="ben", company="Apple")
+    filter_2 = [
+        {
+            "field": "prospect_name",
+            "direction": 1              # 1 = ascending, -1 = descending
+        },
+        {
+            "field": "company_name",
+            "direction": 1              # 1 = ascending, -1 = descending
+        }
+    ]
+    prospects = get_prospects(c.id, c_sdr.id, limit=10, offset=0, filters=filter_2)
+    assert len(prospects) == 5
+    assert prospects[0].full_name == "adam"
+    assert prospects[0].company == "Apple"
+    assert prospects[1].full_name == "adam"
+    assert prospects[1].company == "SellScale"
+    assert prospects[2].full_name == "ben"
+    assert prospects[2].company == "Apple"
+    assert prospects[3].full_name == "ben"
+    assert prospects[3].company == "SellScale"
+    assert prospects[4].full_name == "david"
+    assert prospects[4].company == "SellScale"
+
+    filter_3 = [
+        {
+            "field": "company_name",
+            "direction": 1              # 1 = ascending, -1 = descending
+        },
+        {
+            "field": "prospect_name",
+            "direction": 1              # 1 = ascending, -1 = descending
+        }
+    ]
+    prospects = get_prospects(c.id, c_sdr.id, limit=10, offset=0, filters=filter_3)
+    assert len(prospects) == 5
+    assert prospects[0].full_name == "adam"
+    assert prospects[0].company == "Apple"
+    assert prospects[1].full_name == "ben"
+    assert prospects[1].company == "Apple"
+    assert prospects[2].full_name == "adam"
+    assert prospects[2].company == "SellScale"
+    assert prospects[3].full_name == "ben"
+    assert prospects[3].company == "SellScale"
+    assert prospects[4].full_name == "david"
+    assert prospects[4].company == "SellScale"
+
+
+
 
 
 @use_app_context

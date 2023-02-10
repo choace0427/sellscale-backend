@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 from src.prospecting.models import Prospect
 from src.prospecting.services import (
     search_prospects,
+    get_prospects,
     batch_mark_prospects_as_sent_outreach,
     create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,
@@ -18,7 +19,7 @@ from src.prospecting.services import (
     batch_update_prospect_statuses,
     mark_prospect_reengagement,
 )
-from src.prospecting.upload.services import ( 
+from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
     populate_prospect_uploads_from_json_payload,
     collect_and_run_celery_jobs_for_upload,
@@ -58,6 +59,49 @@ def search_prospects_endpoint():
     offset = get_request_parameter("offset", request, json=False, required=False) or 0
 
     prospects: list[Prospect] = search_prospects(query, int(client_id), int(client_sdr_id), limit, offset)
+
+    return jsonify([p.to_dict() for p in prospects]), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/get_prospects", methods=["POST"])
+def get_prospects_endpoint():
+    """Gets prospects, paginated, for the SDR.
+
+    Returns 20 prospects by default.
+
+    Parameters:
+        - client_id (int): The client id
+        - client_sdr_id (int): The client sdr id
+        - query (str) (optional): A filter query
+        - limit (int) (optional): The number of results to return
+        - offset (int) (optional): The offset to start from
+    """
+    try:
+        client_id = get_request_parameter("client_id", request, json=True, required=True)
+        client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+        query = get_request_parameter("query", request, json=True, required=False) or ""
+        limit = get_request_parameter("limit", request, json=True, required=False) or 20
+        offset = get_request_parameter("offset", request, json=True, required=False) or 0
+        ordering = get_request_parameter("ordering", request, json=True, required=False) or []
+    except Exception as e:
+        return e.args[0], 400
+
+    # Validate the filters
+    if len(ordering) > 0:
+        for order in ordering:
+            keys = order.keys()
+            if len(keys) != 2 or keys != {"field", "direction"}:
+                return "Invalid filters supplied to API", 400
+
+
+    prospects: list[Prospect] = get_prospects(
+        client_id,
+        client_sdr_id,
+        query,
+        limit,
+        offset,
+        ordering
+    )
 
     return jsonify([p.to_dict() for p in prospects]), 200
 
@@ -208,7 +252,7 @@ def add_prospect_from_csv_payload():
     )
     if not success:
         return "Failed to create prospect uploads", 400
-    
+
     # Collect eligible prospect rows and create prospects
     collect_and_run_celery_jobs_for_upload.apply_async(args=[client_id, archetype_id, client_sdr_id], queue="prospecting", routing_key="prospecting", priority=1)
 
