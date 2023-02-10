@@ -209,6 +209,7 @@ def get_stack_ranked_config_ordering(
         .filter(
             StackRankedMessageGenerationConfiguration.generated_message_type
             == generated_message_type,
+            StackRankedMessageGenerationConfiguration.active == True,
         )
         .order_by(
             StackRankedMessageGenerationConfiguration.priority.desc(),
@@ -240,6 +241,23 @@ def get_stack_ranked_config_ordering(
         ordered_srmgcs = filtered_ordered_srmgcs
 
     return ordered_srmgcs
+
+
+def toggle_stack_ranked_message_configuration_active(
+    stack_ranked_configuration_id: int,
+) -> tuple[bool, str]:
+    """Toggle the active status of a stack ranked message generation configuration"""
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=stack_ranked_configuration_id
+        ).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    srmgc.active = not srmgc.active
+    db.session.add(srmgc)
+    db.session.commit()
+    return True, "OK"
 
 
 def delete_generated_message_id_from_config(generated_message_id: int, config_id: int):
