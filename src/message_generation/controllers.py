@@ -26,6 +26,7 @@ from src.message_generation.services_stack_ranked_configurations import (
     add_generated_message_id_to_config,
     delete_generated_message_id_from_config,
     get_prompts_from_stack_ranked_config,
+    toggle_stack_ranked_message_configuration_active,
 )
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
@@ -544,3 +545,19 @@ def get_stack_ranked_configuration_tool_prompts():
             list_of_research_points=list_of_research_points,
         )
     )
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/toggle_active", methods=["POST"]
+)
+def post_toggle_stack_ranked_configuration_tool_active():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    success, message = toggle_stack_ranked_message_configuration_active(
+        stack_ranked_configuration_id=configuration_id
+    )
+
+    if success:
+        return "OK", 200
+    return message, 400

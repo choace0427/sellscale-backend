@@ -370,3 +370,61 @@ def test_get_stack_ranked_configuration_tool_prompts():
         "full_prompt": "this is a prompt: name: Testing Testasara<>industry: None<>company: None<>title: Testing Director<>notes: This is a research point<>response:",
         "prospect_prompt": "name: Testing Testasara<>industry: None<>company: None<>title: Testing Director<>notes: This is a research point<>response:",
     }
+
+
+@use_app_context
+def test_post_toggle_stack_ranked_configuration_tool_active():
+    client = basic_client()
+    client_id = client.id
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    prospect = basic_prospect(client, archetype)
+    prospect_id = prospect.id
+
+    configuration = StackRankedMessageGenerationConfiguration(
+        configuration_type=ConfigurationType.DEFAULT,
+        generated_message_type=GeneratedMessageType.LINKEDIN,
+        research_point_types=["CURRENT_JOB_DESCRIPTION"],
+        generated_message_ids=[],
+        instruction="",
+        computed_prompt="this is a prompt: {prompt}",
+        client_id=client_id,
+        archetype_id=archetype_id,
+    )
+    db.session.add(configuration)
+    db.session.commit()
+    configuration_id = configuration.id
+
+    assert configuration.active is True
+
+    response = app.test_client().post(
+        "message_generation/stack_ranked_configuration_tool/toggle_active",
+        data=json.dumps(
+            {
+                "configuration_id": configuration_id,
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+
+    configuration = StackRankedMessageGenerationConfiguration.query.get(
+        configuration_id
+    )
+    assert configuration.active is False
+
+    response = app.test_client().post(
+        "message_generation/stack_ranked_configuration_tool/toggle_active",
+        data=json.dumps(
+            {
+                "configuration_id": configuration_id,
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+
+    configuration = StackRankedMessageGenerationConfiguration.query.get(
+        configuration_id
+    )
+    assert configuration.active is True
