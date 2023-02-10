@@ -149,12 +149,10 @@ def test_update_prospect_email_flow_statuses():
     message, success = update_prospect_email_flow_statuses(prospect_id, outbound_campaign_id)
     assert success
     prospect_email = ProspectEmail.query.get(prospect_email_id)
-    prospect = Prospect.query.get(prospect_id)
     personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
     outbound_campaign = OutboundCampaign.query.get(outbound_campaign_id)
 
     assert prospect_email.email_status == ProspectEmailStatus.SENT
-    assert prospect.status == ProspectStatus.SENT_OUTREACH
     assert personalized_first_line.message_status == GeneratedMessageStatus.SENT
     assert outbound_campaign.status == OutboundCampaignStatus.COMPLETE
 

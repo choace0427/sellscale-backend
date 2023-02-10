@@ -153,9 +153,6 @@ def update_prospect_email_flow_statuses(self, prospect_id: int, campaign_id: int
             prospect_email.email_status = ProspectEmailStatus.SENT
             prospect_email.date_sent = datetime.datetime.now()
 
-            # Updates to prospect
-            prospect.status = ProspectStatus.SENT_OUTREACH
-
             # Updates to generated_message
             personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
                 prospect_email.personalized_first_line)
