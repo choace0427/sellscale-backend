@@ -17,7 +17,7 @@ DATE_TO_REVIEW_FOR_ACTIVE_CONVOS = 1
 
 def get_actions(prospect_status: ProspectStatus):
     if prospect_status == ProspectStatus.ACCEPTED:
-        return [RECORD_BUMP]
+        return [RECORD_BUMP, NOT_INTERESTED]
     elif prospect_status == ProspectStatus.RESPONDED:
         return [RECORD_BUMP, NOT_INTERESTED, ACTIVE_CONVO, INTERVENTION_NEEDED]
     elif prospect_status == ProspectStatus.ACTIVE_CONVO:
