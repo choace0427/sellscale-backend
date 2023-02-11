@@ -74,8 +74,8 @@ def get_prospects(
 
     Ordering logic is as follows
         The filters list should have the following tuples:
-            - prospect_name: 1 or -1, indicating ascending or descending order
-            - company_name: 1 or -1, indicating ascending or descending order
+            - full_name: 1 or -1, indicating ascending or descending order
+            - company: 1 or -1, indicating ascending or descending order
             - status: 1 or -1, indicating ascending or descending order
             - last_updated: 1 or -1, indicating ascending or descending order
         The query will be ordered by these fields in the order provided
@@ -85,12 +85,12 @@ def get_prospects(
     for filt in filters:
         filter_name = filt.get('field')
         filter_direction = filt.get('direction')
-        if filter_name == "prospect_name":
+        if filter_name == "full_name":
             if filter_direction == 1:
                 ordering.append(Prospect.full_name.asc())
             elif filter_direction == -1:
                 ordering.append(Prospect.full_name.desc())
-        elif filter_name == "company_name":
+        elif filter_name == "company":
             if filter_direction == 1:
                 ordering.append(Prospect.company.asc())
             elif filter_direction == -1:

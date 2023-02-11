@@ -79,7 +79,7 @@ def test_get_prospects():
                 "client_id": c.id,
                 "client_sdr_id": c_sdr.id,
                 "query": "adam",
-                "ordering": [{"field": "company_name", "direction": 1}] # ORDER BY company_name ASC
+                "ordering": [{"field": "company", "direction": 1}] # ORDER BY company_name ASC
             }
         ),
     )

@@ -62,7 +62,7 @@ def test_get_prospects():
     prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
 
     filter_1 = [{
-        "field": "prospect_name",
+        "field": "full_name",
         "direction": 1              # 1 = ascending, -1 = descending
     }]
     prospects = get_prospects(c.id, c_sdr.id, limit=10, offset=0, filters=filter_1)
@@ -75,11 +75,11 @@ def test_get_prospects():
     prospect_5 = basic_prospect(c, a, c_sdr, full_name="ben", company="Apple")
     filter_2 = [
         {
-            "field": "prospect_name",
+            "field": "full_name",
             "direction": 1              # 1 = ascending, -1 = descending
         },
         {
-            "field": "company_name",
+            "field": "company",
             "direction": 1              # 1 = ascending, -1 = descending
         }
     ]
@@ -98,11 +98,11 @@ def test_get_prospects():
 
     filter_3 = [
         {
-            "field": "company_name",
+            "field": "company",
             "direction": 1              # 1 = ascending, -1 = descending
         },
         {
-            "field": "prospect_name",
+            "field": "full_name",
             "direction": 1              # 1 = ascending, -1 = descending
         }
     ]
