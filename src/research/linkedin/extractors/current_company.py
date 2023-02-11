@@ -1,6 +1,9 @@
 from ....ml.fine_tuned_models import get_completion
 from src.utils.converters.string_converters import sanitize_string
-from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
+from src.ml.openai_wrappers import (
+    wrapped_create_completion,
+    CURRENT_OPENAI_DAVINCI_MODEL,
+)
 
 
 def get_current_company_description(data):
@@ -17,14 +20,14 @@ def get_current_company_description(data):
     if not company_name or not company_description:
         response = ""
         prompt = ""
-    else: 
-        company_description = company_description.strip().replace("\"", "\'")      
+    else:
+        company_description = company_description.strip().replace('"', "'")
         prompt = f"company: {company_name}\n\nbio: {company_description}\n\ninstruction: Summarize what the company does in a short one-liner under 20 words in length.\n\ncompletion:"
         response = wrapped_create_completion(
             model=CURRENT_OPENAI_DAVINCI_MODEL,
             prompt=prompt,
             temperature=0.7,
-            max_tokens=30
+            max_tokens=30,
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
@@ -35,24 +38,22 @@ def get_current_company_specialties(data):
 
     company_name = data.get("company").get("details", {}).get("name")
     specialities = data.get("company", {}).get("details", {}).get("specialities", [])
-    industries = data.get("company", {}).get("details", {}).get("industries", [])
-    tagline = data.get("company", {}).get("details", {}).get("tagline")
 
     raw_data = {
         "company_name": company_name,
         "specialities": ", ".join(specialities),
-        "industries": ", ".join(industries),
-        "tagline": tagline,
     }
 
-    prompt = "company: {company_name} -- specialities: {specialities} -- industries: {industries} -- tagline: {tagline}\n -- summary:".format(
-        **raw_data
+    data = "company: {company_name} -- specialities: {specialities}".format(**raw_data)
+    instruction = "Summarize what the company's focus is in a short one-liner under 20 words in length."
+    prompt = "{data}\n\ninstruction: {instruction}\n\ncompletion:".format(
+        data=data, instruction=instruction
     )
-    if not company_name or not specialities or not industries or not tagline:
+    if not company_name or not specialities:
         response = ""
     else:
-        response = get_completion(
-            bullet_model_id="recent_job_specialties", prompt=prompt
+        response = wrapped_create_completion(
+            model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=35
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
