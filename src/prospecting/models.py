@@ -21,6 +21,20 @@ class ProspectStatus(enum.Enum):
     DEMO_WON = "DEMO_WON"
     DEMO_LOSS = "DEMO_LOSS"
 
+    def all_statuses():
+        return [
+            ProspectStatus.PROSPECTED,
+            ProspectStatus.NOT_QUALIFIED,
+            ProspectStatus.SENT_OUTREACH,
+            ProspectStatus.ACCEPTED,
+            ProspectStatus.RESPONDED,
+            ProspectStatus.ACTIVE_CONVO,
+            ProspectStatus.SCHEDULING,
+            ProspectStatus.NOT_INTERESTED,
+            ProspectStatus.DEMO_SET,
+            ProspectStatus.DEMO_WON,
+            ProspectStatus.DEMO_LOSS,
+        ]
 
 class Prospect(db.Model):
     __tablename__ = "prospect"
@@ -157,7 +171,7 @@ class ProspectUploadsStatus(enum.Enum):
         UPLOAD_COMPLETE: The upload has completed successfully.
         UPLOAD_QUEUED: The upload is queued for processing.
         UPLOAD_FAILED: The upload has failed (external errors, such as iScraper API).
-        UPLOAD_IN_PROGRESS: The upload is in progress (worker is attempting to create Prospect records). 
+        UPLOAD_IN_PROGRESS: The upload is in progress (worker is attempting to create Prospect records).
         UPLOAD_NOT_STARTED: The upload has not started (this row has not been picked up by a worker).
         DISQUALIFIED: The upload has been disqualified (this row has been disqualified, example: duplicate).
     """
@@ -183,7 +197,7 @@ class ProspectUploadsErrorType(enum.Enum):
 
 class ProspectUploadsRawCSV(db.Model):
     """Stores the raw CSV data for a prospect upload.
-    
+
     Useful if we need to reference the raw CSV for a prospect upload in order to debug.
 
     Should be referenced by the ProspectUploads model.

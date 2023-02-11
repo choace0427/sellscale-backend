@@ -72,6 +72,7 @@ def get_prospects_endpoint():
     Parameters:
         - client_id (int): The client id
         - client_sdr_id (int): The client sdr id
+        - status (str) (optional): The status of the prospect (ProspectStatus)
         - query (str) (optional): A filter query
         - limit (int) (optional): The number of results to return
         - offset (int) (optional): The offset to start from
@@ -79,6 +80,7 @@ def get_prospects_endpoint():
     try:
         client_id = get_request_parameter("client_id", request, json=True, required=True)
         client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+        status = get_request_parameter("status", request, json=True, required=False) or None
         query = get_request_parameter("query", request, json=True, required=False) or ""
         limit = get_request_parameter("limit", request, json=True, required=False) or 20
         offset = get_request_parameter("offset", request, json=True, required=False) or 0
@@ -98,6 +100,7 @@ def get_prospects_endpoint():
         client_id,
         client_sdr_id,
         query,
+        status,
         limit,
         offset,
         ordering

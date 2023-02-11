@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from sqlalchemy import or_
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
@@ -7,26 +8,18 @@ from src.prospecting.models import (
     Prospect,
     ProspectStatus,
     ProspectUploadBatch,
-    ProspectUploadsRawCSV,
-    ProspectUploads,
-    ProspectUploadsStatus,
-    ProspectUploadsErrorType,
     ProspectNote,
 )
-from model_import import ResearchPayload
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
 from src.utils.slack import send_slack_message
-from flask import jsonify
 from src.utils.converters.string_converters import (
     get_last_name_from_full_name,
     get_first_name_from_full_name,
 )
 from model_import import LinkedinConversationEntry
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
-import json
-import hashlib
 
 
 def search_prospects(
@@ -60,7 +53,7 @@ def search_prospects(
 
 
 def get_prospects(
-    client_id: int, client_sdr_id: int, query: str = "", limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
+    client_id: int, client_sdr_id: int, query: str = "", status: str = None, limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
 ) -> list[Prospect]:
     """ Gets prospects belonging to the SDR, with optional query and filters.
 
@@ -112,9 +105,16 @@ def get_prospects(
     while len(ordering) < 4:
         ordering.insert(0, None)
 
+    # Set status filter.
+    filtered_status = [status]
+    if status is None:
+        filtered_status = ProspectStatus.all_statuses()
+
+
     # Construct query
     prospects = (
-        Prospect.query.filter(
+        Prospect.query.filter((Prospect.status.in_(filtered_status)))
+        .filter(
             Prospect.client_id == client_id,
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.full_name.ilike(f"%{query}%")
