@@ -81,6 +81,6 @@ def test_get_one_accepted_prospect():
     assert prospect0["prospect_sdr_name"] == "Test SDR"
     assert prospect0["prospect_client_name"] == "Testing Company"
     assert prospect0["prospect_status"] == "ACCEPTED"
-    assert prospect0["actions"] == ["RECORD_BUMP"]
+    assert prospect0["actions"] == ["RECORD_BUMP", "NOT_INTERESTED"]
     assert not prospect0["prospect_deactivate_ai_engagement"]
     assert prospect0["prospect_archetype_id"] == archetype_id

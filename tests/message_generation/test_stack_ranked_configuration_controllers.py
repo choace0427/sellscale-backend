@@ -367,8 +367,8 @@ def test_get_stack_ranked_configuration_tool_prompts():
     )
     assert response.status_code == 200
     assert json.loads(response.data) == {
-        "full_prompt": "this is a prompt: name: Testing Testasara<>industry: None<>company: None<>title: Testing Director<>notes: This is a research point<>response:",
-        "prospect_prompt": "name: Testing Testasara<>industry: None<>company: None<>title: Testing Director<>notes: This is a research point<>response:",
+        "full_prompt": "this is a prompt: name: Testing Testasara<>industry: None<>company: <>title: Testing Director<>notes: This is a research point<>response:",
+        "prospect_prompt": "name: Testing Testasara<>industry: None<>company: <>title: Testing Director<>notes: This is a research point<>response:",
     }
 
 
