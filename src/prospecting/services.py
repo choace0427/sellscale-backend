@@ -53,7 +53,7 @@ def search_prospects(
 
 
 def get_prospects(
-    client_id: int, client_sdr_id: int, query: str = "", status: str = None, limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
+    client_id: int, client_sdr_id: int, query: str = "", status: list[str] = None, limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
 ) -> list[Prospect]:
     """ Gets prospects belonging to the SDR, with optional query and filters.
 
@@ -106,7 +106,7 @@ def get_prospects(
         ordering.insert(0, None)
 
     # Set status filter.
-    filtered_status = [status]
+    filtered_status = status
     if status is None:
         filtered_status = ProspectStatus.all_statuses()
 

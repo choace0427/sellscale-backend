@@ -78,13 +78,13 @@ def get_prospects_endpoint():
         - offset (int) (optional): The offset to start from
     """
     try:
-        client_id = get_request_parameter("client_id", request, json=True, required=True)
-        client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
-        status = get_request_parameter("status", request, json=True, required=False) or None
-        query = get_request_parameter("query", request, json=True, required=False) or ""
-        limit = get_request_parameter("limit", request, json=True, required=False) or 20
-        offset = get_request_parameter("offset", request, json=True, required=False) or 0
-        ordering = get_request_parameter("ordering", request, json=True, required=False) or []
+        client_id = get_request_parameter("client_id", request, json=True, required=True, parameter_type=int)
+        client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True, parameter_type=int)
+        status = get_request_parameter("status", request, json=True, required=False, parameter_type=list) or None
+        query = get_request_parameter("query", request, json=True, required=False, parameter_type=str) or ""
+        limit = get_request_parameter("limit", request, json=True, required=False, parameter_type=int) or 20
+        offset = get_request_parameter("offset", request, json=True, required=False, parameter_type=int) or 0
+        ordering = get_request_parameter("ordering", request, json=True, required=False, parameter_type=list) or []
     except Exception as e:
         return e.args[0], 400
 

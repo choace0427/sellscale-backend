@@ -120,7 +120,7 @@ def test_get_prospects():
     assert prospects[4].company == "SellScale"
 
     prospect_6 = basic_prospect(c, a, c_sdr, full_name="jim", company="Apple", status=ProspectStatus.DEMO_SET)
-    prospects = get_prospects(c.id, c_sdr.id, status="DEMO_SET", limit=10, offset=0, filters=filter_3)
+    prospects = get_prospects(c.id, c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3)
     assert len(prospects) == 1
     assert prospects[0].full_name == "jim"
 
