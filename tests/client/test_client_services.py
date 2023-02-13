@@ -1,11 +1,6 @@
-from src.client.services import (
-    create_client,
-    get_client,
-    create_client_archetype,
-    get_ctas,
-)
-from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
+from app import app, db
 from decorators import use_app_context
+from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
 from test_utils import (
     test_app,
     basic_client,
@@ -13,7 +8,12 @@ from test_utils import (
     basic_archetype,
     basic_generated_message_cta
 )
-from app import app, db
+from src.client.services import (
+    create_client,
+    get_client,
+    create_client_archetype,
+    get_ctas,
+)
 import json
 import mock
 

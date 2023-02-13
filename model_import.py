@@ -1,5 +1,16 @@
 from src.echo.models import Echo
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.prospecting.models import (
+    Prospect,
+    ProspectStatus,
+    ProspectStatusRecords,
+    ProspectUploadBatch,
+    ProspectUploadsRawCSV,
+    ProspectUploads,
+    ProspectUploadsStatus,
+    ProspectUploadsErrorType,
+    ProspectNote,
+)
 from src.research.models import (
     ResearchPayload,
     ResearchPoints,
@@ -19,17 +30,7 @@ from src.message_generation.models import (
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
 )
-from src.prospecting.models import (
-    Prospect,
-    ProspectStatus,
-    ProspectStatusRecords,
-    ProspectUploadBatch,
-    ProspectUploadsRawCSV,
-    ProspectUploads,
-    ProspectUploadsStatus,
-    ProspectUploadsErrorType,
-    ProspectNote,
-)
+
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.email_outbound.models import (

@@ -12,6 +12,7 @@ import os
 
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
 STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
+STYTCH_BASE_URL = os.environ.get("STYTCH_BASE_URL")
 
 
 def get_client(client_id: int):
@@ -300,7 +301,10 @@ def make_stytch_call(email: str):
         secret=STYTCH_SECRET,
         environment="live",
     )
-    client.magic_links.email.login_or_create(email=email)
+    client.magic_links.email.login_or_create(
+        email=email,
+        login_magic_link_url=STYTCH_BASE_URL,
+    )
 
 
 def authenticate_stytch_client_sdr_token(token: str):
@@ -314,7 +318,7 @@ def authenticate_stytch_client_sdr_token(token: str):
     return client.magic_links.authenticate(token).json()
 
 
-def send_stytch_magic_link(client_sdr_email: int):
+def send_stytch_magic_link(client_sdr_email: str):
     """Send a Stytch magic link to a Client SDR"""
     sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
     if not sdr:

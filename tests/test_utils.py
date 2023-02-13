@@ -98,6 +98,10 @@ def test_app():
     return app
 
 
+def get_login_token():
+    return "TEST_AUTH_TOKEN"
+
+
 def basic_client() -> Client:
     c = Client(
         company="Testing Company",
@@ -149,7 +153,7 @@ def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: Clien
 
 
 def basic_client_sdr(client: Client) -> ClientSDR:
-    sdr = ClientSDR(client_id=client.id, name="Test SDR", email="test@test.com")
+    sdr = ClientSDR(client_id=client.id, name="Test SDR", email="test@test.com", auth_token="TEST_AUTH_TOKEN")
     db.session.add(sdr)
     db.session.commit()
     return sdr

@@ -1,15 +1,15 @@
-from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
+from app import app, db
+from model_import import Client, ClientArchetype, ClientSDR, ResearchPointType
 from decorators import use_app_context
 from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_generated_message_cta
-from app import app, db
+
 import json
 import mock
-from model_import import ResearchPointType
 
 
 @use_app_context
-@mock.patch("src.client.services.make_stytch_call")
-def test_send_magic_link(make_stytch_call_mock):
+@mock.patch("src.client.controllers.send_stytch_magic_link")
+def test_send_magic_link(send_stytch_magic_link_mock):
     """Test that we can send a magic link to a client SDR."""
     client: Client = basic_client()
     client_sdr: ClientSDR = basic_client_sdr(client=client)
@@ -24,7 +24,7 @@ def test_send_magic_link(make_stytch_call_mock):
         ),
     )
     assert response.status_code == 200
-    assert make_stytch_call_mock.called
+    assert send_stytch_magic_link_mock.called
 
 
 @use_app_context
