@@ -463,9 +463,14 @@ def add_prospect(
 ) -> bool:
     status = ProspectStatus.PROSPECTED
 
-    prospect_exists = prospect_exists_for_client(
+    prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
     )
+    if prospect_exists and prospect_exists.email and email:     # If we are adding an email to an existing prospect, this is allowed
+        prospect_exists.email = email
+        db.session.add(prospect_exists)
+        db.session.commit()
+        return True
 
     if linkedin_url and len(linkedin_url) > 0:
         linkedin_url = linkedin_url.replace("https://www.", "")
