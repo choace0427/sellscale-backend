@@ -337,7 +337,7 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
     try:
         stytch_response = authenticate_stytch_client_sdr_token(token)
     except Exception as e:
-        return {"error_message": "Stytch failed", "exception_message": e.args[0]}, 400
+        return {"error_message": "Stytch failed", "exception_message": e}, 400
 
     emails = stytch_response.get("user").get("emails")
     if not emails or len(emails) == 0:
