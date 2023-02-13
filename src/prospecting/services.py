@@ -466,7 +466,7 @@ def add_prospect(
     prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
     )
-    if prospect_exists and prospect_exists.email and email:     # If we are adding an email to an existing prospect, this is allowed
+    if prospect_exists and not prospect_exists.email and email:     # If we are adding an email to an existing prospect, this is allowed
         prospect_exists.email = email
         db.session.add(prospect_exists)
         db.session.commit()
