@@ -117,6 +117,12 @@ def run_message_rule_engine(message_id: int):
         problems.append("Contains 'i've spent'.")
         highlighted_words.append("i've spent")
 
+    if "stealth" in completion:
+        problems.append(
+            "Contains 'stealth'. Check if they are referring to a past job."
+        )
+        highlighted_words.append("stealth")
+
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.problems = problems
     message.highlighted_words = highlighted_words
