@@ -30,7 +30,7 @@ from tqdm import tqdm
 from src.prospecting.services import delete_prospect_by_id
 
 from src.utils.random_string import generate_random_alphanumeric
-from src.authentication.decorators import token_required
+from src.authentication.decorators import require_user
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -65,7 +65,7 @@ def search_prospects_endpoint():
 
 
 @PROSPECTING_BLUEPRINT.route("/get_prospects", methods=["POST"])
-@token_required
+@require_user
 def get_prospects_endpoint(client_sdr_id: int):
     """Gets prospects, paginated, for the SDR.
 

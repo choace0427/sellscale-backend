@@ -59,7 +59,7 @@ def get_prospects(
     Authorization required.
 
     Args:
-        client_sdr_id (int): ID of the SDR, supplied by the token_required decorator
+        client_sdr_id (int): ID of the SDR, supplied by the require_user decorator
         query (str, optional): Query. Defaults to "".
         limit (int, optional): Number of records to return. Defaults to 50.
         offset (int, optional): The offset to start returning from. Defaults to 0.

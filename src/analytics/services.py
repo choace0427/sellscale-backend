@@ -1,7 +1,9 @@
+from app import db
+from flask import jsonify
+
 from src.client.models import *
 from datetime import datetime, timedelta
 from src.message_generation.models import *
-from app import db
 from src.prospecting.models import *
 
 
@@ -185,3 +187,25 @@ def get_li_message_benchmarks_for_client(client_id: int):
         )
 
     return updates
+
+
+def get_sdr_pipeline_all_details(client_sdr_id: int) -> dict:
+    """Gets a holistic view of ProspectStatus details for a given ClientSDR
+
+    Args:
+        client_sdr_id (int): The ClientSDR id
+
+    Returns:
+        dict: Returns a dict of ProspectStatus details for a given ClientSDR
+    """
+    statuses_count = {}
+    for status in ProspectStatus.all_statuses():
+        statuses_count[status.value.lower()] = (
+            Prospect.query.filter(
+                Prospect.client_sdr_id == client_sdr_id,
+                Prospect.status == status,
+            )
+            .count()
+        )
+
+    return statuses_count

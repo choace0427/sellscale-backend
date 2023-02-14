@@ -2,7 +2,7 @@ from model_import import ClientSDR
 from flask import request, jsonify
 from functools import wraps
 
-def token_required(f):
+def require_user(f):
     """ Decorator to check if the request has a valid token.
 
     Args:
@@ -37,7 +37,7 @@ def token_required(f):
     return decorater
 
 
-@token_required
+@require_user
 def get_client_sdr_id(client_sdr_id: int):
-    """A function to test the token_required decorator."""
+    """A function to test the require_user decorator."""
     return client_sdr_id
