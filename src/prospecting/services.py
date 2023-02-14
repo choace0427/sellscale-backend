@@ -61,6 +61,7 @@ def get_prospects(
     Args:
         client_sdr_id (int): ID of the SDR, supplied by the require_user decorator
         query (str, optional): Query. Defaults to "".
+        status (list[str], optional): List of statuses to filter by. Defaults to None.
         limit (int, optional): Number of records to return. Defaults to 50.
         offset (int, optional): The offset to start returning from. Defaults to 0.
         filters (list, optional): Filters to apply. See below. Defaults to [].
