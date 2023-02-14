@@ -1,4 +1,5 @@
 from app import db
+from flask import jsonify
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.message_generation.models import GeneratedMessageCTA
@@ -337,7 +338,7 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
     try:
         stytch_response = authenticate_stytch_client_sdr_token(token)
     except Exception as e:
-        return {"error_message": "Stytch failed", "exception_message": e}, 400
+        return jsonify({"error_type": "Stytch failed", "message": e.error_message}), 400
 
     emails = stytch_response.get("user").get("emails")
     if not emails or len(emails) == 0:
@@ -348,7 +349,7 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
             email_found = True
 
     if not email_found:
-        return None
+        return jsonify({"message": "Email not found in Stytch response"}), 400
 
     client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
     reset_client_sdr_sight_auth_token(client_sdr.id)
@@ -356,7 +357,7 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
     client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
     token = client_sdr.auth_token
 
-    return {"token": token}
+    return jsonify({"message": "Success", "token": token}), 200
 
 
 def verify_client_sdr_auth_token(auth_token: str):

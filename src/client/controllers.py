@@ -254,13 +254,13 @@ def post_send_magic_link_login():
     )
     if not success:
         return (
-            "Failed to send magic link. Please ensure this is a valid SellScale account email.",
+            jsonify({"message": "Failed to send magic link. Please ensure this is a valid SellScale account email."}),
             404,
         )
     return (
-        "Magic login link sent to {}. Please check your inbox.".format(
+        jsonify({"message": "Magic login link sent to {}. Please check your inbox.".format(
             client_sdr_email
-        ),
+        )}),
         200,
     )
 
@@ -274,7 +274,7 @@ def post_approve_auth_token():
     token_payload = approve_stytch_client_sdr_token(
         client_sdr_email=client_sdr_email, token=token
     )
-    return jsonify(token_payload)
+    return token_payload
 
 
 @CLIENT_BLUEPRINT.route("/verify_client_sdr_auth_token", methods=["POST"])
@@ -284,8 +284,8 @@ def post_verify_client_sdr_auth_token():
         auth_token=auth_token,
     )
     if not success:
-        return "Failed to verify auth token", 404
-    return "OK", 200
+        return jsonify({"message": "Failed to verify auth token"}), 404
+    return jsonify({"message": "Success"}), 200
 
 
 @CLIENT_BLUEPRINT.route("/update_sdr_manual_warning_message", methods=["POST"])
