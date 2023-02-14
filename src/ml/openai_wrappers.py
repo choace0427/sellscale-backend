@@ -10,7 +10,7 @@ from typing import Optional, Union
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
 openai.api_key = OPENAI_KEY
 
-CURRENT_OPENAI_DAVINCI_MODEL = "text-davinci-003"
+CURRENT_OPENAI_DAVINCI_MODEL = "text-davinci-002"
 DEFAULT_SUFFIX = None
 DEFAULT_MAX_TOKENS = 16
 DEFAULT_TEMPERATURE = 1
@@ -52,8 +52,8 @@ def wrapped_create_completion(
     DEFAULT_N: 1
     DEFAULT_FREQUENCY_PENALTY: 0
     DEFAULT_STOP: None
-    """    
-    
+    """
+
     response = openai.Completion.create(
         model=model,
         prompt=prompt,

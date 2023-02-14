@@ -131,7 +131,7 @@ def generate_few_shot_generation_completion(prospect_id, notes):
     few_shot_prompt = "".join(examples_for_prompt_from_similar_prospects) + prompt
 
     response = openai.Completion.create(
-        model="text-davinci-003",
+        model="text-davinci-002",
         prompt=few_shot_prompt,
         temperature=0.7,
         max_tokens=100,
