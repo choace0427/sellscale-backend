@@ -255,7 +255,7 @@ def post_send_magic_link_login():
     if not success:
         return (
             jsonify({"message": "Failed to send magic link. Please ensure this is a valid SellScale account email."}),
-            404,
+            401,
         )
     return (
         jsonify({"message": "Magic login link sent to {}. Please check your inbox.".format(
@@ -284,7 +284,7 @@ def post_verify_client_sdr_auth_token():
         auth_token=auth_token,
     )
     if not success:
-        return jsonify({"message": "Failed to verify auth token"}), 404
+        return jsonify({"message": "Failed to verify auth token"}), 401
     return jsonify({"message": "Success"}), 200
 
 
