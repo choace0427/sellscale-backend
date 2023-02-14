@@ -88,7 +88,7 @@ def preview_fix(completion: str, fix: str):
     fix = fix.strip()
 
     response = openai.Completion.create(
-        model="text-davinci-002",
+        model="text-davinci-003",
         prompt="completion: {}\nfix: {}\ncompletion:".format(completion, fix),
         max_tokens=max_tokens_length,
         temperature=0,
@@ -98,7 +98,7 @@ def preview_fix(completion: str, fix: str):
 
     choices = response['choices']
     top_choice = choices[0]
-    preview = top_choice['text'].strip()
+    preview = top_choice['text'].strip()     
 
     return preview, 200
 
@@ -157,7 +157,7 @@ def toggle_adversary_training_point(training_point_id: int, toggle_on: bool = Fa
     db.session.commit()
 
     return "Point {} toggled to {}".format(training_point.id, training_point.use_in_training), 200
-
+    
 
 def edit_adversary_training_point(training_point_id: int, mistake: str, fix: str):
     """ Edits a training point for the adversary model.
