@@ -272,6 +272,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
         added = add_prospect(
             client_id=prospect_upload.client_id,
             archetype_id=prospect_upload.client_archetype_id,
+            client_sdr_id=prospect_upload.client_sdr_id,
             company=company_name,
             company_url=company_url,
             employee_count=employee_count,
@@ -282,7 +283,6 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             title=title,
             twitter_url=twitter_url,
             email=email,
-            client_sdr_id=prospect_upload.client_sdr_id,
         )
         if added:
             prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE

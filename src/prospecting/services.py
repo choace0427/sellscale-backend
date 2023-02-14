@@ -448,6 +448,7 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
 def add_prospect(
     client_id: int,
     archetype_id: int,
+    client_sdr_id: int,
     company: Optional[str] = None,
     company_url: Optional[str] = None,
     employee_count: Optional[str] = None,
@@ -457,8 +458,7 @@ def add_prospect(
     linkedin_bio: Optional[str] = None,
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
-    email: Optional[str] = None,
-    client_sdr_id: Optional[int] = None,
+    email: Optional[str] = None
 ) -> bool:
     status = ProspectStatus.PROSPECTED
 
@@ -595,6 +595,7 @@ def create_prospect_from_linkedin_link(
         add_prospect(
             client_id=client_id,
             archetype_id=archetype_id,
+            client_sdr_id=client_archetype.client_sdr_id,
             company=company_name,
             company_url=company_url,
             employee_count=employee_count,
@@ -605,7 +606,6 @@ def create_prospect_from_linkedin_link(
             title=title,
             twitter_url=twitter_url,
             email=email,
-            client_sdr_id=client_archetype.client_sdr_id,
         )
 
         return True

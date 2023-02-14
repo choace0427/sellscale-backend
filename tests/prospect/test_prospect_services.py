@@ -131,9 +131,11 @@ def test_update_prospect_status_with_note():
     client_id = client.id
     archetype = basic_archetype(client)
     archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -172,9 +174,11 @@ def test_update_prospect_status_with_note():
 def test_update_prospect_status_active_convo_disable_ai():
     client = basic_client()
     archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
     add_prospect(
         client_id=client.id,
         archetype_id=archetype.id,
+        client_sdr_id=client_sdr.id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -203,9 +207,11 @@ def test_update_prospect_status_active_convo_disable_ai():
     client2 = basic_client()
     archetype2 = basic_archetype(client2)
     archetype2.disable_ai_after_prospect_engaged = True
+    client_sdr2 = basic_client_sdr(client2)
     add_prospect(
         client_id=client2.id,
         archetype_id=archetype2.id,
+        client_sdr_id=client_sdr2.id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -239,9 +245,11 @@ def test_add_prospect():
     client_id = client.id
     archetype = basic_archetype(client)
     archetype_id = archetype.id
+    client_sdr = basic_client_sdr(client)
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -263,7 +271,8 @@ def test_add_prospect():
     client = Client.query.get(client_id)
     archetype2 = basic_archetype(client)
     archetype_id2 = archetype2.id
-    add_prospect(client_id=client_id, archetype_id=archetype_id2)
+    client_sdr2 = basic_client_sdr(client)
+    add_prospect(client_id=client_id, archetype_id=archetype_id2, client_sdr_id=client_sdr2.id)
 
     prospects = Prospect.query.order_by(Prospect.id.asc()).all()
     assert len(prospects) == 2
@@ -274,6 +283,7 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
         company="testing testasara",
         company_url="testing.com",
         employee_count="10-100",
@@ -290,6 +300,7 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -306,6 +317,7 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
