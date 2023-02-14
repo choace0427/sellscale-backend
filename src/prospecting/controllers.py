@@ -30,6 +30,7 @@ from tqdm import tqdm
 from src.prospecting.services import delete_prospect_by_id
 
 from src.utils.random_string import generate_random_alphanumeric
+from src.authentication.decorators import token_required
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -64,13 +65,13 @@ def search_prospects_endpoint():
 
 
 @PROSPECTING_BLUEPRINT.route("/get_prospects", methods=["POST"])
-def get_prospects_endpoint():
+@token_required
+def get_prospects_endpoint(client_sdr_id: int):
     """Gets prospects, paginated, for the SDR.
 
     Returns 20 prospects by default.
 
     Parameters:
-        - client_id (int): The client id
         - client_sdr_id (int): The client sdr id
         - status (str) (optional): The status of the prospect (ProspectStatus)
         - query (str) (optional): A filter query
@@ -78,8 +79,6 @@ def get_prospects_endpoint():
         - offset (int) (optional): The offset to start from
     """
     try:
-        client_id = get_request_parameter("client_id", request, json=True, required=True, parameter_type=int)
-        client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True, parameter_type=int)
         status = get_request_parameter("status", request, json=True, required=False, parameter_type=list) or None
         query = get_request_parameter("query", request, json=True, required=False, parameter_type=str) or ""
         limit = get_request_parameter("limit", request, json=True, required=False, parameter_type=int) or 20
@@ -95,9 +94,7 @@ def get_prospects_endpoint():
             if len(keys) != 2 or keys != {"field", "direction"}:
                 return "Invalid filters supplied to API", 400
 
-
     prospects: list[Prospect] = get_prospects(
-        client_id,
         client_sdr_id,
         query,
         status,

@@ -51,15 +51,15 @@ def search_prospects(
     )
     return prospects
 
-
 def get_prospects(
-    client_id: int, client_sdr_id: int, query: str = "", status: list[str] = None, limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
+    client_sdr_id: int, query: str = "", status: list[str] = None, limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
 ) -> list[Prospect]:
     """ Gets prospects belonging to the SDR, with optional query and filters.
 
+    Authorization required.
+
     Args:
-        client_id (int): ID of the client
-        client_sdr_id (int): ID of the SDR
+        client_sdr_id (int): ID of the SDR, supplied by the token_required decorator
         query (str, optional): Query. Defaults to "".
         limit (int, optional): Number of records to return. Defaults to 50.
         offset (int, optional): The offset to start returning from. Defaults to 0.
@@ -115,7 +115,6 @@ def get_prospects(
     prospects = (
         Prospect.query.filter((Prospect.status.in_(filtered_status)))
         .filter(
-            Prospect.client_id == client_id,
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.full_name.ilike(f"%{query}%")
             | Prospect.company.ilike(f"%{query}%")

@@ -84,6 +84,7 @@ def register_blueprints(app):
     from src.message_generation.controllers import MESSAGE_GENERATION_BLUEPRINT
     from src.ml.controllers import ML_BLUEPRINT
     from src.automation.controllers import AUTOMATION_BLUEPRINT
+    from src.authentication.controllers import AUTHENTICATION_BLUEPRINT
     from src.analytics.controllers import ANALYTICS_BLUEPRINT
     from src.email_outbound.controllers import EMAIL_GENERATION_BLUEPRINT
     from src.campaigns.controllers import CAMPAIGN_BLUEPRINT
@@ -116,6 +117,7 @@ def register_blueprints(app):
     app.register_blueprint(EDITOR_BLUEPRINT, url_prefix="/editor")
     app.register_blueprint(LI_CONVERASTION_BLUEPRINT, url_prefix="/li_conversation")
     app.register_blueprint(DAILY_NOTIFICATIONS_BLUEPRINT, url_prefix="/daily_notifications")
+    app.register_blueprint(AUTHENTICATION_BLUEPRINT, url_prefix="/auth")
 
     db.init_app(app)
 

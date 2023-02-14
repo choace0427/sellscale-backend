@@ -65,7 +65,7 @@ def test_get_prospects():
         "field": "full_name",
         "direction": 1              # 1 = ascending, -1 = descending
     }]
-    prospects = get_prospects(c.id, c_sdr.id, limit=10, offset=0, filters=filter_1)
+    prospects = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_1)
     assert len(prospects) == 3
     assert prospects[0].full_name == "adam"
     assert prospects[1].full_name == "ben"
@@ -83,7 +83,7 @@ def test_get_prospects():
             "direction": 1              # 1 = ascending, -1 = descending
         }
     ]
-    prospects = get_prospects(c.id, c_sdr.id, limit=10, offset=0, filters=filter_2)
+    prospects = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_2)
     assert len(prospects) == 5
     assert prospects[0].full_name == "adam"
     assert prospects[0].company == "Apple"
@@ -106,7 +106,7 @@ def test_get_prospects():
             "direction": 1              # 1 = ascending, -1 = descending
         }
     ]
-    prospects = get_prospects(c.id, c_sdr.id, limit=10, offset=0, filters=filter_3)
+    prospects = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_3)
     assert len(prospects) == 5
     assert prospects[0].full_name == "adam"
     assert prospects[0].company == "Apple"
@@ -120,7 +120,7 @@ def test_get_prospects():
     assert prospects[4].company == "SellScale"
 
     prospect_6 = basic_prospect(c, a, c_sdr, full_name="jim", company="Apple", status=ProspectStatus.DEMO_SET)
-    prospects = get_prospects(c.id, c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3)
+    prospects = get_prospects(c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3)
     assert len(prospects) == 1
     assert prospects[0].full_name == "jim"
 

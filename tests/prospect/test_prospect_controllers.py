@@ -1,4 +1,4 @@
-from app import db
+from app import app, db
 from test_utils import (
     basic_client,
     basic_archetype,
@@ -6,11 +6,11 @@ from test_utils import (
     test_app,
     basic_client_sdr,
     basic_research_payload,
+    get_login_token,
 )
 from src.prospecting.services import match_prospect_as_sent_outreach
 from model_import import Prospect, ProspectStatus, ProspectNote
 from decorators import use_app_context
-from app import app
 import json
 import mock
 
@@ -42,9 +42,24 @@ def test_get_prospects():
     prospect_2 = basic_prospect(c, a, c_sdr, full_name="adam", company="SellScale")
     prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
 
-    response = app.test_client().post(
+    unauthenticated_response = app.test_client().post(
         "prospect/get_prospects",
         headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "client_id": c.id,
+                "client_sdr_id": c_sdr.id,
+            }
+        ),
+    )
+    assert unauthenticated_response.status_code == 401
+
+    response = app.test_client().post(
+        "prospect/get_prospects",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
         data=json.dumps(
             {
                 "client_id": c.id,
@@ -59,7 +74,10 @@ def test_get_prospects():
 
     response = app.test_client().post(
         "prospect/get_prospects",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
         data=json.dumps(
             {
                 "client_id": c.id,
@@ -73,7 +91,10 @@ def test_get_prospects():
 
     response = app.test_client().post(
         "prospect/get_prospects",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
         data=json.dumps(
             {
                 "client_id": c.id,
@@ -89,7 +110,10 @@ def test_get_prospects():
 
     bad_filters_response = app.test_client().post(
         "prospect/get_prospects",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
         data=json.dumps(
             {
                 "client_id": c.id,
