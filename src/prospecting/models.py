@@ -4,6 +4,16 @@ import enum
 import json
 
 
+class ProspectOverallStatus(enum.Enum):
+    PROSPECTED = "PROSPECTED"
+    SENT_OUTREACH = "SENT_OUTREACH"
+    ACCEPTED = "ACCEPTED"
+    BUMPED = "BUMPED"
+    ACTIVE_CONVO = "ACTIVE_CONVO"
+    DEMO = "DEMO"
+    REMOVED = "REMOVED"
+
+
 class ProspectStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"
 
@@ -80,6 +90,7 @@ class Prospect(db.Model):
 
     batch = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
+    overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
 
     approved_outreach_message_id = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")  # approved linkedin message
