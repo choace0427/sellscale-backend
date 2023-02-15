@@ -19,6 +19,9 @@ from src.prospecting.services import (
     batch_update_prospect_statuses,
     mark_prospect_reengagement,
 )
+from src.prospecting.prospect_status_services import (
+    get_valid_next_prospect_statuses,
+)
 from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
     populate_prospect_uploads_from_json_payload,
@@ -53,13 +56,17 @@ def search_prospects_endpoint():
     Returns:
         A list of prospect matches in json format
     """
-    query =  get_request_parameter("query", request, json=False, required=True)
+    query = get_request_parameter("query", request, json=False, required=True)
     client_id = get_request_parameter("client_id", request, json=False, required=True)
-    client_sdr_id = get_request_parameter("client_sdr_id", request, json=False, required=True)
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=False, required=True
+    )
     limit = get_request_parameter("limit", request, json=False, required=False) or 10
     offset = get_request_parameter("offset", request, json=False, required=False) or 0
 
-    prospects: list[Prospect] = search_prospects(query, int(client_id), int(client_sdr_id), limit, offset)
+    prospects: list[Prospect] = search_prospects(
+        query, int(client_id), int(client_sdr_id), limit, offset
+    )
 
     return jsonify([p.to_dict() for p in prospects]), 200
 
@@ -79,11 +86,36 @@ def get_prospects_endpoint(client_sdr_id: int):
         - offset (int) (optional): The offset to start from
     """
     try:
-        status = get_request_parameter("status", request, json=True, required=False, parameter_type=list) or None
-        query = get_request_parameter("query", request, json=True, required=False, parameter_type=str) or ""
-        limit = get_request_parameter("limit", request, json=True, required=False, parameter_type=int) or 20
-        offset = get_request_parameter("offset", request, json=True, required=False, parameter_type=int) or 0
-        ordering = get_request_parameter("ordering", request, json=True, required=False, parameter_type=list) or []
+        status = (
+            get_request_parameter(
+                "status", request, json=True, required=False, parameter_type=list
+            )
+            or None
+        )
+        query = (
+            get_request_parameter(
+                "query", request, json=True, required=False, parameter_type=str
+            )
+            or ""
+        )
+        limit = (
+            get_request_parameter(
+                "limit", request, json=True, required=False, parameter_type=int
+            )
+            or 20
+        )
+        offset = (
+            get_request_parameter(
+                "offset", request, json=True, required=False, parameter_type=int
+            )
+            or 0
+        )
+        ordering = (
+            get_request_parameter(
+                "ordering", request, json=True, required=False, parameter_type=list
+            )
+            or []
+        )
     except Exception as e:
         return e.args[0], 400
 
@@ -95,12 +127,7 @@ def get_prospects_endpoint(client_sdr_id: int):
                 return "Invalid filters supplied to API", 400
 
     prospects: list[Prospect] = get_prospects(
-        client_sdr_id,
-        query,
-        status,
-        limit,
-        offset,
-        ordering
+        client_sdr_id, query, status, limit, offset, ordering
     )
 
     return jsonify([p.to_dict() for p in prospects]), 200
@@ -221,17 +248,25 @@ def send_slack_reminder():
 
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
 def add_prospect_from_csv_payload():
-    """ Adds prospect from CSV payload (given as JSON) from Retool
+    """Adds prospect from CSV payload (given as JSON) from Retool
 
     First stores the entire csv in `prospect_uploads_raw_csv` table
     Then populates the `prospect_uploads` table
     Then runs the celery job to create prospects from the `prospect_uploads` table
     """
     client_id = get_request_parameter("client_id", request, json=True, required=True)
-    archetype_id = get_request_parameter("archetype_id", request, json=True, required=True)
-    client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
-    csv_payload = get_request_parameter("csv_payload", request, json=True, required=True)
-    email_enabled = get_request_parameter("email_enabled", request, json=True, required=False)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True
+    )
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    csv_payload = get_request_parameter(
+        "csv_payload", request, json=True, required=True
+    )
+    email_enabled = get_request_parameter(
+        "email_enabled", request, json=True, required=False
+    )
 
     validated, reason = validate_prospect_json_payload(
         payload=csv_payload, email_enabled=email_enabled
@@ -241,27 +276,42 @@ def add_prospect_from_csv_payload():
 
     # Create prospect_uploads_csv_raw with a single entry
     raw_csv_entry_id = create_raw_csv_entry_from_json_payload(
-        client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id, payload=csv_payload
+        client_id=client_id,
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        payload=csv_payload,
     )
     if raw_csv_entry_id == -1:
-        return "Duplicate CSVs are not allowed! Check that you're uploading a new CSV.", 400
+        return (
+            "Duplicate CSVs are not allowed! Check that you're uploading a new CSV.",
+            400,
+        )
 
     # Populate prospect_uploads table with multiple entries
     success = populate_prospect_uploads_from_json_payload(
-        client_id=client_id, client_archetype_id=archetype_id, client_sdr_id=client_sdr_id, prospect_uploads_raw_csv_id=raw_csv_entry_id, payload=csv_payload
+        client_id=client_id,
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        prospect_uploads_raw_csv_id=raw_csv_entry_id,
+        payload=csv_payload,
     )
     if not success:
         return "Failed to create prospect uploads", 400
 
     # Collect eligible prospect rows and create prospects
-    collect_and_run_celery_jobs_for_upload.apply_async(args=[client_id, archetype_id, client_sdr_id], queue="prospecting", routing_key="prospecting", priority=1)
+    collect_and_run_celery_jobs_for_upload.apply_async(
+        args=[client_id, archetype_id, client_sdr_id],
+        queue="prospecting",
+        routing_key="prospecting",
+        priority=1,
+    )
 
     return "Upload job scheduled.", 200
 
 
 @PROSPECTING_BLUEPRINT.route("/retrigger_upload_job", methods=["POST"])
 def retrigger_upload_prospect_job():
-    """ Retriggers a prospect upload job that may have failed for some reason.
+    """Retriggers a prospect upload job that may have failed for some reason.
 
     Only runs on FAILED and NOT_STARTED jobs at the moment.
 
@@ -269,10 +319,19 @@ def retrigger_upload_prospect_job():
     - When iScraper fails
     """
     client_id = get_request_parameter("client_id", request, json=True, required=True)
-    archetype_id = get_request_parameter("archetype_id", request, json=True, required=True)
-    client_sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True
+    )
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
 
-    collect_and_run_celery_jobs_for_upload.apply_async(args=[client_id, archetype_id, client_sdr_id], queue="prospecting", routing_key="prospecting", priority=1)
+    collect_and_run_celery_jobs_for_upload.apply_async(
+        args=[client_id, archetype_id, client_sdr_id],
+        queue="prospecting",
+        routing_key="prospecting",
+        priority=1,
+    )
 
     return "Upload jobs successfully collected and scheduled.", 200
 
@@ -321,3 +380,17 @@ def post_batch_mark_as_lead():
     if success:
         return "OK", 200
     return "Failed to mark as lead", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/get_valid_next_prospect_statuses", methods=["GET"])
+def get_valid_next_prospect_statuses_endpoint():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    channel_type = get_request_parameter(
+        "channel_type", request, json=True, required=True
+    )
+    statuses = get_valid_next_prospect_statuses(
+        prospect_id=prospect_id, channel_type=channel_type
+    )
+    return jsonify(statuses)

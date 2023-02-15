@@ -67,6 +67,20 @@ class ProspectEmailOutreachStatus(enum.Enum):
     DEMO_WON = "DEMO_WON"
     DEMO_LOST = "DEMO_LOST"
 
+    def to_dict():
+        return {
+            "NOT_SENT": "Not Sent",
+            "SENT_OUTREACH": "Sent email",
+            "EMAIL_OPENED": "Opened Email",
+            "ACCEPTED": "Accepted",
+            "ACTIVE_CONVO": "Active Convo",
+            "SCHEDULING": "Scheduling",
+            "NOT_INTERESTED": "Not Interested",
+            "DEMO_SET": "Demo Scheduled",
+            "DEMO_WON": "Demo Complete",
+            "DEMO_LOST": "Demo Missed",
+        }
+
 
 class ProspectEmail(db.Model):
     __tablename__ = "prospect_email"
@@ -104,7 +118,9 @@ class ProspectEmailStatusRecords(db.Model):
     from_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
     to_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
 
-    sales_engagement_interaction_ss_id = db.Column(db.Integer, db.ForeignKey("sales_engagement_interaction_ss.id"), nullable=True)
+    sales_engagement_interaction_ss_id = db.Column(
+        db.Integer, db.ForeignKey("sales_engagement_interaction_ss.id"), nullable=True
+    )
 
 
 class EmailInteractionState(enum.Enum):
@@ -115,6 +131,7 @@ class EmailInteractionState(enum.Enum):
     - EMAIL_CLICKED: email has been clicked
     - EMAIL_REPLIED: email has been replied to
     """
+
     UNKNOWN = "UNKNOWN"
 
     EMAIL_SENT = "EMAIL_SENT"
@@ -131,6 +148,7 @@ class EmailSequenceState(enum.Enum):
     - BOUNCED: email has bounced
     - OUT_OF_OFFICE: recipient replied with out of office message
     """
+
     UNKNOWN = "UNKNOWN"
 
     IN_PROGRESS = "IN_PROGRESS"

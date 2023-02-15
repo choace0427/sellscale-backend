@@ -22,16 +22,21 @@ def test_search_prospects_endpoint():
     c_sdr = basic_client_sdr(c)
     p = basic_prospect(c, a, c_sdr)
 
-    response = app.test_client().get(f"prospect/search?query=test&client_id={c.id}&client_sdr_id={c_sdr.id}&limit=10")
+    response = app.test_client().get(
+        f"prospect/search?query=test&client_id={c.id}&client_sdr_id={c_sdr.id}&limit=10"
+    )
     data = json.loads(response.data)
     assert len(data) == 1
     assert data.pop().get("id") == p.id
     assert response.status_code == 200
 
-    response = app.test_client().get(f"prospect/search?query=notfound&client_id={c.id}&client_sdr_id={c_sdr.id}&limit=10")
+    response = app.test_client().get(
+        f"prospect/search?query=notfound&client_id={c.id}&client_sdr_id={c_sdr.id}&limit=10"
+    )
     data = json.loads(response.data)
     assert len(data) == 0
     assert response.status_code == 200
+
 
 @use_app_context
 def test_get_prospects():
@@ -79,11 +84,7 @@ def test_get_prospects():
             "Authorization": "Bearer {}".format(get_login_token()),
         },
         data=json.dumps(
-            {
-                "client_id": c.id,
-                "client_sdr_id": c_sdr.id,
-                "query": "adam"
-            }
+            {"client_id": c.id, "client_sdr_id": c_sdr.id, "query": "adam"}
         ),
     )
     assert len(response.json) == 2
@@ -100,7 +101,9 @@ def test_get_prospects():
                 "client_id": c.id,
                 "client_sdr_id": c_sdr.id,
                 "query": "adam",
-                "ordering": [{"field": "company", "direction": 1}] # ORDER BY company_name ASC
+                "ordering": [
+                    {"field": "company", "direction": 1}
+                ],  # ORDER BY company_name ASC
             }
         ),
     )
@@ -119,13 +122,12 @@ def test_get_prospects():
                 "client_id": c.id,
                 "client_sdr_id": c_sdr.id,
                 "query": "adam",
-                "ordering": [{"bad_key": "bad_field", "direction": 1}]
+                "ordering": [{"bad_key": "bad_field", "direction": 1}],
             }
         ),
     )
     assert bad_filters_response.status_code == 400
-    assert bad_filters_response.data == b'Invalid filters supplied to API'
-
+    assert bad_filters_response.data == b"Invalid filters supplied to API"
 
 
 @use_app_context
@@ -312,3 +314,14 @@ def test_get_prospect_details():
     )
     assert response.status_code == 200
     assert len(response.json.keys()) > 0
+
+    response = app.test_client().get(
+        "prospect/get_valid_next_prospect_statuses",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"prospect_id": prospect_id, "channel_type": "LINKEDIN"}),
+    )
+    assert response.status_code == 200
+    assert response.json == {
+        "NOT_QUALIFIED": "Not Qualified",
+        "SENT_OUTREACH": "Sent Outreach",
+    }

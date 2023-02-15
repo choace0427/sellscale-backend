@@ -51,10 +51,16 @@ def search_prospects(
     )
     return prospects
 
+
 def get_prospects(
-    client_sdr_id: int, query: str = "", status: list[str] = None, limit: int = 50, offset: int = 0, filters: list[dict[str, int]] = []
+    client_sdr_id: int,
+    query: str = "",
+    status: list[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    filters: list[dict[str, int]] = [],
 ) -> list[Prospect]:
-    """ Gets prospects belonging to the SDR, with optional query and filters.
+    """Gets prospects belonging to the SDR, with optional query and filters.
 
     Authorization required.
 
@@ -77,8 +83,8 @@ def get_prospects(
     # Construct ordering array
     ordering = []
     for filt in filters:
-        filter_name = filt.get('field')
-        filter_direction = filt.get('direction')
+        filter_name = filt.get("field")
+        filter_direction = filt.get("direction")
         if filter_name == "full_name":
             if filter_direction == 1:
                 ordering.append(Prospect.full_name.asc())
@@ -110,7 +116,6 @@ def get_prospects(
     filtered_status = status
     if status is None:
         filtered_status = ProspectStatus.all_statuses()
-
 
     # Construct query
     prospects = (
@@ -297,6 +302,9 @@ def update_prospect_status(
     except Exception:
         return False
 
+    # todo(Aakash) implement this
+    # update_prospect_overall_status()
+
     return True
 
 
@@ -459,14 +467,16 @@ def add_prospect(
     linkedin_bio: Optional[str] = None,
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
-    email: Optional[str] = None
+    email: Optional[str] = None,
 ) -> bool:
     status = ProspectStatus.PROSPECTED
 
     prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
     )
-    if prospect_exists and not prospect_exists.email and email:     # If we are adding an email to an existing prospect, this is allowed
+    if (
+        prospect_exists and not prospect_exists.email and email
+    ):  # If we are adding an email to an existing prospect, this is allowed
         prospect_exists.email = email
         db.session.add(prospect_exists)
         db.session.commit()

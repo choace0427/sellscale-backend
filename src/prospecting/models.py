@@ -21,6 +21,21 @@ class ProspectStatus(enum.Enum):
     DEMO_WON = "DEMO_WON"
     DEMO_LOSS = "DEMO_LOSS"
 
+    def to_dict():
+        return {
+            "PROSPECTED": "Prospected",
+            "NOT_QUALIFIED": "Not Qualified",
+            "SENT_OUTREACH": "Sent Outreach",
+            "ACCEPTED": "Accepted",
+            "RESPONDED": "Responded",
+            "ACTIVE_CONVO": "Active Convo",
+            "SCHEDULING": "Scheduling",
+            "NOT_INTERESTED": "Not Interested",
+            "DEMO_SET": "Demo Set",
+            "DEMO_WON": "Demo Won",
+            "DEMO_LOSS": "Demo Loss",
+        }
+
     def all_statuses():
         return [
             ProspectStatus.PROSPECTED,
@@ -35,6 +50,7 @@ class ProspectStatus(enum.Enum):
             ProspectStatus.DEMO_WON,
             ProspectStatus.DEMO_LOSS,
         ]
+
 
 class Prospect(db.Model):
     __tablename__ = "prospect"
@@ -122,7 +138,6 @@ class Prospect(db.Model):
         }
 
 
-
 class ProspectUploadBatch(db.Model):
     __tablename__ = "prospect_upload_batch"
 
@@ -175,6 +190,7 @@ class ProspectUploadsStatus(enum.Enum):
         UPLOAD_NOT_STARTED: The upload has not started (this row has not been picked up by a worker).
         DISQUALIFIED: The upload has been disqualified (this row has been disqualified, example: duplicate).
     """
+
     UPLOAD_COMPLETE = "UPLOAD_COMPLETE"
     UPLOAD_QUEUED = "UPLOAD_QUEUED"
     UPLOAD_IN_PROGRESS = "UPLOAD_IN_PROGRESS"
@@ -191,6 +207,7 @@ class ProspectUploadsErrorType(enum.Enum):
         DUPLICATE: The upload has been disqualified because it is a duplicate.
         ISCRAPER_FAILED: The upload has failed because iScraper failed. (Note this will populate the iscraper_error_message field)
     """
+
     DUPLICATE = "DUPLICATE"
     ISCRAPER_FAILED = "ISCRAPER_FAILED"
 
@@ -202,6 +219,7 @@ class ProspectUploadsRawCSV(db.Model):
 
     Should be referenced by the ProspectUploads model.
     """
+
     __tablename__ = "prospect_uploads_raw_csv"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -230,13 +248,16 @@ class ProspectUploads(db.Model):
         error_type: The error type of the prospect upload.
         iscraper_error_message: The error message from iScraper (because iScraper API is trash).
     """
+
     __tablename__ = "prospect_uploads"
 
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
-    prospect_uploads_raw_csv_id = db.Column(db.Integer, db.ForeignKey("prospect_uploads_raw_csv.id"))
+    prospect_uploads_raw_csv_id = db.Column(
+        db.Integer, db.ForeignKey("prospect_uploads_raw_csv.id")
+    )
 
     csv_row_data = db.Column(JSONB, nullable=False)
     csv_row_hash = db.Column(db.String, nullable=False)
