@@ -13,6 +13,18 @@ class ProspectOverallStatus(enum.Enum):
     DEMO = "DEMO"
     REMOVED = "REMOVED"
 
+    def get_rank(self):
+        ranks = {
+            "REMOVED": 0,
+            "PROSPECTED": 1,
+            "SENT_OUTREACH": 2,
+            "ACCEPTED": 3,
+            "BUMPED": 4,
+            "ACTIVE_CONVO": 5,
+            "DEMO": 6,
+        }
+        return ranks[self.value]
+
 
 class ProspectStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"

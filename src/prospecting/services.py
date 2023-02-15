@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import or_
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
+from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
 from src.prospecting.models import (
@@ -9,6 +10,7 @@ from src.prospecting.models import (
     ProspectStatus,
     ProspectUploadBatch,
     ProspectNote,
+    ProspectOverallStatus,
 )
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
@@ -922,3 +924,83 @@ def get_prospect_details(prospect_id: int):
             "employee_count": company_employee_count,
         },
     }
+
+
+def map_prospect_linkedin_status_to_prospect_overall_status(
+    prospect_linkedin_status: ProspectStatus,
+):
+    prospect_status_map = {
+        ProspectStatus.PROSPECTED: ProspectOverallStatus.PROSPECTED,
+        ProspectStatus.NOT_QUALIFIED: ProspectOverallStatus.REMOVED,
+        ProspectStatus.SENT_OUTREACH: ProspectOverallStatus.SENT_OUTREACH,
+        ProspectStatus.ACCEPTED: ProspectOverallStatus.ACCEPTED,
+        ProspectStatus.RESPONDED: ProspectOverallStatus.BUMPED,
+        ProspectStatus.ACTIVE_CONVO: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_INTERESTED: ProspectOverallStatus.REMOVED,
+        ProspectStatus.DEMO_SET: ProspectOverallStatus.DEMO,
+        ProspectStatus.DEMO_WON: ProspectOverallStatus.DEMO,
+        ProspectStatus.DEMO_LOSS: ProspectOverallStatus.REMOVED,
+    }
+    if prospect_linkedin_status in prospect_status_map:
+        return prospect_status_map[prospect_linkedin_status]
+    return None
+
+
+def map_prospect_email_status_to_prospect_overall_status(
+    prospect_email_status: ProspectEmailOutreachStatus,
+):
+    prospect_email_status_map = {
+        ProspectEmailOutreachStatus.UNKNOWN: ProspectOverallStatus.PROSPECTED,
+        ProspectEmailOutreachStatus.NOT_SENT: ProspectOverallStatus.PROSPECTED,
+        ProspectEmailOutreachStatus.SENT_OUTREACH: ProspectOverallStatus.SENT_OUTREACH,
+        ProspectEmailOutreachStatus.EMAIL_OPENED: ProspectOverallStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.ACCEPTED: ProspectOverallStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.DEMO_SET: ProspectOverallStatus.DEMO,
+        ProspectEmailOutreachStatus.DEMO_WON: ProspectOverallStatus.DEMO,
+        ProspectEmailOutreachStatus.DEMO_LOST: ProspectOverallStatus.REMOVED,
+    }
+    if prospect_email_status in prospect_email_status_map:
+        return prospect_email_status_map[prospect_email_status]
+    return None
+
+
+def calculate_prospect_overall_status(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return None
+
+    prospect_email_overall_status: ProspectOverallStatus | None = None
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(
+        ProspectEmail.id == prospect.approved_prospect_email_id
+    ).first()
+    if prospect_email:
+        prospect_email_status: ProspectEmailOutreachStatus = (
+            prospect_email.outreach_status
+        )
+        prospect_email_overall_status: ProspectOverallStatus | None = (
+            map_prospect_email_status_to_prospect_overall_status(prospect_email_status)
+        )
+
+    prospect_li_status: ProspectStatus = prospect.status
+    prospect_li_overall_status: ProspectOverallStatus | None = (
+        map_prospect_linkedin_status_to_prospect_overall_status(prospect_li_status)
+    )
+
+    all_channel_statuses = [
+        prospect_email_overall_status,
+        prospect_li_overall_status,
+    ]
+    all_channel_statuses = [x for x in all_channel_statuses if x is not None]
+
+    # get max status based on .get_rank()
+    if all_channel_statuses:
+        max_status = max(all_channel_statuses, key=lambda x: x.get_rank())
+        prospect = Prospect.query.get(prospect_id)
+        prospect.overall_status = max_status
+        db.session.add(prospect)
+        db.session.commit()
+
+    return None
