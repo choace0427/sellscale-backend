@@ -9,6 +9,7 @@ from src.campaigns.services import (
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
 from src.campaigns.services import (
+    get_outbound_campaign_details,
     get_outbound_campaigns,
     generate_campaign,
     update_campaign_dates,
@@ -26,6 +27,21 @@ from src.campaigns.services import (
 from src.authentication.decorators import require_user
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
+
+
+@CAMPAIGN_BLUEPRINT.route("/<campaign_id>", methods=["GET"])
+@require_user
+def get_campaign_details(client_sdr_id: int, campaign_id: int):
+    """Get details for a given campaign."""
+    oc_details = get_outbound_campaign_details(client_sdr_id, campaign_id=campaign_id)
+    status_code = oc_details.get("status_code")
+    if status_code != 200:
+        return jsonify({"message": oc_details.get("message")}), status_code
+
+    return jsonify({
+        "message": "Success",
+        "campaign_details": oc_details.get("campaign_details")
+    }), 200
 
 
 @CAMPAIGN_BLUEPRINT.route("/all_campaigns", methods=["POST"])

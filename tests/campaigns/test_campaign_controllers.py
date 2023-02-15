@@ -1,11 +1,12 @@
 from app import db, app
-from test_utils import test_app
 import pytest
 from decorators import use_app_context
 import datetime
 import json
 
 from test_utils import (
+    test_app,
+    get_login_token,
     basic_client,
     basic_archetype,
     basic_client_sdr,
@@ -22,6 +23,50 @@ import mock
 
 
 @use_app_context
+def test_get_campaign_details():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
+    campaign_id = campaign.id
+
+    response = app.test_client().get(
+        f"campaigns/{campaign.id}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {get_login_token()}",
+        }
+    )
+    assert response.status_code == 200
+    assert response.json.get("campaign_details").get("campaign_raw").get("id") == campaign.id
+    assert response.json.get("campaign_details").get("prospects")[0].get("id") == prospect.id
+
+    client_sdr_2 = basic_client_sdr(client)
+    client_sdr_2.auth_token = "1234"
+    db.session.add(client_sdr_2)
+    db.session.commit()
+
+    denied_response = app.test_client().get(
+        f"campaigns/{campaign_id}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer 1234",
+        }
+    )
+    assert denied_response.status_code == 403
+
+    no_record_response = app.test_client().get(
+        f"campaigns/{campaign_id + 1}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {get_login_token()}",
+        }
+    )
+    assert no_record_response.status_code == 404
+
+
+@use_app_context
 def test_get_all_campaigns():
     client = basic_client()
     archetype = basic_archetype(client)
@@ -35,7 +80,7 @@ def test_get_all_campaigns():
         "campaigns/all_campaigns",
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {client_sdr.auth_token}",
+            "Authorization": f"Bearer {get_login_token()}",
         },
         data=json.dumps({})
     )

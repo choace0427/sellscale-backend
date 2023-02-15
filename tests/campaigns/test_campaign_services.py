@@ -15,12 +15,27 @@ from test_utils import (
     basic_prospect_email,
 )
 from src.campaigns.services import (
+    get_outbound_campaign_details,
     get_outbound_campaigns,
     get_outbound_campaign_analytics,
     get_email_campaign_analytics
 )
 from model_import import GeneratedMessageType, ProspectEmailStatus, ProspectEmailOutreachStatus
 import mock
+
+
+@use_app_context
+def test_get_outbound_campaign_details():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
+
+    response = get_outbound_campaign_details(client_sdr.id, campaign.id)
+    assert response.get("status_code") == 200
+    assert response.get("campaign_details").get("campaign_raw").get("id") == campaign.id
+    assert response.get("campaign_details").get("prospects")[0].get("id") == prospect.id
 
 
 @use_app_context

@@ -30,6 +30,13 @@ class EmailSchema(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "client_archetype_id": self.client_archetype_id,
+        }
+
 
 class ProspectEmailStatus(enum.Enum):
     DRAFT = "DRAFT"

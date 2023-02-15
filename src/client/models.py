@@ -52,6 +52,18 @@ class ClientArchetype(db.Model):
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "archetype": self.archetype,
+            "filters": self.filters,
+            "active": self.active,
+            "transformer_blocklist": self.transformer_blocklist,
+            "disable_ai_after_prospect_engaged": self.disable_ai_after_prospect_engaged,
+            "client_sdr_id": self.client_sdr_id,
+        }
+
 
 class ClientSDR(db.Model):
     __tablename__ = "client_sdr"

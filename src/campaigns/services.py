@@ -1,7 +1,7 @@
 from app import db
 from src.campaigns.models import *
 from src.client.services import get_client, get_client_sdr
-from model_import import Prospect, GeneratedMessageCTA, ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
+from model_import import Prospect, GeneratedMessageCTA, ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus, EmailSchema
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_few_shot,
 )
@@ -20,6 +20,46 @@ from src.utils.slack import send_slack_message, URL_MAP
 from model_import import GeneratedMessage
 
 NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
+
+
+def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
+    """Gets the details of an outbound campaign.
+
+    Args:
+        client_sdr_id (int): The ID of the SDR.
+        campaign_id (int): The ID of the campaign to get.
+
+    Returns:
+        dict: A dictionary containing campaign details, status code, and message.
+    """
+    oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not oc:
+        return {"message": "Campaign not found", "status_code": 404}
+    if oc and oc.client_sdr_id != client_sdr_id:
+        return {"message": "This campaign does not belong to you", "status_code": 403}
+
+    # Get the table values for the available ids. If ids are not available, return empty lists or None.
+    prospects: list[Prospect] = Prospect.query.filter(Prospect.id.in_(oc.prospect_ids)).all() if oc.prospect_ids else []
+    prospects = [p.to_dict() for p in prospects] if prospects else []
+    ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(GeneratedMessageCTA.id.in_(oc.ctas)).all() if oc.ctas else []
+    ctas = [cta.to_dict() for cta in ctas] if ctas else []
+    client_archetype: ClientArchetype = ClientArchetype.query.get(oc.client_archetype_id) if oc.client_archetype_id else None
+    client_archetype = client_archetype.to_dict() if client_archetype else None
+    email_schema: EmailSchema = EmailSchema.query.get(oc.email_schema_id) if oc.email_schema_id else None
+    email_schema = email_schema.to_dict() if email_schema else None
+
+    return {
+        "campaign_details": {
+            "campaign_raw": oc.to_dict(),
+            "campaign_analytics": get_outbound_campaign_analytics(campaign_id),
+            "prospects": prospects,
+            "ctas": ctas,
+            "client_archetype": client_archetype,
+            "email_schema": email_schema,
+        },
+        "message": "Success",
+        "status_code": 200,
+    }
 
 
 def get_outbound_campaigns(
@@ -809,7 +849,7 @@ def get_outbound_campaign_analytics(campaign_id: int) -> dict:
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
         return get_email_campaign_analytics(campaign_id)
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
-        return get_linkedin_campaign_analytics(campaign_id)
+        return get_linkedin_campaign_analytics()
 
 
 def get_email_campaign_analytics(campaign_id: int) -> dict:
