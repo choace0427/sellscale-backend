@@ -40,7 +40,7 @@ def get_all_campaigns(client_sdr_id: int):
         )
         campaign_type = (
             get_request_parameter(
-                "campaign_type", request, json=True, required=False, parameter_type=str
+                "campaign_type", request, json=True, required=False, parameter_type=list
             ) or None
         )
         status = (
