@@ -83,9 +83,6 @@ def get_valid_next_prospect_statuses(prospect_id: int, channel_type):
         valid_next_statuses = [
             x.value for x in VALID_NEXT_LINKEDIN_STATUSES[current_li_status]
         ]
-        import pdb
-
-        pdb.set_trace()
         for status in ProspectStatus.to_dict():
             if status in valid_next_statuses:
                 retval[status] = ProspectStatus.to_dict()[status]
