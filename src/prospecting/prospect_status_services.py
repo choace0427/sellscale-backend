@@ -5,7 +5,52 @@ from model_import import (
     GeneratedMessageType,
     ProspectEmail,
 )
-from src.prospecting.models import VALID_FROM_STATUSES_MAP
+
+VALID_NEXT_LINKEDIN_STATUSES = {
+    ProspectStatus.PROSPECTED: [
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.SENT_OUTREACH,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.SENT_OUTREACH: [
+        ProspectStatus.ACCEPTED,
+        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.ACCEPTED: [
+        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.RESPONDED: [
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.DEMO_SET,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.ACTIVE_CONVO: [
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.SCHEDULING: [
+        ProspectStatus.DEMO_SET,
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.DEMO_SET: [
+        ProspectStatus.DEMO_WON,
+        ProspectStatus.DEMO_LOSS,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.NOT_INTERESTED: [
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.DEMO_SET,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+}
 
 
 def get_valid_next_prospect_statuses(prospect_id: int, channel_type):
@@ -34,8 +79,15 @@ def get_valid_next_prospect_statuses(prospect_id: int, channel_type):
     if channel_type == GeneratedMessageType.EMAIL:
         return ProspectEmailOutreachStatus.to_dict()
     elif channel_type == GeneratedMessageType.LINKEDIN:
-        retval = ProspectStatus.to_dict()
-        for status in VALID_FROM_STATUSES_MAP:
-            if current_li_status not in VALID_FROM_STATUSES_MAP[status]:
-                del retval[status.value]
+        retval = {}
+        valid_next_statuses = [
+            x.value for x in VALID_NEXT_LINKEDIN_STATUSES[current_li_status]
+        ]
+        import pdb
+
+        pdb.set_trace()
+        for status in ProspectStatus.to_dict():
+            if status in valid_next_statuses:
+                retval[status] = ProspectStatus.to_dict()[status]
+
         return retval
