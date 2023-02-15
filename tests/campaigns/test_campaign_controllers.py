@@ -22,6 +22,28 @@ import mock
 
 
 @use_app_context
+def test_get_all_campaigns():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Aa")
+    campaign_2 = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Ab")
+    campaign_3 = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr, name="B")
+
+    response = app.test_client().post(
+        "campaigns/all_campaigns",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {client_sdr.auth_token}",
+        },
+        data=json.dumps({})
+    )
+    assert response.status_code == 200
+    assert response.json.get("total_count") == 3
+
+
+@use_app_context
 @mock.patch(
     "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
 )

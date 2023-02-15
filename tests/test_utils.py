@@ -194,12 +194,13 @@ def basic_outbound_campaign(
     campaign_type: GeneratedMessageType,
     client_archetype: ClientArchetype,
     client_sdr: ClientSDR,
+    name: str = "test_campaign"
 ):
     from model_import import OutboundCampaignStatus
     from datetime import datetime
 
     o = OutboundCampaign(
-        name="test_campaign",
+        name=name,
         prospect_ids=prospect_ids,
         campaign_type=campaign_type,
         client_archetype_id=client_archetype.id,

@@ -13,6 +13,17 @@ class OutboundCampaignStatus(enum.Enum):
     COMPLETE = "COMPLETE"
     CANCELLED = "CANCELLED"
 
+    def all_statuses():
+        return [
+            OutboundCampaignStatus.PENDING,
+            OutboundCampaignStatus.NEEDS_REVIEW,
+            OutboundCampaignStatus.IN_PROGRESS,
+            OutboundCampaignStatus.INITIAL_EDIT_COMPLETE,
+            OutboundCampaignStatus.READY_TO_SEND,
+            OutboundCampaignStatus.COMPLETE,
+            OutboundCampaignStatus.CANCELLED,
+        ]
+
 
 class OutboundCampaign(db.Model):
     __tablename__ = "outbound_campaign"
@@ -46,3 +57,19 @@ class OutboundCampaign(db.Model):
     detailed_feedback_link = db.Column(db.String, nullable=True)
 
     editing_due_date = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "prospect_ids": self.prospect_ids,
+            "campaign_type": self.campaign_type.value,
+            "ctas": self.ctas,
+            "email_schema_id": self.email_schema_id,
+            "client_archetype_id": self.client_archetype_id,
+            "client_sdr_id": self.client_sdr_id,
+            "campaign_start_date": self.campaign_start_date,
+            "campaign_end_date": self.campaign_end_date,
+            "status": self.status.value,
+            "uuid": self.uuid,
+        }

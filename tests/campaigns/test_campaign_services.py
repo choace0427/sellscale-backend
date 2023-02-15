@@ -14,9 +14,46 @@ from test_utils import (
     basic_prospect,
     basic_prospect_email,
 )
-from src.campaigns.services import get_outbound_campaign_analytics, get_email_campaign_analytics
+from src.campaigns.services import (
+    get_outbound_campaigns,
+    get_outbound_campaign_analytics,
+    get_email_campaign_analytics
+)
 from model_import import GeneratedMessageType, ProspectEmailStatus, ProspectEmailOutreachStatus
 import mock
+
+
+@use_app_context
+def test_get_outbound_campaigns():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Aa")
+    campaign_2 = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Ab")
+    campaign_3 = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr, name="B")
+
+    search_for_name_response = get_outbound_campaigns(client_sdr.id, "A")
+    assert search_for_name_response.get("total_count") == 2
+
+    search_for_name_sorted_response = get_outbound_campaigns(client_sdr.id, "A", filters=[{"field": "name", "direction": 1}])
+    assert search_for_name_sorted_response.get("total_count") == 2
+    assert search_for_name_sorted_response.get("outbound_campaigns")[0].name == "Aa"
+    assert search_for_name_sorted_response.get("outbound_campaigns")[1].name == "Ab"
+
+    sort_by_type_response = get_outbound_campaigns(client_sdr.id, campaign_type=["LINKEDIN"])
+    assert sort_by_type_response.get("total_count") == 1
+    assert sort_by_type_response.get("outbound_campaigns")[0].name == "B"
+
+    sort_by_status_response = get_outbound_campaigns(client_sdr.id, status=["PENDING"])
+    assert sort_by_status_response.get("total_count") == 0
+
+    all_response = get_outbound_campaigns(client_sdr.id)
+    assert all_response.get("total_count") == 3
+
+    limited_response = get_outbound_campaigns(client_sdr.id, limit=1)
+    assert limited_response.get("total_count") == 3
+    assert len(limited_response.get("outbound_campaigns")) == 1
 
 
 @use_app_context

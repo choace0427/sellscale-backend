@@ -15,6 +15,12 @@ class GeneratedMessageType(enum.Enum):
     LINKEDIN = "LINKEDIN"
     EMAIL = "EMAIL"
 
+    def all_types():
+        return [
+            GeneratedMessageType.LINKEDIN,
+            GeneratedMessageType.EMAIL,
+        ]
+
 
 class GeneratedMessageJobStatus(enum.Enum):
     PENDING = "PENDING"

@@ -22,6 +22,108 @@ from model_import import GeneratedMessage
 NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
 
 
+def get_outbound_campaigns(
+        client_sdr_id: int,
+        query: Optional[str] = "",
+        campaign_type: Optional[list[str]] = None,
+        status: Optional[list[str]] = None,
+        limit: Optional[int] = 10,
+        offset: Optional[int] = 0,
+        filters: Optional[list[dict[str, int]]] = [],
+    ) -> dict[int, list[OutboundCampaign]]:
+    """Gets outbound campaigns belonging to the SDR, with optional query and filters.
+
+    Authorization required.
+
+    Args:
+        client_sdr_id: The ID of the SDR.
+        query: The query to search for. Can search for name only.
+        campaign_type: The type of campaign to search for.
+        status: The status of the campaign to search for.
+        limit: The number of campaigns to return.
+        offset: The offset to start returning campaigns from.
+        filters: The filters to apply to the query.
+
+    Returns:
+        A dictionary containing the total number of campaigns and the campaigns themselves.
+
+    Ordering logic is as follows
+        The filters list should have the following tuples:
+            - name: 1 or -1, indicating ascending or descending order
+            - campaign_type: 1 or -1, indicating ascending or descending order
+            - status: 1 or -1, indicating ascending or descending order
+            - campaign_start_date: 1 or -1, indicating ascending or descending order
+            - campaign_end_date: 1 or -1, indicating ascending or descending order
+        The query will be ordered by these fields in the order provided
+    """
+    # Construct ordering array
+    ordering = []
+    for filt in filters:
+        filter_name = filt.get("field")
+        filter_direction = filt.get("direction")
+        if filter_name == "name":
+            if filter_direction == 1:
+                ordering.append(OutboundCampaign.name.asc())
+            elif filter_direction == -1:
+                ordering.append(OutboundCampaign.name.desc())
+        elif filter_name == "campaign_type":
+            if filter_direction == 1:
+                ordering.append(OutboundCampaign.campaign_type.asc())
+            elif filter_direction == -1:
+                ordering.append(OutboundCampaign.campaign_type.desc())
+        elif filter_name == "status":
+            if filter_direction == 1:
+                ordering.append(OutboundCampaign.status.asc())
+            elif filter_direction == -1:
+                ordering.append(OutboundCampaign.status.desc())
+        elif filter_name == "campaign_start_date":
+            if filter_direction == 1:
+                ordering.append(OutboundCampaign.campaign_start_date.asc())
+            elif filter_direction == -1:
+                ordering.append(OutboundCampaign.campaign_start_date.desc())
+        elif filter_name == "campaign_end_date":
+            if filter_direction == 1:
+                ordering.append(OutboundCampaign.campaign_end_date.asc())
+            elif filter_direction == -1:
+                ordering.append(OutboundCampaign.campaign_end_date.desc())
+        else:
+            ordering.insert(0, None)
+
+    # Pad ordering array with None values, set to number of ordering options: 4
+    while len(ordering) < 5:
+        ordering.insert(0, None)
+
+    # Set status filter.
+    filtered_status = status
+    if status is None:
+        filtered_status = OutboundCampaignStatus.all_statuses()
+
+    # Set campaign type filter.
+    filtered_campaign_type = campaign_type
+    if campaign_type is None:
+        filtered_campaign_type = GeneratedMessageType.all_types()
+
+    # Construct query
+    outbound_campaigns = (
+        OutboundCampaign.query
+        .filter((OutboundCampaign.campaign_type.in_(filtered_campaign_type)))
+        .filter((OutboundCampaign.status.in_(filtered_status)))
+        .filter(
+            OutboundCampaign.client_sdr_id == client_sdr_id,
+            OutboundCampaign.name.ilike(f"%{query}%")
+        )
+        .order_by(ordering[0])
+        .order_by(ordering[1])
+        .order_by(ordering[2])
+        .order_by(ordering[3])
+        .order_by(ordering[4])
+    )
+    total_count = outbound_campaigns.count()
+    outbound_campaigns = outbound_campaigns.limit(limit).offset(offset).all()
+
+    return {"total_count": total_count, "outbound_campaigns": outbound_campaigns}
+
+
 def create_outbound_campaign(
     prospect_ids: list,
     campaign_type: GeneratedMessageType,

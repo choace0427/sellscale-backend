@@ -9,6 +9,7 @@ from src.campaigns.services import (
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
 from src.campaigns.services import (
+    get_outbound_campaigns,
     generate_campaign,
     update_campaign_dates,
     update_campaign_name,
@@ -22,8 +23,77 @@ from src.campaigns.services import (
     create_new_li_campaign_from_existing_email_campaign,
     get_outbound_campaign_analytics
 )
+from src.authentication.decorators import require_user
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
+
+
+@CAMPAIGN_BLUEPRINT.route("/all_campaigns", methods=["POST"])
+@require_user
+def get_all_campaigns(client_sdr_id: int):
+    """Get all campaigns for a given client sdr."""
+    try:
+        query = (
+            get_request_parameter(
+                "query", request, json=True, required=False, parameter_type=str
+            ) or ""
+        )
+        campaign_type = (
+            get_request_parameter(
+                "campaign_type", request, json=True, required=False, parameter_type=str
+            ) or None
+        )
+        status = (
+            get_request_parameter(
+                "status", request, json=True, required=False, parameter_type=list
+            ) or None
+        )
+        limit = (
+            get_request_parameter(
+                "limit", request, json=True, required=False, parameter_type=int
+            ) or 10
+        )
+        offset = (
+            get_request_parameter(
+                "offset", request, json=True, required=False, parameter_type=int
+            ) or 0
+        )
+        filters = (
+            get_request_parameter(
+                "filters", request, json=True, required=False, parameter_type=list
+            )
+            or []
+        )
+    except Exception as e:
+        return e.args[0], 400
+
+    # Validate the filters
+    if filters and len(filters) > 0:
+        for filter in filters:
+            keys = filter.keys()
+            if len(keys) != 2 or keys != {"field", "direction"}:
+                return jsonify({"message": "Invalid filters supplied to API"}), 400
+
+    outbound_campaigns_info: dict[int, list[OutboundCampaign]] = get_outbound_campaigns(
+        client_sdr_id=client_sdr_id,
+        query=query,
+        campaign_type=campaign_type,
+        status=status,
+        limit=limit,
+        offset=offset,
+        filters=filters,
+    )
+
+    total_count = outbound_campaigns_info.get("total_count")
+    outbound_campaigns: list[OutboundCampaign] = outbound_campaigns_info.get("outbound_campaigns")
+
+    return jsonify(
+        {
+            "message": "Success",
+            "total_count": total_count,
+            "outbound_campaigns": [oc.to_dict() for oc in outbound_campaigns]
+        }
+    ), 200
 
 
 @CAMPAIGN_BLUEPRINT.route("/", methods=["POST"])
