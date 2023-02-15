@@ -879,15 +879,9 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
     """
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
-        return {
-            "message": "Prospect not found",
-            "status_code": 404
-        }
+        return {"message": "Prospect not found", "status_code": 404}
     if p and p.client_sdr_id != client_sdr_id:
-        return {
-            "message": "This prospect does not belong to you",
-            "status_code": 403
-        }
+        return {"message": "This prospect does not belong to you", "status_code": 403}
 
     li_conversation_thread = (
         LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
@@ -987,6 +981,7 @@ def map_prospect_email_status_to_prospect_overall_status(
     return None
 
 
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def calculate_prospect_overall_status(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
