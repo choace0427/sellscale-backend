@@ -303,8 +303,7 @@ def update_prospect_status(
     except Exception:
         return False
 
-    # todo(Aakash) implement this
-    # update_prospect_overall_status()
+    calculate_prospect_overall_status.delay(prospect_id)
 
     return True
 
@@ -981,7 +980,7 @@ def map_prospect_email_status_to_prospect_overall_status(
     return None
 
 
-@celery.task(bind=True, max_retries=3, default_retry_delay=10)
+@celery.task
 def calculate_prospect_overall_status(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:

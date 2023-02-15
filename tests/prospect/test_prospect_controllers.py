@@ -131,7 +131,8 @@ def test_get_prospects():
 
 
 @use_app_context
-def test_patch_update_status_endpoint():
+@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
+def test_patch_update_status_endpoint(calculate_prospect_overall_status):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -300,7 +301,8 @@ def test_post_batch_mark_as_lead():
 
 
 @use_app_context
-def test_get_prospect_details():
+@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
+def test_get_prospect_details(calculate_prospect_overall_status_patch):
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
@@ -313,7 +315,7 @@ def test_get_prospect_details():
         f"prospect/{prospect_id}",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer {}".format(get_login_token())
+            "Authorization": "Bearer {}".format(get_login_token()),
         },
     )
     assert response.status_code == 200
@@ -323,7 +325,7 @@ def test_get_prospect_details():
         f"prospect/{prospect_id + 1}",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer {}".format(get_login_token())
+            "Authorization": "Bearer {}".format(get_login_token()),
         },
     )
     assert no_prospect_response.status_code == 404
@@ -334,17 +336,20 @@ def test_get_prospect_details():
         f"prospect/{prospect.id}",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer {}".format(get_login_token())
+            "Authorization": "Bearer {}".format(get_login_token()),
         },
     )
     assert unauthorized_response.status_code == 403
-    assert unauthorized_response.json.get("message") == "This prospect does not belong to you"
+    assert (
+        unauthorized_response.json.get("message")
+        == "This prospect does not belong to you"
+    )
 
     response = app.test_client().get(
         "prospect/get_valid_next_prospect_statuses",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer {}".format(get_login_token())
+            "Authorization": "Bearer {}".format(get_login_token()),
         },
         data=json.dumps({"prospect_id": prospect_id, "channel_type": "LINKEDIN"}),
     )

@@ -61,10 +61,9 @@ def test_get_prospects():
     prospect_2 = basic_prospect(c, a, c_sdr, full_name="adam", company="SellScale")
     prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
 
-    filter_1 = [{
-        "field": "full_name",
-        "direction": 1              # 1 = ascending, -1 = descending
-    }]
+    filter_1 = [
+        {"field": "full_name", "direction": 1}  # 1 = ascending, -1 = descending
+    ]
     returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_1)
     assert returned.get("total_count") == 3
     prospects = returned.get("prospects")
@@ -75,14 +74,8 @@ def test_get_prospects():
     prospect_4 = basic_prospect(c, a, c_sdr, full_name="adam", company="Apple")
     prospect_5 = basic_prospect(c, a, c_sdr, full_name="ben", company="Apple")
     filter_2 = [
-        {
-            "field": "full_name",
-            "direction": 1              # 1 = ascending, -1 = descending
-        },
-        {
-            "field": "company",
-            "direction": 1              # 1 = ascending, -1 = descending
-        }
+        {"field": "full_name", "direction": 1},  # 1 = ascending, -1 = descending
+        {"field": "company", "direction": 1},  # 1 = ascending, -1 = descending
     ]
     returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_2)
     assert returned.get("total_count") == 5
@@ -99,14 +92,8 @@ def test_get_prospects():
     assert prospects[4].company == "SellScale"
 
     filter_3 = [
-        {
-            "field": "company",
-            "direction": 1              # 1 = ascending, -1 = descending
-        },
-        {
-            "field": "full_name",
-            "direction": 1              # 1 = ascending, -1 = descending
-        }
+        {"field": "company", "direction": 1},  # 1 = ascending, -1 = descending
+        {"field": "full_name", "direction": 1},  # 1 = ascending, -1 = descending
     ]
     returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_3)
     assert returned.get("total_count") == 5
@@ -122,8 +109,12 @@ def test_get_prospects():
     assert prospects[4].full_name == "david"
     assert prospects[4].company == "SellScale"
 
-    prospect_6 = basic_prospect(c, a, c_sdr, full_name="jim", company="Apple", status=ProspectStatus.DEMO_SET)
-    returned = get_prospects(c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3)
+    prospect_6 = basic_prospect(
+        c, a, c_sdr, full_name="jim", company="Apple", status=ProspectStatus.DEMO_SET
+    )
+    returned = get_prospects(
+        c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3
+    )
     assert returned.get("total_count") == 1
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "jim"
@@ -133,7 +124,8 @@ def test_get_prospects():
 
 
 @use_app_context
-def test_update_prospect_status_with_note():
+@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
+def test_update_prospect_status_with_note(calculate_prospect_overall_status):
     client = basic_client()
     client_id = client.id
     archetype = basic_archetype(client)
@@ -178,7 +170,10 @@ def test_update_prospect_status_with_note():
 
 
 @use_app_context
-def test_update_prospect_status_active_convo_disable_ai():
+@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
+def test_update_prospect_status_active_convo_disable_ai(
+    calculate_prospect_overall_status,
+):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -279,7 +274,9 @@ def test_add_prospect():
     archetype2 = basic_archetype(client)
     archetype_id2 = archetype2.id
     client_sdr2 = basic_client_sdr(client)
-    add_prospect(client_id=client_id, archetype_id=archetype_id2, client_sdr_id=client_sdr2.id)
+    add_prospect(
+        client_id=client_id, archetype_id=archetype_id2, client_sdr_id=client_sdr2.id
+    )
 
     prospects = Prospect.query.order_by(Prospect.id.asc()).all()
     assert len(prospects) == 2
@@ -623,7 +620,8 @@ def test_delete_prospect_by_id_endpoint():
 
 
 @use_app_context
-def test_reengage_accepted_prospected():
+@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
+def test_reengage_accepted_prospected(calculate_prospect_overall_status):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
