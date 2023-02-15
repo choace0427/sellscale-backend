@@ -867,10 +867,27 @@ def batch_mark_as_lead(payload: int):
     return True
 
 
-def get_prospect_details(prospect_id: int):
+def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
+    """Gets prospect details, including linkedin conversation, sdr notes, and company details.
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        prospect_id (int): ID of the Prospect
+
+    Returns:
+        dict: A dictionary containing prospect details, status code, and message.
+    """
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
-        return {}
+        return {
+            "message": "Prospect not found",
+            "status_code": 404
+        }
+    if p and p.client_sdr_id != client_sdr_id:
+        return {
+            "message": "This prospect does not belong to you",
+            "status_code": 403
+        }
 
     li_conversation_thread = (
         LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
@@ -896,32 +913,36 @@ def get_prospect_details(prospect_id: int):
     archetype_name = archetype.archetype if archetype else None
 
     return {
-        "details": {
-            "id": p.id,
-            "full_name": p.full_name,
-            "title": p.title,
-            "status": p.status.value,
-            "profile_pic": personal_profile_picture,
-            "ai_responses_disabled": p.deactivate_ai_engagement,
-            "notes": prospect_notes,
-            "persona": archetype_name,
+        "prospect_info": {
+            "details": {
+                "id": p.id,
+                "full_name": p.full_name,
+                "title": p.title,
+                "status": p.status.value,
+                "profile_pic": personal_profile_picture,
+                "ai_responses_disabled": p.deactivate_ai_engagement,
+                "notes": prospect_notes,
+                "persona": archetype_name,
+            },
+            "li": {
+                "li_conversation_url": p.li_conversation_thread_id,
+                "li_conversation_thread": li_conversation_thread,
+                "li_profile": p.linkedin_url,
+            },
+            "email": {"email": p.email, "email_status": ""},
+            "company": {
+                "logo": company_logo,
+                "name": company_name,
+                "location": company_location,
+                "tags": company_tags,
+                "tagline": company_tagline,
+                "description": company_description,
+                "url": company_url,
+                "employee_count": company_employee_count,
+            },
         },
-        "li": {
-            "li_conversation_url": p.li_conversation_thread_id,
-            "li_conversation_thread": li_conversation_thread,
-            "li_profile": p.linkedin_url,
-        },
-        "email": {"email": p.email, "email_status": ""},
-        "company": {
-            "logo": company_logo,
-            "name": company_name,
-            "location": company_location,
-            "tags": company_tags,
-            "tagline": company_tagline,
-            "description": company_description,
-            "url": company_url,
-            "employee_count": company_employee_count,
-        },
+        "status_code": 200,
+        "message": "Success",
     }
 
 

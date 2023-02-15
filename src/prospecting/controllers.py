@@ -1,6 +1,6 @@
 from app import db
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, Response
 from src.prospecting.models import Prospect
 from src.prospecting.services import (
     search_prospects,
@@ -39,9 +39,19 @@ PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>", methods=["GET"])
-def get_prospect_details_endpoint(prospect_id):
-    prospect: dict = get_prospect_details(prospect_id)
-    return jsonify(prospect), 200
+@require_user
+def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
+    """Get prospect details"""
+    prospect_details: dict = get_prospect_details(client_sdr_id, prospect_id)
+
+    status_code = prospect_details.get("status_code")
+    if status_code != 200:
+        return jsonify({"message": prospect_details.get("message")}), status_code
+
+    return jsonify({
+        "message": "Success",
+        "prospect_info": prospect_details.get("prospect_info")
+    }), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/search", methods=["GET"])
@@ -133,7 +143,13 @@ def get_prospects_endpoint(client_sdr_id: int):
     total_count = prospects_info.get("total_count")
     prospects = prospects_info.get("prospects")
 
-    return jsonify({"total_count": total_count, "prospects": [p.to_dict() for p in prospects]}), 200
+    return jsonify(
+        {
+            "message": "Success",
+            "total_count": total_count,
+            "prospects": [p.to_dict() for p in prospects]
+        }
+    ), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])

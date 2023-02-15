@@ -302,22 +302,50 @@ def test_post_batch_mark_as_lead():
 @use_app_context
 def test_get_prospect_details():
     client = basic_client()
+    client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    prospect = basic_prospect(client, archetype, client_sdr)
     prospect_id = prospect.id
 
     rp = basic_research_payload(prospect)
 
     response = app.test_client().get(
         f"prospect/{prospect_id}",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token())
+        },
     )
     assert response.status_code == 200
-    assert len(response.json.keys()) > 0
+    assert response.json.get("message") == "Success"
+
+    no_prospect_response = app.test_client().get(
+        f"prospect/{prospect_id + 1}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token())
+        },
+    )
+    assert no_prospect_response.status_code == 404
+    assert no_prospect_response.json.get("message") == "Prospect not found"
+
+    prospect = basic_prospect(client, archetype)
+    unauthorized_response = app.test_client().get(
+        f"prospect/{prospect.id}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token())
+        },
+    )
+    assert unauthorized_response.status_code == 403
+    assert unauthorized_response.json.get("message") == "This prospect does not belong to you"
 
     response = app.test_client().get(
         "prospect/get_valid_next_prospect_statuses",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token())
+        },
         data=json.dumps({"prospect_id": prospect_id, "channel_type": "LINKEDIN"}),
     )
     assert response.status_code == 200
