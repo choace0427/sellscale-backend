@@ -48,10 +48,15 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
     if status_code != 200:
         return jsonify({"message": prospect_details.get("message")}), status_code
 
-    return jsonify({
-        "message": "Success",
-        "prospect_info": prospect_details.get("prospect_info")
-    }), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "prospect_info": prospect_details.get("prospect_info"),
+            }
+        ),
+        200,
+    )
 
 
 @PROSPECTING_BLUEPRINT.route("/search", methods=["GET"])
@@ -143,13 +148,16 @@ def get_prospects_endpoint(client_sdr_id: int):
     total_count = prospects_info.get("total_count")
     prospects = prospects_info.get("prospects")
 
-    return jsonify(
-        {
-            "message": "Success",
-            "total_count": total_count,
-            "prospects": [p.to_dict() for p in prospects]
-        }
-    ), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "total_count": total_count,
+                "prospects": [p.to_dict() for p in prospects],
+            }
+        ),
+        200,
+    )
 
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
@@ -404,10 +412,10 @@ def post_batch_mark_as_lead():
 @PROSPECTING_BLUEPRINT.route("/get_valid_next_prospect_statuses", methods=["GET"])
 def get_valid_next_prospect_statuses_endpoint():
     prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True
+        "prospect_id", request, json=False, required=True
     )
     channel_type = get_request_parameter(
-        "channel_type", request, json=True, required=True
+        "channel_type", request, json=False, required=True
     )
     statuses = get_valid_next_prospect_statuses(
         prospect_id=prospect_id, channel_type=channel_type
