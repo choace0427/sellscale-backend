@@ -61,7 +61,7 @@ def get_prospects(
     limit: int = 50,
     offset: int = 0,
     filters: list[dict[str, int]] = [],
-) -> list[Prospect]:
+) -> dict[int, list[Prospect]]:
     """Gets prospects belonging to the SDR, with optional query and filters.
 
     Authorization required.
@@ -133,11 +133,10 @@ def get_prospects(
         .order_by(ordering[1])
         .order_by(ordering[2])
         .order_by(ordering[3])
-        .limit(limit)
-        .offset(offset)
-        .all()
     )
-    return prospects
+    total_count = prospects.count()
+    prospects = prospects.limit(limit).offset(offset).all()
+    return {"total_count": total_count, "prospects": prospects}
 
 
 def prospect_exists_for_client(full_name: str, client_id: int):

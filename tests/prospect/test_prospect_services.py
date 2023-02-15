@@ -65,8 +65,9 @@ def test_get_prospects():
         "field": "full_name",
         "direction": 1              # 1 = ascending, -1 = descending
     }]
-    prospects = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_1)
-    assert len(prospects) == 3
+    returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_1)
+    assert returned.get("total_count") == 3
+    prospects = returned.get("prospects")
     assert prospects[0].full_name == "adam"
     assert prospects[1].full_name == "ben"
     assert prospects[2].full_name == "david"
@@ -83,8 +84,9 @@ def test_get_prospects():
             "direction": 1              # 1 = ascending, -1 = descending
         }
     ]
-    prospects = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_2)
-    assert len(prospects) == 5
+    returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_2)
+    assert returned.get("total_count") == 5
+    prospects = returned.get("prospects")
     assert prospects[0].full_name == "adam"
     assert prospects[0].company == "Apple"
     assert prospects[1].full_name == "adam"
@@ -106,8 +108,9 @@ def test_get_prospects():
             "direction": 1              # 1 = ascending, -1 = descending
         }
     ]
-    prospects = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_3)
-    assert len(prospects) == 5
+    returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_3)
+    assert returned.get("total_count") == 5
+    prospects = returned.get("prospects")
     assert prospects[0].full_name == "adam"
     assert prospects[0].company == "Apple"
     assert prospects[1].full_name == "ben"
@@ -120,9 +123,13 @@ def test_get_prospects():
     assert prospects[4].company == "SellScale"
 
     prospect_6 = basic_prospect(c, a, c_sdr, full_name="jim", company="Apple", status=ProspectStatus.DEMO_SET)
-    prospects = get_prospects(c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3)
-    assert len(prospects) == 1
+    returned = get_prospects(c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3)
+    assert returned.get("total_count") == 1
+    prospects = returned.get("prospects")
     assert prospects[0].full_name == "jim"
+
+    returned = get_prospects(c_sdr.id, limit=2, offset=0)
+    assert returned.get("total_count") == 6
 
 
 @use_app_context

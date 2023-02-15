@@ -72,7 +72,7 @@ def test_get_prospects():
             }
         ),
     )
-    assert len(response.json) == 3
+    assert response.json.get("total_count") == 3
     assert response.status_code == 200
 
     prospect_4 = basic_prospect(c, a, c_sdr, full_name="adam", company="Apple")
@@ -87,7 +87,7 @@ def test_get_prospects():
             {"client_id": c.id, "client_sdr_id": c_sdr.id, "query": "adam"}
         ),
     )
-    assert len(response.json) == 2
+    assert response.json.get("total_count") == 2
     assert response.status_code == 200
 
     response = app.test_client().post(
@@ -107,8 +107,8 @@ def test_get_prospects():
             }
         ),
     )
-    assert len(response.json) == 2
-    assert response.json[0].get("company") == "Apple"
+    assert response.json.get("total_count") == 2
+    assert response.json.get("prospects")[0].get("company") == "Apple"
     assert response.status_code == 200
 
     bad_filters_response = app.test_client().post(
@@ -127,7 +127,7 @@ def test_get_prospects():
         ),
     )
     assert bad_filters_response.status_code == 400
-    assert bad_filters_response.data == b"Invalid filters supplied to API"
+    assert bad_filters_response.json.get("message") == "Invalid filters supplied to API"
 
 
 @use_app_context

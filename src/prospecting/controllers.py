@@ -124,13 +124,16 @@ def get_prospects_endpoint(client_sdr_id: int):
         for order in ordering:
             keys = order.keys()
             if len(keys) != 2 or keys != {"field", "direction"}:
-                return "Invalid filters supplied to API", 400
+                return jsonify({"message": "Invalid filters supplied to API"}), 400
 
-    prospects: list[Prospect] = get_prospects(
+    prospects_info: dict[int, list[Prospect]] = get_prospects(
         client_sdr_id, query, status, limit, offset, ordering
     )
 
-    return jsonify([p.to_dict() for p in prospects]), 200
+    total_count = prospects_info.get("total_count")
+    prospects = prospects_info.get("prospects")
+
+    return jsonify({"total_count": total_count, "prospects": [p.to_dict() for p in prospects]}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
