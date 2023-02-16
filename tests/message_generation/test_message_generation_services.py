@@ -380,7 +380,7 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
         assert prospect_email.batch_id == "123123"
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    assert prospect.approved_prospect_email_id == None
+    assert prospect.approved_prospect_email_id != None
 
     response = app.test_client().post(
         "message_generation/pick_new_approved_email",

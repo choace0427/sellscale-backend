@@ -956,7 +956,7 @@ def map_prospect_linkedin_status_to_prospect_overall_status(
         ProspectStatus.NOT_INTERESTED: ProspectOverallStatus.REMOVED,
         ProspectStatus.DEMO_SET: ProspectOverallStatus.DEMO,
         ProspectStatus.DEMO_WON: ProspectOverallStatus.DEMO,
-        ProspectStatus.DEMO_LOSS: ProspectOverallStatus.REMOVED,
+        ProspectStatus.DEMO_LOSS: ProspectOverallStatus.DEMO,
     }
     if prospect_linkedin_status in prospect_status_map:
         return prospect_status_map[prospect_linkedin_status]

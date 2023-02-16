@@ -621,6 +621,7 @@ def generate_prospect_email(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=NUM_GENERATIONS
         )
 
+        is_first_email = True
         for perm in perms:
             notes, research_points, _ = get_notes_and_points_from_perm(perm)
             prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
@@ -641,11 +642,17 @@ def generate_prospect_email(
                 config=TOP_CONFIGURATION,
             )
 
-            create_prospect_email(
+            prospect_email: ProspectEmail = create_prospect_email(
                 prospect_id=prospect_id,
                 personalized_first_line_id=personalized_first_line.id,
                 batch_id=batch_id,
             )
+
+            if is_first_email:
+                mark_prospect_email_approved(
+                    prospect_email_id=prospect_email.id,
+                )
+                is_first_email = False
     except Exception as e:
         update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.FAILED)
         raise self.retry(exc=e, countdown=2**self.request.retries)
