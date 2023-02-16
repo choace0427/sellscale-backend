@@ -11,6 +11,7 @@ from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import attributes
 from typing import Optional
 from app import db
+import random
 
 
 def compute_prompt(stack_ranked_configuration_id: int):
@@ -174,12 +175,10 @@ def get_top_stack_ranked_config_ordering(generated_message_type: str, prospect_i
     client_id = prospect.client_id
     archetype_id = prospect.archetype_id
     stack_ranked_config_ordering: list = get_stack_ranked_config_ordering(
-        generated_message_type, archetype_id, client_id, prospect_id
+        generated_message_type, archetype_id, client_id, prospect_id, True
     )
-    # return first config that is `active`
-    for srmgc in stack_ranked_config_ordering:
-        if srmgc.active:
-            return srmgc
+    if len(stack_ranked_config_ordering) > 0:
+        return random.choice(stack_ranked_config_ordering)
     return None
 
 
@@ -188,6 +187,7 @@ def get_stack_ranked_config_ordering(
     archetype_id: Optional[int] = -1,
     client_id: Optional[int] = -1,
     prospect_id: Optional[int] = -1,
+    only_active_configs: bool = False,
 ):
     """Get the stack ranked message generation configuration ordering for a client archetype"""
     ordered_srmgcs = (
@@ -229,6 +229,8 @@ def get_stack_ranked_config_ordering(
 
         filtered_ordered_srmgcs = []
         for srmgc in ordered_srmgcs:
+            if only_active_configs and not srmgc.active:
+                continue
             if srmgc.configuration_type == ConfigurationType.DEFAULT:
                 if any(
                     [rpt in research_point_types for rpt in srmgc.research_point_types]
