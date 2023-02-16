@@ -11,6 +11,7 @@ from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import attributes
 from typing import Optional
 from app import db
+import random
 
 
 def compute_prompt(stack_ranked_configuration_id: int):
@@ -176,10 +177,9 @@ def get_top_stack_ranked_config_ordering(generated_message_type: str, prospect_i
     stack_ranked_config_ordering: list = get_stack_ranked_config_ordering(
         generated_message_type, archetype_id, client_id, prospect_id
     )
-    # return first config that is `active`
-    for srmgc in stack_ranked_config_ordering:
-        if srmgc.active:
-            return srmgc
+
+    if len(stack_ranked_config_ordering) > 0:
+        return random.choice(stack_ranked_config_ordering[0])
     return None
 
 
