@@ -123,6 +123,8 @@ def run_message_rule_engine(message_id: int):
         )
         highlighted_words.append("stealth")
 
+    highlighted_words = list(filter(lambda x: x != ".", highlighted_words))
+
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.problems = problems
     message.highlighted_words = highlighted_words
