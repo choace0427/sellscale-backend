@@ -128,8 +128,13 @@ def basic_editor() -> Editor:
     return e
 
 
-def basic_archetype(client: Client) -> ClientArchetype:
-    a = ClientArchetype(client_id=client.id, archetype="Testing archetype")
+def basic_archetype(client: Client, client_sdr: Optional[ClientSDR] = None) -> ClientArchetype:
+    client_sdr_id = None if client_sdr is None else client_sdr.id
+    a = ClientArchetype(
+        client_id=client.id,
+        client_sdr_id=client_sdr_id,
+        archetype="Testing archetype"
+    )
     db.session.add(a)
     db.session.commit()
     return a

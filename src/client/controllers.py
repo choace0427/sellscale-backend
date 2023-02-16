@@ -19,13 +19,14 @@ from src.client.services import (
     update_client_sdr_manual_warning_message,
     update_client_sdr_weekly_li_outbound_target,
     update_client_sdr_weekly_email_outbound_target,
-    get_ctas
+    get_ctas,
+    get_client_archetypes,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
     replicate_transformer_blocklist,
 )
-
+from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
@@ -91,6 +92,19 @@ def create_archetype():
         return "Client not found", 404
 
     return ca
+
+
+@CLIENT_BLUEPRINT.route("/archetype/get_archetypes", methods=["GET"])
+@require_user
+def get_archetypes(client_sdr_id: int):
+    """Gets all the archetypes for a client SDR, with option to search filter by archetype name"""
+    query = get_request_parameter("query", request, json=False, required=False, parameter_type=str) or ""
+
+    archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
+    return jsonify({
+        "message": "Success",
+        "archetypes": [archetype.to_dict() for archetype in archetypes]
+    }), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])

@@ -52,6 +52,23 @@ def create_client(
     return {"client_id": c.id}
 
 
+def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list:
+    """Gets a list of all Client Archetypes, with a search filter on the archetype name
+
+    Args:
+        client_sdr_id (int): The ID of the Client SDR
+        query (str): The search query
+
+    Returns:
+        list: The list of Client Archetypes
+    """
+    client_archetypes = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.archetype.ilike(f"%{query}%")
+    ).all()
+    return client_archetypes
+
+
 def get_client_archetype(client_archetype_id: int):
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     return ca

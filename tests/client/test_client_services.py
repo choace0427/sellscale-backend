@@ -13,9 +13,32 @@ from src.client.services import (
     get_client,
     create_client_archetype,
     get_ctas,
+    get_client_archetypes,
 )
 import json
 import mock
+
+
+@use_app_context
+def test_get_client_archetypes():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    archetype = basic_archetype(client, client_sdr)
+
+    result = get_client_archetypes(client_sdr.id)
+    assert len(result) == 1
+
+    archetype_2 = basic_archetype(client, client_sdr)
+    result = get_client_archetypes(client_sdr.id)
+    assert len(result) == 2
+
+    archetype_3 = basic_archetype(client, client_sdr)
+    archetype_3.archetype = "Another testing archetype"
+    db.session.add(archetype_3)
+    db.session.commit()
+    result = get_client_archetypes(client_sdr_id, "Another")
+    assert len(result) == 1
 
 
 @use_app_context

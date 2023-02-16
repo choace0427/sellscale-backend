@@ -1,10 +1,27 @@
 from app import app, db
 from model_import import Client, ClientArchetype, ClientSDR, ResearchPointType
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_generated_message_cta
+from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_generated_message_cta, get_login_token
 
 import json
 import mock
+
+
+@use_app_context
+def test_get_archetypes():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+    archetype = basic_archetype(client, client_sdr)
+
+    response = app.test_client().get(
+        "client/archetype/get_archetypes",
+        headers={
+            "Authorization": "Bearer {}".format(get_login_token()),
+        }
+    )
+    assert response.status_code == 200
+    assert len(response.json.get("archetypes")) == 1
 
 
 @use_app_context
