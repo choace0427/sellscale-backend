@@ -255,6 +255,8 @@ def toggle_stack_ranked_message_configuration_active(
     )
     if not srmgc:
         return False, "Stack ranked message generation configuration does not exist"
+    if srmgc.always_enable and srmgc.active:
+        return False, "This message configuration is meant to always be on."
     srmgc.active = not srmgc.active
     db.session.add(srmgc)
     db.session.commit()

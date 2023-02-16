@@ -421,7 +421,26 @@ def test_post_toggle_stack_ranked_configuration_tool_active():
     )
     assert response.status_code == 200
 
-    configuration = StackRankedMessageGenerationConfiguration.query.get(
-        configuration_id
+    configuration: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.get(configuration_id)
     )
     assert configuration.active is True
+
+    configuration.always_enable = True
+    db.session.add(configuration)
+    db.session.commit()
+
+    response = app.test_client().post(
+        "message_generation/stack_ranked_configuration_tool/toggle_active",
+        data=json.dumps(
+            {
+                "configuration_id": configuration_id,
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 400
+    assert (
+        response.data.decode("utf-8")
+        == "This message configuration is meant to always be on."
+    )
