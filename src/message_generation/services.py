@@ -605,18 +605,11 @@ def generate_prospect_email(
 
         archetype_id = prospect.archetype_id
 
-        # research_points_list = ResearchPoints.get_research_points_by_prospect_id(
-        #     prospect_id
-        # )
-
         NUM_GENERATIONS = 1  # number of ProspectEmail's to make
         TOP_CONFIGURATION = get_top_stack_ranked_config_ordering(
             generated_message_type=GeneratedMessageType.EMAIL.value,
             prospect_id=prospect_id,
         )
-        # perms = generate_batches_of_research_points(
-        #     points=research_points_list, n=NUM_GENERATIONS, num_per_perm=3
-        # )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=NUM_GENERATIONS
         )
