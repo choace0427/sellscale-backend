@@ -1,4 +1,7 @@
 from app import db
+from sqlalchemy import and_
+from typing import Optional
+
 from src.campaigns.models import *
 from src.client.services import get_client, get_client_sdr
 from model_import import (
@@ -7,22 +10,24 @@ from model_import import (
     ProspectEmail,
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
+    EmailSchema,
+    OutboundCampaign,
+    OutboundCampaignStatus,
+    GeneratedMessageType,
+    ClientArchetype
 )
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_few_shot,
 )
-
-from model_import import OutboundCampaign, OutboundCampaignStatus, GeneratedMessageType
-import datetime
 from src.message_generation.services import (
     generate_outreaches_for_prospect_list_from_multiple_ctas,
     batch_generate_prospect_emails,
 )
-from typing import Optional
 from src.utils.random_string import generate_random_alphanumeric
-
-from model_import import ClientArchetype
 from src.utils.slack import send_slack_message, URL_MAP
+
+import datetime
+
 
 NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
 
@@ -77,14 +82,16 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
 
 
 def get_outbound_campaigns(
-    client_sdr_id: int,
-    query: Optional[str] = "",
-    campaign_type: Optional[list[str]] = None,
-    status: Optional[list[str]] = None,
-    limit: Optional[int] = 10,
-    offset: Optional[int] = 0,
-    filters: Optional[list[dict[str, int]]] = [],
-) -> dict[int, list[OutboundCampaign]]:
+        client_sdr_id: int,
+        query: Optional[str] = "",
+        campaign_start_date: Optional[str] = None,
+        campaign_end_date: Optional[str] = None,
+        campaign_type: Optional[list[str]] = None,
+        status: Optional[list[str]] = None,
+        limit: Optional[int] = 10,
+        offset: Optional[int] = 0,
+        filters: Optional[list[dict[str, int]]] = [],
+    ) -> dict[int, list[OutboundCampaign]]:
     """Gets outbound campaigns belonging to the SDR, with optional query and filters.
 
     Authorization required.
@@ -92,6 +99,8 @@ def get_outbound_campaigns(
     Args:
         client_sdr_id: The ID of the SDR.
         query: The query to search for. Can search for name only.
+        campaign_start: The start date of the campaign to search for.
+        campaign_end: The end date of the campaign to search for.
         campaign_type: The type of campaign to search for.
         status: The status of the campaign to search for.
         limit: The number of campaigns to return.
@@ -157,11 +166,15 @@ def get_outbound_campaigns(
     if campaign_type is None:
         filtered_campaign_type = GeneratedMessageType.all_types()
 
+    # Set date filter. If no date is provided, set to default values.
+    campaign_start_date = campaign_start_date or datetime.datetime(datetime.MINYEAR, 1, 1).strftime("%Y-%m-%d")
+    campaign_end_date = campaign_end_date or datetime.datetime(datetime.MAXYEAR, 1, 1).strftime("%Y-%m-%d")
+
     # Construct query
     outbound_campaigns = (
-        OutboundCampaign.query.filter(
-            (OutboundCampaign.campaign_type.in_(filtered_campaign_type))
-        )
+        OutboundCampaign.query
+        .filter(and_(OutboundCampaign.campaign_start_date >= campaign_start_date, OutboundCampaign.campaign_end_date <= campaign_end_date))
+        .filter((OutboundCampaign.campaign_type.in_(filtered_campaign_type)))
         .filter((OutboundCampaign.status.in_(filtered_status)))
         .filter(
             OutboundCampaign.client_sdr_id == client_sdr_id,

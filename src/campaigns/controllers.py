@@ -55,6 +55,16 @@ def get_all_campaigns(client_sdr_id: int):
             )
             or ""
         )
+        campaign_start_date = (
+            get_request_parameter(
+                "campaign_start_date", request, json=True, required=False, parameter_type=str
+            ) or None
+        )
+        campaign_end_date = (
+            get_request_parameter(
+                "campaign_end_date", request, json=True, required=False, parameter_type=str
+            ) or None
+        )
         campaign_type = (
             get_request_parameter(
                 "campaign_type", request, json=True, required=False, parameter_type=list
@@ -98,6 +108,8 @@ def get_all_campaigns(client_sdr_id: int):
     outbound_campaigns_info: dict[int, list[OutboundCampaign]] = get_outbound_campaigns(
         client_sdr_id=client_sdr_id,
         query=query,
+        campaign_start_date=campaign_start_date,
+        campaign_end_date=campaign_end_date,
         campaign_type=campaign_type,
         status=status,
         limit=limit,

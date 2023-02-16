@@ -83,6 +83,15 @@ def test_get_outbound_campaigns():
     assert limited_response.get("total_count") == 3
     assert len(limited_response.get("outbound_campaigns")) == 1
 
+    campaign_4 = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="C")
+    campaign_4.campaign_start_date = datetime.datetime(2022, 1, 10).strftime("%Y-%m-%d")
+    campaign_4.campaign_end_date = datetime.datetime(2022, 1, 17).strftime("%Y-%m-%d")
+    db.session.add(campaign_4)
+    db.session.commit()
+    filter_by_date_response = get_outbound_campaigns(client_sdr.id, campaign_start_date="2022-01-01", campaign_end_date="2022-01-20")
+    assert filter_by_date_response.get("total_count") == 1
+    assert filter_by_date_response.get("outbound_campaigns")[0].name == "C"
+
 
 @use_app_context
 @mock.patch(
