@@ -166,6 +166,7 @@ class StackRankedMessageGenerationConfiguration(db.Model):
     instruction = db.Column(db.String, nullable=False)
     computed_prompt = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True, default=True)
+    always_enable = db.Column(db.Boolean, nullable=True, default=False)
 
     name = db.Column(db.String, nullable=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
