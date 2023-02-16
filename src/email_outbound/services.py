@@ -9,7 +9,7 @@ from model_import import (
     Prospect,
     ProspectStatus,
     GeneratedMessageStatus,
-    GeneratedMessageType
+    GeneratedMessageType,
 )
 from src.campaigns.models import (
     OutboundCampaign,
@@ -24,48 +24,26 @@ from src.email_outbound.models import (
     SalesEngagementInteractionSource,
     SalesEngagementInteractionSS,
     ProspectEmailOutreachStatus,
-    ProspectEmailStatusRecords
+    ProspectEmailStatusRecords,
 )
 from src.email_outbound.ss_data import SSData
 
 
-def create_email_schema(
-    name: str,
-    client_archetype_id: int,
-):
-    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
-    if not ca:
-        raise Exception("Client archetype not found")
-
-    email_schema = EmailSchema(
-        name=name,
-        client_archetype_id=client_archetype_id,
-    )
-    db.session.add(email_schema)
-    db.session.commit()
-    return email_schema
-
-
 def create_prospect_email(
-    email_schema_id: int,
     prospect_id: int,
     personalized_first_line_id: int,
     batch_id: int,
 ):
-    email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
     personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
         personalized_first_line_id
     )
-    if not email_schema:
-        raise Exception("Email schema not found")
     if not prospect:
         raise Exception("Prospect not found")
     if not personalized_first_line:
         raise Exception("Generated message not found")
 
     prospect_email = ProspectEmail(
-        email_schema_id=email_schema_id,
         prospect_id=prospect_id,
         personalized_first_line=personalized_first_line_id,
         email_status=ProspectEmailStatus.DRAFT,
@@ -91,8 +69,7 @@ def batch_update_emails(
 
         prospect: Prospect = Prospect.query.get(prospect_id_payload)
         prospect_email_id: int = prospect.approved_prospect_email_id
-        prospect_email: ProspectEmail = ProspectEmail.query.get(
-            prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
 
         if not prospect_email:
             continue
@@ -127,7 +104,9 @@ def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) ->
 
 
 @celery.task(bind=True, max_retries=1)
-def update_prospect_email_flow_statuses(self, prospect_id: int, campaign_id: int) -> tuple[str, bool]:
+def update_prospect_email_flow_statuses(
+    self, prospect_id: int, campaign_id: int
+) -> tuple[str, bool]:
     """Updates all the statuses as part of the prospect_email flow
 
     prospect_email -> email_status, date_sent
@@ -149,13 +128,15 @@ def update_prospect_email_flow_statuses(self, prospect_id: int, campaign_id: int
         if prospect.approved_prospect_email_id:
             # Updates to prospect_email
             prospect_email: ProspectEmail = ProspectEmail.query.get(
-                prospect.approved_prospect_email_id)
+                prospect.approved_prospect_email_id
+            )
             prospect_email.email_status = ProspectEmailStatus.SENT
             prospect_email.date_sent = datetime.datetime.now()
 
             # Updates to generated_message
             personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
-                prospect_email.personalized_first_line)
+                prospect_email.personalized_first_line
+            )
             personalized_first_line.message_status = GeneratedMessageStatus.SENT
 
             # Updates to outbound_campaign
@@ -171,7 +152,12 @@ def update_prospect_email_flow_statuses(self, prospect_id: int, campaign_id: int
             db.session.add(personalized_first_line)
             db.session.commit()
         else:
-            return "Prospect {} does not have an approved prospect email".format(prospect.id), False
+            return (
+                "Prospect {} does not have an approved prospect email".format(
+                    prospect.id
+                ),
+                False,
+            )
 
         return "", True
     except Exception as e:
@@ -240,7 +226,8 @@ def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
             bool: _description_
         """
         sei_ss: SalesEngagementInteractionSS = SalesEngagementInteractionSS.query.get(
-            sei_ss_id)
+            sei_ss_id
+        )
         if not sei_ss:
             return False
 
@@ -250,12 +237,7 @@ def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
 
         for prospect_dict in sei_ss_data:
             update_status_from_ss_data.apply_async(
-                (
-                    sei_ss.client_id,
-                    sei_ss.client_sdr_id,
-                    prospect_dict,
-                    sei_ss.id
-                )
+                (sei_ss.client_id, sei_ss.client_sdr_id, prospect_dict, sei_ss.id)
             )
 
         return True
@@ -264,7 +246,9 @@ def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
 
 
 @celery.task(bind=True, max_retries=3)
-def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospect_dict: dict, sei_ss_id: int) -> tuple[str, bool]:
+def update_status_from_ss_data(
+    self, client_id: int, client_sdr_id: int, prospect_dict: dict, sei_ss_id: int
+) -> tuple[str, bool]:
     """Updates the status of a prospect based on the data from a SalesEngagementInteractionSS entry.
 
     Args:
@@ -289,25 +273,40 @@ def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospec
 
         # Grab prospect and prospect_email
         prospect: Prospect = Prospect.query.filter_by(
-            client_id=client_id,
-            client_sdr_id=client_sdr_id,
-            email=email
+            client_id=client_id, client_sdr_id=client_sdr_id, email=email
         ).first()
         if not prospect:
-            return "Prospect with email {} could not be found for sdr {}".format(email, client_sdr_id), False
+            return (
+                "Prospect with email {} could not be found for sdr {}".format(
+                    email, client_sdr_id
+                ),
+                False,
+            )
 
         prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
             prospect_id=prospect.id,
             email_status=ProspectEmailStatus.SENT,
         ).first()
         if not prospect_email:
-            return "Prospect {} does not have an approved prospect email".format(prospect.id), False
+            return (
+                "Prospect {} does not have an approved prospect email".format(
+                    prospect.id
+                ),
+                False,
+            )
 
         # Update the prospect_email
         old_outreach_status = prospect_email.outreach_status
-        new_outreach_status = EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS[email_interaction_state]
+        new_outreach_status = EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS[
+            email_interaction_state
+        ]
         if old_outreach_status == new_outreach_status:
-            return "No update needed: {} to {}".format(old_outreach_status, new_outreach_status), True
+            return (
+                "No update needed: {} to {}".format(
+                    old_outreach_status, new_outreach_status
+                ),
+                True,
+            )
 
         if old_outreach_status == None:
             prospect_email.outreach_status = new_outreach_status
@@ -316,15 +315,22 @@ def update_status_from_ss_data(self, client_id: int, client_sdr_id: int, prospec
             if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
                 prospect_email.outreach_status = new_outreach_status
             else:
-                return "Invalid update from {} to {}".format(old_outreach_status, new_outreach_status), False
+                return (
+                    "Invalid update from {} to {}".format(
+                        old_outreach_status, new_outreach_status
+                    ),
+                    False,
+                )
 
         # Create ProspectEmailStatusRecords entry and save ProspectEmail.
-        db.session.add(ProspectEmailStatusRecords(
-            prospect_email_id=prospect_email.id,
-            from_status=old_outreach_status,
-            to_status=new_outreach_status,
-            sales_engagement_interaction_ss_id=sei_ss_id,
-        ))
+        db.session.add(
+            ProspectEmailStatusRecords(
+                prospect_email_id=prospect_email.id,
+                from_status=old_outreach_status,
+                to_status=new_outreach_status,
+                sales_engagement_interaction_ss_id=sei_ss_id,
+            )
+        )
         db.session.add(prospect_email)
         db.session.commit()
 
@@ -343,9 +349,17 @@ EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS = {
 
 # key (new_status) : value (list of valid statuses to update from)
 VALID_UPDATE_STATUSES_MAP = {
-    ProspectEmailOutreachStatus.SENT_OUTREACH: [ProspectEmailOutreachStatus.UNKNOWN, ProspectEmailOutreachStatus.NOT_SENT],
-    ProspectEmailOutreachStatus.EMAIL_OPENED: [ProspectEmailOutreachStatus.SENT_OUTREACH],
-    ProspectEmailOutreachStatus.ACCEPTED: [ProspectEmailOutreachStatus.EMAIL_OPENED, ProspectEmailOutreachStatus.SENT_OUTREACH],
+    ProspectEmailOutreachStatus.SENT_OUTREACH: [
+        ProspectEmailOutreachStatus.UNKNOWN,
+        ProspectEmailOutreachStatus.NOT_SENT,
+    ],
+    ProspectEmailOutreachStatus.EMAIL_OPENED: [
+        ProspectEmailOutreachStatus.SENT_OUTREACH
+    ],
+    ProspectEmailOutreachStatus.ACCEPTED: [
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+    ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO: [
         ProspectEmailOutreachStatus.ACCEPTED,
         ProspectEmailOutreachStatus.EMAIL_OPENED,

@@ -5,12 +5,9 @@ from decorators import use_app_context
 from test_utils import (
     basic_archetype,
     basic_client,
-    basic_email_schema,
     basic_generated_message,
-    basic_generated_message_cta_with_text,
     basic_gnlp_model,
     basic_prospect,
-    basic_prospect_email,
     basic_research_payload,
     basic_research_point,
     test_app,

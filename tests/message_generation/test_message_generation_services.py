@@ -5,7 +5,6 @@ from decorators import use_app_context
 from test_utils import (
     basic_archetype,
     basic_client,
-    basic_email_schema,
     basic_generated_message,
     basic_generated_message_cta_with_text,
     basic_gnlp_model,
@@ -356,15 +355,11 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     gnlp_model.id = 5
     db.session.add(gnlp_model)
     db.session.commit()
-    email_schema = basic_email_schema(archetype)
-    email_schema_id = email_schema.id
 
     payload = basic_research_payload(prospect=prospect)
     point = basic_research_point(research_payload=payload)
 
-    generate_prospect_email(
-        prospect_id=prospect.id, email_schema_id=email_schema.id, batch_id="123123"
-    )
+    generate_prospect_email(prospect_id=prospect.id, batch_id="123123")
 
     assert get_custom_completion_for_client_mock.called is True
 
@@ -381,7 +376,6 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     assert len(prospect_emails) == 1
     for prospect_email in prospect_emails:
         assert prospect_email.prospect_id == prospect_id
-        assert prospect_email.email_schema_id == email_schema_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
         assert prospect_email.batch_id == "123123"
 
@@ -420,8 +414,6 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     gnlp_model.id = 5
     db.session.add(gnlp_model)
     db.session.commit()
-    email_schema = basic_email_schema(archetype)
-    email_schema_id = email_schema.id
 
     payload = basic_research_payload(prospect=prospect)
     point = basic_research_point(research_payload=payload)
@@ -434,9 +426,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.add(rp)
     db.session.commit()
 
-    generate_prospect_email(
-        prospect_id=prospect.id, email_schema_id=email_schema.id, batch_id="123123"
-    )
+    generate_prospect_email(prospect_id=prospect.id, batch_id="123123")
 
     assert get_custom_completion_for_client_mock.called is True
 
@@ -453,7 +443,6 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     assert len(prospect_emails) == 1
     for prospect_email in prospect_emails:
         assert prospect_email.prospect_id == prospect_id
-        assert prospect_email.email_schema_id == email_schema_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
         assert prospect_email.batch_id == "123123"
 
@@ -472,7 +461,6 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 
     generate_prospect_email(
         prospect_id=another_prospect_id,
-        email_schema_id=email_schema_id,
         batch_id="123123",
     )
 
@@ -507,14 +495,12 @@ def test_batch_generate_emails_for_prospect(
 ):
     client = basic_client()
     archetype = basic_archetype(client)
-    email_schema = basic_email_schema(archetype)
     prospect1 = basic_prospect(client, archetype)
     prospect2 = basic_prospect(client, archetype)
     prospect3 = basic_prospect(client, archetype)
 
     batch_generate_prospect_emails(
         prospect_ids=[prospect1.id, prospect2.id, prospect3.id],
-        email_schema_id=email_schema.id,
     )
     assert generate_email_mock.call_count == 3
 
@@ -567,11 +553,10 @@ def test_change_prospect_email_status_sent():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    email_schema = basic_email_schema(archetype)
     gnlp_model = basic_gnlp_model(archetype)
     generated_message = basic_generated_message(prospect, gnlp_model)
     generated_message_id = generated_message.id
-    prospect_email: ProspectEmail = basic_prospect_email(prospect, email_schema)
+    prospect_email: ProspectEmail = basic_prospect_email(prospect)
     prospect_email.personalized_first_line = generated_message_id
     db.session.add(prospect_email)
     db.session.commit()
@@ -620,11 +605,10 @@ def test_clearing_approved_emails():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    email_schema = basic_email_schema(archetype)
     gnlp_model = basic_gnlp_model(archetype)
     generated_message = basic_generated_message(prospect, gnlp_model)
     generated_message_id = generated_message.id
-    prospect_email: ProspectEmail = basic_prospect_email(prospect, email_schema)
+    prospect_email: ProspectEmail = basic_prospect_email(prospect)
     prospect_email.personalized_first_line = generated_message_id
     db.session.add(prospect_email)
     db.session.commit()

@@ -2,7 +2,7 @@ from app import db
 from src.email_outbound.models import EmailCustomizedFieldTypes
 from model_import import GeneratedMessage
 from src.ml.models import GNLPModelType
-from src.email_outbound.services import create_email_schema, create_prospect_email
+from src.email_outbound.services import create_prospect_email
 from test_utils import (
     basic_client,
     basic_client_sdr,
@@ -10,12 +10,16 @@ from test_utils import (
     basic_gnlp_model,
     basic_prospect,
     basic_generated_message,
-    basic_email_schema,
-    basic_prospect_email
+    basic_prospect_email,
 )
 from decorators import use_app_context
 from test_utils import test_app
-from src.email_outbound.models import EmailSchema, ProspectEmail, ProspectEmailStatus, SalesEngagementInteractionRaw
+from src.email_outbound.models import (
+    EmailSchema,
+    ProspectEmail,
+    ProspectEmailStatus,
+    SalesEngagementInteractionRaw,
+)
 from app import app
 import json
 import mock
@@ -30,29 +34,6 @@ def test_email_field_types():
 
 
 @use_app_context
-def test_create_email_schema():
-    client = basic_client()
-    archetype = basic_archetype(client)
-
-    response = app.test_client().post(
-        "/email_generation/create_email_schema",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "name": "This is a test email schema",
-                "client_archetype_id": archetype.id,
-            }
-        ),
-    )
-    assert response.status_code == 200
-    assert response.data.decode("utf-8") == "OK"
-
-    all_schemas = EmailSchema.query.all()
-    assert len(all_schemas) == 1
-    assert all_schemas[0].name == "This is a test email schema"
-
-
-@use_app_context
 @mock.patch("src.message_generation.services.generate_prospect_email.delay")
 def test_create_prospect_email(generate_prospect_email_mock):
     client = basic_client()
@@ -60,12 +41,6 @@ def test_create_prospect_email(generate_prospect_email_mock):
     gnlp_model = basic_gnlp_model(archetype)
     prospect = basic_prospect(client, archetype)
     prospect_id: int = prospect.id
-    personalized_first_line = basic_generated_message(prospect, gnlp_model)
-
-    email_schema = create_email_schema(
-        name="test",
-        client_archetype_id=archetype.id,
-    )
 
     response = app.test_client().post(
         "/email_generation/batch",
@@ -73,7 +48,6 @@ def test_create_prospect_email(generate_prospect_email_mock):
         data=json.dumps(
             {
                 "prospect_ids": [prospect_id],
-                "email_schema_id": email_schema.id,
             }
         ),
     )
@@ -94,13 +68,7 @@ def test_post_batch_update_emails():
     db.session.add(personalized_first_line)
     db.session.commit()
 
-    email_schema = create_email_schema(
-        name="test",
-        client_archetype_id=archetype.id,
-    )
-
     prospect_email = create_prospect_email(
-        email_schema_id=email_schema.id,
         prospect_id=prospect_id,
         personalized_first_line_id=personalized_first_line.id,
         batch_id=1,
@@ -145,13 +113,7 @@ def test_post_batch_update_emails_failed():
     db.session.add(personalized_first_line)
     db.session.commit()
 
-    email_schema = create_email_schema(
-        name="test",
-        client_archetype_id=archetype.id,
-    )
-
     prospect_email = create_prospect_email(
-        email_schema_id=email_schema.id,
         prospect_id=prospect_id,
         personalized_first_line_id=personalized_first_line.id,
         batch_id=1,
@@ -209,15 +171,20 @@ def test_post_batch_update_emails_failed():
 
 
 @use_app_context
-@mock.patch("src.email_outbound.controllers.convert_outreach_payload_to_ss.apply_async", return_value=1)
-@mock.patch("src.email_outbound.controllers.collect_and_update_status_from_ss_data.s", return_value=True)
+@mock.patch(
+    "src.email_outbound.controllers.convert_outreach_payload_to_ss.apply_async",
+    return_value=1,
+)
+@mock.patch(
+    "src.email_outbound.controllers.collect_and_update_status_from_ss_data.s",
+    return_value=True,
+)
 def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    email_schema = basic_email_schema(archetype)
-    prospect_email = basic_prospect_email(prospect, email_schema)
+    prospect_email = basic_prospect_email(prospect)
 
     response = app.test_client().post(
         "/email_generation/update_status/csv",
@@ -238,12 +205,12 @@ def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_m
                 "client_id": client.id,
                 "client_archetype_id": archetype.id,
                 "client_sdr_id": sdr.id,
-                "payload_source": "OUTREACH"
+                "payload_source": "OUTREACH",
             }
         ),
     )
     assert response.status_code == 200
-    assert response.data == b'Status update is in progress'
+    assert response.data == b"Status update is in progress"
     assert SalesEngagementInteractionRaw.query.count() == 1
     se = SalesEngagementInteractionRaw.query.first()
     assert convert_to_ss_mock.called_once()
@@ -253,7 +220,10 @@ def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_m
 
 
 @use_app_context
-@mock.patch("src.email_outbound.controllers.batch_mark_prospect_email_sent", return_value="something")
+@mock.patch(
+    "src.email_outbound.controllers.batch_mark_prospect_email_sent",
+    return_value="something",
+)
 def test_batch_mark_sent(batch_mark_mock):
     response = app.test_client().post(
         "/email_generation/batch/mark_sent",

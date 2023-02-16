@@ -10,7 +10,6 @@ from test_utils import (
     basic_client,
     basic_archetype,
     basic_client_sdr,
-    basic_email_schema,
     basic_prospect,
     basic_editor,
     basic_prospect_email,
@@ -18,7 +17,12 @@ from test_utils import (
     basic_outbound_campaign,
 )
 from src.campaigns.services import create_outbound_campaign
-from model_import import OutboundCampaign, GeneratedMessageType, ProspectEmailStatus, ProspectEmailOutreachStatus
+from model_import import (
+    OutboundCampaign,
+    GeneratedMessageType,
+    ProspectEmailStatus,
+    ProspectEmailOutreachStatus,
+)
 import mock
 
 
@@ -72,9 +76,15 @@ def test_get_all_campaigns():
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
     prospect = basic_prospect(client, archetype, client_sdr)
-    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Aa")
-    campaign_2 = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Ab")
-    campaign_3 = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr, name="B")
+    campaign = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Aa"
+    )
+    campaign_2 = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="Ab"
+    )
+    campaign_3 = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr, name="B"
+    )
 
     response = app.test_client().post(
         "campaigns/all_campaigns",
@@ -82,7 +92,7 @@ def test_get_all_campaigns():
             "Content-Type": "application/json",
             "Authorization": f"Bearer {get_login_token()}",
         },
-        data=json.dumps({})
+        data=json.dumps({}),
     )
     assert response.status_code == 200
     assert response.json.get("total_count") == 3
@@ -154,8 +164,6 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
-    email_schema = basic_email_schema(archetype=archetype)
-    email_schema_id = email_schema.id
 
     response = app.test_client().post(
         "campaigns/",
@@ -164,7 +172,6 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
             {
                 "prospect_ids": [1, 2, 3, 4],
                 "campaign_type": "EMAIL",
-                "email_schema_id": email_schema_id,
                 "client_archetype_id": archetype.id,
                 "client_sdr_id": client_sdr.id,
                 "campaign_start_date": "2021-01-01",
@@ -184,7 +191,6 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
     assert campaign.campaign_type.value == "EMAIL"
     assert campaign.prospect_ids == [1, 2, 3, 4]
     assert campaign.ctas == None
-    assert campaign.email_schema_id == email_schema_id
     assert campaign.status.value == "PENDING"
 
     response = app.test_client().post(
@@ -697,8 +703,6 @@ def test_merge_multiple_email_campaigns_succeed():
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
-    email_schema = basic_email_schema(archetype=archetype)
-    email_schema_id = email_schema.id
     editor = basic_editor()
     editor_2 = basic_editor()
 
@@ -709,7 +713,6 @@ def test_merge_multiple_email_campaigns_succeed():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-01",
         campaign_end_date="2021-01-01",
-        email_schema_id=email_schema_id,
     )
     campaign1.editor_id = editor.id
     db.session.add(campaign1)
@@ -723,7 +726,6 @@ def test_merge_multiple_email_campaigns_succeed():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-02",
         campaign_end_date="2021-01-05",
-        email_schema_id=email_schema_id,
     )
     campaign2.editor_id = editor.id
     db.session.add(campaign2)
@@ -750,7 +752,6 @@ def test_merge_multiple_email_campaigns_succeed():
     assert campaign.campaign_type.value == "EMAIL"
     assert campaign.client_archetype_id == archetype_id
     assert campaign.client_sdr_id == client_sdr_id
-    assert campaign.email_schema_id == email_schema_id
 
     campaign1 = OutboundCampaign.query.get(campaign1_id)
     campaign2 = OutboundCampaign.query.get(campaign2_id)
@@ -767,8 +768,6 @@ def test_merge_multiple_email_campaigns_failed_for_type():
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
-    email_schema = basic_email_schema(archetype=archetype)
-    email_schema_id = email_schema.id
 
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2],
@@ -777,7 +776,6 @@ def test_merge_multiple_email_campaigns_failed_for_type():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-01",
         campaign_end_date="2021-01-01",
-        email_schema_id=email_schema_id,
     )
     campaign1_id = campaign1.id
     campaign2 = create_outbound_campaign(
@@ -787,7 +785,6 @@ def test_merge_multiple_email_campaigns_failed_for_type():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-02",
         campaign_end_date="2021-01-05",
-        email_schema_id=email_schema_id,
     )
     campaign2_id = campaign2.id
 
@@ -818,8 +815,6 @@ def test_merge_multiple_email_campaigns_failed_for_archetype():
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
-    email_schema = basic_email_schema(archetype=archetype)
-    email_schema_id = email_schema.id
 
     archetype_2 = basic_archetype(client)
     archetype_2_id = archetype_2.id
@@ -831,7 +826,6 @@ def test_merge_multiple_email_campaigns_failed_for_archetype():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-01",
         campaign_end_date="2021-01-01",
-        email_schema_id=email_schema_id,
     )
     campaign1_id = campaign1.id
     campaign2 = create_outbound_campaign(
@@ -841,7 +835,6 @@ def test_merge_multiple_email_campaigns_failed_for_archetype():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-02",
         campaign_end_date="2021-01-05",
-        email_schema_id=email_schema_id,
     )
     campaign2_id = campaign2.id
 
@@ -915,8 +908,6 @@ def test_assign_editor_to_campaign():
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
-    email_schema = basic_email_schema(archetype=archetype)
-    email_schema_id = email_schema.id
 
     campaign = create_outbound_campaign(
         prospect_ids=[1, 2],
@@ -925,7 +916,6 @@ def test_assign_editor_to_campaign():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-01",
         campaign_end_date="2021-01-01",
-        email_schema_id=email_schema_id,
     )
     campaign_id = campaign.id
 
@@ -954,8 +944,6 @@ def test_post_remove_ungenerated_prospects():
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
-    email_schema = basic_email_schema(archetype=archetype)
-    email_schema_id = email_schema.id
 
     cta = basic_generated_message_cta(archetype=archetype)
     cta.active = True
@@ -965,7 +953,7 @@ def test_post_remove_ungenerated_prospects():
     prospect = basic_prospect(archetype=archetype, client=client)
     prospect2 = basic_prospect(archetype=archetype, client=client)
     prospect3 = basic_prospect(archetype=archetype, client=client)
-    email = basic_prospect_email(prospect=prospect, email_schema=email_schema)
+    email = basic_prospect_email(prospect=prospect)
     prospect3.approved_prospect_email_id = email.id
     db.session.add(prospect3)
     db.session.commit()
@@ -979,7 +967,6 @@ def test_post_remove_ungenerated_prospects():
         client_sdr_id=client_sdr_id,
         campaign_start_date="2021-01-01",
         campaign_end_date="2021-01-01",
-        email_schema_id=email_schema_id,
     )
     campaign_id = campaign.id
 
@@ -1016,7 +1003,6 @@ def test_post_remove_ungenerated_prospects():
     assert campaign.client_archetype_id == archetype_id
     assert campaign.ctas == [cta.id]
     assert campaign.client_sdr_id == client_sdr_id
-    assert campaign.email_schema_id is None
 
     all_campaigns = OutboundCampaign.query.all()
     assert len(all_campaigns) == 2
@@ -1027,22 +1013,33 @@ def test_get_campaign_analytics():
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
-    email_schema = basic_email_schema(archetype=archetype)
     prospect = basic_prospect(archetype=archetype, client=client)
     prospect2 = basic_prospect(archetype=archetype, client=client)
     prospect3 = basic_prospect(archetype=archetype, client=client)
-    email = basic_prospect_email(prospect=prospect, email_schema=email_schema, email_status=ProspectEmailStatus.SENT, outreach_status=ProspectEmailOutreachStatus.SENT_OUTREACH)
-    email2 = basic_prospect_email(prospect=prospect2, email_schema=email_schema, email_status=ProspectEmailStatus.SENT, outreach_status=ProspectEmailOutreachStatus.ACCEPTED)
-    email3 = basic_prospect_email(prospect=prospect3, email_schema=email_schema, email_status=ProspectEmailStatus.SENT, outreach_status=ProspectEmailOutreachStatus.ACTIVE_CONVO)
+    email = basic_prospect_email(
+        prospect=prospect,
+        email_status=ProspectEmailStatus.SENT,
+        outreach_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+    )
+    email2 = basic_prospect_email(
+        prospect=prospect2,
+        email_status=ProspectEmailStatus.SENT,
+        outreach_status=ProspectEmailOutreachStatus.ACCEPTED,
+    )
+    email3 = basic_prospect_email(
+        prospect=prospect3,
+        email_status=ProspectEmailStatus.SENT,
+        outreach_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+    )
     prospect_ids = [prospect.id, prospect2.id, prospect3.id]
 
-    campaign = basic_outbound_campaign(prospect_ids, GeneratedMessageType.EMAIL, archetype, client_sdr)
+    campaign = basic_outbound_campaign(
+        prospect_ids, GeneratedMessageType.EMAIL, archetype, client_sdr
+    )
     campaign_id = campaign.id
 
     response = app.test_client().get(
-        "campaigns/get_campaign_analytics?campaign_id={}".format(
-            campaign_id
-        ),
+        "campaigns/get_campaign_analytics?campaign_id={}".format(campaign_id),
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200

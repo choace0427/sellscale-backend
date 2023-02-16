@@ -33,9 +33,6 @@ class OutboundCampaign(db.Model):
     prospect_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
     campaign_type = db.Column(db.Enum(GeneratedMessageType), nullable=False)
     ctas = db.Column(db.ARRAY(db.Integer), nullable=True)
-    email_schema_id = db.Column(
-        db.Integer, db.ForeignKey("email_schema.id"), nullable=True
-    )
     client_archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
@@ -65,7 +62,6 @@ class OutboundCampaign(db.Model):
             "prospect_ids": self.prospect_ids,
             "campaign_type": self.campaign_type.value,
             "ctas": self.ctas,
-            "email_schema_id": self.email_schema_id,
             "client_archetype_id": self.client_archetype_id,
             "client_sdr_id": self.client_sdr_id,
             "campaign_start_date": self.campaign_start_date,

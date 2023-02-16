@@ -22,7 +22,7 @@ from src.campaigns.services import (
     adjust_editing_due_date,
     remove_ungenerated_prospects_from_campaign,
     create_new_li_campaign_from_existing_email_campaign,
-    get_outbound_campaign_analytics
+    get_outbound_campaign_analytics,
 )
 from src.authentication.decorators import require_user
 
@@ -52,27 +52,32 @@ def get_all_campaigns(client_sdr_id: int):
         query = (
             get_request_parameter(
                 "query", request, json=True, required=False, parameter_type=str
-            ) or ""
+            )
+            or ""
         )
         campaign_type = (
             get_request_parameter(
                 "campaign_type", request, json=True, required=False, parameter_type=list
-            ) or None
+            )
+            or None
         )
         status = (
             get_request_parameter(
                 "status", request, json=True, required=False, parameter_type=list
-            ) or None
+            )
+            or None
         )
         limit = (
             get_request_parameter(
                 "limit", request, json=True, required=False, parameter_type=int
-            ) or 10
+            )
+            or 10
         )
         offset = (
             get_request_parameter(
                 "offset", request, json=True, required=False, parameter_type=int
-            ) or 0
+            )
+            or 0
         )
         filters = (
             get_request_parameter(
@@ -101,15 +106,20 @@ def get_all_campaigns(client_sdr_id: int):
     )
 
     total_count = outbound_campaigns_info.get("total_count")
-    outbound_campaigns: list[OutboundCampaign] = outbound_campaigns_info.get("outbound_campaigns")
+    outbound_campaigns: list[OutboundCampaign] = outbound_campaigns_info.get(
+        "outbound_campaigns"
+    )
 
-    return jsonify(
-        {
-            "message": "Success",
-            "total_count": total_count,
-            "outbound_campaigns": [oc.to_dict() for oc in outbound_campaigns]
-        }
-    ), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "total_count": total_count,
+                "outbound_campaigns": [oc.to_dict() for oc in outbound_campaigns],
+            }
+        ),
+        200,
+    )
 
 
 @CAMPAIGN_BLUEPRINT.route("/", methods=["POST"])
@@ -133,16 +143,12 @@ def create_new_campaign():
     campaign_end_date = get_request_parameter(
         "campaign_end_date", request, json=True, required=True
     )
-    email_schema_id = get_request_parameter(
-        "email_schema_id", request, json=True, required=False
-    )
 
     try:
         campaign: OutboundCampaign = create_outbound_campaign(
             prospect_ids=prospect_ids,
             campaign_type=campaign_type,
             ctas=ctas,
-            email_schema_id=email_schema_id,
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
             campaign_start_date=campaign_start_date,
@@ -318,7 +324,9 @@ def get_campaign_analytics() -> tuple[dict, int]:
     Returns:
         tuple[dict, int]: A tuple containing a dictionary of campaign analytics and a status code
     """
-    campaign_id = get_request_parameter("campaign_id", request, json=False, required=True)
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=False, required=True
+    )
     campaign_analytics = get_outbound_campaign_analytics(campaign_id)
 
     return campaign_analytics, 200

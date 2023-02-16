@@ -155,13 +155,11 @@ def research_and_generate_outreaches_for_prospect(
 
 
 @celery.task
-def research_and_generate_emails_for_prospect(prospect_id: int, email_schema_id: int):
+def research_and_generate_emails_for_prospect(prospect_id: int):
     from src.research.linkedin.services import get_research_and_bullet_points_new
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    generate_prospect_email(
-        prospect_id=prospect_id, email_schema_id=email_schema_id, batch_id=None
-    )
+    generate_prospect_email(prospect_id=prospect_id, batch_id=None)
 
 
 def generate_prompt(prospect_id: int, notes: str = ""):
@@ -205,6 +203,7 @@ def generate_batch_of_research_points_from_config(
     all_research_points: list = ResearchPoints.get_research_points_by_prospect_id(
         prospect_id=prospect_id
     )
+
     if not config:
         return generate_batches_of_research_points(
             points=all_research_points, n=n, num_per_perm=2
@@ -560,7 +559,7 @@ def get_personalized_first_line_from_prompt(
     return personalized_first_line
 
 
-def batch_generate_prospect_emails(prospect_ids: list, email_schema_id: int):
+def batch_generate_prospect_emails(prospect_ids: list):
     batch_id = generate_random_alphanumeric(32)
     for prospect_id in prospect_ids:
         does_job_exist = GeneratedMessageJob.query.filter(
@@ -577,7 +576,6 @@ def batch_generate_prospect_emails(prospect_ids: list, email_schema_id: int):
 
         generate_prospect_email.delay(
             prospect_id=prospect_id,
-            email_schema_id=email_schema_id,
             batch_id=batch_id,
             gm_job_id=gm_job_id,
         )
@@ -585,7 +583,7 @@ def batch_generate_prospect_emails(prospect_ids: list, email_schema_id: int):
 
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_email(
-    self, prospect_id: int, email_schema_id: int, batch_id: int, gm_job_id: int = None
+    self, prospect_id: int, batch_id: int, gm_job_id: int = None
 ):
     update_generated_message_job_status(
         gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
@@ -596,15 +594,11 @@ def generate_prospect_email(
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         prospect: Prospect = Prospect.query.get(prospect_id)
-        email_schema: EmailSchema = EmailSchema.query.get(email_schema_id)
         if not prospect:
-            return False
-        if not email_schema:
             return False
 
         prospect_email: ProspectEmail = ProspectEmail.query.filter(
             ProspectEmail.prospect_id == prospect_id,
-            ProspectEmail.email_schema_id == email_schema_id,
         ).first()
         if prospect_email:
             return False
@@ -648,7 +642,6 @@ def generate_prospect_email(
             )
 
             create_prospect_email(
-                email_schema_id=email_schema_id,
                 prospect_id=prospect_id,
                 personalized_first_line_id=personalized_first_line.id,
                 batch_id=batch_id,

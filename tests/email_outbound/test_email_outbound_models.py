@@ -22,23 +22,6 @@ def test_email_field_types():
 
 
 @use_app_context
-def test_email_schema():
-    client = basic_client()
-    archetype = basic_archetype(client)
-    gnlp_model = basic_gnlp_model(archetype)
-
-    email_schema = EmailSchema(
-        name="test",
-        client_archetype_id=archetype.id,
-    )
-    db.session.add(email_schema)
-    db.session.commit()
-
-    all_schemas = EmailSchema.query.all()
-    assert len(all_schemas) == 1
-
-
-@use_app_context
 def test_prospect_email():
     client = basic_client()
     archetype = basic_archetype(client)
@@ -46,18 +29,7 @@ def test_prospect_email():
     prospect = basic_prospect(client, archetype)
     generated_message = basic_generated_message(prospect, gnlp_model)
 
-    email_schema = EmailSchema(
-        name="test",
-        client_archetype_id=archetype.id,
-    )
-    db.session.add(email_schema)
-    db.session.commit()
-
-    all_schemas = EmailSchema.query.all()
-    assert len(all_schemas) == 1
-
     prospect_email: ProspectEmail = ProspectEmail(
-        email_schema_id=email_schema.id,
         prospect_id=prospect.id,
         personalized_first_line=generated_message.id,
     )

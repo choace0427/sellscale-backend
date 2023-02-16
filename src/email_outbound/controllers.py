@@ -6,15 +6,14 @@ from src.message_generation.services import (
     mark_prospect_email_approved,
 )
 from src.email_outbound.services import (
-    create_email_schema,
     batch_update_emails,
     batch_mark_prospect_email_sent,
     create_sales_engagement_interaction_raw,
-    collect_and_update_status_from_ss_data
+    collect_and_update_status_from_ss_data,
 )
 from src.email_outbound.outreach_io.services import (
     validate_outreach_csv_payload,
-    convert_outreach_payload_to_ss
+    convert_outreach_payload_to_ss,
 )
 from src.utils.request_helpers import get_request_parameter
 from tqdm import tqdm
@@ -25,33 +24,12 @@ from src.message_generation.services import (
 EMAIL_GENERATION_BLUEPRINT = Blueprint("email_generation", __name__)
 
 
-@EMAIL_GENERATION_BLUEPRINT.route("/create_email_schema", methods=["POST"])
-def post_create_email_schema():
-    name = get_request_parameter("name", request, json=True, required=True)
-    client_archetype_id = get_request_parameter(
-        "client_archetype_id", request, json=True, required=True
-    )
-
-    email_schema = create_email_schema(
-        name=name, client_archetype_id=client_archetype_id
-    )
-    if email_schema:
-        return "OK", 200
-    return "Could not create email schema.", 400
-
-
 @EMAIL_GENERATION_BLUEPRINT.route("/batch", methods=["POST"])
 def index():
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True
     )
-    email_schema_id = get_request_parameter(
-        "email_schema_id", request, json=True, required=True
-    )
-
-    batch_generate_prospect_emails(
-        prospect_ids=prospect_ids, email_schema_id=email_schema_id
-    )
+    batch_generate_prospect_emails(prospect_ids=prospect_ids)
 
     return "OK", 200
 
@@ -81,7 +59,9 @@ def batch_mark_sent():
     campaign_id = int(campaign_id)
 
     # TODO: something with this message later
-    broadcasted = batch_mark_prospect_email_sent(prospect_ids=prospect_ids, campaign_id=campaign_id)
+    broadcasted = batch_mark_prospect_email_sent(
+        prospect_ids=prospect_ids, campaign_id=campaign_id
+    )
 
     return "OK", 200
 
@@ -108,10 +88,18 @@ def post_batch_update_emails():
 
 @EMAIL_GENERATION_BLUEPRINT.route("/update_status/csv", methods=["POST"])
 def update_status_from_csv_payload():
-    csv_payload: list = get_request_parameter("csv_payload", request, json=True, required=True)
-    client_id: int = get_request_parameter("client_id", request, json=True, required=True)
-    client_sdr_id: int = get_request_parameter("client_sdr_id", request, json=True, required=True)
-    payload_source: str = get_request_parameter("payload_source", request, json=True, required=True)
+    csv_payload: list = get_request_parameter(
+        "csv_payload", request, json=True, required=True
+    )
+    client_id: int = get_request_parameter(
+        "client_id", request, json=True, required=True
+    )
+    client_sdr_id: int = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    payload_source: str = get_request_parameter(
+        "payload_source", request, json=True, required=True
+    )
 
     # Validate the payload
     if payload_source == "OUTREACH":
@@ -136,6 +124,7 @@ def update_status_from_csv_payload():
     if payload_source == "OUTREACH":
         convert_outreach_payload_to_ss.apply_async(
             args=[client_id, client_sdr_id, sei_raw_id, csv_payload],
-            link=collect_and_update_status_from_ss_data.s())
+            link=collect_and_update_status_from_ss_data.s(),
+        )
 
     return "Status update is in progress", 200

@@ -1,7 +1,13 @@
 from app import db
 from src.campaigns.models import *
 from src.client.services import get_client, get_client_sdr
-from model_import import Prospect, GeneratedMessageCTA, ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus, EmailSchema
+from model_import import (
+    Prospect,
+    GeneratedMessageCTA,
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+    ProspectEmailStatus,
+)
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_few_shot,
 )
@@ -17,7 +23,6 @@ from src.utils.random_string import generate_random_alphanumeric
 
 from model_import import ClientArchetype
 from src.utils.slack import send_slack_message, URL_MAP
-from model_import import GeneratedMessage
 
 NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
 
@@ -39,14 +44,24 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
         return {"message": "This campaign does not belong to you", "status_code": 403}
 
     # Get the table values for the available ids. If ids are not available, return empty lists or None.
-    prospects: list[Prospect] = Prospect.query.filter(Prospect.id.in_(oc.prospect_ids)).all() if oc.prospect_ids else []
+    prospects: list[Prospect] = (
+        Prospect.query.filter(Prospect.id.in_(oc.prospect_ids)).all()
+        if oc.prospect_ids
+        else []
+    )
     prospects = [p.to_dict() for p in prospects] if prospects else []
-    ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(GeneratedMessageCTA.id.in_(oc.ctas)).all() if oc.ctas else []
+    ctas: list[GeneratedMessageCTA] = (
+        GeneratedMessageCTA.query.filter(GeneratedMessageCTA.id.in_(oc.ctas)).all()
+        if oc.ctas
+        else []
+    )
     ctas = [cta.to_dict() for cta in ctas] if ctas else []
-    client_archetype: ClientArchetype = ClientArchetype.query.get(oc.client_archetype_id) if oc.client_archetype_id else None
+    client_archetype: ClientArchetype = (
+        ClientArchetype.query.get(oc.client_archetype_id)
+        if oc.client_archetype_id
+        else None
+    )
     client_archetype = client_archetype.to_dict() if client_archetype else None
-    email_schema: EmailSchema = EmailSchema.query.get(oc.email_schema_id) if oc.email_schema_id else None
-    email_schema = email_schema.to_dict() if email_schema else None
 
     return {
         "campaign_details": {
@@ -55,7 +70,6 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
             "prospects": prospects,
             "ctas": ctas,
             "client_archetype": client_archetype,
-            "email_schema": email_schema,
         },
         "message": "Success",
         "status_code": 200,
@@ -63,14 +77,14 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
 
 
 def get_outbound_campaigns(
-        client_sdr_id: int,
-        query: Optional[str] = "",
-        campaign_type: Optional[list[str]] = None,
-        status: Optional[list[str]] = None,
-        limit: Optional[int] = 10,
-        offset: Optional[int] = 0,
-        filters: Optional[list[dict[str, int]]] = [],
-    ) -> dict[int, list[OutboundCampaign]]:
+    client_sdr_id: int,
+    query: Optional[str] = "",
+    campaign_type: Optional[list[str]] = None,
+    status: Optional[list[str]] = None,
+    limit: Optional[int] = 10,
+    offset: Optional[int] = 0,
+    filters: Optional[list[dict[str, int]]] = [],
+) -> dict[int, list[OutboundCampaign]]:
     """Gets outbound campaigns belonging to the SDR, with optional query and filters.
 
     Authorization required.
@@ -145,12 +159,13 @@ def get_outbound_campaigns(
 
     # Construct query
     outbound_campaigns = (
-        OutboundCampaign.query
-        .filter((OutboundCampaign.campaign_type.in_(filtered_campaign_type)))
+        OutboundCampaign.query.filter(
+            (OutboundCampaign.campaign_type.in_(filtered_campaign_type))
+        )
         .filter((OutboundCampaign.status.in_(filtered_status)))
         .filter(
             OutboundCampaign.client_sdr_id == client_sdr_id,
-            OutboundCampaign.name.ilike(f"%{query}%")
+            OutboundCampaign.name.ilike(f"%{query}%"),
         )
         .order_by(ordering[0])
         .order_by(ordering[1])
@@ -172,7 +187,6 @@ def create_outbound_campaign(
     campaign_start_date: datetime,
     campaign_end_date: datetime,
     ctas: Optional[list] = None,
-    email_schema_id: Optional[int] = None,
 ) -> OutboundCampaign:
     """Creates a new outbound campaign
 
@@ -194,9 +208,6 @@ def create_outbound_campaign(
     name = (
         ca.archetype + ", " + str(len(prospect_ids)) + ", " + str(campaign_start_date)
     )
-
-    if campaign_type == GeneratedMessageType.EMAIL and email_schema_id is None:
-        raise Exception("Email campaign type requires an email schema id")
     if campaign_type == GeneratedMessageType.LINKEDIN and ctas is None:
         raise Exception("LinkedIn campaign type requires a list of CTAs")
 
@@ -218,7 +229,6 @@ def create_outbound_campaign(
         prospect_ids=prospect_ids,
         campaign_type=campaign_type,
         ctas=ctas,
-        email_schema_id=email_schema_id,
         client_archetype_id=client_archetype_id,
         client_sdr_id=client_sdr_id,
         campaign_start_date=campaign_start_date,
@@ -246,9 +256,7 @@ def generate_campaign(campaign_id: int):
     db.session.commit()
 
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
-        batch_generate_prospect_emails(
-            prospect_ids=campaign.prospect_ids, email_schema_id=campaign.email_schema_id
-        )
+        batch_generate_prospect_emails(prospect_ids=campaign.prospect_ids)
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
         generate_outreaches_for_prospect_list_from_multiple_ctas(
             prospect_ids=campaign.prospect_ids,
@@ -574,10 +582,6 @@ def merge_outbound_campaigns(campaign_ids: list):
     if len(campaign_types) > 1:
         raise Exception("Campaigns must be of the same type")
 
-    email_schema_ids = set([c.email_schema_id for c in campaigns])
-    if len(email_schema_ids) > 1:
-        raise Exception("Campaigns must be of the same email schema")
-
     client_archetype_ids = set([c.client_archetype_id for c in campaigns])
     if len(client_archetype_ids) > 1:
         raise Exception("Campaigns must be of the same client archetype")
@@ -600,7 +604,6 @@ def merge_outbound_campaigns(campaign_ids: list):
     prospect_ids = list(set().union(*[c.prospect_ids for c in campaigns]))
     campaign_type = campaigns[0].campaign_type
     ctas = list(set().union(*[c.ctas for c in campaigns if c.ctas]))
-    email_schema_id = campaigns[0].email_schema_id
     client_archetype_id = campaigns[0].client_archetype_id
     client_sdr_id = campaigns[0].client_sdr_id
     campaign_start_date = min([c.campaign_start_date for c in campaigns])
@@ -614,7 +617,6 @@ def merge_outbound_campaigns(campaign_ids: list):
         campaign_start_date=campaign_start_date,
         campaign_end_date=campaign_end_date,
         ctas=ctas,
-        email_schema_id=email_schema_id,
     )
     campaign.status = campaigns[0].status
     campaign.editor_id = campaigns[0].editor_id
@@ -661,7 +663,6 @@ def split_outbound_campaigns(original_campaign_id: int, num_campaigns: int):
             campaign_start_date=original_campaign.campaign_start_date,
             campaign_end_date=original_campaign.campaign_end_date,
             ctas=original_campaign.ctas,
-            email_schema_id=original_campaign.email_schema_id,
         )
         campaign.status = original_campaign_status
         campaign.name = "Split - Batch#{i} of {num_campaigns} ({original})".format(

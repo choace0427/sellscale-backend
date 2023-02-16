@@ -93,9 +93,6 @@ class ProspectEmail(db.Model):
     __tablename__ = "prospect_email"
 
     id = db.Column(db.Integer, primary_key=True)
-    email_schema_id = db.Column(
-        db.Integer, db.ForeignKey("email_schema.id"), nullable=False
-    )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
     email_status = db.Column(db.Enum(ProspectEmailStatus), nullable=True)
     outreach_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=True)

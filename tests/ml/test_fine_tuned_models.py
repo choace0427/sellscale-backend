@@ -1,13 +1,7 @@
 from app import db, app
 from test_utils import (
-    test_app,
     basic_client,
     basic_archetype,
-    basic_generated_message,
-    basic_gnlp_model,
-    basic_prospect,
-    basic_email_schema,
-    basic_prospect_email,
 )
 from decorators import use_app_context
 from src.message_generation.services import *
@@ -15,6 +9,7 @@ from model_import import GeneratedMessageCTA, GeneratedMessage, GeneratedMessage
 from src.research.models import ResearchPointType, ResearchType
 from src.client.services import create_client
 from model_import import Client, ProspectStatus
+from test_utils import test_app
 from app import db
 import mock
 import json

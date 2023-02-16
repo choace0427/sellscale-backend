@@ -39,7 +39,11 @@ from model_import import (
     ProspectEmailOutreachStatus,
     GeneratedMessageType,
 )
-from src.daily_notifications.models import DailyNotification, NotificationStatus, NotificationType
+from src.daily_notifications.models import (
+    DailyNotification,
+    NotificationStatus,
+    NotificationType,
+)
 from typing import Optional
 from datetime import datetime
 
@@ -131,8 +135,17 @@ def basic_archetype(client: Client) -> ClientArchetype:
     return a
 
 
-
-def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: ClientSDR = None, email: Optional[str] = 'test@email.com', li_conversation_thread_id: Optional[str] = '', status = ProspectStatus.PROSPECTED, full_name: Optional[str] = 'Testing Testasara', title: Optional[str] = 'Testing Director', company: Optional[str] = '') -> Prospect:
+def basic_prospect(
+    client: Client,
+    archetype: ClientArchetype,
+    client_sdr: ClientSDR = None,
+    email: Optional[str] = "test@email.com",
+    li_conversation_thread_id: Optional[str] = "",
+    status=ProspectStatus.PROSPECTED,
+    full_name: Optional[str] = "Testing Testasara",
+    title: Optional[str] = "Testing Director",
+    company: Optional[str] = "",
+) -> Prospect:
     client_sdr_id = None
     if client_sdr:
         client_sdr_id = client_sdr.id
@@ -153,13 +166,23 @@ def basic_prospect(client: Client, archetype: ClientArchetype, client_sdr: Clien
 
 
 def basic_client_sdr(client: Client) -> ClientSDR:
-    sdr = ClientSDR(client_id=client.id, name="Test SDR", email="test@test.com", auth_token="TEST_AUTH_TOKEN")
+    sdr = ClientSDR(
+        client_id=client.id,
+        name="Test SDR",
+        email="test@test.com",
+        auth_token="TEST_AUTH_TOKEN",
+    )
     db.session.add(sdr)
     db.session.commit()
     return sdr
 
 
-def basic_daily_notification(client_sdr: ClientSDR, status: NotificationStatus, type: NotificationType = 'UNKNOWN', prospect_id: int = -1) -> DailyNotification:
+def basic_daily_notification(
+    client_sdr: ClientSDR,
+    status: NotificationStatus,
+    type: NotificationType = "UNKNOWN",
+    prospect_id: int = -1,
+) -> DailyNotification:
     dnot = DailyNotification(
         client_sdr_id=client_sdr.id,
         type=type,
@@ -194,7 +217,7 @@ def basic_outbound_campaign(
     campaign_type: GeneratedMessageType,
     client_archetype: ClientArchetype,
     client_sdr: ClientSDR,
-    name: str = "test_campaign"
+    name: str = "test_campaign",
 ):
     from model_import import OutboundCampaignStatus
     from datetime import datetime
@@ -261,27 +284,13 @@ def basic_generated_message_cta_with_text(archetype: ClientArchetype, text_value
     return g_cta
 
 
-def basic_email_schema(archetype: ClientArchetype):
-    from model_import import EmailSchema
-
-    e = EmailSchema(
-        name="Test Schema",
-        client_archetype_id=archetype.id,
-    )
-    db.session.add(e)
-    db.session.commit()
-    return e
-
-
 def basic_prospect_email(
     prospect: Prospect,
-    email_schema: EmailSchema,
     email_status: ProspectEmailStatus = ProspectEmailStatus.DRAFT,
     outreach_status: ProspectEmailOutreachStatus = ProspectEmailOutreachStatus.UNKNOWN,
 ) -> ProspectEmail:
 
     p = ProspectEmail(
-        email_schema_id=email_schema.id,
         prospect_id=prospect.id,
         email_status=email_status,
         outreach_status=outreach_status,
@@ -402,7 +411,9 @@ def basic_sei_raw(
     return s
 
 
-def basic_sei_ss(client: Client, client_sdr: ClientSDR, sei_raw: SalesEngagementInteractionRaw):
+def basic_sei_ss(
+    client: Client, client_sdr: ClientSDR, sei_raw: SalesEngagementInteractionRaw
+):
     from model_import import SalesEngagementInteractionSS
 
     s = SalesEngagementInteractionSS(
