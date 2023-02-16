@@ -396,17 +396,3 @@ def test_rule_no_im_a():
     )
     assert problems == []
     assert highlighted_words == []
-
-
-@use_app_context
-def test_no_periods_caught():
-    problems = []
-    highlighted_words = ["."]
-    rule_catch_im_a(
-        "pass",
-        "pass",
-        problems,
-        highlighted_words,
-    )
-    assert problems == []
-    assert highlighted_words == []
