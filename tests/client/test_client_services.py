@@ -1,10 +1,11 @@
 from app import app, db
 from decorators import use_app_context
-from model_import import Client, ClientArchetype, ClientSDR, GNLPModel
+from model_import import Client, ClientArchetype, ClientSDR, GNLPModel, ProspectOverallStatus
 from test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
+    basic_prospect,
     basic_archetype,
     basic_generated_message_cta
 )
@@ -14,6 +15,7 @@ from src.client.services import (
     create_client_archetype,
     get_ctas,
     get_client_archetypes,
+    get_client_archetype_performance
 )
 import json
 import mock
@@ -25,9 +27,11 @@ def test_get_client_archetypes():
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
     archetype = basic_archetype(client, client_sdr)
+    p = basic_prospect(client, archetype, client_sdr)
 
     result = get_client_archetypes(client_sdr.id)
     assert len(result) == 1
+    assert result[0].get("performance").get("status_map").get("PROSPECTED") == 1
 
     archetype_2 = basic_archetype(client, client_sdr)
     result = get_client_archetypes(client_sdr.id)
@@ -39,6 +43,20 @@ def test_get_client_archetypes():
     db.session.commit()
     result = get_client_archetypes(client_sdr_id, "Another")
     assert len(result) == 1
+
+
+@use_app_context
+def test_get_client_archetype_performance():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    prospect_2 = basic_prospect(client, archetype, client_sdr, overall_status=ProspectOverallStatus.DEMO)
+
+    result = get_client_archetype_performance(client_sdr.id, archetype.id)
+    assert result.get("status_map").get("PROSPECTED") == 1
+    assert result.get("status_map").get("DEMO") == 1
+    assert result.get("total_prospects") == 2
 
 
 @use_app_context

@@ -10,6 +10,7 @@ from src.prospecting.models import (
     ProspectUploadsStatus,
     ProspectUploadsErrorType,
     ProspectNote,
+    ProspectOverallStatus,
 )
 from src.research.models import (
     ResearchPayload,

@@ -1,7 +1,7 @@
 from app import app, db
 from model_import import Client, ClientArchetype, ClientSDR, ResearchPointType
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_generated_message_cta, get_login_token
+from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_generated_message_cta, get_login_token, basic_prospect
 
 import json
 import mock
@@ -11,8 +11,8 @@ import mock
 def test_get_archetypes():
     client = basic_client()
     client_sdr = basic_client_sdr(client)
-    client_sdr_id = client_sdr.id
     archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
 
     response = app.test_client().get(
         "client/archetype/get_archetypes",
@@ -20,8 +20,12 @@ def test_get_archetypes():
             "Authorization": "Bearer {}".format(get_login_token()),
         }
     )
+    r_json = response.json
     assert response.status_code == 200
-    assert len(response.json.get("archetypes")) == 1
+    assert len(r_json.get("archetypes")) == 1
+    assert r_json.get("archetypes")[0].get("id") == archetype.id
+    assert r_json.get("archetypes")[0].get("performance").get("total_prospects") == 1
+    assert r_json.get("archetypes")[0].get("performance").get("status_map").get("PROSPECTED") == 1
 
 
 @use_app_context

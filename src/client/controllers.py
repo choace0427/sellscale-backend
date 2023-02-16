@@ -103,7 +103,7 @@ def get_archetypes(client_sdr_id: int):
     archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
     return jsonify({
         "message": "Success",
-        "archetypes": [archetype.to_dict() for archetype in archetypes]
+        "archetypes": archetypes
     }), 200
 
 

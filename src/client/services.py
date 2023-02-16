@@ -5,7 +5,7 @@ from src.client.models import Client, ClientArchetype, ClientSDR
 from src.message_generation.models import GeneratedMessageCTA
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
-from src.prospecting.models import ProspectStatus
+from src.prospecting.models import ProspectStatus, Prospect
 from typing import Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
@@ -62,11 +62,48 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
     Returns:
         list: The list of Client Archetypes
     """
-    client_archetypes = ClientArchetype.query.filter(
+    client_archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
         ClientArchetype.archetype.ilike(f"%{query}%")
     ).all()
-    return client_archetypes
+
+    client_archetype_dicts = []
+    for ca in client_archetypes:
+        performance = get_client_archetype_performance(client_sdr_id, ca.id)
+        merged_dicts = {**ca.to_dict(), **{"performance": performance}}
+        client_archetype_dicts.append(merged_dicts)
+
+    return client_archetype_dicts
+
+
+def get_client_archetype_performance(client_sdr_id: int, client_archetype_id: int) -> dict:
+    """Gets the performance of a Client Archetype
+
+    Args:
+        client_archetype_id (int): The ID of the Client Archetype
+
+    Returns:
+        dict: Client Archetype and performance statistics
+    """
+    # Get Prospects and find total_count and status_count
+    archetype_prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.archetype_id == client_archetype_id
+    ).all()
+    status_map = {}
+    for p in archetype_prospects:
+        if p.overall_status.value in status_map:
+            status_map[p.overall_status.value] += 1
+        else:
+            status_map[p.overall_status.value] = 1
+    total_prospects = len(archetype_prospects)
+
+    performance = {
+        "total_prospects": total_prospects,
+        "status_map": status_map
+    }
+
+    return performance
 
 
 def get_client_archetype(client_archetype_id: int):
