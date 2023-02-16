@@ -49,7 +49,7 @@ class ProspectStatus(enum.Enum):
             "NOT_QUALIFIED": "Not Qualified",
             "SENT_OUTREACH": "Sent Outreach",
             "ACCEPTED": "Accepted",
-            "RESPONDED": "Responded",
+            "RESPONDED": "Bumped",
             "ACTIVE_CONVO": "Active Convo",
             "SCHEDULING": "Scheduling",
             "NOT_INTERESTED": "Not Interested",
