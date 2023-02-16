@@ -475,13 +475,21 @@ def get_stack_ranked_configuration_priority_endpoint():
         "prospect_id", request, json=False, required=False
     )
 
-    configurations = get_stack_ranked_config_ordering(
+    ordered_configuration_lists = get_stack_ranked_config_ordering(
         generated_message_type=generated_message_type,
         archetype_id=archetype_id,
         client_id=client_id,
         prospect_id=prospect_id,
     )
-    return jsonify([config.to_dict() for config in configurations]), 200
+    return (
+        jsonify(
+            [
+                [config.to_dict() for config in config_list]
+                for config_list in ordered_configuration_lists
+            ]
+        ),
+        200,
+    )
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

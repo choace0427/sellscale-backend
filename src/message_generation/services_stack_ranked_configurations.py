@@ -241,7 +241,18 @@ def get_stack_ranked_config_ordering(
                     filtered_ordered_srmgcs.append(srmgc)
         ordered_srmgcs = filtered_ordered_srmgcs
 
-    return ordered_srmgcs
+    priority_groups = {}
+    for srgmc in ordered_srmgcs:
+        srgmc: StackRankedMessageGenerationConfiguration = srgmc
+        if not priority_groups.get(srgmc.priority):
+            priority_groups[srgmc.priority] = []
+        priority_groups[srgmc.priority].append(srgmc)
+
+    priority_group_list = [
+        priority_groups[k] for k in sorted(priority_groups, reverse=True)
+    ]
+
+    return priority_group_list
 
 
 def toggle_stack_ranked_message_configuration_active(

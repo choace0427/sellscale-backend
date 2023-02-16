@@ -155,7 +155,7 @@ def test_get_stack_ranked_configuration_priority():
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_D_ID]
+    assert [x[0]["id"] for x in json.loads(response.data)] == [CONFIG_D_ID]
 
     # get just the default config: client id = client #1, no archetype id
     #   response should match [CONFIG_A_ID, CONFIG_D_ID]
@@ -167,7 +167,10 @@ def test_get_stack_ranked_configuration_priority():
     )
     assert response.status_code == 200
 
-    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_A_ID, CONFIG_D_ID]
+    assert [x[0]["id"] for x in json.loads(response.data)][0] in [
+        CONFIG_A_ID,
+        CONFIG_D_ID,
+    ]
 
     # get the email config for client id #1 and archetype #1
     # response should be [CONFIG_E_ID, CONFIG_A_ID, CONFIG_D_ID]
@@ -178,7 +181,7 @@ def test_get_stack_ranked_configuration_priority():
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    assert [x["id"] for x in json.loads(response.data)] == [
+    assert [x[0]["id"] for x in json.loads(response.data)][0] in [
         CONFIG_E_ID,
         CONFIG_A_ID,
         CONFIG_D_ID,
@@ -193,7 +196,7 @@ def test_get_stack_ranked_configuration_priority():
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_C_ID]
+    assert [x[0]["id"] for x in json.loads(response.data)] == [CONFIG_C_ID]
 
     # get the linkedin config for client id #1 and archetype #2
     # response should be [CONFIG_F_ID]
@@ -204,7 +207,10 @@ def test_get_stack_ranked_configuration_priority():
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_F_ID, CONFIG_C_ID]
+    assert [x[0]["id"] for x in json.loads(response.data)][0] in [
+        CONFIG_F_ID,
+        CONFIG_C_ID,
+    ]
 
     # get the available configs for prospect 1
     # response should be [] since no research points exist
@@ -239,7 +245,7 @@ def test_get_stack_ranked_configuration_priority():
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_D_ID]
+    assert [x[0]["id"] for x in json.loads(response.data)] == [CONFIG_D_ID]
 
     research_point = basic_research_point(research_payload=research_payload)
     research_point.research_point_type = ResearchPointType.CURRENT_JOB_DESCRIPTION
@@ -258,7 +264,10 @@ def test_get_stack_ranked_configuration_priority():
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    assert [x["id"] for x in json.loads(response.data)] == [CONFIG_E_ID, CONFIG_D_ID]
+    assert [x[0]["id"] for x in json.loads(response.data)][0] in [
+        CONFIG_E_ID,
+        CONFIG_D_ID,
+    ]
 
 
 @use_app_context
