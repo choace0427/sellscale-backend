@@ -465,6 +465,8 @@ def add_prospect(
     industry: Optional[str] = None,
     linkedin_url: Optional[str] = None,
     linkedin_bio: Optional[str] = None,
+    linkedin_num_followers: Optional[int] = None,
+    linkedin_bio_exists: Optional[bool] = None,
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
     email: Optional[str] = None,
@@ -508,6 +510,8 @@ def add_prospect(
             status=status,
             email=email,
             client_sdr_id=client_sdr_id,
+            li_num_followers=linkedin_num_followers,
+            li_bio_present=linkedin_bio_exists,
         )
         db.session.add(prospect)
         db.session.commit()
@@ -603,6 +607,10 @@ def create_prospect_from_linkedin_link(
         title = deep_get(payload, "sub_title")
         twitter_url = None
 
+        # Health Check fields
+        followers_count = deep_get(payload, "network_info.followers_count") or 0
+        summary_exists = True if deep_get(payload, "summary") != None else False
+
         add_prospect(
             client_id=client_id,
             archetype_id=archetype_id,
@@ -617,6 +625,8 @@ def create_prospect_from_linkedin_link(
             title=title,
             twitter_url=twitter_url,
             email=email,
+            linkedin_num_followers=followers_count,
+            linkedin_bio_exists=summary_exists,
         )
 
         return True

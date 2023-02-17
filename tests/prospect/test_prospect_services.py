@@ -335,6 +335,25 @@ def test_add_prospect():
     prospects = Prospect.query.all()
     assert len(prospects) == 3
 
+    add_prospect(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
+        company="testing 2",
+        company_url="testing.com",
+        employee_count="10-100",
+        full_name="testing david",
+        industry="saas",
+        linkedin_url="12381",
+        linkedin_bio="something",
+        title="testing",
+        twitter_url="testing",
+        linkedin_bio_exists=True,
+        linkedin_num_followers=100
+    )
+    prospects = Prospect.query.filter(Prospect.li_num_followers > 0).all()
+    assert len(prospects) == 1
+
 
 @use_app_context
 def test_get_linkedin_slug_from_url():

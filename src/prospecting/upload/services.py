@@ -268,6 +268,10 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
         title = deep_get(iscraper_payload, "position_groups.0.profile_positions.0.title") or deep_get(iscraper_payload, "sub_title")
         twitter_url = None
 
+        # Health Check fields
+        followers_count = deep_get(iscraper_payload, "network_info.followers_count") or 0
+        summary_exists = True if deep_get(iscraper_payload, "summary") != None else False
+
         # Add prospect
         added = add_prospect(
             client_id=prospect_upload.client_id,
@@ -283,6 +287,8 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             title=title,
             twitter_url=twitter_url,
             email=email,
+            linkedin_num_followers=followers_count,
+            linkedin_bio_exists=summary_exists,
         )
         if added:
             prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE
