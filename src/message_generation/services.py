@@ -269,44 +269,49 @@ def generate_linkedin_outreaches_with_configurations(
     if has_any_linkedin_messages(prospect_id=prospect_id):
         return None
     NUM_GENERATIONS = 3
-    TOP_CONFIGURATION: Optional[
-        StackRankedMessageGenerationConfiguration
-    ] = get_top_stack_ranked_config_ordering(
-        generated_message_type=GeneratedMessageType.LINKEDIN.value,
-        prospect_id=prospect_id,
-    )
-    perms = generate_batch_of_research_points_from_config(
-        prospect_id=prospect_id, config=TOP_CONFIGURATION, n=NUM_GENERATIONS
-    )
-    outreaches = []
-
-    for perm in perms:
-        notes, research_points, _ = get_notes_and_points_from_perm(perm, cta_id=cta_id)
-        prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
-
-        if len(research_points) == 0:
-            continue
-        completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
-
-        outreaches.append(completion)
-
-        message: GeneratedMessage = GeneratedMessage(
+    for i in range(NUM_GENERATIONS):
+        TOP_CONFIGURATION: Optional[
+            StackRankedMessageGenerationConfiguration
+        ] = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
             prospect_id=prospect_id,
-            research_points=research_points,
-            prompt=prompt,
-            completion=completion,
-            message_status=GeneratedMessageStatus.DRAFT,
-            batch_id=batch_id,
-            adversarial_ai_prediction=False,
-            message_cta=cta_id,
-            message_type=GeneratedMessageType.LINKEDIN,
-            few_shot_prompt=few_shot_prompt,
-            stack_ranked_message_generation_configuration_id=TOP_CONFIGURATION.id
-            if TOP_CONFIGURATION
-            else None,
         )
-        db.session.add(message)
-        db.session.commit()
+        perms = generate_batch_of_research_points_from_config(
+            prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
+        )
+        outreaches = []
+
+        for perm in perms:
+            notes, research_points, _ = get_notes_and_points_from_perm(
+                perm, cta_id=cta_id
+            )
+            prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+
+            if len(research_points) == 0:
+                continue
+            completion, few_shot_prompt = get_config_completion(
+                TOP_CONFIGURATION, prompt
+            )
+
+            outreaches.append(completion)
+
+            message: GeneratedMessage = GeneratedMessage(
+                prospect_id=prospect_id,
+                research_points=research_points,
+                prompt=prompt,
+                completion=completion,
+                message_status=GeneratedMessageStatus.DRAFT,
+                batch_id=batch_id,
+                adversarial_ai_prediction=False,
+                message_cta=cta_id,
+                message_type=GeneratedMessageType.LINKEDIN,
+                few_shot_prompt=few_shot_prompt,
+                stack_ranked_message_generation_configuration_id=TOP_CONFIGURATION.id
+                if TOP_CONFIGURATION
+                else None,
+            )
+            db.session.add(message)
+            db.session.commit()
 
     return outreaches
 
