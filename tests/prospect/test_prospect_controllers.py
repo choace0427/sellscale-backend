@@ -405,7 +405,7 @@ def test_get_valid_channel_types():
         },
     )
     assert response.status_code == 200
-    assert response.json == {"choices": [{"LINKEDIN": "Linkedin"}]}
+    assert response.json == {"choices": [{"label": "Linkedin", "value": "Linkedin"}]}
 
     prospect = Prospect.query.get(prospect_id)
     prospect.approved_prospect_email_id = email_id
@@ -422,4 +422,9 @@ def test_get_valid_channel_types():
         },
     )
     assert response.status_code == 200
-    assert response.json == {"choices": [{"LINKEDIN": "Linkedin"}, {"EMAIL": "Email"}]}
+    assert response.json == {
+        "choices": [
+            {"label": "Linkedin", "value": "Linkedin"},
+            {"label": "Email", "value": "Linkedin"},
+        ]
+    }

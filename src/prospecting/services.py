@@ -1029,7 +1029,7 @@ def get_valid_channel_type_choices(prospect_id: int):
         return []
     valid_channel_types = []
     if prospect.approved_outreach_message_id:
-        valid_channel_types.append({"LINKEDIN": "Linkedin"})
+        valid_channel_types.append({"label": "Linkedin", "value": "Linkedin"})
     if prospect.approved_prospect_email_id:
-        valid_channel_types.append({"EMAIL": "Email"})
+        valid_channel_types.append({"label": "Email", "value": "Linkedin"})
     return valid_channel_types
