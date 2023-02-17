@@ -139,14 +139,12 @@ def research_and_generate_outreaches_for_prospect(
 
         try:
             prospect: Prospect = Prospect.query.get(prospect_id)
+            get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
             if prospect.client_id == 1:  # only for SellScale for now
                 generate_linkedin_outreaches_with_configurations(
                     prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
                 )
             else:
-                get_research_and_bullet_points_new(
-                    prospect_id=prospect_id, test_mode=False
-                )
                 generate_linkedin_outreaches(
                     prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
                 )
