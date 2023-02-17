@@ -301,6 +301,9 @@ def generate_linkedin_outreaches_with_configurations(
             message_cta=cta_id,
             message_type=GeneratedMessageType.LINKEDIN,
             few_shot_prompt=few_shot_prompt,
+            stack_ranked_message_generation_configuration_id=TOP_CONFIGURATION.id
+            if TOP_CONFIGURATION
+            else None,
         )
         db.session.add(message)
         db.session.commit()
