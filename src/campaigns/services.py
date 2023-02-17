@@ -15,8 +15,13 @@ from model_import import (
     OutboundCampaign,
     OutboundCampaignStatus,
     GeneratedMessageType,
-    ClientArchetype
+    ClientArchetype,
 )
+from tqdm import tqdm
+from src.message_generation.services import (
+    wipe_prospect_email_and_generations_and_research,
+)
+from src.research.linkedin.services import reset_prospect_research_and_messages
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_few_shot,
 )
@@ -83,16 +88,16 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
 
 
 def get_outbound_campaigns(
-        client_sdr_id: int,
-        query: Optional[str] = "",
-        campaign_start_date: Optional[str] = None,
-        campaign_end_date: Optional[str] = None,
-        campaign_type: Optional[list[str]] = None,
-        status: Optional[list[str]] = None,
-        limit: Optional[int] = 10,
-        offset: Optional[int] = 0,
-        filters: Optional[list[dict[str, int]]] = [],
-    ) -> dict[int, list[OutboundCampaign]]:
+    client_sdr_id: int,
+    query: Optional[str] = "",
+    campaign_start_date: Optional[str] = None,
+    campaign_end_date: Optional[str] = None,
+    campaign_type: Optional[list[str]] = None,
+    status: Optional[list[str]] = None,
+    limit: Optional[int] = 10,
+    offset: Optional[int] = 0,
+    filters: Optional[list[dict[str, int]]] = [],
+) -> dict[int, list[OutboundCampaign]]:
     """Gets outbound campaigns belonging to the SDR, with optional query and filters.
 
     Authorization required.
@@ -168,13 +173,21 @@ def get_outbound_campaigns(
         filtered_campaign_type = GeneratedMessageType.all_types()
 
     # Set date filter. If no date is provided, set to default values.
-    campaign_start_date = campaign_start_date or datetime.datetime(datetime.MINYEAR, 1, 1).strftime("%Y-%m-%d")
-    campaign_end_date = campaign_end_date or datetime.datetime(datetime.MAXYEAR, 1, 1).strftime("%Y-%m-%d")
+    campaign_start_date = campaign_start_date or datetime.datetime(
+        datetime.MINYEAR, 1, 1
+    ).strftime("%Y-%m-%d")
+    campaign_end_date = campaign_end_date or datetime.datetime(
+        datetime.MAXYEAR, 1, 1
+    ).strftime("%Y-%m-%d")
 
     # Construct query
     outbound_campaigns = (
-        OutboundCampaign.query
-        .filter(and_(OutboundCampaign.campaign_start_date >= campaign_start_date, OutboundCampaign.campaign_end_date <= campaign_end_date))
+        OutboundCampaign.query.filter(
+            and_(
+                OutboundCampaign.campaign_start_date >= campaign_start_date,
+                OutboundCampaign.campaign_end_date <= campaign_end_date,
+            )
+        )
         .filter((OutboundCampaign.campaign_type.in_(filtered_campaign_type)))
         .filter((OutboundCampaign.status.in_(filtered_status)))
         .filter(
@@ -966,3 +979,22 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
 
 def get_linkedin_campaign_analytics():
     return "Not yet implemented"
+
+
+def wipe_campaign_generations(campaign_id: int):
+    """Wipes all messages generations for a campaign
+
+    Args:
+        campaign_id (int): Campaign id
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        raise Exception("Campaign not found")
+
+    prospect_ids = campaign.prospect_ids
+    if campaign.campaign_type == GeneratedMessageType.EMAIL:
+        for p_id in tqdm(prospect_ids):
+            wipe_prospect_email_and_generations_and_research(p_id)
+    elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
+        for p_id in tqdm(prospect_ids):
+            reset_prospect_research_and_messages(p_id)
