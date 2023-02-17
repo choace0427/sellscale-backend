@@ -1021,3 +1021,15 @@ def calculate_prospect_overall_status(prospect_id: int):
         db.session.commit()
 
     return None
+
+
+def get_valid_channel_type_choices(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return []
+    valid_channel_types = []
+    if prospect.approved_outreach_message_id:
+        valid_channel_types.append({"LINKEDIN": "Linkedin"})
+    if prospect.approved_prospect_email_id:
+        valid_channel_types.append({"EMAIL": "Email"})
+    return valid_channel_types

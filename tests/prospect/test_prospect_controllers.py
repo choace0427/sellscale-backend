@@ -5,6 +5,9 @@ from test_utils import (
     basic_prospect,
     test_app,
     basic_client_sdr,
+    basic_generated_message,
+    basic_gnlp_model,
+    basic_prospect_email,
     basic_research_payload,
     get_login_token,
 )
@@ -346,15 +349,77 @@ def test_get_prospect_details(calculate_prospect_overall_status_patch):
     )
 
     response = app.test_client().get(
-        "prospect/get_valid_next_prospect_statuses",
+        "prospect/get_valid_next_prospect_statuses?prospect_id={prospect_id}&channel_type=LINKEDIN".format(
+            prospect_id=prospect_id
+        ),
         headers={
             "Content-Type": "application/json",
             "Authorization": "Bearer {}".format(get_login_token()),
         },
-        data=json.dumps({"prospect_id": prospect_id, "channel_type": "LINKEDIN"}),
     )
     assert response.status_code == 200
     assert response.json == {
         "NOT_QUALIFIED": "Not Qualified",
         "SENT_OUTREACH": "Sent Outreach",
     }
+
+
+@use_app_context
+def test_get_valid_channel_types():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    gnlp_model = basic_gnlp_model(archetype)
+    gm = basic_generated_message(prospect, gnlp_model)
+    email = basic_prospect_email(prospect)
+    gm_id = gm.id
+    email_id = email.id
+
+    prospect_id = prospect.id
+
+    response = app.test_client().get(
+        "prospect/get_valid_channel_types?prospect_id={prospect_id}".format(
+            prospect_id=prospect_id
+        ),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    assert response.status_code == 200
+    assert response.json == {"choices": []}
+
+    prospect = Prospect.query.get(prospect_id)
+    prospect.approved_outreach_message_id = gm_id
+    db.session.add(prospect)
+    db.session.commit()
+
+    response = app.test_client().get(
+        "prospect/get_valid_channel_types?prospect_id={prospect_id}".format(
+            prospect_id=prospect_id
+        ),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    assert response.status_code == 200
+    assert response.json == {"choices": [{"LINKEDIN": "Linkedin"}]}
+
+    prospect = Prospect.query.get(prospect_id)
+    prospect.approved_prospect_email_id = email_id
+    db.session.add(prospect)
+    db.session.commit()
+
+    response = app.test_client().get(
+        "prospect/get_valid_channel_types?prospect_id={prospect_id}".format(
+            prospect_id=prospect_id
+        ),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    assert response.status_code == 200
+    assert response.json == {"choices": [{"LINKEDIN": "Linkedin"}, {"EMAIL": "Email"}]}

@@ -11,7 +11,7 @@ from src.prospecting.services import (
     batch_mark_as_lead,
     update_prospect_status,
     validate_prospect_json_payload,
-    add_prospects_from_json_payload,
+    get_valid_channel_type_choices,
     toggle_ai_engagement,
     send_slack_reminder_for_prospect,
     create_prospect_note,
@@ -421,3 +421,11 @@ def get_valid_next_prospect_statuses_endpoint():
         prospect_id=prospect_id, channel_type=channel_type
     )
     return jsonify(statuses)
+
+
+@PROSPECTING_BLUEPRINT.route("/get_valid_channel_types", methods=["GET"])
+def get_valid_channel_types():
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True
+    )
+    return jsonify({"choices": get_valid_channel_type_choices(prospect_id)})
