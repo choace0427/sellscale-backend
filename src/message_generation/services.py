@@ -281,7 +281,7 @@ def generate_linkedin_outreaches_with_configurations(
     outreaches = []
 
     for perm in perms:
-        notes, research_points, _ = get_notes_and_points_from_perm(perm)
+        notes, research_points, _ = get_notes_and_points_from_perm(perm, cta_id=cta_id)
         prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
         if len(research_points) == 0:
