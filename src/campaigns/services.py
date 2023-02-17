@@ -20,17 +20,16 @@ from model_import import (
 from tqdm import tqdm
 from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
+    generate_outreaches_for_prospect_list_from_multiple_ctas,
+    batch_generate_prospect_emails,
 )
 from src.research.linkedin.services import reset_prospect_research_and_messages
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_few_shot,
 )
-from src.message_generation.services import (
-    generate_outreaches_for_prospect_list_from_multiple_ctas,
-    batch_generate_prospect_emails,
-)
 from src.utils.random_string import generate_random_alphanumeric
 from src.utils.slack import send_slack_message, URL_MAP
+from src.client.services import get_cta_stats
 
 import datetime
 
@@ -66,7 +65,11 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
         if oc.ctas
         else []
     )
-    ctas = [cta.to_dict() for cta in ctas] if ctas else []
+    ctas_dicts = []
+    for cta in ctas:
+        raw_cta = cta.to_dict()
+        raw_cta["performance"] = get_cta_stats(cta.id)
+        ctas_dicts.append(raw_cta)
     client_archetype: ClientArchetype = (
         ClientArchetype.query.get(oc.client_archetype_id)
         if oc.client_archetype_id
@@ -79,7 +82,7 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
             "campaign_raw": oc.to_dict(),
             "campaign_analytics": get_outbound_campaign_analytics(campaign_id),
             "prospects": prospects,
-            "ctas": ctas,
+            "ctas": ctas_dicts,
             "client_archetype": client_archetype,
         },
         "message": "Success",
