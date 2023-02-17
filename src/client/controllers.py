@@ -22,6 +22,7 @@ from src.client.services import (
     get_ctas,
     get_client_archetypes,
     get_cta_by_archetype_id,
+    get_client_sdr,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -105,6 +106,18 @@ def get_archetypes(client_sdr_id: int):
     return jsonify({
         "message": "Success",
         "archetypes": archetypes
+    }), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr", methods=["GET"])
+@require_user
+def get_sdr(client_sdr_id: int):
+    """Gets the client SDR"""
+    client_sdr = get_client_sdr(client_sdr_id=client_sdr_id)
+
+    return jsonify({
+        "message": "Success",
+        "sdr_info": client_sdr
     }), 200
 
 

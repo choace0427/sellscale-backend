@@ -3,9 +3,10 @@ from sqlalchemy import and_
 from typing import Optional
 
 from src.campaigns.models import *
-from src.client.services import get_client, get_client_sdr
+from src.client.services import get_client
 from model_import import (
     Prospect,
+    ClientSDR,
     GeneratedMessageCTA,
     ProspectEmail,
     ProspectEmailOutreachStatus,
@@ -303,7 +304,7 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
     db.session.commit()
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    sdr = get_client_sdr(campaign.client_sdr_id)
+    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
     sdr_name = sdr.name
     client_id = sdr.client_id
     client_company = get_client(client_id).company
@@ -356,7 +357,7 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
     change_campaign_status(campaign_id, OutboundCampaignStatus.READY_TO_SEND)
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    sdr = get_client_sdr(campaign.client_sdr_id)
+    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
     sdr_name = sdr.name
     sdr_auth = sdr.auth_token
     client_id = sdr.client_id
@@ -459,7 +460,7 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     change_campaign_status(campaign_id, OutboundCampaignStatus.INITIAL_EDIT_COMPLETE)
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    sdr = get_client_sdr(campaign.client_sdr_id)
+    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
     sdr_name = sdr.name
     sdr_auth = sdr.auth_token
     client_id = sdr.client_id

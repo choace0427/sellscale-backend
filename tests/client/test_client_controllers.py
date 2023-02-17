@@ -290,3 +290,19 @@ def test_get_cta():
     )
     assert unauthorized_response.status_code == 403
     assert unauthorized_response.json.get("message") == "Archetype does not belong to you"
+
+
+@use_app_context
+def test_get_sdr():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+
+    response = app.test_client().get(
+        "client/sdr",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+    )
+    assert response.status_code == 200
+    assert response.json.get("sdr_info").get("sdr_name") == "Test SDR"

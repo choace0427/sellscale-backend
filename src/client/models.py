@@ -90,3 +90,16 @@ class ClientSDR(db.Model):
 
     li_at_token = db.Column(db.String)
     last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self) -> dict:
+        client: Client = Client.query.get(self.client_id)
+
+        return {
+            "client_name": client.company,
+            "sdr_name": self.name,
+            "sdr_email": self.email,
+            "weekly_li_outbound_target": self.weekly_li_outbound_target,
+            "weekly_email_outbound_target": self.weekly_email_outbound_target,
+            "scheduling_link": self.scheduling_link,
+            "last_li_conversation_scrape_date": self.last_li_conversation_scrape_date,
+        }

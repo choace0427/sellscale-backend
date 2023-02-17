@@ -160,17 +160,18 @@ def create_client_archetype(
     return {"client_archetype_id": client_archetype.id}
 
 
-def get_client_sdr(client_sdr_id: int):
-    """Gets a Client SDR
+def get_client_sdr(client_sdr_id: int) -> dict:
+    """Gets and returns Client SDR information
 
     Args:
         client_sdr_id (int): The ID of the Client SDR
 
     Returns:
-        ClientSDR: ClientSDR
+        dict: The Client SDR information
     """
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    return csdr
+
+    return csdr.to_dict()
 
 
 def create_client_sdr(client_id: int, name: str, email: str):

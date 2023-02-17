@@ -20,10 +20,20 @@ from src.client.services import (
     get_client_archetypes,
     get_client_archetype_performance,
     get_cta_stats,
-    get_cta_by_archetype_id
+    get_cta_by_archetype_id,
+    get_client_sdr
 )
 import json
 import mock
+
+
+@use_app_context
+def test_get_client_sdr():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+
+    result = get_client_sdr(client_sdr.id)
+    assert result.get("sdr_name") == "Test SDR"
 
 
 @use_app_context
