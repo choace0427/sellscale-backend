@@ -116,6 +116,10 @@ class Prospect(db.Model):
     li_last_message_timestamp = db.Column(db.DateTime, nullable=True)
     li_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
     li_last_message_from_prospect = db.Column(db.String, nullable=True)
+    li_num_followers = db.Column(db.Integer, nullable=True)
+    li_bio_present = db.Column(db.Boolean, nullable=True)
+
+    health_check_score = db.Column(db.Integer, nullable=True)
 
     last_reviewed = db.Column(db.DateTime, nullable=True)
     times_bumped = db.Column(db.Integer, nullable=True)
