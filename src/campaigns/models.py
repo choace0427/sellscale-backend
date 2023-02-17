@@ -30,6 +30,7 @@ class OutboundCampaign(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
+    canonical_name = db.Column(db.String(255), nullable=True)
     prospect_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
     campaign_type = db.Column(db.Enum(GeneratedMessageType), nullable=False)
     ctas = db.Column(db.ARRAY(db.Integer), nullable=True)
