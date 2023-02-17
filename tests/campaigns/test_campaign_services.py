@@ -18,6 +18,7 @@ from src.campaigns.services import (
     get_outbound_campaigns,
     get_outbound_campaign_analytics,
     get_email_campaign_analytics,
+    create_outbound_campaign,
 )
 from model_import import (
     GeneratedMessageType,
@@ -168,3 +169,27 @@ def test_get_email_campaign_analytics():
         "prospect_demo_won": [],
         "prospect_demo_lost": [],
     }
+
+
+@use_app_context
+def test_create_outbound_campaign():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    archetype = basic_archetype(client, client_sdr)
+
+    start_date = datetime.datetime(2023, 1, 1)
+    end_date = datetime.datetime(2023, 1, 8)
+
+    campaign = create_outbound_campaign(
+        prospect_ids = [prospect.id],
+        campaign_type = GeneratedMessageType.LINKEDIN,
+        client_archetype_id=archetype.id,
+        client_sdr_id=client_sdr.id,
+        campaign_start_date=start_date,
+        campaign_end_date=end_date,
+        ctas=[archetype.id],
+    )
+    assert campaign.name == "Testing archetype #1"
+    assert campaign.canonical_name == "Testing archetype, 1, {}".format(str(start_date))

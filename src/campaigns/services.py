@@ -232,7 +232,12 @@ def create_outbound_campaign(
         OutboundCampaign: The newly created outbound campaign
     """
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    ocs: list[OutboundCampaign] = OutboundCampaign.query.filter(OutboundCampaign.client_archetype_id == client_archetype_id).all()
+    num_campaigns = len(ocs)
     name = (
+        ca.archetype + " #" + str(num_campaigns + 1)
+    )
+    canonical_name = (
         ca.archetype + ", " + str(len(prospect_ids)) + ", " + str(campaign_start_date)
     )
     if campaign_type == GeneratedMessageType.LINKEDIN and ctas is None:
@@ -253,6 +258,7 @@ def create_outbound_campaign(
 
     campaign = OutboundCampaign(
         name=name,
+        canonical_name=canonical_name,
         prospect_ids=prospect_ids,
         campaign_type=campaign_type,
         ctas=ctas,
