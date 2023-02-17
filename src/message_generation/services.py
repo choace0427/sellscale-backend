@@ -251,16 +251,11 @@ def generate_linkedin_outreaches(prospect_id: int, batch_id: str, cta_id: str = 
     from model_import import (
         GeneratedMessage,
         GeneratedMessageStatus,
-        Prospect,
-        GeneratedMessageCTA,
     )
     from src.message_generation.services_few_shot_generations import (
         generate_few_shot_generation_completion,
         can_generate_with_few_shot,
     )
-
-    p: Prospect = Prospect.query.get(prospect_id)
-    archetype_id = p.archetype_id
 
     # check if messages exist, if do don't do anything extra
     messages: list = GeneratedMessage.query.filter(
