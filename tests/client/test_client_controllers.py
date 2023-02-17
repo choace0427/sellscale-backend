@@ -1,7 +1,18 @@
 from app import app, db
 from model_import import Client, ClientArchetype, ClientSDR, ResearchPointType
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_generated_message_cta, get_login_token, basic_prospect
+from test_utils import (
+    test_app,
+    basic_client,
+    basic_client_sdr,
+    basic_archetype,
+    basic_generated_message,
+    basic_generated_message_cta,
+    basic_generated_message_cta_with_text,
+    get_login_token,
+    basic_prospect,
+    basic_gnlp_model
+)
 
 import json
 import mock
@@ -235,3 +246,47 @@ def test_get_ctas_endpoint():
         "text_value": "test_cta",
         "active": True,
     }]
+
+
+@use_app_context
+def test_get_cta():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    gnlp = basic_gnlp_model(archetype)
+
+    prospect = basic_prospect(client, archetype)
+    cta = basic_generated_message_cta_with_text(archetype, "test_cta")
+    generated_message = basic_generated_message(prospect, gnlp, cta)
+
+    response = app.test_client().get(
+        "client/archetype/{}/get_ctas".format(archetype.id),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+    )
+    assert response.status_code == 200
+    assert response.json.get("ctas")[0].get("id") == cta.id
+
+    non_existent_archetype_response = app.test_client().get(
+        "client/archetype/{}/get_ctas".format(archetype.id + 1),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+    )
+    assert non_existent_archetype_response.status_code == 404
+    assert non_existent_archetype_response.json.get("message") == "Archetype not found"
+
+    client_sdr_2 = basic_client_sdr(client)
+    archetype_2 = basic_archetype(client, client_sdr_2)
+    unauthorized_response = app.test_client().get(
+        "client/archetype/{}/get_ctas".format(archetype_2.id),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+    )
+    assert unauthorized_response.status_code == 403
+    assert unauthorized_response.json.get("message") == "Archetype does not belong to you"

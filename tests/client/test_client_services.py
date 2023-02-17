@@ -7,6 +7,9 @@ from test_utils import (
     basic_client_sdr,
     basic_prospect,
     basic_archetype,
+    basic_gnlp_model,
+    basic_generated_message_cta_with_text,
+    basic_generated_message,
     basic_generated_message_cta
 )
 from src.client.services import (
@@ -15,7 +18,9 @@ from src.client.services import (
     create_client_archetype,
     get_ctas,
     get_client_archetypes,
-    get_client_archetype_performance
+    get_client_archetype_performance,
+    get_cta_stats,
+    get_cta_by_archetype_id
 )
 import json
 import mock
@@ -386,3 +391,35 @@ def test_get_ctas():
     ctas = get_ctas(client_archetype.id)
     assert len(ctas) == 1
     assert ctas[0].id == cta.id
+
+
+@use_app_context
+def test_get_cta_by_archetype_id():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    gnlp = basic_gnlp_model(archetype)
+
+    prospect = basic_prospect(client, archetype)
+    cta = basic_generated_message_cta_with_text(archetype, "test_cta")
+    generated_message = basic_generated_message(prospect, gnlp, cta)
+
+    ctas = get_cta_by_archetype_id(client_sdr.id, archetype.id)
+    assert len(ctas.get("ctas")) == 1
+
+
+@use_app_context
+def test_get_cta_stats():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    gnlp = basic_gnlp_model(archetype)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype)
+    cta = basic_generated_message_cta_with_text(archetype, "test_cta")
+    generated_message = basic_generated_message(prospect, gnlp, cta)
+
+    stats = get_cta_stats(cta.id)
+    assert stats.get("total_count") == 1
+    assert stats.get("status_map") == {
+        "PROSPECTED": 1
+    }

@@ -2,7 +2,7 @@ from app import db
 from flask import jsonify
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.message_generation.models import GeneratedMessageCTA
+from src.message_generation.models import GeneratedMessageCTA, GeneratedMessage
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import ProspectStatus, Prospect
@@ -501,3 +501,70 @@ def get_ctas(client_archetype_id: int):
     """
     ctas = GeneratedMessageCTA.query.filter_by(archetype_id=client_archetype_id).all()
     return ctas
+
+
+def get_cta_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
+    """Get CTAs belonging to an Archetype, alongside stats.
+
+    This function is authenticated.
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        archetype_id (int): ID of the Archetype
+
+    Returns:
+        dict: Dict containing the CTAs and their stats, message, and status code
+    """
+    # Get Archetype
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return {"message": "Archetype not found", "status_code": 404}
+    elif archetype.client_sdr_id != client_sdr_id:
+        return {"message": "Archetype does not belong to you", "status_code": 403}
+
+    # Get CTAs belonging to the Archetype
+    ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
+        GeneratedMessageCTA.archetype_id == archetype_id
+    )
+
+    # Convert to dict and calculate stats
+    cta_dicts = []
+    for cta in ctas:
+        raw_cta = cta.to_dict()
+        raw_cta["performance"] = get_cta_stats(cta.id)
+        cta_dicts.append(raw_cta)
+
+    return {"message": "Success", "status_code": 200, "ctas": cta_dicts}
+
+
+def get_cta_stats(cta_id: int) -> dict:
+    """Get stats for a CTA.
+
+    Args:
+        cta_id (int): ID of the CTA
+
+    Returns:
+        dict: Dict containing the stats and total count
+    """
+    # Get GeneratedMessages
+    generated_messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
+        GeneratedMessage.message_cta == cta_id
+    ).all()
+
+    # Get Prospect IDs
+    prospect_id_set = set()
+    for message in generated_messages:
+        prospect_id_set.add(message.prospect_id)
+
+    # Get Prospect
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(prospect_id_set)
+    ).all()
+    statuses_map = {}
+    for prospect in prospects:
+        if prospect.overall_status.value not in statuses_map:
+            statuses_map[prospect.overall_status.value] = 1
+        else:
+            statuses_map[prospect.overall_status.value] += 1
+
+    return {"status_map": statuses_map, "total_count": len(prospects)}

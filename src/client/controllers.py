@@ -21,6 +21,7 @@ from src.client.services import (
     update_client_sdr_weekly_email_outbound_target,
     get_ctas,
     get_client_archetypes,
+    get_cta_by_archetype_id,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -404,3 +405,17 @@ def get_ctas_endpoint():
     ctas: list[GeneratedMessageCTA] = get_ctas(client_archetype_id=client_archetype_id)
 
     return jsonify([cta.to_dict() for cta in ctas]), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/get_ctas", methods=["GET"])
+@require_user
+def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
+    """Gets CTA and analytics for a given archetype id."""
+    ctas: dict = get_cta_by_archetype_id(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+    if ctas.get("status_code") != 200:
+        return jsonify({"message": ctas.get("message")}), ctas.get("status_code")
+
+    return jsonify({
+        "message": "Success",
+        "ctas": ctas.get("ctas"),
+    }), 200

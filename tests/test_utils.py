@@ -256,13 +256,14 @@ def basic_generated_message_cta(archetype: ClientArchetype):
     return g
 
 
-def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel):
+def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel, message_cta: Optional[GeneratedMessageCTA] = None):
     from model_import import (
         GeneratedMessage,
         GeneratedMessageStatus,
         GeneratedMessageType,
     )
 
+    message_cta_id = None if message_cta is None else message_cta.id
     g = GeneratedMessage(
         prospect_id=prospect.id,
         gnlp_model_id=gnlp_model.id,
@@ -271,6 +272,7 @@ def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel):
         completion="this is a test",
         message_status=GeneratedMessageStatus.DRAFT,
         message_type=GeneratedMessageType.LINKEDIN,
+        message_cta=message_cta_id
     )
     db.session.add(g)
     db.session.commit()

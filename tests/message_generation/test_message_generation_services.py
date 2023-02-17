@@ -5,6 +5,7 @@ from decorators import use_app_context
 from test_utils import (
     basic_archetype,
     basic_client,
+    basic_client_sdr,
     basic_generated_message,
     basic_generated_message_cta_with_text,
     basic_gnlp_model,
