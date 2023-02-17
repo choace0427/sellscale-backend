@@ -138,10 +138,18 @@ def research_and_generate_outreaches_for_prospect(
         )
 
         try:
-            get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-            generate_linkedin_outreaches(
-                prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
-            )
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            if prospect.client_id == 1:  # only for SellScale for now
+                generate_linkedin_outreaches_with_configurations(
+                    prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
+                )
+            else:
+                get_research_and_bullet_points_new(
+                    prospect_id=prospect_id, test_mode=False
+                )
+                generate_linkedin_outreaches(
+                    prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
+                )
         except:
             update_generated_message_job_status(
                 gm_job_id, GeneratedMessageJobStatus.FAILED
@@ -247,6 +255,61 @@ def get_notes_and_points_from_perm(perm, cta_id: int = None):
     return notes, research_points, cta
 
 
+def has_any_linkedin_messages(prospect_id: int):
+    from model_import import GeneratedMessage
+
+    messages: list = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id == prospect_id,
+        GeneratedMessage.message_type == GeneratedMessageType.LINKEDIN,
+    ).all()
+    return len(messages) > 0
+
+
+def generate_linkedin_outreaches_with_configurations(
+    prospect_id: int, batch_id: str, cta_id: str = None
+):
+    if has_any_linkedin_messages(prospect_id=prospect_id):
+        return None
+    NUM_GENERATIONS = 3
+    TOP_CONFIGURATION: Optional[
+        StackRankedMessageGenerationConfiguration
+    ] = get_top_stack_ranked_config_ordering(
+        generated_message_type=GeneratedMessageType.LINKEDIN.value,
+        prospect_id=prospect_id,
+    )
+    perms = generate_batch_of_research_points_from_config(
+        prospect_id=prospect_id, config=TOP_CONFIGURATION, n=NUM_GENERATIONS
+    )
+    outreaches = []
+
+    for perm in perms:
+        notes, research_points, _ = get_notes_and_points_from_perm(perm)
+        prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+
+        if len(research_points) == 0:
+            continue
+        completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
+
+        outreaches.append(completion)
+
+        message: GeneratedMessage = GeneratedMessage(
+            prospect_id=prospect_id,
+            research_points=research_points,
+            prompt=prompt,
+            completion=completion,
+            message_status=GeneratedMessageStatus.DRAFT,
+            batch_id=batch_id,
+            adversarial_ai_prediction=False,
+            message_cta=cta_id,
+            message_type=GeneratedMessageType.LINKEDIN,
+            few_shot_prompt=few_shot_prompt,
+        )
+        db.session.add(message)
+        db.session.commit()
+
+    return outreaches
+
+
 def generate_linkedin_outreaches(prospect_id: int, batch_id: str, cta_id: str = None):
     from model_import import (
         GeneratedMessage,
@@ -257,12 +320,7 @@ def generate_linkedin_outreaches(prospect_id: int, batch_id: str, cta_id: str = 
         can_generate_with_few_shot,
     )
 
-    # check if messages exist, if do don't do anything extra
-    messages: list = GeneratedMessage.query.filter(
-        GeneratedMessage.prospect_id == prospect_id,
-        GeneratedMessage.message_type == GeneratedMessageType.LINKEDIN,
-    ).all()
-    if len(messages) > 1:
+    if has_any_linkedin_messages(prospect_id=prospect_id):
         return None
 
     research_points_list: list[
@@ -357,14 +415,6 @@ def update_message(message_id: int, update: str, editor_id=None):
 
     message.completion = update
     message.human_edited = True
-
-    # try:
-    #     mistake, fix, _ = run_adversary(message.prompt, message.completion)
-    #     message.adversary_identified_mistake = mistake
-    #     message.adversary_identified_fix = fix
-    # except:
-    #     # TODO: Include logging here in future
-    #     pass
 
     db.session.add(message)
     db.session.commit()

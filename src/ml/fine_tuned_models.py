@@ -9,6 +9,7 @@ from src.ml.openai_wrappers import (
     wrapped_create_completion,
     CURRENT_OPENAI_DAVINCI_MODEL,
 )
+from typing import Optional
 import openai
 
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
@@ -146,9 +147,11 @@ def get_custom_completion_for_client(
 
 
 def get_config_completion(
-    config: StackRankedMessageGenerationConfiguration,
+    config: Optional[StackRankedMessageGenerationConfiguration],
     prompt: str,
 ):
+    if not config:
+        raise ValueError("No config provided")
     few_shot_prompt: str = config.computed_prompt.format(prompt=prompt)
     response = wrapped_create_completion(
         model=CURRENT_OPENAI_DAVINCI_MODEL,
