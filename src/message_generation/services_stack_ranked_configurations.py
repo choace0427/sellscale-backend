@@ -167,7 +167,9 @@ def delete_stack_ranked_configuration(
     return True, "OK"
 
 
-def get_top_stack_ranked_config_ordering(generated_message_type: str, prospect_id: int):
+def get_top_stack_ranked_config_ordering(
+    generated_message_type: str, prospect_id: int, discluded_config_ids: list[int] = []
+):
     """Get the top stack ranked message generation configuration ordering for a client archetype"""
     from model_import import Prospect
 
@@ -175,7 +177,12 @@ def get_top_stack_ranked_config_ordering(generated_message_type: str, prospect_i
     client_id = prospect.client_id
     archetype_id = prospect.archetype_id
     stack_ranked_config_ordering: list = get_stack_ranked_config_ordering(
-        generated_message_type, archetype_id, client_id, prospect_id, True
+        generated_message_type=generated_message_type,
+        archetype_id=archetype_id,
+        client_id=client_id,
+        prospect_id=prospect_id,
+        only_active_configs=True,
+        discluded_config_ids=discluded_config_ids,
     )
     if len(stack_ranked_config_ordering) > 0:
         return random.choice(stack_ranked_config_ordering[0])
@@ -189,6 +196,7 @@ def get_stack_ranked_config_ordering(
     client_id: Optional[int] = -1,
     prospect_id: Optional[int] = -1,
     only_active_configs: bool = False,
+    discluded_config_ids: Optional[list[int]] = [],
 ):
     """Get the stack ranked message generation configuration ordering for a client archetype"""
     ordered_srmgcs = (
@@ -212,6 +220,7 @@ def get_stack_ranked_config_ordering(
         .filter(
             StackRankedMessageGenerationConfiguration.generated_message_type
             == generated_message_type,
+            StackRankedMessageGenerationConfiguration.id.notin_(discluded_config_ids),
         )
         .order_by(
             StackRankedMessageGenerationConfiguration.priority.desc(),

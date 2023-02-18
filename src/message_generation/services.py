@@ -746,6 +746,57 @@ def clear_prospect_approved_email(prospect_id: int):
     return True
 
 
+def generate_new_email_content_for_approved_email(prospect_id: int):
+    """
+    Generates new email content for an approved email
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False, "Prospect not found"
+    email_id = prospect.approved_prospect_email_id
+    if not email_id:
+        return False, "No approved email found"
+
+    email: ProspectEmail = ProspectEmail.query.get(email_id)
+    personalized_line = email.personalized_first_line
+    gm: GeneratedMessage = GeneratedMessage.query.get(personalized_line)
+    old_config_id = gm.stack_ranked_message_generation_configuration_id
+
+    new_config: StackRankedMessageGenerationConfiguration = (
+        get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.EMAIL.value,
+            prospect_id=prospect_id,
+            discluded_config_ids=[old_config_id],
+        )
+    )
+    perms = generate_batch_of_research_points_from_config(
+        prospect_id=prospect_id, config=new_config, n=1
+    )
+    perm = perms[0]
+    notes, new_research_points, _ = get_notes_and_points_from_perm(
+        perm, cta_id=gm.message_cta
+    )
+    new_prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+
+    if new_config:
+        new_personalized_line = get_personalized_first_line_from_prompt(
+            archetype_id=prospect.archetype_id,
+            model_type=GNLPModelType.EMAIL_FIRST_LINE,
+            prompt=new_prompt,
+            research_points=new_research_points,
+            prospect_id=prospect_id,
+            batch_id=gm.batch_id,
+            config=new_config,
+        )
+        email.personalized_first_line = new_personalized_line.id
+        db.session.add(email)
+        db.session.commit()
+
+        return True, "Success"
+    else:
+        return False, "No new config(s) found"
+
+
 def mark_random_new_prospect_email(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_email: ProspectEmail = ProspectEmail.query.filter(

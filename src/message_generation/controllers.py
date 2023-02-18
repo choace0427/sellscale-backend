@@ -11,7 +11,7 @@ from src.message_generation.services import (
     create_generated_message_feedback,
     generate_cta_examples,
     batch_mark_prospect_email_approved_by_prospect_ids,
-    mark_random_new_prospect_email,
+    generate_new_email_content_for_approved_email,
     clear_all_generated_message_jobs,
     batch_update_generated_message_ctas,
 )
@@ -267,7 +267,7 @@ def pick_new_approved_email():
         "prospect_id", request, json=True, required=True
     )
 
-    mark_random_new_prospect_email(
+    generate_new_email_content_for_approved_email(
         prospect_id=prospect_id,
     )
 
