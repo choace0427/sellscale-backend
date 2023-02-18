@@ -236,13 +236,17 @@ def test_post_batch_mark_sent(match_prospect_as_sent_outreach_patch):
 @use_app_context
 def test_post_add_note():
     client = basic_client()
-    archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
     prospect_id = prospect.id
 
     response = app.test_client().post(
         "prospect/add_note",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token()
+        },
         data=json.dumps(
             {
                 "prospect_id": prospect_id,
@@ -253,6 +257,43 @@ def test_post_add_note():
     assert response.status_code == 200
     notes: ProspectNote = ProspectNote.query.filter_by(prospect_id=prospect_id).all()
     assert len(notes) == 1
+
+    nonexistent_response = app.test_client().post(
+        "prospect/add_note",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token()
+        },
+        data=json.dumps(
+            {
+                "prospect_id": prospect_id + 1,
+                "note": "some note",
+            }
+        ),
+    )
+    assert nonexistent_response.status_code == 404
+    assert nonexistent_response.json.get("message") == "Prospect not found"
+
+    client_sdr_2 = basic_client_sdr(client)
+    client_sdr_2.auth_token = "some_token"
+    db.session.add(client_sdr_2)
+    db.session.commit()
+    prospect_2 = basic_prospect(client, archetype, client_sdr_2)
+    nonauthorized_response = app.test_client().post(
+        "prospect/add_note",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token()
+        },
+        data=json.dumps(
+            {
+                "prospect_id": prospect_2.id,
+                "note": "some note",
+            }
+        ),
+    )
+    assert nonauthorized_response.status_code == 403
+    assert nonauthorized_response.json.get("message") == "Prospect does not belong to user"
 
 
 @use_app_context

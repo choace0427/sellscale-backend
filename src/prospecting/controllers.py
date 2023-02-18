@@ -390,14 +390,22 @@ def post_toggle_ai_engagement():
 
 
 @PROSPECTING_BLUEPRINT.route("/add_note", methods=["POST"])
-def post_add_note():
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True
-    )
-    note = get_request_parameter("note", request, json=True, required=True)
+@require_user
+def post_add_note(client_sdr_id: int):
+    prospect_id = get_request_parameter( "prospect_id", request, json=True, required=True, parameter_type=int)
+    note = get_request_parameter("note", request, json=True, required=True, parameter_type=str)
 
-    data = create_prospect_note(prospect_id=prospect_id, note=note)
-    return jsonify(data)
+    # Check that prospect exists and belongs to user
+    prospect: Prospect = Prospect.query.filter(
+        Prospect.id == prospect_id
+    ).first()
+    if prospect is None:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    prospect_note_id = create_prospect_note(prospect_id=prospect_id, note=note)
+    return jsonify({"message": "Success", "prospect_note_id": prospect_note_id}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/batch_mark_as_lead", methods=["POST"])

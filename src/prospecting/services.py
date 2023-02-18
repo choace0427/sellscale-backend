@@ -821,7 +821,16 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
     return "Success", duplicate_count
 
 
-def create_prospect_note(prospect_id: int, note: str):
+def create_prospect_note(prospect_id: int, note: str) -> int:
+    """Create a prospect note.
+
+    Args:
+        prospect_id (int): ID of the prospect.
+        note (str): The note to be added.
+
+    Returns:
+        int: ID of the newly created prospect note.
+    """
     prospect_note: ProspectNote = ProspectNote(
         prospect_id=prospect_id,
         note=note,
@@ -829,7 +838,7 @@ def create_prospect_note(prospect_id: int, note: str):
     db.session.add(prospect_note)
     db.session.commit()
 
-    return {"prospect_note_id": prospect_note.id}
+    return prospect_note.id
 
 
 def delete_prospect_by_id(prospect_id: int):

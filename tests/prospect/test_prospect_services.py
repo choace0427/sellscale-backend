@@ -17,6 +17,7 @@ from src.prospecting.services import (
     validate_prospect_json_payload,
     update_prospect_status,
     create_prospect_from_linkedin_link,
+    create_prospect_note,
 )
 from model_import import (
     Prospect,
@@ -765,3 +766,17 @@ def test_create_prospect_from_linkedin_link(research_personal_profile_details_pa
     )
     assert prospect.first_name == "Matthew"
     assert prospect.last_name == "Barlow"
+
+
+@use_app_context
+def test_create_prospect_note():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+
+    prospect_note_id = create_prospect_note(prospect.id, "test note")
+    notes: list[ProspectNote] = ProspectNote.query.all()
+    assert len(notes) == 1
+    assert notes[0].prospect_id == prospect.id
+    assert notes[0].id == prospect_note_id
