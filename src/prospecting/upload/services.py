@@ -335,12 +335,15 @@ def run_and_assign_health_score(self, archetype_id: int):
 
         update_prospects: list[dict] = []
         for p in prospects:
+            if p.linkedin_bio is None or p.li_num_followers is None:
+                continue
+
             health_score = 0
             if len(p.linkedin_bio) > 0:
                 health_score += 25
 
             # Calculate score based off of Sigmoid Function (using follower count)
-            sig_score = calculate_health_check_follower_sigmoid(p.li_num_followers)
+            sig_score = calculate_health_check_follower_sigmoid(p.li_num_followers or 0)
             health_score += sig_score
 
             update_prospects.append({
@@ -363,7 +366,7 @@ def run_and_assign_health_score(self, archetype_id: int):
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-def calculate_health_check_follower_sigmoid(num_followers: int) -> int:
+def calculate_health_check_follower_sigmoid(num_followers: int = 0) -> int:
     """Calculates a health check score for a prospect based on their number of followers.
 
     Uses a sigmoid function to calculate a score between 0 and 75.
