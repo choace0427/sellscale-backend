@@ -142,5 +142,5 @@ def update_phantom_li_at():
 def post_send_slack_message():
     message = get_request_parameter("message", request, json=True, required=True)
     channel = get_request_parameter("channel", request, json=True, required=True)
-    send_slack_message(message[message], webhook_urls=[channel])
+    send_slack_message(message=message, webhook_urls=[channel])
     return "OK", 200
