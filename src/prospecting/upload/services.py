@@ -1,11 +1,12 @@
 from app import db, celery
-from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads, ProspectUploadsStatus, ProspectUploadsErrorType
-from model_import import Client, ClientArchetype
+from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads, ProspectUploadsStatus, ProspectUploadsErrorType, Prospect
 from src.prospecting.services import get_linkedin_slug_from_url, get_navigator_slug_from_url, add_prospect
 from src.research.linkedin.services import research_personal_profile_details, get_iscraper_payload_error
 from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
+from sqlalchemy import bindparam, update
 import json, hashlib
+import math
 
 
 def create_raw_csv_entry_from_json_payload(
@@ -312,3 +313,72 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
 
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
+
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
+def run_and_assign_health_score(self, archetype_id: int):
+    """ Celery task for running and assigning health scores to prospects.
+
+    Only runs on prospects that have not been assigned a health score.
+
+    Args:
+        archetype_id (int): The archetype id to run the health score on.
+
+    Raises:
+        self.retry: If the task fails, it will retry, up to the max_retries limit.
+    """
+    # Get the prospects for the archetype
+    try:
+        prospects: list[Prospect] = Prospect.query.filter_by(
+            archetype_id=archetype_id,
+            health_check_score=None,
+        ).all()
+
+        update_prospects: list[dict] = []
+        for p in prospects:
+            health_score = 0
+            if len(p.linkedin_bio) > 0:
+                health_score += 25
+
+            # Calculate score based off of Sigmoid Function (using follower count)
+            sig_score = calculate_health_check_follower_sigmoid(p.li_num_followers)
+            health_score += sig_score
+
+            update_prospects.append({
+                "p_id": p.id,
+                "health_score": health_score
+            })
+
+        # UPDATE prospect WHERE id = :id SET health_check_score = :health_score
+        stmt = (
+            update(Prospect)
+            .where(Prospect.id == bindparam("p_id"))
+            .values(health_check_score=bindparam("health_score"))
+        )
+        db.session.execute(stmt, update_prospects)
+        db.session.commit()
+
+        return True, "Successfully calculated health check scores for archetype: {}".format(archetype_id)
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def calculate_health_check_follower_sigmoid(num_followers: int) -> int:
+    """Calculates a health check score for a prospect based on their number of followers.
+
+    Uses a sigmoid function to calculate a score between 0 and 75.
+
+    Args:
+        num_followers (int): The number of followers a prospect has on LinkedIn.
+
+    Returns:
+        int: A score between 0 and 75.
+    """
+    k = 0.015           # Sigmoid function constant
+    midpoint = 300      # Sigmoid function midpoint
+    upper_bound = 75    # Sigmoid function upper bound
+    raw_sig_score = upper_bound / (1 + math.exp(-k * (num_followers - midpoint)))
+    y_intercept_adjuster = upper_bound / (1 + math.exp(k * midpoint))
+    sig_score = raw_sig_score - y_intercept_adjuster
+
+    return sig_score

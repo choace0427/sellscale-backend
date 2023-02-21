@@ -26,6 +26,7 @@ from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
     populate_prospect_uploads_from_json_payload,
     collect_and_run_celery_jobs_for_upload,
+    run_and_assign_health_score
 )
 from src.utils.request_helpers import get_request_parameter
 
@@ -331,6 +332,13 @@ def add_prospect_from_csv_payload():
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
+    )
+
+    run_and_assign_health_score.apply_async(
+        args=[archetype_id],
+        queue="prospecting",
+        routing_key="prospecting",
+        priority=3,
     )
 
     return "Upload job scheduled.", 200

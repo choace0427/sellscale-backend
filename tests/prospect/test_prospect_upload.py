@@ -4,6 +4,7 @@ from test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
+    basic_prospect,
     basic_archetype,
     basic_prospect_uploads_raw_csv,
     basic_prospect_uploads,
@@ -21,10 +22,13 @@ from src.prospecting.upload.services import (
     collect_and_run_celery_jobs_for_upload,
     create_prospect_from_prospect_upload_row,
     create_prospect_from_linkedin_link,
+    run_and_assign_health_score,
+    calculate_health_check_follower_sigmoid
 )
 
 import mock
 import pytest
+import random
 
 
 VALID_ISCRAPER_PAYLOAD = {
@@ -319,3 +323,57 @@ def test_create_prospect_from_linkedin_link_failure(
         assert not success
         assert pu.status == ProspectUploadsStatus.UPLOAD_FAILED
         assert pu.upload_attempts == 1
+
+
+@use_app_context
+def test_run_and_assign_health_score():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype_id = archetype.id
+    sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, sdr)
+    prospect_2 = basic_prospect(client, archetype, sdr)
+    prospect_3 = basic_prospect(client, archetype, sdr)
+    prospect_4 = basic_prospect(client, archetype, sdr)
+    prospect.linkedin_bio = ""                  # Should get 0 points
+    prospect.li_num_followers = 0
+    prospect_2.linkedin_bio = "Some bio"        # Should get 25 points
+    prospect_2.li_num_followers = 0
+    prospect_3.linkedin_bio = "Some bio"        # Should get around 25 + 37.5 points
+    prospect_3.li_num_followers = 300
+    prospect_4.linkedin_bio = "Some bio"        # Should get some points > 25 + 37.5 but < 100
+    prospect_4.li_num_followers = 1000
+    prospect_id = prospect.id
+    prospect_2_id = prospect_2.id
+    prospect_3_id = prospect_3.id
+    prospect_4_id = prospect_4.id
+    db.session.add(prospect)
+    db.session.add(prospect_2)
+    db.session.add(prospect_3)
+    db.session.add(prospect_4)
+    db.session.commit()
+
+    response = run_and_assign_health_score(archetype_id)
+    assert response[0] == True
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_2: Prospect = Prospect.query.get(prospect_2_id)
+    prospect_3: Prospect = Prospect.query.get(prospect_3_id)
+    prospect_4: Prospect = Prospect.query.get(prospect_4_id)
+    assert prospect.health_check_score == 0
+    assert prospect_2.health_check_score == 25
+    assert prospect_3.health_check_score > 60 and prospect_3.health_check_score < 63
+    assert prospect_4.health_check_score > 62.5 and prospect_4.health_check_score < 100
+
+
+@use_app_context
+def test_calculate_health_check_follower_sigmoid():
+    for i in range(0, 100):
+        random_follower_count = random.randint(0, 1000)
+        random_high_count = random.randint(1000, 10000)
+
+        score = calculate_health_check_follower_sigmoid(random_follower_count)
+        assert score >= 0 and score <= 75
+
+        high_score = calculate_health_check_follower_sigmoid(random_high_count)
+        assert high_score >= 37.5 and high_score <= 75      # We know this to be true since our midpoint is set to 300

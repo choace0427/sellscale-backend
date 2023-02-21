@@ -390,8 +390,9 @@ def test_get_sales_nav_slug_from_url():
 @mock.patch(
     "src.prospecting.controllers.collect_and_run_celery_jobs_for_upload.apply_async"
 )
+@mock.patch("src.prospecting.controllers.run_and_assign_health_score.apply_async")
 def test_add_prospects_from_json_payload(
-    collect_and_run_celery_jobs_for_upload_mock, mock_create_from_linkedin
+    run_health_score_mock, collect_and_run_celery_jobs_for_upload_mock, mock_create_from_linkedin
 ):
     payload = [
         {
@@ -463,6 +464,7 @@ def test_add_prospects_from_json_payload(
         ),
     )
     assert response.status_code == 200
+    assert run_health_score_mock.call_count == 1
 
 
 @use_app_context
