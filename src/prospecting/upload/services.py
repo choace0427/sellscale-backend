@@ -270,7 +270,6 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
 
         # Health Check fields
         followers_count = deep_get(iscraper_payload, "network_info.followers_count") or 0
-        summary_exists = True if deep_get(iscraper_payload, "summary") != None else False
 
         # Add prospect
         added = add_prospect(
@@ -288,7 +287,6 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             twitter_url=twitter_url,
             email=email,
             linkedin_num_followers=followers_count,
-            linkedin_bio_exists=summary_exists,
         )
         if added:
             prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE

@@ -349,7 +349,6 @@ def test_add_prospect():
         linkedin_bio="something",
         title="testing",
         twitter_url="testing",
-        linkedin_bio_exists=True,
         linkedin_num_followers=100
     )
     prospects = Prospect.query.filter(Prospect.li_num_followers > 0).all()
