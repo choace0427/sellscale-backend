@@ -335,11 +335,12 @@ def run_and_assign_health_score(self, archetype_id: int):
 
         update_prospects: list[dict] = []
         for p in prospects:
-            if p.linkedin_bio is None or p.li_num_followers is None:
+            if p.li_num_followers is None:      # This should only happen on existent records, iScraper won't give None here.
                 continue
 
             health_score = 0
-            if len(p.linkedin_bio) > 0:
+
+            if p.linkedin_bio is not None and len(p.linkedin_bio) > 0:
                 health_score += 25
 
             # Calculate score based off of Sigmoid Function (using follower count)
