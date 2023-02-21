@@ -92,6 +92,9 @@ def get_client_archetype_performance(client_sdr_id: int, client_archetype_id: in
     ).all()
     status_map = {}
     for p in archetype_prospects:
+        if p.overall_status is None:
+            continue
+
         if p.overall_status.value in status_map:
             status_map[p.overall_status.value] += 1
         else:
