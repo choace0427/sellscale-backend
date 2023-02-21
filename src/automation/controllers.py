@@ -1,9 +1,15 @@
 import json
 from flask import Blueprint, request, jsonify
 from src.automation.models import PhantomBusterType
-from src.automation.services import (create_phantom_buster_config, get_all_phantom_busters, create_new_auto_connect_phantom, update_phantom_buster_li_at)
+from src.automation.services import (
+    create_phantom_buster_config,
+    get_all_phantom_busters,
+    create_new_auto_connect_phantom,
+    update_phantom_buster_li_at,
+)
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
+from src.utils.slack import send_slack_message
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
@@ -115,6 +121,7 @@ def configure_phantom_agents():
         }
     )
 
+
 @AUTOMATION_BLUEPRINT.route("/update_phantom_li_at", methods=["POST"])
 def update_phantom_li_at():
     client_sdr_id: int = get_request_parameter(
@@ -125,8 +132,15 @@ def update_phantom_li_at():
     )
 
     response = update_phantom_buster_li_at(
-        client_sdr_id=client_sdr_id,
-        li_at=linkedin_authentication_token
+        client_sdr_id=client_sdr_id, li_at=linkedin_authentication_token
     )
 
     return jsonify(response)
+
+
+@AUTOMATION_BLUEPRINT.route("/send_slack_message", methods=["POST"])
+def post_send_slack_message():
+    message = get_request_parameter("message", request, json=True, required=True)
+    channel = get_request_parameter("channel", request, json=True, required=True)
+    send_slack_message(message[message], webhook_urls=[channel])
+    return "OK", 200
