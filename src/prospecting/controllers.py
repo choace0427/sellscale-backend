@@ -191,15 +191,18 @@ def prospect_from_link():
     url = get_request_parameter("url", request, json=True, required=True)
 
     batch = generate_random_alphanumeric(32)
-    create_prospect_from_linkedin_link.delay(
-        archetype_id=archetype_id, url=url, batch=batch
-    )
-
-    run_and_assign_health_score.apply_async(
-        args=[archetype_id],
+    create_prospect_from_linkedin_link.apply_async(
+        args=[archetype_id, url, batch],
         queue="prospecting",
         routing_key="prospecting",
-        priority=3,
+        priority=1,
+        link=run_and_assign_health_score.signature(
+            args=[archetype_id],
+            queue="prospecting",
+            routing_key="prospecting",
+            priority=3,
+            immutable=True
+        )
     )
 
     return "OK", 200
@@ -339,13 +342,13 @@ def add_prospect_from_csv_payload():
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
-    )
-
-    run_and_assign_health_score.apply_async(
-        args=[archetype_id],
-        queue="prospecting",
-        routing_key="prospecting",
-        priority=3,
+        link=run_and_assign_health_score.signature(
+            args=[archetype_id],
+            queue="prospecting",
+            routing_key="prospecting",
+            priority=3,
+            immutable=True,
+        )
     )
 
     return "Upload job scheduled.", 200
@@ -373,13 +376,13 @@ def retrigger_upload_prospect_job():
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
-    )
-
-    run_and_assign_health_score.apply_async(
-        args=[archetype_id],
-        queue="prospecting",
-        routing_key="prospecting",
-        priority=3,
+        link=run_and_assign_health_score.signature(
+            args=[archetype_id],
+            queue="prospecting",
+            routing_key="prospecting",
+            priority=3,
+            immutable=True,
+        )
     )
 
     return "Upload jobs successfully collected and scheduled.", 200
