@@ -195,6 +195,13 @@ def prospect_from_link():
         archetype_id=archetype_id, url=url, batch=batch
     )
 
+    run_and_assign_health_score.apply_async(
+        args=[archetype_id],
+        queue="prospecting",
+        routing_key="prospecting",
+        priority=3,
+    )
+
     return "OK", 200
 
 
@@ -366,6 +373,13 @@ def retrigger_upload_prospect_job():
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
+    )
+
+    run_and_assign_health_score.apply_async(
+        args=[archetype_id],
+        queue="prospecting",
+        routing_key="prospecting",
+        priority=3,
     )
 
     return "Upload jobs successfully collected and scheduled.", 200
