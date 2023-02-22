@@ -114,10 +114,14 @@ def test_create_generate_message_campaign(message_gen_call_patch):
 
     response = app.test_client().post(
         "campaigns/",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
         data=json.dumps(
             {
                 "prospect_ids": prospect_ids,
+                "num_prospects": 3,
                 "campaign_type": "LINKEDIN",
                 "ctas": [5, 6],
                 "client_archetype_id": archetype.id,
@@ -167,10 +171,14 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
 
     response = app.test_client().post(
         "campaigns/",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
         data=json.dumps(
             {
                 "prospect_ids": [1, 2, 3, 4],
+                "num_prospects": 4,
                 "campaign_type": "EMAIL",
                 "client_archetype_id": archetype.id,
                 "client_sdr_id": client_sdr.id,
@@ -240,10 +248,14 @@ def test_change_campaign_status(
 
     response = app.test_client().post(
         "campaigns/",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
         data=json.dumps(
             {
                 "prospect_ids": [1, 2, 3, 4],
+                "num_prospects": 4,
                 "campaign_type": "LINKEDIN",
                 "ctas": [5, 6],
                 "client_archetype_id": archetype.id,
@@ -367,10 +379,14 @@ def test_change_campaign_status_to_edit_complete():
 
     response = app.test_client().post(
         "campaigns/",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
         data=json.dumps(
             {
                 "prospect_ids": [1, 2, 3, 4],
+                "num_prospects": 4,
                 "campaign_type": "LINKEDIN",
                 "ctas": [5, 6],
                 "client_archetype_id": archetype.id,
@@ -509,6 +525,7 @@ def test_merge_then_split_multiple_linkedin_campaigns_succeed():
     # test merging campaigns
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2],
+        num_prospects=2,
         campaign_type="LINKEDIN",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -518,6 +535,7 @@ def test_merge_then_split_multiple_linkedin_campaigns_succeed():
     )
     campaign2 = create_outbound_campaign(
         prospect_ids=[2, 3, 4],
+        num_prospects=3,
         campaign_type="LINKEDIN",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -617,6 +635,7 @@ def test_make_fake_campaign_with_10_prospect_ids_then_split_into_5_parts():
 
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        num_prospects=10,
         campaign_type="LINKEDIN",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -708,6 +727,7 @@ def test_merge_multiple_email_campaigns_succeed():
 
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2],
+        num_prospects=2,
         campaign_type="EMAIL",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -721,6 +741,7 @@ def test_merge_multiple_email_campaigns_succeed():
     campaign1_id = campaign1.id
     campaign2 = create_outbound_campaign(
         prospect_ids=[2, 3, 4],
+        num_prospects=3,
         campaign_type="EMAIL",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -771,6 +792,7 @@ def test_merge_multiple_email_campaigns_failed_for_type():
 
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2],
+        num_prospects=2,
         campaign_type="EMAIL",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -780,6 +802,7 @@ def test_merge_multiple_email_campaigns_failed_for_type():
     campaign1_id = campaign1.id
     campaign2 = create_outbound_campaign(
         prospect_ids=[2, 3, 4],
+        num_prospects=3,
         campaign_type="LINKEDIN",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -821,6 +844,7 @@ def test_merge_multiple_email_campaigns_failed_for_archetype():
 
     campaign1 = create_outbound_campaign(
         prospect_ids=[1, 2],
+        num_prospects=2,
         campaign_type="EMAIL",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -830,6 +854,7 @@ def test_merge_multiple_email_campaigns_failed_for_archetype():
     campaign1_id = campaign1.id
     campaign2 = create_outbound_campaign(
         prospect_ids=[2, 3, 4],
+        num_prospects=3,
         campaign_type="EMAIL",
         client_archetype_id=archetype_2_id,
         client_sdr_id=client_sdr_id,
@@ -911,6 +936,7 @@ def test_assign_editor_to_campaign():
 
     campaign = create_outbound_campaign(
         prospect_ids=[1, 2],
+        num_prospects=2,
         campaign_type="EMAIL",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
@@ -962,6 +988,7 @@ def test_post_remove_ungenerated_prospects():
 
     campaign = create_outbound_campaign(
         prospect_ids=prospect_ids,
+        num_prospects=3,
         campaign_type="EMAIL",
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,

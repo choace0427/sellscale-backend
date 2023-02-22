@@ -19,6 +19,7 @@ from src.campaigns.services import (
     get_outbound_campaign_analytics,
     get_email_campaign_analytics,
     create_outbound_campaign,
+    smart_get_prospects_for_campaign
 )
 from model_import import (
     GeneratedMessageType,
@@ -174,22 +175,70 @@ def test_get_email_campaign_analytics():
 @use_app_context
 def test_create_outbound_campaign():
     client = basic_client()
-    archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
-    prospect = basic_prospect(client, archetype, client_sdr)
+    client_sdr_id = client_sdr.id
     archetype = basic_archetype(client, client_sdr)
+    archetype_id = archetype.id
+    prospect = basic_prospect(client, archetype, client_sdr)
+    prospect_id = prospect.id
+    prospect_2 = basic_prospect(client, archetype, client_sdr)
+    prospect_2_id = prospect_2.id
+    prospect_3 = basic_prospect(client, archetype, client_sdr)
+    prospect_3_id = prospect_3.id
+    prospect.health_check_score = 0
+    prospect_2.health_check_score = 100
+    prospect_3.health_check_score = 50
+    db.session.add_all([prospect, prospect_2, prospect_3])
+    db.session.commit()
 
     start_date = datetime.datetime(2023, 1, 1)
     end_date = datetime.datetime(2023, 1, 8)
 
     campaign = create_outbound_campaign(
         prospect_ids = [prospect.id],
+        num_prospects=2,
         campaign_type = GeneratedMessageType.LINKEDIN,
-        client_archetype_id=archetype.id,
-        client_sdr_id=client_sdr.id,
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
         campaign_start_date=start_date,
         campaign_end_date=end_date,
-        ctas=[archetype.id],
+        ctas=[archetype_id],
     )
     assert campaign.name == "Testing archetype #1"
-    assert campaign.canonical_name == "Testing archetype, 1, {}".format(str(start_date))
+    assert campaign.canonical_name == "Testing archetype, 2, {}".format(str(start_date))
+    assert prospect_id in campaign.prospect_ids
+    assert prospect_2_id in campaign.prospect_ids
+    assert prospect_3_id not in campaign.prospect_ids
+
+
+@use_app_context
+def test_smart_get_prospects_for_campaign():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    archetype_id = archetype.id
+    high_prospect = basic_prospect(client, archetype, client_sdr)
+    medium_prospect = basic_prospect(client, archetype, client_sdr)
+    low_prospect = basic_prospect(client, archetype, client_sdr)
+    high_prospect_id = high_prospect.id
+    medium_prospect_id = medium_prospect.id
+    low_prospect_id = low_prospect.id
+    high_prospect.health_check_score = 100
+    medium_prospect.health_check_score = 50
+    low_prospect.health_check_score = 0
+    db.session.add_all([high_prospect, medium_prospect, low_prospect])
+    db.session.commit()
+
+    all_prospects = smart_get_prospects_for_campaign(archetype_id, 3)
+    assert len(all_prospects) == 3
+
+    higher_prospects = smart_get_prospects_for_campaign(archetype_id, 2)
+    assert len(higher_prospects) == 2
+    assert high_prospect_id in higher_prospects
+    assert medium_prospect_id in higher_prospects
+    assert low_prospect_id not in higher_prospects
+
+    prospect_no_score = basic_prospect(client, archetype, client_sdr)
+    all_prospects = smart_get_prospects_for_campaign(archetype_id, 4)
+    assert len(all_prospects) == 4
+    assert prospect_no_score.id in all_prospects

@@ -1,5 +1,5 @@
 from app import db
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from typing import Optional
 
 from src.campaigns.models import *
@@ -11,7 +11,8 @@ from model_import import (
     ProspectEmail,
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
-    EmailSchema,
+    ProspectStatus,
+    ProspectOverallStatus,
     OutboundCampaign,
     OutboundCampaignStatus,
     GeneratedMessageType,
@@ -211,6 +212,7 @@ def get_outbound_campaigns(
 
 def create_outbound_campaign(
     prospect_ids: list,
+    num_prospects: int,
     campaign_type: GeneratedMessageType,
     client_archetype_id: int,
     client_sdr_id: int,
@@ -220,9 +222,12 @@ def create_outbound_campaign(
 ) -> OutboundCampaign:
     """Creates a new outbound campaign
 
+    Prospects to use are "smart calculated" by the campaign
+
     Args:
         name (str): Name of the campaign
         prospect_ids (list): List of prospect ids
+        num_prospects (int): Number of prospects to use
         campaign_type (GeneratedMessageType): Type of campaign
         ctas (list): List of CTA ids
         client_archetype_id (int): Client archetype id
@@ -234,6 +239,12 @@ def create_outbound_campaign(
     Returns:
         OutboundCampaign: The newly created outbound campaign
     """
+    # Smart get prospects to use
+    if num_prospects > len(prospect_ids):
+        top_prospects = smart_get_prospects_for_campaign(client_archetype_id, num_prospects - len(prospect_ids))
+        prospect_ids.extend(top_prospects)
+        pass
+
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     ocs: list[OutboundCampaign] = OutboundCampaign.query.filter(OutboundCampaign.client_archetype_id == client_archetype_id).all()
     num_campaigns = len(ocs)
@@ -241,7 +252,7 @@ def create_outbound_campaign(
         ca.archetype + " #" + str(num_campaigns + 1)
     )
     canonical_name = (
-        ca.archetype + ", " + str(len(prospect_ids)) + ", " + str(campaign_start_date)
+        ca.archetype + ", " + str(num_prospects) + ", " + str(campaign_start_date)
     )
     if campaign_type == GeneratedMessageType.LINKEDIN and ctas is None:
         raise Exception("LinkedIn campaign type requires a list of CTAs")
@@ -275,6 +286,41 @@ def create_outbound_campaign(
     db.session.add(campaign)
     db.session.commit()
     return campaign
+
+
+def smart_get_prospects_for_campaign(client_archetype_id: int, num_prospects: int) -> list[int]:
+    """Smartly gets prospects for a campaign (based on health check score)
+
+    Args:
+        client_archetype_id (int): Client archetype id
+        num_prospects (int): Number of prospects to get
+
+    Returns:
+        list[int]: List of prospect ids
+    """
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.health_check_score != None,
+        or_(
+            Prospect.status == ProspectStatus.PROSPECTED,
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED
+        )
+    ).order_by(Prospect.health_check_score.desc()).limit(num_prospects).all()
+
+    if len(prospects) < num_prospects:
+        prospects.extend(
+            Prospect.query.filter(
+                Prospect.archetype_id == client_archetype_id,
+                Prospect.health_check_score == None,
+                or_(
+                    Prospect.status == ProspectStatus.PROSPECTED,
+                    Prospect.overall_status == ProspectOverallStatus.PROSPECTED
+                )
+            ).order_by(Prospect.id.desc()).limit(num_prospects - len(prospects)).all()
+        )
+
+    prospect_ids: list[int] = [p.id for p in prospects]
+    return prospect_ids
 
 
 def generate_campaign(campaign_id: int):
@@ -647,6 +693,7 @@ def merge_outbound_campaigns(campaign_ids: list):
 
     campaign: OutboundCampaign = create_outbound_campaign(
         prospect_ids=prospect_ids,
+        num_prospects=len(prospect_ids),
         campaign_type=campaign_type,
         client_archetype_id=client_archetype_id,
         client_sdr_id=client_sdr_id,
@@ -693,6 +740,7 @@ def split_outbound_campaigns(original_campaign_id: int, num_campaigns: int):
     for i, prospect_id_batch in enumerate(prospect_id_batches):
         campaign: OutboundCampaign = create_outbound_campaign(
             prospect_ids=prospect_id_batch,
+            num_prospects=len(prospect_id_batch),
             campaign_type=original_campaign.campaign_type,
             client_archetype_id=original_campaign.client_archetype_id,
             client_sdr_id=original_campaign.client_sdr_id,
@@ -854,6 +902,7 @@ def create_new_li_campaign_from_existing_email_campaign(email_campaign_id: int):
 
     new_campaign = create_outbound_campaign(
         prospect_ids=email_campaign.prospect_ids,
+        num_prospects=len(email_campaign.prospect_ids),
         campaign_type=GeneratedMessageType.LINKEDIN,
         client_archetype_id=email_campaign.client_archetype_id,
         client_sdr_id=email_campaign.client_sdr_id,

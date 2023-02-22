@@ -135,30 +135,32 @@ def get_all_campaigns(client_sdr_id: int):
 
 
 @CAMPAIGN_BLUEPRINT.route("/", methods=["POST"])
-def create_new_campaign():
+@require_user
+def create_new_campaign(client_sdr_id: int):
     prospect_ids = get_request_parameter(
-        "prospect_ids", request, json=True, required=True
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
+    num_prospects = get_request_parameter(
+        "num_prospects", request, json=True, required=True, parameter_type=int
     )
     campaign_type = get_request_parameter(
-        "campaign_type", request, json=True, required=True
+        "campaign_type", request, json=True, required=True, parameter_type=str
     )
-    ctas = get_request_parameter("ctas", request, json=True, required=False)
     client_archetype_id = get_request_parameter(
-        "client_archetype_id", request, json=True, required=True
-    )
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
+        "client_archetype_id", request, json=True, required=True, parameter_type=int
     )
     campaign_start_date = get_request_parameter(
-        "campaign_start_date", request, json=True, required=True
+        "campaign_start_date", request, json=True, required=True, parameter_type=str
     )
     campaign_end_date = get_request_parameter(
-        "campaign_end_date", request, json=True, required=True
+        "campaign_end_date", request, json=True, required=True, parameter_type=str
     )
+    ctas = get_request_parameter("ctas", request, json=True, required=False, parameter_type=list)
 
     try:
         campaign: OutboundCampaign = create_outbound_campaign(
             prospect_ids=prospect_ids,
+            num_prospects=num_prospects,
             campaign_type=campaign_type,
             ctas=ctas,
             client_archetype_id=client_archetype_id,
