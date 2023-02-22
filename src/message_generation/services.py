@@ -827,9 +827,13 @@ def mark_prospect_email_approved(prospect_email_id: int):
     db.session.add(prospect)
     db.session.commit()
 
-    return change_prospect_email_status(
+    success = change_prospect_email_status(
         prospect_email_id=prospect_email_id, status=ProspectEmailStatus.APPROVED
     )
+
+    run_message_rule_engine(message_id=prospect_email.personalized_first_line)
+
+    return success
 
 
 def batch_mark_prospect_email_approved_by_prospect_ids(prospect_ids: list):
