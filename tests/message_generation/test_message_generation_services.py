@@ -347,7 +347,10 @@ def test_delete_message_generation_by_prospect_id():
     "src.message_generation.services.get_personalized_first_line_for_client",
     return_value=("completion", 5),
 )
-def test_generate_prospect_email(get_custom_completion_for_client_mock):
+@mock.patch("src.message_generation.services.run_message_rule_engine")
+def test_generate_prospect_email(
+    rule_engine_mock, get_custom_completion_for_client_mock
+):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -362,6 +365,7 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
 
     generate_prospect_email(prospect_id=prospect.id, batch_id="123123")
 
+    assert rule_engine_mock.called is True
     assert get_custom_completion_for_client_mock.called is True
 
     messages: list = GeneratedMessage.query.all()
@@ -404,8 +408,9 @@ def test_generate_prospect_email(get_custom_completion_for_client_mock):
     return_value=("completion", 5),
 )
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
+@mock.patch("src.message_generation.services.run_message_rule_engine")
 def test_research_and_generate_emails_for_prospect_and_wipe(
-    linkedin_research_patch, get_custom_completion_for_client_mock
+    rule_engine_mock, linkedin_research_patch, get_custom_completion_for_client_mock
 ):
     client = basic_client()
     archetype = basic_archetype(client)
@@ -428,6 +433,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.commit()
 
     generate_prospect_email(prospect_id=prospect.id, batch_id="123123")
+    assert rule_engine_mock.called is True
 
     assert get_custom_completion_for_client_mock.called is True
 
@@ -550,7 +556,8 @@ def test_research_and_generate_outreaches_for_prospect_individual(
 
 
 @use_app_context
-def test_change_prospect_email_status_sent():
+@mock.patch("src.message_generation.services.run_message_rule_engine")
+def test_change_prospect_email_status_sent(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -580,6 +587,7 @@ def test_change_prospect_email_status_sent():
         ),
     )
     assert response.status_code == 200
+    assert rule_engine_mock.call_count == 1
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
     prospect_email.id
@@ -602,7 +610,8 @@ def test_change_prospect_email_status_sent():
 
 
 @use_app_context
-def test_clearing_approved_emails():
+@mock.patch("src.message_generation.services.run_message_rule_engine")
+def test_clearing_approved_emails(run_message_rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -632,6 +641,7 @@ def test_clearing_approved_emails():
         ),
     )
     assert response.status_code == 200
+    assert run_message_rule_engine_mock.call_count == 1
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
     prospect_email_id = prospect_email.id
