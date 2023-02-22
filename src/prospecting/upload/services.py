@@ -386,3 +386,28 @@ def calculate_health_check_follower_sigmoid(num_followers: int = 0) -> int:
     sig_score = raw_sig_score - y_intercept_adjuster
 
     return sig_score
+
+
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
+def refresh_bio_followers_for_prospect(self, prospect_id: int):
+	try:
+		p = Prospect.query.get(prospect_id)
+		print(p)
+		li_slug = get_linkedin_slug_from_url(p.linkedin_url)
+		scraper_payload = research_personal_profile_details(li_slug)
+		if not deep_get(scraper_payload, "first_name"):
+			return ('scraper_error', scraper_payload)
+
+		linkedin_bio = deep_get(scraper_payload, "summary")
+		followers_count = deep_get(scraper_payload, "network_info.followers_count") or 0
+
+		p.linkedin_bio = linkedin_bio
+		p.li_num_followers = followers_count
+
+		db.session.add(p)
+		db.session.commit()
+
+		return True
+	except Exception as e:
+		db.session.rollback()
+		raise self.retry(exc=e, countdown=2**self.request.retries)

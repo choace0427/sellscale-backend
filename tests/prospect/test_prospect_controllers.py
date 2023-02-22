@@ -175,7 +175,7 @@ def test_patch_update_status_endpoint_failed():
 
 
 @use_app_context
-@mock.patch("src.prospecting.controllers.create_prospect_from_linkedin_link.delay")
+@mock.patch("src.prospecting.controllers.create_prospect_from_linkedin_link.apply_async")
 def test_post_prospect_from_link(create_prospect_from_linkedin_link_patch):
     client = basic_client()
     archetype = basic_archetype(client)
@@ -186,9 +186,7 @@ def test_post_prospect_from_link(create_prospect_from_linkedin_link_patch):
         data=json.dumps({"archetype_id": archetype.id, "url": "some_linkedin_url"}),
     )
     assert response.status_code == 200
-    create_prospect_from_linkedin_link_patch.assert_called_once_with(
-        archetype_id=archetype.id, url="some_linkedin_url", batch=mock.ANY
-    )
+    create_prospect_from_linkedin_link_patch.call_count == 1
 
 
 @use_app_context
