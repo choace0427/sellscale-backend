@@ -7,7 +7,7 @@ from src.ml.openai_wrappers import (
     wrapped_create_completion,
     CURRENT_OPENAI_DAVINCI_MODEL,
 )
-from src.utils.converters.string_converters import sanitize_string
+from src.utils.converters.string_converters import sanitize_string, clean_company_name
 from src.utils.datetime.dateutils import get_current_month, get_current_year
 
 
@@ -192,28 +192,49 @@ def remove_suffixes_from_company_name(positions_str):
 def get_list_of_past_jobs(data):
     # saw that you've worked at X, Y, Z
     position_data = deep_get(data, "personal.position_groups")
-    positions = [deep_get(x, "company.name") for x in position_data][1:][0:3]
-    positions_str = ", ".join(positions)
-    positions_str = remove_suffixes_from_company_name(positions_str)
+    relevant_positions = []
+    for position in position_data:
+        if len(relevant_positions) >= 3:
+            break
 
-    if len(positions) == 0:
+        company_name = clean_company_name(deep_get(position, "company.name"))
+        start_date_year = deep_get(position, "date.start.year")
+        start_date_month = deep_get(position, "date.start.month") or 1
+        end_date_year = deep_get(position, "date.end.year") or get_current_year()
+        end_date_month = deep_get(position, "date.end.month") or get_current_month()
+
+        # If no start date, skip
+        if not start_date_year:
+            continue
+
+        # End date should be within the past 10 years
+        if end_date_year < get_current_year() - 10:
+            continue
+
+        # Must have worked at least 1 year at the company.
+        time_at_job = (end_date_year - start_date_year) + ((end_date_month - start_date_month) / 12)
+        if time_at_job < 1:
+            continue
+
+        relevant_positions.append(company_name)
+
+    # If no relevant positions, return empty dict
+    if len(relevant_positions) == 0:
         return {}
+    elif len(relevant_positions) == 1:
+        response = "Has previously worked at {}".format(relevant_positions[0])
+    elif len(relevant_positions) == 2:
+        response = "Has previously worked at {} and {}".format(
+            relevant_positions[0], relevant_positions[1]
+        )
+    else:
+        response = "Has previously worked at {}, {} and {}".format(
+            relevant_positions[0], relevant_positions[1], relevant_positions[2]
+        )
 
     raw_data = {
-        "positions": positions,
+        "positions": relevant_positions,
     }
-
-    prob = random.random()
-    if prob > 0.8:
-        response = "Saw that you've worked at {} in the past".format(positions_str)
-    elif prob > 0.6:
-        response = "Loved following your journey between {}".format(positions_str)
-    elif prob > 0.4:
-        response = "Saw that you have experiences at {}".format(positions_str)
-    elif prob > 0.2:
-        response = "Kudos on all your experiences at {}".format(positions_str)
-    else:
-        response = "Saw you've worked at {}".format(positions_str)
 
     return {"raw_data": raw_data, "response": response}
 
