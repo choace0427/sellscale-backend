@@ -105,7 +105,7 @@ def run_message_rule_engine(message_id: int):
     rule_catch_im_a(completion, prompt, problems, highlighted_words)
     rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
     rule_catch_has_6_or_more_consecutive_upper_case(
-        completion, prompt, problems, highlighted_words
+        case_preserved_completion, prompt, problems, highlighted_words
     )
 
     if " me " in completion:
