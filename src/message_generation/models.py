@@ -162,7 +162,6 @@ class StackRankedMessageGenerationConfiguration(db.Model):
         db.ARRAY(db.String),
         nullable=True,
     )
-    generated_message_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
     instruction = db.Column(db.String, nullable=False)
     computed_prompt = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True, default=True)
