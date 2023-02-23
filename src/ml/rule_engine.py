@@ -3,6 +3,9 @@ import json
 import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType
+from src.utils.string.string_utils import (
+    has_consecutive_uppercase_string,
+)
 from app import db, celery
 
 # View experiment here: https://www.notion.so/sellscale/Adversarial-AI-v0-Experiment-901a97de91a845d5a83063f3d6606a4a
@@ -101,6 +104,9 @@ def run_message_rule_engine(message_id: int):
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
     rule_catch_im_a(completion, prompt, problems, highlighted_words)
     rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
+    rule_catch_has_6_or_more_consecutive_upper_case(
+        completion, prompt, problems, highlighted_words
+    )
 
     if " me " in completion:
         problems.append("Contains 'me'.")
@@ -446,3 +452,18 @@ def rule_catch_no_i_have(
     ):
         problems.append("Uses first person 'I have'.")
         highlighted_words.append("i have")
+
+
+def rule_catch_has_6_or_more_consecutive_upper_case(
+    completion: str, prompt: str, problems: list, highlighted_words: list
+):
+    """Rule: Catch 6 or more consecutive upper case letters
+
+    Catch 6 or more consecutive upper case letters in the completion.
+    """
+    has_long_str, long_str = has_consecutive_uppercase_string(completion, 6)
+    if has_long_str:
+        problems.append(
+            "Contains a long, uppercase word. Verify that names are capitalized correctly."
+        )
+        highlighted_words.append(long_str)

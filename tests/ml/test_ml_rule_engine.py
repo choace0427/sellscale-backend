@@ -15,6 +15,7 @@ from src.ml.rule_engine import (
     rule_catch_no_i_have,
     rule_no_profanity,
     rule_no_cookies,
+    rule_catch_has_6_or_more_consecutive_upper_case,
     rule_no_url,
     rule_linkedin_length,
     rule_address_doctor,
@@ -243,6 +244,52 @@ def test_no_i_have():
     )
     assert problems == ["Uses first person 'I have'."]
     assert highlighted_words == ["i have"]
+
+
+@use_app_context
+def test_rule_catch_has_6_or_more_consecutive_upper_case():
+    problems = []
+    highlighted_words = []
+    rule_catch_has_6_or_more_consecutive_upper_case(
+        "pass", "", problems, highlighted_words
+    )
+    assert problems == []
+    assert highlighted_words == []
+
+    rule_catch_has_6_or_more_consecutive_upper_case(
+        "I work at NASA AMES CENTER but this is kinda swaggy",
+        "",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Contains a long, uppercase word. Verify that names are capitalized correctly."
+    ]
+    assert highlighted_words == ["NASA AMES CENTER"]
+
+    problems = []
+    highlighted_words = []
+    rule_catch_has_6_or_more_consecutive_upper_case(
+        "Kudos on all your experiences at ARDEA BIOSCIENCES.",
+        "",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Contains a long, uppercase word. Verify that names are capitalized correctly."
+    ]
+    assert highlighted_words == ["ARDEA BIOSCIENCES"]
+
+    problems = []
+    highlighted_words = []
+    rule_catch_has_6_or_more_consecutive_upper_case(
+        "Kudos on all your experiences at Ardea.",
+        "",
+        problems,
+        highlighted_words,
+    )
+    assert problems == []
+    assert highlighted_words == []
 
 
 @use_app_context
