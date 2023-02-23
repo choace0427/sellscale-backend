@@ -300,12 +300,12 @@ def update_prospect_status(
         update_prospect_status_multi_step(
             prospect_id=prospect_id, statuses=[new_status]
         )
-    except Exception:
-        return False
+    except Exception as err:
+        return False, err.message if hasattr(err, 'message') else err
 
     calculate_prospect_overall_status.delay(prospect_id)
 
-    return True
+    return True, 'Success'
 
 
 def update_prospect_status_multi_step(prospect_id: int, statuses: list):

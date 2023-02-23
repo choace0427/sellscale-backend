@@ -35,6 +35,7 @@ from src.prospecting.services import delete_prospect_by_id
 
 from src.utils.random_string import generate_random_alphanumeric
 from src.authentication.decorators import require_user
+from src.client.models import ClientArchetype
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -171,16 +172,18 @@ def update_status():
     new_status = ProspectStatus[
         get_request_parameter("new_status", request, json=True, required=True)
     ]
+    # TODO: Add system to handle different channel types
+    channel_type = get_request_parameter("channel_type", request, json=True, required=False) or 'LINKEDIN'
     note = get_request_parameter("note", request, json=True, required=False)
 
     success = update_prospect_status(
         prospect_id=prospect_id, new_status=new_status, note=note
     )
 
-    if success:
+    if success[0]:
         return "OK", 200
 
-    return "Failed to update", 400
+    return "Failed to update: "+str(success[1]), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])
@@ -285,19 +288,16 @@ def send_slack_reminder():
 
 
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
-def add_prospect_from_csv_payload():
+@require_user
+def add_prospect_from_csv_payload(client_sdr_id: int):
     """Adds prospect from CSV payload (given as JSON) from Retool
 
     First stores the entire csv in `prospect_uploads_raw_csv` table
     Then populates the `prospect_uploads` table
     Then runs the celery job to create prospects from the `prospect_uploads` table
     """
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True
-    )
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
     )
     csv_payload = get_request_parameter(
         "csv_payload", request, json=True, required=True
@@ -311,10 +311,15 @@ def add_prospect_from_csv_payload():
     )
     if not validated:
         return reason, 400
+    
+    # Get client ID from client archetype ID.
+    archetype = ClientArchetype.query.filter(ClientArchetype.id == archetype_id, ClientArchetype.client_sdr_id == client_sdr_id).first()
+    if not archetype:
+        return "Archetype with given ID not found", 400
 
     # Create prospect_uploads_csv_raw with a single entry
     raw_csv_entry_id = create_raw_csv_entry_from_json_payload(
-        client_id=client_id,
+        client_id=archetype.client_id,
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
         payload=csv_payload,
@@ -327,7 +332,7 @@ def add_prospect_from_csv_payload():
 
     # Populate prospect_uploads table with multiple entries
     success = populate_prospect_uploads_from_json_payload(
-        client_id=client_id,
+        client_id=archetype.client_id,
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
         prospect_uploads_raw_csv_id=raw_csv_entry_id,
@@ -338,7 +343,7 @@ def add_prospect_from_csv_payload():
 
     # Collect eligible prospect rows and create prospects
     collect_and_run_celery_jobs_for_upload.apply_async(
-        args=[client_id, archetype_id, client_sdr_id],
+        args=[archetype.client_id, archetype_id, client_sdr_id],
         queue="prospecting",
         routing_key="prospecting",
         priority=1,

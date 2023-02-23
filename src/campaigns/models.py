@@ -60,6 +60,7 @@ class OutboundCampaign(db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "canonical_name": self.canonical_name,
             "prospect_ids": self.prospect_ids,
             "campaign_type": self.campaign_type.value,
             "ctas": self.ctas,

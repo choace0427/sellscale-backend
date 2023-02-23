@@ -5,6 +5,7 @@ from test_utils import (
     basic_client_sdr,
     basic_archetype,
     basic_prospect,
+    get_login_token,
 )
 from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
 from src.prospecting.services import (
@@ -444,18 +445,17 @@ def test_add_prospects_from_json_payload(
         },
     ]
     client = basic_client()
-    client_id = client.id
-    archetype = basic_archetype(client)
-    archetype_id = archetype.id
     sdr = basic_client_sdr(client)
-    sdr_id = sdr.id
+    archetype = basic_archetype(client, sdr)
+    archetype_id = archetype.id
     response = app.test_client().post(
         "prospect/add_prospect_from_csv_payload",
-        headers={"Content-Type": "application/json"},
+        headers={
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + get_login_token(),
+        },
         data=json.dumps(
             {
-                "client_id": client_id,
-                "client_sdr_id": sdr_id,
                 "archetype_id": archetype_id,
                 "csv_payload": payload,
                 "email_enabled": False,
@@ -498,18 +498,17 @@ def test_add_2_prospects_from_csv(
     ]
 
     client = basic_client()
-    client_id = client.id
-    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
     archetype_id = archetype.id
-    sdr = basic_client_sdr(client)
-    sdr_id = sdr.id
     response = app.test_client().post(
         "prospect/add_prospect_from_csv_payload",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
         data=json.dumps(
             {
-                "client_id": client_id,
-                "client_sdr_id": sdr_id,
                 "archetype_id": archetype_id,
                 "csv_payload": payload,
             }
