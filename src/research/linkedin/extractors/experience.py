@@ -14,7 +14,7 @@ from src.utils.datetime.dateutils import get_current_month, get_current_year
 def get_current_experience_description(data):
     # notice that you __________ at ________ currently
 
-    company_name = data.get("company").get("details", {}).get("name")
+    company_name = deep_get(data, "company.details.name")
     title = sanitize_string(
         data.get("personal", {})
         .get("position_groups", [])[0]
@@ -28,20 +28,24 @@ def get_current_experience_description(data):
         .get("description", "")
     )
 
+    description = description.replace("\n", " ")  # We may eventually need to replace strange symbols as well
+
     raw_data = {
         "company_name": company_name,
         "title": title,
         "description": description,
     }
 
-    prompt = "company: {company_name} -- description: {description} -- title: {title}\n -- summary:".format(
-        **raw_data
+    instruction = 'Summarize the individual\'s experience at their company in 30 words or less. Use "they" and "their" to refer to the individual. Refer to their work in the present tense.'
+    prompt = (
+        f"job title: {raw_data['title']}\ncompany name: {raw_data['company_name']}\job description: {raw_data['description']}\n\ninstruction: {instruction}\n\nsummary:"
     )
+
     if not company_name or not title or not description:
         response = ""
     else:
-        response = get_completion(
-            bullet_model_id="current_experience_description", prompt=prompt
+        response = wrapped_create_completion(
+          model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=35
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
