@@ -12,6 +12,7 @@ from src.ml.rule_engine import (
     run_message_rule_engine,
     wipe_problems,
     format_entities,
+    rule_catch_no_i_have,
     rule_no_profanity,
     rule_no_cookies,
     rule_no_url,
@@ -224,6 +225,36 @@ def test_rule_address_doctor():
         "Hey Darshan, something",
         problems,
         highlighted_words,
+    )
+    assert problems == []
+    assert highlighted_words == []
+
+
+@use_app_context
+def test_no_i_have():
+    problems = []
+    highlighted_words = []
+    rule_catch_no_i_have("pass", "", problems, highlighted_words)
+    assert problems == []
+    assert highlighted_words == []
+
+    rule_catch_no_i_have(
+        "i have a bad feeling about this", "", problems, highlighted_words
+    )
+    assert problems == ["Uses first person 'I have'."]
+    assert highlighted_words == ["i have"]
+
+
+@use_app_context
+def test_should_not_catch_have():
+    problems = []
+    highlighted_words = []
+    rule_catch_no_i_have("pass", "", problems, highlighted_words)
+    assert problems == []
+    assert highlighted_words == []
+
+    rule_catch_no_i_have(
+        "mahendra modi have a bad feeling about this", "", problems, highlighted_words
     )
     assert problems == []
     assert highlighted_words == []

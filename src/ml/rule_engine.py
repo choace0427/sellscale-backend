@@ -100,10 +100,7 @@ def run_message_rule_engine(message_id: int):
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
     rule_catch_im_a(completion, prompt, problems, highlighted_words)
-
-    if "i have " in completion:
-        problems.append("Uses first person 'I have'.")
-        highlighted_words.append("i have")
+    rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
 
     if " me " in completion:
         problems.append("Contains 'me'.")
@@ -434,3 +431,18 @@ def rule_catch_im_a(
         highlighted_words.append("I'm a")
 
     return
+
+
+def rule_catch_no_i_have(
+    completion: str, prompt: str, problems: list, highlighted_words: list
+):
+    """Rule: Catch 'I have'
+
+    Catch 'I have' in the completion.
+    """
+    if "i have " in completion and (
+        completion.find("i have") == 0
+        or completion[completion.find("i have") - 1] == " "
+    ):
+        problems.append("Uses first person 'I have'.")
+        highlighted_words.append("i have")
