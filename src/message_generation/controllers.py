@@ -19,12 +19,9 @@ from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
     edit_stack_ranked_configuration_instruction,
     edit_stack_ranked_configuration_research_point_types,
-    edit_stack_ranked_configuration_generated_message_ids,
     edit_stack_ranked_configuration_name,
     delete_stack_ranked_configuration,
     get_stack_ranked_config_ordering,
-    add_generated_message_id_to_config,
-    delete_generated_message_id_from_config,
     get_prompts_from_stack_ranked_config,
     toggle_stack_ranked_message_configuration_active,
 )
@@ -338,9 +335,6 @@ def post_create_stack_ranked_configuration():
     research_point_types = get_request_parameter(
         "research_point_types", request, json=True, required=True
     )
-    generated_message_ids = get_request_parameter(
-        "generated_message_ids", request, json=True, required=True
-    )
     instruction = get_request_parameter(
         "instruction", request, json=True, required=True
     )
@@ -356,7 +350,6 @@ def post_create_stack_ranked_configuration():
     success, message = create_stack_ranked_configuration(
         configuration_type=configuration_type,
         research_point_types=research_point_types,
-        generated_message_ids=generated_message_ids,
         instruction=instruction,
         name=name,
         client_id=client_id,
@@ -402,26 +395,6 @@ def post_edit_stack_ranked_configuration_research_point_types():
     success, message = edit_stack_ranked_configuration_research_point_types(
         stack_ranked_configuration_id=configuration_id,
         research_point_types=research_point_types,
-    )
-    if success:
-        return "OK", 200
-    return message, 400
-
-
-@MESSAGE_GENERATION_BLUEPRINT.route(
-    "/edit_stack_ranked_configuration/generated_message_ids", methods=["POST"]
-)
-def post_edit_stack_ranked_configuration_generated_message_ids():
-    configuration_id = get_request_parameter(
-        "configuration_id", request, json=True, required=True
-    )
-    generated_message_ids = get_request_parameter(
-        "generated_message_ids", request, json=True, required=True
-    )
-
-    success, message = edit_stack_ranked_configuration_generated_message_ids(
-        stack_ranked_configuration_id=configuration_id,
-        generated_message_ids=generated_message_ids,
     )
     if success:
         return "OK", 200

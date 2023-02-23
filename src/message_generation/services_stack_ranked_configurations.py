@@ -22,7 +22,6 @@ def compute_prompt(stack_ranked_configuration_id: int):
 def create_stack_ranked_configuration(
     configuration_type: str,
     research_point_types: list[ResearchPointType],
-    generated_message_ids: list[int],
     instruction: str,
     generated_message_type: str,
     name: Optional[str] = None,
@@ -30,12 +29,6 @@ def create_stack_ranked_configuration(
     archetype_id: Optional[int] = None,
 ) -> tuple[bool, str]:
     """Create a new stack ranked message generation configuration"""
-    for generated_message_id in generated_message_ids:
-        generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
-            id=generated_message_id
-        ).first()
-        if not generated_message:
-            return False, "Generated message does not exist"
     client_name = "All Clients"
     archetype_name = "All Archetypes"
     if client_id:
@@ -61,7 +54,6 @@ def create_stack_ranked_configuration(
         StackRankedMessageGenerationConfiguration(
             configuration_type=configuration_type,
             research_point_types=research_point_types,
-            generated_message_ids=generated_message_ids,
             instruction=instruction,
             computed_prompt="",
             name=name,
@@ -110,24 +102,6 @@ def edit_stack_ranked_configuration_research_point_types(
     if not srmgc:
         return False, "Stack ranked message generation configuration does not exist"
     srmgc.research_point_types = research_point_types
-    db.session.add(srmgc)
-    db.session.commit()
-    return True, "OK"
-
-
-def edit_stack_ranked_configuration_generated_message_ids(
-    stack_ranked_configuration_id: int,
-    generated_message_ids: list[int],
-):
-    """Edit the generated message ids of a stack ranked message generation configuration"""
-    srmgc: StackRankedMessageGenerationConfiguration = (
-        StackRankedMessageGenerationConfiguration.query.filter_by(
-            id=stack_ranked_configuration_id
-        ).first()
-    )
-    if not srmgc:
-        return False, "Stack ranked message generation configuration does not exist"
-    srmgc.generated_message_ids = generated_message_ids
     db.session.add(srmgc)
     db.session.commit()
     return True, "OK"
@@ -283,36 +257,6 @@ def toggle_stack_ranked_message_configuration_active(
     srmgc.active = not srmgc.active
     db.session.add(srmgc)
     db.session.commit()
-    return True, "OK"
-
-
-def delete_generated_message_id_from_config(generated_message_id: int, config_id: int):
-    """Delete a generated message id from a stack ranked message generation configuration if it exists"""
-    srmgc: StackRankedMessageGenerationConfiguration = (
-        StackRankedMessageGenerationConfiguration.query.filter_by(id=config_id).first()
-    )
-    if not srmgc:
-        return False, "Stack ranked message generation configuration does not exist"
-    if generated_message_id in srmgc.generated_message_ids:
-        srmgc.generated_message_ids.remove(generated_message_id)
-        attributes.flag_modified(srmgc, "generated_message_ids")
-        db.session.add(srmgc)
-        db.session.commit()
-    return True, "OK"
-
-
-def add_generated_message_id_to_config(generated_message_id: int, config_id: int):
-    """Add a generated message id to a stack ranked message generation configuration if generated_message_id is not already in the list"""
-    srmgc: StackRankedMessageGenerationConfiguration = (
-        StackRankedMessageGenerationConfiguration.query.filter_by(id=config_id).first()
-    )
-    if not srmgc:
-        return False, "Stack ranked message generation configuration does not exist"
-    if generated_message_id not in srmgc.generated_message_ids:
-        srmgc.generated_message_ids.append(generated_message_id)
-        attributes.flag_modified(srmgc, "generated_message_ids")
-        db.session.add(srmgc)
-        db.session.commit()
     return True, "OK"
 
 

@@ -41,7 +41,6 @@ def test_get_stack_ranked_configuration_priority():
             configuration_type=ConfigurationType.DEFAULT,
             generated_message_type=GeneratedMessageType.EMAIL,
             research_point_types=[],
-            generated_message_ids=[],
             instruction="",
             computed_prompt="",
             client_id=client_1_id,
@@ -56,7 +55,6 @@ def test_get_stack_ranked_configuration_priority():
             configuration_type=ConfigurationType.DEFAULT,
             generated_message_type=GeneratedMessageType.EMAIL,
             research_point_types=[],
-            generated_message_ids=[],
             instruction="",
             computed_prompt="",
             client_id=client_2_id,
@@ -71,7 +69,6 @@ def test_get_stack_ranked_configuration_priority():
             configuration_type=ConfigurationType.STRICT,
             generated_message_type=GeneratedMessageType.LINKEDIN,
             research_point_types=[],
-            generated_message_ids=[],
             instruction="",
             computed_prompt="",
             client_id=client_1_id,
@@ -88,7 +85,6 @@ def test_get_stack_ranked_configuration_priority():
             research_point_types=[
                 ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION.value
             ],
-            generated_message_ids=[],
             instruction="",
             computed_prompt="",
         )
@@ -105,7 +101,6 @@ def test_get_stack_ranked_configuration_priority():
                 ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION.value,
                 ResearchPointType.CURRENT_JOB_DESCRIPTION.value,
             ],
-            generated_message_ids=[],
             instruction="",
             computed_prompt="",
             client_id=client_1_id,
@@ -121,7 +116,6 @@ def test_get_stack_ranked_configuration_priority():
             configuration_type=ConfigurationType.DEFAULT,
             generated_message_type=GeneratedMessageType.LINKEDIN,
             research_point_types=[],
-            generated_message_ids=[],
             instruction="",
             computed_prompt="",
             client_id=client_1_id,
@@ -271,73 +265,6 @@ def test_get_stack_ranked_configuration_priority():
 
 
 @use_app_context
-def test_add_delete_generated_message_ids_from_stack_ranked_config():
-    client = basic_client()
-    client_id = client.id
-    archetype = basic_archetype(client)
-    archetype_id = archetype.id
-    prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(
-        prospect=prospect,
-        gnlp_model=gnlp_model,
-    )
-    gm_id = generated_message.id
-
-    config = StackRankedMessageGenerationConfiguration(
-        configuration_type=ConfigurationType.DEFAULT,
-        generated_message_type=GeneratedMessageType.LINKEDIN,
-        research_point_types=[],
-        generated_message_ids=[],
-        instruction="",
-        computed_prompt="",
-        client_id=client_id,
-        archetype_id=archetype_id,
-    )
-    db.session.add(config)
-    db.session.commit()
-    config_id = config.id
-
-    # check no generated message ids in config
-    config = StackRankedMessageGenerationConfiguration.query.get(config_id)
-    assert config.generated_message_ids == []
-
-    # add generated message id to config
-    response = app.test_client().post(
-        "message_generation/stack_ranked_configuration_priority/add_generated_message_id",
-        data=json.dumps(
-            {
-                "configuration_id": config_id,
-                "generated_message_id": gm_id,
-            }
-        ),
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 200
-
-    # check generated message id in config
-    config = StackRankedMessageGenerationConfiguration.query.get(config_id)
-    assert config.generated_message_ids == [gm_id]
-
-    # delete generated message id from config
-    response = app.test_client().post(
-        "message_generation/stack_ranked_configuration_priority/delete_generated_message_id",
-        data=json.dumps(
-            {
-                "configuration_id": config_id,
-                "generated_message_id": gm_id,
-            }
-        ),
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 200
-
-    # check no generated message ids in config
-    config = StackRankedMessageGenerationConfiguration.query.get(config_id)
-    assert config.generated_message_ids == []
-
-
-@use_app_context
 def test_get_stack_ranked_configuration_tool_prompts():
     client = basic_client()
     client_id = client.id
@@ -350,7 +277,6 @@ def test_get_stack_ranked_configuration_tool_prompts():
         configuration_type=ConfigurationType.DEFAULT,
         generated_message_type=GeneratedMessageType.LINKEDIN,
         research_point_types=["CURRENT_JOB_DESCRIPTION"],
-        generated_message_ids=[],
         instruction="",
         computed_prompt="this is a prompt: {prompt}",
         client_id=client_id,
@@ -391,7 +317,6 @@ def test_post_toggle_stack_ranked_configuration_tool_active():
         configuration_type=ConfigurationType.DEFAULT,
         generated_message_type=GeneratedMessageType.LINKEDIN,
         research_point_types=["CURRENT_JOB_DESCRIPTION"],
-        generated_message_ids=[],
         instruction="",
         computed_prompt="this is a prompt: {prompt}",
         client_id=client_id,

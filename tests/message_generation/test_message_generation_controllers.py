@@ -318,7 +318,6 @@ def test_post_create_and_edit_stack_ranked_configuration():
             {
                 "configuration_type": "STRICT",
                 "research_point_types": [],
-                "generated_message_ids": [],
                 "instruction": "Swag swag swag",
                 "name": "Swag",
                 "client_id": client.id,
@@ -367,21 +366,6 @@ def test_post_create_and_edit_stack_ranked_configuration():
 
     config = StackRankedMessageGenerationConfiguration.query.first()
     assert config.research_point_types == ["GENERAL_WEBSITE_TRANSFORMER"]
-
-    response = app.test_client().post(
-        "message_generation/edit_stack_ranked_configuration/generated_message_ids",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "configuration_id": config_id,
-                "generated_message_ids": [1, 2, 3],
-            }
-        ),
-    )
-    assert response.status_code == 200
-
-    config = StackRankedMessageGenerationConfiguration.query.first()
-    assert config.generated_message_ids == [1, 2, 3]
 
     response = app.test_client().post(
         "message_generation/edit_stack_ranked_configuration/name",

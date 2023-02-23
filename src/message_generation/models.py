@@ -182,7 +182,6 @@ class StackRankedMessageGenerationConfiguration(db.Model):
             "configuration_type": self.configuration_type.value,
             "generated_message_type": self.generated_message_type.value,
             "research_point_types": self.research_point_types,
-            "generated_message_ids": self.generated_message_ids,
             "instruction": self.instruction,
             "computed_prompt": self.computed_prompt,
             "name": self.name,
