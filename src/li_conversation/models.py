@@ -18,6 +18,7 @@ class LinkedinConversationEntry(db.Model):
     connection_degree = db.Column(db.String, nullable=True)
     li_url = db.Column(db.String, nullable=True)
     message = db.Column(db.String, nullable=True)
+    entry_processed = db.Column(db.Boolean, default=False)
 
     def li_conversation_thread_by_prospect_id(prospect_id: int):
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
