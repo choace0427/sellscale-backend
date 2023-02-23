@@ -291,6 +291,17 @@ def test_rule_catch_has_6_or_more_consecutive_upper_case():
     assert problems == []
     assert highlighted_words == []
 
+    rule_catch_has_6_or_more_consecutive_upper_case(
+        "Impressive background of experience in Automotive, especially at KIA CANADA! It looks like you all are offering innovative and dynamic products and services through a network of 197 dealers, which is incredible. Keep up the good work!",
+        "",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Contains a long, uppercase word. Verify that names are capitalized correctly."
+    ]
+    assert highlighted_words == ["KIA CANADA"]
+
 
 @use_app_context
 def test_should_not_catch_have():
