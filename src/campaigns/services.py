@@ -631,6 +631,32 @@ def update_campaign_name(campaign_id: int, name: str):
     db.session.commit()
 
 
+def update_campaign_receipt_link(campaign_id: int, receipt_link: str):
+    """Updates the receipt link of the campaign
+
+    Args:
+        campaign_id (int): Campaign id
+        receipt_link (str): New receipt link of the campaign
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign.receipt_link = receipt_link
+    db.session.add(campaign)
+    db.session.commit()
+
+
+def update_campaign_cost(campaign_id: int, cost: str):
+    """Updates the cost of the campaign
+
+    Args:
+        campaign_id (int): Campaign id
+        cost (str): New cost of the campaign
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    campaign.cost = cost
+    db.session.add(campaign)
+    db.session.commit()
+
+
 def update_campaign_dates(campaign_id: int, start_date: datetime, end_date: datetime):
     """Updates the start and end dates of the campaign
 

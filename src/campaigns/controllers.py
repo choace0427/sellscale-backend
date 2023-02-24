@@ -23,6 +23,8 @@ from src.campaigns.services import (
     remove_ungenerated_prospects_from_campaign,
     create_new_li_campaign_from_existing_email_campaign,
     get_outbound_campaign_analytics,
+    update_campaign_cost,
+    update_campaign_receipt_link,
 )
 from src.authentication.decorators import require_user
 
@@ -264,6 +266,26 @@ def post_update_campaign_dates():
     update_campaign_dates(
         campaign_id=campaign_id, start_date=start_date, end_date=end_date
     )
+    return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/update_campaign_receipt_link", methods=["POST"])
+def post_update_campaign_receipt_link():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    receipt_link = get_request_parameter("receipt_link", request, json=True, required=True, parameter_type=str)
+    update_campaign_receipt_link(campaign_id=campaign_id, receipt_link=receipt_link)
+    return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/update_campaign_cost", methods=["POST"])
+def post_update_campaign_cost():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    cost = get_request_parameter("cost", request, json=True, required=True, parameter_type=float)
+    update_campaign_cost(campaign_id=campaign_id, cost=cost)
     return "OK", 200
 
 

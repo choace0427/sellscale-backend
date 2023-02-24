@@ -56,6 +56,9 @@ class OutboundCampaign(db.Model):
 
     editing_due_date = db.Column(db.DateTime, nullable=True)
 
+    receipt_link = db.Column(db.String, nullable=True)
+    cost = db.Column(db.Float, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -70,4 +73,6 @@ class OutboundCampaign(db.Model):
             "campaign_end_date": self.campaign_end_date,
             "status": self.status.value,
             "uuid": self.uuid,
+            "receipt_link": self.receipt_link,
+            "cost": self.cost,
         }
