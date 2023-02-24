@@ -140,7 +140,7 @@ def research_and_generate_outreaches_for_prospect(
         try:
             prospect: Prospect = Prospect.query.get(prospect_id)
             get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-            if prospect.client_id == 1:  # only for SellScale for now
+            if prospect.client_id in (1, 10):  # only for SellScale & Ramp for now
                 generate_linkedin_outreaches_with_configurations(
                     prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
                 )
