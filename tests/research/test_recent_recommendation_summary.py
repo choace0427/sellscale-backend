@@ -7,7 +7,7 @@ import json
 
 
 @mock.patch(
-    "src.research.linkedin.extractors.recommendations.get_completion",
+    "src.research.linkedin.extractors.recommendations.wrapped_create_completion",
     return_value="testing response",
 )
 def test_get_recent_recommendation_summary(get_completion_patch):

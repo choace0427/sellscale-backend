@@ -4,7 +4,7 @@ import json
 
 
 @mock.patch(
-    "src.research.linkedin.extractors.recommendations.get_completion",
+    "src.research.linkedin.extractors.recommendations.wrapped_create_completion",
     return_value="testing response",
 )
 @mock.patch(
