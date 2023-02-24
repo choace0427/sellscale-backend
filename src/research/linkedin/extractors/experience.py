@@ -36,9 +36,9 @@ def get_current_experience_description(data):
         "description": description,
     }
 
-    instruction = 'You\'re writing a short sentence summary of a individual based on their job experience. Only include one sentence of the top 3 most impactful skills they have. Include the name of their company. Limit your summary to a maximum of 30 words. Use "they" and "their" to refer to the individual. Refer to their work in the present tense.'
+    instruction = 'You\'re writing a short sentence summary of an individual based on their job experience. Only include one sentence of the top 3 most impactful skills they have. Include the name of their company. Limit your summary to a maximum of 30 words. Use "they" and "their" to refer to the individual. Refer to their work in the present tense.'
     prompt = (
-        f"{instruction}\n\njob title: {raw_data['title']}\ncompany name: {raw_data['company_name']}\job description: {raw_data['description']}\n\nsummary:"
+        f"{instruction}\n\njob title: {raw_data['title']}\ncompany name: {raw_data['company_name']}\job description: {raw_data['description']}\n\nsummary: "
     )
 
     if not company_name or not title or not description:
