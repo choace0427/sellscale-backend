@@ -69,7 +69,7 @@ def run_li_scheduling_conversation_detector(conversation_urls: list[str]):
             # TODO: Replace this with auto status change
             send_slack_message(
                 message=f"Prospect {prospect.full_name} is scheduling a meeting with {sdr.name}!",
-                webhook_urls=[URL_MAP["eng-sandbox"]],
+                webhook_urls=[URL_MAP["autodetect_scheduling"]],
                 blocks=[
                     {
                         "type": "header",
