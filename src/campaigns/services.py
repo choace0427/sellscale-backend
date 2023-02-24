@@ -813,6 +813,8 @@ def batch_update_campaigns(payload: dict):
         campaign_name = campaign_payload["campaign_name"]
         editor_id = campaign_payload["editor_id"]
         editing_due_date = campaign_payload["editing_due_date"]
+        receipt_link = campaign_payload.get("receipt_link")
+        cost = campaign_payload.get("cost")
 
         campaign = OutboundCampaign.query.get(campaign_id)
         campaign.campaign_start_date = campaign_start_date
@@ -821,6 +823,8 @@ def batch_update_campaigns(payload: dict):
         campaign.name = campaign_name
         campaign.editor_id = editor_id
         campaign.editing_due_date = editing_due_date
+        if receipt_link: campaign.receipt_link = receipt_link
+        if cost: campaign.cost = cost
 
         db.session.add(campaign)
         db.session.commit()
