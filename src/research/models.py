@@ -1,4 +1,6 @@
 from app import db
+from sqlalchemy.dialects.postgresql import JSONB
+
 import enum
 
 
@@ -114,3 +116,25 @@ class ResearchPoints(db.Model):
         ]
 
         return research_points
+
+
+class IScraperPayloadType(enum.Enum):
+    """Different types of iScraper Payloads
+
+    PERSONAL: Payloads that are scraped from a personal LinkedIn profile
+    COMPANY: Payloads that are scraped from a company LinkedIn profile
+
+    Typically there will be a PERSONAL payload and a COMPANY payload for each Prospect
+    """
+    PERSONAL = "PERSONAL"
+    COMPANY = "COMPANY"
+
+
+class IScraperPayloadCache(db.Model):
+    __tablename__ = "iscraper_payload_cache"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    linkedin_url = db.Column(db.String, nullable=False)
+    payload = db.Column(JSONB, nullable=False)
+    payload_type = db.Column(db.Enum(IScraperPayloadType), nullable=False)
