@@ -1,13 +1,12 @@
-from model_import import LinkedinConversationEntry
-from datetime import datetime
 from app import db, celery
-from src.automation.models import PhantomBusterAgent
-from tqdm import tqdm
-from model_import import ClientSDR
-from src.automation.models import PhantomBusterAgent
 
+from model_import import (LinkedinConversationEntry, ClientSDR, Prospect)
+from src.automation.models import PhantomBusterAgent
+from src.ml.openai_wrappers import wrapped_create_completion
 from src.utils.slack import URL_MAP
 from src.utils.slack import send_slack_message
+from datetime import datetime
+from tqdm import tqdm
 
 
 def update_linkedin_conversation_entries():
@@ -105,7 +104,7 @@ def create_linkedin_conversation_entry(
         return None
 
 
-def update_li_conversation_extractor_phantom(client_sdr_id) -> (str, int):
+def update_li_conversation_extractor_phantom(client_sdr_id) -> tuple[str, int]:
     """
     Update the LinkedIn conversation extractor phantom
     """
@@ -139,13 +138,13 @@ def update_li_conversation_extractor_phantom(client_sdr_id) -> (str, int):
 def get_next_client_sdr_to_scrape():
     data = db.session.execute(
         """
-        select 
+        select
             client_sdr.id
         from client_sdr
             join client on client.id = client_sdr.client_id
         where client.active
             and client_sdr.li_at_token is not null
-            and 
+            and
                 (client_sdr.last_li_conversation_scrape_date is Null
                     or client_sdr.last_li_conversation_scrape_date < NOW() - '24 hours'::INTERVAL)
         order by last_li_conversation_scrape_date desc

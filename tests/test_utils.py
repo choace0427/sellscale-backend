@@ -39,6 +39,7 @@ from model_import import (
     ProspectEmailStatus,
     ProspectEmailOutreachStatus,
     GeneratedMessageType,
+    LinkedinConversationEntry
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -68,6 +69,7 @@ def test_app():
             prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
+        clear_all_entities(LinkedinConversationEntry)
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
@@ -435,6 +437,40 @@ def basic_sei_ss(
     db.session.add(s)
     db.session.commit()
     return s
+
+
+def basic_linkedin_conversation_entry(
+    conversation_url: str = "test_convo_url",
+    author: str = "test_author",
+    first_name: str = "test_first_name",
+    last_name: str = "test_last_name",
+    date: datetime = datetime.now(),
+    profile_url: str = "test_profile_url",
+    headline: str = "test_headline",
+    img_url: str = "test_img_url",
+    connection_degree: str = "test_connection_degree",
+    li_url: str = "test_li_url",
+    message: str = "test_message",
+    entry_processed: bool = False,
+) -> LinkedinConversationEntry:
+
+    entry = LinkedinConversationEntry(
+        conversation_url=conversation_url,
+        author=author,
+        first_name=first_name,
+        last_name=last_name,
+        date=date,
+        profile_url=profile_url,
+        headline=headline,
+        img_url=img_url,
+        connection_degree=connection_degree,
+        li_url=li_url,
+        message=message,
+        entry_processed=entry_processed,
+    )
+    db.session.add(entry)
+    db.session.commit()
+    return entry
 
 
 def clear_all_entities(SQLAlchemyObject):
