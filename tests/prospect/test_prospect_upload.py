@@ -15,6 +15,7 @@ from model_import import (
     ProspectUploads,
     ProspectUploadsStatus,
     ProspectUploadsErrorType,
+    IScraperPayloadCache
 )
 from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
@@ -254,40 +255,8 @@ def test_create_prospect_from_linkedin_link_successful(
     # Check that we can create a prospect
     success = create_prospect_from_linkedin_link(pu_id)
     pu = ProspectUploads.query.get(pu_id)
-    assert success
-    assert iscraper_research_personal_profile_details_mock.call_count == 1
-    assert pu.status == ProspectUploadsStatus.UPLOAD_COMPLETE
-    assert Prospect.query.count() == 1
-
-
-@use_app_context
-@mock.patch(
-    "src.prospecting.upload.services.research_personal_profile_details",
-    return_value=VALID_ISCRAPER_PAYLOAD,
-)
-def test_create_prospect_from_linkedin_link_successful(
-    iscraper_research_personal_profile_details_mock,
-):
-    c = basic_client()
-    a = basic_archetype(c)
-    sdr = basic_client_sdr(c)
-    raw_csv_entry = basic_prospect_uploads_raw_csv(
-        client=c, client_archetype=a, client_sdr=sdr
-    )
-    pu = basic_prospect_uploads(
-        client=c,
-        client_archetype=a,
-        client_sdr=sdr,
-        prospect_uploads_raw_csv=raw_csv_entry,
-    )
-    pu_id = pu.id
-
-    # Check that we can't create a prospect from a row without a valid prospect upload
-    assert create_prospect_from_linkedin_link(-1) == False
-
-    # Check that we can create a prospect
-    success = create_prospect_from_linkedin_link(pu_id)
-    pu = ProspectUploads.query.get(pu_id)
+    iscraper_cache = IScraperPayloadCache.query.all()
+    assert len(iscraper_cache) == 1
     assert success
     assert iscraper_research_personal_profile_details_mock.call_count == 1
     assert pu.status == ProspectUploadsStatus.UPLOAD_COMPLETE

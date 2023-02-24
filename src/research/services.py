@@ -1,6 +1,25 @@
 from app import db
 from model_import import ResearchPayload, ResearchPoints, ResearchType
-from src.research.models import ResearchPointType
+from src.research.models import ResearchPointType, IScraperPayloadCache, IScraperPayloadType
+
+import json
+
+
+def create_iscraper_payload_cache(
+    prospect_id: int, linkedin_url: str, payload: dict, payload_type: IScraperPayloadType
+) -> int:
+    """Creates a cache entry for a iScraper payload"""
+    iscraper_payload_cache: IScraperPayloadCache = IScraperPayloadCache(
+        prospect_id=prospect_id,
+        linkedin_url=linkedin_url,
+        payload=json.dumps(payload),
+        payload_type=payload_type.value,
+    )
+    cache_id = iscraper_payload_cache.id
+    db.session.add(iscraper_payload_cache)
+    db.session.commit()
+
+    return cache_id
 
 
 def create_research_payload(

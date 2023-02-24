@@ -1,7 +1,9 @@
 from app import db, celery
 from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads, ProspectUploadsStatus, ProspectUploadsErrorType, Prospect
 from src.prospecting.services import get_linkedin_slug_from_url, get_navigator_slug_from_url, add_prospect
+from src.research.models import IScraperPayloadType
 from src.research.linkedin.services import research_personal_profile_details, get_iscraper_payload_error
+from src.research.services import create_iscraper_payload_cache
 from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
 from sqlalchemy import bindparam, update
@@ -273,7 +275,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
         followers_count = deep_get(iscraper_payload, "network_info.followers_count") or 0
 
         # Add prospect
-        added = add_prospect(
+        new_prospect_id = add_prospect(
             client_id=prospect_upload.client_id,
             archetype_id=prospect_upload.client_archetype_id,
             client_sdr_id=prospect_upload.client_sdr_id,
@@ -289,7 +291,13 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             email=email,
             linkedin_num_followers=followers_count,
         )
-        if added:
+        if new_prospect_id is not None:
+            create_iscraper_payload_cache(
+                prospect_id=new_prospect_id,
+                linkedin_url=linkedin_url,
+                payload=iscraper_payload,
+                payload_type=IScraperPayloadType.PERSONAL,
+            )
             prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE
             db.session.add(prospect_upload)
             db.session.commit()

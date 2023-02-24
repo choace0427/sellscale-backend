@@ -1,12 +1,19 @@
-import json
-import os
-
-import requests
-
 from app import celery, db
-from model_import import Client
-from src.client.models import ClientArchetype
+
+from src.client.models import Client, ClientArchetype
 from src.prospecting.models import Prospect
+from src.research.models import (
+    ResearchPayload,
+    ResearchPoints,
+    ResearchPointType,
+    ResearchType,
+    IScraperPayloadCache,
+    IScraperPayloadType,
+)
+from src.research.website.serp_news_extractor_transformer import (
+    SerpNewsExtractorTransformer,
+)
+from src.research.services import (create_iscraper_payload_cache)
 from src.research.linkedin.extractors.experience import (
     get_current_experience_description,
     get_linkedin_bio_summary,
@@ -18,26 +25,21 @@ from src.research.linkedin.extractors.projects import get_recent_patent
 from src.research.linkedin.extractors.recommendations import (
     get_recent_recommendation_summary,
 )
-from src.research.models import (
-    ResearchPayload,
-    ResearchPoints,
-    ResearchPointType,
-    ResearchType,
-)
 from src.research.website.general_website_transformer import (
     generate_general_website_research_points,
 )
-from src.research.website.serp_news_extractor_transformer import (
-    SerpNewsExtractorTransformer,
-)
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.converters.string_converters import clean_company_name
-
-from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
 from .extractors.current_company import (
     get_current_company_description,
     get_current_company_specialties,
 )
+from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
+
+import json
+import os
+import requests
+from datetime import datetime, timedelta
 
 LINKEDIN_SEARCH_URL = "https://api.iscraper.io/v2/linkedin-search"
 PROFILE_DETAILS_URL = "https://api.iscraper.io/v2/profile-details"
@@ -85,7 +87,9 @@ def research_corporate_profile_details(company_name: str):
     return json.loads(response.text)
 
 
-def get_research_payload_new(prospect_id: int, test_mode: bool):
+def get_research_payload_new(prospect_id: int, test_mode: bool = False):
+    from src.prospecting.services import get_linkedin_slug_from_url, get_navigator_slug_from_url
+
     if test_mode:
         return SAMPLE_RESEARCH_RESPONSE
 
@@ -101,26 +105,45 @@ def get_research_payload_new(prospect_id: int, test_mode: bool):
 
     personal_info = {}
     company_info = {}
-    linkedin_url = p.linkedin_url
-    if linkedin_url:
-        linkedin_slug = linkedin_url.split("/in/")[1]
-        if linkedin_slug:
-            personal_info = research_personal_profile_details(profile_id=linkedin_slug)
-            try:
-                if len(personal_info.get("position_groups", [])) > 0:
-                    company_name = (
-                        personal_info.get("position_groups", [])[0]
-                        .get("company", {})
-                        .get("url", "")
-                        .split("company/")[1]
-                        .replace("/", "")
-                    )
-                    company_info = research_corporate_profile_details(
-                        company_name=company_name
-                    )
-            except:
-                pass
 
+     # Check if we have a payload cache for the prospect
+    iscraper_cache: IScraperPayloadCache = IScraperPayloadCache.get_iscraper_payload_cache_by_prospect_id(
+        prospect_id=prospect_id,
+        payload_type=IScraperPayloadType.PERSONAL
+    )
+    if iscraper_cache and iscraper_cache.created_at > (datetime.now() - timedelta(weeks=2)):
+        personal_info = iscraper_cache.payload
+    else:
+        # Get LinkedIn Slug and iScraper payload
+        url = p.linkedin_url
+        if "/in/" in url:
+            slug = get_linkedin_slug_from_url(url)
+        elif "/lead/" in url:
+            slug = get_navigator_slug_from_url(url)
+        personal_info = research_personal_profile_details(profile_id=slug)
+
+        # Add to cache
+        create_iscraper_payload_cache(
+            prospect_id = prospect_id,
+            linkedin_url = p.linkedin_url,
+            payload = personal_info,
+            payload_type = IScraperPayloadType.PERSONAL
+        )
+
+    # Get company info
+    company_url = deep_get(personal_info, "position_groups.0.company.url")
+    company_info = research_corporate_profile_details(
+        company_name=company_url
+    )
+    # Add to cache
+    create_iscraper_payload_cache(
+        prospect_id = prospect_id,
+        linkedin_url = company_url or "",
+        payload = company_info,
+        payload_type = IScraperPayloadType.COMPANY
+    )
+
+    # Construct entire payload
     payload = {"personal": personal_info, "company": company_info}
     payload = sanitize_payload(payload)
 

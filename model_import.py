@@ -17,6 +17,8 @@ from src.research.models import (
     ResearchPoints,
     ResearchPointType,
     ResearchType,
+    IScraperPayloadCache,
+    IScraperPayloadType,
 )
 from src.message_generation.models import (
     GeneratedMessage,

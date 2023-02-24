@@ -28,6 +28,7 @@ from model_import import (
     Client,
     ProspectStatus,
     ProspectNote,
+    IScraperPayloadCache
 )
 from decorators import use_app_context
 import mock
@@ -764,6 +765,10 @@ def test_create_prospect_from_linkedin_link(research_personal_profile_details_pa
     )
     assert prospect.first_name == "Matthew"
     assert prospect.last_name == "Barlow"
+
+    iscraper_cache: list[IScraperPayloadCache] = IScraperPayloadCache.query.all()
+    assert len(iscraper_cache) == 1
+    assert iscraper_cache[0].prospect_id == prospect.id
 
 
 @use_app_context

@@ -39,7 +39,9 @@ from model_import import (
     ProspectEmailStatus,
     ProspectEmailOutreachStatus,
     GeneratedMessageType,
-    LinkedinConversationEntry
+    LinkedinConversationEntry,
+    IScraperPayloadCache,
+    IScraperPayloadType
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -69,6 +71,7 @@ def test_app():
             prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
+        clear_all_entities(IScraperPayloadCache)
         clear_all_entities(LinkedinConversationEntry)
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
@@ -471,6 +474,23 @@ def basic_linkedin_conversation_entry(
     db.session.add(entry)
     db.session.commit()
     return entry
+
+
+def basic_iscraper_payload_cache(
+    prospect_id: int,
+    linkedin_url: str = "test_linkedin_url",
+    payload: dict = {"test": "test"},
+    payload_type: IScraperPayloadType = IScraperPayloadType.PERSONAL,
+) -> IScraperPayloadCache:
+    cache = IScraperPayloadCache(
+        prospect_id=prospect_id,
+        linkedin_url=linkedin_url,
+        payload=payload,
+        payload_type=payload_type,
+    )
+    db.session.add(cache)
+    db.session.commit()
+    return cache
 
 
 def clear_all_entities(SQLAlchemyObject):

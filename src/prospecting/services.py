@@ -5,6 +5,7 @@ from src.message_generation.models import GeneratedMessage, GeneratedMessageStat
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
+from src.research.services import create_iscraper_payload_cache
 from src.prospecting.models import (
     Prospect,
     ProspectStatus,
@@ -20,7 +21,7 @@ from src.utils.converters.string_converters import (
     get_last_name_from_full_name,
     get_first_name_from_full_name,
 )
-from model_import import LinkedinConversationEntry
+from model_import import LinkedinConversationEntry, IScraperPayloadCache, IScraperPayloadType
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 
 
@@ -469,7 +470,28 @@ def add_prospect(
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
     email: Optional[str] = None,
-) -> bool:
+) -> int or None:
+    """Adds a Prospect to the database.
+
+    Args:
+        client_id (int): ID of the Client
+        archetype_id (int): ID of the Client Archetype
+        client_sdr_id (int): ID of the Client SDR
+        company (Optional[str], optional): Name of the Prospect's company. Defaults to None.
+        company_url (Optional[str], optional): URL of the Prospect's company. Defaults to None.
+        employee_count (Optional[str], optional): Number of employees at the Prospect's company. Defaults to None.
+        full_name (Optional[str], optional): Prospect's full name. Defaults to None.
+        industry (Optional[str], optional): Prospect's industry. Defaults to None.
+        linkedin_url (Optional[str], optional): Prospect's LinkedIn URL. Defaults to None.
+        linkedin_bio (Optional[str], optional): Prospect's LinkedIn Bio (Summary). Defaults to None.
+        linkedin_num_followers (Optional[int], optional): Number of people who follow the Prospect on LinkedIn. Defaults to None.
+        title (Optional[str], optional): Prospect's LinkedIn Title. Defaults to None.
+        twitter_url (Optional[str], optional): Prospect's Twitter URL. Defaults to None.
+        email (Optional[str], optional): Prospect's email. Defaults to None.
+
+    Returns:
+        int or None: ID of the Prospect if it was added successfully, None otherwise
+    """
     status = ProspectStatus.PROSPECTED
 
     prospect_exists: Prospect = prospect_exists_for_client(
@@ -481,7 +503,7 @@ def add_prospect(
         prospect_exists.email = email
         db.session.add(prospect_exists)
         db.session.commit()
-        return True
+        return prospect_exists.id
 
     if linkedin_url and len(linkedin_url) > 0:
         linkedin_url = linkedin_url.replace("https://www.", "")
@@ -514,9 +536,9 @@ def add_prospect(
         db.session.add(prospect)
         db.session.commit()
     else:
-        return False
+        return None
 
-    return True
+    return prospect.id
 
 
 def find_prospect_by_linkedin_slug(slug: str, client_id: int):
@@ -608,7 +630,7 @@ def create_prospect_from_linkedin_link(
         # Health Check fields
         followers_count = deep_get(payload, "network_info.followers_count") or 0
 
-        add_prospect(
+        new_prospect_id = add_prospect(
             client_id=client_id,
             archetype_id=archetype_id,
             client_sdr_id=client_archetype.client_sdr_id,
@@ -624,8 +646,15 @@ def create_prospect_from_linkedin_link(
             email=email,
             linkedin_num_followers=followers_count,
         )
-
-        return True
+        if new_prospect_id is not None:
+            create_iscraper_payload_cache(
+                prospect_id=new_prospect_id,
+                linkedin_url=linkedin_url,
+                payload=payload,
+                payload_type=IScraperPayloadType.PERSONAL,
+            )
+            return True
+        return False
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
