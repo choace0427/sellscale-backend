@@ -6,11 +6,10 @@ import json
 
 
 def create_iscraper_payload_cache(
-    prospect_id: int, linkedin_url: str, payload: dict, payload_type: IScraperPayloadType
+    linkedin_url: str, payload: dict, payload_type: IScraperPayloadType
 ) -> int:
     """Creates a cache entry for a iScraper payload"""
     iscraper_payload_cache: IScraperPayloadCache = IScraperPayloadCache(
-        prospect_id=prospect_id,
         linkedin_url=linkedin_url,
         payload=json.dumps(payload),
         payload_type=payload_type.value,

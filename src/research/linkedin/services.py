@@ -107,11 +107,11 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     company_info = {}
 
      # Check if we have a payload cache for the prospect
-    iscraper_cache: IScraperPayloadCache = IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
+    iscraper_personal_cache: IScraperPayloadCache = IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
         linkedin_url = p.linkedin_url,
     )
-    if iscraper_cache and iscraper_cache.created_at > (datetime.now() - timedelta(weeks=2)):
-        personal_info = iscraper_cache.payload
+    if iscraper_personal_cache and iscraper_personal_cache.created_at > (datetime.now() - timedelta(weeks=2)):
+        personal_info = iscraper_personal_cache.payload
     else:
         # Get LinkedIn Slug and iScraper payload
         url = p.linkedin_url
@@ -123,25 +123,32 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
 
         # Add to cache
         create_iscraper_payload_cache(
-            prospect_id = prospect_id,
             linkedin_url = p.linkedin_url,
             payload = personal_info,
             payload_type = IScraperPayloadType.PERSONAL
         )
 
     # Get company info
-    company_url = deep_get(personal_info, "position_groups.0.company.url") or ""
-    company_url = company_url.split("company/")[1].replace("/", "")
-    company_info = research_corporate_profile_details(
-        company_name=company_url
+    # Check if we have a payload cache for the company
+    company_url = deep_get(personal_info, "position_groups.0.company.url")
+    iscraper_company_cache: IScraperPayloadCache = IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
+        linkedin_url = deep_get(personal_info, "position_groups.0.company.url"),
     )
-    # Add to cache
-    create_iscraper_payload_cache(
-        prospect_id = prospect_id,
-        linkedin_url = company_url or "",
-        payload = company_info,
-        payload_type = IScraperPayloadType.COMPANY
-    )
+    if iscraper_company_cache and iscraper_company_cache.created_at > (datetime.now() - timedelta(weeks=2)):
+        company_info = iscraper_company_cache.payload
+    else:
+        # Get iScraper payload
+        company_slug = company_url.split("company/")[1].replace("/", "")
+        company_info = research_corporate_profile_details(
+            company_name=company_slug
+        )
+
+        # Add to cache
+        create_iscraper_payload_cache(
+            linkedin_url = company_url,
+            payload = company_info,
+            payload_type = IScraperPayloadType.COMPANY
+        )
 
     # Construct entire payload
     payload = {"personal": personal_info, "company": company_info}

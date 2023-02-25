@@ -134,7 +134,6 @@ class IScraperPayloadCache(db.Model):
     __tablename__ = "iscraper_payload_cache"
 
     id = db.Column(db.Integer, primary_key=True)
-    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     linkedin_url = db.Column(db.String, nullable=False)
     payload = db.Column(JSONB, nullable=False)
     payload_type = db.Column(db.Enum(IScraperPayloadType), nullable=False)

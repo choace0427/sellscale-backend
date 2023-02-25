@@ -481,21 +481,28 @@ EXAMPLE_PAYLOAD_PERSONAL = {
         {
             "company": {
                 "name": "Test",
-                "url": "https://www.linkedin.com/company/test"
+                "url": "https://www.linkedin.com/company/test_company"
             }
         },
     ]
 }
 
+EXAMPLE_PAYLOAD_COMPANY = {
+    "details": {
+        "name": "Fake Company TEST"
+    }
+}
 
 def basic_iscraper_payload_cache(
-    prospect_id: int,
     linkedin_url: str = "test_linkedin_url",
     payload: dict = EXAMPLE_PAYLOAD_PERSONAL,
     payload_type: IScraperPayloadType = IScraperPayloadType.PERSONAL,
+    is_company_payload: bool = False,
 ) -> IScraperPayloadCache:
+    if is_company_payload:
+        payload = EXAMPLE_PAYLOAD_COMPANY
+        payload_type = IScraperPayloadType.COMPANY
     cache = IScraperPayloadCache(
-        prospect_id=prospect_id,
         linkedin_url=linkedin_url,
         payload=payload,
         payload_type=payload_type,

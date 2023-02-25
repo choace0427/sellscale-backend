@@ -293,7 +293,6 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
-                prospect_id=new_prospect_id,
                 linkedin_url=linkedin_url,
                 payload=iscraper_payload,
                 payload_type=IScraperPayloadType.PERSONAL,

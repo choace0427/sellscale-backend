@@ -15,7 +15,7 @@ from src.research.linkedin.services import (
     get_iscraper_payload_error,
     get_research_payload_new
 )
-from model_import import IScraperPayloadCache, ResearchPayload
+from model_import import IScraperPayloadCache, ResearchPayload, IScraperPayloadType
 from freezegun import freeze_time
 import pytest
 import mock
@@ -49,10 +49,16 @@ EXAMPLE_PAYLOAD_PERSONAL = {
         {
             "company": {
                 "name": "Test",
-                "url": "https://www.linkedin.com/company/test"
+                "url": "https://www.linkedin.com/company/test_company"
             }
         },
     ]
+}
+
+EXAMPLE_PAYLOAD_COMPANY = {
+    "details": {
+        "name": "Fake Company Mock"
+    }
 }
 
 
@@ -99,7 +105,7 @@ def test_get_research_payload_new_payload_exists():
 
 @use_app_context
 @mock.patch("src.research.linkedin.services.research_personal_profile_details", return_value=EXAMPLE_PAYLOAD_PERSONAL)
-@mock.patch("src.research.linkedin.services.research_corporate_profile_details", return_value={"company": "Fake Company"})
+@mock.patch("src.research.linkedin.services.research_corporate_profile_details", return_value=EXAMPLE_PAYLOAD_COMPANY)
 def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company):
     client = basic_client()
     sdr = basic_client_sdr(client)
@@ -109,16 +115,31 @@ def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company)
     prospect.linkedin_url = "https://www.linkedin.com/in/test"
 
     # iScraper Cache Exists
-    cache = basic_iscraper_payload_cache(prospect.id)
+    cache = basic_iscraper_payload_cache()
     returned = get_research_payload_new(prospect.id)
-    assert returned == {"personal": cache.payload, "company": {"company": "Fake Company"}}
+    assert returned == {"personal": cache.payload, "company": EXAMPLE_PAYLOAD_COMPANY}
 
     clear_all_entities(ResearchPayload)
     clear_all_entities(IScraperPayloadCache)
 
     # iScraper Cache Exists but is too old
-    cache = basic_iscraper_payload_cache(prospect.id)
+    cache = basic_iscraper_payload_cache()
     with freeze_time(datetime.now() + timedelta(weeks=3)):
         returned = get_research_payload_new(prospect_id)
-        assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": {"company": "Fake Company"}}
+        assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": EXAMPLE_PAYLOAD_COMPANY}
 
+    clear_all_entities(ResearchPayload)
+    clear_all_entities(IScraperPayloadCache)
+
+    # iScraper Cache Exists for Company
+    cache = basic_iscraper_payload_cache(linkedin_url="https://www.linkedin.com/company/test_company", is_company_payload=True)
+    returned = get_research_payload_new(prospect_id)
+    assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": {"details": {"name": "Fake Company TEST"}}}
+    clear_all_entities(ResearchPayload)
+    clear_all_entities(IScraperPayloadCache)
+
+    # iScraper Cache Exists for Company but is too old
+    cache = basic_iscraper_payload_cache(linkedin_url="https://www.linkedin.com/company/test_company", is_company_payload=True)
+    with freeze_time(datetime.now() + timedelta(weeks=3)):
+        returned = get_research_payload_new(prospect_id)
+        assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": EXAMPLE_PAYLOAD_COMPANY}
