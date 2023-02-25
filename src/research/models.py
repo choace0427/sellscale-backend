@@ -139,8 +139,7 @@ class IScraperPayloadCache(db.Model):
     payload = db.Column(JSONB, nullable=False)
     payload_type = db.Column(db.Enum(IScraperPayloadType), nullable=False)
 
-    def get_iscraper_payload_cache_by_prospect_id(prospect_id: int, payload_type: IScraperPayloadType):
+    def get_iscraper_payload_cache_by_linkedin_url(linkedin_url: str):
         return IScraperPayloadCache.query.filter_by(
-            prospect_id=prospect_id,
-            payload_type=payload_type.value
+            linkedin_url=linkedin_url
         ).order_by(IScraperPayloadCache.created_at.desc()).first()

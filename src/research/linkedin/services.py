@@ -107,9 +107,8 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     company_info = {}
 
      # Check if we have a payload cache for the prospect
-    iscraper_cache: IScraperPayloadCache = IScraperPayloadCache.get_iscraper_payload_cache_by_prospect_id(
-        prospect_id=prospect_id,
-        payload_type=IScraperPayloadType.PERSONAL
+    iscraper_cache: IScraperPayloadCache = IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
+        linkedin_url = p.linkedin_url,
     )
     if iscraper_cache and iscraper_cache.created_at > (datetime.now() - timedelta(weeks=2)):
         personal_info = iscraper_cache.payload
@@ -131,7 +130,8 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
         )
 
     # Get company info
-    company_url = deep_get(personal_info, "position_groups.0.company.url")
+    company_url = deep_get(personal_info, "position_groups.0.company.url") or ""
+    company_url = company_url.split("company/")[1].replace("/", "")
     company_info = research_corporate_profile_details(
         company_name=company_url
     )

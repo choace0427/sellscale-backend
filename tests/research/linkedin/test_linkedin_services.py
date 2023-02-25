@@ -44,6 +44,18 @@ EXAMPLE_PAYLOAD = {
     }
 }
 
+EXAMPLE_PAYLOAD_PERSONAL = {
+    "position_groups": [
+        {
+            "company": {
+                "name": "Test",
+                "url": "https://www.linkedin.com/company/test"
+            }
+        },
+    ]
+}
+
+
 @use_app_context
 def test_sanitize_payload():
     response = sanitize_payload(EXAMPLE_PAYLOAD)
@@ -86,7 +98,7 @@ def test_get_research_payload_new_payload_exists():
     assert returned == payload.payload
 
 @use_app_context
-@mock.patch("src.research.linkedin.services.research_personal_profile_details", return_value=EXAMPLE_PAYLOAD)
+@mock.patch("src.research.linkedin.services.research_personal_profile_details", return_value=EXAMPLE_PAYLOAD_PERSONAL)
 @mock.patch("src.research.linkedin.services.research_corporate_profile_details", return_value={"company": "Fake Company"})
 def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company):
     client = basic_client()
@@ -108,5 +120,5 @@ def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company)
     cache = basic_iscraper_payload_cache(prospect.id)
     with freeze_time(datetime.now() + timedelta(weeks=3)):
         returned = get_research_payload_new(prospect_id)
-        assert returned == {"personal": EXAMPLE_PAYLOAD, "company": {"company": "Fake Company"}}
+        assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": {"company": "Fake Company"}}
 

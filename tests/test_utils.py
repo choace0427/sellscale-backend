@@ -476,10 +476,22 @@ def basic_linkedin_conversation_entry(
     return entry
 
 
+EXAMPLE_PAYLOAD_PERSONAL = {
+    "position_groups": [
+        {
+            "company": {
+                "name": "Test",
+                "url": "https://www.linkedin.com/company/test"
+            }
+        },
+    ]
+}
+
+
 def basic_iscraper_payload_cache(
     prospect_id: int,
     linkedin_url: str = "test_linkedin_url",
-    payload: dict = {"test": "test"},
+    payload: dict = EXAMPLE_PAYLOAD_PERSONAL,
     payload_type: IScraperPayloadType = IScraperPayloadType.PERSONAL,
 ) -> IScraperPayloadCache:
     cache = IScraperPayloadCache(
