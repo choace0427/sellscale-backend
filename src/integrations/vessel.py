@@ -48,7 +48,7 @@ class SalesEngagementIntegration:
                         }
                         for email in emails
                     ],
-                    "additional": additional,
+                    "additional": {"custom_fields": additional},
                 },
                 "accessToken": self.vessel_access_token,
             },
@@ -86,7 +86,9 @@ class SalesEngagementIntegration:
                 "accessToken": self.vessel_access_token,
                 "id": contact_id,
                 "contact": {
-                    "additional": {"SellScale_Personalization": personalization}
+                    "additional": {
+                        "custom_fields": {"SellScale_Personalization": personalization}
+                    }
                 },
             },
         )
@@ -151,4 +153,38 @@ class SalesEngagementIntegration:
             },
         )
         print(response)
+        return response.json()
+
+    def get_emails_for_contact(self, contact_id, sequence_id):
+        """
+        Get all emails for a Sales Engagement contact
+        """
+        url = f"{self.vessel_api_url}/engagement/emails/search"
+        response = requests.post(
+            url,
+            headers=self.headers,
+            json={
+                "accessToken": self.vessel_access_token,
+                "filters": {
+                    "contactId": {"equals": contact_id},
+                    "sequenceId": {"equals": sequence_id},
+                },
+            },
+        )
+        return response.json()["emails"]
+
+    def get_email_by_id(self, email_id):
+        """
+        Get a Sales Engagement email by id
+        """
+        url = f"{self.vessel_api_url}/engagement/email"
+        response = requests.get(
+            url,
+            headers=self.headers,
+            params={
+                "accessToken": self.vessel_access_token,
+                "id": email_id,
+                "allFields": "true",
+            },
+        )
         return response.json()
