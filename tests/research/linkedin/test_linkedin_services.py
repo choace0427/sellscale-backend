@@ -115,7 +115,7 @@ def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company)
     prospect.linkedin_url = "https://www.linkedin.com/in/test"
 
     # iScraper Cache Exists
-    cache = basic_iscraper_payload_cache()
+    cache = basic_iscraper_payload_cache(linkedin_url="https://www.linkedin.com/in/test")
     returned = get_research_payload_new(prospect.id)
     assert returned == {"personal": cache.payload, "company": EXAMPLE_PAYLOAD_COMPANY}
 

@@ -92,14 +92,12 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
         get_linkedin_slug_from_url,
         get_navigator_slug_from_url,
     )
+    from src.prospecting.models import Prospect
 
     if test_mode:
         return SAMPLE_RESEARCH_RESPONSE
 
-    from src.prospecting.models import Prospect
-
     p: Prospect = Prospect.query.get(prospect_id)
-
     rp: ResearchPayload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
     ).first()
@@ -118,7 +116,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     if iscraper_personal_cache and iscraper_personal_cache.created_at > (
         datetime.now() - timedelta(weeks=2)
     ):
-        personal_info = json.loads(iscraper_personal_cache.payload)
+        personal_info = iscraper_personal_cache.payload
     else:
         # Get LinkedIn Slug and iScraper payload
         url = p.linkedin_url
@@ -128,12 +126,13 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
             slug = get_navigator_slug_from_url(url)
         personal_info = research_personal_profile_details(profile_id=slug)
 
-        # Add to cache
-        create_iscraper_payload_cache(
-            linkedin_url=p.linkedin_url,
-            payload=personal_info,
-            payload_type=IScraperPayloadType.PERSONAL,
-        )
+        # Add to cache if the payload is valid
+        if deep_get(personal_info, "first_name") is not None:
+            create_iscraper_payload_cache(
+                linkedin_url=p.linkedin_url,
+                payload=personal_info,
+                payload_type=IScraperPayloadType.PERSONAL,
+            )
 
     # Get company info
     # Check if we have a payload cache for the company
@@ -146,19 +145,20 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     if iscraper_company_cache and iscraper_company_cache.created_at > (
         datetime.now() - timedelta(weeks=2)
     ):
-        company_info = json.loads(iscraper_company_cache.payload)
-    elif company_url:
+        company_info = iscraper_company_cache.payload
+    else:
         # Get iScraper payload
         # delimeter is whatever is after the .com/ in company_url
         company_slug = company_url.split(".com/")[1].split("/")[1]
         company_info = research_corporate_profile_details(company_name=company_slug)
 
-        # Add to cache
-        create_iscraper_payload_cache(
-            linkedin_url=company_url,
-            payload=company_info,
-            payload_type=IScraperPayloadType.COMPANY,
-        )
+        # Add to cache if the payload is valid
+        if deep_get(company_info, "details.name") is not None:
+            create_iscraper_payload_cache(
+                linkedin_url=company_url,
+                payload=company_info,
+                payload_type=IScraperPayloadType.COMPANY,
+            )
 
     # Construct entire payload
     payload = {"personal": personal_info, "company": company_info}
@@ -215,7 +215,7 @@ def get_iscraper_payload_error(payload: dict) -> str:
     """Get errors from iscraper payload"""
     if not payload:
         return "iScraper error not provided"
-    elif deep_get(payload, "first_name"):
+    elif deep_get(payload, "first_name") or deep_get(payload, "details.name"): # first_name present in personal payload, details.name present in company payload
         raise ValueError("No error in payload")
 
     message = deep_get(payload, "message")
