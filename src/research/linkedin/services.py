@@ -149,7 +149,8 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
         company_info = json.loads(iscraper_company_cache.payload)
     else:
         # Get iScraper payload
-        company_slug = company_url.split("company/")[1].replace("/", "")
+        # delimeter is whatever is after the .com/ in company_url
+        company_slug = company_url.split(".com/")[1].split("/")[1]
         company_info = research_corporate_profile_details(company_name=company_slug)
 
         # Add to cache
