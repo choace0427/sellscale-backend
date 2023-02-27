@@ -59,7 +59,9 @@ class ClientArchetype(db.Model):
             "archetype": self.archetype,
             "filters": self.filters,
             "active": self.active,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist if t],
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            if self.transformer_blocklist
+            else [],
             "disable_ai_after_prospect_engaged": self.disable_ai_after_prospect_engaged,
             "client_sdr_id": self.client_sdr_id,
         }
