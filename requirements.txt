@@ -158,3 +158,4 @@ widgetsnbextension==3.6.1
 wrapt==1.14.1
 zipp==3.8.1
 sentry-sdk
+blinker
