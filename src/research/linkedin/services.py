@@ -116,7 +116,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     if iscraper_personal_cache and iscraper_personal_cache.created_at > (
         datetime.now() - timedelta(weeks=2)
     ):
-        personal_info = iscraper_personal_cache.payload
+        personal_info = json.loads(iscraper_personal_cache.payload)
     else:
         # Get LinkedIn Slug and iScraper payload
         url = p.linkedin_url
@@ -145,7 +145,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     if iscraper_company_cache and iscraper_company_cache.created_at > (
         datetime.now() - timedelta(weeks=2)
     ):
-        company_info = iscraper_company_cache.payload
+        company_info = json.loads(iscraper_company_cache.payload)
     elif company_url:
         # Get iScraper payload
         # delimeter is whatever is after the .com/ in company_url

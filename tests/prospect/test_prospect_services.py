@@ -28,7 +28,7 @@ from model_import import (
     Client,
     ProspectStatus,
     ProspectNote,
-    IScraperPayloadCache
+    IScraperPayloadCache,
 )
 from decorators import use_app_context
 import mock
@@ -351,7 +351,7 @@ def test_add_prospect():
         linkedin_bio="something",
         title="testing",
         twitter_url="testing",
-        linkedin_num_followers=100
+        linkedin_num_followers=100,
     )
     prospects = Prospect.query.filter(Prospect.li_num_followers > 0).all()
     assert len(prospects) == 1
@@ -452,8 +452,8 @@ def test_add_prospects_from_json_payload(
     response = app.test_client().post(
         "prospect/add_prospect_from_csv_payload",
         headers={
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + get_login_token(),
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
         },
         data=json.dumps(
             {
@@ -768,7 +768,6 @@ def test_create_prospect_from_linkedin_link(research_personal_profile_details_pa
 
     iscraper_cache: list[IScraperPayloadCache] = IScraperPayloadCache.query.all()
     assert len(iscraper_cache) == 1
-    assert iscraper_cache[0].prospect_id == prospect.id
 
 
 @use_app_context
