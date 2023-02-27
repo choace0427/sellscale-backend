@@ -132,6 +132,7 @@ class GeneratedMessageJob(db.Model):
     batch_id = db.Column(db.String, nullable=True)
 
     status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
+    error_message = db.Column(db.String, nullable=True)
 
 
 class GeneratedMessageEditRecord(db.Model):

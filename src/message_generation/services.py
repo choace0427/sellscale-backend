@@ -118,10 +118,13 @@ def create_generated_message_job(prospect_id: int, batch_id: str):
     return job
 
 
-def update_generated_message_job_status(gm_job_id: int, status: str):
+def update_generated_message_job_status(
+    gm_job_id: int, status: str, error_message: Optional[str] = None
+):
     gm_job: GeneratedMessageJob = GeneratedMessageJob.query.get(gm_job_id)
     if gm_job:
         gm_job.status = status
+        gm_job.error_message = error
         db.session.add(gm_job)
         db.session.commit()
 
@@ -148,9 +151,9 @@ def research_and_generate_outreaches_for_prospect(
                 generate_linkedin_outreaches(
                     prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
                 )
-        except:
+        except Exception as e:
             update_generated_message_job_status(
-                gm_job_id, GeneratedMessageJobStatus.FAILED
+                gm_job_id, GeneratedMessageJobStatus.FAILED, error_message=str(e)
             )
             return
 
@@ -671,7 +674,7 @@ def generate_prospect_email(
 
             if len(research_points) == 0:
                 update_generated_message_job_status(
-                    gm_job_id, GeneratedMessageJobStatus.FAILED
+                    gm_job_id, GeneratedMessageJobStatus.FAILED, "No research points"
                 )
                 continue
 
@@ -697,7 +700,9 @@ def generate_prospect_email(
                 )
                 is_first_email = False
     except Exception as e:
-        update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.FAILED)
+        update_generated_message_job_status(
+            gm_job_id, GeneratedMessageJobStatus.FAILED, str(e)
+        )
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
     update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.COMPLETED)
