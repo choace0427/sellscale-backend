@@ -1,4 +1,9 @@
 import requests
+import os
+from model_import import Client, Prospect
+from app import db
+
+VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
 
 
 class SalesEngagementIntegration:
@@ -6,12 +11,17 @@ class SalesEngagementIntegration:
     This class is used to interact with the Vessel Sales Engagement API
     """
 
-    def __init__(self, vessel_api_key, vessel_access_token):
-        self.vessel_api_key = vessel_api_key
-        self.vessel_access_token = vessel_access_token
+    def __init__(self, client_id):
+        client: Client = Client.query.get(client_id)
+        if not client:
+            raise ValueError("Invalid client_id")
+        if not client.vessel_access_token:
+            raise ValueError("No Vessel access token found for client")
+        self.vessel_api_key = VESSEL_API_KEY
+        self.vessel_access_token = client.vessel_access_token
         self.vessel_api_url = "https://api.vessel.land/"
         self.headers = {
-            "vessel-api-token": self.vessel_api_key,
+            "vessel-api-token": VESSEL_API_KEY,
             "x-access-token": self.vessel_access_token,
         }
 
@@ -73,11 +83,26 @@ class SalesEngagementIntegration:
             return None
         return resp["contacts"][0]
 
+    def search_contact_by_prospect_id(self, prospect_id):
+        """
+        Search for a Sales Engagement contact by prospect_id
+        """
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect:
+            raise ValueError("Invalid prospect_id")
+        contact = self.search_contact_by_email(prospect.email)
+        if not contact:
+            return None
+        contact_id = contact["id"]
+        prospect.vessel_contact_id = contact_id
+        db.session.add(prospect)
+        db.session.commit()
+        return contact
+
     def update_sellscale_personalization(self, contact_id, personalization):
         """
         Update the SellScale_Personalization field for a contact
         """
-        # todo(Aakash) investigate why this isn't working
         url = f"{self.vessel_api_url}/engagement/contact"
         response = requests.patch(
             url,
@@ -152,7 +177,6 @@ class SalesEngagementIntegration:
                 "fields": {"mailboxId": mailbox_id, "contactId": contact_id},
             },
         )
-        print(response)
         return response.json()
 
     def get_emails_for_contact(self, contact_id, sequence_id):

@@ -59,3 +59,4 @@ from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
 )
+from src.integrations.models import VesselMailboxes, VesselSequences
