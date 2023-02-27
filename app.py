@@ -15,7 +15,7 @@ from src.utils.slack import URL_MAP
 from celery import Celery
 from src.utils.slack import send_slack_message
 
-if os.environ.get("FLASK_ENV") == "production":
+if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
     import sentry_sdk
     from sentry_sdk.integrations.flask import FlaskIntegration
 
