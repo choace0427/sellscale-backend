@@ -146,7 +146,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
         datetime.now() - timedelta(weeks=2)
     ):
         company_info = iscraper_company_cache.payload
-    else:
+    elif company_url:
         # Get iScraper payload
         # delimeter is whatever is after the .com/ in company_url
         company_slug = company_url.split(".com/")[1].split("/")[1]
@@ -215,7 +215,9 @@ def get_iscraper_payload_error(payload: dict) -> str:
     """Get errors from iscraper payload"""
     if not payload:
         return "iScraper error not provided"
-    elif deep_get(payload, "first_name") or deep_get(payload, "details.name"): # first_name present in personal payload, details.name present in company payload
+    elif deep_get(payload, "first_name") or deep_get(
+        payload, "details.name"
+    ):  # first_name present in personal payload, details.name present in company payload
         raise ValueError("No error in payload")
 
     message = deep_get(payload, "message")
