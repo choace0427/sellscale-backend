@@ -29,6 +29,8 @@ class Client(db.Model):
     monthly_revenue = db.Column(db.Integer, nullable=True)
     seat_expansion_opportunity = db.Column(db.Integer, nullable=True)
 
+    vessel_access_token = db.Column(db.String, nullable=True)
+
 
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"
@@ -92,6 +94,8 @@ class ClientSDR(db.Model):
 
     li_at_token = db.Column(db.String)
     last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
+
+    vessel_mailbox_id = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)

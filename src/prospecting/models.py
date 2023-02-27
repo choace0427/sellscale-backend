@@ -127,6 +127,8 @@ class Prospect(db.Model):
 
     is_lead = db.Column(db.Boolean, nullable=True)
 
+    vessel_contact_id = db.Column(db.String, nullable=True)
+
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
 
