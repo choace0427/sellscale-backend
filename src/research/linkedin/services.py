@@ -146,7 +146,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     if iscraper_company_cache and iscraper_company_cache.created_at > (
         datetime.now() - timedelta(weeks=2)
     ):
-        company_info = iscraper_company_cache.payload
+        company_info = json.loads(iscraper_company_cache.payload)
     else:
         # Get iScraper payload
         company_slug = company_url.split("company/")[1].replace("/", "")
