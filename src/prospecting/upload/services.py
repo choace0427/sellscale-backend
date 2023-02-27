@@ -360,13 +360,15 @@ def run_and_assign_health_score(self, archetype_id: int):
             })
 
         # UPDATE prospect WHERE id = :id SET health_check_score = :health_score
-        stmt = (
+        
+        if len(update_prospects) > 0:
+          stmt = (
             update(Prospect)
             .where(Prospect.id == bindparam("p_id"))
             .values(health_check_score=bindparam("health_score"))
-        )
-        db.session.execute(stmt, update_prospects)
-        db.session.commit()
+          )
+          db.session.execute(stmt, update_prospects)
+          db.session.commit()  
 
         return True, "Successfully calculated health check scores for archetype: {}".format(archetype_id)
     except Exception as e:

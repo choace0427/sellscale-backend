@@ -566,6 +566,7 @@ def get_cta_stats(cta_id: int) -> dict:
     ).all()
     statuses_map = {}
     for prospect in prospects:
+        if prospect.overall_status is None: continue
         if prospect.overall_status.value not in statuses_map:
             statuses_map[prospect.overall_status.value] = 1
         else:
