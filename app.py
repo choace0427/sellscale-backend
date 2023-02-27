@@ -15,6 +15,9 @@ from src.utils.slack import URL_MAP
 from celery import Celery
 from src.utils.slack import send_slack_message
 
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
 
 def make_celery(app):
     celery = Celery(
@@ -24,19 +27,19 @@ def make_celery(app):
     celery.conf.update(app.config)
 
     celery.conf.broker_transport_options = {
-        'queue_order_strategy': 'priority',
+        "queue_order_strategy": "priority",
     }
 
-    default_exchange = Exchange('default', type='direct')
-    prospecting_exchange = Exchange('prospecting', type='direct')
+    default_exchange = Exchange("default", type="direct")
+    prospecting_exchange = Exchange("prospecting", type="direct")
     celery.conf.task_queues = (
-        Queue('default', default_exchange, routing_key='default'),
-        Queue('prospecting', prospecting_exchange, routing_key='prospecting'),
+        Queue("default", default_exchange, routing_key="default"),
+        Queue("prospecting", prospecting_exchange, routing_key="prospecting"),
     )
-    celery.conf.task_default_queue = 'default'
-    celery.conf.task_default_exchange = 'default'
-    celery.conf.task_default_routing_key = 'default'
-    celery.conf.task_default_priority = 5               # 0 is the highest
+    celery.conf.task_default_queue = "default"
+    celery.conf.task_default_exchange = "default"
+    celery.conf.task_default_routing_key = "default"
+    celery.conf.task_default_priority = 5  # 0 is the highest
 
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):
@@ -46,6 +49,17 @@ def make_celery(app):
     celery.Task = ContextTask
     return celery
 
+
+sentry_sdk.init(
+    dsn="https://e8251e81ed8847a69607f976b423e17c@o4504749544767488.ingest.sentry.io/4504749545619456",
+    integrations=[
+        FlaskIntegration(),
+    ],
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,
+)
 
 app = Flask(__name__)
 app.config.update(
@@ -116,7 +130,9 @@ def register_blueprints(app):
     app.register_blueprint(ML_ADVERSARY_BLUEPRINT, url_prefix="/adversary")
     app.register_blueprint(EDITOR_BLUEPRINT, url_prefix="/editor")
     app.register_blueprint(LI_CONVERASTION_BLUEPRINT, url_prefix="/li_conversation")
-    app.register_blueprint(DAILY_NOTIFICATIONS_BLUEPRINT, url_prefix="/daily_notifications")
+    app.register_blueprint(
+        DAILY_NOTIFICATIONS_BLUEPRINT, url_prefix="/daily_notifications"
+    )
     app.register_blueprint(AUTHENTICATION_BLUEPRINT, url_prefix="/auth")
 
     db.init_app(app)
