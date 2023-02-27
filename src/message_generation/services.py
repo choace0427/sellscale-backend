@@ -124,7 +124,7 @@ def update_generated_message_job_status(
     gm_job: GeneratedMessageJob = GeneratedMessageJob.query.get(gm_job_id)
     if gm_job:
         gm_job.status = status
-        gm_job.error_message = error
+        gm_job.error_message = error_message
         db.session.add(gm_job)
         db.session.commit()
 
