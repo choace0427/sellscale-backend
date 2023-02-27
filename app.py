@@ -15,8 +15,21 @@ from src.utils.slack import URL_MAP
 from celery import Celery
 from src.utils.slack import send_slack_message
 
-import sentry_sdk
-from sentry_sdk.integrations.flask import FlaskIntegration
+if os.environ.get("FLASK_ENV") == "production":
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn="https://e8251e81ed8847a69607f976b423e17c@o4504749544767488.ingest.sentry.io/4504749545619456",
+        integrations=[
+            FlaskIntegration(),
+        ],
+        auto_enabling_integrations=False,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=1.0,
+    )
 
 
 def make_celery(app):
@@ -49,18 +62,6 @@ def make_celery(app):
     celery.Task = ContextTask
     return celery
 
-
-sentry_sdk.init(
-    dsn="https://e8251e81ed8847a69607f976b423e17c@o4504749544767488.ingest.sentry.io/4504749545619456",
-    integrations=[
-        FlaskIntegration(),
-    ],
-    auto_enabling_integrations=False,
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,
-)
 
 app = Flask(__name__)
 app.config.update(
