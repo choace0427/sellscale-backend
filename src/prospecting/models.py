@@ -14,6 +14,7 @@ class ProspectChannels(enum.Enum):
             "EMAIL": "EMAIL",
         }
 
+
 class ProspectOverallStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"
     SENT_OUTREACH = "SENT_OUTREACH"
@@ -145,7 +146,9 @@ class Prospect(db.Model):
     def to_dict(self) -> dict:
         from src.email_outbound.models import ProspectEmail
 
-        p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=self.id).first()
+        p_email: ProspectEmail = ProspectEmail.query.filter_by(
+            prospect_id=self.id
+        ).first()
         p_email_status = None
         if p_email and p_email.outreach_status:
             p_email_status = p_email.outreach_status.value
@@ -170,7 +173,9 @@ class Prospect(db.Model):
             "batch": self.batch,
             "status": self.status.value,
             "linkedin_status": self.status.value,
-            "overall_status": self.overall_status.value,
+            "overall_status": self.overall_status.value
+            if self.overall_status
+            else None,
             "email_status": p_email_status,
             "approved_outreach_message_id": self.approved_outreach_message_id,
             "approved_prospect_email_id": self.approved_prospect_email_id,
