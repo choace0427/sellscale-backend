@@ -9,8 +9,8 @@ INTEGRATION_BLUEPRINT = Blueprint("integration", __name__)
 
 @INTEGRATION_BLUEPRINT.route("/mailboxes", methods=["GET"])
 def get_mailbox_by_email():
-    email = get_request_parameter("name", request, json=True, required=True)
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
+    email = get_request_parameter("name", request, json=False, required=True)
+    client_id = get_request_parameter("client_id", request, json=False, required=True)
 
     integration = SalesEngagementIntegration(
         client_id=client_id,
@@ -21,8 +21,8 @@ def get_mailbox_by_email():
 
 @INTEGRATION_BLUEPRINT.route("/sequences", methods=["GET"])
 def get_sequences_by_name():
-    name = get_request_parameter("name", request, json=True, required=True)
-    client_id = get_request_parameter("client_id", request, required=True)
+    name = get_request_parameter("name", request, json=False, required=True)
+    client_id = get_request_parameter("client_id", request, json=False, required=True)
 
     integration = SalesEngagementIntegration(
         client_id=client_id,
