@@ -28,6 +28,7 @@ from model_import import (
     ProspectNote,
     ProspectEmail,
     ProspectEmailOutreachStatus,
+    ProspectEmailStatusRecords,
     ProspectOverallStatus,
     Client,
     IScraperPayloadCache,
@@ -797,6 +798,10 @@ def test_update_prospect_status_email():
     assert prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
+    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.first()
+    assert prospect_email_status_record.prospect_email_id == prospect_email_id
+    assert prospect_email_status_record.from_status == ProspectEmailOutreachStatus.UNKNOWN
+    assert prospect_email_status_record.to_status == ProspectEmailOutreachStatus.SENT_OUTREACH
 
     # No override fail
     update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.DEMO_SET)
@@ -804,6 +809,8 @@ def test_update_prospect_status_email():
     assert prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
+    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.filter_by(prospect_email_id=prospect_email_id).all()
+    assert len(prospect_email_status_record) == 1
 
     # Override
     update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.DEMO_SET, override_status=True)
@@ -811,3 +818,12 @@ def test_update_prospect_status_email():
     assert prospect_email.outreach_status == ProspectEmailOutreachStatus.DEMO_SET
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.overall_status == ProspectOverallStatus.DEMO
+    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.first()
+    assert prospect_email_status_record.prospect_email_id == prospect_email_id
+    assert prospect_email_status_record.from_status == ProspectEmailOutreachStatus.UNKNOWN
+    assert prospect_email_status_record.to_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.filter_by(prospect_email_id=prospect_email_id).all()
+    assert len(prospect_email_status_record) == 2
+    assert prospect_email_status_record[1].prospect_email_id == prospect_email_id
+    assert prospect_email_status_record[1].from_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+    assert prospect_email_status_record[1].to_status == ProspectEmailOutreachStatus.DEMO_SET

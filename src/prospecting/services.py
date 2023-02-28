@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import or_
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
-from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, VALID_UPDATE_EMAIL_STATUS_MAP
+from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatusRecords, VALID_UPDATE_EMAIL_STATUS_MAP
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
 from src.research.services import create_iscraper_payload_cache
@@ -382,6 +382,8 @@ def update_prospect_status_email(prospect_id: int, new_status: ProspectEmailOutr
     p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
     if not p_email:
         return False, 'Prospect email not found'
+    p_email_id = p_email.id
+    old_status = p_email.outreach_status
 
     # Check if we can override the status, regardless of the current status
     if override_status:
@@ -393,7 +395,16 @@ def update_prospect_status_email(prospect_id: int, new_status: ProspectEmailOutr
         p_email.outreach_status = new_status
 
     # Commit the changes
-    db.session.add_all([p, p_email])
+    db.session.add(p_email)
+    db.session.commit()
+
+    # Add a record to the ProspectEmailStatusRecords table
+    record: ProspectEmailStatusRecords = ProspectEmailStatusRecords(
+        prospect_email_id=p_email_id,
+        from_status=old_status,
+        to_status=new_status,
+    )
+    db.session.add(record)
     db.session.commit()
 
     # Update the prospect overall status
