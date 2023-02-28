@@ -6,6 +6,7 @@ from src.campaigns.models import *
 from src.client.services import get_client
 from model_import import (
     Prospect,
+    Client,
     ClientSDR,
     GeneratedMessageCTA,
     ProspectEmail,
@@ -18,6 +19,7 @@ from model_import import (
     GeneratedMessageType,
     ClientArchetype,
 )
+from src.integrations.vessel import SalesEngagementIntegration
 from tqdm import tqdm
 from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
@@ -1100,3 +1102,27 @@ def wipe_campaign_generations(campaign_id: int):
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
         for p_id in tqdm(prospect_ids):
             reset_prospect_research_and_messages(p_id)
+
+
+def send_email_campaign_from_sales_engagement(campaign_id: int):
+    """
+    Sends an email campaign from a connected sales engagement tool
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        raise Exception("Campaign not found")
+    if campaign.campaign_type != GeneratedMessageType.EMAIL:
+        raise Exception("Campaign is not an email campaign")
+
+    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
+    client: Client = Client.query.get(sdr.client_id)
+    if not client:
+        raise Exception("Client not found")
+    if not client.vessel_access_token:
+        raise Exception("Client does not have a connected sales engagement tool")
+    if not sdr.vessel_mailbox_id:
+        raise Exception("SDR does not have a connected sales engagement tool")
+
+    sei: SalesEngagementIntegration = SalesEngagementIntegration(client_id=client.id)
+    for prospect_id in campaign.prospect_ids:
+        sei.create_or_update_contact_by_prospect_id(prospect_id=prospect_id)

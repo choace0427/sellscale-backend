@@ -1,6 +1,13 @@
 import requests
 import os
-from model_import import Client, Prospect, VesselSequences, VesselMailboxes
+from model_import import (
+    Client,
+    Prospect,
+    VesselSequences,
+    VesselMailboxes,
+    ProspectEmail,
+    GeneratedMessage,
+)
 from app import db
 
 VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
@@ -86,13 +93,24 @@ class SalesEngagementIntegration:
     def create_or_update_contact_by_prospect_id(
         self,
         prospect_id,
-        personalized_message,
         personalization_field_name="SellScale_Personalization",
     ):
         """
         Create or update a Sales Engagement contact by prospect_id
         """
         prospect: Prospect = Prospect.query.get(prospect_id)
+        approved_prospect_email_id: int = prospect.approved_prospect_email_id
+        if not approved_prospect_email_id:
+            raise ValueError("No approved prospect email found")
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            approved_prospect_email_id
+        )
+        personalized_first_line = prospect_email.personalized_first_line
+        generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
+            id=personalized_first_line
+        ).first()
+        personalized_message = generated_message.completion
+
         if not prospect:
             raise ValueError("Invalid prospect_id")
         if not personalized_message:
