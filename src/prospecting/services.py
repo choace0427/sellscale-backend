@@ -963,6 +963,8 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
         return {"message": "Prospect not found", "status_code": 404}
     if p and p.client_sdr_id != client_sdr_id:
         return {"message": "This prospect does not belong to you", "status_code": 403}
+    p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
+    p_email_status = p_email.outreach_status.value if p_email else None
 
     li_conversation_thread = (
         LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
@@ -993,10 +995,11 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "id": p.id,
                 "full_name": p.full_name,
                 "title": p.title,
-                "status": p.overall_status.value
+                "overall_status": p.overall_status.value
                 if p.overall_status
                 else p.status.value,
                 "linkedin_status": p.status.value,
+                "email_status": p_email_status,
                 "profile_pic": personal_profile_picture,
                 "ai_responses_disabled": p.deactivate_ai_engagement,
                 "notes": prospect_notes,

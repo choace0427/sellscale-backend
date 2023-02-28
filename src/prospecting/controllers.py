@@ -88,7 +88,7 @@ def update_status(client_sdr_id: int, prospect_id: int):
         success = update_prospect_status_linkedin(
             prospect_id=prospect_id, new_status=new_status
         )
-        if success[0]:
+        if (len(success) == 2 and success[0]) or (len(success) == 1 and success):
             return jsonify({'message': 'Successfully updated Prospect LinkedIn channel status'}), 200
         else:
             return jsonify({'message': "Failed to update: " + str(success[1])}), 400
