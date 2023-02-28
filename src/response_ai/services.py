@@ -21,7 +21,7 @@ def create_response_configuration(
 
 
 def get_response_configuration(archetype_id: int):
-    if archetype_id is None or archetype_id == "" or archetype_id == undefined:
+    if archetype_id is None or archetype_id == "" or not archetype_id:
         return {}
     rc: ResponseConfiguration = ResponseConfiguration.query.filter_by(
         archetype_id=archetype_id
