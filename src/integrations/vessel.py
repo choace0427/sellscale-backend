@@ -289,13 +289,16 @@ class SalesEngagementIntegration:
             },
         )
         resp = response.json()
-        sequence_id = resp["sequence"]["id"]
-        if prospect_id:
-            prospect_email = get_approved_prospect_email_by_id(prospect_id=prospect_id)
-            if prospect_email:
+        import pdb
+
+        sequence_id = resp.get("id")
+        prospect_email = get_approved_prospect_email_by_id(prospect_id=prospect_id)
+        if prospect_email:
+            if sequence_id:
                 prospect_email.vessel_sequence_id = sequence_id
-                db.session.add(prospect_email)
-                db.session.commit()
+            prospect_email.vessel_sequence_payload_str = str(resp)
+            db.session.add(prospect_email)
+            db.session.commit()
 
     def get_emails_for_contact(self, contact_id, sequence_id):
         """

@@ -105,6 +105,7 @@ class ProspectEmail(db.Model):
     batch_id = db.Column(db.String, nullable=True)
 
     vessel_sequence_id = db.Column(db.Integer, nullable=True)
+    vessel_sequence_payload_str = db.Column(db.String, nullable=True)
 
 
 class ProspectEmailStatusRecords(db.Model):

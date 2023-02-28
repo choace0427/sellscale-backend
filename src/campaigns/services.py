@@ -1141,7 +1141,7 @@ def send_email_campaign_from_sales_engagement(
         raise Exception("SDR does not have a connected sales engagement tool")
 
     for prospect_id in campaign.prospect_ids:
-        personalize_and_enroll_in_sequence.delay(
+        personalize_and_enroll_in_sequence(
             client_id=client.id,
             prospect_id=prospect_id,
             mailbox_id=sdr.vessel_mailbox_id,
