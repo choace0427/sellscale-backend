@@ -86,7 +86,7 @@ class SalesEngagementIntegration:
     def create_or_update_contact_by_prospect_id(
         self,
         prospect_id,
-        personalized_message="This is the update!",
+        personalized_message,
         personalization_field_name="SellScale_Personalization",
     ):
         """
@@ -95,6 +95,8 @@ class SalesEngagementIntegration:
         prospect: Prospect = Prospect.query.get(prospect_id)
         if not prospect:
             raise ValueError("Invalid prospect_id")
+        if not personalized_message:
+            raise ValueError("Personalized message is required")
         contact = self.search_contact_by_email(prospect.email)
         if not contact:
             contact = self.create_contact(
