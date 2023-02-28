@@ -7,6 +7,7 @@ from model_import import (
     VesselMailboxes,
     ProspectEmail,
     GeneratedMessage,
+    ProspectEmailStatus,
 )
 from typing import Optional
 from app import db
@@ -296,6 +297,7 @@ class SalesEngagementIntegration:
         if prospect_email:
             if sequence_id:
                 prospect_email.vessel_sequence_id = sequence_id
+                prospect_email.email_status = ProspectEmailStatus.SENT
             prospect_email.vessel_sequence_payload_str = str(resp)
             db.session.add(prospect_email)
             db.session.commit()

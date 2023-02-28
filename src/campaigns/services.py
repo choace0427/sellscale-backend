@@ -19,6 +19,7 @@ from model_import import (
     GeneratedMessageType,
     ClientArchetype,
 )
+from src.email_outbound.services import get_approved_prospect_email_by_id
 from src.integrations.vessel import SalesEngagementIntegration
 from tqdm import tqdm
 from src.message_generation.services import (
@@ -1116,6 +1117,7 @@ def personalize_and_enroll_in_sequence(
             mailbox_id=mailbox_id,
             sequence_id=sequence_id,
             contact_id=contact_id,
+            prospect_id=prospect_id,
         )
 
 
@@ -1141,11 +1143,16 @@ def send_email_campaign_from_sales_engagement(
         raise Exception("SDR does not have a connected sales engagement tool")
 
     for prospect_id in campaign.prospect_ids:
-        personalize_and_enroll_in_sequence(
-            client_id=client.id,
-            prospect_id=prospect_id,
-            mailbox_id=sdr.vessel_mailbox_id,
-            sequence_id=sequence_id,
-        )
+        prospect_email: ProspectEmail = get_approved_prospect_email_by_id(prospect_id)
+        if (
+            prospect_email
+            and prospect_email.email_status == ProspectEmailStatus.APPROVED
+        ):
+            personalize_and_enroll_in_sequence(
+                client_id=client.id,
+                prospect_id=prospect_id,
+                mailbox_id=sdr.vessel_mailbox_id,
+                sequence_id=sequence_id,
+            )
 
     return True
