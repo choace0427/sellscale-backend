@@ -964,7 +964,9 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
     if p and p.client_sdr_id != client_sdr_id:
         return {"message": "This prospect does not belong to you", "status_code": 403}
     p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
-    p_email_status = p_email.outreach_status.value if p_email else None
+    p_email_status = None
+    if p_email and p_email.outreach_status:
+        p_email_status = p_email.outreach_status.value
 
     li_conversation_thread = (
         LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
