@@ -1,6 +1,6 @@
 from app import db, celery
 
-from model_import import (LinkedinConversationEntry, ClientSDR, Prospect)
+from model_import import LinkedinConversationEntry, ClientSDR, Prospect
 from src.automation.models import PhantomBusterAgent
 from src.ml.openai_wrappers import wrapped_create_completion
 from src.utils.slack import URL_MAP
@@ -162,11 +162,13 @@ def get_next_client_sdr_to_scrape():
 @celery.task
 def run_next_client_sdr_scrape():
     client_sdr_id = get_next_client_sdr_to_scrape()
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     if client_sdr_id:
+        client_sdr_name: str = client_sdr.name
         update_li_conversation_extractor_phantom(client_sdr_id)
         send_slack_message(
-            "💬 LinkedIn conversation scraper ran for client_sdr_id: {client_sdr_id}".format(
-                client_sdr_id=client_sdr_id
+            message="✅ LinkedIn conversation scrape for {client_sdr_name} (#{client_sdr_id}) completed.".format(
+                client_sdr_name=client_sdr_name, client_sdr_id=client_sdr_id
             ),
             webhook_urls=[URL_MAP["eng-sandbox"]],
         )
