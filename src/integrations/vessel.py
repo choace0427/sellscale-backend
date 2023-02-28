@@ -8,7 +8,9 @@ from model_import import (
     ProspectEmail,
     GeneratedMessage,
 )
+from typing import Optional
 from app import db
+from src.email_outbound.services import get_approved_prospect_email_by_id
 
 VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
 
@@ -270,7 +272,9 @@ class SalesEngagementIntegration:
             db.session.bulk_save_objects(unadded_sequences)
             db.session.commit()
 
-    def add_contact_to_sequence(self, mailbox_id, sequence_id, contact_id):
+    def add_contact_to_sequence(
+        self, mailbox_id, sequence_id, contact_id, prospect_id: Optional[int] = None
+    ):
         """
         Add a contact to a Sales Engagement sequence
         """
@@ -284,7 +288,14 @@ class SalesEngagementIntegration:
                 "fields": {"mailboxId": mailbox_id, "contactId": contact_id},
             },
         )
-        return response.json()
+        resp = response.json()
+        sequence_id = resp["sequence"]["id"]
+        if prospect_id:
+            prospect_email = get_approved_prospect_email_by_id(prospect_id=prospect_id)
+            if prospect_email:
+                prospect_email.vessel_sequence_id = sequence_id
+                db.session.add(prospect_email)
+                db.session.commit()
 
     def get_emails_for_contact(self, contact_id, sequence_id):
         """

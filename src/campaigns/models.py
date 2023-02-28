@@ -59,8 +59,6 @@ class OutboundCampaign(db.Model):
     receipt_link = db.Column(db.String, nullable=True)
     cost = db.Column(db.Float, nullable=True)
 
-    vessel_sequence_id = db.Column(db.String, nullable=True)
-
     def to_dict(self) -> dict:
         return {
             "id": self.id,

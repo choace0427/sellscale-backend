@@ -25,7 +25,7 @@ from src.email_outbound.models import (
     SalesEngagementInteractionSS,
     ProspectEmailOutreachStatus,
     ProspectEmailStatusRecords,
-    VALID_UPDATE_EMAIL_STATUS_MAP
+    VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.email_outbound.ss_data import SSData
 
@@ -212,6 +212,28 @@ def create_sales_engagement_interaction_raw(
     return raw_entry.id
 
 
+def get_approved_prospect_email_by_id(prospect_id: int):
+    """Returns the approved prospect email for a prospect
+
+    Args:
+        prospect_id (int): ID of the prospect
+
+    Returns:
+        ProspectEmail: The approved prospect email
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return None
+
+    if not prospect.approved_prospect_email_id:
+        return None
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
+    return prospect_email
+
+
 @celery.task(bind=True, max_retries=1)
 def collect_and_update_status_from_ss_data(self, sei_ss_id: int) -> bool:
     try:
@@ -313,7 +335,10 @@ def update_status_from_ss_data(
             prospect_email.outreach_status = new_outreach_status
             old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
         else:
-            if old_outreach_status in VALID_UPDATE_EMAIL_STATUS_MAP[new_outreach_status]:
+            if (
+                old_outreach_status
+                in VALID_UPDATE_EMAIL_STATUS_MAP[new_outreach_status]
+            ):
                 prospect_email.outreach_status = new_outreach_status
             else:
                 return (

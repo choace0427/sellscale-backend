@@ -1,4 +1,4 @@
-from app import db
+from app import db, celery
 from sqlalchemy import and_, or_
 from typing import Optional
 
@@ -1104,7 +1104,24 @@ def wipe_campaign_generations(campaign_id: int):
             reset_prospect_research_and_messages(p_id)
 
 
-def send_email_campaign_from_sales_engagement(campaign_id: int):
+@celery.task
+def personalize_and_enroll_in_sequence(
+    client_id: int, prospect_id: int, mailbox_id: int, sequence_id: Optional[int] = None
+):
+    sei: SalesEngagementIntegration = SalesEngagementIntegration(client_id=client_id)
+    contact = sei.create_or_update_contact_by_prospect_id(prospect_id=prospect_id)
+    if sequence_id:
+        contact_id = contact["id"]
+        sei.add_contact_to_sequence(
+            mailbox_id=mailbox_id,
+            sequence_id=sequence_id,
+            contact_id=contact_id,
+        )
+
+
+def send_email_campaign_from_sales_engagement(
+    campaign_id: int, sequence_id: Optional[int] = None
+):
     """
     Sends an email campaign from a connected sales engagement tool
     """
@@ -1123,6 +1140,12 @@ def send_email_campaign_from_sales_engagement(campaign_id: int):
     if not sdr.vessel_mailbox_id:
         raise Exception("SDR does not have a connected sales engagement tool")
 
-    sei: SalesEngagementIntegration = SalesEngagementIntegration(client_id=client.id)
     for prospect_id in campaign.prospect_ids:
-        sei.create_or_update_contact_by_prospect_id(prospect_id=prospect_id)
+        personalize_and_enroll_in_sequence.delay(
+            client_id=client.id,
+            prospect_id=prospect_id,
+            mailbox_id=sdr.vessel_mailbox_id,
+            sequence_id=sequence_id,
+        )
+
+    return True

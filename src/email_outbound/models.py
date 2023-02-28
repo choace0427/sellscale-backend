@@ -104,6 +104,8 @@ class ProspectEmail(db.Model):
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
 
+    vessel_sequence_id = db.Column(db.Integer, nullable=True)
+
 
 class ProspectEmailStatusRecords(db.Model):
     """Records the status changes of a prospect_email

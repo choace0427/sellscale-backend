@@ -25,6 +25,7 @@ from src.campaigns.services import (
     get_outbound_campaign_analytics,
     update_campaign_cost,
     update_campaign_receipt_link,
+    send_email_campaign_from_sales_engagement,
 )
 from src.authentication.decorators import require_user
 
@@ -40,10 +41,15 @@ def get_campaign_details(client_sdr_id: int, campaign_id: int):
     if status_code != 200:
         return jsonify({"message": oc_details.get("message")}), status_code
 
-    return jsonify({
-        "message": "Success",
-        "campaign_details": oc_details.get("campaign_details")
-    }), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "campaign_details": oc_details.get("campaign_details"),
+            }
+        ),
+        200,
+    )
 
 
 @CAMPAIGN_BLUEPRINT.route("/all_campaigns", methods=["POST"])
@@ -59,13 +65,23 @@ def get_all_campaigns(client_sdr_id: int):
         )
         campaign_start_date = (
             get_request_parameter(
-                "campaign_start_date", request, json=True, required=False, parameter_type=str
-            ) or None
+                "campaign_start_date",
+                request,
+                json=True,
+                required=False,
+                parameter_type=str,
+            )
+            or None
         )
         campaign_end_date = (
             get_request_parameter(
-                "campaign_end_date", request, json=True, required=False, parameter_type=str
-            ) or None
+                "campaign_end_date",
+                request,
+                json=True,
+                required=False,
+                parameter_type=str,
+            )
+            or None
         )
         campaign_type = (
             get_request_parameter(
@@ -157,7 +173,9 @@ def create_new_campaign(client_sdr_id: int):
     campaign_end_date = get_request_parameter(
         "campaign_end_date", request, json=True, required=True, parameter_type=str
     )
-    ctas = get_request_parameter("ctas", request, json=True, required=False, parameter_type=list)
+    ctas = get_request_parameter(
+        "ctas", request, json=True, required=False, parameter_type=list
+    )
 
     try:
         campaign: OutboundCampaign = create_outbound_campaign(
@@ -274,7 +292,9 @@ def post_update_campaign_receipt_link():
     campaign_id = get_request_parameter(
         "campaign_id", request, json=True, required=True
     )
-    receipt_link = get_request_parameter("receipt_link", request, json=True, required=True, parameter_type=str)
+    receipt_link = get_request_parameter(
+        "receipt_link", request, json=True, required=True, parameter_type=str
+    )
     update_campaign_receipt_link(campaign_id=campaign_id, receipt_link=receipt_link)
     return "OK", 200
 
@@ -284,7 +304,9 @@ def post_update_campaign_cost():
     campaign_id = get_request_parameter(
         "campaign_id", request, json=True, required=True
     )
-    cost = get_request_parameter("cost", request, json=True, required=True, parameter_type=float)
+    cost = get_request_parameter(
+        "cost", request, json=True, required=True, parameter_type=float
+    )
     update_campaign_cost(campaign_id=campaign_id, cost=cost)
     return "OK", 200
 
@@ -366,3 +388,17 @@ def get_campaign_analytics() -> tuple[dict, int]:
     campaign_analytics = get_outbound_campaign_analytics(campaign_id)
 
     return campaign_analytics, 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/send_via_sales_engagement", methods=["POST"])
+def post_send_campaign_via_sales_engagement():
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+    sequence_id = get_request_parameter(
+        "sequence_id", request, json=True, required=False
+    )
+    send_email_campaign_from_sales_engagement(
+        campaign_id=campaign_id, sequence_id=sequence_id
+    )
+    return "OK", 200
