@@ -17,12 +17,20 @@ from src.utils.slack import send_slack_message
 
 if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
     import sentry_sdk
+    from sentry_sdk.integrations.tornado import TornadoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.flask import FlaskIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
     sentry_sdk.init(
         dsn="https://e8251e81ed8847a69607f976b423e17c@o4504749544767488.ingest.sentry.io/4504749545619456",
         integrations=[
             FlaskIntegration(),
+            CeleryIntegration(),
+            TornadoIntegration(),
+            RedisIntegration(),
+            SqlalchemyIntegration(),
         ],
         auto_enabling_integrations=False,
         # Set traces_sample_rate to 1.0 to capture 100%
