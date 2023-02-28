@@ -997,6 +997,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "id": p.id,
                 "full_name": p.full_name,
                 "title": p.title,
+                "status": p.status.value,
                 "overall_status": p.overall_status.value
                 if p.overall_status
                 else p.status.value,
