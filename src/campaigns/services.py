@@ -1148,7 +1148,7 @@ def send_email_campaign_from_sales_engagement(
             prospect_email
             and prospect_email.email_status == ProspectEmailStatus.APPROVED
         ):
-            personalize_and_enroll_in_sequence(
+            personalize_and_enroll_in_sequence.delay(
                 client_id=client.id,
                 prospect_id=prospect_id,
                 mailbox_id=sdr.vessel_mailbox_id,
