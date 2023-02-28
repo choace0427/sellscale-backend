@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import or_
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
-from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
+from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, VALID_UPDATE_EMAIL_STATUS_MAP
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
 from src.research.services import create_iscraper_payload_cache
@@ -157,7 +157,7 @@ def create_note(prospect_id: int, note: str):
     return note_id
 
 
-def update_prospect_status(
+def update_prospect_status_linkedin(
     prospect_id: int,
     new_status: ProspectStatus,
     message: any = {},
@@ -207,7 +207,7 @@ def update_prospect_status(
         current_status == ProspectStatus.SENT_OUTREACH
         and new_status == ProspectStatus.RESPONDED
     ):
-        return update_prospect_status_multi_step(
+        return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[ProspectStatus.ACCEPTED, ProspectStatus.RESPONDED],
         )
@@ -216,7 +216,7 @@ def update_prospect_status(
         current_status == ProspectStatus.ACCEPTED
         and new_status == ProspectStatus.ACTIVE_CONVO
     ):
-        return update_prospect_status_multi_step(
+        return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.RESPONDED,
@@ -228,7 +228,7 @@ def update_prospect_status(
         current_status == ProspectStatus.SENT_OUTREACH
         and new_status == ProspectStatus.ACTIVE_CONVO
     ):
-        return update_prospect_status_multi_step(
+        return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.ACCEPTED,
@@ -241,7 +241,7 @@ def update_prospect_status(
         current_status == ProspectStatus.RESPONDED
         and new_status == ProspectStatus.SCHEDULING
     ):
-        return update_prospect_status_multi_step(
+        return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.ACTIVE_CONVO,
@@ -253,7 +253,7 @@ def update_prospect_status(
         current_status == ProspectStatus.ACCEPTED
         and new_status == ProspectStatus.SCHEDULING
     ):
-        return update_prospect_status_multi_step(
+        return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.RESPONDED,
@@ -266,7 +266,7 @@ def update_prospect_status(
         current_status == ProspectStatus.SENT_OUTREACH
         and new_status == ProspectStatus.SCHEDULING
     ):
-        return update_prospect_status_multi_step(
+        return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.ACCEPTED,
@@ -280,7 +280,7 @@ def update_prospect_status(
         current_status == ProspectStatus.ACTIVE_CONVO
         and new_status == ProspectStatus.DEMO_SET
     ):
-        return update_prospect_status_multi_step(
+        return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.SCHEDULING,
@@ -298,29 +298,29 @@ def update_prospect_status(
         db.session.commit()
 
     try:
-        update_prospect_status_multi_step(
+        update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id, statuses=[new_status]
         )
     except Exception as err:
         return False, err.message if hasattr(err, 'message') else err
 
-    calculate_prospect_overall_status.delay(prospect_id)
+    calculate_prospect_overall_status(prospect_id)
 
     return True, 'Success'
 
 
-def update_prospect_status_multi_step(prospect_id: int, statuses: list):
+def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list):
     success = True
     for status in statuses:
         success = (
-            update_prospect_status_helper(prospect_id=prospect_id, new_status=status)
+            update_prospect_status_linkedin_helper(prospect_id=prospect_id, new_status=status)
             and success
         )
 
     return success
 
 
-def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
+def update_prospect_status_linkedin_helper(prospect_id: int, new_status: ProspectStatus):
     # Status Mapping here: https://excalidraw.com/#json=u5Ynh702JjSM1BNnffooZ,OcIRq8s0Ev--ACW10UP4vQ
     from src.prospecting.models import (
         Prospect,
@@ -361,6 +361,45 @@ def update_prospect_status_helper(prospect_id: int, new_status: ProspectStatus):
     db.session.commit()
 
     return True
+
+
+def update_prospect_status_email(prospect_id: int, new_status: ProspectEmailOutreachStatus, override_status: bool = False) -> tuple[bool, str]:
+    """ Updates the prospect email outreach status
+
+    Args:
+        prospect_id (int): ID of the prospect (used for the prospect email)
+        new_status (ProspectEmailOutreachStatus): New status to update to
+        override_status (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        tuple[bool, str]: (success, message)
+    """
+
+    # Get the prospect and email record
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return False, 'Prospect not found'
+    p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
+    if not p_email:
+        return False, 'Prospect email not found'
+
+    # Check if we can override the status, regardless of the current status
+    if override_status:
+        p_email.outreach_status = new_status
+    else:
+        # Check if the status is valid to transition to
+        if p_email.outreach_status not in VALID_UPDATE_EMAIL_STATUS_MAP[new_status]:
+            return False, f"Invalid status transition from {p_email.outreach_status} to {new_status}"
+        p_email.outreach_status = new_status
+
+    # Commit the changes
+    db.session.add_all([p, p_email])
+    db.session.commit()
+
+    # Update the prospect overall status
+    calculate_prospect_overall_status(prospect_id=prospect_id)
+
+    return True, "Success"
 
 
 def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
@@ -689,7 +728,7 @@ def match_prospect_as_sent_outreach(self, prospect_id: int, client_sdr_id: int):
         if not prospect or not prospect.approved_outreach_message_id:
             return
 
-        update_prospect_status(
+        update_prospect_status_linkedin(
             prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
         )
 
@@ -710,7 +749,7 @@ def batch_update_prospect_statuses(updates: list):
         prospect_id = update.get("id")
         new_status = update.get("status")
 
-        update_prospect_status(
+        update_prospect_status_linkedin(
             prospect_id=prospect_id, new_status=ProspectStatus[new_status]
         )
 
@@ -720,7 +759,7 @@ def batch_update_prospect_statuses(updates: list):
 def mark_prospect_reengagement(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.status == ProspectStatus.ACCEPTED:
-        update_prospect_status(
+        update_prospect_status_linkedin(
             prospect_id=prospect_id, new_status=ProspectStatus.RESPONDED
         )
 
@@ -1026,16 +1065,13 @@ def map_prospect_email_status_to_prospect_overall_status(
     return None
 
 
-@celery.task
 def calculate_prospect_overall_status(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
         return None
 
     prospect_email_overall_status: ProspectOverallStatus | None = None
-    prospect_email: ProspectEmail = ProspectEmail.query.filter(
-        ProspectEmail.id == prospect.approved_prospect_email_id
-    ).first()
+    prospect_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
     if prospect_email:
         prospect_email_status: ProspectEmailOutreachStatus = (
             prospect_email.outreach_status

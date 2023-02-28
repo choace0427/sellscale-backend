@@ -168,7 +168,7 @@ def convert_outreach_payload_to_ss(
 #                 prospect_email.outreach_status = new_outreach_status
 #                 old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
 #             else:
-#                 if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
+#                 if old_outreach_status in VALID_UPDATE_EMAIL_STATUS_MAP[new_outreach_status]:
 #                     prospect_email.outreach_status = new_outreach_status
 #                 else:
 #                     failed_email_list.append(email)
@@ -216,7 +216,7 @@ def convert_outreach_payload_to_ss(
 
 
 # # key (new_status) : value (list of valid statuses to update from)
-# VALID_UPDATE_STATUSES_MAP = {
+# VALID_UPDATE_EMAIL_STATUS_MAP = {
 #     ProspectEmailOutreachStatus.EMAIL_OPENED: [ProspectEmailOutreachStatus.SENT_OUTREACH],
 #     ProspectEmailOutreachStatus.ACCEPTED: [ProspectEmailOutreachStatus.EMAIL_OPENED, ProspectEmailOutreachStatus.SENT_OUTREACH],
 #     ProspectEmailOutreachStatus.ACTIVE_CONVO: [

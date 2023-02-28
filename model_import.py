@@ -11,6 +11,7 @@ from src.prospecting.models import (
     ProspectUploadsErrorType,
     ProspectNote,
     ProspectOverallStatus,
+    ProspectChannels,
 )
 from src.research.models import (
     ResearchPayload,

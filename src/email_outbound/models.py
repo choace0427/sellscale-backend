@@ -200,3 +200,40 @@ class SalesEngagementInteractionSS(db.Model):
     )
 
     ss_status_data = db.Column(JSONB, nullable=False)
+
+
+# key (new_status) : value (list of valid statuses to update from)
+VALID_UPDATE_EMAIL_STATUS_MAP = {
+    ProspectEmailOutreachStatus.SENT_OUTREACH: [
+        ProspectEmailOutreachStatus.UNKNOWN,
+        ProspectEmailOutreachStatus.NOT_SENT,
+    ],
+    ProspectEmailOutreachStatus.EMAIL_OPENED: [
+        ProspectEmailOutreachStatus.SENT_OUTREACH
+    ],
+    ProspectEmailOutreachStatus.ACCEPTED: [
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+    ],
+    ProspectEmailOutreachStatus.ACTIVE_CONVO: [
+        ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+    ],
+    ProspectEmailOutreachStatus.SCHEDULING: [
+        ProspectEmailOutreachStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+    ],
+    ProspectEmailOutreachStatus.NOT_INTERESTED: [
+        ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.SCHEDULING,
+    ],
+    ProspectEmailOutreachStatus.DEMO_SET: [
+        ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.SCHEDULING,
+    ],
+    ProspectEmailOutreachStatus.DEMO_WON: [ProspectEmailOutreachStatus.DEMO_SET],
+    ProspectEmailOutreachStatus.DEMO_LOST: [ProspectEmailOutreachStatus.DEMO_SET],
+}

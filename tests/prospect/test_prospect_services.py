@@ -5,6 +5,7 @@ from test_utils import (
     basic_client_sdr,
     basic_archetype,
     basic_prospect,
+    basic_prospect_email,
     get_login_token,
 )
 from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
@@ -16,18 +17,19 @@ from src.prospecting.services import (
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
     validate_prospect_json_payload,
-    update_prospect_status,
+    update_prospect_status_linkedin,
+    update_prospect_status_email,
     create_prospect_from_linkedin_link,
     create_prospect_note,
 )
 from model_import import (
     Prospect,
-    ProspectStatusRecords,
-    Prospect,
-    ProspectUploadBatch,
-    Client,
     ProspectStatus,
     ProspectNote,
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+    ProspectOverallStatus,
+    Client,
     IScraperPayloadCache,
 )
 from decorators import use_app_context
@@ -127,8 +129,7 @@ def test_get_prospects():
 
 
 @use_app_context
-@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
-def test_update_prospect_status_with_note(calculate_prospect_overall_status):
+def test_update_prospect_status_with_note():
     client = basic_client()
     client_id = client.id
     archetype = basic_archetype(client)
@@ -156,7 +157,7 @@ def test_update_prospect_status_with_note(calculate_prospect_overall_status):
 
     prospect0 = prospects[0]
     prospect_id = prospect0.id
-    update_prospect_status(
+    update_prospect_status_linkedin(
         prospect_id=prospect0.id,
         new_status=ProspectStatus.SENT_OUTREACH,
         note="testing",
@@ -173,10 +174,7 @@ def test_update_prospect_status_with_note(calculate_prospect_overall_status):
 
 
 @use_app_context
-@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
-def test_update_prospect_status_active_convo_disable_ai(
-    calculate_prospect_overall_status,
-):
+def test_update_prospect_status_active_convo_disable_ai():
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -200,7 +198,7 @@ def test_update_prospect_status_active_convo_disable_ai(
     db.session.add(prospect0)
     db.session.commit()
 
-    update_prospect_status(
+    update_prospect_status_linkedin(
         prospect_id=prospect0.id,
         new_status=ProspectStatus.ACTIVE_CONVO,
         note="testing",
@@ -234,7 +232,7 @@ def test_update_prospect_status_active_convo_disable_ai(
     db.session.add(prospect1)
     db.session.commit()
 
-    update_prospect_status(
+    update_prospect_status_linkedin(
         prospect_id=prospect1.id,
         new_status=ProspectStatus.ACTIVE_CONVO,
         note="testing",
@@ -639,8 +637,7 @@ def test_delete_prospect_by_id_endpoint():
 
 
 @use_app_context
-@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
-def test_reengage_accepted_prospected(calculate_prospect_overall_status):
+def test_reengage_accepted_prospected():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
@@ -782,3 +779,35 @@ def test_create_prospect_note():
     assert len(notes) == 1
     assert notes[0].prospect_id == prospect.id
     assert notes[0].id == prospect_note_id
+
+
+@use_app_context
+def test_update_prospect_status_email():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    prospect_id = prospect.id
+    prospect_email = basic_prospect_email(prospect)
+    prospect_email_id = prospect_email.id
+
+    # No override success
+    update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.SENT_OUTREACH)
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    assert prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
+
+    # No override fail
+    update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.DEMO_SET)
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    assert prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
+
+    # Override
+    update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.DEMO_SET, override_status=True)
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    assert prospect_email.outreach_status == ProspectEmailOutreachStatus.DEMO_SET
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.overall_status == ProspectOverallStatus.DEMO

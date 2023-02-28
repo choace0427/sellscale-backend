@@ -25,6 +25,7 @@ from src.email_outbound.models import (
     SalesEngagementInteractionSS,
     ProspectEmailOutreachStatus,
     ProspectEmailStatusRecords,
+    VALID_UPDATE_EMAIL_STATUS_MAP
 )
 from src.email_outbound.ss_data import SSData
 
@@ -312,7 +313,7 @@ def update_status_from_ss_data(
             prospect_email.outreach_status = new_outreach_status
             old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
         else:
-            if old_outreach_status in VALID_UPDATE_STATUSES_MAP[new_outreach_status]:
+            if old_outreach_status in VALID_UPDATE_EMAIL_STATUS_MAP[new_outreach_status]:
                 prospect_email.outreach_status = new_outreach_status
             else:
                 return (
@@ -345,40 +346,4 @@ EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS = {
     EmailInteractionState.EMAIL_OPENED: ProspectEmailOutreachStatus.EMAIL_OPENED,
     EmailInteractionState.EMAIL_CLICKED: ProspectEmailOutreachStatus.ACCEPTED,
     EmailInteractionState.EMAIL_REPLIED: ProspectEmailOutreachStatus.ACTIVE_CONVO,
-}
-
-# key (new_status) : value (list of valid statuses to update from)
-VALID_UPDATE_STATUSES_MAP = {
-    ProspectEmailOutreachStatus.SENT_OUTREACH: [
-        ProspectEmailOutreachStatus.UNKNOWN,
-        ProspectEmailOutreachStatus.NOT_SENT,
-    ],
-    ProspectEmailOutreachStatus.EMAIL_OPENED: [
-        ProspectEmailOutreachStatus.SENT_OUTREACH
-    ],
-    ProspectEmailOutreachStatus.ACCEPTED: [
-        ProspectEmailOutreachStatus.EMAIL_OPENED,
-        ProspectEmailOutreachStatus.SENT_OUTREACH,
-    ],
-    ProspectEmailOutreachStatus.ACTIVE_CONVO: [
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.EMAIL_OPENED,
-    ],
-    ProspectEmailOutreachStatus.SCHEDULING: [
-        ProspectEmailOutreachStatus.ACTIVE_CONVO,
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.EMAIL_OPENED,
-    ],
-    ProspectEmailOutreachStatus.NOT_INTERESTED: [
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.ACTIVE_CONVO,
-        ProspectEmailOutreachStatus.SCHEDULING,
-    ],
-    ProspectEmailOutreachStatus.DEMO_SET: [
-        ProspectEmailOutreachStatus.ACCEPTED,
-        ProspectEmailOutreachStatus.ACTIVE_CONVO,
-        ProspectEmailOutreachStatus.SCHEDULING,
-    ],
-    ProspectEmailOutreachStatus.DEMO_WON: [ProspectEmailOutreachStatus.DEMO_SET],
-    ProspectEmailOutreachStatus.DEMO_LOST: [ProspectEmailOutreachStatus.DEMO_SET],
 }

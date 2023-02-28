@@ -10,7 +10,7 @@ from src.prospecting.services import (
 from tqdm import tqdm
 from app import celery, db
 from src.automation.slack_notification import send_slack_block
-from src.prospecting.services import update_prospect_status
+from src.prospecting.services import update_prospect_status_linkedin
 from fuzzywuzzy import fuzz
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
@@ -101,7 +101,7 @@ def process_inbox(message_payload, client_id):
                 prospect.status == ProspectStatus.SENT_OUTREACH
                 and is_last_message_from_me
             ):
-                update_prospect_status(
+                update_prospect_status_linkedin(
                     prospect_id=prospect.id,
                     new_status=ProspectStatus.ACCEPTED,
                     message=message,
@@ -115,7 +115,7 @@ def process_inbox(message_payload, client_id):
                 )
                 and not is_last_message_from_me
             ):
-                update_prospect_status(
+                update_prospect_status_linkedin(
                     prospect_id=prospect.id,
                     new_status=ProspectStatus.ACTIVE_CONVO,
                     message=message,
@@ -138,7 +138,7 @@ def process_inbox(message_payload, client_id):
                 if (
                     fuzz.ratio(pure_sent_message, pure_last_message) < 90
                 ):  # Check if the message is similar - less than 90 most likely means the message is a bump.
-                    update_prospect_status(
+                    update_prospect_status_linkedin(
                         prospect_id=prospect.id,
                         new_status=ProspectStatus.RESPONDED,
                         message=message,

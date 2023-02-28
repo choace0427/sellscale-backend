@@ -1,6 +1,5 @@
 from model_import import ProspectStatus, Prospect, Client, ClientSDR
 from src.utils.slack import send_slack_message
-from src.prospecting.services import update_prospect_status
 from src.utils.slack import URL_MAP
 
 

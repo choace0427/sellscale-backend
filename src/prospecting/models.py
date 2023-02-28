@@ -4,6 +4,16 @@ import enum
 import json
 
 
+class ProspectChannels(enum.Enum):
+    LINKEDIN = "LINKEDIN"
+    EMAIL = "EMAIL"
+
+    def to_dict():
+        return {
+            "LINKEDIN": "LINKEDIN",
+            "EMAIL": "EMAIL",
+        }
+
 class ProspectOverallStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"
     SENT_OUTREACH = "SENT_OUTREACH"

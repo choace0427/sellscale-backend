@@ -12,7 +12,15 @@ from test_utils import (
     get_login_token,
 )
 from src.prospecting.services import match_prospect_as_sent_outreach
-from model_import import Prospect, ProspectStatus, ProspectNote
+from model_import import (
+    Prospect,
+    ProspectStatus,
+    ProspectNote,
+    ProspectChannels,
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+    ProspectOverallStatus
+)
 from decorators import use_app_context
 import json
 import mock
@@ -134,40 +142,81 @@ def test_get_prospects():
 
 
 @use_app_context
-@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
-def test_patch_update_status_endpoint(calculate_prospect_overall_status):
+def test_patch_update_status_endpoint():
     client = basic_client()
-    archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
     prospect_id = prospect.id
     prospect.status = ProspectStatus.RESPONDED
-    db.session.add(prospect)
-    db.session.commit()
+    prospect_email = basic_prospect_email(prospect)
+    prospect_email_id = prospect_email.id
 
+    # Test that the prospect status is updated for LINKEDIN
     response = app.test_client().patch(
-        "prospect/",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps({"prospect_id": prospect_id, "new_status": "ACTIVE_CONVO"}),
+        f"prospect/{prospect_id}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+        data=json.dumps(
+            {
+                "channel_type": ProspectChannels.LINKEDIN.value,
+                "new_status": ProspectStatus.ACTIVE_CONVO.value,
+            }
+        ),
     )
     assert response.status_code == 200
     p: Prospect = Prospect.query.get(prospect_id)
     assert p.status == ProspectStatus.ACTIVE_CONVO
+    assert p.overall_status == ProspectOverallStatus.ACTIVE_CONVO
+
+    # Test that the prospect status is updated for EMAIL
+    # Also tests that the prospect overall status is updated
+    response = app.test_client().patch(
+        f"prospect/{prospect_id}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+        data=json.dumps(
+            {
+                "channel_type": ProspectChannels.EMAIL.value,
+                "new_status": ProspectEmailOutreachStatus.DEMO_SET.value,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    p: Prospect = Prospect.query.get(prospect_id)
+    assert p.status == ProspectStatus.ACTIVE_CONVO
+    pe: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    assert pe.outreach_status == ProspectEmailOutreachStatus.DEMO_SET
+    assert p.overall_status == ProspectOverallStatus.DEMO
 
 
 @use_app_context
 def test_patch_update_status_endpoint_failed():
     client = basic_client()
-    archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
     prospect_id = prospect.id
     prospect.status = ProspectStatus.PROSPECTED
     db.session.add(prospect)
     db.session.commit()
 
     response = app.test_client().patch(
-        "prospect/",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps({"prospect_id": prospect_id, "new_status": "DEMO_SET"}),
+        f"prospect/{prospect_id}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+        data=json.dumps(
+            {
+                "channel_type": ProspectChannels.LINKEDIN.value,
+                "new_status": ProspectStatus.DEMO_SET.value,
+            }
+        ),
     )
     assert response.status_code == 400
     p: Prospect = Prospect.query.get(prospect_id)
@@ -343,8 +392,7 @@ def test_post_batch_mark_as_lead():
 
 
 @use_app_context
-@mock.patch("src.prospecting.services.calculate_prospect_overall_status.delay")
-def test_get_prospect_details(calculate_prospect_overall_status_patch):
+def test_get_prospect_details():
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)

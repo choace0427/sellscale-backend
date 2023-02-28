@@ -1,7 +1,8 @@
 from app import db
 
 from flask import Blueprint, jsonify, request, Response
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
+from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.prospecting.services import (
     search_prospects,
     get_prospects,
@@ -9,7 +10,8 @@ from src.prospecting.services import (
     create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,
     batch_mark_as_lead,
-    update_prospect_status,
+    update_prospect_status_linkedin,
+    update_prospect_status_email,
     validate_prospect_json_payload,
     get_valid_channel_type_choices,
     toggle_ai_engagement,
@@ -59,6 +61,45 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
         ),
         200,
     )
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>", methods=["PATCH"])
+@require_user
+def update_status(client_sdr_id: int, prospect_id: int):
+    """ Update prospect status or apply note """
+    # Get parameters
+    channel_type = get_request_parameter("channel_type", request, json=True, required=True, parameter_type=str) or ProspectChannels.LINKEDIN.value
+    if channel_type == ProspectChannels.LINKEDIN.value:
+        new_status = ProspectStatus[get_request_parameter("new_status", request, json=True, required=True, parameter_type=str)]
+    elif channel_type == ProspectChannels.EMAIL.value:
+        new_status = ProspectEmailOutreachStatus[get_request_parameter("new_status", request, json=True, required=True, parameter_type=str)]
+    else:
+        return jsonify({'message': 'Invalid channel type'}), 400
+
+    # Validate parameters
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return jsonify({'message': 'Prospect not found'}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({'message': 'Not authorized'}), 401
+
+    # Update prospect status
+    if channel_type == ProspectChannels.LINKEDIN.value:
+        success = update_prospect_status_linkedin(
+            prospect_id=prospect_id, new_status=new_status
+        )
+        if success[0]:
+            return jsonify({'message': 'Successfully updated Prospect LinkedIn channel status'}), 200
+        else:
+            return jsonify({'message': "Failed to update: " + str(success[1])}), 400
+    elif channel_type == ProspectChannels.EMAIL.value:
+        success = update_prospect_status_email(
+            prospect_id=prospect_id, new_status=new_status, override_status=True
+        )
+        if success[0]:
+            return jsonify({'message': 'Successfully updated Prospect Email channel status'}), 200
+        else:
+            return jsonify({'message': "Failed to update: " + success[1]}), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/search", methods=["GET"])
@@ -160,30 +201,6 @@ def get_prospects_endpoint(client_sdr_id: int):
         ),
         200,
     )
-
-
-@PROSPECTING_BLUEPRINT.route("/", methods=["PATCH"])
-def update_status():
-    from model_import import ProspectStatus
-
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True
-    )
-    new_status = ProspectStatus[
-        get_request_parameter("new_status", request, json=True, required=True)
-    ]
-    # TODO: Add system to handle different channel types
-    channel_type = get_request_parameter("channel_type", request, json=True, required=False) or 'LINKEDIN'
-    note = get_request_parameter("note", request, json=True, required=False)
-
-    success = update_prospect_status(
-        prospect_id=prospect_id, new_status=new_status, note=note
-    )
-
-    if success[0]:
-        return "OK", 200
-
-    return "Failed to update: "+str(success[1]), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])
@@ -311,7 +328,7 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     )
     if not validated:
         return reason, 400
-    
+
     # Get client ID from client archetype ID.
     archetype = ClientArchetype.query.filter(ClientArchetype.id == archetype_id, ClientArchetype.client_sdr_id == client_sdr_id).first()
     if not archetype:
