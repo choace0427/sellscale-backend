@@ -66,6 +66,8 @@ def get_valid_next_prospect_statuses(prospect_id: int, channel_type):
         ...
     }
     """
+    if channel_type not in ("LINKEDIN", "EMAIL"):
+        return {}
     channel_type = GeneratedMessageType[channel_type]
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
