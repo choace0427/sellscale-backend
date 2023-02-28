@@ -137,7 +137,7 @@ def register_blueprints(app):
         DAILY_NOTIFICATIONS_BLUEPRINT, url_prefix="/daily_notifications"
     )
     app.register_blueprint(AUTHENTICATION_BLUEPRINT, url_prefix="/auth")
-    app.register_blueprint(INTEGRATION_BLUEPRINT, url_prefix="/integrations")
+    app.register_blueprint(INTEGRATION_BLUEPRINT, url_prefix="/integration")
 
     db.init_app(app)
 
