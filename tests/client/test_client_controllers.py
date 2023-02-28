@@ -306,3 +306,45 @@ def test_get_sdr():
     )
     assert response.status_code == 200
     assert response.json.get("sdr_info").get("sdr_name") == "Test SDR"
+
+
+@use_app_context
+def test_get_sdr_available_outbound_channels_endpoint():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_sdr.weekly_li_outbound_target = 10
+
+    # LI and SS only
+    response = app.test_client().get(
+        "client/sdr/get_available_outbound_channels",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+    )
+    assert response.status_code == 200
+    channels = response.json.get("available_outbound_channels")
+    li = channels.get("LINKEDIN")
+    assert li["name"] != None
+    assert li["description"] != None
+    assert li["statuses_available"] != None
+    ss = channels.get("SELLSCALE")
+    assert ss["name"] != None
+    assert ss["description"] != None
+    assert ss["statuses_available"] != None
+
+    # Email as well
+    client_sdr.weekly_email_outbound_target = 0
+    response = app.test_client().get(
+        "client/sdr/get_available_outbound_channels",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+    )
+    assert response.status_code == 200
+    channels = response.json.get("available_outbound_channels")
+    email = channels.get("EMAIL")
+    assert email["name"] != None
+    assert email["description"] != None
+    assert email["statuses_available"] != None

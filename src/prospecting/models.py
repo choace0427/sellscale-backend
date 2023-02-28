@@ -8,10 +8,36 @@ class ProspectChannels(enum.Enum):
     LINKEDIN = "LINKEDIN"
     EMAIL = "EMAIL"
 
-    def to_dict():
+    SELLSCALE = "SELLSCALE"
+
+    def to_dict_verbose():
+        from src.email_outbound.models import ProspectEmailOutreachStatus
+
+        li_channel_verbose = {
+            "name": "LinkedIn",
+            "description": "LinkedIn outbound channel.",
+            "statuses_available": [p.value for p in ProspectStatus.all_statuses()],
+        }
+        li_channel_verbose.update(ProspectStatus.status_descriptions())
+
+        email_channel_verbose = {
+            "name": "Email",
+            "description": "Email outbound channel.",
+            "statuses_available": [p.value for p in ProspectEmailOutreachStatus.all_statuses()],
+        }
+        email_channel_verbose.update(ProspectEmailOutreachStatus.status_descriptions())
+
+        sellscale_channel_verbose = {
+            "name": "SellScale Overall Status",
+            "description": "SellScale's overall status. A consolidation of all channels.",
+            "statuses_available": [p.value for p in ProspectOverallStatus.all_statuses()],
+        }
+        sellscale_channel_verbose.update(ProspectOverallStatus.status_descriptions())
+
         return {
-            "LINKEDIN": "LINKEDIN",
-            "EMAIL": "EMAIL",
+            ProspectChannels.LINKEDIN.value: li_channel_verbose,
+            ProspectChannels.EMAIL.value: email_channel_verbose,
+            ProspectChannels.SELLSCALE.value: sellscale_channel_verbose,
         }
 
 
@@ -35,6 +61,49 @@ class ProspectOverallStatus(enum.Enum):
             "DEMO": 6,
         }
         return ranks[self.value]
+
+    def all_statuses():
+        return [
+            ProspectOverallStatus.PROSPECTED,
+            ProspectOverallStatus.SENT_OUTREACH,
+            ProspectOverallStatus.ACCEPTED,
+            ProspectOverallStatus.BUMPED,
+            ProspectOverallStatus.ACTIVE_CONVO,
+            ProspectOverallStatus.DEMO,
+            ProspectOverallStatus.REMOVED,
+        ]
+
+    def status_descriptions():
+        return {
+            ProspectOverallStatus.PROSPECTED.value: {
+                "name": "Prospected",
+                "description": "Prospect has been added to the system.",
+            },
+            ProspectOverallStatus.SENT_OUTREACH.value: {
+                "name": "Sent Outreach",
+                "description": "Prospect has been sent some form of outreach.",
+            },
+            ProspectOverallStatus.ACCEPTED.value: {
+                "name": "Accepted",
+                "description": "Prospect has accepted the outreach.",
+            },
+            ProspectOverallStatus.BUMPED.value: {
+                "name": "Bumped",
+                "description": "The Prospect has been bumped by a follow-up message.",
+            },
+            ProspectOverallStatus.ACTIVE_CONVO.value: {
+                "name": "Active Convo",
+                "description": "The Prospect has been engaged in an active conversation.",
+            },
+            ProspectOverallStatus.DEMO.value: {
+                "name": "Demo",
+                "description": "The Prospect has been scheduled for a demo.",
+            },
+            ProspectOverallStatus.REMOVED.value: {
+                "name": "Removed",
+                "description": "The Prospect has been removed from the system for some reason.",
+            },
+        }
 
 
 class ProspectStatus(enum.Enum):
@@ -83,6 +152,54 @@ class ProspectStatus(enum.Enum):
             ProspectStatus.DEMO_WON,
             ProspectStatus.DEMO_LOSS,
         ]
+
+    def status_descriptions():
+        return {
+            ProspectStatus.PROSPECTED.value: {
+                "name": "Prospected",
+                "description": "Prospect has been added to the system.",
+            },
+            ProspectStatus.NOT_QUALIFIED.value: {
+                "name": "Not Qualified",
+                "description": "Prospect is not qualified to receive outreach.",
+            },
+            ProspectStatus.SENT_OUTREACH.value: {
+                "name": "Sent Outreach",
+                "description": "Prospect has been sent an invitation to connect on LinkedIn.",
+            },
+            ProspectStatus.ACCEPTED.value: {
+                "name": "Accepted",
+                "description": "Prospect has accepted the invitation to connect on LinkedIn.",
+            },
+            ProspectStatus.RESPONDED.value: {
+                "name": "Bumped",
+                "description": "The Prospect has been bumped by a follow-up message on LinkedIn",
+            },
+            ProspectStatus.ACTIVE_CONVO.value: {
+                "name": "Active Convo",
+                "description": "The Prospect has been engaged in an active conversation on LinkedIn.",
+            },
+            ProspectStatus.SCHEDULING.value: {
+                "name": "Scheduling",
+                "description": "The Prospect is scheduling a time to meet.",
+            },
+            ProspectStatus.NOT_INTERESTED.value: {
+                "name": "Not Interested",
+                "description": "The Prospect is not interested.",
+            },
+            ProspectStatus.DEMO_SET.value: {
+                "name": "Demo Set",
+                "description": "The Prospect has set a time to meet.",
+            },
+            ProspectStatus.DEMO_WON.value: {
+                "name": "Demo Won",
+                "description": "The Prospect is engaged and interested in continuing, following a meeting.",
+            },
+            ProspectStatus.DEMO_LOSS.value: {
+                "name": "Demo Loss",
+                "description": "The Prospect is not interested in continuing, following a meeting.",
+            },
+        }
 
 
 class Prospect(db.Model):
