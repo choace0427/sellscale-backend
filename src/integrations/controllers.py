@@ -9,7 +9,7 @@ INTEGRATION_BLUEPRINT = Blueprint("integration", __name__)
 
 @INTEGRATION_BLUEPRINT.route("/mailboxes", methods=["GET"])
 def get_mailbox_by_email():
-    email = get_request_parameter("name", request, json=False, required=True)
+    email = get_request_parameter("email", request, json=False, required=True)
     client_id = get_request_parameter("client_id", request, json=False, required=True)
 
     integration = SalesEngagementIntegration(
