@@ -398,13 +398,6 @@ def retrigger_upload_prospect_job():
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
-        link=run_and_assign_health_score.signature(
-            args=[archetype_id],
-            queue="prospecting",
-            routing_key="prospecting",
-            priority=3,
-            immutable=True,
-        )
     )
 
     return "Upload jobs successfully collected and scheduled.", 200

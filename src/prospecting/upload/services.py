@@ -300,6 +300,9 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE
             db.session.add(prospect_upload)
             db.session.commit()
+            run_and_assign_health_score.apply_async(
+                args=[prospect_upload.client_archetype_id], queue="prospecting", routing_key="prospecting", priority=5
+            )
             return True
         else:
             prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED
@@ -360,7 +363,7 @@ def run_and_assign_health_score(self, archetype_id: int):
             })
 
         # UPDATE prospect WHERE id = :id SET health_check_score = :health_score
-        
+
         if len(update_prospects) > 0:
           stmt = (
             update(Prospect)
@@ -368,7 +371,7 @@ def run_and_assign_health_score(self, archetype_id: int):
             .values(health_check_score=bindparam("health_score"))
           )
           db.session.execute(stmt, update_prospects)
-          db.session.commit()  
+          db.session.commit()
 
         return True, "Successfully calculated health check scores for archetype: {}".format(archetype_id)
     except Exception as e:
