@@ -143,6 +143,13 @@ class Prospect(db.Model):
         return Prospect.query.filter_by(id=prospect_id).first()
 
     def to_dict(self) -> dict:
+        from src.email_outbound.models import ProspectEmail
+
+        p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=self.id).first()
+        p_email_status = None
+        if p_email and p_email.outreach_status:
+            p_email_status = p_email.outreach_status.value
+
         return {
             "id": self.id,
             "client_id": self.client_id,
@@ -162,6 +169,9 @@ class Prospect(db.Model):
             "email": self.email,
             "batch": self.batch,
             "status": self.status.value,
+            "linkedin_status": self.status.value,
+            "overall_status": self.overall_status.value,
+            "email_status": p_email_status,
             "approved_outreach_message_id": self.approved_outreach_message_id,
             "approved_prospect_email_id": self.approved_prospect_email_id,
             "client_sdr_id": self.client_sdr_id,
