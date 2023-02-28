@@ -112,6 +112,7 @@ def register_blueprints(app):
     from src.editor.controllers import EDITOR_BLUEPRINT
     from src.li_conversation.controllers import LI_CONVERASTION_BLUEPRINT
     from src.daily_notifications.controllers import DAILY_NOTIFICATIONS_BLUEPRINT
+    from src.integrations.controllers import INTEGRATION_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -136,6 +137,7 @@ def register_blueprints(app):
         DAILY_NOTIFICATIONS_BLUEPRINT, url_prefix="/daily_notifications"
     )
     app.register_blueprint(AUTHENTICATION_BLUEPRINT, url_prefix="/auth")
+    app.register_blueprint(INTEGRATION_BLUEPRINT, url_prefix="/integrations")
 
     db.init_app(app)
 
