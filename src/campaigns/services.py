@@ -241,16 +241,18 @@ def create_outbound_campaign(
     """
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
-        top_prospects = smart_get_prospects_for_campaign(client_archetype_id, num_prospects - len(prospect_ids))
+        top_prospects = smart_get_prospects_for_campaign(
+            client_archetype_id, num_prospects - len(prospect_ids)
+        )
         prospect_ids.extend(top_prospects)
         pass
 
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
-    ocs: list[OutboundCampaign] = OutboundCampaign.query.filter(OutboundCampaign.client_archetype_id == client_archetype_id).all()
+    ocs: list[OutboundCampaign] = OutboundCampaign.query.filter(
+        OutboundCampaign.client_archetype_id == client_archetype_id
+    ).all()
     num_campaigns = len(ocs)
-    name = (
-        ca.archetype + " #" + str(num_campaigns + 1)
-    )
+    name = ca.archetype + " #" + str(num_campaigns + 1)
     canonical_name = (
         ca.archetype + ", " + str(num_prospects) + ", " + str(campaign_start_date)
     )
@@ -288,7 +290,9 @@ def create_outbound_campaign(
     return campaign
 
 
-def smart_get_prospects_for_campaign(client_archetype_id: int, num_prospects: int) -> list[int]:
+def smart_get_prospects_for_campaign(
+    client_archetype_id: int, num_prospects: int
+) -> list[int]:
     """Smartly gets prospects for a campaign (based on health check score)
 
     Args:
@@ -298,14 +302,19 @@ def smart_get_prospects_for_campaign(client_archetype_id: int, num_prospects: in
     Returns:
         list[int]: List of prospect ids
     """
-    prospects: list[Prospect] = Prospect.query.filter(
-        Prospect.archetype_id == client_archetype_id,
-        Prospect.health_check_score != None,
-        or_(
-            Prospect.status == ProspectStatus.PROSPECTED,
-            Prospect.overall_status == ProspectOverallStatus.PROSPECTED
+    prospects: list[Prospect] = (
+        Prospect.query.filter(
+            Prospect.archetype_id == client_archetype_id,
+            Prospect.health_check_score != None,
+            or_(
+                Prospect.status == ProspectStatus.PROSPECTED,
+                Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+            ),
         )
-    ).order_by(Prospect.health_check_score.desc()).limit(num_prospects).all()
+        .order_by(Prospect.health_check_score.desc())
+        .limit(num_prospects)
+        .all()
+    )
 
     if len(prospects) < num_prospects:
         prospects.extend(
@@ -314,9 +323,12 @@ def smart_get_prospects_for_campaign(client_archetype_id: int, num_prospects: in
                 Prospect.health_check_score == None,
                 or_(
                     Prospect.status == ProspectStatus.PROSPECTED,
-                    Prospect.overall_status == ProspectOverallStatus.PROSPECTED
-                )
-            ).order_by(Prospect.id.desc()).limit(num_prospects - len(prospects)).all()
+                    Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+                ),
+            )
+            .order_by(Prospect.id.desc())
+            .limit(num_prospects - len(prospects))
+            .all()
         )
 
     prospect_ids: list[int] = [p.id for p in prospects]
@@ -823,8 +835,10 @@ def batch_update_campaigns(payload: dict):
         campaign.name = campaign_name
         campaign.editor_id = editor_id
         campaign.editing_due_date = editing_due_date
-        if receipt_link: campaign.receipt_link = receipt_link
-        if cost: campaign.cost = cost
+        if receipt_link:
+            campaign.receipt_link = receipt_link
+        if cost:
+            campaign.cost = cost
 
         db.session.add(campaign)
         db.session.commit()

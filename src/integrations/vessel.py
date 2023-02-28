@@ -1,6 +1,6 @@
 import requests
 import os
-from model_import import Client, Prospect
+from model_import import Client, Prospect, VesselSequences, VesselMailboxes
 from app import db
 
 VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
@@ -83,23 +83,40 @@ class SalesEngagementIntegration:
             return None
         return resp["contacts"][0]
 
-    def search_contact_by_prospect_id(self, prospect_id):
+    def create_or_update_contact_by_prospect_id(
+        self,
+        prospect_id,
+        personalized_message="This is the update!",
+        personalization_field_name="SellScale_Personalization",
+    ):
         """
-        Search for a Sales Engagement contact by prospect_id
+        Create or update a Sales Engagement contact by prospect_id
         """
         prospect: Prospect = Prospect.query.get(prospect_id)
         if not prospect:
             raise ValueError("Invalid prospect_id")
         contact = self.search_contact_by_email(prospect.email)
         if not contact:
-            return None
-        contact_id = contact["id"]
-        prospect.vessel_contact_id = contact_id
+            contact = self.create_contact(
+                prospect.first_name,
+                prospect.last_name,
+                prospect.title,
+                [prospect.email],
+                {personalization_field_name: personalized_message},
+            )
+        else:
+            contact_id = contact["id"]
+            contact = self.update_sellscale_personalization(
+                contact_id, personalized_message, personalization_field_name
+            )
+        prospect.vessel_contact_id = contact["id"]
         db.session.add(prospect)
         db.session.commit()
         return contact
 
-    def update_sellscale_personalization(self, contact_id, personalization):
+    def update_sellscale_personalization(
+        self, contact_id, personalization, personalization_field_name
+    ):
         """
         Update the SellScale_Personalization field for a contact
         """
@@ -112,17 +129,74 @@ class SalesEngagementIntegration:
                 "id": contact_id,
                 "contact": {
                     "additional": {
-                        "custom_fields": {"SellScale_Personalization": personalization}
+                        "custom_fields": {personalization_field_name: personalization}
                     }
                 },
             },
         )
         return response.json()
 
-    def find_mailbox_by_email(self, email):
+    def find_mailbox_autofill_by_email(self, email):
+        """
+        Find a Sales Engagement mailbox by email using the cache
+        """
+        mailbox_options = (
+            VesselMailboxes.query.filter(
+                VesselMailboxes.email.ilike("%" + email + "%"),
+                VesselMailboxes.access_token == self.vessel_access_token,
+            )
+            .limit(5)
+            .all()
+        )
+        return [
+            {"mailbox_id": mailbox.mailbox_id, "email": mailbox.email}
+            for mailbox in mailbox_options
+        ]
+
+    def find_sequence_autofill_by_name(self, name):
+        """
+        Find a Sales Engagement sequence by name using the cache
+        """
+        sequence_options = (
+            VesselSequences.query.filter(
+                VesselSequences.name.ilike("%" + name + "%"),
+                VesselSequences.access_token == self.vessel_access_token,
+            )
+            .limit(5)
+            .all()
+        )
+        return [
+            {"sequence_id": sequence.sequence_id, "name": sequence.name}
+            for sequence in sequence_options
+        ]
+
+    def sync_data(self):
+        """
+        Sync data from Vessel
+        """
+        self.clear_mailbox_and_sequence_data()
+
+        self.sync_sequence_data()
+        self.sync_mailbox_data()
+        print("Sync complete!")
+
+    def clear_mailbox_and_sequence_data(self):
+        """
+        Clear mailbox data from cache
+        """
+        print("Clearing mailbox data...")
+        VesselMailboxes.query.filter_by(access_token=self.vessel_access_token).delete()
+        db.session.commit()
+        print("Clearing sequence data...")
+        VesselSequences.query.filter_by(access_token=self.vessel_access_token).delete()
+        db.session.commit()
+        print("Data cleared!\n")
+
+    def sync_mailbox_data(self):
         """
         Find a Sales Engagement mailbox by email
         """
+        print("Syncing mailbox data...")
         url = f"{self.vessel_api_url}/engagement/mailboxes"
         nextPageCursor = 1
         while nextPageCursor:
@@ -136,17 +210,24 @@ class SalesEngagementIntegration:
                 },
             )
             nextPageCursor = response.json()["nextPageCursor"]
+            unadded_mailboxes = []
             for mailbox in response.json()["mailboxes"]:
-                if mailbox["email"] == email:
-                    return mailbox
+                vessel_mailbox: VesselMailboxes = VesselMailboxes(
+                    mailbox_id=mailbox["id"],
+                    email=mailbox["email"],
+                    access_token=self.vessel_access_token,
+                )
+                unadded_mailboxes.append(vessel_mailbox)
+            db.session.bulk_save_objects(unadded_mailboxes)
+            db.session.commit()
 
-    def search_sequences_by_name(self, name):
+    def sync_sequence_data(self):
         """
         Search for a Sales Engagement sequence by name
         """
+        print("Syncing sequence data...")
         nextPageCursor = 1
         url = f"{self.vessel_api_url}/engagement/sequences"
-        sequences = []
         while nextPageCursor:
             response = requests.get(
                 url,
@@ -158,10 +239,16 @@ class SalesEngagementIntegration:
                 },
             )
             nextPageCursor = response.json()["nextPageCursor"]
+            unadded_sequences = []
             for sequence in response.json()["sequences"]:
-                if name.lower() in sequence["name"].lower():
-                    sequences.append(sequence)
-        return sequences
+                vessel_sequence: VesselSequences = VesselSequences(
+                    sequence_id=sequence["id"],
+                    name=sequence["name"],
+                    access_token=self.vessel_access_token,
+                )
+                unadded_sequences.append(vessel_sequence)
+            db.session.bulk_save_objects(unadded_sequences)
+            db.session.commit()
 
     def add_contact_to_sequence(self, mailbox_id, sequence_id, contact_id):
         """
