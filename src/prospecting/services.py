@@ -8,6 +8,7 @@ from src.research.linkedin.services import research_personal_profile_details
 from src.research.services import create_iscraper_payload_cache
 from src.prospecting.models import (
     Prospect,
+    ProspectChannels,
     ProspectStatus,
     ProspectUploadBatch,
     ProspectNote,
@@ -58,6 +59,7 @@ def search_prospects(
 def get_prospects(
     client_sdr_id: int,
     query: str = "",
+    channel: str = ProspectChannels.LINKEDIN.value,
     status: list[str] = None,
     limit: int = 50,
     offset: int = 0,
@@ -70,6 +72,7 @@ def get_prospects(
     Args:
         client_sdr_id (int): ID of the SDR, supplied by the require_user decorator
         query (str, optional): Query. Defaults to "".
+        channel (str, optional): Channel to filter by. Defaults to ProspectChannels.SELLSCALE.value.
         status (list[str], optional): List of statuses to filter by. Defaults to None.
         limit (int, optional): Number of records to return. Defaults to 50.
         offset (int, optional): The offset to start returning from. Defaults to 0.
@@ -83,6 +86,13 @@ def get_prospects(
             - last_updated: 1 or -1, indicating ascending or descending order
         The query will be ordered by these fields in the order provided
     """
+    # Make sure that the provided status is in the channel's status enum
+    if status:
+        channel_statuses = ProspectChannels.map_to_other_channel_enum(channel)._member_names_
+        for s in status:
+            if s not in channel_statuses:
+                raise ValueError(f"Invalid status '{s}' provided for channel '{channel}'")
+
     # Construct ordering array
     ordering = []
     for filt in filters:
@@ -118,11 +128,32 @@ def get_prospects(
     # Set status filter.
     filtered_status = status
     if status is None:
-        filtered_status = ProspectStatus.all_statuses()
+        if channel == ProspectChannels.LINKEDIN.value:              # LinkedIn page
+            filtered_status = ProspectStatus.all_statuses()
+        elif channel == ProspectChannels.EMAIL.value:               # Email page
+            filtered_status = ProspectEmailOutreachStatus.all_statuses()
+        else:                                                       # Overall page
+            filtered_status = ProspectOverallStatus.all_statuses()
 
-    # Construct query
+    # Set the channel filter
+    if channel == ProspectChannels.LINKEDIN.value:
+        filtered_channel = Prospect.status
+    elif channel == ProspectChannels.SELLSCALE.value:
+        filtered_channel = Prospect.overall_status
+    elif channel == ProspectChannels.EMAIL.value:
+        filtered_channel = ProspectEmail.outreach_status
+
+    # Construct top query
+    prospects = Prospect.query
+    if channel == ProspectChannels.EMAIL.value:  # Join to ProspectEmail if filtering by email
+        prospects = (
+            prospects
+            .join(ProspectEmail, Prospect.id == ProspectEmail.prospect_id, isouter=True)
+        )
+
+    # Apply filters
     prospects = (
-        Prospect.query.filter((Prospect.status.in_(filtered_status)))
+        prospects.filter(filtered_channel.in_(filtered_status))
         .filter(
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.full_name.ilike(f"%{query}%")

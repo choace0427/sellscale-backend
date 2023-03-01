@@ -40,6 +40,18 @@ class ProspectChannels(enum.Enum):
             ProspectChannels.SELLSCALE.value: sellscale_channel_verbose,
         }
 
+    def map_to_other_channel_enum(channel: str) -> enum.Enum:
+        from src.email_outbound.models import ProspectEmailOutreachStatus
+
+        if channel == ProspectChannels.LINKEDIN.value:
+            return ProspectStatus
+        elif channel == ProspectChannels.EMAIL.value:
+            return ProspectEmailOutreachStatus
+        elif channel == ProspectChannels.SELLSCALE.value:
+            return ProspectOverallStatus
+        else:
+            raise Exception(f"Channel {channel} is not supported.")
+
 
 class ProspectOverallStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"
