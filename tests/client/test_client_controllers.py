@@ -11,7 +11,7 @@ from test_utils import (
     basic_generated_message_cta_with_text,
     get_login_token,
     basic_prospect,
-    basic_gnlp_model
+    basic_gnlp_model,
 )
 
 import json
@@ -29,14 +29,20 @@ def test_get_archetypes():
         "client/archetype/get_archetypes",
         headers={
             "Authorization": "Bearer {}".format(get_login_token()),
-        }
+        },
     )
     r_json = response.json
     assert response.status_code == 200
     assert len(r_json.get("archetypes")) == 1
     assert r_json.get("archetypes")[0].get("id") == archetype.id
     assert r_json.get("archetypes")[0].get("performance").get("total_prospects") == 1
-    assert r_json.get("archetypes")[0].get("performance").get("status_map").get("PROSPECTED") == 1
+    assert (
+        r_json.get("archetypes")[0]
+        .get("performance")
+        .get("status_map")
+        .get("PROSPECTED")
+        == 1
+    )
 
 
 @use_app_context
@@ -224,6 +230,7 @@ def test_post_archetype_set_transformer_blocklist():
         ResearchPointType.RECENT_RECOMMENDATIONS,
     ]
 
+
 @use_app_context
 def test_get_ctas_endpoint():
     client = basic_client()
@@ -240,12 +247,14 @@ def test_get_ctas_endpoint():
         ),
     )
     assert response.status_code == 200
-    assert response.json == [{
-        "id": cta.id,
-        "archetype_id": client_archetype.id,
-        "text_value": "test_cta",
-        "active": True,
-    }]
+    assert response.json == [
+        {
+            "id": cta.id,
+            "archetype_id": client_archetype.id,
+            "text_value": "test_cta",
+            "active": True,
+        }
+    ]
 
 
 @use_app_context
@@ -289,7 +298,9 @@ def test_get_cta():
         },
     )
     assert unauthorized_response.status_code == 403
-    assert unauthorized_response.json.get("message") == "Archetype does not belong to you"
+    assert (
+        unauthorized_response.json.get("message") == "Archetype does not belong to you"
+    )
 
 
 @use_app_context
@@ -348,3 +359,36 @@ def test_get_sdr_available_outbound_channels_endpoint():
     assert email["name"] != None
     assert email["description"] != None
     assert email["statuses_available"] != None
+
+
+@use_app_context
+def test_post_toggle_client_sdr_autopilot_enabled():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+
+    assert client_sdr.autopilot_enabled == False
+
+    response = app.test_client().post(
+        "client/sdr/toggle_autopilot_enabled",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+        data=json.dumps({"client_sdr_id": client_sdr.id}),
+    )
+    assert response.status_code == 200
+
+    client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
+    assert client_sdr.autopilot_enabled == True
+
+    response = app.test_client().post(
+        "client/sdr/toggle_autopilot_enabled",
+        headers={
+            "Content-Type": "application/json",
+        },
+        data=json.dumps({"client_sdr_id": client_sdr.id}),
+    )
+    assert response.status_code == 200
+
+    client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
+    assert client_sdr.autopilot_enabled == False

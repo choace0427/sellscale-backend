@@ -24,6 +24,7 @@ from src.client.services import (
     get_client_archetypes,
     get_cta_by_archetype_id,
     get_client_sdr,
+    toggle_client_sdr_autopilot_enabled,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -101,13 +102,15 @@ def create_archetype():
 @require_user
 def get_archetypes(client_sdr_id: int):
     """Gets all the archetypes for a client SDR, with option to search filter by archetype name"""
-    query = get_request_parameter("query", request, json=False, required=False, parameter_type=str) or ""
+    query = (
+        get_request_parameter(
+            "query", request, json=False, required=False, parameter_type=str
+        )
+        or ""
+    )
 
     archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
-    return jsonify({
-        "message": "Success",
-        "archetypes": archetypes
-    }), 200
+    return jsonify({"message": "Success", "archetypes": archetypes}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["GET"])
@@ -116,10 +119,7 @@ def get_sdr(client_sdr_id: int):
     """Gets the client SDR"""
     client_sdr = get_client_sdr(client_sdr_id=client_sdr_id)
 
-    return jsonify({
-        "message": "Success",
-        "sdr_info": client_sdr
-    }), 200
+    return jsonify({"message": "Success", "sdr_info": client_sdr}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])
@@ -244,12 +244,18 @@ def get_sdr_available_outbound_channels_endpoint(client_sdr_id: int):
         }
     }
     """
-    available_outbound_channels = get_sdr_available_outbound_channels(client_sdr_id=client_sdr_id)
-    return jsonify({
-        "message": "Success",
-        "available_outbound_channels": available_outbound_channels
-    }), 200
-
+    available_outbound_channels = get_sdr_available_outbound_channels(
+        client_sdr_id=client_sdr_id
+    )
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "available_outbound_channels": available_outbound_channels,
+            }
+        ),
+        200,
+    )
 
 
 @CLIENT_BLUEPRINT.route("/update_pipeline_webhook", methods=["PATCH"])
@@ -326,13 +332,21 @@ def post_send_magic_link_login():
     )
     if not success:
         return (
-            jsonify({"message": "Failed to send magic link. Please ensure this is a valid SellScale account email."}),
+            jsonify(
+                {
+                    "message": "Failed to send magic link. Please ensure this is a valid SellScale account email."
+                }
+            ),
             401,
         )
     return (
-        jsonify({"message": "Magic login link sent to {}. Please check your inbox.".format(
-            client_sdr_email
-        )}),
+        jsonify(
+            {
+                "message": "Magic login link sent to {}. Please check your inbox.".format(
+                    client_sdr_email
+                )
+            }
+        ),
         200,
     )
 
@@ -452,10 +466,12 @@ def post_archetype_replicate_transformer_blocklist():
 def get_ctas_endpoint():
     """Get all CTAs for a client archetype"""
 
-    #WARNING WARNING WARNING
-    #TODO(David): THIS NEEDS VERIFICATION. IT IS NOT SECURE
+    # WARNING WARNING WARNING
+    # TODO(David): THIS NEEDS VERIFICATION. IT IS NOT SECURE
     try:
-        client_archetype_id = get_request_parameter("client_archetype_id", request, json=True, required=True, parameter_type=int)
+        client_archetype_id = get_request_parameter(
+            "client_archetype_id", request, json=True, required=True, parameter_type=int
+        )
     except Exception as e:
         return e.args[0], 400
 
@@ -468,11 +484,30 @@ def get_ctas_endpoint():
 @require_user
 def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
     """Gets CTA and analytics for a given archetype id."""
-    ctas: dict = get_cta_by_archetype_id(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+    ctas: dict = get_cta_by_archetype_id(
+        client_sdr_id=client_sdr_id, archetype_id=archetype_id
+    )
     if ctas.get("status_code") != 200:
         return jsonify({"message": ctas.get("message")}), ctas.get("status_code")
 
-    return jsonify({
-        "message": "Success",
-        "ctas": ctas.get("ctas"),
-    }), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "ctas": ctas.get("ctas"),
+            }
+        ),
+        200,
+    )
+
+
+@CLIENT_BLUEPRINT.route("/sdr/toggle_autopilot_enabled", methods=["POST"])
+def post_toggle_client_sdr_autopilot_enabled():
+    """Toggles autopilot enabled for a client SDR"""
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    success = toggle_client_sdr_autopilot_enabled(client_sdr_id=client_sdr_id)
+    if not success:
+        return "Failed to toggle autopilot enabled", 400
+    return "OK", 200

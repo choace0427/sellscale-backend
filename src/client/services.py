@@ -5,11 +5,7 @@ from src.client.models import Client, ClientArchetype, ClientSDR
 from src.message_generation.models import GeneratedMessageCTA, GeneratedMessage
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
-from src.prospecting.models import (
-    Prospect,
-    ProspectStatus,
-    ProspectChannels
-)
+from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
 from typing import Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
@@ -68,7 +64,7 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
     """
     client_archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
-        ClientArchetype.archetype.ilike(f"%{query}%")
+        ClientArchetype.archetype.ilike(f"%{query}%"),
     ).all()
 
     client_archetype_dicts = []
@@ -80,7 +76,9 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
     return client_archetype_dicts
 
 
-def get_client_archetype_performance(client_sdr_id: int, client_archetype_id: int) -> dict:
+def get_client_archetype_performance(
+    client_sdr_id: int, client_archetype_id: int
+) -> dict:
     """Gets the performance of a Client Archetype
 
     Args:
@@ -92,7 +90,7 @@ def get_client_archetype_performance(client_sdr_id: int, client_archetype_id: in
     # Get Prospects and find total_count and status_count
     archetype_prospects: list[Prospect] = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
-        Prospect.archetype_id == client_archetype_id
+        Prospect.archetype_id == client_archetype_id,
     ).all()
     status_map = {}
     for p in archetype_prospects:
@@ -105,10 +103,7 @@ def get_client_archetype_performance(client_sdr_id: int, client_archetype_id: in
             status_map[p.overall_status.value] = 1
     total_prospects = len(archetype_prospects)
 
-    performance = {
-        "total_prospects": total_prospects,
-        "status_map": status_map
-    }
+    performance = {"total_prospects": total_prospects, "status_map": status_map}
 
     return performance
 
@@ -206,6 +201,18 @@ def create_client_sdr(client_id: int, name: str, email: str):
     return {"client_sdr_id": sdr.id}
 
 
+def toggle_client_sdr_autopilot_enabled(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return None
+
+    sdr.autopilot_enabled = not sdr.autopilot_enabled
+    db.session.add(sdr)
+    db.session.commit()
+
+    return {"autopilot_enabled": sdr.autopilot_enabled}
+
+
 def reset_client_sdr_sight_auth_token(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
@@ -238,12 +245,18 @@ def get_sdr_available_outbound_channels(client_sdr_id: int) -> dict:
     sdr_channels = {}
     li_enabled = client_sdr.weekly_li_outbound_target is not None
     if li_enabled:
-        sdr_channels[ProspectChannels.LINKEDIN.value] = all_channels.get(ProspectChannels.LINKEDIN.value)
+        sdr_channels[ProspectChannels.LINKEDIN.value] = all_channels.get(
+            ProspectChannels.LINKEDIN.value
+        )
     email_enabled = client_sdr.weekly_email_outbound_target is not None
     if email_enabled:
-        sdr_channels[ProspectChannels.EMAIL.value] = all_channels.get(ProspectChannels.EMAIL.value)
+        sdr_channels[ProspectChannels.EMAIL.value] = all_channels.get(
+            ProspectChannels.EMAIL.value
+        )
     if li_enabled or email_enabled:
-        sdr_channels[ProspectChannels.SELLSCALE.value] = all_channels.get(ProspectChannels.SELLSCALE.value)
+        sdr_channels[ProspectChannels.SELLSCALE.value] = all_channels.get(
+            ProspectChannels.SELLSCALE.value
+        )
 
     return sdr_channels
 
@@ -601,7 +614,8 @@ def get_cta_stats(cta_id: int) -> dict:
     ).all()
     statuses_map = {}
     for prospect in prospects:
-        if prospect.overall_status is None: continue
+        if prospect.overall_status is None:
+            continue
         if prospect.overall_status.value not in statuses_map:
             statuses_map[prospect.overall_status.value] = 1
         else:

@@ -97,6 +97,8 @@ class ClientSDR(db.Model):
 
     vessel_mailbox_id = db.Column(db.String, nullable=True)
 
+    autopilot_enabled = db.Column(db.Boolean, nullable=True, default=False)
+
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
 
