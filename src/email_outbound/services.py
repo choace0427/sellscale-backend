@@ -192,7 +192,7 @@ def create_sales_engagement_interaction_raw(
         csv_data_hash=payload_hash_value,
     ).first()
     if exists:
-        return -1
+        return exists.id
 
     if source == SalesEngagementInteractionSource.OUTREACH.value:
         sequence_name = payload[0]["Sequence Name"]
