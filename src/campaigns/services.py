@@ -19,6 +19,7 @@ from model_import import (
     GeneratedMessageType,
     ClientArchetype,
 )
+from sqlalchemy.sql.expression import func, select
 from src.email_outbound.services import get_approved_prospect_email_by_id
 from src.integrations.vessel import SalesEngagementIntegration
 from tqdm import tqdm
@@ -245,7 +246,7 @@ def create_outbound_campaign(
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
         top_prospects = smart_get_prospects_for_campaign(
-            client_archetype_id, num_prospects - len(prospect_ids)
+            client_archetype_id, num_prospects - len(prospect_ids), campaign_type
         )
         prospect_ids.extend(top_prospects)
         pass
@@ -294,7 +295,7 @@ def create_outbound_campaign(
 
 
 def smart_get_prospects_for_campaign(
-    client_archetype_id: int, num_prospects: int
+    client_archetype_id: int, num_prospects: int, campaign_type: str
 ) -> list[int]:
     """Smartly gets prospects for a campaign (based on health check score)
 
@@ -305,34 +306,52 @@ def smart_get_prospects_for_campaign(
     Returns:
         list[int]: List of prospect ids
     """
-    prospects: list[Prospect] = (
-        Prospect.query.filter(
-            Prospect.archetype_id == client_archetype_id,
-            Prospect.health_check_score != None,
-            or_(
-                Prospect.status == ProspectStatus.PROSPECTED,
-                Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
-            ),
+    prospects_query = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.health_check_score != None,
+        or_(
+            Prospect.status == ProspectStatus.PROSPECTED,
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+        ),
+    )
+    if campaign_type == GeneratedMessageType.LINKEDIN.value:
+        prospects_query = prospects_query.filter(
+            Prospect.approved_outreach_message_id == None
         )
-        .order_by(Prospect.health_check_score.desc())
+    elif campaign_type == GeneratedMessageType.EMAIL.value:
+        prospects_query = prospects_query.filter(
+            Prospect.approved_prospect_email_id == None
+        )
+
+    prospects = (
+        prospects_query.order_by(Prospect.health_check_score.desc(), func.random())
         .limit(num_prospects)
         .all()
     )
 
     if len(prospects) < num_prospects:
-        prospects.extend(
-            Prospect.query.filter(
-                Prospect.archetype_id == client_archetype_id,
-                Prospect.health_check_score == None,
-                or_(
-                    Prospect.status == ProspectStatus.PROSPECTED,
-                    Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
-                ),
+        additional_prospects_query = Prospect.query.filter(
+            Prospect.archetype_id == client_archetype_id,
+            Prospect.health_check_score == None,
+            or_(
+                Prospect.status == ProspectStatus.PROSPECTED,
+                Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+            ),
+        )
+        if campaign_type == GeneratedMessageType.LINKEDIN.value:
+            additional_prospects_query = additional_prospects_query.filter(
+                Prospect.approved_outreach_message_id == None
             )
-            .order_by(Prospect.id.desc())
+        elif campaign_type == GeneratedMessageType.EMAIL.value:
+            additional_prospects_query = additional_prospects_query.filter(
+                Prospect.approved_prospect_email_id == None
+            )
+        additional_prospects = (
+            additional_prospects_query.order_by(func.random())
             .limit(num_prospects - len(prospects))
             .all()
         )
+        prospects.extend(additional_prospects)
 
     prospect_ids: list[int] = [p.id for p in prospects]
     return prospect_ids
