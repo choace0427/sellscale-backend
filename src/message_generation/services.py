@@ -15,6 +15,7 @@ from model_import import (
     GeneratedMessageEditRecord,
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
+    GeneratedMessageEditRecord,
 )
 from typing import Optional
 from src.ml.rule_engine import run_message_rule_engine
@@ -525,8 +526,6 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
         ).all()
         for edit in edits:
             db.session.delete(edit)
-            db.session.commit()
-
         db.session.delete(message)
         db.session.commit()
 
@@ -898,8 +897,28 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
         )
         if personalized_line.message_type != GeneratedMessageType.EMAIL:
             continue
+        edits = GeneratedMessageEditRecord.query.filter(
+            GeneratedMessageEditRecord.generated_message_id == personalized_line.id
+        ).all()
+        for edit in edits:
+            db.session.delete(edit)
         db.session.delete(personalized_line)
         db.session.delete(prospect_email)
+        db.session.commit()
+
+    messages = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id == prospect_id,
+        GeneratedMessage.message_type == GeneratedMessageType.EMAIL,
+        GeneratedMessage.message_status != GeneratedMessageStatus.SENT,
+    ).all()
+    for message in messages:
+        edits = GeneratedMessageEditRecord.query.filter(
+            GeneratedMessageEditRecord.generated_message_id == message.id
+        ).all()
+        for edit in edits:
+            db.session.delete(edit)
+            db.session.commit()
+        db.session.delete(message)
         db.session.commit()
 
     if prospect.approved_outreach_message_id == None:

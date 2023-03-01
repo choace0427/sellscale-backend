@@ -19,7 +19,7 @@ from src.campaigns.services import (
     get_outbound_campaign_analytics,
     get_email_campaign_analytics,
     create_outbound_campaign,
-    smart_get_prospects_for_campaign
+    smart_get_prospects_for_campaign,
 )
 from model_import import (
     GeneratedMessageType,
@@ -35,7 +35,9 @@ def test_get_outbound_campaign_details():
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
     prospect = basic_prospect(client, archetype, client_sdr)
-    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
+    campaign = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr
+    )
 
     response = get_outbound_campaign_details(client_sdr.id, campaign.id)
     assert response.get("status_code") == 200
@@ -85,12 +87,16 @@ def test_get_outbound_campaigns():
     assert limited_response.get("total_count") == 3
     assert len(limited_response.get("outbound_campaigns")) == 1
 
-    campaign_4 = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="C")
+    campaign_4 = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr, name="C"
+    )
     campaign_4.campaign_start_date = datetime.datetime(2022, 1, 10).strftime("%Y-%m-%d")
     campaign_4.campaign_end_date = datetime.datetime(2022, 1, 17).strftime("%Y-%m-%d")
     db.session.add(campaign_4)
     db.session.commit()
-    filter_by_date_response = get_outbound_campaigns(client_sdr.id, campaign_start_date="2022-01-01", campaign_end_date="2022-01-20")
+    filter_by_date_response = get_outbound_campaigns(
+        client_sdr.id, campaign_start_date="2022-01-01", campaign_end_date="2022-01-20"
+    )
     assert filter_by_date_response.get("total_count") == 1
     assert filter_by_date_response.get("outbound_campaigns")[0].name == "C"
 
@@ -195,9 +201,9 @@ def test_create_outbound_campaign():
     end_date = datetime.datetime(2023, 1, 8)
 
     campaign = create_outbound_campaign(
-        prospect_ids = [prospect.id],
+        prospect_ids=[prospect.id],
         num_prospects=2,
-        campaign_type = GeneratedMessageType.LINKEDIN,
+        campaign_type=GeneratedMessageType.LINKEDIN,
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
         campaign_start_date=start_date,
@@ -229,16 +235,16 @@ def test_smart_get_prospects_for_campaign():
     db.session.add_all([high_prospect, medium_prospect, low_prospect])
     db.session.commit()
 
-    all_prospects = smart_get_prospects_for_campaign(archetype_id, 3)
+    all_prospects = smart_get_prospects_for_campaign(archetype_id, 3, "LINKEDIN")
     assert len(all_prospects) == 3
 
-    higher_prospects = smart_get_prospects_for_campaign(archetype_id, 2)
+    higher_prospects = smart_get_prospects_for_campaign(archetype_id, 2, "LINKEDIN")
     assert len(higher_prospects) == 2
     assert high_prospect_id in higher_prospects
     assert medium_prospect_id in higher_prospects
     assert low_prospect_id not in higher_prospects
 
     prospect_no_score = basic_prospect(client, archetype, client_sdr)
-    all_prospects = smart_get_prospects_for_campaign(archetype_id, 4)
+    all_prospects = smart_get_prospects_for_campaign(archetype_id, 4, "LINKEDIN")
     assert len(all_prospects) == 4
     assert prospect_no_score.id in all_prospects
