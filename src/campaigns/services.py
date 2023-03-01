@@ -309,10 +309,6 @@ def smart_get_prospects_for_campaign(
     prospects_query = Prospect.query.filter(
         Prospect.archetype_id == client_archetype_id,
         Prospect.health_check_score != None,
-        or_(
-            Prospect.status == ProspectStatus.PROSPECTED,
-            Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
-        ),
     )
     if campaign_type == GeneratedMessageType.LINKEDIN.value:
         prospects_query = prospects_query.filter(
@@ -333,10 +329,6 @@ def smart_get_prospects_for_campaign(
         additional_prospects_query = Prospect.query.filter(
             Prospect.archetype_id == client_archetype_id,
             Prospect.health_check_score == None,
-            or_(
-                Prospect.status == ProspectStatus.PROSPECTED,
-                Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
-            ),
         )
         if campaign_type == GeneratedMessageType.LINKEDIN.value:
             additional_prospects_query = additional_prospects_query.filter(
