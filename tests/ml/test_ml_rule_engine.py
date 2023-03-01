@@ -355,7 +355,7 @@ def test_rule_no_companies():
         highlighted_words,
     )
     assert problems == [
-        "Please check for relevance. Contains company abbreviations: inc"
+        "Contains overly-formal company name: 'inc'. Remove if possible."
     ]
 
     problems = []
@@ -365,7 +365,7 @@ def test_rule_no_companies():
         highlighted_words,
     )
     assert problems == [
-        "Please check for relevance. Contains company abbreviations: inc, ltd"
+        "Contains overly-formal company name: 'inc, ltd'. Remove if possible."
     ]
 
 

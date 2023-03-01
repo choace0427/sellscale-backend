@@ -337,7 +337,7 @@ def rule_no_companies(completion: str, problems: list, highlighted_words: list):
     if len(detected_abbreviations) > 0:
         problem_string = ", ".join(detected_abbreviations)
         problems.append(
-            "Please check for relevance. Contains company abbreviations: {}".format(
+            "Contains overly-formal company name: '{}'. Remove if possible.".format(
                 problem_string
             )
         )
