@@ -171,6 +171,7 @@ def create_sales_engagement_interaction_raw(
     client_sdr_id: int,
     payload: list,
     source: str,
+    sequence_name="Unknown",
 ) -> int:
     """Creates a SalesEngagementInteractionRaw entry using the JSON payload.
     We check the hash of the payload against payloads in the past. If the hash is the same, we return -1.
@@ -196,7 +197,7 @@ def create_sales_engagement_interaction_raw(
     if source == SalesEngagementInteractionSource.OUTREACH.value:
         sequence_name = payload[0]["Sequence Name"]
     else:
-        sequence_name = "Unknown"
+        sequence_name = sequence_name
 
     # Create a SalesEngagementInteractionRaw entry using the payload as csv_data.
     raw_entry: SalesEngagementInteractionRaw = SalesEngagementInteractionRaw(
