@@ -994,7 +994,7 @@ def generate_cta_examples(company_name: str, persona: str, with_what: str):
     openai.api_key = os.getenv("OPENAI_KEY")
 
     response = openai.Completion.create(
-        model="gpt-3.5-turbo",
+        model="text-davinci-003",
         prompt=(
             """
 Make 6 CTAs that are comma separated for the company.
@@ -1061,7 +1061,7 @@ def get_named_entities(string: str):
     prompt = fewshot_1 + "\n\n--\n\n" + fewshot_2 + "\n\n--\n\n" + target
 
     response = openai.Completion.create(
-        model="gpt-3.5-turbo",
+        model="text-davinci-003",
         prompt=prompt,
         max_tokens=max_tokens_length,
         temperature=0,
