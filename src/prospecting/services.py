@@ -414,7 +414,7 @@ def update_prospect_status_email(prospect_id: int, new_status: ProspectEmailOutr
     if not p_email:
         return False, 'Prospect email not found'
     p_email_id = p_email.id
-    old_status = p_email.outreach_status
+    old_status = p_email.outreach_status or ProspectEmailOutreachStatus.UNKNOWN
 
     # Check if we can override the status, regardless of the current status
     if override_status:
