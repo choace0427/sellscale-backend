@@ -10,7 +10,7 @@ from typing import Optional, Union
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
 openai.api_key = OPENAI_KEY
 
-CURRENT_OPENAI_DAVINCI_MODEL = "text-davinci-003"
+CURRENT_OPENAI_DAVINCI_MODEL = "gpt-3.5-turbo"
 DEFAULT_SUFFIX = None
 DEFAULT_MAX_TOKENS = 16
 DEFAULT_TEMPERATURE = 1
@@ -19,17 +19,19 @@ DEFAULT_N = 1
 DEFAULT_FREQUENCY_PENALTY = 0
 DEFAULT_STOP = None
 
+
 def wrapped_create_completion(
-        model: str,
-        prompt: str,
-        suffix: Optional[Union[str, list]] = DEFAULT_SUFFIX,
-        max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
-        temperature: Optional[float] = DEFAULT_TEMPERATURE,
-        top_p: Optional[float] = DEFAULT_TOP_P,
-        n: Optional[int] = DEFAULT_N,
-        frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
-        stop: Optional[Union[str, list]] = DEFAULT_STOP) -> str:
-    """ Wrapper for OpenAI's Completion.create() function.
+    model: str,
+    prompt: str,
+    suffix: Optional[Union[str, list]] = DEFAULT_SUFFIX,
+    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    temperature: Optional[float] = DEFAULT_TEMPERATURE,
+    top_p: Optional[float] = DEFAULT_TOP_P,
+    n: Optional[int] = DEFAULT_N,
+    frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
+    stop: Optional[Union[str, list]] = DEFAULT_STOP,
+) -> str:
+    """Wrapper for OpenAI's Completion.create() function.
 
     Args:
         model (str): The model to use for completion.
@@ -52,8 +54,8 @@ def wrapped_create_completion(
     DEFAULT_N: 1
     DEFAULT_FREQUENCY_PENALTY: 0
     DEFAULT_STOP: None
-    """    
-    
+    """
+
     response = openai.Completion.create(
         model=model,
         prompt=prompt,
@@ -68,7 +70,7 @@ def wrapped_create_completion(
     if response is None or response["choices"] is None or len(response["choices"]) == 0:
         return ""
 
-    choices = response['choices']
+    choices = response["choices"]
     top_choice = choices[0]
-    preview = top_choice['text'].strip()
+    preview = top_choice["text"].strip()
     return preview

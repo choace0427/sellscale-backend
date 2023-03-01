@@ -36,7 +36,7 @@ def get_basic_openai_completion(prompt, max_tokens: int = 100, n: int = 1):
 
     payload = json.dumps(
         {
-            "model": "text-davinci-003",
+            "model": "gpt-3.5-turbo",
             "prompt": prompt,
             "n": n,
             "stop": "XXX",
@@ -183,7 +183,7 @@ def get_personalized_first_line_for_client(
         )
 
     response = openai.Completion.create(
-        model="text-davinci-003",
+        model="gpt-3.5-turbo",
         prompt=few_shot_prompt,
         temperature=0.7,
         max_tokens=256,

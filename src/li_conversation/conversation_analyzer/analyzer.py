@@ -7,8 +7,9 @@ from model_import import (
     LinkedinConversationEntry,
     ClientSDR,
     Prospect,
-    ProspectOverallStatus
+    ProspectOverallStatus,
 )
+
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def run_all_conversation_analyzers(self) -> tuple[bool, int]:
@@ -19,13 +20,19 @@ def run_all_conversation_analyzers(self) -> tuple[bool, int]:
     """
     try:
         # Gets conversation_urls of Conversation Entries that have not been processed
-        conversation_entries: list[LinkedinConversationEntry] = LinkedinConversationEntry.query.filter(
-            or_(
-                LinkedinConversationEntry.entry_processed == False,
-                LinkedinConversationEntry.entry_processed == None
+        conversation_entries: list[LinkedinConversationEntry] = (
+            LinkedinConversationEntry.query.filter(
+                or_(
+                    LinkedinConversationEntry.entry_processed == False,
+                    LinkedinConversationEntry.entry_processed == None,
+                )
             )
-        ).distinct(LinkedinConversationEntry.conversation_url).all()
-        conversation_urls: list[str] = [entry.conversation_url for entry in conversation_entries]
+            .distinct(LinkedinConversationEntry.conversation_url)
+            .all()
+        )
+        conversation_urls: list[str] = [
+            entry.conversation_url for entry in conversation_entries
+        ]
 
         # Runs the conversation analyzers on the thread_urls
         run_li_scheduling_conversation_detector(conversation_urls)
@@ -82,7 +89,7 @@ def run_li_scheduling_conversation_detector(conversation_urls: list[str]):
                         "text": {
                             "type": "plain_text",
                             "text": f"Prospect {prospect.full_name} is scheduling a meeting with {sdr.name}!",
-                        }
+                        },
                     },
                     {
                         "type": "context",
@@ -103,7 +110,7 @@ def run_li_scheduling_conversation_detector(conversation_urls: list[str]):
                             for message in conversation
                         ],
                     },
-                ]
+                ],
             )
 
 
@@ -116,13 +123,15 @@ def detect_scheduling_conversation(prospect_id: int) -> dict:
     Returns:
         dict: Dictionary of scheduling status and conversation thread
     """
-    entries: list[LinkedinConversationEntry] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    entries: list[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
     sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     # Reconstruct the conversation thread, with oldest message first
     conversation = []
-    for entry in entries[:4]:   # Only check the first 4 entries
+    for entry in entries[:4]:  # Only check the first 4 entries
         clean_message = entry.message.replace("\n", " ").strip()
         conversation.insert(0, f"{entry.author}: '{clean_message}'")
 
@@ -135,7 +144,7 @@ def detect_scheduling_conversation(prospect_id: int) -> dict:
 
     # Run the prompt through the model
     response = wrapped_create_completion(
-        model="text-davinci-003",
+        model="gpt-3.5-turbo",
         prompt=full_prompt,
         max_tokens=5,
         temperature=0,

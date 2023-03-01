@@ -25,7 +25,7 @@ def get_edited_options(instruction: str, message_copy: str):
     Makes edits prescribed in instruction to message copy and returns 4 choices.
     """
     response = openai.Completion.create(
-        model="text-davinci-003",
+        model="gpt-3.5-turbo",
         prompt="instruction:\n{instruction}\n\ninput:\n{message_copy}\n\noutput:".format(
             instruction=instruction, message_copy=message_copy
         ),
