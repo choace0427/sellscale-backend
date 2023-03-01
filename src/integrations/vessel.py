@@ -290,8 +290,6 @@ class SalesEngagementIntegration:
             },
         )
         resp = response.json()
-        import pdb
-
         sequence_id = resp.get("id")
         prospect_email = get_approved_prospect_email_by_id(prospect_id=prospect_id)
         if prospect_email:
