@@ -5,7 +5,11 @@ from src.client.models import Client, ClientArchetype, ClientSDR
 from src.message_generation.models import GeneratedMessageCTA, GeneratedMessage
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
-from src.prospecting.models import ProspectStatus, Prospect
+from src.prospecting.models import (
+    Prospect,
+    ProspectStatus,
+    ProspectChannels
+)
 from typing import Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
@@ -211,6 +215,37 @@ def reset_client_sdr_sight_auth_token(client_sdr_id: int):
     db.session.commit()
 
     return {"token": sdr.auth_token}
+
+
+def get_sdr_available_outbound_channels(client_sdr_id: int) -> dict:
+    """Gets the available outbound channels for a Client SDR
+
+    Args:
+        client_sdr_id (int): The ID of the Client SDR
+
+    Returns:
+        dict: The available outbound channels
+    """
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return None
+
+    # Get all channels
+    all_channels = ProspectChannels.to_dict_verbose()
+
+    # Get the channels that are available to the SDR
+    sdr_channels = {}
+    li_enabled = client_sdr.weekly_li_outbound_target is not None
+    if li_enabled:
+        sdr_channels[ProspectChannels.LINKEDIN.value] = all_channels.get(ProspectChannels.LINKEDIN.value)
+    email_enabled = client_sdr.weekly_email_outbound_target is not None
+    if email_enabled:
+        sdr_channels[ProspectChannels.EMAIL.value] = all_channels.get(ProspectChannels.EMAIL.value)
+    if li_enabled or email_enabled:
+        sdr_channels[ProspectChannels.SELLSCALE.value] = all_channels.get(ProspectChannels.SELLSCALE.value)
+
+    return sdr_channels
 
 
 def rename_archetype(new_name: str, client_archetype_id: int):

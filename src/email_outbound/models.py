@@ -88,6 +88,69 @@ class ProspectEmailOutreachStatus(enum.Enum):
             "DEMO_LOST": "Demo Missed",
         }
 
+    def all_statuses():
+        return [
+            ProspectEmailOutreachStatus.UNKNOWN,
+            ProspectEmailOutreachStatus.NOT_SENT,
+            ProspectEmailOutreachStatus.SENT_OUTREACH,
+            ProspectEmailOutreachStatus.EMAIL_OPENED,
+            ProspectEmailOutreachStatus.ACCEPTED,
+            ProspectEmailOutreachStatus.ACTIVE_CONVO,
+            ProspectEmailOutreachStatus.SCHEDULING,
+            ProspectEmailOutreachStatus.NOT_INTERESTED,
+            ProspectEmailOutreachStatus.DEMO_SET,
+            ProspectEmailOutreachStatus.DEMO_WON,
+            ProspectEmailOutreachStatus.DEMO_LOST,
+        ]
+
+    def status_descriptions():
+        return {
+            ProspectEmailOutreachStatus.UNKNOWN.value: {
+                "name": "Unknown",
+                "description": "Status of this Prospect is unknown, most likely awaiting further action.",
+            },
+            ProspectEmailOutreachStatus.NOT_SENT.value: {
+                "name": "Not Sent",
+                "description": "Email has not been yet sent to this Prospect.",
+            },
+            ProspectEmailOutreachStatus.SENT_OUTREACH.value: {
+                "name": "Sent Email",
+                "description": "Email has been sent to this Prospect.",
+            },
+            ProspectEmailOutreachStatus.EMAIL_OPENED.value: {
+                "name": "Opened Email",
+                "description": "Email has been opened by this Prospect.",
+            },
+            ProspectEmailOutreachStatus.ACCEPTED.value: {
+                "name": "Accepted",
+                "description": "Prospect clicked on a link in the email.",
+            },
+            ProspectEmailOutreachStatus.ACTIVE_CONVO.value: {
+                "name": "Active Convo",
+                "description": "Prospect has been engaged in an active conversation through email.",
+            },
+            ProspectEmailOutreachStatus.SCHEDULING.value: {
+                "name": "Scheduling",
+                "description": "The Prospect is scheduling a time to meet.",
+            },
+            ProspectEmailOutreachStatus.NOT_INTERESTED.value: {
+                "name": "Not Interested",
+                "description": "The Prospect is not interested.",
+            },
+            ProspectEmailOutreachStatus.DEMO_SET.value: {
+                "name": "Demo Set",
+                "description": "The Prospect has set a time to meet.",
+            },
+            ProspectEmailOutreachStatus.DEMO_WON.value: {
+                "name": "Demo Won",
+                "description": "The Prospect is engaged and interested in continuing, following a meeting.",
+            },
+            ProspectEmailOutreachStatus.DEMO_LOST.value: {
+                "name": "Demo Lost",
+                "description": "The Prospect is not interested in continuing, following a meeting.",
+            },
+        }
+
 
 class ProspectEmail(db.Model):
     __tablename__ = "prospect_email"

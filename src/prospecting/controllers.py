@@ -138,12 +138,19 @@ def get_prospects_endpoint(client_sdr_id: int):
 
     Parameters:
         - client_sdr_id (int): The client sdr id
-        - status (str) (optional): The status of the prospect (ProspectStatus)
         - query (str) (optional): A filter query
+        - channel (str) (optional): The channel to filter by (ProspectChannels)
+        - status (str) (optional): The status of the prospect (ProspectStatus)
         - limit (int) (optional): The number of results to return
         - offset (int) (optional): The offset to start from
     """
     try:
+        channel = (
+            get_request_parameter(
+                "channel", request, json=True, required=False, parameter_type=str
+            )
+            or ProspectChannels.LINKEDIN.value # Default to LinkedIn for the time being
+        )
         status = (
             get_request_parameter(
                 "status", request, json=True, required=False, parameter_type=list
@@ -185,7 +192,7 @@ def get_prospects_endpoint(client_sdr_id: int):
                 return jsonify({"message": "Invalid filters supplied to API"}), 400
 
     prospects_info: dict[int, list[Prospect]] = get_prospects(
-        client_sdr_id, query, status, limit, offset, ordering
+        client_sdr_id, query, channel, status, limit, offset, ordering
     )
 
     total_count = prospects_info.get("total_count")

@@ -128,6 +128,35 @@ def test_get_prospects():
     returned = get_prospects(c_sdr.id, limit=2, offset=0)
     assert returned.get("total_count") == 6
 
+    # Test that statuses must match
+    try:
+        returned = get_prospects(c_sdr.id, status=["REMOVED"], limit=10, offset=0)
+        assert False
+    except ValueError:
+        assert True
+
+    # Test filtering by overall status
+    prospect_7 = basic_prospect(
+        c, a, c_sdr, full_name="jim", company="Datadog", overall_status=ProspectOverallStatus.DEMO
+    )
+    returned = get_prospects(c_sdr.id, channel="SELLSCALE", status=["DEMO"], limit=10, offset=0)
+    assert returned.get("total_count") == 1
+    prospects = returned.get("prospects")
+    assert prospects[0].full_name == "jim"
+    assert prospects[0].company == "Datadog"
+
+    # Test filtering by email
+    prospect_8 = basic_prospect(
+        c, a, c_sdr, full_name="dave", company="scalingsell"
+    )
+    prospect_8_email = basic_prospect_email(
+        prospect_8, outreach_status=ProspectEmailOutreachStatus.EMAIL_OPENED
+    )
+    returned = get_prospects(c_sdr.id, channel="EMAIL", status=["EMAIL_OPENED"], limit=10, offset=0)
+    assert returned.get("total_count") == 1
+    prospects = returned.get("prospects")
+    assert prospects[0].full_name == "dave"
+    assert prospects[0].company == "scalingsell"
 
 @use_app_context
 def test_update_prospect_status_with_note():

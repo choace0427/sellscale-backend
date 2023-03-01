@@ -21,7 +21,8 @@ from src.client.services import (
     get_client_archetype_performance,
     get_cta_stats,
     get_cta_by_archetype_id,
-    get_client_sdr
+    get_client_sdr,
+    get_sdr_available_outbound_channels,
 )
 import json
 import mock
@@ -433,3 +434,28 @@ def test_get_cta_stats():
     assert stats.get("status_map") == {
         "PROSPECTED": 1
     }
+
+@use_app_context
+def test_get_sdr_available_outbound_channels():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_sdr.weekly_li_outbound_target = 10
+
+    # Only LI and SellScale (Overall)
+    available_channels = get_sdr_available_outbound_channels(client_sdr.id)
+    li = available_channels.get("LINKEDIN")
+    assert li["name"] != None
+    assert li["description"] != None
+    assert li["statuses_available"] != None
+    ss = available_channels.get("SELLSCALE")
+    assert ss["name"] != None
+    assert ss["description"] != None
+    assert ss["statuses_available"] != None
+
+    # Email as well
+    client_sdr.weekly_email_outbound_target = 0
+    available_channels = get_sdr_available_outbound_channels(client_sdr.id)
+    email = available_channels.get("EMAIL")
+    assert email["name"] != None
+    assert email["description"] != None
+    assert email["statuses_available"] != None

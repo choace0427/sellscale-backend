@@ -5,6 +5,7 @@ from src.client.services import (
     create_client,
     create_client_archetype,
     create_client_sdr,
+    get_sdr_available_outbound_channels,
     rename_archetype,
     toggle_archetype_active,
     update_client_sdr_email,
@@ -206,6 +207,49 @@ def patch_update_sdr_email():
     if not success:
         return "Failed to update email", 404
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/get_available_outbound_channels", methods=["GET"])
+@require_user
+def get_sdr_available_outbound_channels_endpoint(client_sdr_id: int):
+    """Gets all the available outbound channels for a Client SDR.
+
+    Uses "Psuedo-permissions" based off of SDR SLAs.
+
+    Returns a dictionary of the form:
+    {
+        "outbound_channel_type": {
+            "name": "Outbound Channel Name",
+            "description": "Outbound Channel Description",
+            "statuses_available": ["channel_type_status_1", ...],
+            "channel_type_status_1": {
+                "name": "channel_type_status_1_human_readable",
+                "description": "channel_type_status_1 description",
+            },
+            ...
+        }
+    }
+
+    Example:
+    {
+        "EMAIL": {
+            "name": "Email",
+            "description": "Email outbound",
+            "statuses_available": ["ACTIVE_CONVO", ...],
+            "ACTIVE_CONVO": {
+                "name": "Active Conversation",
+                "description": "There is an active conversation between Prospect and SDR",
+            }
+            ...
+        }
+    }
+    """
+    available_outbound_channels = get_sdr_available_outbound_channels(client_sdr_id=client_sdr_id)
+    return jsonify({
+        "message": "Success",
+        "available_outbound_channels": available_outbound_channels
+    }), 200
+
 
 
 @CLIENT_BLUEPRINT.route("/update_pipeline_webhook", methods=["PATCH"])
