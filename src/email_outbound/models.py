@@ -230,12 +230,14 @@ class EmailSequenceState(enum.Enum):
 
 class SalesEngagementInteractionSource(enum.Enum):
     """
-    - OUTREACH: outreach interaction
-    - SALESLOFT: salesloft interaction
+    - OUTREACH: outreach interaction (from CSV)
+    - SALESLOFT: salesloft interaction (from CSV)
+    - VESSEL: vessel integration interaction
     """
 
     OUTREACH = "OUTREACH"
     SALESLOFT = "SALESLOFT"
+    VESSEL = "VESSEL"
 
 
 class SalesEngagementInteractionRaw(db.Model):
