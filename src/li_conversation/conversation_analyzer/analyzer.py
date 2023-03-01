@@ -36,6 +36,12 @@ def run_all_conversation_analyzers(self) -> tuple[bool, int]:
         ).update({"entry_processed": True}, synchronize_session=False)
         db.session.commit()
 
+        # Send a Slack message
+        send_slack_message(
+            message="🤖 Conversation analyzers ran",
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
+
         return True, len(conversation_urls)
     except Exception as e:
         db.session.rollback()

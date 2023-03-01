@@ -43,16 +43,17 @@ def update_all_phantom_buster_run_statuses_job():
 
 def run_next_client_sdr_li_conversation_scraper_job():
     from src.li_conversation.services import run_next_client_sdr_scrape
+    from src.li_conversation.conversation_analyzer.analyzer import run_all_conversation_analyzers
 
     if os.environ.get("FLASK_ENV") == "production":
-        run_next_client_sdr_scrape.delay()
+        run_next_client_sdr_scrape.apply_async(link=run_all_conversation_analyzers.si())
 
 
 def run_conversation_analyzers():
     from src.li_conversation.conversation_analyzer.analyzer import run_all_conversation_analyzers
 
     if os.environ.get("FLASK_ENV") == "production":
-        run_all_conversation_analyzers.apply_async(args=[])
+        run_all_conversation_analyzers.apply_async()
 
 
 # Add all jobs to scheduler
