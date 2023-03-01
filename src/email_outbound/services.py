@@ -15,6 +15,7 @@ from src.campaigns.models import (
     OutboundCampaign,
     OutboundCampaignStatus,
 )
+from src.prospecting.services import calculate_prospect_overall_status
 from src.email_outbound.models import (
     EmailInteractionState,
     EmailSchema,
@@ -306,6 +307,7 @@ def update_status_from_ss_data(
                 ),
                 False,
             )
+        prospect_id = prospect.id
 
         prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
             prospect_id=prospect.id,
@@ -360,6 +362,8 @@ def update_status_from_ss_data(
         )
         db.session.add(prospect_email)
         db.session.commit()
+
+        calculate_prospect_overall_status(prospect_id)
 
         return True
     except Exception as e:
