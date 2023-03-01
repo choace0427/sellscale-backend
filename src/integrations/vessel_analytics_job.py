@@ -86,9 +86,6 @@ def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
     sei_ss_id = convert_vessel_raw_payload_to_ss(
         client_sdr.client_id, client_sdr_id, sei_raw_id, raw_payloads
     )
-    import pdb
-
-    pdb.set_trace()
     collect_and_update_status_from_ss_data.delay(sei_ss_id)
 
     return True, "OK"
