@@ -2,10 +2,16 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import or_
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
-from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatusRecords, VALID_UPDATE_EMAIL_STATUS_MAP
+from src.email_outbound.models import (
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+    ProspectEmailStatusRecords,
+    VALID_UPDATE_EMAIL_STATUS_MAP,
+)
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
 from src.research.services import create_iscraper_payload_cache
+from src.prospecting.prospect_status_services import VALID_NEXT_LINKEDIN_STATUSES
 from src.prospecting.models import (
     Prospect,
     ProspectChannels,
@@ -22,7 +28,11 @@ from src.utils.converters.string_converters import (
     get_last_name_from_full_name,
     get_first_name_from_full_name,
 )
-from model_import import LinkedinConversationEntry, IScraperPayloadCache, IScraperPayloadType
+from model_import import (
+    LinkedinConversationEntry,
+    IScraperPayloadCache,
+    IScraperPayloadType,
+)
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 
 
@@ -88,10 +98,14 @@ def get_prospects(
     """
     # Make sure that the provided status is in the channel's status enum
     if status:
-        channel_statuses = ProspectChannels.map_to_other_channel_enum(channel)._member_names_
+        channel_statuses = ProspectChannels.map_to_other_channel_enum(
+            channel
+        )._member_names_
         for s in status:
             if s not in channel_statuses:
-                raise ValueError(f"Invalid status '{s}' provided for channel '{channel}'")
+                raise ValueError(
+                    f"Invalid status '{s}' provided for channel '{channel}'"
+                )
 
     # Construct ordering array
     ordering_arr = []
@@ -126,11 +140,11 @@ def get_prospects(
     # Set status filter.
     filtered_status = status
     if status is None:
-        if channel == ProspectChannels.LINKEDIN.value:              # LinkedIn page
+        if channel == ProspectChannels.LINKEDIN.value:  # LinkedIn page
             filtered_status = ProspectStatus.all_statuses()
-        elif channel == ProspectChannels.EMAIL.value:               # Email page
+        elif channel == ProspectChannels.EMAIL.value:  # Email page
             filtered_status = ProspectEmailOutreachStatus.all_statuses()
-        else:                                                       # Overall page
+        else:  # Overall page
             filtered_status = ProspectOverallStatus.all_statuses()
 
     # Set the channel filter
@@ -143,10 +157,11 @@ def get_prospects(
 
     # Construct top query
     prospects = Prospect.query
-    if channel == ProspectChannels.EMAIL.value:  # Join to ProspectEmail if filtering by email
-        prospects = (
-            prospects
-            .join(ProspectEmail, Prospect.id == ProspectEmail.prospect_id, isouter=True)
+    if (
+        channel == ProspectChannels.EMAIL.value
+    ):  # Join to ProspectEmail if filtering by email
+        prospects = prospects.join(
+            ProspectEmail, Prospect.id == ProspectEmail.prospect_id, isouter=True
         )
 
     # Apply filters
@@ -331,37 +346,40 @@ def update_prospect_status_linkedin(
             prospect_id=prospect_id, statuses=[new_status]
         )
     except Exception as err:
-        return False, err.message if hasattr(err, 'message') else err
+        return False, err.message if hasattr(err, "message") else err
 
     calculate_prospect_overall_status(prospect_id)
 
-    return True, 'Success'
+    return True, "Success"
 
 
 def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list):
     success = True
     for status in statuses:
         success = (
-            update_prospect_status_linkedin_helper(prospect_id=prospect_id, new_status=status)
+            update_prospect_status_linkedin_helper(
+                prospect_id=prospect_id, new_status=status
+            )
             and success
         )
 
     return success
 
 
-def update_prospect_status_linkedin_helper(prospect_id: int, new_status: ProspectStatus):
+def update_prospect_status_linkedin_helper(
+    prospect_id: int, new_status: ProspectStatus
+):
     # Status Mapping here: https://excalidraw.com/#json=u5Ynh702JjSM1BNnffooZ,OcIRq8s0Ev--ACW10UP4vQ
     from src.prospecting.models import (
         Prospect,
         ProspectStatusRecords,
-        VALID_FROM_STATUSES_MAP,
     )
 
     p: Prospect = Prospect.query.get(prospect_id)
     if p.status == new_status:
         return True
 
-    if p.status not in VALID_FROM_STATUSES_MAP[new_status]:
+    if new_status not in VALID_NEXT_LINKEDIN_STATUSES[p.status]:
         raise Exception(f"Invalid status transition from {p.status} to {new_status}")
 
     record: ProspectStatusRecords = ProspectStatusRecords(
@@ -392,8 +410,12 @@ def update_prospect_status_linkedin_helper(prospect_id: int, new_status: Prospec
     return True
 
 
-def update_prospect_status_email(prospect_id: int, new_status: ProspectEmailOutreachStatus, override_status: bool = False) -> tuple[bool, str]:
-    """ Updates the prospect email outreach status
+def update_prospect_status_email(
+    prospect_id: int,
+    new_status: ProspectEmailOutreachStatus,
+    override_status: bool = False,
+) -> tuple[bool, str]:
+    """Updates the prospect email outreach status
 
     Args:
         prospect_id (int): ID of the prospect (used for the prospect email)
@@ -407,10 +429,12 @@ def update_prospect_status_email(prospect_id: int, new_status: ProspectEmailOutr
     # Get the prospect and email record
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
-        return False, 'Prospect not found'
-    p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
+        return False, "Prospect not found"
+    p_email: ProspectEmail = ProspectEmail.query.filter_by(
+        prospect_id=prospect_id
+    ).first()
     if not p_email:
-        return False, 'Prospect email not found'
+        return False, "Prospect email not found"
     p_email_id = p_email.id
     old_status = p_email.outreach_status or ProspectEmailOutreachStatus.UNKNOWN
 
@@ -420,7 +444,10 @@ def update_prospect_status_email(prospect_id: int, new_status: ProspectEmailOutr
     else:
         # Check if the status is valid to transition to
         if p_email.outreach_status not in VALID_UPDATE_EMAIL_STATUS_MAP[new_status]:
-            return False, f"Invalid status transition from {p_email.outreach_status} to {new_status}"
+            return (
+                False,
+                f"Invalid status transition from {p_email.outreach_status} to {new_status}",
+            )
         p_email.outreach_status = new_status
 
     # Commit the changes
@@ -1003,7 +1030,9 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
         return {"message": "Prospect not found", "status_code": 404}
     if p and p.client_sdr_id != client_sdr_id:
         return {"message": "This prospect does not belong to you", "status_code": 403}
-    p_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
+    p_email: ProspectEmail = ProspectEmail.query.filter_by(
+        prospect_id=prospect_id
+    ).first()
     p_email_status = None
     if p_email and p_email.outreach_status:
         p_email_status = p_email.outreach_status.value
@@ -1117,7 +1146,9 @@ def calculate_prospect_overall_status(prospect_id: int):
         return None
 
     prospect_email_overall_status: ProspectOverallStatus | None = None
-    prospect_email: ProspectEmail = ProspectEmail.query.filter_by(prospect_id=prospect_id).first()
+    prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
+        prospect_id=prospect_id
+    ).first()
     if prospect_email:
         prospect_email_status: ProspectEmailOutreachStatus = (
             prospect_email.outreach_status
