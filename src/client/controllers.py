@@ -225,6 +225,8 @@ def get_sdr_available_outbound_channels_endpoint(client_sdr_id: int):
             "channel_type_status_1": {
                 "name": "channel_type_status_1_human_readable",
                 "description": "channel_type_status_1 description",
+                "enum_val": "channel_type_status_1",
+                "sellscale_enum_val": "channel_type_status_1_sellscale_enum_val",
             },
             ...
         }
@@ -239,6 +241,8 @@ def get_sdr_available_outbound_channels_endpoint(client_sdr_id: int):
             "ACTIVE_CONVO": {
                 "name": "Active Conversation",
                 "description": "There is an active conversation between Prospect and SDR",
+                "enum_val": "ACTIVE_CONVO",
+                "sellscale_enum_val": "ACTIVE_CONVO",
             }
             ...
         }

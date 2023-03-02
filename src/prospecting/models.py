@@ -11,6 +11,7 @@ class ProspectChannels(enum.Enum):
     SELLSCALE = "SELLSCALE"
 
     def to_dict_verbose():
+        """Returns a verbose dictionary of the channels, their available statuses, the statuses' descriptions, and a mapping of the status to the SellScale status."""
         from src.email_outbound.models import ProspectEmailOutreachStatus
 
         li_channel_verbose = {
@@ -89,35 +90,49 @@ class ProspectOverallStatus(enum.Enum):
             ProspectOverallStatus.REMOVED,
         ]
 
-    def status_descriptions():
+    def status_descriptions() -> dict:
         return {
             ProspectOverallStatus.PROSPECTED.value: {
                 "name": "Prospected",
                 "description": "Prospect has been added to the system.",
+                "enum_val": ProspectOverallStatus.PROSPECTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.PROSPECTED.value,
             },
             ProspectOverallStatus.SENT_OUTREACH.value: {
                 "name": "Sent Outreach",
                 "description": "Prospect has been sent some form of outreach.",
+                "enum_val": ProspectOverallStatus.SENT_OUTREACH.value,
+                "sellscale_enum_val": ProspectOverallStatus.SENT_OUTREACH.value,
             },
             ProspectOverallStatus.ACCEPTED.value: {
                 "name": "Accepted",
                 "description": "Prospect has accepted the outreach.",
+                "enum_val": ProspectOverallStatus.ACCEPTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACCEPTED.value,
             },
             ProspectOverallStatus.BUMPED.value: {
                 "name": "Bumped",
                 "description": "The Prospect has been bumped by a follow-up message.",
+                "enum_val": ProspectOverallStatus.BUMPED.value,
+                "sellscale_enum_val": ProspectOverallStatus.BUMPED.value,
             },
             ProspectOverallStatus.ACTIVE_CONVO.value: {
                 "name": "Active Convo",
                 "description": "The Prospect has been engaged in an active conversation.",
+                "enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
             ProspectOverallStatus.DEMO.value: {
                 "name": "Demo",
                 "description": "The Prospect has been scheduled for a demo.",
+                "enum_val": ProspectOverallStatus.DEMO.value,
+                "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
             ProspectOverallStatus.REMOVED.value: {
                 "name": "Removed",
                 "description": "The Prospect has been removed from the system for some reason.",
+                "enum_val": ProspectOverallStatus.REMOVED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
         }
 
@@ -170,50 +185,81 @@ class ProspectStatus(enum.Enum):
         ]
 
     def status_descriptions():
+        """Returns a dictionary of status descriptions.
+
+        Each status description includes:
+        - name: the human-readable name of the status
+        - description: a description of the status
+        - enum_val: the enum value of the status used in the backend
+        - sellscale_enum_val: the equivalent sellscale (overall) enum value
+        """
+
         return {
             ProspectStatus.PROSPECTED.value: {
                 "name": "Prospected",
                 "description": "Prospect has been added to the system.",
+                "enum_val": ProspectStatus.PROSPECTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.PROSPECTED.value,
             },
             ProspectStatus.NOT_QUALIFIED.value: {
                 "name": "Not Qualified",
                 "description": "Prospect is not qualified to receive outreach.",
+                "enum_val": ProspectStatus.NOT_QUALIFIED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
             ProspectStatus.SENT_OUTREACH.value: {
                 "name": "Sent Outreach",
                 "description": "Prospect has been sent an invitation to connect on LinkedIn.",
+                "enum_val": ProspectStatus.SENT_OUTREACH.value,
+                "sellscale_enum_val": ProspectOverallStatus.SENT_OUTREACH.value,
             },
             ProspectStatus.ACCEPTED.value: {
                 "name": "Accepted",
                 "description": "Prospect has accepted the invitation to connect on LinkedIn.",
+                "enum_val": ProspectStatus.ACCEPTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACCEPTED.value,
             },
             ProspectStatus.RESPONDED.value: {
                 "name": "Bumped",
                 "description": "The Prospect has been bumped by a follow-up message on LinkedIn",
+                "enum_val": ProspectStatus.RESPONDED.value,
+                "sellscale_enum_val": ProspectOverallStatus.BUMPED.value,
             },
             ProspectStatus.ACTIVE_CONVO.value: {
                 "name": "Active Convo",
                 "description": "The Prospect has been engaged in an active conversation on LinkedIn.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
             ProspectStatus.SCHEDULING.value: {
                 "name": "Scheduling",
                 "description": "The Prospect is scheduling a time to meet.",
+                "enum_val": ProspectStatus.SCHEDULING.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
             ProspectStatus.NOT_INTERESTED.value: {
                 "name": "Not Interested",
                 "description": "The Prospect is not interested.",
+                "enum_val": ProspectStatus.NOT_INTERESTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
             ProspectStatus.DEMO_SET.value: {
                 "name": "Demo Set",
                 "description": "The Prospect has set a time to meet.",
+                "enum_val": ProspectStatus.DEMO_SET.value,
+                "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
             ProspectStatus.DEMO_WON.value: {
                 "name": "Demo Complete",
                 "description": "The Prospect is engaged and interested in continuing, following a meeting.",
+                "enum_val": ProspectStatus.DEMO_WON.value,
+                "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
             ProspectStatus.DEMO_LOSS.value: {
                 "name": "Demo Missed",
                 "description": "The Prospect is not interested in continuing, following a meeting.",
+                "enum_val": ProspectStatus.DEMO_LOSS.value,
+                "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
         }
 

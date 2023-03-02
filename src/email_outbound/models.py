@@ -103,51 +103,83 @@ class ProspectEmailOutreachStatus(enum.Enum):
             ProspectEmailOutreachStatus.DEMO_LOST,
         ]
 
-    def status_descriptions():
+    def status_descriptions() -> dict:
+        """Returns a dictionary of status descriptions.
+
+        Each status description includes:
+        - name: the human-readable name of the status
+        - description: a description of the status
+        - enum_val: the enum value of the status used in the backend
+        - sellscale_enum_val: the equivalent sellscale (overall) enum value
+        """
+        from src.prospecting.models import ProspectOverallStatus
+
         return {
             ProspectEmailOutreachStatus.UNKNOWN.value: {
                 "name": "Unknown",
                 "description": "Status of this Prospect is unknown, most likely awaiting further action.",
+                "enum_val": ProspectEmailOutreachStatus.UNKNOWN.value,
+                "sellscale_enum_val": ProspectOverallStatus.PROSPECTED.value,
             },
             ProspectEmailOutreachStatus.NOT_SENT.value: {
                 "name": "Not Sent",
                 "description": "Email has not been yet sent to this Prospect.",
+                "enum_val": ProspectEmailOutreachStatus.NOT_SENT.value,
+                "sellscale_enum_val": ProspectOverallStatus.PROSPECTED.value,
             },
             ProspectEmailOutreachStatus.SENT_OUTREACH.value: {
                 "name": "Sent Email",
                 "description": "Email has been sent to this Prospect.",
+                "enum_val": ProspectEmailOutreachStatus.SENT_OUTREACH.value,
+                "sellscale_enum_val": ProspectOverallStatus.SENT_OUTREACH.value,
             },
             ProspectEmailOutreachStatus.EMAIL_OPENED.value: {
                 "name": "Opened Email",
                 "description": "Email has been opened by this Prospect.",
+                "enum_val": ProspectEmailOutreachStatus.EMAIL_OPENED.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACCEPTED.value,
             },
             ProspectEmailOutreachStatus.ACCEPTED.value: {
                 "name": "Accepted",
                 "description": "Prospect clicked on a link in the email.",
+                "enum_val": ProspectEmailOutreachStatus.ACCEPTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACCEPTED.value,
             },
             ProspectEmailOutreachStatus.ACTIVE_CONVO.value: {
                 "name": "Active Convo",
                 "description": "Prospect has been engaged in an active conversation through email.",
+                "enum_val": ProspectEmailOutreachStatus.ACTIVE_CONVO.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
             ProspectEmailOutreachStatus.SCHEDULING.value: {
                 "name": "Scheduling",
                 "description": "The Prospect is scheduling a time to meet.",
+                "enum_val": ProspectEmailOutreachStatus.SCHEDULING.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
             ProspectEmailOutreachStatus.NOT_INTERESTED.value: {
                 "name": "Not Interested",
                 "description": "The Prospect is not interested.",
+                "enum_val": ProspectEmailOutreachStatus.NOT_INTERESTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
             ProspectEmailOutreachStatus.DEMO_SET.value: {
                 "name": "Demo Set",
                 "description": "The Prospect has set a time to meet.",
+                "enum_val": ProspectEmailOutreachStatus.DEMO_SET.value,
+                "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
             ProspectEmailOutreachStatus.DEMO_WON.value: {
                 "name": "Demo Won",
                 "description": "The Prospect is engaged and interested in continuing, following a meeting.",
+                "enum_val": ProspectEmailOutreachStatus.DEMO_WON.value,
+                "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
             ProspectEmailOutreachStatus.DEMO_LOST.value: {
                 "name": "Demo Lost",
                 "description": "The Prospect is not interested in continuing, following a meeting.",
+                "enum_val": ProspectEmailOutreachStatus.DEMO_LOST.value,
+                "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
         }
 

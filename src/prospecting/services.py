@@ -1146,7 +1146,7 @@ def map_prospect_email_status_to_prospect_overall_status(
         ProspectEmailOutreachStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.DEMO_SET: ProspectOverallStatus.DEMO,
         ProspectEmailOutreachStatus.DEMO_WON: ProspectOverallStatus.DEMO,
-        ProspectEmailOutreachStatus.DEMO_LOST: ProspectOverallStatus.REMOVED,
+        ProspectEmailOutreachStatus.DEMO_LOST: ProspectOverallStatus.DEMO,
     }
     if prospect_email_status in prospect_email_status_map:
         return prospect_email_status_map[prospect_email_status]
