@@ -42,7 +42,6 @@ VALID_NEXT_LINKEDIN_STATUSES = {
     ProspectStatus.DEMO_SET: [
         ProspectStatus.DEMO_WON,
         ProspectStatus.DEMO_LOSS,
-        ProspectStatus.NOT_QUALIFIED,
     ],
     ProspectStatus.NOT_INTERESTED: [
         ProspectStatus.ACTIVE_CONVO,
