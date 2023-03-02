@@ -1,6 +1,10 @@
+from app import db
+from test_utils import test_app
+from decorators import use_app_context
 from src.research.linkedin.extractors.experience import get_list_of_past_jobs
 
 
+@use_app_context
 def test_get_list_of_past_jobs():
     info_with_no_past_jobs = {
         "personal": {
@@ -9,10 +13,21 @@ def test_get_list_of_past_jobs():
                     "company": {
                         "name": "Celigo",
                     },
+                    "date": {
+                        "start": {"month": 1, "year": 2020},
+                    }
+                },
+                {
+                    "company": {
+                        "name": "Celigo",
+                    },
+                    "date": {
+                        "start": {"month": 1, "year": 2018},
+                        "end": {"month": 1, "year": 2020}
+                    }
                 }
             ],
         },
-
     }
     data = get_list_of_past_jobs(info_with_no_past_jobs)
     assert data == {}

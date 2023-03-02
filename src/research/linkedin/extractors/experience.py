@@ -196,19 +196,29 @@ def remove_suffixes_from_company_name(positions_str):
 def get_list_of_past_jobs(data):
     # saw that you've worked at X, Y, Z
     position_data = deep_get(data, "personal.position_groups")
-    relevant_positions = []
+    past_positions = []
+    current_positions = set()
     for position in position_data:
-        if len(relevant_positions) >= 3:
+        if len(past_positions) >= 3:
             break
 
         company_name = clean_company_name(deep_get(position, "company.name"))
         start_date_year = deep_get(position, "date.start.year")
         start_date_month = deep_get(position, "date.start.month") or 1
-        end_date_year = deep_get(position, "date.end.year") or get_current_year()
-        end_date_month = deep_get(position, "date.end.month") or get_current_month()
+        end_date_year = deep_get(position, "date.end.year")
+        end_date_month = deep_get(position, "date.end.month") or 1
 
-        # If no start date, skip
+        # If company name exists in current_positions set (currently working there), skip
+        if company_name in current_positions:
+            continue
+
+        # If no start date (undefined), skip
         if not start_date_year:
+            continue
+
+        # If not end date (current), skip and save as current job
+        if not end_date_year:
+            current_positions.add(company_name)
             continue
 
         # End date should be within the past 10 years
@@ -220,24 +230,24 @@ def get_list_of_past_jobs(data):
         if time_at_job < 1:
             continue
 
-        relevant_positions.append(company_name)
+        past_positions.append(company_name)
 
     # If no relevant positions, return empty dict
-    if len(relevant_positions) == 0:
+    if len(past_positions) == 0:
         return {}
-    elif len(relevant_positions) == 1:
-        response = "Has previously worked at {}".format(relevant_positions[0])
-    elif len(relevant_positions) == 2:
+    elif len(past_positions) == 1:
+        response = "Has previously worked at {}".format(past_positions[0])
+    elif len(past_positions) == 2:
         response = "Has previously worked at {} and {}".format(
-            relevant_positions[0], relevant_positions[1]
+            past_positions[0], past_positions[1]
         )
     else:
         response = "Has previously worked at {}, {} and {}".format(
-            relevant_positions[0], relevant_positions[1], relevant_positions[2]
+            past_positions[0], past_positions[1], past_positions[2]
         )
 
     raw_data = {
-        "positions": relevant_positions,
+        "positions": past_positions,
     }
 
     return {"raw_data": raw_data, "response": response}
