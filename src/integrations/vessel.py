@@ -39,14 +39,17 @@ class SalesEngagementIntegration:
         """
         Get a Sales Engagement user by email
         """
-        nextPageCursor = 1
-        while nextPageCursor:
+        nextPageCursor = None
+        while nextPageCursor == None or nextPageCursor:
             url = f"{self.vessel_api_url}/engagement/users?accessToken={self.vessel_access_token}&cursor={nextPageCursor}&limit=100"
             response = requests.get(url, headers=self.headers)
             nextPageCursor = response.json()["nextPageCursor"]
             for user in response.json()["users"]:
                 if user["email"] == email:
                     return user
+            if not nextPageCursor:
+                break
+
         return None
 
     def create_contact(self, first_name, last_name, job_title, emails, additional={}):
@@ -221,8 +224,8 @@ class SalesEngagementIntegration:
         """
         print("Syncing mailbox data...")
         url = f"{self.vessel_api_url}/engagement/mailboxes"
-        nextPageCursor = 1
-        while nextPageCursor:
+        nextPageCursor = None
+        while nextPageCursor == None or nextPageCursor:
             response = requests.get(
                 url,
                 headers=self.headers,
@@ -233,6 +236,7 @@ class SalesEngagementIntegration:
                 },
             )
             nextPageCursor = response.json()["nextPageCursor"]
+
             unadded_mailboxes = []
             for mailbox in response.json()["mailboxes"]:
                 vessel_mailbox: VesselMailboxes = VesselMailboxes(
@@ -244,14 +248,17 @@ class SalesEngagementIntegration:
             db.session.bulk_save_objects(unadded_mailboxes)
             db.session.commit()
 
+            if not nextPageCursor:
+                break
+
     def sync_sequence_data(self):
         """
         Search for a Sales Engagement sequence by name
         """
         print("Syncing sequence data...")
-        nextPageCursor = 1
+        nextPageCursor = None
         url = f"{self.vessel_api_url}/engagement/sequences"
-        while nextPageCursor:
+        while nextPageCursor == None or nextPageCursor:
             response = requests.get(
                 url,
                 headers=self.headers,
@@ -262,6 +269,7 @@ class SalesEngagementIntegration:
                 },
             )
             nextPageCursor = response.json()["nextPageCursor"]
+
             unadded_sequences = []
             for sequence in response.json()["sequences"]:
                 vessel_sequence: VesselSequences = VesselSequences(
@@ -272,6 +280,9 @@ class SalesEngagementIntegration:
                 unadded_sequences.append(vessel_sequence)
             db.session.bulk_save_objects(unadded_sequences)
             db.session.commit()
+
+            if not nextPageCursor:
+                break
 
     def add_contact_to_sequence(
         self, mailbox_id, sequence_id, contact_id, prospect_id: Optional[int] = None
