@@ -50,6 +50,8 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.NOT_QUALIFIED,
     ],
     ProspectStatus.NOT_QUALIFIED: [],
+    ProspectStatus.DEMO_WON: [],
+    ProspectStatus.DEMO_LOSS: [],
 }
 
 
