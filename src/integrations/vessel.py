@@ -28,6 +28,7 @@ class SalesEngagementIntegration:
         if not client.vessel_access_token:
             raise ValueError("No Vessel access token found for client")
         self.client_id = client_id
+        self.personalization_field_name = client.vessel_personalization_field_name
         self.vessel_api_key = VESSEL_API_KEY
         self.vessel_access_token = client.vessel_access_token
         self.vessel_api_url = "https://api.vessel.land/"
@@ -35,6 +36,19 @@ class SalesEngagementIntegration:
             "vessel-api-token": VESSEL_API_KEY,
             "x-access-token": self.vessel_access_token,
         }
+
+        if not self.personalization_field_name:
+            raise ValueError(
+                "No personalization field name found for client. Please add it to the client record."
+            )
+        if not self.vessel_api_key:
+            raise ValueError(
+                "No Vessel API key found. Please add it to the environment."
+            )
+        if not self.vessel_access_token:
+            raise ValueError(
+                "No Vessel access token found. Please add it to the client record."
+            )
 
     def get_user_by_email(self, email):
         """
@@ -106,11 +120,11 @@ class SalesEngagementIntegration:
     def create_or_update_contact_by_prospect_id(
         self,
         prospect_id,
-        personalization_field_name="SellScale_Personalization",
     ):
         """
         Create or update a Sales Engagement contact by prospect_id
         """
+        personalization_field_name = self.personalization_field_name
         prospect: Prospect = Prospect.query.get(prospect_id)
         approved_prospect_email_id: int = prospect.approved_prospect_email_id
         if not approved_prospect_email_id:
@@ -148,12 +162,11 @@ class SalesEngagementIntegration:
         db.session.commit()
         return contact
 
-    def update_sellscale_personalization(
-        self, contact_id, personalization, personalization_field_name
-    ):
+    def update_sellscale_personalization(self, contact_id, personalization):
         """
-        Update the SellScale_Personalization field for a contact
+        Update the personalization_field_name field for a contact
         """
+        personalization_field_name = self.personalization_field_name
         url = f"{self.vessel_api_url}/engagement/contact"
         response = requests.patch(
             url,
