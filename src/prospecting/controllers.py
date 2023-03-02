@@ -37,7 +37,8 @@ from src.prospecting.services import delete_prospect_by_id
 
 from src.utils.random_string import generate_random_alphanumeric
 from src.authentication.decorators import require_user
-from src.client.models import ClientArchetype
+from src.client.models import ClientArchetype, ClientSDR, Client
+from src.utils.slack import send_slack_message, URL_MAP
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -379,6 +380,18 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
             immutable=True,
         )
     )
+
+    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client = Client.query.filter(Client.id == client_sdr.client_id).first()
+    try:
+      send_slack_message(
+          message="{user} uploaded {X} prospects under the {persona} persona from {client_name}".format(
+            user=client_sdr.name, X=len(csv_payload), persona=archetype.archetype, client_name=client.company
+          ),
+          webhook_urls=[URL_MAP["operations-prospect-uploads"]],
+      )
+    except Exception as e:
+      print("Failed to send slack notification: {}".format(e))
 
     return "Upload job scheduled.", 200
 
