@@ -27,6 +27,7 @@ class SalesEngagementIntegration:
             raise ValueError("Invalid client_id")
         if not client.vessel_access_token:
             raise ValueError("No Vessel access token found for client")
+        self.client_id = client_id
         self.vessel_api_key = VESSEL_API_KEY
         self.vessel_access_token = client.vessel_access_token
         self.vessel_api_url = "https://api.vessel.land/"
@@ -52,6 +53,12 @@ class SalesEngagementIntegration:
 
         return None
 
+    def formatted_additional_field(self, personalization_dict):
+        if self.client_id == 8:  # only for Curative / Salesloft users
+            return {"custom_fields": personalization_dict}
+
+        return personalization_dict
+
     def create_contact(self, first_name, last_name, job_title, emails, additional={}):
         """
         Create a Sales Engagement contact
@@ -71,7 +78,7 @@ class SalesEngagementIntegration:
                         }
                         for email in emails
                     ],
-                    "additional": {"custom_fields": additional},
+                    "additional": self.formatted_additional_field(additional),
                 },
                 "accessToken": self.vessel_access_token,
             },
@@ -122,6 +129,7 @@ class SalesEngagementIntegration:
         if not personalized_message:
             raise ValueError("Personalized message is required")
         contact = self.search_contact_by_email(prospect.email)
+
         if not contact:
             contact = self.create_contact(
                 prospect.first_name,
@@ -154,9 +162,9 @@ class SalesEngagementIntegration:
                 "accessToken": self.vessel_access_token,
                 "id": contact_id,
                 "contact": {
-                    "additional": {
-                        "custom_fields": {personalization_field_name: personalization}
-                    }
+                    "additional": self.formatted_additional_field(
+                        {personalization_field_name: personalization}
+                    )
                 },
             },
         )
