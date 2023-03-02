@@ -67,10 +67,10 @@ def test_get_prospects():
     prospect_2 = basic_prospect(c, a, c_sdr, full_name="adam", company="SellScale")
     prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
 
-    filter_1 = [
+    order_1 = [
         {"field": "full_name", "direction": 1}  # 1 = ascending, -1 = descending
     ]
-    returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_1)
+    returned = get_prospects(c_sdr.id, limit=10, offset=0, ordering=order_1)
     assert returned.get("total_count") == 3
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "adam"
@@ -79,11 +79,11 @@ def test_get_prospects():
 
     prospect_4 = basic_prospect(c, a, c_sdr, full_name="adam", company="Apple")
     prospect_5 = basic_prospect(c, a, c_sdr, full_name="ben", company="Apple")
-    filter_2 = [
+    order_2 = [
         {"field": "full_name", "direction": 1},  # 1 = ascending, -1 = descending
         {"field": "company", "direction": 1},  # 1 = ascending, -1 = descending
     ]
-    returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_2)
+    returned = get_prospects(c_sdr.id, limit=10, offset=0, ordering=order_2)
     assert returned.get("total_count") == 5
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "adam"
@@ -97,11 +97,11 @@ def test_get_prospects():
     assert prospects[4].full_name == "david"
     assert prospects[4].company == "SellScale"
 
-    filter_3 = [
+    order_3 = [
         {"field": "company", "direction": 1},  # 1 = ascending, -1 = descending
         {"field": "full_name", "direction": 1},  # 1 = ascending, -1 = descending
     ]
-    returned = get_prospects(c_sdr.id, limit=10, offset=0, filters=filter_3)
+    returned = get_prospects(c_sdr.id, limit=10, offset=0, ordering=order_3)
     assert returned.get("total_count") == 5
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "adam"
@@ -119,7 +119,7 @@ def test_get_prospects():
         c, a, c_sdr, full_name="jim", company="Apple", status=ProspectStatus.DEMO_SET
     )
     returned = get_prospects(
-        c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, filters=filter_3
+        c_sdr.id, status=["DEMO_SET"], limit=10, offset=0, ordering=order_3
     )
     assert returned.get("total_count") == 1
     prospects = returned.get("prospects")

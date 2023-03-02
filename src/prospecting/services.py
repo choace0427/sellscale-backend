@@ -63,9 +63,9 @@ def get_prospects(
     status: list[str] = None,
     limit: int = 50,
     offset: int = 0,
-    filters: list[dict[str, int]] = [],
+    ordering: list[dict[str, int]] = [],
 ) -> dict[int, list[Prospect]]:
-    """Gets prospects belonging to the SDR, with optional query and filters.
+    """Gets prospects belonging to the SDR, with optional query and ordering.
 
     Authorization required.
 
@@ -76,10 +76,10 @@ def get_prospects(
         status (list[str], optional): List of statuses to filter by. Defaults to None.
         limit (int, optional): Number of records to return. Defaults to 50.
         offset (int, optional): The offset to start returning from. Defaults to 0.
-        filters (list, optional): Filters to apply. See below. Defaults to [].
+        ordering (list, optional): Ordering to apply. See below. Defaults to [].
 
     Ordering logic is as follows
-        The filters list should have the following tuples:
+        The ordering list should have the following tuples:
             - full_name: 1 or -1, indicating ascending or descending order
             - company: 1 or -1, indicating ascending or descending order
             - status: 1 or -1, indicating ascending or descending order
@@ -94,36 +94,34 @@ def get_prospects(
                 raise ValueError(f"Invalid status '{s}' provided for channel '{channel}'")
 
     # Construct ordering array
-    ordering = []
-    for filt in filters:
-        filter_name = filt.get("field")
-        filter_direction = filt.get("direction")
-        if filter_name == "full_name":
-            if filter_direction == 1:
-                ordering.append(Prospect.full_name.asc())
-            elif filter_direction == -1:
-                ordering.append(Prospect.full_name.desc())
-        elif filter_name == "company":
-            if filter_direction == 1:
-                ordering.append(Prospect.company.asc())
-            elif filter_direction == -1:
-                ordering.append(Prospect.company.desc())
-        elif filter_name == "status":
-            if filter_direction == 1:
-                ordering.append(Prospect.status.asc())
-            elif filter_direction == -1:
-                ordering.append(Prospect.status.desc())
-        elif filter_name == "last_updated":
-            if filter_direction == 1:
-                ordering.append(Prospect.updated_at.asc())
-            elif filter_direction == -1:
-                ordering.append(Prospect.updated_at.desc())
-        else:
-            ordering.insert(0, None)
+    ordering_arr = []
+    for order in ordering:
+        order_name = order.get("field")
+        order_direction = order.get("direction")
+        if order_name == "full_name":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.full_name.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.full_name.desc())
+        elif order_name == "company":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.company.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.company.desc())
+        elif order_name == "status":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.status.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.status.desc())
+        elif order_name == "last_updated":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.updated_at.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.updated_at.desc())
 
     # Pad ordering array with None values, set to number of ordering options: 4
-    while len(ordering) < 4:
-        ordering.insert(0, None)
+    while len(ordering_arr) < 4:
+        ordering_arr.insert(0, None)
 
     # Set status filter.
     filtered_status = status
@@ -161,10 +159,10 @@ def get_prospects(
             | Prospect.email.ilike(f"%{query}%")
             | Prospect.linkedin_url.ilike(f"%{query}%"),
         )
-        .order_by(ordering[0])
-        .order_by(ordering[1])
-        .order_by(ordering[2])
-        .order_by(ordering[3])
+        .order_by(ordering_arr[0])
+        .order_by(ordering_arr[1])
+        .order_by(ordering_arr[2])
+        .order_by(ordering_arr[3])
     )
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
