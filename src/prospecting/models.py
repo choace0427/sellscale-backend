@@ -150,8 +150,8 @@ class ProspectStatus(enum.Enum):
             "SCHEDULING": "Scheduling",
             "NOT_INTERESTED": "Not Interested",
             "DEMO_SET": "Demo Set",
-            "DEMO_WON": "Demo Won",
-            "DEMO_LOSS": "Demo Loss",
+            "DEMO_WON": "Demo Complete",
+            "DEMO_LOSS": "Demo Missed",
         }
 
     def all_statuses():
