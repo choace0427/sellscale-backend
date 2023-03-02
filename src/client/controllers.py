@@ -32,6 +32,7 @@ from src.client.services_client_archetype import (
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
+from src.client.models import ClientSDR
 
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
 
@@ -69,9 +70,10 @@ def create():
     return jsonify(resp)
 
 
+
 @CLIENT_BLUEPRINT.route("/archetype", methods=["POST"])
-def create_archetype():
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
+@require_user
+def create_archetype(client_sdr_id: int):
     archetype = get_request_parameter("archetype", request, json=True, required=True)
     filters = get_request_parameter("filters", request, json=True, required=False)
     disable_ai_after_prospect_engaged = get_request_parameter(
@@ -80,12 +82,14 @@ def create_archetype():
     base_archetype_id = get_request_parameter(
         "base_archetype_id", request, json=True, required=False
     )
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
-    )
+
+    # Get client ID from client SDR ID.
+    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    if not client_sdr or not client_sdr.client_id:
+        return "Failed to find client ID from auth token", 500
 
     ca: object = create_client_archetype(
-        client_id=client_id,
+        client_id=client_sdr.client_id,
         client_sdr_id=client_sdr_id,
         archetype=archetype,
         filters=filters,

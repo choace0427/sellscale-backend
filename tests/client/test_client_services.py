@@ -4,6 +4,7 @@ from model_import import Client, ClientArchetype, ClientSDR, GNLPModel, Prospect
 from test_utils import (
     test_app,
     basic_client,
+    get_login_token,
     basic_client_sdr,
     basic_prospect,
     basic_archetype,
@@ -117,11 +118,12 @@ def test_add_client_and_archetype():
 
     response = app.test_client().post(
         "client/archetype",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {get_login_token()}",
+        },
         data=json.dumps(
             {
-                "client_id": c.id,
-                "client_sdr_id": c_sdr.id,
                 "archetype": "testing",
                 "filters": {},
                 "disable_ai_after_prospect_engaged": True,
@@ -179,11 +181,12 @@ def test_add_client_and_archetype():
 
     response = app.test_client().post(
         "client/archetype",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {get_login_token()}",
+        },
         data=json.dumps(
             {
-                "client_id": c.id,
-                "client_sdr_id": c_sdr.id,
                 "archetype": "testing",
                 "filters": {},
                 "base_archetype_id": archetype_id,
