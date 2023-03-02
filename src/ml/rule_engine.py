@@ -93,7 +93,7 @@ def run_message_rule_engine(message_id: int):
     prospect: Prospect = Prospect.query.get(message.prospect_id)
     client_id = prospect.client_id
     client: Client = Client.query.get(client_id)
-    client_name = client.name
+    client_name = client.company
     whitelisted_names = [client_name]
 
     problems = []
