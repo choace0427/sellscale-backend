@@ -30,6 +30,7 @@ class Client(db.Model):
     seat_expansion_opportunity = db.Column(db.Integer, nullable=True)
 
     vessel_access_token = db.Column(db.String, nullable=True)
+    vessel_personalization_field_name = db.Column(db.String, nullable=True)
 
 
 class ClientArchetype(db.Model):
