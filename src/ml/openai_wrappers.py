@@ -10,7 +10,7 @@ from typing import Optional, Union
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
 openai.api_key = OPENAI_KEY
 
-CURRENT_OPENAI_DAVINCI_MODEL = "gpt-3.5-turbo"
+CURRENT_OPENAI_DAVINCI_MODEL = "text-davinci-003"
 DEFAULT_SUFFIX = None
 DEFAULT_MAX_TOKENS = 16
 DEFAULT_TEMPERATURE = 1
