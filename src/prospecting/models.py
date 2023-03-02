@@ -23,14 +23,18 @@ class ProspectChannels(enum.Enum):
         email_channel_verbose = {
             "name": "Email",
             "description": "Email outbound channel.",
-            "statuses_available": [p.value for p in ProspectEmailOutreachStatus.all_statuses()],
+            "statuses_available": [
+                p.value for p in ProspectEmailOutreachStatus.all_statuses()
+            ],
         }
         email_channel_verbose.update(ProspectEmailOutreachStatus.status_descriptions())
 
         sellscale_channel_verbose = {
             "name": "SellScale Overall Status",
             "description": "SellScale's overall status. A consolidation of all channels.",
-            "statuses_available": [p.value for p in ProspectOverallStatus.all_statuses()],
+            "statuses_available": [
+                p.value for p in ProspectOverallStatus.all_statuses()
+            ],
         }
         sellscale_channel_verbose.update(ProspectOverallStatus.status_descriptions())
 
@@ -204,11 +208,11 @@ class ProspectStatus(enum.Enum):
                 "description": "The Prospect has set a time to meet.",
             },
             ProspectStatus.DEMO_WON.value: {
-                "name": "Demo Won",
+                "name": "Demo Complete",
                 "description": "The Prospect is engaged and interested in continuing, following a meeting.",
             },
             ProspectStatus.DEMO_LOSS.value: {
-                "name": "Demo Loss",
+                "name": "Demo Missed",
                 "description": "The Prospect is not interested in continuing, following a meeting.",
             },
         }
