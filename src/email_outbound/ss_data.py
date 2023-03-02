@@ -3,7 +3,8 @@ from model_import import (
     EmailSequenceState,
 )
 
-class SSData():
+
+class SSData:
     """SSData is a class which holds data relevant to SellScale's custom email analytics data.
 
     Attributes:
@@ -24,7 +25,7 @@ class SSData():
         self,
         email: str,
         email_interaction_state: EmailInteractionState,
-        email_sequence_state: EmailSequenceState
+        email_sequence_state: EmailSequenceState,
     ):
         self.email = email
         self.email_interaction_state = email_interaction_state
@@ -38,9 +39,9 @@ class SSData():
             SSData: An SSData object.
         """
         return cls(
-            raw_dict['email'],
-            EmailInteractionState(raw_dict['email_interaction_state']),
-            EmailSequenceState(raw_dict['email_sequence_state'])
+            raw_dict["email"],
+            EmailInteractionState(raw_dict["email_interaction_state"]),
+            EmailSequenceState(raw_dict["email_sequence_state"]),
         )
 
     def to_str_dict(self) -> dict:
@@ -50,9 +51,9 @@ class SSData():
             dict: A string dictionary representation of the SSData object.
         """
         return {
-            'email': self.email,
-            'email_interaction_state': self.email_interaction_state.value,
-            'email_sequence_state': self.email_sequence_state.value
+            "email": self.email,
+            "email_interaction_state": self.email_interaction_state.value,
+            "email_sequence_state": self.email_sequence_state.value,
         }
 
     def to_enum_dict(self) -> dict:
@@ -62,9 +63,9 @@ class SSData():
             dict: An enum dictionary representation of the SSData object.
         """
         return {
-            'email': self.email,
-            'email_interaction_state': self.email_interaction_state,
-            'email_sequence_state': self.email_sequence_state
+            "email": self.email,
+            "email_interaction_state": self.email_interaction_state,
+            "email_sequence_state": self.email_sequence_state,
         }
 
     def get_email(self) -> str:

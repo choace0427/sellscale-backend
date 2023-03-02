@@ -286,6 +286,7 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
     ProspectEmailOutreachStatus.ACTIVE_CONVO: [
         ProspectEmailOutreachStatus.ACCEPTED,
         ProspectEmailOutreachStatus.EMAIL_OPENED,
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
     ],
     ProspectEmailOutreachStatus.SCHEDULING: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
