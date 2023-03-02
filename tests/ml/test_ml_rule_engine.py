@@ -67,6 +67,18 @@ def test_format_entities():
     assert problems == ["Potential wrong name: 'test'", "Potential wrong name: 'test2'"]
     assert highlighted_words == ["test", "test2"]
 
+    problems = []
+    highlighted_words = []
+    format_entities(["Brex", "swag"], problems, highlighted_words)
+    assert problems == ["Potential wrong name: 'Brex'", "Potential wrong name: 'swag'"]
+    assert highlighted_words == ["Brex", "swag"]
+
+    problems = []
+    highlighted_words = []
+    format_entities(["Brex", "swag"], problems, highlighted_words, ["Brex"])
+    assert problems == ["Potential wrong name: 'swag'"]
+    assert highlighted_words == ["swag"]
+
 
 @use_app_context
 def test_rule_no_profanity():

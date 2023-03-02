@@ -2,7 +2,7 @@ import requests
 import json
 import csv
 import regex as re
-from model_import import GeneratedMessage, GeneratedMessageType
+from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
 from src.utils.string.string_utils import (
     has_consecutive_uppercase_string,
 )
@@ -51,15 +51,22 @@ def wipe_problems(message_id: int):
     db.session.commit()
 
 
-def format_entities(unknown_entities: list, problems: list, highlighted_words: list):
+def format_entities(
+    unknown_entities: list,
+    problems: list,
+    highlighted_words: list,
+    whitelisted_names: list = [],
+):
     """Formats the unknown entities for the problem message.
 
     Each unknown entity will appear on its own line.
     """
+    lower_whitelisted_names = [name.lower() for name in whitelisted_names]
     if len(unknown_entities) > 0:
         for entity in unknown_entities:
-            problems.append("Potential wrong name: '{}'".format(entity))
-            highlighted_words.append(entity)
+            if entity.lower() not in lower_whitelisted_names:
+                problems.append("Potential wrong name: '{}'".format(entity))
+                highlighted_words.append(entity)
     return
 
 
@@ -83,12 +90,20 @@ def run_message_rule_engine(message_id: int):
     case_preserved_completion = message.completion
     completion = message.completion.lower()
 
+    prospect: Prospect = Prospect.query.get(message.prospect_id)
+    client_id = prospect.client_id
+    client: Client = Client.query.get(client_id)
+    client_name = client.name
+    whitelisted_names = [client_name]
+
     problems = []
     highlighted_words = []
 
     # NER AI
     run_check_message_has_bad_entities(message_id)
-    format_entities(message.unknown_named_entities, problems, highlighted_words)
+    format_entities(
+        message.unknown_named_entities, problems, highlighted_words, whitelisted_names
+    )
 
     # Strict Rules
     rule_no_profanity(completion, problems, highlighted_words)

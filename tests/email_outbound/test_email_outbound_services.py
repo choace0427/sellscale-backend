@@ -166,13 +166,14 @@ def test_create_sales_engagement_interaction_raw():
     assert sei_raw.csv_data == payload
     assert sei_raw.source.value == source
     assert sei_raw.sequence_name == "test-sequence"
+    original_raw_id = sei_raw.id
 
     # No duplicates
     sei_raw_id = create_sales_engagement_interaction_raw(
         client_id, client_sdr_id, payload, source
     )
     assert len(SalesEngagementInteractionRaw.query.all()) == 1
-    assert sei_raw_id == -1
+    assert sei_raw_id == original_raw_id
 
 
 @use_app_context
