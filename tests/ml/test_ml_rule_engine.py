@@ -460,6 +460,39 @@ def test_rule_no_hard_years():
     ]
     assert highlighted_words == ["5 years"]
 
+    problems = []
+    highlighted_words = []
+    rule_no_hard_years(
+        "I see you've been at SellScale for eight years",
+        "anything",
+        problems,
+        highlighted_words
+    )
+    assert problems == ["'eight years' is non-colloquial. Please use 'nearly a decade' instead."]
+    assert highlighted_words == ["eight years"]
+
+    problems = []
+    highlighted_words = []
+    rule_no_hard_years(
+        "I see you've been at SellScale for nine years",
+        "anything",
+        problems,
+        highlighted_words
+    )
+    assert problems == ["'nine years' is non-colloquial. Please use 'nearly a decade' instead."]
+    assert highlighted_words == ["nine years"]
+
+    problems = []
+    highlighted_words = []
+    rule_no_hard_years(
+        "I see you've been at SellScale for 6 months",
+        "anything",
+        problems,
+        highlighted_words
+    )
+    assert problems == ["'6 months' is non-colloquial. Please use 'half a year' instead."]
+    assert highlighted_words == ["6 months"]
+
 
 @use_app_context
 def test_rule_no_im_a():

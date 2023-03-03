@@ -411,6 +411,8 @@ def rule_no_hard_years(
 
     If 'decade' is in the prompt, then 'years' should not be in the completion.
 
+    Also attempts to catch colloquial years. (e.g. 6 months → half a year, 5 years → half a decade)
+
     This heuristic is imperfect.
     """
     if "decade" in prompt:
@@ -426,6 +428,24 @@ def rule_no_hard_years(
                 if word == "years":
                     highlighted_words.append(splitted[i - 1] + " " + word)
                     break
+
+    if "nine years"in completion:
+        problems.append(
+            "'nine years' is non-colloquial. Please use 'nearly a decade' instead."
+        )
+        highlighted_words.append("nine years")
+
+    if "eight years"in completion:
+        problems.append(
+            "'eight years' is non-colloquial. Please use 'nearly a decade' instead."
+        )
+        highlighted_words.append("eight years")
+
+    if "6 months" in completion:
+        problems.append(
+            "'6 months' is non-colloquial. Please use 'half a year' instead."
+        )
+        highlighted_words.append("6 months")
 
     return
 
