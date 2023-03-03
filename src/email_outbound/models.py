@@ -183,6 +183,18 @@ class ProspectEmailOutreachStatus(enum.Enum):
             },
         }
 
+    def valid_next_statuses(current_status) -> dict:
+        """Returns a dictionary of valid next statuses, given a ProspectEmailOutreachStatus.
+
+        Contains information found in status_descriptions().
+        """
+        next_status_descriptions = {}
+        all_status_descriptions = ProspectEmailOutreachStatus.status_descriptions()
+        for status in VALID_NEXT_EMAIL_STATUSES.get(current_status, []):
+            next_status_descriptions[status.value] = all_status_descriptions.get(status.value, {})
+
+        return next_status_descriptions
+
 
 class ProspectEmail(db.Model):
     __tablename__ = "prospect_email"
@@ -337,4 +349,42 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
     ],
     ProspectEmailOutreachStatus.DEMO_WON: [ProspectEmailOutreachStatus.DEMO_SET],
     ProspectEmailOutreachStatus.DEMO_LOST: [ProspectEmailOutreachStatus.DEMO_SET],
+}
+
+
+VALID_NEXT_EMAIL_STATUSES = {
+    ProspectEmailOutreachStatus.UNKNOWN: [
+        ProspectEmailOutreachStatus.NOT_SENT,
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+    ],
+    ProspectEmailOutreachStatus.NOT_SENT: [
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+    ],
+    ProspectEmailOutreachStatus.SENT_OUTREACH: [
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+    ],
+    ProspectEmailOutreachStatus.EMAIL_OPENED: [
+        ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.SCHEDULING,
+        ProspectEmailOutreachStatus.NOT_INTERESTED,
+    ],
+    ProspectEmailOutreachStatus.ACCEPTED: [
+        ProspectEmailOutreachStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.SCHEDULING,
+        ProspectEmailOutreachStatus.NOT_INTERESTED,
+    ],
+    ProspectEmailOutreachStatus.ACTIVE_CONVO: [
+        ProspectEmailOutreachStatus.SCHEDULING,
+        ProspectEmailOutreachStatus.NOT_INTERESTED,
+    ],
+    ProspectEmailOutreachStatus.SCHEDULING: [
+        ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_INTERESTED,
+    ],
+    ProspectEmailOutreachStatus.DEMO_SET: [
+        ProspectEmailOutreachStatus.DEMO_WON,
+        ProspectEmailOutreachStatus.DEMO_LOST,
+        ProspectEmailOutreachStatus.NOT_INTERESTED,
+    ],
 }

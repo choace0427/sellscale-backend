@@ -11,7 +11,6 @@ from src.email_outbound.models import (
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.research.linkedin.services import research_personal_profile_details
 from src.research.services import create_iscraper_payload_cache
-from src.prospecting.prospect_status_services import VALID_NEXT_LINKEDIN_STATUSES
 from src.prospecting.models import (
     Prospect,
     ProspectChannels,
@@ -19,6 +18,7 @@ from src.prospecting.models import (
     ProspectUploadBatch,
     ProspectNote,
     ProspectOverallStatus,
+    VALID_NEXT_LINKEDIN_STATUSES
 )
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get

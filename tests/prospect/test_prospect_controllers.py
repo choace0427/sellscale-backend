@@ -435,21 +435,6 @@ def test_get_prospect_details():
         == "This prospect does not belong to you"
     )
 
-    response = app.test_client().get(
-        "prospect/get_valid_next_prospect_statuses?prospect_id={prospect_id}&channel_type=LINKEDIN".format(
-            prospect_id=prospect_id
-        ),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "Bearer {}".format(get_login_token()),
-        },
-    )
-    assert response.status_code == 200
-    assert response.json == {
-        "NOT_QUALIFIED": "Not Qualified",
-        "SENT_OUTREACH": "Sent Outreach",
-    }
-
 
 @use_app_context
 def test_get_valid_channel_types():
@@ -515,3 +500,74 @@ def test_get_valid_channel_types():
             {"label": "Email", "value": "EMAIL"},
         ]
     }
+
+
+@use_app_context
+def test_get_valid_next_prospect_statuses_endpoint():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    prospect_id = prospect.id
+
+    # LinkedIn
+    linkedin_response = app.test_client().get(
+        f"prospect/{prospect_id}/get_valid_next_statuses?channel_type=LINKEDIN",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    assert linkedin_response.status_code == 200
+    assert len(linkedin_response.json["valid_next_statuses"]) == 2
+    assert linkedin_response.json["valid_next_statuses"][ProspectStatus.SENT_OUTREACH.value] is not None
+    assert linkedin_response.json["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
+    assert len(linkedin_response.json["all_statuses"]) == 11
+
+    # Another LinkedIn
+    prospect.status = ProspectStatus.ACCEPTED
+    linkedin_another_response = app.test_client().get(
+        f"prospect/{prospect_id}/get_valid_next_statuses?channel_type=LINKEDIN",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    assert linkedin_another_response.status_code == 200
+    assert len(linkedin_another_response.json["valid_next_statuses"]) == 3
+    assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.RESPONDED.value] is not None
+    assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.ACTIVE_CONVO.value] is not None
+    assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
+    assert len(linkedin_another_response.json["all_statuses"]) == 11
+
+    # Email
+    prospect_email = basic_prospect_email(prospect)
+    prospect.approved_prospect_email_id = prospect_email.id
+    email_response = app.test_client().get(
+        f"prospect/{prospect_id}/get_valid_next_statuses?channel_type=EMAIL",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    assert email_response.status_code == 200
+    assert len(email_response.json["valid_next_statuses"]) == 2
+    assert email_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.SENT_OUTREACH.value] is not None
+    assert email_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.NOT_SENT.value] is not None
+    assert len(email_response.json["all_statuses"]) == 11
+
+    # Another Email
+    prospect_email.outreach_status = ProspectEmailOutreachStatus.ACTIVE_CONVO
+    email_another_response = app.test_client().get(
+        f"prospect/{prospect_id}/get_valid_next_statuses?channel_type=EMAIL",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    assert email_another_response.status_code == 200
+    assert len(email_another_response.json["valid_next_statuses"]) == 2
+    print(email_another_response.json["valid_next_statuses"])
+    assert email_another_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.SCHEDULING.value] is not None
+    assert email_another_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.NOT_INTERESTED.value] is not None
+    assert len(email_another_response.json["all_statuses"]) == 11

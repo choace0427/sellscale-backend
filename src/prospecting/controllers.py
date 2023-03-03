@@ -103,6 +103,30 @@ def update_status(client_sdr_id: int, prospect_id: int):
             return jsonify({'message': "Failed to update: " + success[1]}), 400
 
 
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/get_valid_next_statuses", methods=["GET"])
+@require_user
+def get_valid_next_statuses_endpoint(client_sdr_id: int, prospect_id: int):
+    try:
+        channel_type = get_request_parameter(
+            "channel_type", request, json=False, required=True, parameter_type=str
+        )
+    except Exception as e:
+        return e.args[0], 400
+
+    prospect_id = prospect_id
+    prospect = Prospect.query.filter(Prospect.client_sdr_id == client_sdr_id).first()
+    if not prospect:
+        return "Prospect not found", 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return "Prospect does not belong to user", 403
+
+    statuses = get_valid_next_prospect_statuses(
+        prospect_id=prospect_id, channel_type=channel_type
+    )
+
+    return jsonify(statuses)
+
+
 @PROSPECTING_BLUEPRINT.route("/search", methods=["GET"])
 def search_prospects_endpoint():
     """Search for prospects
@@ -475,20 +499,6 @@ def post_batch_mark_as_lead():
     if success:
         return "OK", 200
     return "Failed to mark as lead", 400
-
-
-@PROSPECTING_BLUEPRINT.route("/get_valid_next_prospect_statuses", methods=["GET"])
-def get_valid_next_prospect_statuses_endpoint():
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=False, required=True
-    )
-    channel_type = get_request_parameter(
-        "channel_type", request, json=False, required=True
-    )
-    statuses = get_valid_next_prospect_statuses(
-        prospect_id=prospect_id, channel_type=channel_type
-    )
-    return jsonify(statuses)
 
 
 @PROSPECTING_BLUEPRINT.route("/get_valid_channel_types", methods=["GET"])

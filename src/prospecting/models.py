@@ -263,6 +263,18 @@ class ProspectStatus(enum.Enum):
             },
         }
 
+    def valid_next_statuses(current_status) -> dict:
+        """Returns a dictionary of valid next statuses, given a ProspectStatus.
+
+        Contains information found in status_descriptions().
+        """
+        next_status_descriptions = {}
+        all_status_descriptions = ProspectStatus.status_descriptions()
+        for status in VALID_NEXT_LINKEDIN_STATUSES.get(current_status, []):
+            next_status_descriptions[status.value] = all_status_descriptions.get(status.value, {})
+
+        return next_status_descriptions
+
 
 class Prospect(db.Model):
     __tablename__ = "prospect"
@@ -499,3 +511,51 @@ class ProspectUploads(db.Model):
     status = db.Column(db.Enum(ProspectUploadsStatus), nullable=False)
     error_type = db.Column(db.Enum(ProspectUploadsErrorType), nullable=True)
     iscraper_error_message = db.Column(db.String, nullable=True)
+
+
+VALID_NEXT_LINKEDIN_STATUSES = {
+    ProspectStatus.PROSPECTED: [
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.SENT_OUTREACH,
+    ],
+    ProspectStatus.SENT_OUTREACH: [
+        ProspectStatus.ACCEPTED,
+        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.ACCEPTED: [
+        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.RESPONDED: [
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.DEMO_SET,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.ACTIVE_CONVO: [
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.SCHEDULING: [
+        ProspectStatus.DEMO_SET,
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.DEMO_SET: [
+        ProspectStatus.DEMO_WON,
+        ProspectStatus.DEMO_LOSS,
+    ],
+    ProspectStatus.NOT_INTERESTED: [
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.DEMO_SET,
+        ProspectStatus.NOT_QUALIFIED,
+    ],
+    ProspectStatus.NOT_QUALIFIED: [],
+    ProspectStatus.DEMO_WON: [],
+    ProspectStatus.DEMO_LOSS: [],
+}
