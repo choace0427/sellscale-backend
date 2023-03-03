@@ -271,7 +271,9 @@ class ProspectStatus(enum.Enum):
         next_status_descriptions = {}
         all_status_descriptions = ProspectStatus.status_descriptions()
         for status in VALID_NEXT_LINKEDIN_STATUSES.get(current_status, []):
-            next_status_descriptions[status.value] = all_status_descriptions.get(status.value, {})
+            next_status_descriptions[status.value] = all_status_descriptions.get(
+                status.value, {}
+            )
 
         return next_status_descriptions
 
@@ -557,5 +559,5 @@ VALID_NEXT_LINKEDIN_STATUSES = {
     ],
     ProspectStatus.NOT_QUALIFIED: [],
     ProspectStatus.DEMO_WON: [],
-    ProspectStatus.DEMO_LOSS: [],
+    ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_WON],
 }
