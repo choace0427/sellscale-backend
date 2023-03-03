@@ -120,4 +120,5 @@ def test_clean_company_name():
     assert clean_company_name("ATI | Advanced Technology International") == "ATI"
     assert clean_company_name("| GrayMatter |") == "GrayMatter"
     assert clean_company_name("Sphere (by holo|one)") == "Sphere"
-    
+    assert clean_company_name("Sphere/Circle") == "Sphere"
+    assert clean_company_name("Sphere / Circle") == "Sphere"

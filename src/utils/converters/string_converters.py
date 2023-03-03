@@ -155,6 +155,8 @@ def clean_company_name(name: str) -> str:
         elif name[index] in delimiting_symbols:
             if name[index - 1] == ' ':
                 name = name[:index]
+            elif name[index] == '/':  # '/' is a special case
+                name = name[:index]
 
     for symbol in delimiting_symbols:
         name = name.strip(symbol)
