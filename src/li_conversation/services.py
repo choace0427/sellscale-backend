@@ -7,6 +7,7 @@ from src.utils.slack import URL_MAP
 from src.utils.slack import send_slack_message
 from datetime import datetime
 from tqdm import tqdm
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 
 
 def update_linkedin_conversation_entries():
@@ -175,4 +176,35 @@ def run_next_client_sdr_scrape():
 
 
 def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
-    pass
+    query = """
+        with d as (
+            select 
+                *
+            from linkedin_conversation_entry 
+            where conversation_url = '{conversation_url}'
+            order by date desc
+            limit 10
+        )
+        select string_agg(
+                concat(author, ': ', trim(message))
+                ,'\n\n'
+                order by date
+            )
+        from d;
+    """.format(
+        conversation_url=conversation_url
+    )
+    data = db.session.execute(query).fetchall()
+    transcript = data[0][0]
+
+    response = wrapped_chat_gpt_completion(
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant helping the user write their next reply in a message thread. Keep responses friendly and concise.",
+            },
+            {"role": "user", "content": transcript},
+        ],
+        max_tokens=200,
+    )
+    return response

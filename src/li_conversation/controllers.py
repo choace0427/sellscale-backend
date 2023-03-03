@@ -7,7 +7,10 @@ from model_import import ClientSDR
 from src.li_conversation.services import (
     update_linkedin_conversation_entries,
     update_li_conversation_extractor_phantom,
+    generate_chat_gpt_response_to_conversation_thread,
 )
+from src.utils.request_helpers import get_request_parameter
+
 
 LI_CONVERSATION_SCRAPE_INTERVAL = 2
 LI_CONVERASTION_BLUEPRINT = Blueprint("li_conversation", __name__)
@@ -49,3 +52,21 @@ def post_client_sdr_li_conversation_arguments(client_sdr_id):
     message, status_code = update_li_conversation_extractor_phantom(client_sdr_id)
 
     return message, status_code
+
+
+@LI_CONVERASTION_BLUEPRINT.route("/prospect/generate_response", methods=["POST"])
+def get_prospect_li_conversation():
+    """Returns a prospect's LinkedIn conversation data."""
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    conversation_url = prospect.li_conversation_thread_id
+    if not conversation_url:
+        return "No conversation thread found.", 404
+
+    response = generate_chat_gpt_response_to_conversation_thread(conversation_url)
+    if response:
+        return jsonify({"message": response}), 200
+    else:
+        return "No conversation thread found.", 404
