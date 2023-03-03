@@ -18,7 +18,7 @@ from src.prospecting.models import (
     ProspectUploadBatch,
     ProspectNote,
     ProspectOverallStatus,
-    VALID_NEXT_LINKEDIN_STATUSES
+    VALID_NEXT_LINKEDIN_STATUSES,
 )
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
@@ -376,7 +376,7 @@ def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list)
             and success
         )
 
-    return success
+    return success, "Success"
 
 
 def update_prospect_status_linkedin_helper(
