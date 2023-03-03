@@ -217,9 +217,6 @@ def wizard_of_oz_send_li_message(new_message: str, client_sdr: int, prospect_id:
     prospect_name: str = prospect.full_name
     prospect_id: str = str(prospect.id)
     conversation_url = prospect.li_conversation_thread_id
-    import pdb
-
-    pdb.set_trace()
 
     send_slack_message(
         message="🤖 Manually send a message to {prospect_name} (#{prospect_id})\n*message:*\n{message}\n\n<a href='{link}'>Link -></a>".format(
