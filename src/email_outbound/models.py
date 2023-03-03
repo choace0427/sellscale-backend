@@ -137,7 +137,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
                 "name": "Opened Email",
                 "description": "Email has been opened by this Prospect.",
                 "enum_val": ProspectEmailOutreachStatus.EMAIL_OPENED.value,
-                "sellscale_enum_val": ProspectOverallStatus.ACCEPTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.BUMPED.value,
             },
             ProspectEmailOutreachStatus.ACCEPTED.value: {
                 "name": "Accepted",
