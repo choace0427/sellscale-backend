@@ -172,3 +172,7 @@ def run_next_client_sdr_scrape():
             ),
             webhook_urls=[URL_MAP["eng-sandbox"]],
         )
+
+
+def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
+    pass
