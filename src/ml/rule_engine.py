@@ -122,6 +122,7 @@ def run_message_rule_engine(message_id: int):
     rule_catch_has_6_or_more_consecutive_upper_case(
         case_preserved_completion, prompt, problems, highlighted_words
     )
+    rule_no_ampersand(completion, problems, highlighted_words)
 
     if " me " in completion:
         problems.append("Contains 'me'.")
@@ -378,6 +379,41 @@ def rule_catch_strange_titles(
     if title_section == "":  # No title, no problem
         return
 
+    # Abbreviations are permissable
+    roles = {
+        "chief executive officer": "ceo",
+        "chief financial officer": "cfo",
+        "chief technology officer": "cto",
+        "chief marketing officer": "cmo",
+        "chief operating officer": "coo",
+        "chief information officer": "cio",
+        "chief technical officer": "cto",
+        "chief data officer": "cdo",
+        "chief product officer": "cpo",
+        "chief revenue officer": "cro",
+        "chief security officer": "cso",
+        "chief legal officer": "clo",
+        "chief analytics officer": "cao",
+        "chief compliance officer": "cco",
+        "chief human resources officer": "chro",
+        "chief information security officer": "ciso",
+        "chief quality officer": "cqo",
+        "chief visionary officer": "cvo",
+        "chief business officer": "cbo",
+        "chief creative officer": "cco",
+        "chief investment officer": "cio",
+        "chief medical officer": "cmo",
+    }
+    lower_title = title_section.lower()
+    if "chief" in lower_title and "officer" in lower_title:
+        chief_index = lower_title.find("chief")
+        officer_index = lower_title.find("officer")
+        if chief_index < officer_index:
+            title = title_section[chief_index:officer_index+1]
+            if title in roles:
+                if roles[title] in completion.lower():
+                    return
+
     splitted_title_section = title_section.split(" ")
     if len(splitted_title_section) >= 4:
         first_words = splitted_title_section[:4]  # Get the first 4 words
@@ -502,3 +538,17 @@ def rule_catch_has_6_or_more_consecutive_upper_case(
             "Contains a long, uppercase word. Verify that names are capitalized correctly."
         )
         highlighted_words.append(long_str)
+
+
+def rule_no_ampersand(completion: str, problems: list, highlighted_words: list):
+    """Rule: No Ampersand
+
+    As a general rule of thumb, an Ampersand (&) is most likely not used by a human writer.
+
+    In the case where an Ampersand appears, it should be double checked. Company names with ampersands are rare and warrant review.
+    """
+    if "&" in completion:
+        problems.append(
+            "Contains an ampersand (&). Please double check that this is correct."
+        )
+        highlighted_words.append("&")

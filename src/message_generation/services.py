@@ -31,7 +31,7 @@ from ..ml.fine_tuned_models import (
     get_few_shot_baseline_prompt,
 )
 from src.email_outbound.services import create_prospect_email
-from src.message_generation.ner_exceptions import ner_exceptions
+from src.message_generation.ner_exceptions import ner_exceptions, title_abbreviations
 from ..utils.abstract.attr_utils import deep_get
 import random
 from app import db, celery
@@ -1123,6 +1123,11 @@ def run_check_message_has_bad_entities(message_id: int):
         for exception in ner_exceptions:
             if exception in entity:
                 entity = entity.replace(exception, "").strip()
+
+        if entity.lower() in title_abbreviations: # Abbreviated titles are OK
+            full_title = title_abbreviations[entity.lower()]
+            if full_title in prompt.lower():
+                continue
 
         sanitized_entity = re.sub(
             "[^0-9a-zA-Z]+",

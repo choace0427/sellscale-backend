@@ -932,6 +932,37 @@ def test_run_check_message_has_bad_entities_with_ner_cta(get_named_entities_patc
 
 @use_app_context
 @mock.patch(
+    "src.message_generation.services.get_named_entities",
+    return_value=["CEO"],
+)
+def test_run_check_message_has_bad_entities_with_ner_cta(get_named_entities_patch):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+    generated_message.completion = "Hey Jim, love what you're doing as CEO."
+    generated_message.prompt = "Chief Executive Officer"
+    generated_message_cta = basic_generated_message_cta_with_text(
+        archetype, "Marla is here."
+    )
+    generated_message.message_cta = generated_message_cta.id
+    db.session.add(generated_message)
+    db.session.add(generated_message_cta)
+    db.session.commit()
+
+    assert generated_message.unknown_named_entities == None
+    x, entities = run_check_message_has_bad_entities(generated_message.id)
+    assert x == False
+    assert len(entities) == 0
+
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    assert gm.unknown_named_entities == []
+
+
+@use_app_context
+@mock.patch(
     "openai.Completion.create",
     return_value={"choices": [{"text": "\n\nSellscale // David"}]},
 )
