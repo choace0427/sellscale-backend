@@ -215,17 +215,19 @@ def wizard_of_oz_send_li_message(
     new_message: str, client_sdr_id: int, prospect_id: int
 ):
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client_sdr_name = client_sdr.name
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
     prospect_name: str = prospect.full_name
     prospect_id: str = str(prospect.id)
     conversation_url = prospect.li_conversation_thread_id
 
     send_slack_message(
-        message="🤖 Manually send a message to {prospect_name} (#{prospect_id})\n*message:*\n{message}\n\nLI Link: {link}>Link -></a>".format(
+        message="🤖 Manually send a message to {prospect_name} (#{prospect_id}) out of *{client_sdr_name}'s inbox.\n*message:*\n{message}\n\nLI Link: {link}\n".format(
             prospect_name=prospect_name,
             prospect_id=prospect_id,
             message=new_message,
             link=conversation_url,
+            client_sdr_name=client_sdr_name,
         ),
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
