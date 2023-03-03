@@ -24,6 +24,7 @@ from src.ml.rule_engine import (
     rule_catch_strange_titles,
     rule_no_hard_years,
     rule_catch_im_a,
+    rule_no_ampersand,
 )
 from model_import import GeneratedMessage, GeneratedMessageType
 
@@ -440,6 +441,32 @@ def test_rule_catch_strange_titles():
     ]
     assert highlighted_words == ["Software @@ Engineering"]
 
+    # Some Chief (x) Officer titles are too long
+    problems = []
+    highlighted_words = []
+    rule_catch_strange_titles(
+        "Hi David, you're killing it as the Chief Information Security Officer",
+        "David Wei<>title: Chief Information Security Officer",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
+    ]
+    assert highlighted_words == ["Chief Information Security Officer"]
+
+    # Abbreviations of Chief (x) Officer is allowed
+    problems = []
+    highlighted_words = []
+    rule_catch_strange_titles(
+        "Hi David, you're killing it as the CISO",
+        "David Wei<>title: Chief Information Security Officer",
+        problems,
+        highlighted_words,
+    )
+    assert problems == []
+    assert highlighted_words == []
+
 
 @use_app_context
 def test_rule_no_hard_years():
@@ -530,3 +557,22 @@ def test_rule_no_im_a():
     )
     assert problems == []
     assert highlighted_words == []
+
+
+@use_app_context
+def test_rule_no_ampersand():
+    problems = []
+    highlighted_words = []
+    rule_no_ampersand("pass", problems, highlighted_words)
+    assert problems == []
+    assert highlighted_words == []
+
+    rule_no_ampersand("I'm a & recruiter", problems, highlighted_words)
+    assert problems == ["Contains an ampersand (&). Please double check that this is correct."]
+    assert highlighted_words == ["&"]
+
+    problems = []
+    highlighted_words = []
+    rule_no_ampersand("McKinsey & Company", problems, highlighted_words)
+    assert problems == ["Contains an ampersand (&). Please double check that this is correct."]
+    assert highlighted_words == ["&"]
