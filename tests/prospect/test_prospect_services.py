@@ -67,9 +67,7 @@ def test_get_prospects():
     prospect_2 = basic_prospect(c, a, c_sdr, full_name="adam", company="SellScale")
     prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
 
-    order_1 = [
-        {"field": "full_name", "direction": 1}  # 1 = ascending, -1 = descending
-    ]
+    order_1 = [{"field": "full_name", "direction": 1}]  # 1 = ascending, -1 = descending
     returned = get_prospects(c_sdr.id, limit=10, offset=0, ordering=order_1)
     assert returned.get("total_count") == 3
     prospects = returned.get("prospects")
@@ -137,26 +135,34 @@ def test_get_prospects():
 
     # Test filtering by overall status
     prospect_7 = basic_prospect(
-        c, a, c_sdr, full_name="jim", company="Datadog", overall_status=ProspectOverallStatus.DEMO
+        c,
+        a,
+        c_sdr,
+        full_name="jim",
+        company="Datadog",
+        overall_status=ProspectOverallStatus.DEMO,
     )
-    returned = get_prospects(c_sdr.id, channel="SELLSCALE", status=["DEMO"], limit=10, offset=0)
+    returned = get_prospects(
+        c_sdr.id, channel="SELLSCALE", status=["DEMO"], limit=10, offset=0
+    )
     assert returned.get("total_count") == 1
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "jim"
     assert prospects[0].company == "Datadog"
 
     # Test filtering by email
-    prospect_8 = basic_prospect(
-        c, a, c_sdr, full_name="dave", company="scalingsell"
-    )
+    prospect_8 = basic_prospect(c, a, c_sdr, full_name="dave", company="scalingsell")
     prospect_8_email = basic_prospect_email(
         prospect_8, outreach_status=ProspectEmailOutreachStatus.EMAIL_OPENED
     )
-    returned = get_prospects(c_sdr.id, channel="EMAIL", status=["EMAIL_OPENED"], limit=10, offset=0)
+    returned = get_prospects(
+        c_sdr.id, channel="EMAIL", status=["EMAIL_OPENED"], limit=10, offset=0
+    )
     assert returned.get("total_count") == 1
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "dave"
     assert prospects[0].company == "scalingsell"
+
 
 @use_app_context
 def test_update_prospect_status_with_note():
@@ -227,13 +233,14 @@ def test_update_prospect_status_active_convo_disable_ai():
     prospect0.status = ProspectStatus.RESPONDED
     db.session.add(prospect0)
     db.session.commit()
+    prospect0_id = prospect0.id
 
     update_prospect_status_linkedin(
-        prospect_id=prospect0.id,
+        prospect_id=prospect0_id,
         new_status=ProspectStatus.ACTIVE_CONVO,
         note="testing",
     )
-    prospect = Prospect.query.get(prospect0.id)
+    prospect = Prospect.query.get(prospect0_id)
     assert prospect is not None
     assert prospect.deactivate_ai_engagement == None
 
@@ -261,13 +268,14 @@ def test_update_prospect_status_active_convo_disable_ai():
     prospect1.status = ProspectStatus.RESPONDED
     db.session.add(prospect1)
     db.session.commit()
+    prospect1_id = prospect1.id
 
     update_prospect_status_linkedin(
-        prospect_id=prospect1.id,
+        prospect_id=prospect1_id,
         new_status=ProspectStatus.ACTIVE_CONVO,
         note="testing",
     )
-    prospect = Prospect.query.get(prospect1.id)
+    prospect = Prospect.query.get(prospect1_id)
     assert prospect is not None
     assert prospect.deactivate_ai_engagement == True
 
@@ -680,8 +688,8 @@ def test_reengage_accepted_prospected():
         data=json.dumps({"prospect_id": prospect_id}),
     )
     assert response.status_code == 200
-    assert Prospect.query.get(prospect.id) is not None
-    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert Prospect.query.get(prospect_id) is not None
+    prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.status == ProspectStatus.RESPONDED
     assert prospect.last_reviewed is not None
     assert prospect.times_bumped == 1
@@ -692,8 +700,8 @@ def test_reengage_accepted_prospected():
         data=json.dumps({"prospect_id": prospect_id}),
     )
     assert response.status_code == 200
-    assert Prospect.query.get(prospect.id) is not None
-    prospect: Prospect = Prospect.query.get(prospect.id)
+    assert Prospect.query.get(prospect_id) is not None
+    prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.times_bumped == 2
 
 
@@ -827,10 +835,17 @@ def test_update_prospect_status_email():
     assert prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
-    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.first()
+    prospect_email_status_record: ProspectEmailStatusRecords = (
+        ProspectEmailStatusRecords.query.first()
+    )
     assert prospect_email_status_record.prospect_email_id == prospect_email_id
-    assert prospect_email_status_record.from_status == ProspectEmailOutreachStatus.UNKNOWN
-    assert prospect_email_status_record.to_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+    assert (
+        prospect_email_status_record.from_status == ProspectEmailOutreachStatus.UNKNOWN
+    )
+    assert (
+        prospect_email_status_record.to_status
+        == ProspectEmailOutreachStatus.SENT_OUTREACH
+    )
 
     # No override fail
     update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.DEMO_SET)
@@ -838,21 +853,44 @@ def test_update_prospect_status_email():
     assert prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
-    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.filter_by(prospect_email_id=prospect_email_id).all()
+    prospect_email_status_record: ProspectEmailStatusRecords = (
+        ProspectEmailStatusRecords.query.filter_by(
+            prospect_email_id=prospect_email_id
+        ).all()
+    )
     assert len(prospect_email_status_record) == 1
 
     # Override
-    update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.DEMO_SET, override_status=True)
+    update_prospect_status_email(
+        prospect_id, ProspectEmailOutreachStatus.DEMO_SET, override_status=True
+    )
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     assert prospect_email.outreach_status == ProspectEmailOutreachStatus.DEMO_SET
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.overall_status == ProspectOverallStatus.DEMO
-    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.first()
+    prospect_email_status_record: ProspectEmailStatusRecords = (
+        ProspectEmailStatusRecords.query.first()
+    )
     assert prospect_email_status_record.prospect_email_id == prospect_email_id
-    assert prospect_email_status_record.from_status == ProspectEmailOutreachStatus.UNKNOWN
-    assert prospect_email_status_record.to_status == ProspectEmailOutreachStatus.SENT_OUTREACH
-    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords.query.filter_by(prospect_email_id=prospect_email_id).all()
+    assert (
+        prospect_email_status_record.from_status == ProspectEmailOutreachStatus.UNKNOWN
+    )
+    assert (
+        prospect_email_status_record.to_status
+        == ProspectEmailOutreachStatus.SENT_OUTREACH
+    )
+    prospect_email_status_record: ProspectEmailStatusRecords = (
+        ProspectEmailStatusRecords.query.filter_by(
+            prospect_email_id=prospect_email_id
+        ).all()
+    )
     assert len(prospect_email_status_record) == 2
     assert prospect_email_status_record[1].prospect_email_id == prospect_email_id
-    assert prospect_email_status_record[1].from_status == ProspectEmailOutreachStatus.SENT_OUTREACH
-    assert prospect_email_status_record[1].to_status == ProspectEmailOutreachStatus.DEMO_SET
+    assert (
+        prospect_email_status_record[1].from_status
+        == ProspectEmailOutreachStatus.SENT_OUTREACH
+    )
+    assert (
+        prospect_email_status_record[1].to_status
+        == ProspectEmailOutreachStatus.DEMO_SET
+    )
