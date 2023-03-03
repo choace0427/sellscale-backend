@@ -211,15 +211,17 @@ def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
     return response
 
 
-def wizard_of_oz_send_li_message(new_message: str, client_sdr: int, prospect_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr).first()
+def wizard_of_oz_send_li_message(
+    new_message: str, client_sdr_id: int, prospect_id: int
+):
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
     prospect_name: str = prospect.full_name
     prospect_id: str = str(prospect.id)
     conversation_url = prospect.li_conversation_thread_id
 
     send_slack_message(
-        message="🤖 Manually send a message to {prospect_name} (#{prospect_id})\n*message:*\n{message}\n\n<a href='{link}'>Link -></a>".format(
+        message="🤖 Manually send a message to {prospect_name} (#{prospect_id})\n*message:*\n{message}\n\nLI Link: {link}>Link -></a>".format(
             prospect_name=prospect_name,
             prospect_id=prospect_id,
             message=new_message,

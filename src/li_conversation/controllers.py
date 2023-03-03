@@ -10,7 +10,8 @@ from src.li_conversation.services import (
     generate_chat_gpt_response_to_conversation_thread,
 )
 from src.utils.request_helpers import get_request_parameter
-
+from src.authentication.decorators import require_user
+from src.li_conversation.services import wizard_of_oz_send_li_message
 
 LI_CONVERSATION_SCRAPE_INTERVAL = 2
 LI_CONVERASTION_BLUEPRINT = Blueprint("li_conversation", __name__)
@@ -70,3 +71,20 @@ def get_prospect_li_conversation():
         return jsonify({"message": response}), 200
     else:
         return "No conversation thread found.", 404
+
+
+@LI_CONVERASTION_BLUEPRINT.route("/prospect/send_woz_message", methods=["POST"])
+@require_user
+def post_prospect_li_conversation_woz(client_sdr_id: int):
+    new_message = get_request_parameter(
+        "new_message", request, json=True, required=True
+    )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+
+    message = wizard_of_oz_send_li_message(
+        new_message=new_message, prospect_id=prospect_id, client_sdr_id=client_sdr_id
+    )
+
+    return jsonify({"message": message})
