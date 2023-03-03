@@ -71,7 +71,8 @@ class SalesEngagementIntegration:
         if self.client_id == 8:  # only for Curative / Salesloft users
             return {"custom_fields": personalization_dict}
 
-        return personalization_dict
+        if self.client_id == 9:  # only for AdQuick / Outreach users
+            return {"attributes": personalization_dict}
 
     def create_contact(self, first_name, last_name, job_title, emails, additional={}):
         """
@@ -155,7 +156,7 @@ class SalesEngagementIntegration:
         else:
             contact_id = contact["id"]
             contact = self.update_sellscale_personalization(
-                contact_id, personalized_message, personalization_field_name
+                contact_id, personalized_message
             )
         prospect.vessel_contact_id = contact["id"]
         db.session.add(prospect)
