@@ -229,5 +229,5 @@ def wizard_of_oz_send_li_message(
             link=conversation_url,
             client_sdr_name=client_sdr_name,
         ),
-        webhook_urls=[URL_MAP["eng-sandbox"]],
+        webhook_urls=[URL_MAP["operations-csm-mailman"]],
     )
