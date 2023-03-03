@@ -1153,6 +1153,7 @@ def map_prospect_email_status_to_prospect_overall_status(
     return None
 
 
+@celery.task
 def calculate_prospect_overall_status(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
