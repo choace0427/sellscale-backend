@@ -361,8 +361,6 @@ def update_prospect_status_linkedin(
     except Exception as err:
         return False, err.message if hasattr(err, "message") else err
 
-    calculate_prospect_overall_status(prospect_id)
-
     return True, "Success"
 
 
@@ -375,6 +373,8 @@ def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list)
             )
             and success
         )
+
+    calculate_prospect_overall_status(prospect_id)
 
     return success, "Success"
 
