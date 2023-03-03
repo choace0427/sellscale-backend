@@ -8,6 +8,7 @@ from src.utils.slack import send_slack_message
 from datetime import datetime
 from tqdm import tqdm
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.utils.slack import send_slack_message
 
 
 def update_linkedin_conversation_entries():
@@ -208,3 +209,24 @@ def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
         max_tokens=200,
     )
     return response
+
+
+def wizard_of_oz_send_li_message(new_message: str, client_sdr: int, prospect_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr).first()
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    prospect_name: str = prospect.full_name
+    prospect_id: str = str(prospect.id)
+    conversation_url = prospect.li_conversation_thread_id
+    import pdb
+
+    pdb.set_trace()
+
+    send_slack_message(
+        message="🤖 Manually send a message to {prospect_name} (#{prospect_id})\n*message:*\n{message}\n\n<a href='{link}'>Link -></a>".format(
+            prospect_name=prospect_name,
+            prospect_id=prospect_id,
+            message=new_message,
+            link=conversation_url,
+        ),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
