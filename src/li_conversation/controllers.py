@@ -66,9 +66,11 @@ def get_prospect_li_conversation():
     if not conversation_url:
         return "No conversation thread found.", 404
 
-    response = generate_chat_gpt_response_to_conversation_thread(conversation_url)
+    response, prompt = generate_chat_gpt_response_to_conversation_thread(
+        conversation_url
+    )
     if response:
-        return jsonify({"message": response}), 200
+        return jsonify({"message": response, "prompt": prompt}), 200
     else:
         return "No conversation thread found.", 404
 

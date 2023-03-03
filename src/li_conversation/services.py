@@ -190,25 +190,30 @@ def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
                 concat(author, ': ', trim(message))
                 ,'\n\n'
                 order by date
-            )
+            ),
+            max(author) filter (where connection_degree = 'You') sender
         from d;
     """.format(
         conversation_url=conversation_url
     )
     data = db.session.execute(query).fetchall()
     transcript = data[0][0]
+    sender = data[0][1]
+    content = transcript + "\n\n" + sender + ":"
 
     response = wrapped_chat_gpt_completion(
         [
             {
                 "role": "system",
-                "content": "You are a helpful assistant helping the user write their next reply in a message thread. Keep responses friendly and concise. Write from the perspective of the first sender.",
+                "content": "You are a helpful assistant helping the user write their next reply in a message thread. Keep responses friendly and concise. Write from the perspective of "
+                + sender
+                + ".",
             },
-            {"role": "user", "content": transcript},
+            {"role": "user", "content": content},
         ],
         max_tokens=200,
     )
-    return response
+    return response, content
 
 
 def wizard_of_oz_send_li_message(
