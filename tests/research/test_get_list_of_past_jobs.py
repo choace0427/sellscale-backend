@@ -6,7 +6,7 @@ from src.research.linkedin.extractors.experience import get_list_of_past_jobs
 
 @use_app_context
 def test_get_list_of_past_jobs():
-    info_with_no_past_jobs = {
+    info_with_one_eligible_past_job = {
         "personal": {
             "position_groups": [
                 {
@@ -25,12 +25,31 @@ def test_get_list_of_past_jobs():
                         "start": {"month": 1, "year": 2018},
                         "end": {"month": 1, "year": 2020}
                     }
+                },
+                {
+                    "company": {
+                        "name": "Ogilec",
+                    },
+                    "date": {
+                        "start": {"month": 1, "year": 2016},
+                        "end": {"month": 1, "year": 2018}
+                    }
+                },
+                {
+                    "company": {
+                        "name": "Ogilec Corporation",
+                    },
+                    "date": {
+                        "start": {"month": 1, "year": 2014},
+                        "end": {"month": 1, "year": 2016}
+                    }
                 }
             ],
         },
     }
-    data = get_list_of_past_jobs(info_with_no_past_jobs)
-    assert data == {}
+    positions = get_list_of_past_jobs(info_with_one_eligible_past_job).get('raw_data').get('positions')
+    assert len(positions) == 1
+    assert positions[0] == 'Ogilec'
 
     info_with_jobs = {
         "personal": {

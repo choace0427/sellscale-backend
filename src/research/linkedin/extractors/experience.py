@@ -208,8 +208,8 @@ def get_list_of_past_jobs(data):
         end_date_year = deep_get(position, "date.end.year")
         end_date_month = deep_get(position, "date.end.month") or 1
 
-        # If company name exists in current_positions set (currently working there), skip
-        if company_name in current_positions:
+        # If company name exists in current_positions set (currently working there) or past_positions (duplicate), skip
+        if company_name in current_positions or company_name in past_positions:
             continue
 
         # If no start date (undefined), skip
