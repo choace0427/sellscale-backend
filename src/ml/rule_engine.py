@@ -338,7 +338,7 @@ def rule_no_companies(completion: str, problems: list, highlighted_words: list):
     """
     with open(company_suffix_csv_path, newline="") as f:
         reader = csv.reader(f)
-        company_suffixes = set([row[0].lower() for row in reader])
+        company_suffixes = set([row[0] for row in reader])
 
     detected_abbreviations = []
     for word in completion.split():
@@ -347,7 +347,7 @@ def rule_no_companies(completion: str, problems: list, highlighted_words: list):
             "",
             word,
         ).strip()
-        if stripped_word.lower() in company_suffixes:
+        if stripped_word in company_suffixes:
             highlighted_words.append(stripped_word)
             detected_abbreviations.append(stripped_word)
 

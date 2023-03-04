@@ -388,7 +388,7 @@ def test_rule_no_companies():
     problems = []
     highlighted_words = []
     rule_no_companies(
-        "This is SellScale Limited Company",
+        "This is SellScale Limited Company and this is technology pharmaceutical.",
         problems,
         highlighted_words,
     )
