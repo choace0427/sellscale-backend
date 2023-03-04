@@ -15,7 +15,7 @@ ADVERSARIAL_MODEL = "curie:ft-personal-2022-10-27-20-07-22"
 profanity_csv_path = r"src/../datasets/profanity.csv"
 web_blacklist_path = r"src/../datasets/web_blacklist.csv"
 dr_positions_path = r"src/../datasets/dr_positions.csv"
-company_abbrev_csv_path = r"src/../datasets/company_abbreviations.csv"
+company_suffix_csv_path = r"src/../datasets/company_suffixes.csv"
 
 
 def get_adversarial_ai_approval(prompt):
@@ -336,9 +336,9 @@ def rule_no_companies(completion: str, problems: list, highlighted_words: list):
 
     No company abbreviations allowed in the completion. ie 'LLC', 'Inc.'
     """
-    with open(company_abbrev_csv_path, newline="") as f:
+    with open(company_suffix_csv_path, newline="") as f:
         reader = csv.reader(f)
-        company_abbreviations = set([row[0] for row in reader])
+        company_suffixes = set([row[0].lower() for row in reader])
 
     detected_abbreviations = []
     for word in completion.split():
@@ -347,7 +347,8 @@ def rule_no_companies(completion: str, problems: list, highlighted_words: list):
             "",
             word,
         ).strip()
-        if stripped_word in company_abbreviations:
+        if stripped_word.lower() in company_suffixes:
+            highlighted_words.append(stripped_word)
             detected_abbreviations.append(stripped_word)
 
     if len(detected_abbreviations) > 0:

@@ -361,6 +361,7 @@ def test_rule_no_companies():
     highlighted_words = []
     rule_no_companies("pass", problems, highlighted_words)
     assert problems == []
+    assert highlighted_words == []
 
     rule_no_companies(
         "This is a message with a an abbreviation: Something inc",
@@ -370,8 +371,10 @@ def test_rule_no_companies():
     assert problems == [
         "Contains overly-formal company name: 'inc'. Remove if possible."
     ]
+    assert highlighted_words == ["inc"]
 
     problems = []
+    highlighted_words = []
     rule_no_companies(
         "This is a message with a an abbreviation: Something inc. and another one: Something else ltd.",
         problems,
@@ -380,6 +383,19 @@ def test_rule_no_companies():
     assert problems == [
         "Contains overly-formal company name: 'inc, ltd'. Remove if possible."
     ]
+    assert highlighted_words == ["inc", "ltd"]
+
+    problems = []
+    highlighted_words = []
+    rule_no_companies(
+        "This is SellScale Limited Company",
+        problems,
+        highlighted_words,
+    )
+    assert problems == [
+        "Contains overly-formal company name: 'Limited, Company'. Remove if possible."
+    ]
+    assert highlighted_words == ["Limited", "Company"]
 
 
 @use_app_context

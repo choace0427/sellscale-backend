@@ -2,9 +2,13 @@ from enum import Enum
 from typing import Any
 from cleanco import basename
 import re
+import csv
 
 from src.utils.converters.base_converter import BaseConverter
 from src.utils.jinja.utils import render_jinja
+
+company_suffix_csv_path = r"src/../datasets/company_suffixes.csv"
+
 
 _CASING_KEY = "casing"
 _FMT_KEY = "jinja"
@@ -158,8 +162,22 @@ def clean_company_name(name: str) -> str:
             elif name[index] == '/':  # '/' is a special case
                 name = name[:index]
 
+    # Remove delimiters entirely
     for symbol in delimiting_symbols:
         name = name.strip(symbol)
-    name = basename(name).strip() # One last time for good measure
+    name = basename(name).strip()
+
+    # Remove common company suffixes
+    with open(company_suffix_csv_path, newline="") as f:
+        reader = csv.reader(f)
+        company_suffixes = set([row[0].lower() for row in reader])
+    detected = True
+    splitted_name = name.split()
+    while detected:
+        detected = False
+        if splitted_name[-1].lower() in company_suffixes:
+            splitted_name = splitted_name[:-1]
+            detected = True
+    name = " ".join(splitted_name)
 
     return name.strip()
