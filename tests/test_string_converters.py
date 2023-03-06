@@ -124,3 +124,4 @@ def test_clean_company_name():
     assert clean_company_name("Sphere / Circle") == "Sphere"
     assert clean_company_name("Sphere / Circle / Triangle") == "Sphere"
     assert clean_company_name("SellScale Limited Limited Pharmaceuticals Limited Technologies Limited ") == "SellScale"
+    assert clean_company_name("Resources Services Group") == "Resources" # Stops at first word

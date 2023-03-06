@@ -65,7 +65,7 @@ EXAMPLE_PAYLOAD_COMPANY = {
 @use_app_context
 def test_sanitize_payload():
     response = sanitize_payload(EXAMPLE_PAYLOAD)
-    assert response["company"]["details"]["name"] == "HEAL Security"
+    assert response["company"]["details"]["name"] == "HEAL"
     assert response["personal"]["position_groups"][0]["company"]["name"] == "Athelas"
     assert response["personal"]["position_groups"][1]["company"]["name"] == "Curative"
 

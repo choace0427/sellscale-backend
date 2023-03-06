@@ -175,6 +175,8 @@ def clean_company_name(name: str) -> str:
     splitted_name = name.split()
     while detected:
         detected = False
+        if len(splitted_name) <= 1:  # Sometimes the entire name can be composed of 'suffixes'. Stop in that case.
+            break
         if splitted_name[-1].lower() in company_suffixes:
             splitted_name = splitted_name[:-1]
             detected = True
