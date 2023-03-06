@@ -346,14 +346,17 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     Then runs the celery job to create prospects from the `prospect_uploads` table
     """
     archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True
+        "archetype_id", request, json=True, required=True, parameter_type=int
     )
     csv_payload = get_request_parameter(
-        "csv_payload", request, json=True, required=True
+        "csv_payload", request, json=True, required=True, parameter_type=list
     )
     email_enabled = get_request_parameter(
-        "email_enabled", request, json=True, required=False
+        "email_enabled", request, json=True, required=False, parameter_type=bool
     )
+
+    if len(csv_payload) >= 2000:
+        return "Too many rows in CSV", 400
 
     validated, reason = validate_prospect_json_payload(
         payload=csv_payload, email_enabled=email_enabled

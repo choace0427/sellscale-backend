@@ -501,6 +501,24 @@ def test_add_prospects_from_json_payload(
     )
     assert response.status_code == 200
 
+    # Too many prospects, service denied.
+    payload = [x for x in range(3000)]
+    response = app.test_client().post(
+        "prospect/add_prospect_from_csv_payload",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+        data=json.dumps(
+            {
+                "archetype_id": archetype_id,
+                "csv_payload": payload,
+                "email_enabled": False,
+            }
+        ),
+    )
+    assert response.status_code == 400
+
 
 @use_app_context
 @mock.patch("src.prospecting.services.create_prospect_from_linkedin_link.apply_async")
