@@ -1203,3 +1203,50 @@ def get_valid_channel_type_choices(prospect_id: int):
     if prospect.approved_prospect_email_id:
         valid_channel_types.append({"label": "Email", "value": "EMAIL"})
     return valid_channel_types
+
+
+def update_all_last_reviewed_and_times_bumped():
+    """
+    Updates the last reviewed and times bumped fields for all prospects with a
+    linkedin conversation thread.
+    """
+    query = """
+        with d as (
+            select 
+                prospect.id,
+                prospect.last_reviewed,
+                prospect.times_bumped,
+                prospect.li_conversation_thread_id,
+                max(linkedin_conversation_entry.date) latest_conversation_entry,
+                count(linkedin_conversation_entry.id) filter (where linkedin_conversation_entry.connection_degree = 'You') num_messages_from_sdr
+            from prospect
+                left join linkedin_conversation_entry on linkedin_conversation_entry.conversation_url = prospect.li_conversation_thread_id
+            where prospect.li_conversation_thread_id is not null
+            group by 1,2,3,4
+        )
+        select 
+            id,
+            case when last_reviewed > latest_conversation_entry then last_reviewed
+                else latest_conversation_entry end new_last_reviewed,
+            case when times_bumped > num_messages_from_sdr then times_bumped
+                else num_messages_from_sdr end new_times_bumped
+        from d;
+    """
+    data = db.session.execute(query).fetchall()
+    for row in data:
+        update_last_reviewed_and_times_bumped.delay(
+            prospect_id=row[0],
+            new_last_reviewed=row[1],
+            new_times_bumped=row[2],
+        )
+
+
+@celery.task
+def update_last_reviewed_and_times_bumped(
+    prospect_id, new_last_reviewed, new_times_bumped
+):
+    prospect = Prospect.query.get(prospect_id)
+    prospect.last_reviewed = new_last_reviewed
+    prospect.times_bumped = new_times_bumped
+    db.session.add(prospect)
+    db.session.commit()

@@ -324,7 +324,7 @@ class Prospect(db.Model):
 
     health_check_score = db.Column(db.Float, nullable=True)
 
-    last_reviewed = db.Column(db.DateTime, nullable=True)
+    last_reviewed = db.Column(db.DateTime, nullable=True)  # last message date
     times_bumped = db.Column(db.Integer, nullable=True)
 
     deactivate_ai_engagement = db.Column(db.Boolean, nullable=True)
