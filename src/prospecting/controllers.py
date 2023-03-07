@@ -424,7 +424,8 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
 
 
 @PROSPECTING_BLUEPRINT.route("/retrigger_upload_job", methods=["POST"])
-def retrigger_upload_prospect_job():
+@require_user
+def retrigger_upload_prospect_job(client_sdr_id: int):
     """Retriggers a prospect upload job that may have failed for some reason.
 
     Only runs on FAILED and NOT_STARTED jobs at the moment.
@@ -432,22 +433,20 @@ def retrigger_upload_prospect_job():
     Notable use case(s):
     - When iScraper fails
     """
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True
     )
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
-    )
+
+    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
 
     collect_and_run_celery_jobs_for_upload.apply_async(
-        args=[client_id, archetype_id, client_sdr_id],
+        args=[client_sdr.client_id, archetype_id, client_sdr_id],
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
     )
 
-    return "Upload jobs successfully collected and scheduled.", 200
+    return jsonify({"message": "Upload jobs successfully collected and scheduled."}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/delete_prospect", methods=["DELETE"])

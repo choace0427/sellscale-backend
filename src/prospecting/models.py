@@ -478,6 +478,15 @@ class ProspectUploadsRawCSV(db.Model):
     csv_data = db.Column(JSONB, nullable=False)
     csv_data_hash = db.Column(db.String, nullable=False)
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_archetype_id": self.client_archetype_id,
+            "client_sdr_id": self.client_sdr_id,
+            "csv_data_hash": self.csv_data_hash,
+        }
+
 
 class ProspectUploads(db.Model):
     """Each row is a prospect to be uploaded by a worker.
@@ -513,6 +522,22 @@ class ProspectUploads(db.Model):
     status = db.Column(db.Enum(ProspectUploadsStatus), nullable=False)
     error_type = db.Column(db.Enum(ProspectUploadsErrorType), nullable=True)
     iscraper_error_message = db.Column(db.String, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_archetype_id": self.client_archetype_id,
+            "client_sdr_id": self.client_sdr_id,
+            "prospect_uploads_raw_csv_id": self.prospect_uploads_raw_csv_id,
+            
+            "csv_row_data": self.csv_row_data,
+            "csv_row_hash": self.csv_row_hash,
+            "upload_attempts": self.upload_attempts,
+            "status": self.status.value,
+            "error_type": self.error_type.value if self.error_type else None,
+            "iscraper_error_message": self.iscraper_error_message,
+        }
 
 
 VALID_NEXT_LINKEDIN_STATUSES = {

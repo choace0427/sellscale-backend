@@ -24,6 +24,9 @@ from src.client.services import (
     get_client_archetypes,
     get_cta_by_archetype_id,
     get_client_sdr,
+    get_prospect_upload_stats_by_upload_id,
+    get_prospect_upload_details_by_upload_id,
+    get_all_uploads_by_archetype_id,
     toggle_client_sdr_autopilot_enabled,
 )
 from src.client.services_client_archetype import (
@@ -179,6 +182,26 @@ def patch_toggle_archetype_active():
     if not success:
         return "Failed to update active", 404
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/prospect_upload/<upload_id>/stats", methods=["GET"])
+@require_user
+def get_prospect_upload_stats(client_sdr_id: int, upload_id: int):
+    """Gets basic stats of a prospect upload"""
+
+    result = get_prospect_upload_stats_by_upload_id(client_sdr_id, upload_id)
+
+    return jsonify(result), result.get('status_code')
+
+
+@CLIENT_BLUEPRINT.route("/prospect_upload/<upload_id>/details", methods=["GET"])
+@require_user
+def get_prospect_upload_details(client_sdr_id: int, upload_id: int):
+    """Gets prospect details of a prospect upload"""
+
+    result = get_prospect_upload_details_by_upload_id(client_sdr_id, upload_id)
+
+    return jsonify(result), result.get('status_code')
 
 
 @CLIENT_BLUEPRINT.route("/sdr/update_scheduling_link", methods=["PATCH"])
@@ -507,6 +530,15 @@ def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
         ),
         200,
     )
+
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/all_uploads", methods=["GET"])
+@require_user
+def get_all_uploads(client_sdr_id: int, archetype_id: int):
+    """Gets all uploads for an archetype"""
+
+    result = get_all_uploads_by_archetype_id(client_sdr_id, archetype_id)
+
+    return jsonify(result), result.get('status_code')
 
 
 @CLIENT_BLUEPRINT.route("/sdr/toggle_autopilot_enabled", methods=["POST"])

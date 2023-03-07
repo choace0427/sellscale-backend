@@ -1,6 +1,7 @@
 from app import db
 from flask import jsonify
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
+from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.message_generation.models import GeneratedMessageCTA, GeneratedMessage
 from src.onboarding.services import create_sight_onboarding
@@ -587,6 +588,123 @@ def get_cta_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
         cta_dicts.append(raw_cta)
 
     return {"message": "Success", "status_code": 200, "ctas": cta_dicts}
+
+
+def get_prospect_upload_stats_by_upload_id(client_sdr_id: int, prospect_uploads_raw_csv_id: int) -> dict:
+    """Get the basic stats for a prospect upload
+
+    This function is authenticated.
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        prospect_uploads_raw_csv_id (int): ID of the upload
+
+    Returns:
+        dict: Dict containing the upload stats
+    """
+
+    # Validate parameters
+    prospect_uploads_raw_csv: ProspectUploadsRawCSV = ProspectUploadsRawCSV.query.get(prospect_uploads_raw_csv_id)
+    if not prospect_uploads_raw_csv:
+        return {'message': 'Upload not found', "status_code": 404}
+    elif prospect_uploads_raw_csv.client_sdr_id != client_sdr_id:
+        return {'message': 'Not authorized', "status_code": 401}
+
+    # Get stats for the upload
+    upload_stats = db.session.execute(
+        """
+        select
+          count(status) FILTER (WHERE status = 'UPLOAD_COMPLETE') success,
+          count(status) FILTER (WHERE status = 'UPLOAD_IN_PROGRESS') in_progress,
+          count(status) FILTER (WHERE status = 'UPLOAD_QUEUED') queued,
+          count(status) FILTER (WHERE status = 'UPLOAD_NOT_STARTED') not_started,
+          count(status) FILTER (WHERE status = 'DISQUALIFIED') disqualified,
+          count(status) FILTER (WHERE status = 'UPLOAD_FAILED') failed,
+          count(status) total
+        from prospect_uploads
+        where prospect_uploads.prospect_uploads_raw_csv_id = {upload_id} and prospect_uploads.client_sdr_id = {client_sdr_id}
+        """.format(
+          upload_id=prospect_uploads_raw_csv_id,
+          client_sdr_id=client_sdr_id
+        )
+      ).fetchall()
+
+    # index to status map
+    status_map = {
+      0: 'success',
+      1: 'in_progress',
+      2: 'queued',
+      3: 'not_started',
+      4: 'disqualified',
+      5: 'failed',
+      6: 'total'
+    }
+
+    # Convert and format output
+    upload_stats = [tuple(row) for row in upload_stats][0]
+    upload_stats = {status_map.get(i, 'unknown'): row for i, row in enumerate(upload_stats)}
+
+    return {"message": "Success", "status_code": 200, "stats": upload_stats}
+
+
+def get_prospect_upload_details_by_upload_id(client_sdr_id: int, prospect_uploads_raw_csv_id: int) -> dict:
+    """Get the individual prospect details of the prospect upload
+
+    This function is authenticated.
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        prospect_uploads_raw_csv_id (int): ID of the upload
+
+    Returns:
+        dict: Dict containing the upload details
+    """
+
+    # Validate parameters
+    prospect_uploads_raw_csv: ProspectUploadsRawCSV = ProspectUploadsRawCSV.query.get(prospect_uploads_raw_csv_id)
+    if not prospect_uploads_raw_csv:
+        return {'message': 'Upload not found', "status_code": 404}
+    elif prospect_uploads_raw_csv.client_sdr_id != client_sdr_id:
+        return {'message': 'Not authorized', "status_code": 401}
+    
+
+    # Get all prospect details of the upload
+    all_prospect_details = ProspectUploads.query.filter_by(
+        prospect_uploads_raw_csv_id=prospect_uploads_raw_csv_id,
+        client_sdr_id=client_sdr_id,
+    ).order_by(ProspectUploads.updated_at.desc()).all()
+
+    return {"message": "Success", "status_code": 200, "uploads": [x.to_dict() for x in all_prospect_details] }
+
+
+def get_all_uploads_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
+    """Get all uploads for an Archetype
+
+    This function is authenticated.
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        archetype_id (int): ID of the Archetype
+
+    Returns:
+        dict: Dict containing the archetype's upload data
+    """
+
+    # Validate parameters
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return {'message': 'Archetype not found', "status_code": 404}
+    elif archetype.client_id != client_sdr.client_id:
+        return {'message': 'Not authorized', "status_code": 401}
+
+    # Get all uploads
+    all_uploads = ProspectUploadsRawCSV.query.filter_by(
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+    ).order_by(ProspectUploadsRawCSV.created_at.desc()).all()
+
+    return {"message": "Success", "status_code": 200, "uploads": [x.to_dict() for x in all_uploads] }
 
 
 def get_cta_stats(cta_id: int) -> dict:
