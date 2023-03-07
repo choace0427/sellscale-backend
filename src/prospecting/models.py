@@ -486,6 +486,7 @@ class ProspectUploadsRawCSV(db.Model):
             "client_archetype_id": self.client_archetype_id,
             "client_sdr_id": self.client_sdr_id,
             "csv_data_hash": self.csv_data_hash,
+            "created_at": str(self.created_at),
         }
 
 
