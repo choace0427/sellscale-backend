@@ -12,6 +12,10 @@ from src.li_conversation.services import (
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.li_conversation.services import wizard_of_oz_send_li_message
+from src.li_conversation.conversation_analyzer.analyzer import (
+    run_all_conversation_analyzers,
+)
+
 
 LI_CONVERSATION_SCRAPE_INTERVAL = 2
 LI_CONVERASTION_BLUEPRINT = Blueprint("li_conversation", __name__)
