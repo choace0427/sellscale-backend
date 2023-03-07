@@ -9,7 +9,6 @@ from src.prospecting.services import (
 )
 from tqdm import tqdm
 from app import celery, db
-from src.automation.slack_notification import send_slack_block
 from src.prospecting.services import update_prospect_status_linkedin
 from fuzzywuzzy import fuzz
 

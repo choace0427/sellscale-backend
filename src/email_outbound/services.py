@@ -7,6 +7,7 @@ from model_import import (
     ClientArchetype,
     GeneratedMessage,
     Prospect,
+    ProspectChannels,
     ProspectStatus,
     GeneratedMessageStatus,
     GeneratedMessageType,
@@ -29,6 +30,8 @@ from src.email_outbound.models import (
     VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.email_outbound.ss_data import SSData
+from src.automation.slack_notification import send_status_change_slack_block
+
 
 
 def create_prospect_email(
@@ -350,6 +353,16 @@ def update_status_from_ss_data(
                     ),
                     False,
                 )
+
+        # Send a slack message if the new status is active convo (responded)
+        if new_outreach_status == ProspectEmailOutreachStatus.ACTIVE_CONVO:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=prospect,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                custom_message=" responded to your email! 🙌🏽",
+                metadata={},
+            )
 
         # Create ProspectEmailStatusRecords entry and save ProspectEmail.
         db.session.add(

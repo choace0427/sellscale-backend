@@ -34,6 +34,7 @@ from model_import import (
     IScraperPayloadType,
 )
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
+from src.automation.slack_notification import send_slack_block, send_status_change_slack_block
 
 
 def search_prospects(
@@ -462,6 +463,16 @@ def update_prospect_status_email(
                 f"Invalid status transition from {p_email.outreach_status} to {new_status}",
             )
         p_email.outreach_status = new_status
+
+    # Send a slack message if the new status is active convo (responded)
+    if new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO:
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.EMAIL,
+            prospect=p,
+            new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+            custom_message=" responded to your email! 🙌🏽",
+            metadata={},
+        )
 
     # Commit the changes
     db.session.add(p_email)
@@ -1212,7 +1223,7 @@ def update_all_last_reviewed_and_times_bumped():
     """
     query = """
         with d as (
-            select 
+            select
                 prospect.id,
                 prospect.last_reviewed,
                 prospect.times_bumped,
@@ -1224,7 +1235,7 @@ def update_all_last_reviewed_and_times_bumped():
             where prospect.li_conversation_thread_id is not null
             group by 1,2,3,4
         )
-        select 
+        select
             id,
             case when latest_conversation_entry > last_reviewed then latest_conversation_entry
             	else last_reviewed end new_last_reviewed,
