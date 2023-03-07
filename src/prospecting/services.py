@@ -34,7 +34,7 @@ from model_import import (
     IScraperPayloadType,
 )
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
-from src.automation.slack_notification import send_slack_block, send_status_change_slack_block
+from src.automation.slack_notification import send_status_change_slack_block
 
 
 def search_prospects(
@@ -209,7 +209,6 @@ def update_prospect_status_linkedin(
     note: Optional[str] = None,
 ):
     from src.prospecting.models import Prospect, ProspectStatus
-    from src.automation.slack_notification import send_slack_block
 
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
@@ -219,32 +218,36 @@ def update_prospect_status_linkedin(
 
     # notifications
     if new_status == ProspectStatus.ACCEPTED:
-        send_slack_block(
-            message_suffix=" accepted your invite! 😀",
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
             new_status=ProspectStatus.ACCEPTED,
-            li_message_payload=message,
+            custom_message=" accepted your invite! 😀",
+            metadata=message,
         )
     if new_status == ProspectStatus.ACTIVE_CONVO:
-        send_slack_block(
-            message_suffix=" responded to your outreach! 🙌🏽",
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
             new_status=ProspectStatus.ACTIVE_CONVO,
-            li_message_payload=message,
+            custom_message=" responded to your outreach! 🙌🏽",
+            metadata=message,
         )
     if new_status == ProspectStatus.SCHEDULING:
-        send_slack_block(
-            message_suffix=" is scheduling! 🙏🔥",
+       send_status_change_slack_block(
+            outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
             new_status=ProspectStatus.SCHEDULING,
-            li_message_payload={"threadUrl": p.li_conversation_thread_id},
+            custom_message=" is scheduling! 🙏🔥",
+            metadata={"threadUrl": p.li_conversation_thread_id},
         )
     elif new_status == ProspectStatus.DEMO_SET:
-        send_slack_block(
-            message_suffix=" set a time to demo!! 🎉🎉🎉",
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
             new_status=ProspectStatus.DEMO_SET,
-            li_message_payload={"threadUrl": p.li_conversation_thread_id},
+            custom_message=" set a time to demo!! 🎉🎉🎉",
+            metadata={"threadUrl": p.li_conversation_thread_id},
         )
 
     # status jumps

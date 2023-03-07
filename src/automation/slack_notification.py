@@ -148,7 +148,7 @@ def send_status_change_slack_block(
 
     return
 
-
+# Deprecated
 def send_slack_block(
     message_suffix: str,
     prospect: Prospect,
