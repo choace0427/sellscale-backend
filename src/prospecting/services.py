@@ -1226,8 +1226,8 @@ def update_all_last_reviewed_and_times_bumped():
         )
         select 
             id,
-            case when last_reviewed > latest_conversation_entry then last_reviewed
-                else latest_conversation_entry end new_last_reviewed,
+            case when latest_conversation_entry > last_reviewed then latest_conversation_entry
+            	else last_reviewed end new_last_reviewed,
             case when times_bumped > num_messages_from_sdr then times_bumped
                 else num_messages_from_sdr end new_times_bumped
         from d;
