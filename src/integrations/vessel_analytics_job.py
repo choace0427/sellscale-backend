@@ -56,7 +56,8 @@ def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
         for email in emails:
             open_count = max(open_count, email.get("openCount", 0))
             click_count = max(click_count, email.get("clickCount", 0))
-            reply_count = max(reply_count, email.get("replyCount", 0))
+            if email.get("replyCount", 0):
+                reply_count = max(reply_count, email.get("replyCount", 0))
             is_bounced = email.get("isBounced", False) or is_bounced
             has_replied = email.get("hasReplied", False) or has_replied
 
