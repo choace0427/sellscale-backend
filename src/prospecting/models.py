@@ -332,6 +332,7 @@ class Prospect(db.Model):
     is_lead = db.Column(db.Boolean, nullable=True)
 
     vessel_contact_id = db.Column(db.String, nullable=True)
+    vessel_crm_id = db.Column(db.String, nullable=True)
 
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
@@ -530,7 +531,6 @@ class ProspectUploads(db.Model):
             "client_archetype_id": self.client_archetype_id,
             "client_sdr_id": self.client_sdr_id,
             "prospect_uploads_raw_csv_id": self.prospect_uploads_raw_csv_id,
-            
             "csv_row_data": self.csv_row_data,
             "csv_row_hash": self.csv_row_hash,
             "upload_attempts": self.upload_attempts,
