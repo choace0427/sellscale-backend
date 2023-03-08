@@ -690,14 +690,6 @@ def add_prospect(
     return prospect.id
 
 
-def find_prospect_by_linkedin_slug(slug: str, client_id: int):
-    prospect: Prospect = Prospect.query.filter(
-        Prospect.linkedin_url.like(f"%{slug}%"),
-        Prospect.client_id == client_id,
-    ).first()
-    return prospect
-
-
 def get_linkedin_slug_from_url(url: str):
     try:
         split = url.split("/in/")

@@ -1,15 +1,16 @@
+from app import celery, db
 from src.automation.models import PhantomBusterType, PhantomBusterConfig
 from model_import import ProspectStatus, Prospect, ClientSDR, GeneratedMessage
 import requests
 import json
 import os
 from src.prospecting.services import (
-    get_linkedin_slug_from_url,
-    find_prospect_by_linkedin_slug,
+    get_linkedin_slug_from_url
 )
 from tqdm import tqdm
-from app import celery, db
+
 from src.prospecting.services import update_prospect_status_linkedin
+from src.utils.slack import send_slack_message, URL_MAP
 from fuzzywuzzy import fuzz
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
@@ -54,7 +55,7 @@ def get_phantom_buster_payload(s3Folder, orgS3Folder):
     return json.loads(response.text)
 
 
-def process_inbox(message_payload, client_id):
+def process_inbox(message_payload, client_sdr_id):
     """
      data_payload = [{
         "firstnameFrom": "Zaheer",
@@ -81,9 +82,11 @@ def process_inbox(message_payload, client_id):
             li_last_message_timestamp = message["lastMessageDate"]
             recipient = get_linkedin_slug_from_url(message["linkedInUrls"][0])
 
-            prospect: Prospect = find_prospect_by_linkedin_slug(
-                recipient, client_id=client_id
-            )
+            prospect: Prospect = Prospect.query.filter(
+                Prospect.linkedin_url.like(f"%{recipient}%"),
+                Prospect.client_sdr_id == client_sdr_id,
+            ).first()
+
             if is_group_message or not prospect:
                 continue
 
@@ -152,7 +155,6 @@ def scrape_inbox(client_sdr_id: int):
 
     if not client_sdr:
         return False
-    client_id = client_sdr.client_id
 
     pb_config = get_inbox_scraper_config(client_sdr_id=client_sdr_id)
     if not pb_config:
@@ -166,7 +168,12 @@ def scrape_inbox(client_sdr_id: int):
         s3Folder=s3Folder, orgS3Folder=orgS3Folder
     )
 
-    process_inbox(message_payload=data_payload, client_id=client_id)
+    process_inbox(message_payload=data_payload, client_sdr_id=client_sdr.id)
+
+    send_slack_message(
+        message='Finished basic scrape for SDR {name} #{id}'.format(name=client_sdr.name, id=client_sdr.id),
+        webhook_urls=[URL_MAP['eng-sandbox']]
+    )
     return True
 
 
