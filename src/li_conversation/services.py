@@ -207,7 +207,9 @@ def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
                 "role": "system",
                 "content": "You are a helpful assistant helping the user write their next reply in a message thread. Keep responses friendly and concise. Write from the perspective of "
                 + sender
-                + ".",
+                + ". If there are no messages from the other person who is not "
+                + sender
+                + " write a follow-up, 'bump' message.",
             },
             {"role": "user", "content": content},
         ],
