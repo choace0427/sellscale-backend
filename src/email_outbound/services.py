@@ -366,7 +366,7 @@ def update_status_from_ss_data(
         elif new_outreach_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
             send_status_change_slack_block(
                 outreach_type=ProspectChannels.EMAIL,
-                prospect=p,
+                prospect=prospect,
                 new_status=ProspectEmailOutreachStatus.SCHEDULING,
                 custom_message=" is scheduling! 🙏🔥",
                 metadata={},
@@ -374,7 +374,7 @@ def update_status_from_ss_data(
         elif new_outreach_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
             send_status_change_slack_block(
                 outreach_type=ProspectChannels.EMAIL,
-                prospect=p,
+                prospect=prospect,
                 new_status=ProspectEmailOutreachStatus.DEMO_SET,
                 custom_message=" set a time to demo!! 🎉🎉🎉",
                 metadata={},
