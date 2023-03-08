@@ -90,6 +90,10 @@ def process_inbox(message_payload, client_sdr_id):
             if is_group_message or not prospect:
                 continue
 
+            last_message_timestamp = prospect.li_last_message_timestamp
+            if last_message_timestamp and last_message_timestamp != li_last_message_timestamp:
+                prospect.li_should_deep_scrape = True
+
             prospect.li_conversation_thread_id = thread_url
             prospect.li_is_last_message_from_sdr = is_last_message_from_me
             prospect.li_last_message_timestamp = li_last_message_timestamp

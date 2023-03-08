@@ -1,4 +1,5 @@
 import json
+from app import db
 from flask import Blueprint, request, jsonify
 from flask_csv import send_csv
 from model_import import Prospect
@@ -32,17 +33,20 @@ def post_update_linkedin_conversation_entries():
 @LI_CONVERASTION_BLUEPRINT.route("/<client_sdr_id>")
 def get_li_conversation_csv(client_sdr_id):
     """Returns a CSV of prospects who have had a LinkedIn conversation extracted in the last 24 hours."""
-    prospects = Prospect.query.filter(
+    prospects: list[Prospect] = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
-        Prospect.li_last_message_timestamp
-        > datetime.now() - timedelta(days=LI_CONVERSATION_SCRAPE_INTERVAL),
+        Prospect.li_should_deep_scrape == True,
     ).all()
 
-    linkedin_urls = [
-        {"linkedin_url": "https://www." + prospect.linkedin_url}
-        for prospect in prospects
-        if prospect.linkedin_url
-    ]
+    updated_prospects = []
+    linkedin_urls = []
+    for prospect in prospects:
+        prospect.li_should_deep_scrape = False
+        linkedin_urls.append[{"linkedin_url": "https://www." + prospect.linkedin_url}]
+        updated_prospects.append(prospect)
+
+    db.session.bulk_save_objects(updated_prospects)
+    db.session.commit()
 
     return send_csv(
         linkedin_urls,
