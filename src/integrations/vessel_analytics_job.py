@@ -4,6 +4,8 @@ from model_import import (
     ProspectEmail,
     SalesEngagementInteractionSource,
 )
+from datetime import timedelta, datetime
+from tqdm import tqdm
 from src.integrations.vessel_convert_analytics_job import (
     convert_vessel_raw_payload_to_ss,
 )
@@ -14,7 +16,6 @@ from src.email_outbound.services import (
 )
 from src.integrations.vessel import SalesEngagementIntegration
 from app import db, celery
-from datetime import datetime
 
 
 def get_prospects_to_collect_analytics_for(client_sdr_id: int) -> list:
@@ -28,6 +29,7 @@ def get_prospects_to_collect_analytics_for(client_sdr_id: int) -> list:
         )
         .filter(
             ProspectEmail.vessel_sequence_id.isnot(None),
+            # ProspectEmail.updated_at < datetime.now() - timedelta(hours=48),
         )
         .all()
     )
@@ -42,11 +44,11 @@ def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
     prospects = get_prospects_to_collect_analytics_for(client_sdr_id)
     sei = SalesEngagementIntegration(client_sdr.client_id)
     raw_payloads = []
-    for entry in prospects:
+    for entry in tqdm(prospects):
         prospect: Prospect = entry[0]
         prospect_email: ProspectEmail = entry[1]
         contact_id = prospect.vessel_contact_id
-        sequence_id = str(prospect_email.vessel_sequence_id)
+        sequence_id = prospect_email.vessel_sequence_id
         emails = sei.get_emails_for_contact(contact_id, sequence_id)
         open_count = 0
         click_count = 0

@@ -10,7 +10,8 @@ from model_import import (
     ProspectEmailStatus,
 )
 from typing import Optional
-from app import db
+from app import db, celery
+from tqdm import tqdm
 from src.email_outbound.services import get_approved_prospect_email_by_id
 
 VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
@@ -114,7 +115,7 @@ class SalesEngagementIntegration:
             },
         )
         resp = response.json()
-        if len(resp["contacts"]) == 0:
+        if "contacts" not in resp or len(resp["contacts"]) == 0:
             return None
         return resp["contacts"][0]
 
@@ -333,7 +334,7 @@ class SalesEngagementIntegration:
             db.session.add(prospect_email)
             db.session.commit()
 
-    def get_emails_for_contact(self, contact_id, sequence_id):
+    def get_emails_for_contact(self, contact_id, sequence_id=None):
         """
         Get all emails for a Sales Engagement contact
         """
@@ -344,8 +345,8 @@ class SalesEngagementIntegration:
             json={
                 "accessToken": self.vessel_access_token,
                 "filters": {
-                    "contactId": {"equals": contact_id},
-                    "sequenceId": {"equals": sequence_id},
+                    "contactId": {"equals": str(contact_id)},
+                    "sequenceId": {"equals": str(sequence_id)} if sequence_id else None,
                 },
             },
         )
@@ -366,3 +367,31 @@ class SalesEngagementIntegration:
             },
         )
         return response.json()
+
+    def sync_unsynced_prospects_vessel_contact_ids(self):
+        prospects: list = Prospect.query.filter(
+            Prospect.vessel_contact_id == None,
+            Prospect.client_id == self.client_id,
+        ).all()
+        for prospect in tqdm(prospects):
+            if not prospect.vessel_contact_id:
+                sync_sales_engagement_contact_id_to_prospect.delay(
+                    self.client_id, prospect.id
+                )
+
+
+@celery.task
+def sync_sales_engagement_contact_id_to_prospect(client_id: int, prospect_id: int):
+    """
+    Sync the Sales Engagement contact id for a prospect
+    """
+    sei = SalesEngagementIntegration(client_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    email = prospect.email
+    if email:
+        contact = sei.search_contact_by_email(email) or {}
+        if contact.get("id"):
+            contact_id = contact["id"]
+            prospect.vessel_contact_id = contact_id
+            db.session.add(prospect)
+            db.session.commit()
