@@ -16,6 +16,7 @@ from src.email_outbound.services import (
 )
 from src.integrations.vessel import SalesEngagementIntegration
 from app import db, celery
+from src.campaigns.models import OutboundCampaign
 
 
 def get_prospects_to_collect_analytics_for(client_sdr_id: int) -> list:
@@ -36,13 +37,45 @@ def get_prospects_to_collect_analytics_for(client_sdr_id: int) -> list:
     return prospects
 
 
+def process_analytics_for_campaign(campaign_id: int):
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        return False, "Campaign not found"
+    client_sdr_id = campaign.client_sdr_id
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    prospect_ids = campaign.prospect_ids
+    prospects: list = (
+        db.session.query(Prospect, ProspectEmail)
+        .filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.approved_prospect_email_id.isnot(None),
+            Prospect.vessel_contact_id.isnot(None),
+            ProspectEmail.id == Prospect.approved_prospect_email_id,
+            Prospect.id.in_(prospect_ids),
+        )
+        .filter(
+            ProspectEmail.vessel_sequence_id.isnot(None),
+            # ProspectEmail.updated_at < datetime.now() - timedelta(hours=48),
+        )
+        .all()
+    )
+    process_analytics_for_prospects(client_id, client_sdr_id, prospects)
+
+
 def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return False, "Client SDR not found"
 
     prospects = get_prospects_to_collect_analytics_for(client_sdr_id)
-    sei = SalesEngagementIntegration(client_sdr.client_id)
+    process_analytics_for_prospects(client_sdr_id, client_sdr_id, prospects)
+
+
+def process_analytics_for_prospects(
+    client_id: int, client_sdr_id: int, prospects: list
+):
+    sei = SalesEngagementIntegration(client_id)
     raw_payloads = []
     for entry in tqdm(prospects):
         prospect: Prospect = entry[0]
@@ -75,7 +108,7 @@ def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
         raw_payloads.append(payload)
 
     sei_raw_id = create_sales_engagement_interaction_raw(
-        client_id=client_sdr.client_id,
+        client_id=client_id,
         client_sdr_id=client_sdr_id,
         source=SalesEngagementInteractionSource.VESSEL.value,
         payload=raw_payloads,
@@ -87,7 +120,7 @@ def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
         return False, "Failed to ingest data from Vessel."
 
     sei_ss_id = convert_vessel_raw_payload_to_ss(
-        client_sdr.client_id, client_sdr_id, sei_raw_id, raw_payloads
+        client_id, client_sdr_id, sei_raw_id, raw_payloads
     )
     collect_and_update_status_from_ss_data.delay(sei_ss_id)
 
