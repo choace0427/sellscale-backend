@@ -321,6 +321,7 @@ class Prospect(db.Model):
     li_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
     li_last_message_from_prospect = db.Column(db.String, nullable=True)
     li_num_followers = db.Column(db.Integer, nullable=True)
+    li_should_deep_scrape = db.Column(db.Boolean, nullable=True)
 
     health_check_score = db.Column(db.Float, nullable=True)
 
