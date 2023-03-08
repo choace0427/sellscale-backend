@@ -363,6 +363,22 @@ def update_status_from_ss_data(
                 custom_message=" responded to your email! 🙌🏽",
                 metadata={},
             )
+        elif new_outreach_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=p,
+                new_status=ProspectEmailOutreachStatus.SCHEDULING,
+                custom_message=" is scheduling! 🙏🔥",
+                metadata={},
+            )
+        elif new_outreach_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=p,
+                new_status=ProspectEmailOutreachStatus.DEMO_SET,
+                custom_message=" set a time to demo!! 🎉🎉🎉",
+                metadata={},
+            )
 
         # Create ProspectEmailStatusRecords entry and save ProspectEmail.
         db.session.add(

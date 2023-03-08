@@ -49,6 +49,13 @@ def send_status_change_slack_block(
     ):
         webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
 
+    # Add webhook url regardless of allowlist if channel type is email
+    if outreach_type == ProspectChannels.EMAIL:
+        if client_sdr and client_sdr.pipeline_notifications_webhook_url:
+            webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
+        if client and client.pipeline_notifications_webhook_url:
+            webhook_urls.append(client.pipeline_notifications_webhook_url)
+
     # Get last message
     if outreach_type == ProspectChannels.LINKEDIN:
         last_message_from_prospect = prospect.li_last_message_from_prospect

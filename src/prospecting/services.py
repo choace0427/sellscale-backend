@@ -234,7 +234,7 @@ def update_prospect_status_linkedin(
             metadata=message,
         )
     if new_status == ProspectStatus.SCHEDULING:
-       send_status_change_slack_block(
+        send_status_change_slack_block(
             outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
             new_status=ProspectStatus.SCHEDULING,
@@ -474,6 +474,22 @@ def update_prospect_status_email(
             prospect=p,
             new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
             custom_message=" responded to your email! 🙌🏽",
+            metadata={},
+        )
+    elif new_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.EMAIL,
+            prospect=p,
+            new_status=ProspectEmailOutreachStatus.SCHEDULING,
+            custom_message=" is scheduling! 🙏🔥",
+            metadata={},
+        )
+    elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.EMAIL,
+            prospect=p,
+            new_status=ProspectEmailOutreachStatus.DEMO_SET,
+            custom_message=" set a time to demo!! 🎉🎉🎉",
             metadata={},
         )
 
