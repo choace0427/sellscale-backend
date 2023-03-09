@@ -494,14 +494,18 @@ def disapprove_message(message_id: int):
 
 def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
     """Given a prospect, selects a new generated message that is not message_id."""
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    message_type = message.message_type.value
     data = db.session.execute(
         """
             select length(completion), *
             from generated_message
             where prospect_id = {prospect_id}
+                and message_type = '{message_type}'
             order by abs(270 - length(completion)) asc
         """.format(
-            prospect_id=prospect_id
+            prospect_id=prospect_id,
+            message_type=message_type,
         )
     ).fetchall()
     ids = [x["id"] for x in data]
