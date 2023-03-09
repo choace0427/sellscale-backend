@@ -144,7 +144,7 @@ def research_and_generate_outreaches_for_prospect(
         try:
             prospect: Prospect = Prospect.query.get(prospect_id)
             get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-            if prospect.client_id in (1, 10):  # only for SellScale & Ramp for now
+            if prospect.client_id in (1, 10, 15):  # only for SellScale & Ramp for now
                 generate_linkedin_outreaches_with_configurations(
                     prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
                 )
@@ -1124,7 +1124,7 @@ def run_check_message_has_bad_entities(message_id: int):
             if exception in entity:
                 entity = entity.replace(exception, "").strip()
 
-        if entity.lower() in title_abbreviations: # Abbreviated titles are OK
+        if entity.lower() in title_abbreviations:  # Abbreviated titles are OK
             full_title = title_abbreviations[entity.lower()]
             if full_title in prompt.lower():
                 continue
