@@ -42,8 +42,10 @@ def get_li_conversation_csv(client_sdr_id):
     linkedin_urls = []
     for prospect in prospects:
         prospect.li_should_deep_scrape = False
-        linkedin_urls.append[{"linkedin_url": "https://www." + prospect.linkedin_url}]
         updated_prospects.append(prospect)
+
+        if prospect.linkedin_url:
+            linkedin_urls.append[{"linkedin_url": "https://www." + prospect.linkedin_url}]
 
     db.session.bulk_save_objects(updated_prospects)
     db.session.commit()
