@@ -7,6 +7,7 @@ import enum
 class ResearchType(enum.Enum):
     LINKEDIN_ISCRAPER = "LINKEDIN_ISCRAPER"
     SERP_PAYLOAD = "SERP_PAYLOAD"
+    SDR_QUESTIONNAIRE = "SDR_QUESTIONNAIRE"
 
 
 class ResearchPointType(enum.Enum):
