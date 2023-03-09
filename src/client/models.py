@@ -2,6 +2,7 @@ from app import db
 from src.prospecting.models import ProspectStatus
 from src.research.models import ResearchPointType
 import sqlalchemy as sa
+import json
 
 
 class Client(db.Model):
@@ -71,6 +72,41 @@ class ClientArchetype(db.Model):
         }
 
 
+class SDRQuestionaireColumn(sa.types.TypeDecorator):
+    impl = sa.types.JSON
+
+    COLUMN_SCHEMA = {   # Can be used in future for strong enforcement. For now just used for documentation.
+        "education": [
+            {
+                "name": "University of California, Berkeley",
+                "degree": "Bachelor's",
+                "year_started": 0,
+                "year_ended": 0,
+            }
+        ]
+    }
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        self.validate_data(data=value)
+        return json.dumps(value)
+
+    def process_result_value(self, value, dialect) -> None:
+        if value is None:
+            return None
+
+        return json.loads(value)
+
+    def validate_data(self, data):
+        """Validate that the data we are trying to insert follows the schema. Loose validation for now."""
+        if not isinstance(data, dict):
+            raise ValueError("Data must be a dictionary.")
+        for key in data:
+            if key not in self.COLUMN_SCHEMA:
+                raise ValueError(f"Key {key} is not valid.")
+
+
 class ClientSDR(db.Model):
     __tablename__ = "client_sdr"
 
@@ -100,6 +136,8 @@ class ClientSDR(db.Model):
     vessel_mailbox_id = db.Column(db.String, nullable=True)
 
     autopilot_enabled = db.Column(db.Boolean, nullable=True, default=False)
+
+    questionnaire = db.Column(SDRQuestionaireColumn, nullable=True)
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
