@@ -74,6 +74,7 @@ def process_inbox(message_payload, client_sdr_id):
     },
     ...]
     """
+    deep_scrape_count = 0
     for message in message_payload:
         try:
             is_group_message = len(message["linkedInUrls"]) > 1
@@ -90,8 +91,11 @@ def process_inbox(message_payload, client_sdr_id):
             if is_group_message or not prospect:
                 continue
 
+            # Check if the last message timestamp is different from the one in the db
+            # If it is, then we should deep scrape the prospect
             last_message_timestamp = prospect.li_last_message_timestamp
             if last_message_timestamp and last_message_timestamp != li_last_message_timestamp:
+                deep_scrape_count += 1
                 prospect.li_should_deep_scrape = True
 
             prospect.li_conversation_thread_id = thread_url
@@ -152,6 +156,8 @@ def process_inbox(message_payload, client_sdr_id):
         except:
             continue
 
+    return deep_scrape_count
+
 
 def scrape_inbox(client_sdr_id: int):
     """Scrape the inbox of a client on Linkedin"""
@@ -172,10 +178,10 @@ def scrape_inbox(client_sdr_id: int):
         s3Folder=s3Folder, orgS3Folder=orgS3Folder
     )
 
-    process_inbox(message_payload=data_payload, client_sdr_id=client_sdr.id)
+    deep_scrape_count = process_inbox(message_payload=data_payload, client_sdr_id=client_sdr.id)
 
     send_slack_message(
-        message='Finished basic scrape for SDR {name} #{id}'.format(name=client_sdr.name, id=client_sdr.id),
+        message='🔎 Finished basic scrape for SDR {name} (#{id}). Number of conversations to be deeply scraped: {count}'.format(name=client_sdr.name, id=client_sdr.id, count=deep_scrape_count),
         webhook_urls=[URL_MAP['eng-sandbox']]
     )
     return True

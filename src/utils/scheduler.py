@@ -53,13 +53,6 @@ def run_next_client_sdr_li_conversation_scraper_job():
         )
 
 
-def run_conversation_analyzers():
-    from src.li_conversation.conversation_analyzer.analyzer import run_all_conversation_analyzers
-
-    if os.environ.get("FLASK_ENV") == "production":
-        run_all_conversation_analyzers.apply_async()
-
-
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
@@ -75,7 +68,6 @@ scheduler.add_job(
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
 scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=24)
 scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=24)
-scheduler.add_job(func=run_conversation_analyzers, trigger="interval", hours=24)
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())

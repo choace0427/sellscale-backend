@@ -45,7 +45,7 @@ def run_all_conversation_analyzers(self) -> tuple[bool, int]:
 
         # Send a Slack message
         send_slack_message(
-            message="🤖 Conversation analyzers ran",
+            message="🤖 Conversation analyzers ran on {num_convos} conversations".format(num_convos=len(conversation_urls)),
             webhook_urls=[URL_MAP["eng-sandbox"]],
         )
 
