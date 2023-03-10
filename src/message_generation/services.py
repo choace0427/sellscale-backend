@@ -904,13 +904,30 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
         personalized_line = GeneratedMessage.query.get(
             prospect_email.personalized_first_line
         )
-        if personalized_line.message_type != GeneratedMessageType.EMAIL:
+        if (
+            not personalized_line
+            or personalized_line.message_type != GeneratedMessageType.EMAIL
+        ):
             continue
         edits = GeneratedMessageEditRecord.query.filter(
             GeneratedMessageEditRecord.generated_message_id == personalized_line.id
         ).all()
         for edit in edits:
             db.session.delete(edit)
+        db.session.commit()
+        db.session.delete(personalized_line)
+        db.session.delete(prospect_email)
+        db.session.commit()
+
+    for prospect_email in prospect_emails:
+        personalized_line = GeneratedMessage.query.get(
+            prospect_email.personalized_first_line
+        )
+        if (
+            not personalized_line
+            or personalized_line.message_type != GeneratedMessageType.EMAIL
+        ):
+            continue
         db.session.delete(personalized_line)
         db.session.delete(prospect_email)
         db.session.commit()
