@@ -152,4 +152,10 @@ def get_all_research_point_types():
             "example": "David Wei is passionate about distributed systems and highly scalable infrastructure.",
             "deprecated": False,
         },
+        {
+            "transformer": ResearchPointType.COMMON_EDUCATION.value,
+            "description": "Extracts the common education",
+            "example": "John Doe attended University of California, Berkeley. I attended University of California, Berkeley from 2016 to 2020.",
+            "deprecated": False,
+        }
     ]

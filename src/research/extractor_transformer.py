@@ -9,6 +9,8 @@ class ExtractorAndTransformer(ABC):
 
     def __init__(self, prospect_id):
         self.prospect_id = prospect_id
+        self.payload_id = None
+        self.research_point_ids = None
 
     def run(self):
         """This method is the entry point for all ExtractorAndTransformer classes.

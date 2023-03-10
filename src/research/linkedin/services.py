@@ -21,6 +21,9 @@ from src.research.linkedin.extractors.experience import (
     get_years_of_experience,
     get_years_of_experience_at_current_job,
 )
+from src.research.linkedin.extractors.education import (
+    get_common_education,
+)
 from src.research.linkedin.extractors.projects import get_recent_patent
 from src.research.linkedin.extractors.recommendations import (
     get_recent_recommendation_summary,
@@ -296,6 +299,11 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             "linkedin_bio_summary",
             get_linkedin_bio_summary,
         ),
+        (
+            ResearchPointType.COMMON_EDUCATION,
+            "common_education",
+            get_common_education,
+        )
     ]
 
     bullets = {}
@@ -318,7 +326,10 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             # else:
             input_payload = info
 
-            value = t[2](input_payload).get("response", "")
+            if t[0] == ResearchPointType.COMMON_EDUCATION:
+                value = t[2](input_payload, prospect.client_sdr_id).get("response", "")
+            else:
+                value = t[2](input_payload).get("response", "")
 
             if not value:
                 continue
