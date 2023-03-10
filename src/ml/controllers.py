@@ -100,5 +100,5 @@ def get_config_completion_endpoint():
 @ML_BLUEPRINT.route("/get_aree_fix/<message_id>", methods=["GET"])
 def get_aree_fix_endpoint(message_id):
     # THIS NEEDS TO BE AUTHENTICATED EVENTUALLY
-    completion = get_aree_fix_basic(message_id)
+    completion = get_aree_fix_basic(int(message_id))
     return jsonify({"completion": completion})
