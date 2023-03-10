@@ -10,6 +10,7 @@ from src.ml.models import (
     GNLPModelType,
     ModelProvider,
 )
+from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
 import regex as rx
 import re
 
@@ -186,3 +187,27 @@ def contains_profane_word(text: str):
         return False, []
 
     return True, matches
+
+
+def get_aree_fix_basic(message_id: int) -> str:
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    problems = message.problems
+    if not problems:
+        return message.completion
+
+    completion = message.completion.strip()
+
+    prompt = f"message: {completion}\n\nproblems:\n"
+    for p in problems:
+        prompt += f"- {p}\n"
+    prompt += "\ninstruction: Given the message and a list of problems identified in the message, please fix the message. Make as few changes as possible.\n\n"
+    prompt += "revised message:"
+
+    print(prompt)
+    fixed_completion = wrapped_create_completion(
+        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        prompt=prompt,
+        temperature=0,
+    )
+
+    return fixed_completion

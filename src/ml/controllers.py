@@ -7,6 +7,7 @@ from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
     get_fine_tune_timeline,
     initiate_fine_tune_job,
+    get_aree_fix_basic
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -94,3 +95,10 @@ def get_config_completion_endpoint():
     response, few_shot_prompt = get_config_completion(configuration, prompt)
 
     return jsonify({"response": response, "few_shot_prompt": few_shot_prompt})
+
+
+@ML_BLUEPRINT.route("/get_aree_fix/<message_id>", methods=["GET"])
+def get_aree_fix_endpoint(message_id):
+    # THIS NEEDS TO BE AUTHENTICATED EVENTUALLY
+    completion = get_aree_fix_basic(message_id)
+    return jsonify({"completion": completion})

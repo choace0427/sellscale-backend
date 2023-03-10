@@ -2,6 +2,7 @@ from app import db, app
 from test_utils import (
     test_app,
     basic_client,
+    basic_client_sdr,
     basic_archetype,
     basic_generated_message,
     basic_gnlp_model,
@@ -17,6 +18,7 @@ from src.ml.services import (
     create_upload_jsonl_file,
     initiate_fine_tune_job,
     check_statuses_of_fine_tune_jobs,
+    get_aree_fix_basic
 )
 from model_import import GNLPModelFineTuneJobs
 
@@ -69,3 +71,28 @@ def test_get_fine_tune_statuses(fine_tune_retrieve_mock):
 
     check_statuses_of_fine_tune_jobs()
     assert fine_tune_retrieve_mock.call_count == 1
+
+
+@use_app_context
+@mock.patch("src.ml.services.wrapped_create_completion", return_value="test")
+def test_get_aree_fix_basic(create_completion_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    gnlp_model = basic_gnlp_model(archetype)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message_id = generated_message.id
+
+    # No problems
+    response = get_aree_fix_basic(generated_message.id)
+    assert create_completion_mock.call_count == 0
+    assert response == generated_message.completion
+
+    # Has problems
+    generated_message.problems = ["problem1", "problem2"]
+    db.session.add(generated_message)
+    db.session.commit()
+    response = get_aree_fix_basic(generated_message_id)
+    assert create_completion_mock.call_count == 1
+    assert response == "test"
