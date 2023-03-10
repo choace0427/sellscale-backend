@@ -191,6 +191,8 @@ def contains_profane_word(text: str):
 
 def get_aree_fix_basic(message_id: int) -> str:
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    if not message:
+        return "Message not found"
     problems = message.problems
     if not problems:
         return message.completion
