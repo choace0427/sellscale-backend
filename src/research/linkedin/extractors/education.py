@@ -38,8 +38,8 @@ def get_common_education(data: dict, client_sdr_id: int) -> dict:
 
     for prospect_education in prospect_education_list:
         school = deep_get(prospect_education, "school.name")
-        start_date = deep_get(prospect_education, "date.start")
-        end_date = deep_get(prospect_education, "date.end")
+        start_date = deep_get(prospect_education, "date.start.year")
+        end_date = deep_get(prospect_education, "date.end.year")
 
         if not school:
             continue

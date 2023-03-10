@@ -47,8 +47,12 @@ def test_get_common_education():
                         "name": "University of California, Los Angeles"
                     },
                     "date": {
-                        "start": "2015",
-                        "end": "2019"
+                        "start": {
+                            "year": "2015"
+                        },
+                        "end": {
+                            "year": "2019"
+                        }
                     }
                 }
             ]
@@ -68,8 +72,12 @@ def test_get_common_education():
                         "name": "University of California, Berkeley"
                     },
                     "date": {
-                        "start": "2015",
-                        "end": "2019"
+                        "start": {
+                            "year": "2015"
+                        },
+                        "end": {
+                            "year": "2019"
+                        }
                     }
                 }
             ]
