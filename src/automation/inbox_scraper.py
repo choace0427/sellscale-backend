@@ -166,6 +166,8 @@ def scrape_inbox(client_sdr_id: int):
     if not client_sdr:
         return False
 
+    client_sdr_name = client_sdr.name
+
     pb_config = get_inbox_scraper_config(client_sdr_id=client_sdr_id)
     if not pb_config:
         return False
@@ -178,10 +180,10 @@ def scrape_inbox(client_sdr_id: int):
         s3Folder=s3Folder, orgS3Folder=orgS3Folder
     )
 
-    deep_scrape_count = process_inbox(message_payload=data_payload, client_sdr_id=client_sdr.id)
+    deep_scrape_count = process_inbox(message_payload=data_payload, client_sdr_id=client_sdr_id)
 
     send_slack_message(
-        message='🔎 Finished basic scrape for SDR {name} (#{id}). Number of conversations to be deeply scraped: {count}'.format(name=client_sdr.name, id=client_sdr.id, count=deep_scrape_count),
+        message='🔎 Finished basic scrape for SDR {name} (#{id}). Number of conversations to be deeply scraped: {count}'.format(name=client_sdr_name, id=client_sdr_id, count=deep_scrape_count),
         webhook_urls=[URL_MAP['eng-sandbox']]
     )
     return True
