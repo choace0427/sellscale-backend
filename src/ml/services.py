@@ -210,6 +210,7 @@ def get_aree_fix_basic(message_id: int) -> str:
         model=CURRENT_OPENAI_DAVINCI_MODEL,
         prompt=prompt,
         temperature=0,
+        max_tokens=len(completion)+10,
     )
 
     return fixed_completion
