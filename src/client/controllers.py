@@ -26,6 +26,7 @@ from src.client.services import (
     get_client_sdr,
     get_prospect_upload_stats_by_upload_id,
     get_prospect_upload_details_by_upload_id,
+    get_transformers_by_archetype_id,
     get_all_uploads_by_archetype_id,
     toggle_client_sdr_autopilot_enabled,
 )
@@ -530,6 +531,17 @@ def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
         ),
         200,
     )
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/transformers", methods=["GET"])
+@require_user
+def get_transformers(client_sdr_id: int, archetype_id: int):
+    """Gets transformers stats for an archetype"""
+
+    result = get_transformers_by_archetype_id(client_sdr_id, archetype_id)
+
+    return jsonify(result), result.get('status_code')
+
 
 @CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/all_uploads", methods=["GET"])
 @require_user

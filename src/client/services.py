@@ -647,6 +647,65 @@ def get_prospect_upload_stats_by_upload_id(client_sdr_id: int, prospect_uploads_
     return {"message": "Success", "status_code": 200, "stats": upload_stats}
 
 
+
+def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
+    """Gets all transformers belonging to an Archetype, alongside stats.
+
+    This function is authenticated.
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        archetype_id (int): ID of the archetype
+
+    Returns:
+        dict: Dict containing the transformer stats
+    """
+
+    # Validate parameters
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return {'message': 'Archetype not found', "status_code": 404}
+    elif archetype.client_id != client_sdr.client_id:
+        return {'message': 'Not authorized', "status_code": 401}
+
+    # Get transformer stats
+    transformer_stats = db.session.execute(
+        """
+        select 
+          client_archetype.archetype,
+          research_point.research_point_type,
+          count(distinct prospect.id) num_prospects,
+          count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') num_accepted_prospects,
+          count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') / cast(count(distinct prospect.id) as float) percent_accepted
+        from prospect 
+          join client_archetype on client_archetype.id = prospect.archetype_id
+          join generated_message on generated_message.prospect_id = prospect.id
+          join research_point on research_point.id = any(generated_message.research_points)
+          join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        where prospect.archetype_id = {archetype_id}
+        group by 1,2
+        order by 5 desc
+        """.format(
+          archetype_id=archetype_id,
+        )
+      ).fetchall()
+
+    # index to column
+    column_map = {
+      0: 'archetype',
+      1: 'research_point_type',
+      2: 'num_prospects',
+      3: 'num_accepted_prospects',
+      4: 'percent_accepted',
+    }
+
+    # Convert and format output
+    transformer_stats = [{column_map.get(i, 'unknown'): value for i, value in enumerate(tuple(row))} for row in transformer_stats]
+
+    return {"message": "Success", "status_code": 200, "stats": transformer_stats}
+
+
 def get_prospect_upload_details_by_upload_id(client_sdr_id: int, prospect_uploads_raw_csv_id: int) -> dict:
     """Get the individual prospect details of the prospect upload
 
