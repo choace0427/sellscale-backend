@@ -9,12 +9,13 @@ from datetime import datetime
 from tqdm import tqdm
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message
-
+import pdb
 
 def update_linkedin_conversation_entries():
     """
     Update the LinkedinConversationEntry table with new entries
     """
+    pdb.set_trace()
     LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID = 3365881184675991
     p: PhantomBusterAgent = PhantomBusterAgent(LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
     data = p.get_output()
@@ -26,6 +27,9 @@ def update_linkedin_conversation_entries():
 
         messages = conversation_obj.get("messages")
         all_messages = all_messages + messages
+    print('here')
+    print(all_messages)
+
 
     bulk_objects = []
     for message in tqdm(all_messages):
@@ -179,9 +183,9 @@ def run_next_client_sdr_scrape():
 def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
     query = """
         with d as (
-            select 
+            select
                 *
-            from linkedin_conversation_entry 
+            from linkedin_conversation_entry
             where conversation_url = '{conversation_url}'
             order by date desc
             limit 10
@@ -238,3 +242,50 @@ def wizard_of_oz_send_li_message(
         ),
         webhook_urls=[URL_MAP["operations-csm-mailman"]],
     )
+
+
+def backfill_all_prospects():
+    data = db.session.execute(
+        """
+        SELECT
+            prospect.id,
+            prospect.full_name,
+            prospect.status,
+            prospect.li_should_deep_scrape,
+            client_sdr.name,
+            client_sdr.id client_sdr_id,
+            prospect.li_should_deep_scrape,
+            prospect.li_conversation_thread_id,
+            count(DISTINCT linkedin_conversation_entry.id)
+        FROM
+            prospect
+            LEFT JOIN client_sdr ON client_sdr.id = prospect.client_sdr_id
+            LEFT JOIN client ON client.id = client_sdr.client_id
+            LEFT JOIN linkedin_conversation_entry ON linkedin_conversation_entry.conversation_url = prospect.li_conversation_thread_id
+        WHERE
+            prospect.li_conversation_thread_id IS NOT NULL
+            AND client.active
+        GROUP BY
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        HAVING
+            count(DISTINCT linkedin_conversation_entry.id) = 0;
+    """
+    ).fetchall()
+    prospects = []
+    client_sdr_id_set = set()
+    for row in tqdm(data):
+        id = row[0]
+        p = Prospect.query.get(id)
+        p.li_should_deep_scrape = True
+        prospects.append(p)
+        client_sdr_id_set.add(row[5])
+    db.session.bulk_save_objects(prospects)
+    db.session.commit()
+    for client_sdr_id in client_sdr_id_set:
+        print('updating client_sdr_id: ', client_sdr_id)
+        update_li_conversation_extractor_phantom(client_sdr_id)
