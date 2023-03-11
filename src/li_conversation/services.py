@@ -9,13 +9,12 @@ from datetime import datetime
 from tqdm import tqdm
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message
-import pdb
+
 
 def update_linkedin_conversation_entries():
     """
     Update the LinkedinConversationEntry table with new entries
     """
-    pdb.set_trace()
     LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID = 3365881184675991
     p: PhantomBusterAgent = PhantomBusterAgent(LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
     data = p.get_output()
@@ -27,9 +26,6 @@ def update_linkedin_conversation_entries():
 
         messages = conversation_obj.get("messages")
         all_messages = all_messages + messages
-    print('here')
-    print(all_messages)
-
 
     bulk_objects = []
     for message in tqdm(all_messages):
