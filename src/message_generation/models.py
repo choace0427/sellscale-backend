@@ -35,6 +35,7 @@ class GeneratedMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    outbound_campaign_id = db.Column(db.Integer, db.ForeignKey("outbound_campaign.id"), nullable=True)
     gnlp_model_id = db.Column(
         db.Integer, db.ForeignKey("gnlp_models.id"), nullable=True
     )
@@ -130,6 +131,17 @@ class GeneratedMessageJob(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     batch_id = db.Column(db.String, nullable=True)
+
+    status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
+    error_message = db.Column(db.String, nullable=True)
+
+
+class GeneratedMessageJobQueue(db.Model):
+    __tablename__ = "generated_message_job_queue"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    outbound_campaign_id = db.Column(db.Integer, db.ForeignKey("outbound_campaign.id"))
 
     status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
     error_message = db.Column(db.String, nullable=True)
