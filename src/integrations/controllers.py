@@ -47,7 +47,7 @@ def post_vessel_link_token():
 @INTEGRATION_BLUEPRINT.route("/vessel/exchange-link-token", methods=['POST'])
 @require_user
 def post_vessel_exchange_link_token(client_sdr_id: int):
-    public_token = get_request_parameter("publicToken", json=True, required=True)
+    public_token = get_request_parameter("publicToken", request, json=True, required=True)
     client_sdr = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
     client: Client = Client.query.get(client_id)
