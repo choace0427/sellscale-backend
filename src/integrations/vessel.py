@@ -8,11 +8,13 @@ from model_import import (
     ProspectEmail,
     GeneratedMessage,
     ProspectEmailStatus,
+    VesselAPICachedResponses,
 )
 from typing import Optional
 from app import db, celery
 from tqdm import tqdm
 from src.email_outbound.services import get_approved_prospect_email_by_id
+from datetime import datetime, timedelta
 
 VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
 
@@ -338,6 +340,11 @@ class SalesEngagementIntegration:
         """
         Get all emails for a Sales Engagement contact
         """
+        cached_resp = find_vessel_cached_response(
+            self.vessel_access_token, str(contact_id), str(sequence_id)
+        )
+        if cached_resp:
+            return cached_resp
         url = f"{self.vessel_api_url}/engagement/emails/search"
         response = requests.post(
             url,
@@ -351,7 +358,14 @@ class SalesEngagementIntegration:
             },
         )
         if "emails" in response.json():
-            return response.json()["emails"]
+            resp = response.json()["emails"]
+            create_vessel_cached_response(
+                vessel_access_token=self.vessel_access_token,
+                contact_id=str(contact_id),
+                sequence_id=str(sequence_id),
+                response_json=resp
+            )
+            return resp
         else:
             return []
 
@@ -398,3 +412,40 @@ def sync_sales_engagement_contact_id_to_prospect(client_id: int, prospect_id: in
             prospect.vessel_contact_id = contact_id
             db.session.add(prospect)
             db.session.commit()
+
+
+def create_vessel_cached_response(
+    vessel_access_token: str,
+    contact_id: Optional[str] = None,
+    sequence_id: Optional[str] = None,
+    response_json: object = {},
+):
+    resp: VesselAPICachedResponses = VesselAPICachedResponses(
+        vessel_access_token=vessel_access_token, 
+        contact_id=contact_id, 
+        sequence_id=sequence_id, 
+        response_json=response_json
+    )
+    db.session.add(resp)
+    db.session.commit()
+
+
+def find_vessel_cached_response(
+    vessel_access_token: str,
+    contact_id: Optional[str] = None,
+    sequence_id: Optional[str] = None,
+    cache_duration: int = 2,  # number of days to look back
+):
+    query = VesselAPICachedResponses.query
+    if contact_id:
+        query = query.filter(VesselAPICachedResponses.contact_id == contact_id)
+    if sequence_id:
+        query = query.filter(VesselAPICachedResponses.sequence_id == sequence_id)
+    query = query.filter(
+        VesselAPICachedResponses.created_at
+        > datetime.now() - timedelta(days=cache_duration)
+    )
+    resp = query.first()
+    if resp:
+        return resp.response_json
+    return None

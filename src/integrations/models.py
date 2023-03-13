@@ -18,3 +18,14 @@ class VesselSequences(db.Model):
     access_token = db.Column(db.String, nullable=False)
     sequence_id = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
+
+
+class VesselAPICachedResponses(db.Model):
+    __tablename__ = "vessel_api_cached_responses"
+
+    id = db.Column(db.Integer, primary_key=True)
+    vessel_access_token = db.Column(db.String, nullable=False)
+    contact_id = db.Column(db.String, nullable=True)
+    sequence_id = db.Column(db.String, nullable=True)
+
+    response_json = db.Column(db.JSON, nullable=True)
