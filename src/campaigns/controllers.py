@@ -26,6 +26,7 @@ from src.campaigns.services import (
     update_campaign_cost,
     update_campaign_receipt_link,
     send_email_campaign_from_sales_engagement,
+    wipe_campaign_generations,
 )
 from src.authentication.decorators import require_user
 
@@ -402,3 +403,20 @@ def post_send_campaign_via_sales_engagement():
         campaign_id=campaign_id, sequence_id=sequence_id
     )
     return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/<campaign_id>/reset", methods=["POST"])
+@require_user
+def post_reset_campaign(client_sdr_id: int, campaign_id: int):
+    """Reset the given campaign."""
+
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign or campaign.client_sdr_id != client_sdr_id:
+        return jsonify({"message": 'Campaign not found'}), 400
+
+    wipe_campaign_generations.apply_async(
+        args=[campaign_id],
+        priority=2
+    )
+    
+    return jsonify({"message": 'Starting campaign reset'}), 200

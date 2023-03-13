@@ -1097,6 +1097,7 @@ def get_linkedin_campaign_analytics():
     return "Not yet implemented"
 
 
+@celery.task
 def wipe_campaign_generations(campaign_id: int):
     """Wipes all messages generations for a campaign
 
