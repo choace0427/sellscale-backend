@@ -350,7 +350,10 @@ class SalesEngagementIntegration:
                 },
             },
         )
-        return response.json()["emails"]
+        if "emails" in response.json():
+            return response.json()["emails"]
+        else:
+            return []
 
     def get_email_by_id(self, email_id):
         """
