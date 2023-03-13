@@ -109,7 +109,9 @@ def run_message_rule_engine(message_id: int):
     rule_no_profanity(completion, problems, highlighted_words)
     rule_no_url(completion, problems, highlighted_words)
     rule_linkedin_length(message.message_type, completion, problems, highlighted_words)
-    rule_address_doctor(prompt, completion, problems, highlighted_words)
+
+    if message.message_type == GeneratedMessageType.LINKEDIN: # Only apply this rule to LinkedIn messages
+        rule_address_doctor(prompt, completion, problems, highlighted_words)
 
     # Warnings
     rule_no_cookies(completion, problems, highlighted_words)
