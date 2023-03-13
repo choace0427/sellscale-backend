@@ -273,15 +273,10 @@ def backfill_all_prospects():
     """
     ).fetchall()
     prospects = []
-    client_sdr_id_set = set()
     for row in tqdm(data):
         id = row[0]
         p = Prospect.query.get(id)
         p.li_should_deep_scrape = True
         prospects.append(p)
-        client_sdr_id_set.add(row[5])
     db.session.bulk_save_objects(prospects)
     db.session.commit()
-    for client_sdr_id in client_sdr_id_set:
-        print('updating client_sdr_id: ', client_sdr_id)
-        update_li_conversation_extractor_phantom(client_sdr_id)
