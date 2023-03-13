@@ -62,6 +62,7 @@ def post_vessel_exchange_link_token(client_sdr_id: int):
     access_token = data["accessToken"]
 
     client.vessel_access_token = access_token
+    client.vessel_sales_engagement_connection_id = connection_id
     db.session.add(client)
     db.session.commit()
 
