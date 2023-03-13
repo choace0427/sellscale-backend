@@ -30,7 +30,9 @@ class Client(db.Model):
     monthly_revenue = db.Column(db.Integer, nullable=True)
     seat_expansion_opportunity = db.Column(db.Integer, nullable=True)
 
-    vessel_access_token = db.Column(db.String, nullable=True)
+    vessel_access_token = db.Column(db.String, nullable=True) # access token for sales engagement
+    vessel_sales_engagement_connection_id = db.Column(db.String, nullable=True) # connection id for sales engagement connection 
+
     vessel_crm_access_token = db.Column(db.String, nullable=True)
     vessel_personalization_field_name = db.Column(db.String, nullable=True)
 
