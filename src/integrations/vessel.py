@@ -336,7 +336,9 @@ class SalesEngagementIntegration:
             db.session.add(prospect_email)
             db.session.commit()
 
-    def get_emails_for_contact(self, contact_id, sequence_id=None):
+    def get_emails_for_contact(
+        self, contact_id, sequence_id=None, do_not_hit_api: bool = False
+    ):
         """
         Get all emails for a Sales Engagement contact
         """
@@ -345,6 +347,8 @@ class SalesEngagementIntegration:
         )
         if cached_resp:
             return cached_resp
+        if do_not_hit_api:
+            return []
         url = f"{self.vessel_api_url}/engagement/emails/search"
         response = requests.post(
             url,
@@ -363,7 +367,7 @@ class SalesEngagementIntegration:
                 vessel_access_token=self.vessel_access_token,
                 contact_id=str(contact_id),
                 sequence_id=str(sequence_id),
-                response_json=resp
+                response_json=resp,
             )
             return resp
         else:
@@ -423,16 +427,16 @@ def create_vessel_cached_response(
     existing_entry = find_vessel_cached_response(
         vessel_access_token=vessel_access_token,
         contact_id=contact_id,
-        sequence_id=sequence_id
+        sequence_id=sequence_id,
     )
     if existing_entry:
         return
 
     resp: VesselAPICachedResponses = VesselAPICachedResponses(
-        vessel_access_token=vessel_access_token, 
-        contact_id=contact_id, 
-        sequence_id=sequence_id, 
-        response_json=response_json
+        vessel_access_token=vessel_access_token,
+        contact_id=contact_id,
+        sequence_id=sequence_id,
+        response_json=response_json,
     )
     db.session.add(resp)
     db.session.commit()

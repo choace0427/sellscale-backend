@@ -74,6 +74,7 @@ def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
         client_id=client_id, client_sdr_id=client_sdr_id, prospects=prospects
     )
 
+
 def backfill_analytics_information(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
@@ -87,15 +88,15 @@ def backfill_analytics_information(client_sdr_id: int):
         contact_id = prospect.vessel_contact_id
         sequence_id = prospect_email.vessel_sequence_id
         get_emails_for_contact_async.delay(
-            client_id=client_id,
-            contact_id=contact_id,
-            sequence_id=sequence_id
+            client_id=client_id, contact_id=contact_id, sequence_id=sequence_id
         )
+
 
 @celery.task
 def get_emails_for_contact_async(client_id, contact_id, sequence_id):
     sei = SalesEngagementIntegration(client_id)
     emails = sei.get_emails_for_contact(contact_id, sequence_id)
+
 
 def process_analytics_for_prospects(
     client_id: int, client_sdr_id: int, prospects: list
@@ -107,7 +108,9 @@ def process_analytics_for_prospects(
         prospect_email: ProspectEmail = entry[1]
         contact_id = prospect.vessel_contact_id
         sequence_id = prospect_email.vessel_sequence_id
-        emails = sei.get_emails_for_contact(contact_id, sequence_id)
+        emails = sei.get_emails_for_contact(
+            contact_id=contact_id, sequence_id=sequence_id, do_not_hit_api=True
+        )
         open_count = 0
         click_count = 0
         reply_count = 0
