@@ -30,7 +30,7 @@ def get_prospects_to_collect_analytics_for(client_sdr_id: int) -> list:
         )
         .filter(
             ProspectEmail.vessel_sequence_id.isnot(None),
-            # ProspectEmail.updated_at < datetime.now() - timedelta(hours=48),
+            # ProspectEmail.updated_at < datetime.now() - timedelta(hours=24 * 7),
         )
         .all()
     )
@@ -67,9 +67,12 @@ def create_vessel_engagement_ss_raw(client_sdr_id: int) -> tuple[bool, str]:
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return False, "Client SDR not found"
+    client_id = client_sdr.client_id
 
     prospects = get_prospects_to_collect_analytics_for(client_sdr_id)
-    process_analytics_for_prospects(client_sdr_id, client_sdr_id, prospects)
+    process_analytics_for_prospects(
+        client_id=client_id, client_sdr_id=client_sdr_id, prospects=prospects
+    )
 
 
 def process_analytics_for_prospects(
