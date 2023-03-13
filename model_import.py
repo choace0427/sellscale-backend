@@ -61,3 +61,4 @@ from src.daily_notifications.models import (
     NotificationStatus,
 )
 from src.integrations.models import VesselMailboxes, VesselSequences, VesselAPICachedResponses
+from src.integrations.vessel_analytics_job import get_emails_for_contact_async

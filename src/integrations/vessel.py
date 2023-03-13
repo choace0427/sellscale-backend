@@ -420,6 +420,14 @@ def create_vessel_cached_response(
     sequence_id: Optional[str] = None,
     response_json: object = {},
 ):
+    existing_entry = find_vessel_cached_response(
+        vessel_access_token=vessel_access_token,
+        contact_id=contact_id,
+        sequence_id=sequence_id
+    )
+    if existing_entry:
+        return
+
     resp: VesselAPICachedResponses = VesselAPICachedResponses(
         vessel_access_token=vessel_access_token, 
         contact_id=contact_id, 
