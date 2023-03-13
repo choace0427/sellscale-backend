@@ -8,7 +8,6 @@ import os
 import requests
 from src.authentication.decorators import require_user
 
-
 INTEGRATION_BLUEPRINT = Blueprint("integration", __name__)
 
 
@@ -58,13 +57,16 @@ def post_vessel_exchange_link_token(client_sdr_id: int):
         "publicToken": public_token
     }, headers=headers)
     data = response.json()
-    connection_id = data["connectionId"]
-    access_token = data["accessToken"]
+    if 'connectionId' in data:
+        connection_id = data["connectionId"]
+        access_token = data["accessToken"]
 
-    client.vessel_access_token = access_token
-    client.vessel_sales_engagement_connection_id = connection_id
-    db.session.add(client)
-    db.session.commit()
+        client.vessel_access_token = access_token
+        client.vessel_sales_engagement_connection_id = connection_id
+        db.session.add(client)
+        db.session.commit()
 
-    return 'OK', 200
+        return 'OK', 200
+    
+    return jsonify(data)
     
