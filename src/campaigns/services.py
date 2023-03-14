@@ -366,7 +366,9 @@ def generate_campaign(campaign_id: int):
 
     if campaign.client_sdr_id == 25 or campaign.client_sdr_id == 1:
         if campaign.campaign_type == GeneratedMessageType.EMAIL:
-            create_and_start_email_generation_jobs(prospect_ids=campaign.prospect_ids, campaign_id=campaign_id)
+            create_and_start_email_generation_jobs(
+                prospect_ids=campaign.prospect_ids, campaign_id=campaign_id
+            )
             return
 
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
@@ -688,27 +690,30 @@ def email_analytics(client_sdr_id: int) -> dict:
         group by 3,4,5
         order by count(distinct prospect.company) filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_LOST', 'DEMO_WON')) desc;
         """.format(
-          client_sdr_id=client_sdr_id
+            client_sdr_id=client_sdr_id
         )
-      ).fetchall()
+    ).fetchall()
 
     # index to column
     column_map = {
-      0: 'num_demos',
-      1: 'sequence_name',
-      2: 'campaign_id',
-      3: 'campaign_start_date',
-      4: 'campaign_end_date',
-      5: 'num_prospects',
-      6: 'demos',
-      7: 'replies',
-      8: 'open_percent',
-      9: 'reply_percent',
-      10: 'demo_percent',
+        0: "num_demos",
+        1: "sequence_name",
+        2: "campaign_id",
+        3: "campaign_start_date",
+        4: "campaign_end_date",
+        5: "num_prospects",
+        6: "demos",
+        7: "replies",
+        8: "open_percent",
+        9: "reply_percent",
+        10: "demo_percent",
     }
 
     # Convert and format output
-    results = [{column_map.get(i, 'unknown'): value for i, value in enumerate(tuple(row))} for row in results]
+    results = [
+        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        for row in results
+    ]
 
     return {"message": "Success", "status_code": 200, "data": results}
 
@@ -1180,10 +1185,10 @@ def wipe_campaign_generations(campaign_id: int):
     prospect_ids = campaign.prospect_ids
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
         for p_id in tqdm(prospect_ids):
-            wipe_prospect_email_and_generations_and_research(p_id)
+            wipe_prospect_email_and_generations_and_research.delay(p_id)
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
         for p_id in tqdm(prospect_ids):
-            reset_prospect_research_and_messages(p_id)
+            reset_prospect_research_and_messages.delay(p_id)
 
 
 @celery.task

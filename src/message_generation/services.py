@@ -133,7 +133,9 @@ def update_generated_message_job_status(
 
 
 def update_generated_message_job_queue_status(
-    gm_job_id: int, status: GeneratedMessageJobStatus, error_message: Optional[str] = None
+    gm_job_id: int,
+    status: GeneratedMessageJobStatus,
+    error_message: Optional[str] = None,
 ) -> bool:
     """Updates the status of a GeneratedMessageJobQueue job
 
@@ -145,9 +147,7 @@ def update_generated_message_job_queue_status(
     Returns:
         bool: True if the job was updated, False otherwise
     """
-    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(
-        gm_job_id
-    )
+    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
     if gm_job:
         gm_job.status = status.value
         gm_job.error_message = error_message
@@ -668,13 +668,16 @@ def batch_generate_prospect_emails(prospect_ids: list):
             gm_job_id=gm_job_id,
         )
 
+
 @celery.task(bind=True, max_retries=3)
 def create_and_start_email_generation_jobs(self, prospect_ids: list, campaign_id: int):
     try:
         for prospect_id in prospect_ids:
             # Create a generate message job for each prospect
             gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue(
-                prospect_id=prospect_id, outbound_campaign_id=campaign_id, status=GeneratedMessageJobStatus.PENDING
+                prospect_id=prospect_id,
+                outbound_campaign_id=campaign_id,
+                status=GeneratedMessageJobStatus.PENDING,
             )
             gm_job_id = gm_job.id
             db.session.add(gm_job)
@@ -686,14 +689,13 @@ def create_and_start_email_generation_jobs(self, prospect_ids: list, campaign_id
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_email(
     self, prospect_id: int, campaign_id: int, gm_job_id: int = None
 ) -> tuple[bool, str]:
     try:
         # Mark the job as in progress
-        update_generated_message_job_status(        #TODO: REMOVE THIS
+        update_generated_message_job_status(  # TODO: REMOVE THIS
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
         )
         update_generated_message_job_queue_status(
@@ -703,11 +705,15 @@ def generate_prospect_email(
         # Check if the prospect exists
         prospect: Prospect = Prospect.query.get(prospect_id)
         if not prospect:
-            update_generated_message_job_status(    #TODO: REMOVE THIS
-                gm_job_id, GeneratedMessageJobStatus.FAILED, error_message="Prospect does not exist"
+            update_generated_message_job_status(  # TODO: REMOVE THIS
+                gm_job_id,
+                GeneratedMessageJobStatus.FAILED,
+                error_message="Prospect does not exist",
             )
             update_generated_message_job_queue_status(
-                gm_job_id, GeneratedMessageJobStatus.FAILED, error_message="Prospect does not exist"
+                gm_job_id,
+                GeneratedMessageJobStatus.FAILED,
+                error_message="Prospect does not exist",
             )
             return (False, "Prospect does not exist")
         archetype_id = prospect.archetype_id
@@ -717,11 +723,15 @@ def generate_prospect_email(
             ProspectEmail.prospect_id == prospect_id,
         ).first()
         if prospect_email:
-            update_generated_message_job_status(      #TODO: REMOVE THIS
-                gm_job_id, GeneratedMessageJobStatus.FAILED, error_message="Prospect already has a prospect_email entry"
+            update_generated_message_job_status(  # TODO: REMOVE THIS
+                gm_job_id,
+                GeneratedMessageJobStatus.FAILED,
+                error_message="Prospect already has a prospect_email entry",
             )
             update_generated_message_job_queue_status(
-                gm_job_id, GeneratedMessageJobStatus.FAILED, error_message="Prospect already has a prospect_email entry"
+                gm_job_id,
+                GeneratedMessageJobStatus.FAILED,
+                error_message="Prospect already has a prospect_email entry",
             )
             return (False, "Prospect already has a prospect_email entry")
 
@@ -744,7 +754,7 @@ def generate_prospect_email(
             prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
             if len(research_points) == 0:
-                update_generated_message_job_status(    #TODO: REMOVE THIS
+                update_generated_message_job_status(  # TODO: REMOVE THIS
                     gm_job_id, GeneratedMessageJobStatus.FAILED, "No research points"
                 )
                 update_generated_message_job_queue_status(
@@ -774,7 +784,7 @@ def generate_prospect_email(
                 )
                 is_first_email = False
     except Exception as e:
-        update_generated_message_job_status(    #TODO: REMOVE ME
+        update_generated_message_job_status(  # TODO: REMOVE ME
             gm_job_id, GeneratedMessageJobStatus.FAILED, str(e)
         )
         update_generated_message_job_queue_status(
@@ -782,7 +792,9 @@ def generate_prospect_email(
         )
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
-    update_generated_message_job_queue_status(gm_job_id, GeneratedMessageJobStatus.COMPLETED)
+    update_generated_message_job_queue_status(
+        gm_job_id, GeneratedMessageJobStatus.COMPLETED
+    )
     return (True, "Success")
 
 
@@ -954,6 +966,7 @@ def mark_prospect_email_sent(prospect_email_id: int):
     )
 
 
+@celery.task
 def wipe_prospect_email_and_generations_and_research(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if (
