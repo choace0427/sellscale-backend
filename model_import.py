@@ -28,6 +28,7 @@ from src.message_generation.models import (
     GeneratedMessageType,
     GeneratedMessageFeedback,
     GeneratedMessageJob,
+    GeneratedMessageJobQueue,
     GeneratedMessageJobStatus,
     GeneratedMessageInstruction,
     GeneratedMessageEditRecord,

@@ -27,6 +27,7 @@ from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
     generate_outreaches_for_prospect_list_from_multiple_ctas,
     batch_generate_prospect_emails,
+    create_and_start_email_generation_jobs,
 )
 from src.research.linkedin.services import reset_prospect_research_and_messages
 from src.message_generation.services_few_shot_generations import (
@@ -362,6 +363,11 @@ def generate_campaign(campaign_id: int):
     )
     db.session.add(campaign)
     db.session.commit()
+
+    if campaign.client_sdr_id == 25 or campaign.client_sdr_id == 1:
+        if campaign.campaign_type == GeneratedMessageType.EMAIL:
+            create_and_start_email_generation_jobs(prospect_ids=campaign.prospect_ids)
+            return
 
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
         batch_generate_prospect_emails(prospect_ids=campaign.prospect_ids)

@@ -223,11 +223,15 @@ def patch_batch_update_campaign_editing_attributes():
     return "Failed to update", 400
 
 
-@CAMPAIGN_BLUEPRINT.route("/generate", methods=["POST"])
-def post_generate_campaigns():
-    campaign_id = get_request_parameter(
-        "campaign_id", request, json=True, required=True
-    )
+@CAMPAIGN_BLUEPRINT.route("/<campaign_id>/generate", methods=["POST"])
+@require_user
+def post_generate_campaigns(client_sdr_id: int, campaign_id: int):
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        return jsonify({"error": "Campaign not found"}), 404
+    if campaign.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "Unauthorized: this campaign does not belong to this user."}), 401
+
     generate_campaign(campaign_id=campaign_id)
     return "OK", 200
 
@@ -419,7 +423,7 @@ def post_reset_campaign(client_sdr_id: int, campaign_id: int):
         args=[campaign_id],
         priority=2
     )
-    
+
     return jsonify({"message": 'Starting campaign reset'}), 200
 
 
