@@ -868,7 +868,7 @@ def generate_new_email_content_for_approved_email(prospect_id: int):
             prompt=new_prompt,
             research_points=new_research_points,
             prospect_id=prospect_id,
-            batch_id=gm.batch_id,
+            outbound_campaign_id=gm.outbound_campaign_id,
             config=new_config,
         )
         email.personalized_first_line = new_personalized_line.id
