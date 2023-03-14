@@ -95,7 +95,7 @@ def post_linkedin_credentials(client_sdr_id: int):
     client: Client = Client.query.get(client_id)
 
     send_slack_message(
-        message="**New Credentials Submit**\nFor {client_sdr_name} from {client_company} :tada:\n_Username:_ {username}\n_Password:_ {password}\n\nPlease delete this message once transferred to 1password.".format(
+        message="*New Credentials Submit*\nFor {client_sdr_name} from {client_company} :tada:\n\n_Username:_ {username}\n_Password:_ {password}\n\n_Please delete this message once transferred to 1password._".format(
           client_sdr_name=client_sdr.name,
           client_company=client.company,
           username=username,
