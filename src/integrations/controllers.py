@@ -7,6 +7,8 @@ from src.integrations.vessel import SalesEngagementIntegration
 import os
 import requests
 from src.authentication.decorators import require_user
+from src.utils.slack import send_slack_message
+from src.utils.slack import URL_MAP
 
 INTEGRATION_BLUEPRINT = Blueprint("integration", __name__)
 
@@ -80,3 +82,26 @@ def get_vessel_sales_engagement_connection(client_sdr_id: int):
     if client and client.vessel_access_token:
         connected = True
     return jsonify({'connected': connected})
+
+
+@INTEGRATION_BLUEPRINT.route("/linkedin/send-credentials", methods=["POST"])
+@require_user
+def post_linkedin_credentials(client_sdr_id: int):
+    username = get_request_parameter("username", request, json=True, required=True)
+    password = get_request_parameter("password", request, json=True, required=True)
+
+    client_sdr = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    client: Client = Client.query.get(client_id)
+
+    send_slack_message(
+        message="**New Credentials Submit**\nFor {client_sdr_name} from {client_company} :tada:\n_Username:_ {username}\n_Password:_ {password}\n\nPlease delete this message once transferred to 1password.".format(
+          client_sdr_name=client_sdr.name,
+          client_company=client.company,
+          username=username,
+          password=password
+        ),
+        webhook_urls=[URL_MAP["linkedin-credentials"]],
+    )
+
+    return jsonify({"message": 'Sent credentials'}), 200
