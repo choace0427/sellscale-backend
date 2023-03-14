@@ -248,6 +248,10 @@ def generate_batch_of_research_points_from_config(
         prospect_id=prospect_id
     )
 
+    # If there are no research points, return an empty list
+    if not all_research_points or len(all_research_points) == 0:
+        return []
+
     if not config:
         return generate_batches_of_research_points(
             points=all_research_points, n=n, num_per_perm=2
