@@ -366,7 +366,7 @@ def generate_campaign(campaign_id: int):
 
     if campaign.client_sdr_id == 25 or campaign.client_sdr_id == 1:
         if campaign.campaign_type == GeneratedMessageType.EMAIL:
-            create_and_start_email_generation_jobs(prospect_ids=campaign.prospect_ids)
+            create_and_start_email_generation_jobs(prospect_ids=campaign.prospect_ids, campaign_id=campaign_id)
             return
 
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
@@ -665,11 +665,11 @@ def email_analytics(client_sdr_id: int) -> dict:
     # Get data about email analytics
     results = db.session.execute(
         """
-        select 
+        select
           count(distinct prospect.company) filter (where prospect.overall_status in ('DEMO')) num_demos,
           max(vessel_sequences.name) sequence_name,
           outbound_campaign.id campaign_id,
-          outbound_campaign.campaign_start_date, 
+          outbound_campaign.campaign_start_date,
           outbound_campaign.campaign_end_date,
           count(distinct prospect.id) num_prospects,
           concat('(', string_agg(distinct prospect.company, '), (') filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_LOST', 'DEMO_WON')), ')') demos,
@@ -677,7 +677,7 @@ def email_analytics(client_sdr_id: int) -> dict:
           round(count(distinct prospect.id) filter (where prospect_email.outreach_status in ('EMAIL_OPENED', 'ACCEPTED', 'ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) / cast(count(distinct prospect.id) as float) * 1000) / 10 open_percent,
           round(count(distinct prospect.id) filter (where prospect_email.outreach_status in ('ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) / cast(count(distinct prospect.id) as float) * 1000) / 10 reply_percent,
           round(count(distinct prospect.id) filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) / cast(count(distinct prospect.id) as float) * 1000) / 10 demo_percent
-        from outbound_campaign	
+        from outbound_campaign
           left join prospect on prospect.id = any(outbound_campaign.prospect_ids)
           left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
           left join client on client.id = prospect.client_id
