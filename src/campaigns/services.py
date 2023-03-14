@@ -366,9 +366,7 @@ def generate_campaign(campaign_id: int):
 
     if campaign.client_sdr_id == 25 or campaign.client_sdr_id == 1:
         if campaign.campaign_type == GeneratedMessageType.EMAIL:
-            create_and_start_email_generation_jobs(
-                prospect_ids=campaign.prospect_ids, campaign_id=campaign_id
-            )
+            create_and_start_email_generation_jobs(campaign_id=campaign_id)
             return
 
     if campaign.campaign_type == GeneratedMessageType.EMAIL:

@@ -13,6 +13,7 @@ from test_utils import (
     basic_prospect_email,
     basic_research_payload,
     basic_research_point,
+    basic_outbound_campaign,
     test_app,
 )
 
@@ -23,6 +24,8 @@ from model_import import (
     GeneratedMessageCTA,
     GeneratedMessageEditRecord,
     GeneratedMessageStatus,
+    GeneratedMessageJobQueue,
+    GeneratedMessageJobStatus,
     ProspectStatus,
 )
 from src.client.services import create_client
@@ -34,6 +37,7 @@ from src.message_generation.services import (
     ResearchPayload,
     ResearchPoints,
     batch_generate_prospect_emails,
+    create_and_start_email_generation_jobs,
     clear_prospect_approved_email,
     create_cta,
     delete_cta,
@@ -994,3 +998,27 @@ def test_get_named_entities_no_return(openai_mock):
     entities = get_named_entities("Sellscale tester - David")
     assert openai_mock.call_count == 1
     assert len(entities) == 0
+
+
+@use_app_context
+@mock.patch("src.message_generation.services.generate_prospect_email.apply_async")
+def test_create_and_start_email_generation_jobs(generate_prospect_email_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    prospect_2 = basic_prospect(client, archetype, client_sdr)
+    prospect_3 = basic_prospect(client, archetype, client_sdr)
+
+    email_campaign = basic_outbound_campaign(
+        prospect_ids=[prospect.id, prospect_2.id, prospect_3.id],
+        campaign_type=GeneratedMessageType.EMAIL,
+        client_archetype=archetype,
+        client_sdr=client_sdr
+    )
+    create_and_start_email_generation_jobs(email_campaign.id)
+    gm_jobs: list[GeneratedMessageJobQueue] = GeneratedMessageJobQueue.query.all()
+    for gm_job in gm_jobs:
+        assert gm_job.status == GeneratedMessageJobStatus.PENDING
+    assert len(gm_jobs) == 3
+    assert generate_prospect_email_mock.call_count == 3
