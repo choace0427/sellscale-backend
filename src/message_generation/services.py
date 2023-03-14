@@ -8,6 +8,7 @@ from model_import import (
     GeneratedMessageStatus,
     ProspectEmail,
     ProspectStatus,
+    OutboundCampaign,
     GeneratedMessageFeedback,
     GeneratedMessageJob,
     GeneratedMessageJobQueue,
@@ -670,8 +671,10 @@ def batch_generate_prospect_emails(prospect_ids: list):
 
 
 @celery.task(bind=True, max_retries=3)
-def create_and_start_email_generation_jobs(self, prospect_ids: list, campaign_id: int):
+def create_and_start_email_generation_jobs(self, campaign_id: int):
     try:
+        campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+        prospect_ids = campaign.prospect_ids
         for prospect_id in prospect_ids:
             # Create a generate message job for each prospect
             gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue(
@@ -679,12 +682,11 @@ def create_and_start_email_generation_jobs(self, prospect_ids: list, campaign_id
                 outbound_campaign_id=campaign_id,
                 status=GeneratedMessageJobStatus.PENDING,
             )
-            gm_job_id = gm_job.id
             db.session.add(gm_job)
             db.session.commit()
 
             # Generate the prospect email
-            generate_prospect_email.apply_async(args=[prospect_id, campaign_id, gm_job_id])
+            generate_prospect_email.apply_async(args=[prospect_id, campaign_id, gm_job.id])
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
 

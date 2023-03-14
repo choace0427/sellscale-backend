@@ -41,7 +41,8 @@ from model_import import (
     GeneratedMessageType,
     LinkedinConversationEntry,
     IScraperPayloadCache,
-    IScraperPayloadType
+    IScraperPayloadType,
+    GeneratedMessageJobQueue,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -76,6 +77,7 @@ def test_app():
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
+        clear_all_entities(GeneratedMessageJobQueue)
         clear_all_entities(ResponseConfiguration)
         clear_all_entities(GeneratedMessageFeedback)
         clear_all_entities(OutboundCampaign)
