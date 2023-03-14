@@ -239,7 +239,6 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
         info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
         prospect: Prospect = Prospect.query.get(prospect_id)
 
-        str(prospect.company_url)
         archetype_id = prospect.archetype_id
         ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
         blocked_transformers = ca.transformer_blocklist
