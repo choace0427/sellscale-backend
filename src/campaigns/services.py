@@ -370,7 +370,7 @@ def generate_campaign(campaign_id: int):
             return
 
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
-        create_and_start_email_generation_jobs(prospect_ids=campaign.prospect_ids)
+        create_and_start_email_generation_jobs(campaign_id=campaign_id)
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
         generate_outreaches_for_prospect_list_from_multiple_ctas(
             prospect_ids=campaign.prospect_ids,
