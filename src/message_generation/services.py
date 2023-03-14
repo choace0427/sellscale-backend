@@ -684,14 +684,14 @@ def create_and_start_email_generation_jobs(self, prospect_ids: list, campaign_id
             db.session.commit()
 
             # Generate the prospect email
-            generate_prospect_email.apply_async([prospect_id, campaign_id, gm_job_id])
+            generate_prospect_email.apply_async(args=[prospect_id, campaign_id, gm_job_id])
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_email(
-    self, prospect_id: int, campaign_id: int, gm_job_id: int = None
+    self, prospect_id: int, campaign_id: int, gm_job_id: int
 ) -> tuple[bool, str]:
     try:
         # Mark the job as in progress
