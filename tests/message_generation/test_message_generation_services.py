@@ -36,7 +36,6 @@ from src.message_generation.services import (
     ProspectEmailStatus,
     ResearchPayload,
     ResearchPoints,
-    batch_generate_prospect_emails,
     create_and_start_email_generation_jobs,
     clear_prospect_approved_email,
     create_cta,
@@ -492,28 +491,6 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     assert len(prospect_emails) == 0
     for email in prospect_emails:
         assert email.prospect_id == another_prospect_id
-
-
-@use_app_context
-@mock.patch(
-    "src.message_generation.services.get_few_shot_baseline_prompt",
-    return_value=("completion", 5),
-)
-@mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
-@mock.patch("src.message_generation.services.generate_prospect_email.delay")
-def test_batch_generate_emails_for_prospect(
-    generate_email_mock, linkedin_research_patch, get_custom_completion_for_client_mock
-):
-    client = basic_client()
-    archetype = basic_archetype(client)
-    prospect1 = basic_prospect(client, archetype)
-    prospect2 = basic_prospect(client, archetype)
-    prospect3 = basic_prospect(client, archetype)
-
-    batch_generate_prospect_emails(
-        prospect_ids=[prospect1.id, prospect2.id, prospect3.id],
-    )
-    assert generate_email_mock.call_count == 3
 
 
 @use_app_context

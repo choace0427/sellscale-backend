@@ -82,32 +82,41 @@ def research_and_generate_outreaches_for_prospect_list(
     return True
 
 
-@celery.task
+@celery.task(bind=True, max_retries=3)
 def generate_outreaches_for_prospect_list_from_multiple_ctas(
-    prospect_ids: list, cta_ids: list
+    self, prospect_ids: list, cta_ids: list, outbound_campaign_id: int
 ):
-    batch_id = generate_random_alphanumeric(36)
-    for i, prospect_id in enumerate(tqdm(prospect_ids)):
-        cta_id = cta_ids[i % len(cta_ids)]
+    try:
+        for i, prospect_id in enumerate(prospect_ids):
+            cta_id = cta_ids[i % len(cta_ids)]
 
-        does_job_exist = GeneratedMessageJob.query.filter(
-            GeneratedMessageJob.prospect_id == prospect_id,
-            GeneratedMessageJob.status == GeneratedMessageJobStatus.PENDING,
-        ).first()
-        if does_job_exist:
-            continue
+            # Check if there is already a job for this Prospect under this Campaign
+            job_exists = GeneratedMessageJobQueue.query.filter(
+                GeneratedMessageJobQueue.prospect_id == prospect_id,
+                GeneratedMessageJobQueue.outbound_campaign_id == outbound_campaign_id,
+            ).first()
+            if job_exists:
+                continue
 
-        gm_job: GeneratedMessageJob = create_generated_message_job(
-            prospect_id=prospect_id, batch_id=batch_id
-        )
-        gm_job_id: int = gm_job.id
+            # Create a generate message job for the prospect
+            gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue(
+                prospect_id=prospect_id,
+                outbound_campaign_id=outbound_campaign_id,
+                status=GeneratedMessageJobStatus.PENDING,
+            )
+            db.session.add(gm_job)
+            db.session.commit()
 
-        research_and_generate_outreaches_for_prospect.delay(
-            prospect_id=prospect_id,
-            cta_id=cta_id,
-            batch_id=batch_id,
-            gm_job_id=gm_job_id,
-        )
+            # Research and generate outreaches for the prospect
+            research_and_generate_outreaches_for_prospect.delay(
+                prospect_id=prospect_id,
+                cta_id=cta_id,
+                outbound_campaign_id=outbound_campaign_id,
+                gm_job_id=gm_job.id,
+            )
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 def create_generated_message_job(prospect_id: int, batch_id: str):
@@ -160,41 +169,53 @@ def update_generated_message_job_queue_status(
 
 @celery.task(bind=True, max_retries=3)
 def research_and_generate_outreaches_for_prospect(
-    self, prospect_id: int, batch_id: str, cta_id: str = None, gm_job_id: int = None
-):
+    self, prospect_id: int, outbound_campaign_id: int, cta_id: str = None, gm_job_id: int = None
+) -> tuple[bool, str]:
     try:
         from src.research.linkedin.services import get_research_and_bullet_points_new
 
-        update_generated_message_job_status(
+        # Mark the job as in progress
+        update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
         )
 
-        try:
-            prospect: Prospect = Prospect.query.get(prospect_id)
-            get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-            if prospect.client_id in (
-                1,
-                10,
-                15,
-                16,
-            ):  # only for SellScale, Brex, Verkada, Ramp for now
-                generate_linkedin_outreaches_with_configurations(
-                    prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
-                )
-            else:
-                generate_linkedin_outreaches(
-                    prospect_id=prospect_id, cta_id=cta_id, batch_id=batch_id
-                )
-        except Exception as e:
-            update_generated_message_job_status(
-                gm_job_id, GeneratedMessageJobStatus.FAILED, error_message=str(e)
+        # Check if the prospect exists
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect:
+            update_generated_message_job_queue_status(
+                gm_job_id,
+                GeneratedMessageJobStatus.FAILED,
+                error_message="Prospect does not exist",
             )
-            return
+            return (False, "Prospect does not exist")
 
-        update_generated_message_job_status(
+        # Create research payload and bullet points for the Prospect
+        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+
+        # Generate outreaches for the Prospect
+        if prospect.client_id in (
+            1,
+            10,
+            15,
+            16,
+        ):  # only for SellScale, Brex, Verkada, Ramp for now
+            generate_linkedin_outreaches_with_configurations(
+                prospect_id=prospect_id, cta_id=cta_id, outbound_campaign_id=outbound_campaign_id
+            )
+        else:
+            generate_linkedin_outreaches(
+                prospect_id=prospect_id, cta_id=cta_id, outbound_campaign_id=outbound_campaign_id
+            )
+
+        # Mark the job as completed
+        update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.COMPLETED
         )
     except Exception as e:
+        db.session.rollback()
+        update_generated_message_job_queue_status(
+            gm_job_id, GeneratedMessageJobStatus.FAILED, error_message=str(e)
+        )
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
@@ -305,7 +326,7 @@ def has_any_linkedin_messages(prospect_id: int):
 
 
 def generate_linkedin_outreaches_with_configurations(
-    prospect_id: int, batch_id: str, cta_id: str = None
+    prospect_id: int, outbound_campaign_id: int, cta_id: str = None
 ):
     if has_any_linkedin_messages(prospect_id=prospect_id):
         return None
@@ -320,6 +341,10 @@ def generate_linkedin_outreaches_with_configurations(
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
         )
+
+        if not perms or len(perms) == 0:
+            raise ValueError("No research point permutations")
+
         outreaches = []
 
         for perm in perms:
@@ -342,7 +367,7 @@ def generate_linkedin_outreaches_with_configurations(
                 prompt=prompt,
                 completion=completion,
                 message_status=GeneratedMessageStatus.DRAFT,
-                batch_id=batch_id,
+                outbound_campaign_id=outbound_campaign_id,
                 adversarial_ai_prediction=False,
                 message_cta=cta_id,
                 message_type=GeneratedMessageType.LINKEDIN,
@@ -357,7 +382,7 @@ def generate_linkedin_outreaches_with_configurations(
     return outreaches
 
 
-def generate_linkedin_outreaches(prospect_id: int, batch_id: str, cta_id: str = None):
+def generate_linkedin_outreaches(prospect_id: int, outbound_campaign_id: int, cta_id: str = None):
     from model_import import (
         GeneratedMessage,
         GeneratedMessageStatus,
@@ -375,6 +400,9 @@ def generate_linkedin_outreaches(prospect_id: int, batch_id: str, cta_id: str = 
     ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
     perms = generate_batches_of_research_points(points=research_points_list, n=4)
+
+    if not perms or len(perms) == 0:
+        raise ValueError("No research point permutations")
 
     outreaches = []
     for perm in perms:
@@ -413,7 +441,7 @@ def generate_linkedin_outreaches(prospect_id: int, batch_id: str, cta_id: str = 
                 prompt=prompt,
                 completion=completion,
                 message_status=GeneratedMessageStatus.DRAFT,
-                batch_id=batch_id,
+                outbound_campaign_id=outbound_campaign_id,
                 adversarial_ai_prediction=False,
                 message_cta=cta.id if cta else None,
                 message_type=GeneratedMessageType.LINKEDIN,
@@ -676,11 +704,27 @@ def batch_generate_prospect_emails(prospect_ids: list):
 
 @celery.task(bind=True, max_retries=3)
 def create_and_start_email_generation_jobs(self, campaign_id: int):
+    """ Creates GeneratedMessageJobQueue objects for each prospect in the campaign and queues them.
+
+    Args:
+        campaign_id (int): The id of the campaign to generate emails for.
+
+    Raises:
+        self.retry: For any exception, retry the task a number of times.
+    """
     try:
         campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
         prospect_ids = campaign.prospect_ids
         for prospect_id in prospect_ids:
-            # Create a generate message job for each prospect
+            # Check if a job already exists for this prospect
+            job_exists = GeneratedMessageJobQueue.query.filter(
+                GeneratedMessageJobQueue.prospect_id == prospect_id,
+                GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
+            ).first()
+            if job_exists:
+                continue
+
+            # Create a generate message job for the prospect
             gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue(
                 prospect_id=prospect_id,
                 outbound_campaign_id=campaign_id,
