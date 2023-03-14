@@ -70,3 +70,13 @@ def post_vessel_exchange_link_token(client_sdr_id: int):
     
     return jsonify(data)
     
+@INTEGRATION_BLUEPRINT.route("/vessel/sales-engagement-connection")
+@require_user
+def get_vessel_sales_engagement_connection(client_sdr_id: int):
+    client_sdr = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    client: Client = Client.query.get(client_id)
+    connected = False
+    if client and client.vessel_access_token:
+        connected = True
+    return jsonify({'connected': connected})
