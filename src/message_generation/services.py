@@ -695,9 +695,6 @@ def generate_prospect_email(
 ) -> tuple[bool, str]:
     try:
         # Mark the job as in progress
-        update_generated_message_job_status(  # TODO: REMOVE THIS
-            gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
-        )
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
         )
@@ -705,11 +702,6 @@ def generate_prospect_email(
         # Check if the prospect exists
         prospect: Prospect = Prospect.query.get(prospect_id)
         if not prospect:
-            update_generated_message_job_status(  # TODO: REMOVE THIS
-                gm_job_id,
-                GeneratedMessageJobStatus.FAILED,
-                error_message="Prospect does not exist",
-            )
             update_generated_message_job_queue_status(
                 gm_job_id,
                 GeneratedMessageJobStatus.FAILED,
@@ -723,11 +715,6 @@ def generate_prospect_email(
             ProspectEmail.prospect_id == prospect_id,
         ).first()
         if prospect_email:
-            update_generated_message_job_status(  # TODO: REMOVE THIS
-                gm_job_id,
-                GeneratedMessageJobStatus.FAILED,
-                error_message="Prospect already has a prospect_email entry",
-            )
             update_generated_message_job_queue_status(
                 gm_job_id,
                 GeneratedMessageJobStatus.FAILED,
@@ -754,9 +741,6 @@ def generate_prospect_email(
             prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
             if len(research_points) == 0:
-                update_generated_message_job_status(  # TODO: REMOVE THIS
-                    gm_job_id, GeneratedMessageJobStatus.FAILED, "No research points"
-                )
                 update_generated_message_job_queue_status(
                     gm_job_id, GeneratedMessageJobStatus.FAILED, "No research points"
                 )
@@ -784,9 +768,6 @@ def generate_prospect_email(
                 )
                 is_first_email = False
     except Exception as e:
-        update_generated_message_job_status(  # TODO: REMOVE ME
-            gm_job_id, GeneratedMessageJobStatus.FAILED, str(e)
-        )
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.FAILED, str(e)
         )
