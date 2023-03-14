@@ -37,7 +37,7 @@ from src.automation.slack_notification import send_status_change_slack_block
 def create_prospect_email(
     prospect_id: int,
     personalized_first_line_id: int,
-    batch_id: int,
+    outbound_campaign_id: int,
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
     personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
@@ -52,7 +52,7 @@ def create_prospect_email(
         prospect_id=prospect_id,
         personalized_first_line=personalized_first_line_id,
         email_status=ProspectEmailStatus.DRAFT,
-        batch_id=batch_id,
+        outbound_campaign_id=outbound_campaign_id,
     )
     db.session.add(prospect_email)
     db.session.commit()

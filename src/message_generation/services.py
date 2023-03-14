@@ -133,13 +133,13 @@ def update_generated_message_job_status(
 
 
 def update_generated_message_job_queue_status(
-    gm_job_id: int, status: str, error_message: Optional[str] = None
+    gm_job_id: int, status: GeneratedMessageJobStatus, error_message: Optional[str] = None
 ) -> bool:
     """Updates the status of a GeneratedMessageJobQueue job
 
     Args:
         gm_job_id (int): ID of the GeneratedMessageJobQueue job
-        status (str): The new status of the job
+        status (GeneratedMessageJobStatus): The new status of the job
         error_message (Optional[str], optional): The error message to attach in case there is an error. Defaults to None.
 
     Returns:
@@ -149,7 +149,7 @@ def update_generated_message_job_queue_status(
         gm_job_id
     )
     if gm_job:
-        gm_job.status = status
+        gm_job.status = status.value
         gm_job.error_message = error_message
         db.session.add(gm_job)
         db.session.commit()
@@ -618,7 +618,7 @@ def get_personalized_first_line_from_prompt(
     prompt: str,
     research_points: list,
     prospect_id: int,
-    batch_id: int,
+    outbound_campaign_id: int,
     config: Optional[StackRankedMessageGenerationConfiguration],
 ):
     if not config:
@@ -637,7 +637,7 @@ def get_personalized_first_line_from_prompt(
         completion=completion,
         message_status=GeneratedMessageStatus.DRAFT,
         message_type=GeneratedMessageType.EMAIL,
-        batch_id=batch_id,
+        outbound_campaign_id=outbound_campaign_id,
         few_shot_prompt=few_shot_prompt,
         stack_ranked_message_generation_configuration_id=config.id if config else None,
     )
@@ -689,7 +689,7 @@ def create_and_start_email_generation_jobs(self, prospect_ids: list, campaign_id
 
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_email(
-    self, prospect_id: int, batch_id: int, gm_job_id: int = None
+    self, prospect_id: int, campaign_id: int, gm_job_id: int = None
 ) -> tuple[bool, str]:
     try:
         # Mark the job as in progress
@@ -758,14 +758,14 @@ def generate_prospect_email(
                 prompt=prompt,
                 research_points=research_points,
                 prospect_id=prospect_id,
-                batch_id=batch_id,
+                outbound_campaign_id=campaign_id,
                 config=TOP_CONFIGURATION,
             )
 
             prospect_email: ProspectEmail = create_prospect_email(
                 prospect_id=prospect_id,
                 personalized_first_line_id=personalized_first_line.id,
-                batch_id=batch_id,
+                outbound_campaign_id=campaign_id,
             )
 
             if is_first_email:
@@ -782,7 +782,6 @@ def generate_prospect_email(
         )
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
-    update_generated_message_job_status(gm_job_id, GeneratedMessageJobStatus.COMPLETED) #TODO: REMOVE ME
     update_generated_message_job_queue_status(gm_job_id, GeneratedMessageJobStatus.COMPLETED)
     return (True, "Success")
 

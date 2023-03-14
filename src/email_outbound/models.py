@@ -201,6 +201,7 @@ class ProspectEmail(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
+    oubound_campaign_id = db.Column(db.Integer, db.ForeignKey("outbound_campaign.id"), nullable=True)
     email_status = db.Column(db.Enum(ProspectEmailStatus), nullable=True)
     outreach_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=True)
 
