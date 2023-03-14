@@ -644,6 +644,69 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     return True
 
 
+def email_analytics(client_sdr_id: int) -> dict:
+    """Get email analytics by sequence
+
+    This function is authenticated.
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+
+    Returns:
+        dict: Dict containing the upload stats
+    """
+
+    # Get data about email analytics
+    results = db.session.execute(
+        """
+        select 
+          count(distinct prospect.company) filter (where prospect.overall_status in ('DEMO')) num_demos,
+          max(vessel_sequences.name) sequence_name,
+          outbound_campaign.id campaign_id,
+          outbound_campaign.campaign_start_date, 
+          outbound_campaign.campaign_end_date,
+          count(distinct prospect.id) num_prospects,
+          concat('(', string_agg(distinct prospect.company, '), (') filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_LOST', 'DEMO_WON')), ')') demos,
+          concat('(', string_agg(distinct prospect.company, '), (') filter (where prospect_email.outreach_status in ('ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')), ')') replies,
+          round(count(distinct prospect.id) filter (where prospect_email.outreach_status in ('EMAIL_OPENED', 'ACCEPTED', 'ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) / cast(count(distinct prospect.id) as float) * 1000) / 10 open_percent,
+          round(count(distinct prospect.id) filter (where prospect_email.outreach_status in ('ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) / cast(count(distinct prospect.id) as float) * 1000) / 10 reply_percent,
+          round(count(distinct prospect.id) filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) / cast(count(distinct prospect.id) as float) * 1000) / 10 demo_percent
+        from outbound_campaign	
+          left join prospect on prospect.id = any(outbound_campaign.prospect_ids)
+          left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+          left join client on client.id = prospect.client_id
+          left join vessel_sequences on vessel_sequences.sequence_id = cast(prospect_email.vessel_sequence_id as varchar)
+        where outbound_campaign.client_sdr_id = {client_sdr_id}
+          and outbound_campaign.status = 'COMPLETE'
+          and vessel_sequences.id is not null
+        group by 3,4,5
+        order by count(distinct prospect.company) filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_LOST', 'DEMO_WON')) desc;
+        """.format(
+          client_sdr_id=client_sdr_id
+        )
+      ).fetchall()
+
+    # index to column
+    column_map = {
+      0: 'num_demos',
+      1: 'sequence_name',
+      2: 'campaign_id',
+      3: 'campaign_start_date',
+      4: 'campaign_end_date',
+      5: 'num_prospects',
+      6: 'demos',
+      7: 'replies',
+      8: 'open_percent',
+      9: 'reply_percent',
+      10: 'demo_percent',
+    }
+
+    # Convert and format output
+    results = [{column_map.get(i, 'unknown'): value for i, value in enumerate(tuple(row))} for row in results]
+
+    return {"message": "Success", "status_code": 200, "data": results}
+
+
 def update_campaign_name(campaign_id: int, name: str):
     """Updates the name of the campaign
 

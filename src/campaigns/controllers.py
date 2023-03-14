@@ -27,6 +27,7 @@ from src.campaigns.services import (
     update_campaign_receipt_link,
     send_email_campaign_from_sales_engagement,
     wipe_campaign_generations,
+    email_analytics,
 )
 from src.authentication.decorators import require_user
 
@@ -420,3 +421,16 @@ def post_reset_campaign(client_sdr_id: int, campaign_id: int):
     )
     
     return jsonify({"message": 'Starting campaign reset'}), 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/email_analytics", methods=["GET"])
+@require_user
+def get_email_analytics(client_sdr_id: int):
+    """Gets email analytics by sequence
+
+    Returns:
+        status: The email analytics
+    """
+    result = email_analytics(client_sdr_id)
+
+    return jsonify(result), result.get('status_code')
