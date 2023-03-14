@@ -688,6 +688,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
             # Generate the prospect email
             generate_prospect_email.apply_async(args=[prospect_id, campaign_id, gm_job.id])
     except Exception as e:
+        db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
@@ -727,7 +728,7 @@ def generate_prospect_email(
         # Create research points and payload for the prospect
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-        # Get the top configuration for the prospect
+        # Get the top configuration and research poitn permutations for the prospect
         NUM_GENERATIONS = 1  # number of ProspectEmail's to make
         TOP_CONFIGURATION = get_top_stack_ranked_config_ordering(
             generated_message_type=GeneratedMessageType.EMAIL.value,
@@ -736,6 +737,13 @@ def generate_prospect_email(
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=NUM_GENERATIONS
         )
+
+        # If there are no permutations, then fail the job
+        if len(perms) == 0:
+            update_generated_message_job_queue_status(
+                gm_job_id, GeneratedMessageJobStatus.FAILED, "No research point permutations"
+            )
+            return (False, "No research point permutations")
 
         is_first_email = True
         for perm in perms:
@@ -770,6 +778,7 @@ def generate_prospect_email(
                 )
                 is_first_email = False
     except Exception as e:
+        db.session.rollback()
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.FAILED, str(e)
         )
