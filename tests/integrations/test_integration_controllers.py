@@ -40,3 +40,32 @@ def test_post_linkedin_credentials():
     )
     assert response.status_code == 200
     #assert mock_send_slack_message.call_count == 1
+
+
+@use_app_context
+#@mock.patch("src.utils.slack.send_slack_message")
+def test_post_linkedin_cookie():
+    """Tests the sending LinkedIn cokkie endpoint.
+
+    Args:
+        UNUSED - mock_send_slack_message (Mock): Mocks the send_slack_message function.
+    """
+
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+
+    response = app.test_client().post(
+        "integration/linkedin/send-cookie",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+        data=json.dumps(
+            {
+                "cookie": "Test Cookie",
+            }
+        ),
+    )
+    assert response.status_code == 200
+    #assert mock_send_slack_message.call_count == 1

@@ -26,7 +26,6 @@ from tqdm import tqdm
 from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
     generate_outreaches_for_prospect_list_from_multiple_ctas,
-    batch_generate_prospect_emails,
     create_and_start_email_generation_jobs,
 )
 from src.research.linkedin.services import reset_prospect_research_and_messages
@@ -364,17 +363,11 @@ def generate_campaign(campaign_id: int):
     db.session.add(campaign)
     db.session.commit()
 
-    if campaign.client_sdr_id == 25 or campaign.client_sdr_id == 1:
-        if campaign.campaign_type == GeneratedMessageType.EMAIL:
-            create_and_start_email_generation_jobs(campaign_id=campaign_id)
-            return
-
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
-        create_and_start_email_generation_jobs(campaign_id=campaign_id)
+        create_and_start_email_generation_jobs.apply_async(args=[campaign_id])
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
-        generate_outreaches_for_prospect_list_from_multiple_ctas(
-            prospect_ids=campaign.prospect_ids,
-            cta_ids=campaign.ctas,
+        generate_outreaches_for_prospect_list_from_multiple_ctas.apply_async(
+            args=[campaign.prospect_ids, campaign.ctas, campaign_id]
         )
 
 
