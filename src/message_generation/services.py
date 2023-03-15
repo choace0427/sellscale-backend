@@ -595,6 +595,9 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
         ).all()
         for edit in edits:
             db.session.delete(edit)
+        db.session.commit()
+
+    for message in messages:
         db.session.delete(message)
         db.session.commit()
 
