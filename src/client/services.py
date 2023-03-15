@@ -648,7 +648,7 @@ def get_prospect_upload_stats_by_upload_id(client_sdr_id: int, prospect_uploads_
 
 
 
-def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
+def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int, email: bool) -> dict:
     """Gets all transformers belonging to an Archetype, alongside stats.
 
     This function is authenticated.
@@ -683,11 +683,14 @@ def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int) -> d
           join generated_message on generated_message.prospect_id = prospect.id
           join research_point on research_point.id = any(generated_message.research_points)
           join prospect_status_records on prospect_status_records.prospect_id = prospect.id
-        where prospect.archetype_id = {archetype_id}
+          {email_join}
+        where prospect.archetype_id = {archetype_id} {email_filter}
         group by 1,2
         order by 5 desc
         """.format(
           archetype_id=archetype_id,
+          email_join='left outer join prospect_email on prospect.id = prospect_email.prospect_id' if email else '',
+          email_filter='and prospect_email.prospect_id is null' if email else ''
         )
       ).fetchall()
 
