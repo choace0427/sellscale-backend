@@ -14,6 +14,7 @@ from src.message_generation.services import (
     generate_new_email_content_for_approved_email,
     clear_all_generated_message_jobs,
     batch_update_generated_message_ctas,
+    get_generation_statuses
 )
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
@@ -31,6 +32,8 @@ from src.message_generation.services_few_shot_generations import (
     mark_messages_as_good_message,
 )
 from src.utils.request_helpers import get_request_parameter
+from src.authentication.decorators import require_user
+from model_import import OutboundCampaign
 from tqdm import tqdm
 
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
@@ -542,3 +545,21 @@ def post_toggle_stack_ranked_configuration_tool_active():
     if success:
         return "OK", 200
     return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/get_generation_status/<campaign_id>", methods=["GET"])
+@require_user
+def get_generation_status_endpoint(client_sdr_id: int, campaign_id: int):
+    """Gets the message generation status for a campaign
+
+    Requires authentication
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        return jsonify({"error": "Campaign not found"}), 404
+    if campaign.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This user is unauthorized to view this campaign"}), 401
+
+    generation_statuses = get_generation_statuses(campaign_id)
+
+    return jsonify({"generation_statuses": generation_statuses}), 200

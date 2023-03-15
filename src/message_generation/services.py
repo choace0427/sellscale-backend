@@ -1328,3 +1328,53 @@ def batch_update_generated_message_ctas(payload: dict):
         db.session.commit()
 
     return True
+
+
+def get_generation_statuses(campaign_id: int) -> dict:
+    """ Gets the statuses of the generation jobs for a campaign
+
+    Args:
+        campaign_id (int): The ID of the campaign to get the statuses for
+
+    Returns:
+        dict: A dictionary containing different generation_statuses
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        return {}
+
+    # Get the prospects in this campaign
+    prospect_ids = campaign.prospect_ids
+
+    # Statistics
+    total_job_count = 0
+    statuses_count = {}
+    for job_status in GeneratedMessageJobStatus:
+        statuses_count[job_status.value] = 0
+    jobs_list = []
+
+    # Get the generation job
+    for prospect_id in prospect_ids:
+        generation_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.filter(
+            GeneratedMessageJobQueue.prospect_id == prospect_id,
+            GeneratedMessageJobQueue.outbound_campaign_id == campaign_id
+        ).first()
+
+        # If there is no generation job, we can't get the status
+        if not generation_job:
+            continue
+
+        # Add job to statistics
+        jobs_list.append(generation_job.to_dict())
+        status: GeneratedMessageJobStatus = generation_job.status
+        if status.value not in statuses_count:
+            statuses_count[status.value] = 0
+        statuses_count[status.value] += 1
+        total_job_count += 1
+
+    return {
+        "total_job_count": total_job_count,
+        "statuses_count": statuses_count,
+        "jobs_list": jobs_list,
+    }
+

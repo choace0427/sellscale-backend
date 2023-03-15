@@ -43,6 +43,7 @@ from model_import import (
     IScraperPayloadCache,
     IScraperPayloadType,
     GeneratedMessageJobQueue,
+    GeneratedMessageJobStatus
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -476,6 +477,24 @@ def basic_linkedin_conversation_entry(
     db.session.add(entry)
     db.session.commit()
     return entry
+
+
+def basic_generated_message_job_queue(
+    prospect: Prospect,
+    outbound_campaign: OutboundCampaign,
+    status: GeneratedMessageJobStatus,
+    error_message: Optional[str] = "test_error_message"
+):
+
+    job = GeneratedMessageJobQueue(
+        prospect_id=prospect.id,
+        outbound_campaign_id=outbound_campaign.id,
+        status=status,
+        error_message=error_message,
+    )
+    db.session.add(job)
+    db.session.commit()
+    return job
 
 
 EXAMPLE_PAYLOAD_PERSONAL = {
