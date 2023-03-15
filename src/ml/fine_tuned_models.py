@@ -162,6 +162,20 @@ def get_config_completion(
     return (response, few_shot_prompt)
 
 
+def get_computed_prompt_completion(
+    computed_prompt: str,
+    prompt: str,
+):
+    few_shot_prompt: str = computed_prompt.format(prompt=prompt)
+    response = wrapped_create_completion(
+        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        prompt=few_shot_prompt,
+        temperature=0.7,
+        max_tokens=256,
+    )
+    return (response, few_shot_prompt)
+
+
 def get_personalized_first_line_for_client(
     archetype_id: int, model_type: GNLPModelType, prompt: str
 ):

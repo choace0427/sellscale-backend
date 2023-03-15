@@ -26,6 +26,7 @@ from src.message_generation.services_stack_ranked_configurations import (
     get_prompts_from_stack_ranked_config,
     toggle_stack_ranked_message_configuration_active,
 )
+from src.ml.fine_tuned_models import get_computed_prompt_completion
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
     toggle_message_as_good_message,
@@ -489,6 +490,24 @@ def get_stack_ranked_configuration_tool_prompts():
             list_of_research_points=list_of_research_points,
         )
     )
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/generate_sample", methods=["POST"]
+)
+def generate_stack_ranked_configuration_tool_sample():
+    """
+    Generates a sample message for a stack ranked configuration
+    """
+    computed_prompt = get_request_parameter(
+        "computed_prompt", request, json=True, required=True
+    )
+    prompt = get_request_parameter("prompt", request, json=True, required=True)
+    response, prompt = get_computed_prompt_completion(
+        computed_prompt=computed_prompt, prompt=prompt
+    )
+
+    return jsonify({"response": response, "full_prompt": prompt})
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

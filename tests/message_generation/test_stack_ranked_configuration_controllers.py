@@ -378,3 +378,24 @@ def test_post_toggle_stack_ranked_configuration_tool_active():
         response.data.decode("utf-8")
         == "This message configuration is meant to always be on."
     )
+
+
+@mock.patch("src.ml.fine_tuned_models.wrapped_create_completion", return_value="A")
+def test_post_stack_ranked_configuration_tool_generate_sample(
+    wrapped_create_completion_mock,
+):
+    response = app.test_client().post(
+        "message_generation/stack_ranked_configuration_tool/generate_sample",
+        data=json.dumps(
+            {
+                "computed_prompt": "this is a prompt: {prompt}",
+                "prompt": "PROMPT_DATA",
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 200
+    assert json.loads(response.data) == {
+        "full_prompt": "this is a prompt: PROMPT_DATA",
+        "response": "A",
+    }
