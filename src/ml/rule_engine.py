@@ -124,7 +124,7 @@ def run_message_rule_engine(message_id: int):
     rule_catch_has_6_or_more_consecutive_upper_case(
         case_preserved_completion, prompt, problems, highlighted_words
     )
-    rule_no_ampersand(completion, problems, highlighted_words)
+    # rule_no_ampersand(completion, problems, highlighted_words)
 
     if " me " in completion:
         problems.append("Contains 'me'.")
