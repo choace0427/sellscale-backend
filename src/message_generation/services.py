@@ -207,6 +207,9 @@ def research_and_generate_outreaches_for_prospect(
                 prospect_id=prospect_id, cta_id=cta_id, outbound_campaign_id=outbound_campaign_id
             )
 
+        # Run auto approval
+        batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
+
         # Mark the job as completed
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.COMPLETED
@@ -1378,3 +1381,42 @@ def get_generation_statuses(campaign_id: int) -> dict:
         "jobs_list": jobs_list,
     }
 
+
+@celery.task(bind=True, max_retries=2)
+def wipe_message_generation_job_queue(self, campaign_id: int) -> tuple[bool, str]:
+    """Wipes the message generation job queue for a campaign
+
+    Args:
+        campaign_id (int): The ID of the campaign to wipe the queue for
+        client_sdr_id (int): The ID of the client SDR
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and a string with a message
+    """
+    try:
+        campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+        if not campaign:
+            return False, "Campaign does not exist"
+
+        # Get the prospects in this campaign
+        prospect_ids = campaign.prospect_ids
+
+        # Get the generation job
+        for prospect_id in prospect_ids:
+            generation_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.filter(
+                GeneratedMessageJobQueue.prospect_id == prospect_id,
+                GeneratedMessageJobQueue.outbound_campaign_id == campaign_id
+            ).first()
+
+            # If there is no generation job, we can't get the status
+            if not generation_job:
+                continue
+
+            # Delete the job
+            db.session.delete(generation_job)
+            db.session.commit()
+
+        return True, "Successfully wiped the queue"
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)

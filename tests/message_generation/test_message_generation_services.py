@@ -52,7 +52,8 @@ from src.message_generation.services import (
     run_check_message_has_bad_entities,
     toggle_cta_active,
     wipe_prospect_email_and_generations_and_research,
-    get_generation_statuses
+    get_generation_statuses,
+    wipe_message_generation_job_queue
 )
 from src.research.models import ResearchPointType, ResearchType
 
@@ -1028,3 +1029,26 @@ def test_get_generation_statuses():
     assert statuses["statuses_count"].get(GeneratedMessageJobStatus.FAILED.value) == 1
     assert statuses["statuses_count"].get(GeneratedMessageJobStatus.IN_PROGRESS.value) == 0
     assert len(statuses["jobs_list"]) == 3
+
+
+@use_app_context
+def test_wipe_message_generation_job_queue():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    prospect_2 = basic_prospect(client, archetype, client_sdr)
+    prospect_3 = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign(
+        prospect_ids=[prospect.id, prospect_2.id, prospect_3.id],
+        campaign_type=GeneratedMessageType.LINKEDIN,
+        client_archetype=archetype,
+        client_sdr=client_sdr
+    )
+    job1 = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.PENDING)
+    job2 = basic_generated_message_job_queue(prospect_2, campaign, GeneratedMessageJobStatus.COMPLETED)
+    job3 = basic_generated_message_job_queue(prospect_3, campaign, GeneratedMessageJobStatus.FAILED)
+
+    assert len(GeneratedMessageJobQueue.query.all()) == 3
+    wipe_message_generation_job_queue(campaign.id)
+    assert len(GeneratedMessageJobQueue.query.all()) == 0
