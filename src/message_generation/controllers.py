@@ -14,7 +14,7 @@ from src.message_generation.services import (
     generate_new_email_content_for_approved_email,
     clear_all_generated_message_jobs,
     batch_update_generated_message_ctas,
-    get_generation_statuses
+    get_generation_statuses,
 )
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
@@ -26,6 +26,7 @@ from src.message_generation.services_stack_ranked_configurations import (
     get_prompts_from_stack_ranked_config,
     toggle_stack_ranked_message_configuration_active,
 )
+from src.ml.fine_tuned_models import get_computed_prompt_completion
 from src.message_generation.services_few_shot_generations import (
     clear_all_good_messages_by_archetype_id,
     toggle_message_as_good_message,
@@ -469,46 +470,6 @@ def get_stack_ranked_configuration_priority_endpoint():
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(
-    "/stack_ranked_configuration_priority/add_generated_message_id", methods=["POST"]
-)
-def post_stack_ranked_configuration_priority_add_generated_message_id_endpoint():
-    configuration_id = get_request_parameter(
-        "configuration_id", request, json=True, required=True
-    )
-    generated_message_id = get_request_parameter(
-        "generated_message_id", request, json=True, required=True
-    )
-
-    success, message = add_generated_message_id_to_config(
-        config_id=configuration_id,
-        generated_message_id=generated_message_id,
-    )
-    if success:
-        return "OK", 200
-    return message, 400
-
-
-@MESSAGE_GENERATION_BLUEPRINT.route(
-    "/stack_ranked_configuration_priority/delete_generated_message_id", methods=["POST"]
-)
-def post_stack_ranked_configuration_priority_delete_generated_message_id_endpoint():
-    configuration_id = get_request_parameter(
-        "configuration_id", request, json=True, required=True
-    )
-    generated_message_id = get_request_parameter(
-        "generated_message_id", request, json=True, required=True
-    )
-
-    success, message = delete_generated_message_id_from_config(
-        config_id=configuration_id,
-        generated_message_id=generated_message_id,
-    )
-    if success:
-        return "OK", 200
-    return message, 400
-
-
-@MESSAGE_GENERATION_BLUEPRINT.route(
     "/stack_ranked_configuration_tool/get_prompts", methods=["POST"]
 )
 def get_stack_ranked_configuration_tool_prompts():
@@ -532,6 +493,24 @@ def get_stack_ranked_configuration_tool_prompts():
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/generate_sample", methods=["POST"]
+)
+def generate_stack_ranked_configuration_tool_sample():
+    """
+    Generates a sample message for a stack ranked configuration
+    """
+    computed_prompt = get_request_parameter(
+        "computed_prompt", request, json=True, required=True
+    )
+    prompt = get_request_parameter("prompt", request, json=True, required=True)
+    response, prompt = get_computed_prompt_completion(
+        computed_prompt=computed_prompt, prompt=prompt
+    )
+
+    return jsonify({"response": response, "full_prompt": prompt})
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
     "/stack_ranked_configuration_tool/toggle_active", methods=["POST"]
 )
 def post_toggle_stack_ranked_configuration_tool_active():
@@ -547,7 +526,9 @@ def post_toggle_stack_ranked_configuration_tool_active():
     return message, 400
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route("/get_generation_status/<campaign_id>", methods=["GET"])
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/get_generation_status/<campaign_id>", methods=["GET"]
+)
 @require_user
 def get_generation_status_endpoint(client_sdr_id: int, campaign_id: int):
     """Gets the message generation status for a campaign
@@ -558,7 +539,10 @@ def get_generation_status_endpoint(client_sdr_id: int, campaign_id: int):
     if not campaign:
         return jsonify({"error": "Campaign not found"}), 404
     if campaign.client_sdr_id != client_sdr_id:
-        return jsonify({"error": "This user is unauthorized to view this campaign"}), 401
+        return (
+            jsonify({"error": "This user is unauthorized to view this campaign"}),
+            401,
+        )
 
     generation_statuses = get_generation_statuses(campaign_id)
 
