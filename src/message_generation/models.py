@@ -146,6 +146,15 @@ class GeneratedMessageJobQueue(db.Model):
     status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
     error_message = db.Column(db.String, nullable=True)
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "outbound_campaign_id": self.outbound_campaign_id,
+            "status": self.status,
+            "error_message": self.error_message,
+        }
+
 
 class GeneratedMessageEditRecord(db.Model):
     __tablename__ = "generated_message_edit_record"

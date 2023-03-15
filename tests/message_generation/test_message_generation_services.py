@@ -14,6 +14,7 @@ from test_utils import (
     basic_research_payload,
     basic_research_point,
     basic_outbound_campaign,
+    basic_generated_message_job_queue,
     test_app,
 )
 
@@ -51,6 +52,7 @@ from src.message_generation.services import (
     run_check_message_has_bad_entities,
     toggle_cta_active,
     wipe_prospect_email_and_generations_and_research,
+    get_generation_statuses
 )
 from src.research.models import ResearchPointType, ResearchType
 
@@ -999,3 +1001,30 @@ def test_create_and_start_email_generation_jobs(generate_prospect_email_mock):
         assert gm_job.status == GeneratedMessageJobStatus.PENDING
     assert len(gm_jobs) == 3
     assert generate_prospect_email_mock.call_count == 3
+
+
+@use_app_context
+def test_get_generation_statuses():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    prospect_2 = basic_prospect(client, archetype, client_sdr)
+    prospect_3 = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign(
+        prospect_ids=[prospect.id, prospect_2.id, prospect_3.id],
+        campaign_type=GeneratedMessageType.LINKEDIN,
+        client_archetype=archetype,
+        client_sdr=client_sdr
+    )
+    job1 = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.PENDING)
+    job2 = basic_generated_message_job_queue(prospect_2, campaign, GeneratedMessageJobStatus.COMPLETED)
+    job3 = basic_generated_message_job_queue(prospect_3, campaign, GeneratedMessageJobStatus.FAILED)
+
+    statuses = get_generation_statuses(campaign.id)
+    assert statuses["total_job_count"] == 3
+    assert statuses["statuses_count"].get(GeneratedMessageJobStatus.PENDING.value) == 1
+    assert statuses["statuses_count"].get(GeneratedMessageJobStatus.COMPLETED.value) == 1
+    assert statuses["statuses_count"].get(GeneratedMessageJobStatus.FAILED.value) == 1
+    assert statuses["statuses_count"].get(GeneratedMessageJobStatus.IN_PROGRESS.value) == 0
+    assert len(statuses["jobs_list"]) == 3
