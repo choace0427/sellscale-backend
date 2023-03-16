@@ -57,6 +57,31 @@ def get_campaign_details(client_sdr_id: int, campaign_id: int):
     )
 
 
+@CAMPAIGN_BLUEPRINT.route("/uuid/<campaign_uuid>", methods=["GET"])
+def get_campaign_details_by_uuid(campaign_uuid: str):
+    """Get details for a given campaign, given the UUID. Mainly used for UW editing."""
+    campaign: OutboundCampaign = OutboundCampaign.query.filter(
+        OutboundCampaign.uuid == campaign_uuid
+    ).first()
+    if not campaign:
+        return jsonify({"message": "Campaign not found."}), 404
+
+    oc_details = get_outbound_campaign_details(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id)
+    status_code = oc_details.get("status_code")
+    if status_code != 200:
+        return jsonify({"message": oc_details.get("message")}), status_code
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "campaign_details": oc_details.get("campaign_details"),
+            }
+        ),
+        200,
+    )
+
+
 @CAMPAIGN_BLUEPRINT.route("/all_campaigns", methods=["POST"])
 @require_user
 def get_all_campaigns(client_sdr_id: int):

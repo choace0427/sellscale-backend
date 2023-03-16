@@ -70,6 +70,27 @@ def test_get_campaign_details():
     assert no_record_response.status_code == 404
 
 
+
+@use_app_context
+def test_get_campaign_details_by_uuid():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    client_sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
+    campaign.uuid = 'test_uuid'
+    campaign_id = campaign.id
+
+    response = app.test_client().get(
+        f"campaigns/uuid/{campaign.uuid}",
+        headers={
+            "Content-Type": "application/json",
+        }
+    )
+    assert response.status_code == 200
+    assert response.json.get("campaign_details").get("campaign_raw").get("id") == campaign.id
+
+
 @use_app_context
 def test_get_all_campaigns():
     client = basic_client()
