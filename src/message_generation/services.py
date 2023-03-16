@@ -169,7 +169,11 @@ def update_generated_message_job_queue_status(
 
 @celery.task(bind=True, max_retries=3)
 def research_and_generate_outreaches_for_prospect(
-    self, prospect_id: int, outbound_campaign_id: int, cta_id: str = None, gm_job_id: int = None
+    self,
+    prospect_id: int,
+    outbound_campaign_id: int,
+    cta_id: str = None,
+    gm_job_id: int = None,
 ) -> tuple[bool, str]:
     try:
         from src.research.linkedin.services import get_research_and_bullet_points_new
@@ -198,13 +202,18 @@ def research_and_generate_outreaches_for_prospect(
             10,
             15,
             16,
-        ):  # only for SellScale, Brex, Verkada, Ramp for now
+            17,
+        ):  # only for SellScale, Brex, Verkada, Ramp, Monday.com for now
             generate_linkedin_outreaches_with_configurations(
-                prospect_id=prospect_id, cta_id=cta_id, outbound_campaign_id=outbound_campaign_id
+                prospect_id=prospect_id,
+                cta_id=cta_id,
+                outbound_campaign_id=outbound_campaign_id,
             )
         else:
             generate_linkedin_outreaches(
-                prospect_id=prospect_id, cta_id=cta_id, outbound_campaign_id=outbound_campaign_id
+                prospect_id=prospect_id,
+                cta_id=cta_id,
+                outbound_campaign_id=outbound_campaign_id,
             )
 
         # Run auto approval
@@ -385,7 +394,9 @@ def generate_linkedin_outreaches_with_configurations(
     return outreaches
 
 
-def generate_linkedin_outreaches(prospect_id: int, outbound_campaign_id: int, cta_id: str = None):
+def generate_linkedin_outreaches(
+    prospect_id: int, outbound_campaign_id: int, cta_id: str = None
+):
     from model_import import (
         GeneratedMessage,
         GeneratedMessageStatus,
@@ -710,7 +721,7 @@ def batch_generate_prospect_emails(prospect_ids: list):
 
 @celery.task(bind=True, max_retries=3)
 def create_and_start_email_generation_jobs(self, campaign_id: int):
-    """ Creates GeneratedMessageJobQueue objects for each prospect in the campaign and queues them.
+    """Creates GeneratedMessageJobQueue objects for each prospect in the campaign and queues them.
 
     Args:
         campaign_id (int): The id of the campaign to generate emails for.
@@ -740,7 +751,9 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
             db.session.commit()
 
             # Generate the prospect email
-            generate_prospect_email.apply_async(args=[prospect_id, campaign_id, gm_job.id])
+            generate_prospect_email.apply_async(
+                args=[prospect_id, campaign_id, gm_job.id]
+            )
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
@@ -795,7 +808,9 @@ def generate_prospect_email(
         # If there are no permutations, then fail the job
         if len(perms) == 0:
             update_generated_message_job_queue_status(
-                gm_job_id, GeneratedMessageJobStatus.FAILED, "No research point permutations"
+                gm_job_id,
+                GeneratedMessageJobStatus.FAILED,
+                "No research point permutations",
             )
             return (False, "No research point permutations")
 
@@ -1334,7 +1349,7 @@ def batch_update_generated_message_ctas(payload: dict):
 
 
 def get_generation_statuses(campaign_id: int) -> dict:
-    """ Gets the statuses of the generation jobs for a campaign
+    """Gets the statuses of the generation jobs for a campaign
 
     Args:
         campaign_id (int): The ID of the campaign to get the statuses for
@@ -1358,10 +1373,12 @@ def get_generation_statuses(campaign_id: int) -> dict:
 
     # Get the generation job
     for prospect_id in prospect_ids:
-        generation_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.filter(
-            GeneratedMessageJobQueue.prospect_id == prospect_id,
-            GeneratedMessageJobQueue.outbound_campaign_id == campaign_id
-        ).first()
+        generation_job: GeneratedMessageJobQueue = (
+            GeneratedMessageJobQueue.query.filter(
+                GeneratedMessageJobQueue.prospect_id == prospect_id,
+                GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
+            ).first()
+        )
 
         # If there is no generation job, we can't get the status
         if not generation_job:
@@ -1403,10 +1420,12 @@ def wipe_message_generation_job_queue(self, campaign_id: int) -> tuple[bool, str
 
         # Get the generation job
         for prospect_id in prospect_ids:
-            generation_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.filter(
-                GeneratedMessageJobQueue.prospect_id == prospect_id,
-                GeneratedMessageJobQueue.outbound_campaign_id == campaign_id
-            ).first()
+            generation_job: GeneratedMessageJobQueue = (
+                GeneratedMessageJobQueue.query.filter(
+                    GeneratedMessageJobQueue.prospect_id == prospect_id,
+                    GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
+                ).first()
+            )
 
             # If there is no generation job, we can't get the status
             if not generation_job:
