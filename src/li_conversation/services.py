@@ -229,7 +229,7 @@ def wizard_of_oz_send_li_message(
     conversation_url = prospect.li_conversation_thread_id
 
     send_slack_message(
-        message="🤖 Manually send a message to {prospect_name} (#{prospect_id}) out of *{client_sdr_name}'s inbox.\n*message:*\n{message}\n\nLI Link: {link}\n".format(
+        message="🤖 Manually send a message to {prospect_name} (#{prospect_id}) out of `{client_sdr_name}`'s inbox.\n*message:*\n{message}\n\n*LI Link:* {link}\n".format(
             prospect_name=prospect_name,
             prospect_id=prospect_id,
             message=new_message,
