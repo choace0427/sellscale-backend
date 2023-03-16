@@ -7,12 +7,16 @@ from test_utils import (
     basic_prospect,
     basic_prospect_email,
     get_login_token,
+    basic_generated_message,
+    basic_gnlp_model,
+    basic_generated_message_cta,
 )
 from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
 from src.prospecting.services import (
     search_prospects,
     get_prospects,
     add_prospect,
+    get_prospect_generated_message,
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
     add_prospects_from_json_payload,
@@ -162,6 +166,34 @@ def test_get_prospects():
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "dave"
     assert prospects[0].company == "scalingsell"
+
+
+@use_app_context
+def test_get_prospect_generated_message():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    gnlp_model = basic_gnlp_model(archetype)
+    cta = basic_generated_message_cta(archetype)
+    li_message = basic_generated_message(prospect, gnlp_model, cta)
+    li_message_id = li_message.id
+    li_message.message_type = "LINKEDIN"
+    li_message.message_status = "APPROVED"
+    email_message = basic_generated_message(prospect, gnlp_model, cta)
+    email_message_id = email_message.id
+    email_message.message_type = "EMAIL"
+    email_message.message_status = "APPROVED"
+    db.session.add_all([li_message, email_message])
+    db.session.commit()
+
+    dict = get_prospect_generated_message(prospect.id, "LINKEDIN")
+    assert dict["id"] == li_message_id
+    assert dict["message_type"] == "LINKEDIN"
+
+    dict = get_prospect_generated_message(prospect.id, "EMAIL")
+    assert dict["id"] == email_message_id
+    assert dict["message_type"] == "EMAIL"
 
 
 @use_app_context

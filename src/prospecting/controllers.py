@@ -20,6 +20,7 @@ from src.prospecting.services import (
     get_prospect_details,
     batch_update_prospect_statuses,
     mark_prospect_reengagement,
+    get_prospect_generated_message
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -125,6 +126,19 @@ def get_valid_next_statuses_endpoint(client_sdr_id: int, prospect_id: int):
     )
 
     return jsonify(statuses)
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/<outbound_type>/get_generated_message/", methods=["GET"])
+# TODO: Needs some form of authentication
+def get_generated_message_endpoint(prospect_id: int, outbound_type: str):
+    """Get generated message"""
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+
+    message = get_prospect_generated_message(prospect_id=prospect_id, outbound_type=outbound_type)
+
+    return jsonify({"message": message})
 
 
 @PROSPECTING_BLUEPRINT.route("/search", methods=["GET"])

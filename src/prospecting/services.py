@@ -198,6 +198,31 @@ def prospect_exists_for_client(full_name: str, client_id: int):
     return None
 
 
+def get_prospect_generated_message(prospect_id: int, outbound_type: str) -> dict:
+    """Gets the generated message for a prospect's outbound type
+
+    Args:
+        prospect_id (int): ID of the prospect
+        outbound_type (str): Outbound type
+
+    Returns:
+        dict: Dictionary of the generated message
+    """
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return {}
+
+    gm: GeneratedMessage = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id == prospect_id,
+        GeneratedMessage.message_type == outbound_type,
+        GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
+    ).first()
+    if not gm:
+        return {}
+
+    return gm.to_dict()
+
+
 def create_note(prospect_id: int, note: str):
     note_id = create_prospect_note(prospect_id=prospect_id, note=note)
     return note_id

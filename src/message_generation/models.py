@@ -76,6 +76,36 @@ class GeneratedMessage(db.Model):
         nullable=True,
     )
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "outbound_campaign_id": self.outbound_campaign_id,
+            "gnlp_model_id": self.gnlp_model_id,
+            "research_points": self.research_points,
+            "prompt": self.prompt,
+            "completion": self.completion,
+            "message_status": self.message_status.value,
+            "message_type": self.message_type.value,
+            "date_sent": self.date_sent,
+            "batch_id": self.batch_id,
+            "verified_for_send": self.verified_for_send,
+            "human_edited": self.human_edited,
+            "adversarial_ai_prediction": self.adversarial_ai_prediction,
+            "sensitive_content_flag": self.sensitive_content_flag,
+            "message_cta": self.message_cta,
+            "unknown_named_entities": self.unknown_named_entities,
+            "problems": self.problems,
+            "highlighted_words": self.highlighted_words,
+            "good_message": self.good_message,
+            "few_shot_prompt": self.few_shot_prompt,
+            "generated_message_instruction_id": self.generated_message_instruction_id,
+            "adversary_identified_mistake": self.adversary_identified_mistake,
+            "adversary_identified_fix": self.adversary_identified_fix,
+            "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
+        }
+
+
 
 class GeneratedMessageInstruction(db.Model):
     __tablename__ = "generated_message_instruction"
