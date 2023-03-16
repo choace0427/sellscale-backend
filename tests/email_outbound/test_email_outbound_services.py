@@ -60,27 +60,28 @@ def test_email_field_types():
 @use_app_context
 def test_create_prospect_email():
     client = basic_client()
+    sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype, sdr)
     gnlp_model = basic_gnlp_model(archetype)
     prospect = basic_prospect(client, archetype)
+    outbound_campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.EMAIL, archetype, sdr)
     personalized_first_line = basic_generated_message(prospect, gnlp_model)
 
     prospect_email = create_prospect_email(
         prospect_id=prospect.id,
         personalized_first_line_id=personalized_first_line.id,
-        batch_id="123123123",
+        outbound_campaign_id=outbound_campaign.id,
     )
     assert prospect_email.prospect_id == prospect.id
     assert prospect_email.personalized_first_line == personalized_first_line.id
     assert prospect_email.email_status == ProspectEmailStatus.DRAFT
-    assert prospect_email.batch_id == "123123123"
 
     all_prospect_emails = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
     assert all_prospect_emails[0].prospect_id == prospect.id
     assert all_prospect_emails[0].personalized_first_line == personalized_first_line.id
     assert all_prospect_emails[0].email_status == ProspectEmailStatus.DRAFT
-    assert all_prospect_emails[0].batch_id == "123123123"
 
 
 @use_app_context

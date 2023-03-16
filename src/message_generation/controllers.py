@@ -3,7 +3,6 @@ from app import db
 from flask import Blueprint, request, jsonify
 from src.message_generation.services import (
     approve_message,
-    research_and_generate_outreaches_for_prospect_list,
     update_message,
     batch_approve_message_generations_by_heuristic,
     batch_disapprove_message_generations,
@@ -38,20 +37,6 @@ from model_import import OutboundCampaign
 from tqdm import tqdm
 
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
-
-
-@MESSAGE_GENERATION_BLUEPRINT.route("/batch", methods=["POST"])
-def index():
-    prospect_ids = get_request_parameter(
-        "prospect_ids", request, json=True, required=True
-    )
-    cta_id = get_request_parameter("cta_id", request, json=True, required=False)
-
-    research_and_generate_outreaches_for_prospect_list(
-        prospect_ids=prospect_ids, cta_id=cta_id
-    )
-
-    return "OK", 200
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["PATCH"])

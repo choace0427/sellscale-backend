@@ -54,34 +54,6 @@ from src.message_generation.services_stack_ranked_configurations import (
 HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
 
 
-@celery.task
-def research_and_generate_outreaches_for_prospect_list(
-    prospect_ids: list, cta_id: int = None
-):
-    batch_id = generate_random_alphanumeric(36)
-    for prospect_id in tqdm(prospect_ids):
-        does_job_exist = GeneratedMessageJob.query.filter(
-            GeneratedMessageJob.prospect_id == prospect_id,
-            GeneratedMessageJob.status == GeneratedMessageJobStatus.PENDING,
-        ).first()
-        if does_job_exist:
-            continue
-
-        gm_job: GeneratedMessageJob = create_generated_message_job(
-            prospect_id=prospect_id, batch_id=batch_id
-        )
-        gm_job_id: int = gm_job.id
-
-        research_and_generate_outreaches_for_prospect.delay(
-            prospect_id=prospect_id,
-            cta_id=cta_id,
-            batch_id=batch_id,
-            gm_job_id=gm_job_id,
-        )
-
-    return True
-
-
 @celery.task(bind=True, max_retries=3)
 def generate_outreaches_for_prospect_list_from_multiple_ctas(
     self, prospect_ids: list, cta_ids: list, outbound_campaign_id: int
@@ -117,29 +89,6 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
-
-
-def create_generated_message_job(prospect_id: int, batch_id: str):
-    job = GeneratedMessageJob(
-        prospect_id=prospect_id,
-        batch_id=batch_id,
-        status=GeneratedMessageJobStatus.PENDING,
-    )
-    db.session.add(job)
-    db.session.commit()
-
-    return job
-
-
-def update_generated_message_job_status(
-    gm_job_id: int, status: str, error_message: Optional[str] = None
-):
-    gm_job: GeneratedMessageJob = GeneratedMessageJob.query.get(gm_job_id)
-    if gm_job:
-        gm_job.status = status
-        gm_job.error_message = error_message
-        db.session.add(gm_job)
-        db.session.commit()
 
 
 def update_generated_message_job_queue_status(
@@ -229,14 +178,6 @@ def research_and_generate_outreaches_for_prospect(
             gm_job_id, GeneratedMessageJobStatus.FAILED, error_message=str(e)
         )
         raise self.retry(exc=e, countdown=2**self.request.retries)
-
-
-@celery.task
-def research_and_generate_emails_for_prospect(prospect_id: int):
-    from src.research.linkedin.services import get_research_and_bullet_points_new
-
-    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    generate_prospect_email(prospect_id=prospect_id, batch_id=None)
 
 
 def generate_prompt(prospect_id: int, notes: str = ""):
@@ -695,28 +636,6 @@ def get_personalized_first_line_from_prompt(
     db.session.commit()
 
     return personalized_first_line
-
-
-def batch_generate_prospect_emails(prospect_ids: list):
-    batch_id = generate_random_alphanumeric(32)
-    for prospect_id in prospect_ids:
-        does_job_exist = GeneratedMessageJob.query.filter(
-            GeneratedMessageJob.prospect_id == prospect_id,
-            GeneratedMessageJob.status == GeneratedMessageJobStatus.PENDING,
-        ).first()
-        if does_job_exist:
-            continue
-
-        gm_job: GeneratedMessageJob = create_generated_message_job(
-            prospect_id=prospect_id, batch_id=batch_id
-        )
-        gm_job_id: int = gm_job.id
-
-        generate_prospect_email.delay(
-            prospect_id=prospect_id,
-            batch_id=batch_id,
-            gm_job_id=gm_job_id,
-        )
 
 
 @celery.task(bind=True, max_retries=3)

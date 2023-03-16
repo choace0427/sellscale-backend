@@ -645,11 +645,11 @@ def add_prospect(
     status = ProspectStatus.PROSPECTED
 
     # full_name typically comes fron iScraper LinkedIn, so we run a Title Case check on it
-    if needs_title_casing(full_name):
+    if full_name and needs_title_casing(full_name):
         full_name = full_name.title()
 
     # Same thing with company
-    if needs_title_casing(company):
+    if company and needs_title_casing(company):
         company = company.title()
 
     prospect_exists: Prospect = prospect_exists_for_client(

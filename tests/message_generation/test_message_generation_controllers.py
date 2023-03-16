@@ -82,7 +82,6 @@ def test_post_clear_message_generation_jobs_queue():
     for i in range(10):
         generated_message_job = GeneratedMessageJob(
             prospect_id=prospect.id,
-            batch_id="123123",
             status=GeneratedMessageJobStatus.PENDING,
         )
         db.session.add(generated_message_job)

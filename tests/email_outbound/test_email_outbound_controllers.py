@@ -1,6 +1,6 @@
 from app import db
 from src.email_outbound.models import EmailCustomizedFieldTypes
-from model_import import GeneratedMessage
+from model_import import GeneratedMessage, GeneratedMessageType
 from src.ml.models import GNLPModelType
 from src.email_outbound.services import create_prospect_email
 from test_utils import (
@@ -11,6 +11,7 @@ from test_utils import (
     basic_prospect,
     basic_generated_message,
     basic_prospect_email,
+    basic_outbound_campaign
 )
 from decorators import use_app_context
 from test_utils import test_app
@@ -34,35 +35,14 @@ def test_email_field_types():
 
 
 @use_app_context
-@mock.patch("src.message_generation.services.generate_prospect_email.delay")
-def test_create_prospect_email(generate_prospect_email_mock):
-    client = basic_client()
-    archetype = basic_archetype(client)
-    gnlp_model = basic_gnlp_model(archetype)
-    prospect = basic_prospect(client, archetype)
-    prospect_id: int = prospect.id
-
-    response = app.test_client().post(
-        "/email_generation/batch",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "prospect_ids": [prospect_id],
-            }
-        ),
-    )
-    assert response.status_code == 200
-    assert response.data.decode("utf-8") == "OK"
-    assert generate_prospect_email_mock.call_count == 1
-
-
-@use_app_context
 def test_post_batch_update_emails():
     client = basic_client()
+    sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
     gnlp_model = basic_gnlp_model(archetype)
-    prospect = basic_prospect(client, archetype)
+    prospect = basic_prospect(client, archetype, sdr)
     prospect_id: int = prospect.id
+    outbound_campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, sdr)
     personalized_first_line = basic_generated_message(prospect, gnlp_model)
     personalized_first_line.completion = "original"
     db.session.add(personalized_first_line)
@@ -71,7 +51,7 @@ def test_post_batch_update_emails():
     prospect_email = create_prospect_email(
         prospect_id=prospect_id,
         personalized_first_line_id=personalized_first_line.id,
-        batch_id=1,
+        outbound_campaign_id=outbound_campaign.id
     )
     prospect.approved_prospect_email_id = prospect_email.id
     db.session.add(prospect)
@@ -104,10 +84,12 @@ def test_post_batch_update_emails():
 @use_app_context
 def test_post_batch_update_emails_failed():
     client = basic_client()
+    sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
     gnlp_model = basic_gnlp_model(archetype)
-    prospect = basic_prospect(client, archetype)
+    prospect = basic_prospect(client, archetype, sdr)
     prospect_id: int = prospect.id
+    outbound_campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, sdr)
     personalized_first_line = basic_generated_message(prospect, gnlp_model)
     personalized_first_line.completion = "original"
     db.session.add(personalized_first_line)
@@ -116,7 +98,7 @@ def test_post_batch_update_emails_failed():
     prospect_email = create_prospect_email(
         prospect_id=prospect_id,
         personalized_first_line_id=personalized_first_line.id,
-        batch_id=1,
+        outbound_campaign_id=outbound_campaign.id
     )
     prospect.approved_prospect_email_id = prospect_email.id
     db.session.add(prospect)

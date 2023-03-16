@@ -2,7 +2,6 @@ from app import db
 
 from flask import Blueprint, request, jsonify
 from src.message_generation.services import (
-    batch_generate_prospect_emails,
     mark_prospect_email_approved,
 )
 from src.email_outbound.services import (
@@ -22,16 +21,6 @@ from src.message_generation.services import (
 )
 
 EMAIL_GENERATION_BLUEPRINT = Blueprint("email_generation", __name__)
-
-
-@EMAIL_GENERATION_BLUEPRINT.route("/batch", methods=["POST"])
-def index():
-    prospect_ids = get_request_parameter(
-        "prospect_ids", request, json=True, required=True
-    )
-    batch_generate_prospect_emails(prospect_ids=prospect_ids)
-
-    return "OK", 200
 
 
 @EMAIL_GENERATION_BLUEPRINT.route("/approve", methods=["POST"])

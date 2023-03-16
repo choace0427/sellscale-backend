@@ -177,7 +177,9 @@ def test_generate_linkedin_outreaches(
     )
     client: Client = Client.query.get(payload["client_id"])
     archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, sdr)
+    campaign = basic_outbound_campaign([prospect], GeneratedMessageType.LINKEDIN, archetype, sdr)
     cta = create_cta(text_value="test", archetype_id=archetype.id)
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
@@ -203,18 +205,18 @@ def test_generate_linkedin_outreaches(
 
     outreaches = generate_linkedin_outreaches(
         prospect_id=prospect.id,
-        batch_id="123123123",
+        outbound_campaign_id=campaign.id,
         cta_id=cta.id,
     )
     assert len(outreaches) == 8
     assert ai_patch.called is False
 
-    generated_messages: list = GeneratedMessage.query.all()
+    generated_messages: list[GeneratedMessage] = GeneratedMessage.query.all()
     assert len(generated_messages) == 8
     for gm in generated_messages:
         assert gm.message_type == GeneratedMessageType.LINKEDIN
         assert gm.message_cta == cta.id
-        assert gm.batch_id == "123123123"
+        assert gm.outbound_campaign_id == campaign.id
 
         prospect = Prospect.query.get(gm.prospect_id)
         assert prospect.approved_outreach_message_id is not None
@@ -358,18 +360,21 @@ def test_generate_prospect_email(
     rule_engine_mock, get_custom_completion_for_client_mock
 ):
     client = basic_client()
+    client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    prospect = basic_prospect(client, archetype, client_sdr)
     prospect_id = prospect.id
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
+    campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, client_sdr)
+    gen_message_job = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.PENDING)
     db.session.add(gnlp_model)
     db.session.commit()
 
     payload = basic_research_payload(prospect=prospect)
     point = basic_research_point(research_payload=payload)
 
-    generate_prospect_email(prospect_id=prospect.id, batch_id="123123")
+    generate_prospect_email(prospect.id, campaign.id, gen_message_job.id)
 
     assert rule_engine_mock.called is True
     assert get_custom_completion_for_client_mock.called is True
@@ -380,7 +385,6 @@ def test_generate_prospect_email(
         assert message.message_type == GeneratedMessageType.EMAIL
         assert message.gnlp_model_id == None
         assert message.completion == "completion"
-        assert message.batch_id == "123123"
 
     prospect_emails: list = ProspectEmail.query.all()
     prospect_email_ids = [pe.id for pe in prospect_emails]
@@ -388,7 +392,6 @@ def test_generate_prospect_email(
     for prospect_email in prospect_emails:
         assert prospect_email.prospect_id == prospect_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
-        assert prospect_email.batch_id == "123123"
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.approved_prospect_email_id != None
@@ -420,15 +423,17 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 ):
     client = basic_client()
     archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    sdr = basic_client_sdr(client)
+    prospect = basic_prospect(client, archetype, sdr)
     prospect_id = prospect.id
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
     db.session.add(gnlp_model)
     db.session.commit()
-
     payload = basic_research_payload(prospect=prospect)
     point = basic_research_point(research_payload=payload)
+    campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, sdr)
+    message_gen_job = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.IN_PROGRESS)
 
     rp: ResearchPayload = ResearchPayload(
         prospect_id=prospect_id,
@@ -438,31 +443,31 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.add(rp)
     db.session.commit()
 
-    generate_prospect_email(prospect_id=prospect.id, batch_id="123123")
+    generate_prospect_email(prospect_id=prospect.id, campaign_id=campaign.id, gm_job_id=message_gen_job.id)
     assert rule_engine_mock.called is True
 
     assert get_custom_completion_for_client_mock.called is True
 
     messages: list = GeneratedMessage.query.all()
-    messages[0].batch_id
     assert len(messages) == 1
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
         assert message.gnlp_model_id == None
         assert message.completion == "completion"
-        assert message.batch_id == "123123"
 
     prospect_emails: list = ProspectEmail.query.all()
     assert len(prospect_emails) == 1
     for prospect_email in prospect_emails:
         assert prospect_email.prospect_id == prospect_id
         assert prospect_email.personalized_first_line in [x.id for x in messages]
-        assert prospect_email.batch_id == "123123"
 
     another_client = basic_client()
+    another_sdr = basic_client_sdr(another_client)
     another_archetype = basic_archetype(another_client)
-    another_prospect = basic_prospect(another_client, another_archetype)
+    another_prospect = basic_prospect(another_client, another_archetype, another_sdr)
     another_prospect_id = another_prospect.id
+    another_campaign = basic_outbound_campaign([another_prospect_id], GeneratedMessageType.EMAIL, another_archetype, another_sdr)
+    another_message_gen_job = basic_generated_message_job_queue(another_prospect, another_campaign, GeneratedMessageJobStatus.IN_PROGRESS)
 
     rp: ResearchPayload = ResearchPayload(
         prospect_id=another_prospect_id,
@@ -472,11 +477,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.add(rp)
     db.session.commit()
 
-    generate_prospect_email(
-        prospect_id=another_prospect_id,
-        batch_id="123123",
-    )
-
+    generate_prospect_email(prospect_id=another_prospect_id, campaign_id=another_campaign.id, gm_job_id=another_message_gen_job.id)
     messages: list = GeneratedMessage.query.all()
     prospect_emails = ProspectEmail.query.all()
     assert len(messages) == 1
@@ -497,30 +498,6 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
 
 
 @use_app_context
-@mock.patch(
-    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
-)
-def test_research_and_generate_outreaches_for_prospect_list(
-    generate_outreach_mock,
-):
-    client = basic_client()
-    archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
-
-    response = app.test_client().post(
-        "message_generation/batch",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "prospect_ids": [prospect.id],
-            }
-        ),
-    )
-    assert response.status_code == 200
-    assert generate_outreach_mock.call_count == 1
-
-
-@use_app_context
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
 @mock.patch("src.message_generation.services.generate_linkedin_outreaches")
 def test_research_and_generate_outreaches_for_prospect_individual(
@@ -528,13 +505,12 @@ def test_research_and_generate_outreaches_for_prospect_individual(
     linkedin_research_patch,
 ):
     client = basic_client()
+    client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    prospect = basic_prospect(client, archetype, client_sdr)
+    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
 
-    research_and_generate_outreaches_for_prospect(
-        prospect_id=prospect.id,
-        batch_id="123123",
-    )
+    research_and_generate_outreaches_for_prospect(prospect_id=prospect.id, outbound_campaign_id=campaign.id)
     assert generate_linkedin_outreaches_patch.call_count == 1
     assert linkedin_research_patch.call_count == 1
 

@@ -99,10 +99,7 @@ def test_get_all_campaigns():
 
 
 @use_app_context
-@mock.patch(
-    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
-)
-def test_create_generate_message_campaign(message_gen_call_patch):
+def test_create_generate_message_campaign():
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -147,24 +144,20 @@ def test_create_generate_message_campaign(message_gen_call_patch):
     assert len(campaign.uuid) > 10
 
     response = app.test_client().post(
-        "campaigns/generate",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "campaign_id": campaign_id,
-            }
-        ),
+        f"campaigns/{campaign_id}/generate",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
     )
     assert response.status_code == 200
-    assert message_gen_call_patch.call_count == 3
 
 
 @use_app_context
 @mock.patch(
     "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
 )
-@mock.patch("src.campaigns.services.batch_generate_prospect_emails")
-def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch):
+def test_create_generate_email_campaign(message_gen_call_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -202,17 +195,14 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
     assert campaign.status.value == "PENDING"
 
     response = app.test_client().post(
-        "campaigns/generate",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "campaign_id": campaign_id,
-            }
-        ),
+        f"campaigns/{campaign_id}/generate",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
     )
     assert response.status_code == 200
     assert message_gen_call_patch.call_count == 0
-    assert gen_email_patch.call_count == 1
 
     campaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.editing_due_date > datetime.datetime.now()
@@ -234,14 +224,10 @@ def test_create_generate_email_campaign(gen_email_patch, message_gen_call_patch)
 
 
 @use_app_context
-@mock.patch("src.campaigns.services.batch_generate_prospect_emails")
 @mock.patch(
-    "src.campaigns.services.generate_outreaches_for_prospect_list_from_multiple_ctas"
+    "src.campaigns.services.generate_outreaches_for_prospect_list_from_multiple_ctas.apply_async"
 )
-def test_change_campaign_status(
-    generate_outreaches_for_prospect_list_from_multiple_ctas_patch,
-    batch_generate_prospect_emails_patch,
-):
+def test_change_campaign_status(generate_outreaches_for_prospect_list_from_multiple_ctas_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -353,19 +339,16 @@ def test_change_campaign_status(
     assert response.status_code == 400
 
     response = app.test_client().post(
-        "campaigns/generate",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "campaign_id": campaign_id,
-            }
-        ),
+        f"campaigns/{campaign_id}/generate",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
     )
     assert response.status_code == 200
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.status.value == "NEEDS_REVIEW"
 
-    assert batch_generate_prospect_emails_patch.call_count == 0
     assert (
         generate_outreaches_for_prospect_list_from_multiple_ctas_patch.call_count == 1
     )
