@@ -538,7 +538,12 @@ def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
 def get_transformers(client_sdr_id: int, archetype_id: int):
     """Gets transformers stats for an archetype"""
 
-    result = get_transformers_by_archetype_id(client_sdr_id, archetype_id)
+    email = get_request_parameter(
+        "email", request, json=False, required=False
+    )
+    if email is None: email = False
+
+    result = get_transformers_by_archetype_id(client_sdr_id, archetype_id, email)
 
     return jsonify(result), result.get('status_code')
 

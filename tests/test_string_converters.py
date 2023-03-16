@@ -94,6 +94,7 @@ def test_get_last_name_from_linkedin_full_name():
     assert get_last_name_from_full_name("Marc Cordon, MPH, ACC") == "Cordon"
     assert get_last_name_from_full_name("Dan Layish MD") == "Layish"
     assert get_last_name_from_full_name("Martin CJ Mongiello MBA MA MCFE") == "Cj"
+    assert get_last_name_from_full_name("JON FISH Ⓥ") == "Fish"
 
 
 def test_clean_company_name():

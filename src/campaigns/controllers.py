@@ -29,6 +29,9 @@ from src.campaigns.services import (
     wipe_campaign_generations,
     email_analytics,
 )
+from src.message_generation.services import (
+    wipe_message_generation_job_queue
+)
 from src.authentication.decorators import require_user
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -416,10 +419,17 @@ def post_reset_campaign(client_sdr_id: int, campaign_id: int):
     """Reset the given campaign."""
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    if not campaign or campaign.client_sdr_id != client_sdr_id:
-        return jsonify({"message": 'Campaign not found'}), 400
+    if not campaign:
+        return jsonify({"message": 'Campaign not found'}), 404
+    if campaign.client_sdr_id != client_sdr_id:
+        return jsonify({"message": 'Unauthorized'}), 401
 
     wipe_campaign_generations.apply_async(
+        args=[campaign_id],
+        priority=2
+    )
+
+    wipe_message_generation_job_queue.apply_async(
         args=[campaign_id],
         priority=2
     )

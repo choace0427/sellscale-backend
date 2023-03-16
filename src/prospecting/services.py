@@ -35,6 +35,7 @@ from model_import import (
 )
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
+from src.utils.converters.string_converters import needs_title_casing
 
 
 def search_prospects(
@@ -642,6 +643,14 @@ def add_prospect(
         int or None: ID of the Prospect if it was added successfully, None otherwise
     """
     status = ProspectStatus.PROSPECTED
+
+    # full_name typically comes fron iScraper LinkedIn, so we run a Title Case check on it
+    if needs_title_casing(full_name):
+        full_name = full_name.title()
+
+    # Same thing with company
+    if needs_title_casing(company):
+        company = company.title()
 
     prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
