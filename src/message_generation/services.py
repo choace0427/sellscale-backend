@@ -1358,3 +1358,28 @@ def wipe_message_generation_job_queue(self, campaign_id: int) -> tuple[bool, str
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def manually_mark_ai_approve(generated_message_id: int, new_ai_approve_status: bool) -> bool:
+    """Marks a GeneratedMessage.ai_approved as a specified value, manually.
+
+    Should be used by UW.
+
+    Args:
+        generated_message_id (int): ID of the GeneratedMessage to approve.
+        new_ai_approve_status (bool): New value for GeneratedMessage.ai_approved.
+
+    Returns:
+        bool: True if successful, False if not.
+    """
+    try:
+        gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+        if not gm:
+            return False
+        gm.ai_approved = new_ai_approve_status
+        db.session.add(gm)
+        db.session.commit()
+        return True
+    except:
+        db.session.rollback()
+        return False

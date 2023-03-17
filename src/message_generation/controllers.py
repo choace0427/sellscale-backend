@@ -14,6 +14,7 @@ from src.message_generation.services import (
     clear_all_generated_message_jobs,
     batch_update_generated_message_ctas,
     get_generation_statuses,
+    manually_mark_ai_approve,
 )
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
@@ -49,6 +50,19 @@ def update():
         return "OK", 200
 
     return "Failed to update", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/<message_id>/patch_message_ai_approve", methods=["PATCH"])
+def patch_message_ai_approve_endpoint(message_id: int):
+    """Manually marks GeneratedMessage.ai_approved to a value (True or False)"""
+    #TODO Eventually needs auth
+    new_ai_approve_status = get_request_parameter("new_ai_approve_status", request, json=True, required=True, parameter_type=bool)
+    success = manually_mark_ai_approve(generated_message_id=message_id, new_ai_approve_status=new_ai_approve_status)
+    if success:
+        human_readable = "approved" if new_ai_approve_status else "unapproved"
+        return jsonify({"message": f"Message marked as {human_readable}"}), 200
+
+    return jsonify({"message": "Failed to update"}), 400
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/batch_update", methods=["PATCH"])

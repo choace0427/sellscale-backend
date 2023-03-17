@@ -2,9 +2,11 @@ from app import db, app
 from test_utils import (
     test_app,
     basic_client,
+    basic_client_sdr,
     basic_archetype,
     basic_generated_message,
     basic_gnlp_model,
+    basic_outbound_campaign,
     basic_prospect,
     basic_generated_message_cta,
 )
@@ -426,3 +428,39 @@ def test_post_pick_new_approved_message(rule_engine_mock):
     assert prospect.approved_outreach_message_id == gm_2_id
 
     assert rule_engine_mock.call_count == 1
+
+@use_app_context
+def test_manual_mark_ai_approve_endpoint():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    prospect = basic_prospect(client, archetype, sdr)
+    cta = basic_generated_message_cta(archetype)
+    gnlp = basic_gnlp_model(archetype)
+    campaign = basic_outbound_campaign(
+        [prospect.id],
+        GeneratedMessageType.EMAIL,
+        client_archetype=archetype,
+        client_sdr=sdr
+    )
+    gm = basic_generated_message(prospect, gnlp, cta)
+
+    # Approve
+    assert gm.ai_approved == None
+    response = app.test_client().patch(
+        f"message_generation/{gm.id}/patch_message_ai_approve",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"new_ai_approve_status": True}),
+    )
+    assert response.status_code == 200
+    assert response.json["message"] == "Message marked as approved"
+
+    # Unapprove
+    assert gm.ai_approved == True
+    response = app.test_client().patch(
+        f"message_generation/{gm.id}/patch_message_ai_approve",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"new_ai_approve_status": False}),
+    )
+    assert response.status_code == 200
+    assert response.json["message"] == "Message marked as unapproved"

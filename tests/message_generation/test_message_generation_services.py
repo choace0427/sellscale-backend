@@ -7,6 +7,7 @@ from test_utils import (
     basic_client,
     basic_client_sdr,
     basic_generated_message,
+    basic_generated_message_cta,
     basic_generated_message_cta_with_text,
     basic_gnlp_model,
     basic_prospect,
@@ -53,7 +54,8 @@ from src.message_generation.services import (
     toggle_cta_active,
     wipe_prospect_email_and_generations_and_research,
     get_generation_statuses,
-    wipe_message_generation_job_queue
+    wipe_message_generation_job_queue,
+    manually_mark_ai_approve
 )
 from src.research.models import ResearchPointType, ResearchType
 
@@ -1028,3 +1030,25 @@ def test_wipe_message_generation_job_queue():
     assert len(GeneratedMessageJobQueue.query.all()) == 3
     wipe_message_generation_job_queue(campaign.id)
     assert len(GeneratedMessageJobQueue.query.all()) == 0
+
+
+@use_app_context
+def test_manually_mark_ai_approve():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    prospect = basic_prospect(client, archetype, sdr)
+    cta = basic_generated_message_cta(archetype)
+    gnlp = basic_gnlp_model(archetype)
+    campaign = basic_outbound_campaign(
+        [prospect.id],
+        GeneratedMessageType.EMAIL,
+        client_archetype=archetype,
+        client_sdr=sdr
+    )
+    gm = basic_generated_message(prospect, gnlp, cta)
+
+    assert gm.ai_approved is None
+    manually_mark_ai_approve(gm.id, True)
+    gm = GeneratedMessage.query.get(gm.id)
+    assert gm.ai_approved is True
