@@ -48,7 +48,7 @@ class GeneratedMessage(db.Model):
     batch_id = db.Column(db.String, nullable=True)
 
     verified_for_send = db.Column(db.Boolean, nullable=True)
-
+    ai_approved = db.Column(db.Boolean, nullable=True)     # AI approved (or UW approved)
     human_edited = db.Column(db.Boolean, nullable=True)
 
     adversarial_ai_prediction = db.Column(db.Boolean, nullable=True)
@@ -90,6 +90,7 @@ class GeneratedMessage(db.Model):
             "date_sent": self.date_sent,
             "batch_id": self.batch_id,
             "verified_for_send": self.verified_for_send,
+            "ai_approved": self.ai_approved,
             "human_edited": self.human_edited,
             "adversarial_ai_prediction": self.adversarial_ai_prediction,
             "sensitive_content_flag": self.sensitive_content_flag,
