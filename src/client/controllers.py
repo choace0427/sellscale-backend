@@ -36,7 +36,7 @@ from src.client.services_client_archetype import (
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.client.models import ClientSDR
+from src.client.models import ClientSDR, Client
 
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
 
@@ -125,9 +125,14 @@ def get_archetypes(client_sdr_id: int):
 @require_user
 def get_sdr(client_sdr_id: int):
     """Gets the client SDR"""
-    client_sdr = get_client_sdr(client_sdr_id=client_sdr_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    sdr_dict = client_sdr.to_dict()
 
-    return jsonify({"message": "Success", "sdr_info": client_sdr}), 200
+    if client_sdr:
+        client: Client = Client.query.get(client_sdr.client_id)
+        sdr_dict = sdr_dict | {"client": client.to_dict()}
+
+    return jsonify({"message": "Success", "sdr_info": sdr_dict}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])

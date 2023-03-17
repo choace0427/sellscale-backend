@@ -2,6 +2,7 @@ from app import db
 
 from flask import Blueprint, jsonify, request, Response
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
+from src.email_outbound.models import ProspectEmail
 from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.prospecting.services import (
     search_prospects,
@@ -40,6 +41,7 @@ from src.utils.random_string import generate_random_alphanumeric
 from src.authentication.decorators import require_user
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
+from src.integrations.vessel import SalesEngagementIntegration
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -127,6 +129,49 @@ def get_valid_next_statuses_endpoint(client_sdr_id: int, prospect_id: int):
 
     return jsonify(statuses)
 
+
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/all_emails", methods=["GET"])
+@require_user
+def get_all_emails(client_sdr_id: int, prospect_id: int):
+
+    prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+    
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(ProspectEmail.prospect_id == prospect.id).first()
+
+    if not prospect_email:
+        return jsonify({"message": "No prospect email data found"}), 404
+    
+    sei = SalesEngagementIntegration(prospect.client_id)
+
+    emails = sei.get_emails_for_contact(
+        contact_id=prospect.vessel_contact_id, sequence_id=prospect_email.vessel_sequence_id, do_not_hit_api=True
+    )
+
+    print(prospect.vessel_contact_id)
+    print(prospect_email.vessel_sequence_id)
+    print(emails)
+
+    return jsonify({"message": "Success", "data": [
+    {
+        'first_name': 'Marc',
+        'company': 'AdQuick',
+        'email': 'marc@adquick.com',
+        'body': 'Howdy! Let\'s talk about Adquick.\n\n{this is where the email body goes}',
+        'date': '2023-03-12 18:51:15.313515'
+    },
+    {
+        'first_name': 'Marc',
+        'company': 'AdQuick',
+        'email': 'marc@adquick.com',
+        'body': 'Howdy! Let\'s what about what you might need for the OOA?\n\n{this is where the email body goes!}',
+        'date': '2023-03-07 18:45:15.313515'
+    }
+    ]}), 200
+    
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/<outbound_type>/get_generated_message/", methods=["GET"])
 # TODO: Needs some form of authentication

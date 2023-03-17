@@ -36,6 +36,16 @@ class Client(db.Model):
     vessel_crm_access_token = db.Column(db.String, nullable=True)
     vessel_personalization_field_name = db.Column(db.String, nullable=True)
 
+    def to_dict(self) -> dict:
+        return {
+            "company": self.company,
+            "contact_name": self.contact_name,
+            "contact_email": self.contact_email,
+            "active": self.active,
+            "linkedin_outbound_enabled": self.linkedin_outbound_enabled,
+            "email_outbound_enabled": self.email_outbound_enabled,
+        }
+
 
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"
@@ -152,4 +162,5 @@ class ClientSDR(db.Model):
             "weekly_email_outbound_target": self.weekly_email_outbound_target,
             "scheduling_link": self.scheduling_link,
             "last_li_conversation_scrape_date": self.last_li_conversation_scrape_date,
+            "li_connected": self.li_at_token is not None,
         }

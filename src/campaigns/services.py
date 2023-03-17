@@ -664,6 +664,7 @@ def email_analytics(client_sdr_id: int) -> dict:
           outbound_campaign.id campaign_id,
           outbound_campaign.campaign_start_date,
           outbound_campaign.campaign_end_date,
+          client_archetype.archetype,
           count(distinct prospect.id) num_prospects,
           concat('(', string_agg(distinct prospect.company, '), (') filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_LOST', 'DEMO_WON')), ')') demos,
           concat('(', string_agg(distinct prospect.company, '), (') filter (where prospect_email.outreach_status in ('ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')), ')') replies,
@@ -672,13 +673,14 @@ def email_analytics(client_sdr_id: int) -> dict:
           round(count(distinct prospect.id) filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) / cast(count(distinct prospect.id) as float) * 1000) / 10 demo_percent
         from outbound_campaign
           left join prospect on prospect.id = any(outbound_campaign.prospect_ids)
+          left join client_archetype on client_archetype.id = prospect.archetype_id
           left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
           left join client on client.id = prospect.client_id
           left join vessel_sequences on vessel_sequences.sequence_id = cast(prospect_email.vessel_sequence_id as varchar)
         where outbound_campaign.client_sdr_id = {client_sdr_id}
           and outbound_campaign.status = 'COMPLETE'
           and vessel_sequences.id is not null
-        group by 3,4,5
+        group by 3,4,5,6
         order by count(distinct prospect.company) filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_LOST', 'DEMO_WON')) desc;
         """.format(
             client_sdr_id=client_sdr_id
@@ -692,12 +694,13 @@ def email_analytics(client_sdr_id: int) -> dict:
         2: "campaign_id",
         3: "campaign_start_date",
         4: "campaign_end_date",
-        5: "num_prospects",
-        6: "demos",
-        7: "replies",
-        8: "open_percent",
-        9: "reply_percent",
-        10: "demo_percent",
+        5: "archetype",
+        6: "num_prospects",
+        7: "demos",
+        8: "replies",
+        9: "open_percent",
+        10: "reply_percent",
+        11: "demo_percent",
     }
 
     # Convert and format output
