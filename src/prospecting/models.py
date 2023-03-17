@@ -339,7 +339,7 @@ class Prospect(db.Model):
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
 
-    def to_dict(self, return_messages: Optional[bool] = False, return_messages_type: Optional[str] = None) -> dict:
+    def to_dict(self, return_messages: Optional[bool] = False, return_message_type: Optional[str] = None) -> dict:
         from src.email_outbound.models import ProspectEmail
         from src.message_generation.models import GeneratedMessage
 
@@ -353,9 +353,9 @@ class Prospect(db.Model):
         # Get generated message if it exists and is requested
         generated_message_info = {}
         if return_messages:
-            if return_messages_type == "LINKEDIN":
+            if return_message_type == "LINKEDIN":
                 generated_message: GeneratedMessage = GeneratedMessage.query.get(self.approved_outreach_message_id)
-            elif return_messages_type == "EMAIL":
+            elif return_message_type == "EMAIL":
                 generated_message: GeneratedMessage = GeneratedMessage.query.get(self.approved_prospect_email_id)
             generated_message_info = generated_message.to_dict() if generated_message else {}
 
