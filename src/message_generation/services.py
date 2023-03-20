@@ -1309,9 +1309,6 @@ def get_generation_statuses(campaign_id: int) -> dict:
     if not campaign:
         return {}
 
-    # Get the prospects in this campaign
-    prospect_ids = campaign.prospect_ids
-
     # Statistics
     total_job_count = 0
     statuses_count = {}
@@ -1319,22 +1316,15 @@ def get_generation_statuses(campaign_id: int) -> dict:
         statuses_count[job_status.value] = 0
     jobs_list = []
 
-    # Get the generation job
-    for prospect_id in prospect_ids:
-        generation_job: GeneratedMessageJobQueue = (
-            GeneratedMessageJobQueue.query.filter(
-                GeneratedMessageJobQueue.prospect_id == prospect_id,
-                GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
-            ).first()
-        )
+    # Get generation jobs
+    generation_jobs: list[GeneratedMessageJobQueue] = GeneratedMessageJobQueue.query.filter(
+        GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
+    ).all()
 
-        # If there is no generation job, we can't get the status
-        if not generation_job:
-            continue
-
-        # Add job to statistics
-        jobs_list.append(generation_job.to_dict())
-        status: GeneratedMessageJobStatus = generation_job.status
+    # Add job to statistics
+    for job in tqdm(generation_jobs):
+        jobs_list.append(job.to_dict())
+        status: GeneratedMessageJobStatus = job.status
         if status.value not in statuses_count:
             statuses_count[status.value] = 0
         statuses_count[status.value] += 1
