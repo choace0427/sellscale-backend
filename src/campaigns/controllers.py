@@ -53,7 +53,19 @@ def get_campaign_details(client_sdr_id: int, campaign_id: int):
     else:
         get_messages = False
 
-    oc_details = get_outbound_campaign_details(client_sdr_id, campaign_id=campaign_id, get_messages=get_messages)
+    shallow_details = get_request_parameter(
+        "shallow_details",
+        request,
+        json=False,
+        required=False,
+        parameter_type=str,
+    )
+    if shallow_details and shallow_details.lower() == "true":
+        shallow_details = True
+    else:
+        shallow_details = False
+
+    oc_details = get_outbound_campaign_details(client_sdr_id, campaign_id=campaign_id, get_messages=get_messages, shallow_details=shallow_details)
     status_code = oc_details.get("status_code")
     if status_code != 200:
         return jsonify({"message": oc_details.get("message")}), status_code

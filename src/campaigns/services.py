@@ -42,7 +42,7 @@ import datetime
 NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
 
 
-def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int, get_messages: Optional[bool] = False) -> dict:
+def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int, get_messages: Optional[bool] = False, shallow_details: Optional[bool] = False) -> dict:
     """Gets the details of an outbound campaign.
 
     Args:
@@ -57,6 +57,17 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int, get_mess
         return {"message": "Campaign not found", "status_code": 404}
     if oc and oc.client_sdr_id != client_sdr_id:
         return {"message": "This campaign does not belong to you", "status_code": 403}
+
+    # If we are getting shallow_details, do not return the prospects, ctas, or client_archetype.
+    if shallow_details:
+        return {
+            "campaign_details": {
+                "campaign_raw": oc.to_dict(),
+                "campaign_analytics": get_outbound_campaign_analytics(campaign_id),
+            },
+            "message": "Success",
+            "status_code": 200,
+        }
 
     # Get the table values for the available ids. If ids are not available, return empty lists or None.
     prospects: list[Prospect] = (
