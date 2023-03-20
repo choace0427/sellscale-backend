@@ -25,6 +25,8 @@ class SalesEngagementIntegration:
     """
 
     def __init__(self, client_id):
+        if not client_id:
+            raise ValueError("No client_id found")
         client: Client = Client.query.get(client_id)
         if not client:
             raise ValueError("Invalid client_id")
@@ -34,7 +36,7 @@ class SalesEngagementIntegration:
         self.personalization_field_name = client.vessel_personalization_field_name
         self.vessel_api_key = VESSEL_API_KEY
         self.vessel_access_token = client.vessel_access_token
-        self.vessel_api_url = "https://api.vessel.land/"
+        self.vessel_api_url = "https://api.vessel.land"
         self.headers = {
             "vessel-api-token": VESSEL_API_KEY,
             "x-access-token": self.vessel_access_token,
