@@ -25,6 +25,8 @@ class SalesEngagementIntegration:
     """
 
     def __init__(self, client_id):
+        if not client_id or not isinstance(client_id, int):
+            raise ValueError("No client_id found")
         client: Client = Client.query.get(client_id)
         if not client:
             raise ValueError("Invalid client_id")
