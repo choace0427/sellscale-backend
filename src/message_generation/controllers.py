@@ -25,6 +25,7 @@ from src.message_generation.services_stack_ranked_configurations import (
     get_stack_ranked_config_ordering,
     get_prompts_from_stack_ranked_config,
     toggle_stack_ranked_message_configuration_active,
+    get_sample_prompt_from_config_details,
 )
 from src.ml.fine_tuned_models import get_computed_prompt_completion
 from src.message_generation.services_few_shot_generations import (
@@ -52,12 +53,18 @@ def update():
     return "Failed to update", 400
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route("/<message_id>/patch_message_ai_approve", methods=["PATCH"])
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/<message_id>/patch_message_ai_approve", methods=["PATCH"]
+)
 def patch_message_ai_approve_endpoint(message_id: int):
     """Manually marks GeneratedMessage.ai_approved to a value (True or False)"""
-    #TODO Eventually needs auth
-    new_ai_approve_status = get_request_parameter("new_ai_approve_status", request, json=True, required=True, parameter_type=bool)
-    success = manually_mark_ai_approve(generated_message_id=message_id, new_ai_approve_status=new_ai_approve_status)
+    # TODO Eventually needs auth
+    new_ai_approve_status = get_request_parameter(
+        "new_ai_approve_status", request, json=True, required=True, parameter_type=bool
+    )
+    success = manually_mark_ai_approve(
+        generated_message_id=message_id, new_ai_approve_status=new_ai_approve_status
+    )
     if success:
         human_readable = "approved" if new_ai_approve_status else "unapproved"
         return jsonify({"message": f"Message marked as {human_readable}"}), 200
@@ -507,6 +514,33 @@ def generate_stack_ranked_configuration_tool_sample():
     )
 
     return jsonify({"response": response, "full_prompt": prompt})
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/generate_sample_prompt", methods=["POST"]
+)
+def generate_stack_ranked_configuration_tool_sample_prompt():
+    """
+    Generates a sample message for a stack ranked configuration
+    """
+    generated_message_type = get_request_parameter(
+        "generated_message_type", request, json=True, required=True
+    )
+    research_point_types = get_request_parameter(
+        "research_point_types", request, json=True, required=True
+    )
+    configuration_type = get_request_parameter(
+        "configuration_type", request, json=True, required=True
+    )
+    client_id = get_request_parameter("client_id", request, json=True, required=False)
+
+    prompt = get_sample_prompt_from_config_details(
+        generated_message_type=generated_message_type,
+        research_point_types=research_point_types,
+        configuration_type=configuration_type,
+        client_id=client_id,
+    )
+    return jsonify({"prompt": prompt})
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

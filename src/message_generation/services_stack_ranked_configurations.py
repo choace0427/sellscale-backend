@@ -12,6 +12,8 @@ from sqlalchemy.orm import attributes
 from typing import Optional
 from app import db
 import random
+from sqlalchemy.sql.expression import func
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 def compute_prompt(stack_ranked_configuration_id: int):
@@ -279,3 +281,73 @@ def get_prompts_from_stack_ranked_config(
         "prospect_prompt": prospect_prompt,
         "full_prompt": full_prompt,
     }
+
+
+def get_random_prospect(client_id: int):
+    from model_import import Prospect
+
+    return Prospect.query.filter_by(client_id=client_id).order_by(func.random()).first()
+
+
+def get_random_research_point(client_id: int, research_point_type: str):
+    query = """
+    select value
+    from research_point
+        join research_payload on research_payload.id = research_point.research_payload_id
+        join prospect on prospect.id = research_payload.prospect_id
+    where prospect.client_id = {client_id} and research_point_type = '{research_point_type}'
+    order by random()
+    limit 1;""".format(
+        client_id=str(client_id), research_point_type=research_point_type
+    )
+    result = db.engine.execute(query)
+    return result.first()[0]
+
+
+def random_cta_for_prospect(prospect_id: int):
+    from model_import import GeneratedMessageCTA, Prospect
+
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    archetype_id = prospect.archetype_id
+    ctas = (
+        GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id)
+        .order_by(func.random())
+        .first()
+    )
+    if not ctas:
+        return ""
+    return ctas.text_value
+
+
+def get_sample_prompt_from_config_details(
+    generated_message_type: str,
+    research_point_types: list[str],
+    configuration_type: str,
+    client_id: int,
+):
+    from model_import import Prospect, ResearchPayload, ResearchPoints, ResearchType
+    from src.message_generation.services import generate_prompt
+
+    random_prospect = get_random_prospect(client_id=client_id)
+    if not random_prospect:
+        return None
+    prospect_id = random_prospect.id
+
+    research_points = []
+    if configuration_type == "DEFAULT":
+        research_point_types = random.sample(research_point_types, 2)
+
+    for rpt in research_point_types:
+        rp: str = get_random_research_point(
+            client_id=client_id, research_point_type=rpt
+        )
+        research_points.append(rp)
+
+    if generated_message_type == "LINKEDIN":
+        cta = random_cta_for_prospect(prospect_id=prospect_id)
+        research_points.append(cta)
+
+    notes = "\n-".join(research_points)
+    prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+
+    return prompt
