@@ -91,6 +91,7 @@ def run_message_rule_engine(message_id: int):
     completion = message.completion.lower()
 
     prospect: Prospect = Prospect.query.get(message.prospect_id)
+    prospect_name = prospect.first_name + " " + prospect.last_name
     client_id = prospect.client_id
     client: Client = Client.query.get(client_id)
     client_name = client.company
@@ -111,7 +112,7 @@ def run_message_rule_engine(message_id: int):
     rule_linkedin_length(message.message_type, completion, problems, highlighted_words)
 
     if message.message_type == GeneratedMessageType.LINKEDIN: # Only apply this rule to LinkedIn messages
-        rule_address_doctor(prompt, completion, problems, highlighted_words)
+        rule_address_doctor(prompt, completion, problems, highlighted_words, prospect_name)
 
     # Warnings
     rule_no_cookies(completion, problems, highlighted_words)
@@ -174,7 +175,7 @@ def rule_no_symbols(completion: str, problems: list, highlighted_words: list):
 
 
 def rule_address_doctor(
-    prompt: str, completion: str, problems: list, highlighted_words: list
+    prompt: str, completion: str, problems: list, highlighted_words: list, prospect_name: str
 ):
     """Rule: Address Doctor
 
@@ -200,9 +201,7 @@ def rule_address_doctor(
         for title in title_splitted:
             if title in dr_positions and "dr." not in completion:
                 problems.append(
-                    "Title contains a doctor position '{}' but no 'Dr.' in message".format(
-                        title
-                    )
+                    f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}"
                 )
                 highlighted_words.extend(name_splitted)
                 return
@@ -212,16 +211,14 @@ def rule_address_doctor(
             title_section,
         )
         if title_search is not None and "dr." not in completion:
-            problems.append("Title contains 'MD' but no 'Dr.' in message")
+            problems.append(f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}")
             highlighted_words.extend(name_splitted)
             return
 
         for name in name_splitted:
             if name in dr_positions and "dr." not in completion:
                 problems.append(
-                    "Name contains a doctor position '{}' but no 'Dr.' in message".format(
-                        name
-                    )
+                    f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}"
                 )
                 highlighted_words.extend(name_splitted)
                 return
@@ -231,7 +228,7 @@ def rule_address_doctor(
             name_section,
         )
         if name_search is not None and "dr." not in completion:
-            problems.append("Name contains 'MD' but no 'Dr.' in message")
+            problems.append(f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}")
             highlighted_words.extend(name_splitted)
             return
 
@@ -328,7 +325,7 @@ def rule_linkedin_length(
     Linkedin messages must be less than 300 characters.
     """
     if message_type == GeneratedMessageType.LINKEDIN and len(completion) > 300:
-        problems.append("LinkedIn message is > 300 characters.")
+        problems.append("The message is over 300 characters long. Please reduce to 300 characters or less.")
 
     return
 

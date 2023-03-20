@@ -159,28 +159,28 @@ def test_rule_linkedin_length():
     rule_linkedin_length(
         GeneratedMessageType.LINKEDIN, big_message, problems, highlighted_words
     )
-    assert problems == ["LinkedIn message is > 300 characters."]
+    assert problems == ["The message is over 300 characters long. Please reduce to 300 characters or less."]
 
 
 @use_app_context
 def test_rule_address_doctor():
     problems = []
     highlighted_words = []
-    rule_address_doctor("name: David<>title: ", "pass", problems, highlighted_words)
+    rule_address_doctor("name: David<>title: ", "pass", problems, highlighted_words, "David Wei")
     assert problems == []
 
-    rule_address_doctor("name: Dr. David<>title:", "pass", problems, highlighted_words)
+    rule_address_doctor("name: Dr. David<>title:", "pass", problems, highlighted_words, "David Wei")
     assert problems == []
 
     rule_address_doctor(
-        "name: David, MD<>title:", "dr. David", problems, highlighted_words
+        "name: David, MD<>title:", "dr. David", problems, highlighted_words, "David Wei"
     )
     assert problems == []
 
     problems = []
     highlighted_words = []
-    rule_address_doctor("name: David, MD<>title:", "David", problems, highlighted_words)
-    assert problems == ["Name contains 'MD' but no 'Dr.' in message"]
+    rule_address_doctor("name: David, MD<>title:", "David", problems, highlighted_words, "David Wei")
+    assert problems == ["The subject should be addressed as a Doctor. The subject's name is: David Wei"]
     assert highlighted_words == ["name:", "david,", "md"]
 
     problems = []
@@ -189,9 +189,10 @@ def test_rule_address_doctor():
         "David, MD",
         problems,
         highlighted_words,
+        "David Wei",
     )
     assert problems == [
-        "Title contains a doctor position 'physician' but no 'Dr.' in message"
+        "The subject should be addressed as a Doctor. The subject's name is: David Wei"
     ]
     assert highlighted_words == ["name:", "david,", "md", "name:", "david", "wei"]
 
@@ -202,9 +203,10 @@ def test_rule_address_doctor():
         "David, MD",
         problems,
         highlighted_words,
+        "David Wei",
     )
     assert problems == [
-        "Title contains a doctor position 'neurosurgeon' but no 'Dr.' in message"
+        "The subject should be addressed as a Doctor. The subject's name is: David Wei"
     ]
     assert highlighted_words == ["name:", "david", "wei,", ""]
 
@@ -215,8 +217,9 @@ def test_rule_address_doctor():
         "David, MD",
         problems,
         highlighted_words,
+        "David Wei",
     )
-    assert problems == ["Title contains 'MD' but no 'Dr.' in message"]
+    assert problems == ["The subject should be addressed as a Doctor. The subject's name is: David Wei"]
     assert highlighted_words == ["name:", "david", "wei,", ""]
 
     problems = []
@@ -226,9 +229,10 @@ def test_rule_address_doctor():
         "David, MD",
         problems,
         highlighted_words,
+        "David Wei",
     )
     assert problems == [
-        "Name contains a doctor position 'neurosurgeon' but no 'Dr.' in message"
+        "The subject should be addressed as a Doctor. The subject's name is: David Wei"
     ]
     assert highlighted_words == ["name:", "david", "wei,", "neurosurgeon"]
 
@@ -239,6 +243,7 @@ def test_rule_address_doctor():
         "Hey Darshan, something",
         problems,
         highlighted_words,
+        "Darshan Kamdar",
     )
     assert problems == []
     assert highlighted_words == []
