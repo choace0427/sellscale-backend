@@ -185,6 +185,7 @@ class GeneratedMessageJobQueue(db.Model):
             "outbound_campaign_id": self.outbound_campaign_id,
             "status": self.status.value,
             "error_message": self.error_message,
+            "attempts": self.attempts,
         }
 
 
