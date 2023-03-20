@@ -75,6 +75,7 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
                 prospect_id=prospect_id,
                 outbound_campaign_id=outbound_campaign_id,
                 status=GeneratedMessageJobStatus.PENDING,
+                attempts=0,
             )
             db.session.add(gm_job)
             db.session.commit()
@@ -116,6 +117,27 @@ def update_generated_message_job_queue_status(
     return True
 
 
+def increment_generated_message_job_queue_attempts(gm_job_id: int) -> bool:
+    """Increments the number of attempts for a GeneratedMessageJobQueue job
+
+    Args:
+        gm_job_id (int): ID of the GeneratedMessageJobQueue job
+
+    Returns:
+        bool: True if the job was updated, False otherwise
+    """
+    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
+    if gm_job:
+        if gm_job.attempts:
+            gm_job.attempts += 1
+        else:
+            gm_job.attempts = 1
+        db.session.add(gm_job)
+        db.session.commit()
+
+    return True
+
+
 @celery.task(bind=True, max_retries=3)
 def research_and_generate_outreaches_for_prospect(
     self,
@@ -131,6 +153,9 @@ def research_and_generate_outreaches_for_prospect(
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
         )
+
+        # Increment the number of attempts
+        increment_generated_message_job_queue_attempts(gm_job_id)
 
         # Check if the prospect exists
         prospect: Prospect = Prospect.query.get(prospect_id)
@@ -665,6 +690,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
                 prospect_id=prospect_id,
                 outbound_campaign_id=campaign_id,
                 status=GeneratedMessageJobStatus.PENDING,
+                attempts=0,
             )
             db.session.add(gm_job)
             db.session.commit()
@@ -687,6 +713,9 @@ def generate_prospect_email(
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
         )
+
+        # Increment the attempts
+        increment_generated_message_job_queue_attempts(gm_job_id)
 
         # Check if the prospect exists
         prospect: Prospect = Prospect.query.get(prospect_id)

@@ -483,7 +483,8 @@ def basic_generated_message_job_queue(
     prospect: Prospect,
     outbound_campaign: OutboundCampaign,
     status: GeneratedMessageJobStatus,
-    error_message: Optional[str] = "test_error_message"
+    error_message: Optional[str] = "test_error_message",
+    attempts: Optional[str] = 0
 ):
 
     job = GeneratedMessageJobQueue(
@@ -491,6 +492,7 @@ def basic_generated_message_job_queue(
         outbound_campaign_id=outbound_campaign.id,
         status=status,
         error_message=error_message,
+        attempts=attempts,
     )
     db.session.add(job)
     db.session.commit()
