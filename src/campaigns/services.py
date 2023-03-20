@@ -42,7 +42,7 @@ import datetime
 NUM_DAYS_AFTER_GENERATION_TO_EDIT = 1
 
 
-def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
+def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int, get_messages: Optional[bool] = False) -> dict:
     """Gets the details of an outbound campaign.
 
     Args:
@@ -64,7 +64,7 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int) -> dict:
         if oc.prospect_ids
         else []
     )
-    prospects = [p.to_dict(return_messages=True, return_message_type=oc.campaign_type.value) for p in prospects] if prospects else []
+    prospects = [p.to_dict(return_messages=get_messages, return_message_type=oc.campaign_type.value) for p in prospects] if prospects else []
     ctas: list[GeneratedMessageCTA] = (
         GeneratedMessageCTA.query.filter(GeneratedMessageCTA.id.in_(oc.ctas)).all()
         if oc.ctas
