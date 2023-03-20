@@ -74,7 +74,15 @@ def get_campaign_details_by_uuid(campaign_uuid: str):
     if not campaign:
         return jsonify({"message": "Campaign not found."}), 404
 
-    oc_details = get_outbound_campaign_details(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id)
+    get_messages = get_request_parameter(
+        "get_messages",
+        request,
+        json=False,
+        required=False,
+        parameter_type=bool,
+    ) or False
+
+    oc_details = get_outbound_campaign_details(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id, get_messages=get_messages)
     status_code = oc_details.get("status_code")
     if status_code != 200:
         return jsonify({"message": oc_details.get("message")}), status_code
