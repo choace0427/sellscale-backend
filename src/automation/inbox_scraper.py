@@ -182,10 +182,6 @@ def scrape_inbox(client_sdr_id: int):
 
     deep_scrape_count = process_inbox(message_payload=data_payload, client_sdr_id=client_sdr_id)
 
-    send_slack_message(
-        message='🔎 Finished basic scrape for SDR {name} (#{id}). Number of conversations to be deeply scraped: {count}'.format(name=client_sdr_name, id=client_sdr_id, count=deep_scrape_count),
-        webhook_urls=[URL_MAP['eng-sandbox']]
-    )
     return True
 
 
@@ -194,3 +190,9 @@ def scrape_all_inboxes():
     client_sdr_ids = [x.id for x in ClientSDR.query.all()]
     for cs_id in tqdm(client_sdr_ids):
         scrape_inbox(client_sdr_id=cs_id)
+
+    send_slack_message(
+        message='🔎 Finished basic scrape for all SDRs',
+        webhook_urls=[URL_MAP['eng-sandbox']]
+    )
+    return
