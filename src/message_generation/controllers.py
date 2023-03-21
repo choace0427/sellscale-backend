@@ -50,7 +50,7 @@ def update():
     if success:
         return "OK", 200
 
-    return "Failed to update", 400
+    return jsonify({"message": "Failed to update, double check that the message is different."}), 400
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

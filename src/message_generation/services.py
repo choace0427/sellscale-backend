@@ -461,6 +461,11 @@ def update_message(message_id: int, update: str, editor_id=None):
 
     original_text = message.completion
     edited_text = update
+
+    # If the text is the same, don't update
+    if original_text == edited_text:
+        return False
+
     create_new_edit_message_record(
         generated_message_id=message_id,
         original_text=original_text,
@@ -469,7 +474,19 @@ def update_message(message_id: int, update: str, editor_id=None):
     )
 
     message.completion = update
-    message.human_edited = True
+
+    # Only mark the message as human_edited if the character difference is more than 2 characters.
+    if abs(len(original_text) - len(edited_text)) >= 2:
+        message.human_edited = True
+    else:
+        diff_count = abs(len(original_text) - len(edited_text))
+        for i in range(min(len(original_text), len(edited_text))):
+            if original_text[i] != edited_text[i]:
+                diff_count += 1
+                if diff_count >= 2:
+                    message.human_edited = True
+                    break
+
 
     db.session.add(message)
     db.session.commit()
