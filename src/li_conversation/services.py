@@ -9,6 +9,7 @@ from datetime import datetime
 from tqdm import tqdm
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message
+import random
 
 
 def update_linkedin_conversation_entries():
@@ -177,6 +178,8 @@ def run_next_client_sdr_scrape():
 
 
 def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
+    from model_import import Prospect, ProspectStatus
+
     query = """
         with d as (
             select
@@ -201,16 +204,36 @@ def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
     sender = data[0][1]
     content = transcript + "\n\n" + sender + ":"
 
+    prospect: Prospect = Prospect.query.filter(
+        Prospect.li_conversation_thread_id == conversation_url
+    ).first()
+    details = ""
+    if prospect and random.random() < 0.5:
+        details = "For some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
+            first_name=prospect.first_name,
+            title=prospect.title,
+            company=prospect.company,
+        )
+
+    message_content = (
+        "You are a helpful assistant helping the user write their next reply in a message thread, with the goal of getting the prospect on a call. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
+        + sender
+        + ". If there are no messages from the other person who is not "
+        + sender
+        + " write a follow-up, 'bump' message that includes personalization from the original message."
+        + details
+    )
+
+    if prospect and prospect.status == ProspectStatus.RESPONDED:
+        message_content = (
+            "You are a helpful assistant helping the user write the final follow up in a message thread, with the goal of getting the prospect on a call. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
+            + sender
+            + ". Mention that you're doing one last follow up."
+        )
+
     response = wrapped_chat_gpt_completion(
         [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant helping the user write their next reply in a message thread. Keep responses friendly and concise. Write from the perspective of "
-                + sender
-                + ". If there are no messages from the other person who is not "
-                + sender
-                + " write a follow-up, 'bump' message.",
-            },
+            {"role": "system", "content": message_content},
             {"role": "user", "content": content},
         ],
         max_tokens=200,
