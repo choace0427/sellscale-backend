@@ -10,6 +10,7 @@ from src.automation.services import (
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
 from src.utils.slack import send_slack_message
+from src.authentication.decorators import require_user
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
@@ -127,6 +128,20 @@ def update_phantom_li_at():
     client_sdr_id: int = get_request_parameter(
         "client_sdr_id", request, json=True, required=True
     )
+    linkedin_authentication_token: str = get_request_parameter(
+        "linkedin_authentication_token", request, json=True, required=True
+    )
+
+    response = update_phantom_buster_li_at(
+        client_sdr_id=client_sdr_id, li_at=linkedin_authentication_token
+    )
+
+    return jsonify(response)
+
+
+@AUTOMATION_BLUEPRINT.route("/update_phantom_li_at_auth", methods=["POST"])
+@require_user
+def update_phantom_li_at_auth(client_sdr_id: int):
     linkedin_authentication_token: str = get_request_parameter(
         "linkedin_authentication_token", request, json=True, required=True
     )
