@@ -10,6 +10,7 @@ from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
 from src.campaigns.services import (
     get_outbound_campaign_details,
+    get_outbound_campaign_details_for_edit_tool,
     get_outbound_campaigns,
     generate_campaign,
     update_campaign_dates,
@@ -90,19 +91,7 @@ def get_campaign_details_by_uuid(campaign_uuid: str):
     if not campaign:
         return jsonify({"message": "Campaign not found."}), 404
 
-    get_messages = get_request_parameter(
-        "get_messages",
-        request,
-        json=False,
-        required=False,
-        parameter_type=str,
-    )
-    if get_messages and get_messages.lower() == "true":
-        get_messages = True
-    else:
-        get_messages = False
-
-    oc_details = get_outbound_campaign_details(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id, get_messages=get_messages)
+    oc_details = get_outbound_campaign_details_for_edit_tool(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id)
     status_code = oc_details.get("status_code")
     if status_code != 200:
         return jsonify({"message": oc_details.get("message")}), status_code

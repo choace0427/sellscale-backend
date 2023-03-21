@@ -9,6 +9,7 @@ from model_import import (
     Client,
     ClientSDR,
     GeneratedMessageCTA,
+    GeneratedMessage,
     ProspectEmail,
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
@@ -75,9 +76,11 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int, get_mess
         if oc.prospect_ids
         else []
     )
-    prospects = [p.to_dict(return_messages=get_messages, return_message_type=oc.campaign_type.value) for p in prospects] if prospects else []
+    prospects = [p.to_dict(return_messages=get_messages, return_message_type=oc.campaign_type.value)
+                 for p in prospects] if prospects else []
     ctas: list[GeneratedMessageCTA] = (
-        GeneratedMessageCTA.query.filter(GeneratedMessageCTA.id.in_(oc.ctas)).all()
+        GeneratedMessageCTA.query.filter(
+            GeneratedMessageCTA.id.in_(oc.ctas)).all()
         if oc.ctas
         else []
     )
@@ -99,6 +102,79 @@ def get_outbound_campaign_details(client_sdr_id: int, campaign_id: int, get_mess
             "campaign_analytics": get_outbound_campaign_analytics(campaign_id),
             "prospects": prospects,
             "ctas": ctas_dicts,
+            "client_archetype": client_archetype,
+        },
+        "message": "Success",
+        "status_code": 200,
+    }
+
+
+def get_outbound_campaign_details_for_edit_tool(client_sdr_id: int, campaign_id: int) -> dict:
+    """Gets the details of an outbound campaign, specific for the editing tool.
+
+    Args:
+        client_sdr_id (int): The ID of the SDR.
+        campaign_id (int): The ID of the campaign to get.
+
+    Returns:
+        dict: A dictionary containing campaign details, status code, and message.
+    """
+    oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not oc:
+        return {"message": "Campaign not found", "status_code": 404}
+    if oc and oc.client_sdr_id != client_sdr_id:
+        return {"message": "This campaign does not belong to you", "status_code": 403}
+
+    # Get join of prospect and message
+    if oc.campaign_type.value == "LINKEDIN":
+        joined_prospect_message = db.session.query(
+            Prospect.id.label('prospect_id'),
+            Prospect.full_name.label('full_name'),
+            GeneratedMessage.id.label('message_id'),
+            GeneratedMessage.ai_approved.label('ai_approved'),
+            GeneratedMessage.completion.label('completion'),
+            GeneratedMessage.problems.label('problems'),
+            GeneratedMessage.highlighted_words.label('highlighted_words'),
+        ).join(GeneratedMessage, Prospect.approved_outreach_message_id == GeneratedMessage.id).filter(
+            Prospect.id.in_(oc.prospect_ids)
+        ).all()
+    if oc.campaign_type.value == "EMAIL":
+        joined_prospect_message = db.session.query(
+            Prospect.id.label('prospect_id'),
+            Prospect.full_name.label('full_name'),
+            GeneratedMessage.id.label('message_id'),
+            GeneratedMessage.ai_approved.label('ai_approved'),
+            GeneratedMessage.completion.label('completion'),
+            GeneratedMessage.problems.label('problems'),
+            GeneratedMessage.highlighted_words.label('highlighted_words'),
+        ).join(GeneratedMessage, Prospect.approved_prospect_email_id == GeneratedMessage.id).filter(
+            Prospect.id.in_(oc.prospect_ids)
+        ).all()
+
+    prospects = []
+    for p in joined_prospect_message:
+        prospects.append({
+            "prospect_id": p.prospect_id,
+            "full_name": p.full_name,
+            "message_id": p.message_id,
+            "ai_approved": p.ai_approved,
+            "completion": p.completion,
+            "problems": p.problems,
+            "highlighted_words": p.highlighted_words,
+        })
+
+    client_archetype: ClientArchetype = (
+        ClientArchetype.query.get(oc.client_archetype_id)
+        if oc.client_archetype_id
+        else None
+    )
+    client_archetype = client_archetype.to_dict() if client_archetype else None
+
+    return {
+        "campaign_details": {
+            "campaign_raw": oc.to_dict(),
+            "campaign_analytics": get_outbound_campaign_analytics(campaign_id),
+            "prospects": prospects,
             "client_archetype": client_archetype,
         },
         "message": "Success",
@@ -257,7 +333,8 @@ def create_outbound_campaign(
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
         top_prospects = smart_get_prospects_for_campaign(
-            client_archetype_id, num_prospects - len(prospect_ids), campaign_type
+            client_archetype_id, num_prospects -
+            len(prospect_ids), campaign_type
         )
         prospect_ids.extend(top_prospects)
         pass
@@ -269,7 +346,8 @@ def create_outbound_campaign(
     num_campaigns = len(ocs)
     name = ca.archetype + " #" + str(num_campaigns + 1)
     canonical_name = (
-        ca.archetype + ", " + str(num_prospects) + ", " + str(campaign_start_date)
+        ca.archetype + ", " + str(num_prospects) +
+        ", " + str(campaign_start_date)
     )
     if campaign_type == GeneratedMessageType.LINKEDIN and ctas is None:
         raise Exception("LinkedIn campaign type requires a list of CTAs")
@@ -331,7 +409,8 @@ def smart_get_prospects_for_campaign(
         )
 
     prospects = (
-        prospects_query.order_by(Prospect.health_check_score.desc(), func.random())
+        prospects_query.order_by(
+            Prospect.health_check_score.desc(), func.random())
         .limit(num_prospects)
         .all()
     )
@@ -561,7 +640,8 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     if campaign.status == OutboundCampaignStatus.READY_TO_SEND:
         return False
 
-    change_campaign_status(campaign_id, OutboundCampaignStatus.INITIAL_EDIT_COMPLETE)
+    change_campaign_status(
+        campaign_id, OutboundCampaignStatus.INITIAL_EDIT_COMPLETE)
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
@@ -716,7 +796,8 @@ def email_analytics(client_sdr_id: int) -> dict:
 
     # Convert and format output
     results = [
-        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        {column_map.get(i, "unknown"): value for i,
+         value in enumerate(tuple(row))}
         for row in results
     ]
 
@@ -848,7 +929,7 @@ def merge_outbound_campaigns(campaign_ids: list):
 
 def split(a, n):
     k, m = divmod(len(a), n)
-    return (a[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n))
+    return (a[i * k + min(i, m): (i + 1) * k + min(i + 1, m)] for i in range(n))
 
 
 def split_outbound_campaigns(original_campaign_id: int, num_campaigns: int):
@@ -1010,7 +1091,8 @@ def remove_ungenerated_prospects_from_campaign(campaign_id: int):
             Prospect.approved_outreach_message_id == None,
         ).all()
 
-    not_generated_prospect_ids = [prospect.id for prospect in not_generated_prospects]
+    not_generated_prospect_ids = [
+        prospect.id for prospect in not_generated_prospects]
 
     new_list = []
     for prospect_id in prospect_ids:
@@ -1200,8 +1282,10 @@ def wipe_campaign_generations(campaign_id: int):
 def personalize_and_enroll_in_sequence(
     client_id: int, prospect_id: int, mailbox_id: int, sequence_id: Optional[int] = None
 ):
-    sei: SalesEngagementIntegration = SalesEngagementIntegration(client_id=client_id)
-    contact = sei.create_or_update_contact_by_prospect_id(prospect_id=prospect_id)
+    sei: SalesEngagementIntegration = SalesEngagementIntegration(
+        client_id=client_id)
+    contact = sei.create_or_update_contact_by_prospect_id(
+        prospect_id=prospect_id)
     if sequence_id:
         contact_id = contact["id"]
         sei.add_contact_to_sequence(
@@ -1229,12 +1313,14 @@ def send_email_campaign_from_sales_engagement(
     if not client:
         raise Exception("Client not found")
     if not client.vessel_access_token:
-        raise Exception("Client does not have a connected sales engagement tool")
+        raise Exception(
+            "Client does not have a connected sales engagement tool")
     if not sdr.vessel_mailbox_id:
         raise Exception("SDR does not have a connected sales engagement tool")
 
     for prospect_id in campaign.prospect_ids:
-        prospect_email: ProspectEmail = get_approved_prospect_email_by_id(prospect_id)
+        prospect_email: ProspectEmail = get_approved_prospect_email_by_id(
+            prospect_id)
         if (
             prospect_email
             and prospect_email.email_status == ProspectEmailStatus.APPROVED
