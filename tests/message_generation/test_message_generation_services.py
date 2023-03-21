@@ -55,7 +55,8 @@ from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
     get_generation_statuses,
     wipe_message_generation_job_queue,
-    manually_mark_ai_approve
+    manually_mark_ai_approve,
+    update_message,
 )
 from src.research.models import ResearchPointType, ResearchType
 
@@ -1052,3 +1053,44 @@ def test_manually_mark_ai_approve():
     manually_mark_ai_approve(gm.id, True)
     gm = GeneratedMessage.query.get(gm.id)
     assert gm.ai_approved is True
+
+
+@use_app_context
+@mock.patch("src.message_generation.services.run_message_rule_engine")
+def test_update_message_service(rule_engine_mock):
+    client = basic_client()
+    archetype = basic_archetype(client)
+    prospect = basic_prospect(client, archetype)
+    gnlp_model = basic_gnlp_model(archetype)
+    message: GeneratedMessage = basic_generated_message(
+        prospect=prospect, gnlp_model=gnlp_model
+    )
+    message_id = message.id
+
+    # No change
+    assert message.completion == "this is a test"
+    update_message(message_id, message.completion)
+    message = GeneratedMessage.query.get(message_id)
+    assert message.completion == "this is a test"
+    assert message.human_edited is None
+    gm_record = GeneratedMessageEditRecord.query.all()
+    assert len(gm_record) == 0
+
+    # Change not within 2 character minimum
+    assert message.completion == "this is a test"
+    update_message(message_id, "this is a testt")
+    message = GeneratedMessage.query.get(message_id)
+    assert message.completion == "this is a testt"
+    assert message.human_edited is None
+    gm_record = GeneratedMessageEditRecord.query.all()
+    assert len(gm_record) == 1
+
+    # Change
+    assert message.completion == "this is a testt"
+    assert message.human_edited is None
+    update_message(message_id, "this is a test 2")
+    message = GeneratedMessage.query.get(message_id)
+    assert message.completion == "this is a test 2"
+    assert message.human_edited is True
+    gm_record = GeneratedMessageEditRecord.query.all()
+    assert len(gm_record) == 2
