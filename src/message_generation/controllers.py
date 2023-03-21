@@ -50,7 +50,12 @@ def update():
     if success:
         return "OK", 200
 
-    return jsonify({"message": "Failed to update, double check that the message is different."}), 400
+    return (
+        jsonify(
+            {"message": "Failed to update, double check that the message is different."}
+        ),
+        400,
+    )
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(
@@ -534,13 +539,18 @@ def generate_stack_ranked_configuration_tool_sample_prompt():
     )
     client_id = get_request_parameter("client_id", request, json=True, required=False)
 
-    prompt = get_sample_prompt_from_config_details(
+    prompt, selected_research_point_types = get_sample_prompt_from_config_details(
         generated_message_type=generated_message_type,
         research_point_types=research_point_types,
         configuration_type=configuration_type,
         client_id=client_id,
     )
-    return jsonify({"prompt": prompt})
+    return jsonify(
+        {
+            "prompt": prompt,
+            "selected_research_point_types": selected_research_point_types,
+        }
+    )
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

@@ -291,7 +291,7 @@ def get_random_prospect(client_id: int):
 
 def get_random_research_point(client_id: int, research_point_type: str):
     query = """
-    select value
+    select value, research_point.research_point_type
     from research_point
         join research_payload on research_payload.id = research_point.research_payload_id
         join prospect on prospect.id = research_payload.prospect_id
@@ -301,7 +301,8 @@ def get_random_research_point(client_id: int, research_point_type: str):
         client_id=str(client_id), research_point_type=research_point_type
     )
     result = db.engine.execute(query)
-    return result.first()[0]
+    data = result.first()
+    return data[0], data[1]
 
 
 def random_cta_for_prospect(prospect_id: int):
@@ -330,18 +331,20 @@ def get_sample_prompt_from_config_details(
 
     random_prospect = get_random_prospect(client_id=client_id)
     if not random_prospect:
-        return None
+        return None, None
     prospect_id = random_prospect.id
 
     research_points = []
+    selected_research_point_types = []
     if configuration_type == "DEFAULT":
         research_point_types = random.sample(research_point_types, 2)
 
     for rpt in research_point_types:
-        rp: str = get_random_research_point(
+        rp, rp_type = get_random_research_point(
             client_id=client_id, research_point_type=rpt
         )
         research_points.append(rp)
+        selected_research_point_types.append(rp_type)
 
     if generated_message_type == "LINKEDIN":
         cta = random_cta_for_prospect(prospect_id=prospect_id)
@@ -350,4 +353,4 @@ def get_sample_prompt_from_config_details(
     notes = "\n-".join(research_points)
     prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
-    return prompt
+    return prompt, selected_research_point_types
