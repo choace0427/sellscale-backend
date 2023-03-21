@@ -66,8 +66,8 @@ scheduler.add_job(
     minute="*/10",
 )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
-scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=24)
-scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=24)
+scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
+scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())

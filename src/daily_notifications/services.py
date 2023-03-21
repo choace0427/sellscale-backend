@@ -5,6 +5,7 @@ from src.client.models import ClientSDR
 from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.datetime.dateutils import get_datetime_now
 from datetime import timedelta
+from src.utils.slack import send_slack_message, URL_MAP
 
 DUE_DATE_DAYS = 1
 CLEAR_DAYS = 7
@@ -35,6 +36,11 @@ def fill_in_daily_notifications():
     Returns:
         HTTPS response: 201 if successful.
     """
+
+    send_slack_message(
+        message='Running fill_in_daily_notifications!',
+        webhook_urls=[URL_MAP['eng-sandbox']]
+    )
 
     for client_sdr in ClientSDR.query.all():
         
@@ -124,6 +130,11 @@ def clear_daily_notifications():
     Returns:
         HTTPS response: 200 if successful.
     """
+
+    send_slack_message(
+        message='Running clear_daily_notifications!',
+        webhook_urls=[URL_MAP['eng-sandbox']]
+    )
 
     for daily_notification in db.session.query(DailyNotification).all():
         # Check if it's more than CLEAR_DAYS days old
