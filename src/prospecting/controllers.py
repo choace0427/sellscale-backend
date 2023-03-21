@@ -151,26 +151,12 @@ def get_all_emails(client_sdr_id: int, prospect_id: int):
         contact_id=prospect.vessel_contact_id, sequence_id=prospect_email.vessel_sequence_id, do_not_hit_api=True
     )
 
+    # TODO: Remove this
     print(prospect.vessel_contact_id)
     print(prospect_email.vessel_sequence_id)
     print(emails)
 
-    return jsonify({"message": "Success", "data": [
-    {
-        'first_name': 'Marc',
-        'company': 'AdQuick',
-        'email': 'marc@adquick.com',
-        'body': 'Howdy! Let\'s talk about Adquick.\n\n{this is where the email body goes}',
-        'date': '2023-03-12 18:51:15.313515'
-    },
-    {
-        'first_name': 'Marc',
-        'company': 'AdQuick',
-        'email': 'marc@adquick.com',
-        'body': 'Howdy! Let\'s what about what you might need for the OOA?\n\n{this is where the email body goes!}',
-        'date': '2023-03-07 18:45:15.313515'
-    }
-    ]}), 200
+    return jsonify({"message": "Success", "data": []}), 200
     
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/<outbound_type>/get_generated_message/", methods=["GET"])
