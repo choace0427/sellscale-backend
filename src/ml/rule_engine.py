@@ -454,7 +454,7 @@ def rule_no_hard_years(
     if "decade" in prompt:
         if "decade" not in completion and "years" in completion:
             problems.append(
-                "Please reference years in colloquial terms. (e.g. 5 years → half a decade)"
+                "A hard number year may appear non-colloquial. Reference the number without using a digit. Use references to decades if possible."
             )
 
             # Highlight the word 'years' and the word before it. Imperfect heurstic, may need change.
@@ -464,24 +464,37 @@ def rule_no_hard_years(
                 if word == "years":
                     highlighted_words.append(splitted[i - 1] + " " + word)
                     break
+        return
 
+    # Catch colloquial years that should be rounded.
     if "nine years"in completion:
         problems.append(
             "'nine years' is non-colloquial. Please use 'nearly a decade' instead."
         )
         highlighted_words.append("nine years")
-
-    if "eight years"in completion:
+    elif "eight years"in completion:
         problems.append(
             "'eight years' is non-colloquial. Please use 'nearly a decade' instead."
         )
         highlighted_words.append("eight years")
-
-    if "6 months" in completion:
+    elif "6 months" in completion:
         problems.append(
             "'6 months' is non-colloquial. Please use 'half a year' instead."
         )
         highlighted_words.append("6 months")
+
+    # Catch hard years
+    if "years" in completion:
+        # Highlight the word 'years' and the word before it. Imperfect heurstic, may need change.
+        splitted = completion.split()
+        for i in range(len(splitted)):
+            word = splitted[i]
+            if word == "years":
+                year = splitted[i - 1]
+                if year.isdigit():
+                    problems.append('A hard number year may appear non-colloquial. Reference the number without using a digit.')
+                    highlighted_words.append(year + " " + word)
+                    break
 
     return
 

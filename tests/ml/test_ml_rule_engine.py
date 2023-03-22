@@ -504,7 +504,7 @@ def test_rule_no_hard_years():
         highlighted_words,
     )
     assert problems == [
-        "Please reference years in colloquial terms. (e.g. 5 years → half a decade)"
+        "A hard number year may appear non-colloquial. Reference the number without using a digit. Use references to decades if possible."
     ]
     assert highlighted_words == ["5 years"]
 
@@ -540,6 +540,29 @@ def test_rule_no_hard_years():
     )
     assert problems == ["'6 months' is non-colloquial. Please use 'half a year' instead."]
     assert highlighted_words == ["6 months"]
+
+    problems = []
+    highlighted_words = []
+    rule_no_hard_years(
+        "I've been there for 3 years",
+        "anything",
+        problems,
+        highlighted_words
+    )
+    assert problems == ["A hard number year may appear non-colloquial. Reference the number without using a digit."]
+    assert highlighted_words == ["3 years"]
+
+    # SHOULDN'T TRIGGER
+    problems = []
+    highlighted_words = []
+    rule_no_hard_years(
+        "I see you've been at SellScale for a few years",
+        "anything",
+        problems,
+        highlighted_words
+    )
+    assert problems == []
+    assert highlighted_words == []
 
 
 @use_app_context
