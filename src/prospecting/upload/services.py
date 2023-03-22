@@ -299,7 +299,9 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
         if company_url and "linkedin.com/" in company_url:
             company_slug = company_url.split(".com/")[1].split("/")[1]
             company_info = research_corporate_profile_details(company_name=company_slug)
-            company_url = deep_get(company_info, "details.urls.company_page")
+            new_company_url = deep_get(company_info, "details.urls.company_page")
+            if new_company_url:
+                company_url = new_company_url
 
         # Get Prospect fields - needs change in future
         company_name = deep_get(iscraper_payload, "position_groups.0.company.name")
