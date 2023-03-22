@@ -17,6 +17,7 @@ from src.email_outbound.services import (
 from src.integrations.vessel import SalesEngagementIntegration
 from app import db, celery
 from src.campaigns.models import OutboundCampaign
+from src.utils.slack import send_slack_message, URL_MAP
 
 
 def get_prospects_to_collect_analytics_for(client_sdr_id: int) -> list:
@@ -90,6 +91,59 @@ def backfill_analytics_information(client_sdr_id: int):
         get_emails_for_contact_async.delay(
             client_id=client_id, contact_id=contact_id, sequence_id=sequence_id
         )
+
+
+@celery.task
+def backfill_analytics_for_sdrs():
+    query = """
+    select 
+        array_agg(distinct client_sdr_id) client_sdr_ids
+    from outbound_campaign
+        join client_sdr on client_sdr.id = outbound_campaign.client_sdr_id
+        join client on client.id = client_sdr.client_id
+            and client.active
+            and client.vessel_access_token is not null
+    where outbound_campaign.campaign_type = 'EMAIL'
+        and outbound_campaign.status = 'COMPLETE'
+        and outbound_campaign.campaign_start_date + '60 days'::INTERVAL > NOW();
+    """
+    result = db.session.execute(query)
+    for row in result:
+        client_sdr_ids = row[0]
+        for client_sdr_id in client_sdr_ids:
+            backfill_analytics_information(client_sdr_id)
+
+    send_slack_message(
+        message="✨ Backfilled prospect email data for the hour!",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
+
+@celery.task
+def scrape_campaigns_for_day():
+    query = """
+    select 
+        array_agg(distinct outbound_campaign.id) campaign_ids
+    from outbound_campaign
+        join client_sdr on client_sdr.id = outbound_campaign.client_sdr_id
+        join client on client.id = client_sdr.client_id
+            and client.active
+            and client.vessel_access_token is not null
+    where outbound_campaign.campaign_type = 'EMAIL'
+        and outbound_campaign.status = 'COMPLETE'
+        and outbound_campaign.campaign_start_date + '60 days'::INTERVAL > NOW()
+        and mod(EXTRACT('days' from NOW() - outbound_campaign.campaign_start_date), 2) = 0;
+    """
+    result = db.session.execute(query)
+    for row in result:
+        campaign_ids = row[0]
+        for campaign_id in campaign_ids:
+            process_analytics_for_campaign(campaign_id)
+
+    send_slack_message(
+        message="📧 Finished scraping email campaigns for the day!",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
 
 
 @celery.task
