@@ -15,6 +15,7 @@ from app import db, celery
 from tqdm import tqdm
 from src.email_outbound.services import get_approved_prospect_email_by_id
 from datetime import datetime, timedelta
+from src.utils.abstract.type_checks import is_number
 
 VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
 
@@ -25,7 +26,7 @@ class SalesEngagementIntegration:
     """
 
     def __init__(self, client_id):
-        if not client_id or not isinstance(client_id, int):
+        if not is_number(client_id):
             raise ValueError("No client_id found")
         client: Client = Client.query.get(client_id)
         if not client:
