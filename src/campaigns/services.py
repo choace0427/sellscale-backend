@@ -147,9 +147,10 @@ def get_outbound_campaign_details_for_edit_tool(client_sdr_id: int, campaign_id:
             GeneratedMessage.completion.label('completion'),
             GeneratedMessage.problems.label('problems'),
             GeneratedMessage.highlighted_words.label('highlighted_words'),
-        ).join(GeneratedMessage, Prospect.approved_prospect_email_id == GeneratedMessage.id).filter(
+        ).join(ProspectEmail, Prospect.approved_prospect_email_id == ProspectEmail.id).join(GeneratedMessage, ProspectEmail.personalized_first_line == GeneratedMessage.id).filter(
             Prospect.id.in_(oc.prospect_ids)
         ).all()
+        print(joined_prospect_message)
 
     prospects = []
     for p in joined_prospect_message:
