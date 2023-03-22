@@ -1,8 +1,22 @@
 from app import db, celery
-from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads, ProspectUploadsStatus, ProspectUploadsErrorType, Prospect
-from src.prospecting.services import get_linkedin_slug_from_url, get_navigator_slug_from_url, add_prospect
+from src.prospecting.models import (
+    ProspectUploadsRawCSV,
+    ProspectUploads,
+    ProspectUploadsStatus,
+    ProspectUploadsErrorType,
+    Prospect,
+)
+from src.prospecting.services import (
+    get_linkedin_slug_from_url,
+    get_navigator_slug_from_url,
+    add_prospect,
+)
 from src.research.models import IScraperPayloadType
-from src.research.linkedin.services import research_personal_profile_details, get_iscraper_payload_error
+from src.research.linkedin.services import (
+    research_personal_profile_details,
+    get_iscraper_payload_error,
+    research_corporate_profile_details,
+)
 from src.research.services import create_iscraper_payload_cache
 from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
@@ -87,11 +101,15 @@ def populate_prospect_uploads_from_json_payload(
     prospect_list = []
     prospect_hashes = []
     for prospect_row in payload:
-        prospect_hash_value = hashlib.sha256(json.dumps(prospect_row).encode()).hexdigest()
-        prospect_list.append({
-            "prospect_hash": prospect_hash_value,
-            "prospect_data": prospect_row,
-        })
+        prospect_hash_value = hashlib.sha256(
+            json.dumps(prospect_row).encode()
+        ).hexdigest()
+        prospect_list.append(
+            {
+                "prospect_hash": prospect_hash_value,
+                "prospect_data": prospect_row,
+            }
+        )
         prospect_hashes.append(prospect_hash_value)
 
     # Get ProspectUploads that match the prospect_hashes, and create a set off the existent hashes.
@@ -99,12 +117,11 @@ def populate_prospect_uploads_from_json_payload(
         ProspectUploads.client_id == client_id,
         ProspectUploads.client_archetype_id == client_archetype_id,
         ProspectUploads.client_sdr_id == client_sdr_id,
-        ProspectUploads.csv_row_hash.in_(prospect_hashes)
+        ProspectUploads.csv_row_hash.in_(prospect_hashes),
     ).all()
     existing_prospect_hash = set()
     for existing_prospect_upload in existing_prospect_uploads:
         existing_prospect_hash.add(existing_prospect_upload.csv_row_hash)
-
 
     # Create ProspectUploads
     prospect_uploads = []
@@ -112,7 +129,9 @@ def populate_prospect_uploads_from_json_payload(
         status = ProspectUploadsStatus.UPLOAD_NOT_STARTED
         error_type = None
         if prospect_dic["prospect_hash"] in existing_prospect_hash:
-            status = ProspectUploadsStatus.DISQUALIFIED  # If duplicate, mark as disqualified
+            status = (
+                ProspectUploadsStatus.DISQUALIFIED
+            )  # If duplicate, mark as disqualified
             error_type = ProspectUploadsErrorType.DUPLICATE
 
         prospect_upload = ProspectUploads(
@@ -134,9 +153,12 @@ def populate_prospect_uploads_from_json_payload(
 
     return True
 
+
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def collect_and_run_celery_jobs_for_upload(self, client_id: int, client_archetype_id: int, client_sdr_id: int) -> bool:
-    """ Collects the rows eligible for upload and runs the celery jobs for them.
+def collect_and_run_celery_jobs_for_upload(
+    self, client_id: int, client_archetype_id: int, client_sdr_id: int
+) -> bool:
+    """Collects the rows eligible for upload and runs the celery jobs for them.
 
     Args:
         client_id (int): The client ID.
@@ -147,35 +169,45 @@ def collect_and_run_celery_jobs_for_upload(self, client_id: int, client_archetyp
         bool: True if the celery jobs were collected and scheduled successfully. Errors otherwise.
     """
     try:
-        not_started_rows: ProspectUploads = ProspectUploads.query.filter_by(             # Get all not_started rows
-            client_id=client_id,
-            client_archetype_id=client_archetype_id,
-            client_sdr_id=client_sdr_id,
-            status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
-        ).all()
-        failed_rows: ProspectUploads = ProspectUploads.query.filter_by(                  # Get all failed rows
-            client_id=client_id,
-            client_archetype_id=client_archetype_id,
-            client_sdr_id=client_sdr_id,
-            status=ProspectUploadsStatus.UPLOAD_FAILED,
-        ).all()
+        not_started_rows: ProspectUploads = (
+            ProspectUploads.query.filter_by(  # Get all not_started rows
+                client_id=client_id,
+                client_archetype_id=client_archetype_id,
+                client_sdr_id=client_sdr_id,
+                status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
+            ).all()
+        )
+        failed_rows: ProspectUploads = (
+            ProspectUploads.query.filter_by(  # Get all failed rows
+                client_id=client_id,
+                client_archetype_id=client_archetype_id,
+                client_sdr_id=client_sdr_id,
+                status=ProspectUploadsStatus.UPLOAD_FAILED,
+            ).all()
+        )
 
         eligible_rows = not_started_rows + failed_rows
         for row in eligible_rows:
             row: ProspectUploads = row
             prospect_row_id = row.id
-            prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_row_id)
+            prospect_upload: ProspectUploads = ProspectUploads.query.get(
+                prospect_row_id
+            )
             if prospect_upload:
                 prospect_upload.status = ProspectUploadsStatus.UPLOAD_QUEUED
                 db.session.add(prospect_upload)
                 db.session.commit()
-                create_prospect_from_prospect_upload_row.apply_async(args=[prospect_upload.id], queue="prospecting", routing_key="prospecting", priority=2)
+                create_prospect_from_prospect_upload_row.apply_async(
+                    args=[prospect_upload.id],
+                    queue="prospecting",
+                    routing_key="prospecting",
+                    priority=2,
+                )
 
         return True
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
-
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
@@ -201,7 +233,10 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
 
         # Create the prospect using the LinkedIn URL.
         create_prospect_from_linkedin_link.apply_async(
-            args=[prospect_upload.id], queue="prospecting", routing_key="prospecting", priority=2
+            args=[prospect_upload.id],
+            queue="prospecting",
+            routing_key="prospecting",
+            priority=2,
         )
 
         # Future ways to create the prospect can go below
@@ -214,7 +249,7 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
-    """ Celery task for creating a prospect from a LinkedIn URL.
+    """Celery task for creating a prospect from a LinkedIn URL.
 
     Args:
         prospect_upload_id (int): The ID of the ProspectUploads row.
@@ -249,30 +284,49 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
         iscraper_payload = research_personal_profile_details(profile_id=slug)
         if not deep_get(iscraper_payload, "first_name"):
             error = get_iscraper_payload_error(iscraper_payload)
-            prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED if error == "Profile data cannot be retrieved." else ProspectUploadsStatus.UPLOAD_FAILED
+            prospect_upload.status = (
+                ProspectUploadsStatus.DISQUALIFIED
+                if error == "Profile data cannot be retrieved."
+                else ProspectUploadsStatus.UPLOAD_FAILED
+            )
             prospect_upload.error_type = ProspectUploadsErrorType.ISCRAPER_FAILED
             prospect_upload.iscraper_error_message = error
             db.session.add(prospect_upload)
             db.session.commit()
             return False
 
+        company_url = deep_get(iscraper_payload, "position_groups.0.company.url")
+        if company_url and "linkedin.com/" in company_url:
+            company_slug = company_url.split(".com/")[1].split("/")[1]
+            company_info = research_corporate_profile_details(company_name=company_slug)
+            company_url = deep_get(company_info, "details.urls.company_page")
+
         # Get Prospect fields - needs change in future
         company_name = deep_get(iscraper_payload, "position_groups.0.company.name")
-        company_url = deep_get(iscraper_payload, "position_groups.0.company.url")
         employee_count = (
             str(deep_get(iscraper_payload, "position_groups.0.company.employees.start"))
             + "-"
             + str(deep_get(iscraper_payload, "position_groups.0.company.employees.end"))
         )
-        full_name = (deep_get(iscraper_payload, "first_name") + " " + deep_get(iscraper_payload, "last_name"))
+        full_name = (
+            deep_get(iscraper_payload, "first_name")
+            + " "
+            + deep_get(iscraper_payload, "last_name")
+        )
         industry = deep_get(iscraper_payload, "industry")
-        linkedin_url = "linkedin.com/in/{}".format(deep_get(iscraper_payload, "profile_id"))
+        linkedin_url = "linkedin.com/in/{}".format(
+            deep_get(iscraper_payload, "profile_id")
+        )
         linkedin_bio = deep_get(iscraper_payload, "summary")
-        title = deep_get(iscraper_payload, "position_groups.0.profile_positions.0.title") or deep_get(iscraper_payload, "sub_title")
+        title = deep_get(
+            iscraper_payload, "position_groups.0.profile_positions.0.title"
+        ) or deep_get(iscraper_payload, "sub_title")
         twitter_url = None
 
         # Health Check fields
-        followers_count = deep_get(iscraper_payload, "network_info.followers_count") or 0
+        followers_count = (
+            deep_get(iscraper_payload, "network_info.followers_count") or 0
+        )
 
         # Add prospect
         new_prospect_id = add_prospect(
@@ -301,7 +355,10 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             db.session.add(prospect_upload)
             db.session.commit()
             run_and_assign_health_score.apply_async(
-                args=[prospect_upload.client_archetype_id], queue="prospecting", routing_key="prospecting", priority=5
+                args=[prospect_upload.client_archetype_id],
+                queue="prospecting",
+                routing_key="prospecting",
+                priority=5,
             )
             return True
         else:
@@ -326,7 +383,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def run_and_assign_health_score(self, archetype_id: int):
-    """ Celery task for running and assigning health scores to prospects.
+    """Celery task for running and assigning health scores to prospects.
 
     Only runs on prospects that have not been assigned a health score.
 
@@ -345,7 +402,9 @@ def run_and_assign_health_score(self, archetype_id: int):
 
         update_prospects: list[dict] = []
         for p in prospects:
-            if p.li_num_followers is None:      # This should only happen on existent records, iScraper won't give None here.
+            if (
+                p.li_num_followers is None
+            ):  # This should only happen on existent records, iScraper won't give None here.
                 continue
 
             health_score = 0
@@ -357,23 +416,25 @@ def run_and_assign_health_score(self, archetype_id: int):
             sig_score = calculate_health_check_follower_sigmoid(p.li_num_followers or 0)
             health_score += sig_score
 
-            update_prospects.append({
-                "p_id": p.id,
-                "health_score": health_score
-            })
+            update_prospects.append({"p_id": p.id, "health_score": health_score})
 
         # UPDATE prospect WHERE id = :id SET health_check_score = :health_score
 
         if len(update_prospects) > 0:
-          stmt = (
-            update(Prospect)
-            .where(Prospect.id == bindparam("p_id"))
-            .values(health_check_score=bindparam("health_score"))
-          )
-          db.session.execute(stmt, update_prospects)
-          db.session.commit()
+            stmt = (
+                update(Prospect)
+                .where(Prospect.id == bindparam("p_id"))
+                .values(health_check_score=bindparam("health_score"))
+            )
+            db.session.execute(stmt, update_prospects)
+            db.session.commit()
 
-        return True, "Successfully calculated health check scores for archetype: {}".format(archetype_id)
+        return (
+            True,
+            "Successfully calculated health check scores for archetype: {}".format(
+                archetype_id
+            ),
+        )
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
@@ -390,9 +451,9 @@ def calculate_health_check_follower_sigmoid(num_followers: int = 0) -> int:
     Returns:
         int: A score between 0 and 75.
     """
-    k = 0.015           # Sigmoid function constant
-    midpoint = 300      # Sigmoid function midpoint
-    upper_bound = 75    # Sigmoid function upper bound
+    k = 0.015  # Sigmoid function constant
+    midpoint = 300  # Sigmoid function midpoint
+    upper_bound = 75  # Sigmoid function upper bound
     raw_sig_score = upper_bound / (1 + math.exp(-k * (num_followers - midpoint)))
     y_intercept_adjuster = upper_bound / (1 + math.exp(k * midpoint))
     sig_score = raw_sig_score - y_intercept_adjuster
@@ -402,24 +463,24 @@ def calculate_health_check_follower_sigmoid(num_followers: int = 0) -> int:
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def refresh_bio_followers_for_prospect(self, prospect_id: int):
-	try:
-		p = Prospect.query.get(prospect_id)
-		print(p)
-		li_slug = get_linkedin_slug_from_url(p.linkedin_url)
-		scraper_payload = research_personal_profile_details(li_slug)
-		if not deep_get(scraper_payload, "first_name"):
-			return ('scraper_error', scraper_payload)
+    try:
+        p = Prospect.query.get(prospect_id)
+        print(p)
+        li_slug = get_linkedin_slug_from_url(p.linkedin_url)
+        scraper_payload = research_personal_profile_details(li_slug)
+        if not deep_get(scraper_payload, "first_name"):
+            return ("scraper_error", scraper_payload)
 
-		linkedin_bio = deep_get(scraper_payload, "summary")
-		followers_count = deep_get(scraper_payload, "network_info.followers_count") or 0
+        linkedin_bio = deep_get(scraper_payload, "summary")
+        followers_count = deep_get(scraper_payload, "network_info.followers_count") or 0
 
-		p.linkedin_bio = linkedin_bio
-		p.li_num_followers = followers_count
+        p.linkedin_bio = linkedin_bio
+        p.li_num_followers = followers_count
 
-		db.session.add(p)
-		db.session.commit()
+        db.session.add(p)
+        db.session.commit()
 
-		return True
-	except Exception as e:
-		db.session.rollback()
-		raise self.retry(exc=e, countdown=2**self.request.retries)
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
