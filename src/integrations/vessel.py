@@ -151,7 +151,7 @@ class SalesEngagementIntegration:
             raise ValueError("Personalized message is required")
         contact = self.search_contact_by_email(prospect.email)
 
-        if not contact:
+        if not contact or "id" not in contact:
             contact = self.create_contact(
                 prospect.first_name,
                 prospect.last_name,
