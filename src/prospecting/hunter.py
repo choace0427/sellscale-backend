@@ -29,7 +29,7 @@ def get_email_from_hunter(
 @celery.task
 def find_hunter_email_from_prospect_id(prospect_id: int):
     p: Prospect = Prospect.query.get(prospect_id)
-    if not p:
+    if not p or p.email:
         return None
     first_name = p.first_name
     last_name = p.last_name

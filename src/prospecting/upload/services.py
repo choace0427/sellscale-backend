@@ -23,6 +23,7 @@ from typing import Optional
 from sqlalchemy import bindparam, update
 import json, hashlib
 import math
+from src.prospecting.hunter import find_hunter_email_from_prospect_id
 
 
 def create_raw_csv_entry_from_json_payload(
