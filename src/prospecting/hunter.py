@@ -1,5 +1,7 @@
 import requests
 import os
+from model_import import Prospect
+from app import db, celery
 
 HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY")
 
@@ -22,3 +24,32 @@ def get_email_from_hunter(
         "score": response.json()["data"]["score"],
         "respose": response.json(),
     }
+
+
+@celery.task
+def find_hunter_email_from_prospect_id(prospect_id: int):
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return None
+    first_name = p.first_name
+    last_name = p.last_name
+    company_website = p.company_url
+    company_name = p.company
+
+    if "linkedin.com/" in p.company_url:
+        return None
+
+    success, data = get_email_from_hunter(
+        first_name=first_name,
+        last_name=last_name,
+        company_website=company_website,
+        company_name=company_name,
+    )
+    if not success:
+        return None
+
+    email = data["email"]
+    p.email = email
+    db.session.add(p)
+    db.session.commit()
+    return p
