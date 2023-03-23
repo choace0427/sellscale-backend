@@ -141,22 +141,39 @@ def get_all_emails(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect does not belong to user"}), 403
     
     prospect_email: ProspectEmail = ProspectEmail.query.filter(ProspectEmail.prospect_id == prospect.id).first()
-
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
     
     sei = SalesEngagementIntegration(prospect.client_id)
 
     emails = sei.get_emails_for_contact(
-        contact_id=prospect.vessel_contact_id, sequence_id=prospect_email.vessel_sequence_id, do_not_hit_api=True
+        contact_id=prospect.vessel_contact_id, sequence_id=prospect_email.vessel_sequence_id
     )
 
-    # TODO: Remove this
-    print(prospect.vessel_contact_id)
-    print(prospect_email.vessel_sequence_id)
-    print(emails)
+    return jsonify({"message": "Success", "data": emails}), 200
 
-    return jsonify({"message": "Success", "data": []}), 200
+
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/email/<email_id>", methods=["GET"])
+@require_user
+def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
+
+    prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(ProspectEmail.prospect_id == prospect.id).first()
+    if not prospect_email:
+        return jsonify({"message": "No prospect email data found"}), 404
+    
+    sei = SalesEngagementIntegration(prospect.client_id)
+
+    data = sei.get_email_by_id(
+        email_id=email_id
+    )
+
+    return jsonify({"message": "Success", "data": data['email'] if data.get('email') else None}), 200
     
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/<outbound_type>/get_generated_message/", methods=["GET"])

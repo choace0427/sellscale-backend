@@ -347,7 +347,7 @@ class SalesEngagementIntegration:
         """
         cached_resp = find_vessel_cached_response(
             self.vessel_access_token, str(contact_id), str(sequence_id)
-        )
+        )        
         if cached_resp:
             return cached_resp
         if do_not_hit_api:
