@@ -281,7 +281,7 @@ def test_rule_catch_has_6_or_more_consecutive_upper_case():
         highlighted_words,
     )
     assert problems == [
-        "Contains a long, uppercase word. Verify that names are capitalized correctly."
+        "Contains long, uppercase word(s): 'NASA AMES CENTER'. Please fix capitalization, if applicable."
     ]
     assert highlighted_words == ["NASA AMES CENTER"]
 
@@ -294,7 +294,7 @@ def test_rule_catch_has_6_or_more_consecutive_upper_case():
         highlighted_words,
     )
     assert problems == [
-        "Contains a long, uppercase word. Verify that names are capitalized correctly."
+        "Contains long, uppercase word(s): 'ARDEA BIOSCIENCES'. Please fix capitalization, if applicable."
     ]
     assert highlighted_words == ["ARDEA BIOSCIENCES"]
 
@@ -316,7 +316,7 @@ def test_rule_catch_has_6_or_more_consecutive_upper_case():
         highlighted_words,
     )
     assert problems == [
-        "Contains a long, uppercase word. Verify that names are capitalized correctly."
+        "Contains long, uppercase word(s): 'KIA CANADA'. Please fix capitalization, if applicable."
     ]
     assert highlighted_words == ["KIA CANADA"]
 
@@ -595,6 +595,17 @@ def test_rule_no_im_a():
     highlighted_words = []
     rule_catch_im_a(
         "I'm a huge fan of your work!",
+        "pass",
+        problems,
+        highlighted_words,
+    )
+    assert problems == []
+    assert highlighted_words == []
+
+    problems = []
+    highlighted_words = []
+    rule_catch_im_a(
+        "I'm amazed by your work!",
         "pass",
         problems,
         highlighted_words,

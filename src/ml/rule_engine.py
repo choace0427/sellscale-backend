@@ -508,17 +508,18 @@ def rule_catch_im_a(
     """
     if "i'm a" in prompt.lower():
         return
-    if (
-        "i'm a" in completion.lower()
-        and "big" not in completion.lower()
-        and "massive" not in completion.lower()
-        and "huge" not in completion.lower()
-        and "fan" not in completion.lower()
-    ):
-        problems.append(
-            'Found "I\'m a" in the completion. Ensure that the completion is not making false claims.'
-        )
-        highlighted_words.append("I'm a")
+
+    if re.search(r"i'm a ", completion.lower()):
+        if (
+            "big" not in completion.lower()
+            and "massive" not in completion.lower()
+            and "huge" not in completion.lower()
+            and "fan" not in completion.lower()
+        ):
+            problems.append(
+                'Found "I\'m a" in the completion. Ensure that the completion is not making false claims.'
+            )
+            highlighted_words.append("I'm a")
 
     return
 
@@ -548,7 +549,7 @@ def rule_catch_has_6_or_more_consecutive_upper_case(
     has_long_str, long_str = has_consecutive_uppercase_string(completion, 6)
     if has_long_str:
         problems.append(
-            "Contains a long, uppercase word. Verify that names are capitalized correctly."
+            f"Contains long, uppercase word(s): '{long_str}'. Please fix capitalization, if applicable."
         )
         highlighted_words.append(long_str)
 
