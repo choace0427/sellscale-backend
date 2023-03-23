@@ -130,7 +130,6 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
             else:
                 send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.", [SLACK_CHANNEL])
 
-        db.session.commit()
         send_slack_message(f"🤖 Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})", [SLACK_CHANNEL])
         return True, f"Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})"
     except Exception as e:
