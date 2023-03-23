@@ -51,7 +51,7 @@ from src.daily_notifications.models import (
     NotificationType,
 )
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 @pytest.fixture
@@ -238,14 +238,19 @@ def basic_outbound_campaign(
     from model_import import OutboundCampaignStatus
     from datetime import datetime
 
+    today = datetime.today()
+    days_until_next_monday = (7 - today.weekday()) % 7
+    next_monday = today + timedelta(days=days_until_next_monday)
+    next_sunday = next_monday + timedelta(days=6)
+
     o = OutboundCampaign(
         name=name,
         prospect_ids=prospect_ids,
         campaign_type=campaign_type,
         client_archetype_id=client_archetype.id,
         client_sdr_id=client_sdr.id,
-        campaign_start_date=datetime.now(),
-        campaign_end_date=datetime.now(),
+        campaign_start_date=next_monday,
+        campaign_end_date=next_sunday,
         status=OutboundCampaignStatus.READY_TO_SEND,
     )
     db.session.add(o)

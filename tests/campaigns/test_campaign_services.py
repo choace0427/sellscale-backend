@@ -1,9 +1,7 @@
 from app import db, app
 from test_utils import test_app
-import pytest
 from decorators import use_app_context
 import datetime
-import json
 
 from test_utils import (
     basic_client,
