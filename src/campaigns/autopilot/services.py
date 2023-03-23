@@ -38,12 +38,13 @@ def collect_and_generate_all_autopilot_campaigns():
     # Generate campaigns for SDRs, using another function
     for sdr in sdrs:
         if sdr.id == 25: # BLOCK FOR NOW. ONLY TEST SDR
-            collect_and_generate_autopilot_campaign_for_sdr(sdr.id)
+            print(collect_and_generate_autopilot_campaign_for_sdr(sdr.id))
 
 
 @celery.task(bind=True, max_retries=1)
 def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) -> tuple[bool, str]:
     try:
+        print('trying for', client_sdr_id)
         # Get SDR
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -53,7 +54,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
             ClientArchetype.active == True
         ).all()
         if len(archetypes) > 1:
-            send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Too many active archetypes.", [SLACK_CHANNEL], blocks="")
+            send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Too many active archetypes.", [SLACK_CHANNEL])
             return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Too many active archetypes"
 
         # Get date of next next monday, and next next sunday (campaign timespan)
@@ -71,7 +72,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                 GeneratedMessageCTA.active == True
             ).all()
             if len(ctas) == 0:
-                send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active CTAs for LinkedIn.", [SLACK_CHANNEL], blocks="")
+                send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active CTAs for LinkedIn.", [SLACK_CHANNEL])
                 return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active CTAs for LinkedIn"
 
             # Check that SLA has not been filled and generate campaign if not
@@ -91,16 +92,16 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                     ctas=[cta.id for cta in ctas],
                 )
                 if not oc:
-                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.", [SLACK_CHANNEL], blocks="")
+                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.", [SLACK_CHANNEL])
                     return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Error creating LINKEDIN campaign"
                 # Generate the campaign
                 generating = generate_campaign(oc.id)
                 if not generating:
-                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL], blocks="")
+                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
                     return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Error queuing LINKEDIN messages for generation"
                 generated_types.append(GeneratedMessageType.LINKEDIN.value)
             else:
-                send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for LinkedIn has been filled.", [SLACK_CHANNEL], blocks="")
+                send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for LinkedIn has been filled.", [SLACK_CHANNEL])
                 return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): SLA for LinkedIn has been filled"
 
         # Generate campaign for Email given SLAs for the SDR
@@ -122,20 +123,20 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                     ctas=[cta.id for cta in ctas],
                 )
                 if not oc:
-                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.", [SLACK_CHANNEL], blocks="")
+                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.", [SLACK_CHANNEL])
                     return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Error creating EMAIL campaign"
                 # Generate the campaign
                 generating = generate_campaign(oc.id)
                 if not generating:
-                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL], blocks="")
+                    send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
                     return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Error queuing EMAIL messages for generation"
                 generated_types.append(GeneratedMessageType.EMAIL.value)
             else:
-                send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.", [SLACK_CHANNEL], blocks="")
+                send_slack_message(f"🤖 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.", [SLACK_CHANNEL])
                 return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): SLA for Email has been filled"
 
         db.session.commit()
-        send_slack_message(f"🤖 Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})", [SLACK_CHANNEL], blocks="")
+        send_slack_message(f"🤖 Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})", [SLACK_CHANNEL])
         return True, f"Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})"
     except Exception as e:
         db.session.rollback()
