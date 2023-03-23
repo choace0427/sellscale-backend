@@ -470,7 +470,7 @@ def smart_get_prospects_for_campaign(
     return prospect_ids
 
 
-def generate_campaign(campaign_id: int):
+def generate_campaign(campaign_id: int) -> True:
     """Generates the campaign
 
     Args:
@@ -490,6 +490,8 @@ def generate_campaign(campaign_id: int):
         generate_outreaches_for_prospect_list_from_multiple_ctas.apply_async(
             args=[campaign.prospect_ids, campaign.ctas, campaign_id]
         )
+
+    return True
 
 
 def adjust_editing_due_date(campaign_id: int, new_date: datetime):

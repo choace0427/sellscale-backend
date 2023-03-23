@@ -1,6 +1,6 @@
 import datetime
 from datetime import date, datetime, timedelta
-from typing import Union
+from typing import Union, Optional
 
 import pytz
 
@@ -42,3 +42,16 @@ def get_current_month():
 
 def get_current_year():
     return datetime.now().year
+
+
+def get_next_next_monday_sunday(date: Optional[datetime]) -> tuple[datetime, datetime]:
+    date = date or datetime.today()
+
+    days_until_next_monday = (7 - date.weekday()) % 7
+    if days_until_next_monday == 0: # If today is Monday
+        days_until_next_monday = 7
+    next_monday = date + timedelta(days=days_until_next_monday)
+    next_next_monday = next_monday + timedelta(days=7)
+    next_next_sunday = next_next_monday + timedelta(days=6)
+
+    return next_next_monday, next_next_sunday
