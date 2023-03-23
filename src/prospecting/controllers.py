@@ -144,11 +144,14 @@ def get_all_emails(client_sdr_id: int, prospect_id: int):
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
     
-    sei = SalesEngagementIntegration(prospect.client_id)
+    try:
+      sei = SalesEngagementIntegration(prospect.client_id)
 
-    emails = sei.get_emails_for_contact(
-        contact_id=prospect.vessel_contact_id, sequence_id=prospect_email.vessel_sequence_id
-    )
+      emails = sei.get_emails_for_contact(
+          contact_id=prospect.vessel_contact_id, sequence_id=prospect_email.vessel_sequence_id
+      )
+    except:
+      emails = []
 
     return jsonify({"message": "Success", "data": emails}), 200
 
@@ -167,11 +170,14 @@ def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
     
-    sei = SalesEngagementIntegration(prospect.client_id)
+    try:
+      sei = SalesEngagementIntegration(prospect.client_id)
 
-    data = sei.get_email_by_id(
-        email_id=email_id
-    )
+      data = sei.get_email_by_id(
+          email_id=email_id
+      )
+    except:
+      data = {}
 
     return jsonify({"message": "Success", "data": data['email'] if data.get('email') else None}), 200
     
