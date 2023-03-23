@@ -36,6 +36,7 @@ from model_import import (
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
 from src.utils.converters.string_converters import needs_title_casing
+from src.prospecting.hunter import get_email_from_hunter
 
 
 def search_prospects(
@@ -645,6 +646,7 @@ def add_prospect(
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
     email: Optional[str] = None,
+    scrape_email: bool = False,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -695,6 +697,16 @@ def add_prospect(
 
     first_name = get_first_name_from_full_name(full_name=full_name)
     last_name = get_last_name_from_full_name(full_name=full_name)
+
+    if scrape_email and not email:
+        success, payload = get_email_from_hunter(
+            first_name=first_name or "",
+            last_name=last_name or "",
+            company_website=company_url or "",
+            company_name=company or "",
+        )
+        if success:
+            email = payload["email"]
 
     if not prospect_exists:
         prospect: Prospect = Prospect(
