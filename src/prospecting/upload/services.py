@@ -268,7 +268,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
 
         # todo(Aakash) enable if client should auto-scrape emails
         AUTO_SCRAPE_EMAILS = False
-        if prospect_upload.client_id == 8:
+        if prospect_upload.client_id in (1, 8):  # for curative and sellscale only
             AUTO_SCRAPE_EMAILS = True
 
         # Mark the prospect upload row as UPLOAD_IN_PROGRESS.
