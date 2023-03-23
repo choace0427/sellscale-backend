@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from src.voyager.services import update_linked_cookies
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.voyager.linkedin import Linkedin
@@ -59,3 +60,16 @@ def get_recent_conversations(client_sdr_id: int):
       convos = filter(lambda x: x['withNonConnection'] != bool(with_connection), convos)
 
     return jsonify({"message": "Success", "data": list(convos)}), 200
+
+
+@VOYAGER_BLUEPRINT.route("/auth_tokens", methods=["POST"])
+@require_user
+def update_auth_tokens(client_sdr_id: int):
+    """Updates the LinkedIn auth tokens for a SDR"""
+
+    cookies = get_request_parameter("cookies", request, json=True, required=True, parameter_type=str)
+
+    status_text, status = update_linked_cookies(client_sdr_id, cookies)
+
+    return jsonify({"message": status_text}), status
+
