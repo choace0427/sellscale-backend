@@ -27,18 +27,18 @@ def collect_and_generate_all_autopilot_campaigns():
     active_clients = Client.query.filter_by(active=True).all()
 
     # Get all SDRs for each client that has autopilot_enabled
-    sdrs: list[ClientSDR] = []
+    sdr_ids: list[int] = []
     for client in active_clients:
-        client_sdrs = ClientSDR.query.filter(
+        client_sdrs: list[ClientSDR] = ClientSDR.query.filter(
             ClientSDR.client_id == client.id,
             ClientSDR.autopilot_enabled == True
         ).all()
-        sdrs.extend(client_sdrs)
+        sdr_id.extend([sdr.id for sdr in client_sdrs])
 
     # Generate campaigns for SDRs, using another function
-    for sdr in sdrs:
-        if sdr.id == 25: # BLOCK FOR NOW. ONLY TEST SDR
-            print(collect_and_generate_autopilot_campaign_for_sdr(sdr.id))
+    for sdr_id in sdr_ids:
+        if sdr_id == 25: # BLOCK FOR NOW. ONLY TEST SDR
+            print(collect_and_generate_autopilot_campaign_for_sdr(sdr_id))
 
 
 @celery.task(bind=True, max_retries=1)
@@ -129,6 +129,9 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                     generated_types.append(GeneratedMessageType.EMAIL.value)
             else:
                 send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.", [SLACK_CHANNEL])
+
+        if len(generated_types) == 0:
+            return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Neither Email nor LinkedIn generated."
 
         send_slack_message(f"🤖 🟢 Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})", [SLACK_CHANNEL])
         return True, f"Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})"
