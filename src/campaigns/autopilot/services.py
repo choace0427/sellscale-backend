@@ -37,7 +37,8 @@ def collect_and_generate_all_autopilot_campaigns():
 
     # Generate campaigns for SDRs, using another function
     for sdr in sdrs:
-        collect_and_generate_autopilot_campaign_for_sdr(sdr.id)
+        if sdr.id == 25: # BLOCK FOR NOW. ONLY TEST SDR
+            collect_and_generate_autopilot_campaign_for_sdr(sdr.id)
 
 
 @celery.task(bind=True, max_retries=1)
