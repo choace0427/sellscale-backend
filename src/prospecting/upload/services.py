@@ -266,11 +266,6 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
         if not prospect_upload:
             return False
 
-        # todo(Aakash) enable if client should auto-scrape emails
-        AUTO_SCRAPE_EMAILS = False
-        if prospect_upload.client_id in (1, 8):  # for curative and sellscale only
-            AUTO_SCRAPE_EMAILS = True
-
         # Mark the prospect upload row as UPLOAD_IN_PROGRESS.
         prospect_upload.upload_attempts += 1
         prospect_upload.status = ProspectUploadsStatus.UPLOAD_IN_PROGRESS
@@ -351,7 +346,6 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             twitter_url=twitter_url,
             email=email,
             linkedin_num_followers=followers_count,
-            scrape_email=AUTO_SCRAPE_EMAILS,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
