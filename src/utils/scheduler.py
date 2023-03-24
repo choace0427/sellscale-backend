@@ -71,6 +71,13 @@ def run_scrape_campaigns_for_day_job():
         scrape_campaigns_for_day.delay()
 
 
+def run_sync_vessel_mailboxes_and_sequences_job():
+    from src.integrations.vessel import sync_vessel_mailboxes_and_sequences
+
+    if os.environ.get("FLASK_ENV") == "production":
+        sync_vessel_mailboxes_and_sequences()
+
+
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
@@ -88,6 +95,9 @@ scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
 scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
 scheduler.add_job(func=run_backfill_analytics_for_sdrs_job, trigger="interval", hours=1)
 scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hours=6)
+scheduler.add_job(
+    func=run_sync_vessel_mailboxes_and_sequences_job, trigger="interval", hours=24
+)
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())

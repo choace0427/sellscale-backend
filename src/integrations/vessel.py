@@ -15,6 +15,7 @@ from app import db, celery
 from tqdm import tqdm
 from src.email_outbound.services import get_approved_prospect_email_by_id
 from datetime import datetime, timedelta
+from src.utils.slack import send_slack_message, URL_MAP
 from src.utils.abstract.type_checks import is_number
 
 VESSEL_API_KEY = os.environ.get("VESSEL_API_KEY")
@@ -347,7 +348,7 @@ class SalesEngagementIntegration:
         """
         cached_resp = find_vessel_cached_response(
             self.vessel_access_token, str(contact_id), str(sequence_id)
-        )        
+        )
         if cached_resp:
             return cached_resp
         if do_not_hit_api:
@@ -402,6 +403,24 @@ class SalesEngagementIntegration:
                 sync_sales_engagement_contact_id_to_prospect.delay(
                     self.client_id, prospect.id
                 )
+
+
+def sync_vessel_mailboxes_and_sequences():
+    clients: list = Client.query.filter(Client.vessel_access_token != None).all()
+    for client in clients:
+        sync_one_vessel_mailboxes_and_sequences.delay(client.id)
+
+
+@celery.task
+def sync_one_vessel_mailboxes_and_sequences(client_id: int):
+    client: Client = Client.query.get(client_id)
+    sei = SalesEngagementIntegration(client_id)
+    sei.sync_data()
+
+    send_slack_message(
+        message="Synced Vessel data for client: {}".format(client.company),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
 
 
 @celery.task
