@@ -28,18 +28,20 @@ def collect_and_generate_all_autopilot_campaigns():
     active_clients = Client.query.filter_by(active=True).all()
 
     # Get all SDRs for each client that has autopilot_enabled
-    sdr_ids: list[int] = []
+    sdrs: list[ClientSDR] = []
     for client in active_clients:
         client_sdrs: list[ClientSDR] = ClientSDR.query.filter(
             ClientSDR.client_id == client.id,
             ClientSDR.autopilot_enabled == True
         ).all()
-        sdr_id.extend([sdr.id for sdr in client_sdrs])
+        sdrs = client_sdrs
 
     # Generate campaigns for SDRs, using another function
-    for sdr_id in sdr_ids:
-        if sdr_id == 25: # BLOCK FOR NOW. ONLY TEST SDR
-            print(collect_and_generate_autopilot_campaign_for_sdr(sdr_id))
+    for sdr in sdrs:
+        sdr_id = sdr.id
+        client_id = sdr.client_id
+        if sdr_id == 25 or client_id == 8: # BLOCK FOR NOW. ONLY TEST SDR AND CURATIVE
+           collect_and_generate_autopilot_campaign_for_sdr.apply_async([sdr_id])
 
 
 @celery.task(bind=True, max_retries=1)
