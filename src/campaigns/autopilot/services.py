@@ -42,7 +42,7 @@ def collect_and_generate_all_autopilot_campaigns():
         sdr_id = sdr.id
         client_id = sdr.client_id
         if sdr_id == 25 or client_id == 8: # BLOCK FOR NOW. ONLY TEST SDR AND CURATIVE
-           collect_and_generate_autopilot_campaign_for_sdr.apply_async([sdr_id])
+           collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id])
 
 
 @celery.task(bind=True, max_retries=1)
