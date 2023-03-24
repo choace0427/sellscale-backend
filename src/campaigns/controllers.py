@@ -30,6 +30,7 @@ from src.campaigns.services import (
     wipe_campaign_generations,
     email_analytics,
 )
+from src.campaigns.autopilot.services import collect_and_generate_all_autopilot_campaigns
 from src.message_generation.services import (
     wipe_message_generation_job_queue
 )
@@ -498,3 +499,9 @@ def get_email_analytics(client_sdr_id: int):
     result = email_analytics(client_sdr_id)
 
     return jsonify(result), result.get('status_code')
+
+
+@CAMPAIGN_BLUEPRINT.route("/autopilot/generate_all_campaigns", methods=["POST"])
+def generate_all_autopilot_campaigns_endpoint():
+    collect_and_generate_all_autopilot_campaigns()
+    return "OK", 200
