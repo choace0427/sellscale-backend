@@ -49,7 +49,9 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
         return None
 
     email = data["email"]
+    score = data["score"]
     p.email = email
+    p.hunter_email_score = score
     db.session.add(p)
     db.session.commit()
     return p

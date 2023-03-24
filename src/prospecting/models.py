@@ -304,6 +304,7 @@ class Prospect(db.Model):
 
     twitter_url = db.Column(db.String, nullable=True)
     email = db.Column(db.String, nullable=True)
+    hunter_email_score = db.Column(db.Float, nullable=True)
 
     batch = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
@@ -339,7 +340,11 @@ class Prospect(db.Model):
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
 
-    def to_dict(self, return_messages: Optional[bool] = False, return_message_type: Optional[str] = None) -> dict:
+    def to_dict(
+        self,
+        return_messages: Optional[bool] = False,
+        return_message_type: Optional[str] = None,
+    ) -> dict:
         from src.email_outbound.models import ProspectEmail
         from src.message_generation.models import GeneratedMessage
 
@@ -354,10 +359,16 @@ class Prospect(db.Model):
         generated_message_info = {}
         if return_messages:
             if return_message_type == "LINKEDIN":
-                generated_message: GeneratedMessage = GeneratedMessage.query.get(self.approved_outreach_message_id)
+                generated_message: GeneratedMessage = GeneratedMessage.query.get(
+                    self.approved_outreach_message_id
+                )
             elif return_message_type == "EMAIL":
-                generated_message: GeneratedMessage = GeneratedMessage.query.get(self.approved_prospect_email_id)
-            generated_message_info = generated_message.to_dict() if generated_message else {}
+                generated_message: GeneratedMessage = GeneratedMessage.query.get(
+                    self.approved_prospect_email_id
+                )
+            generated_message_info = (
+                generated_message.to_dict() if generated_message else {}
+            )
 
         return {
             "id": self.id,
@@ -398,7 +409,7 @@ class Prospect(db.Model):
             "is_lead": self.is_lead,
             "vessel_contact_id": self.vessel_contact_id,
             "vessel_crm_id": self.vessel_crm_id,
-            "generated_message_info": generated_message_info
+            "generated_message_info": generated_message_info,
         }
 
 
