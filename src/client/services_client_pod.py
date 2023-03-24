@@ -44,3 +44,43 @@ def add_client_sdr_to_client_pod(client_sdr_id: int, client_pod_id: int) -> bool
     client_sdr.client_pod_id = client_pod_id
     db.session.commit()
     return True
+
+
+def get_client_pods_for_client(client_id: int):
+    """
+    Returns all client pods with the SDRs in each pod like so:
+    [
+        {
+            'name': 'Pod 1',
+            'id': 1,
+            'client_sdrs': [
+                {
+                    'id': 1,
+                    'name': 'SDR 1',
+                },
+                {
+                    'id': 2,
+                    'name': 'SDR 2',
+                }
+            ]
+        },
+        {
+            'name': 'Pod 2',
+            'id': 2,
+            'client_sdrs': [...]
+        },
+        ...
+    ]
+    """
+    client_pods = ClientPod.query.filter_by(client_id=client_id).all()
+    client_pods_with_sdrs = []
+    for client_pod in client_pods:
+        client_sdrs = ClientSDR.query.filter_by(client_pod_id=client_pod.id).all()
+        client_pods_with_sdrs.append(
+            {
+                "name": client_pod.name,
+                "id": client_pod.id,
+                "client_sdrs": [sdr.to_dict() for sdr in client_sdrs],
+            }
+        )
+    return client_pods_with_sdrs

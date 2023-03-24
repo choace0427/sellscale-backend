@@ -434,6 +434,22 @@ def test_create_delete_client_pod_and_add_remove_sdr_from_pod():
     client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
     assert client_sdr.client_pod_id == client_pod.id
 
+    # get list of pods
+    response = app.test_client().get(
+        "client/pod/get_pods",
+        headers={
+            "Content-Type": "application/json",
+        },
+        data=json.dumps({"client_id": client.id}),
+    )
+    assert response.status_code == 200
+
+    pods = response.json
+    assert len(pods) == 1
+    assert pods[0]["id"] == client_pod.id
+    assert pods[0]["name"] == "test_pod"
+    assert len(pods[0]["client_sdrs"]) == 1
+
     # remove sdr from pod
     response = app.test_client().post(
         "client/sdr/add_to_pod",

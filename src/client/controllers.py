@@ -38,6 +38,7 @@ from src.client.services_client_pod import (
     create_client_pod,
     delete_client_pod,
     add_client_sdr_to_client_pod,
+    get_client_pods_for_client,
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
@@ -617,3 +618,12 @@ def post_add_sdr_to_pod():
     if not success:
         return "Failed to add SDR to pod", 400
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/pod/get_pods", methods=["GET"])
+def post_get_pods():
+    client_id: int = get_request_parameter(
+        "client_id", request, json=True, required=True
+    )
+    pods_dict = get_client_pods_for_client(client_id=client_id)
+    return jsonify(pods_dict), 200
