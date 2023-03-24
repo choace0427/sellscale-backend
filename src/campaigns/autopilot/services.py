@@ -6,7 +6,8 @@ from model_import import (
     ClientArchetype,
     GeneratedMessageType,
     GeneratedMessageCTA,
-    OutboundCampaign
+    OutboundCampaign,
+    OutboundCampaignStatus
 )
 from src.utils.slack import send_slack_message, URL_MAP
 from src.utils.datetime.dateutils import get_next_next_monday_sunday
@@ -171,6 +172,7 @@ def get_sla_count(client_sdr_id: int, client_archetype_id: int, campaign_type: G
         OutboundCampaign.client_sdr_id == client_sdr_id,
         OutboundCampaign.campaign_type == campaign_type,
         OutboundCampaign.client_archetype_id == client_archetype_id,
+        OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
         func.date(OutboundCampaign.campaign_start_date) == next_next_monday.date()
     ).all()
 
