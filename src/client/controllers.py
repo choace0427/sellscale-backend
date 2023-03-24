@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from src.client.models import ClientArchetype
+from model_import import ClientPod
 from src.message_generation.models import GeneratedMessageCTA
 from src.client.services import (
     create_client,
@@ -33,6 +33,11 @@ from src.client.services import (
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
     replicate_transformer_blocklist,
+)
+from src.client.services_client_pod import (
+    create_client_pod,
+    delete_client_pod,
+    add_client_sdr_to_client_pod,
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
@@ -72,7 +77,6 @@ def create():
     )
 
     return jsonify(resp)
-
 
 
 @CLIENT_BLUEPRINT.route("/archetype", methods=["POST"])
@@ -197,7 +201,7 @@ def get_prospect_upload_stats(client_sdr_id: int, upload_id: int):
 
     result = get_prospect_upload_stats_by_upload_id(client_sdr_id, upload_id)
 
-    return jsonify(result), result.get('status_code')
+    return jsonify(result), result.get("status_code")
 
 
 @CLIENT_BLUEPRINT.route("/prospect_upload/<upload_id>/details", methods=["GET"])
@@ -207,7 +211,7 @@ def get_prospect_upload_details(client_sdr_id: int, upload_id: int):
 
     result = get_prospect_upload_details_by_upload_id(client_sdr_id, upload_id)
 
-    return jsonify(result), result.get('status_code')
+    return jsonify(result), result.get("status_code")
 
 
 @CLIENT_BLUEPRINT.route("/sdr/update_scheduling_link", methods=["PATCH"])
@@ -543,14 +547,13 @@ def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
 def get_transformers(client_sdr_id: int, archetype_id: int):
     """Gets transformers stats for an archetype"""
 
-    email = get_request_parameter(
-        "email", request, json=False, required=False
-    )
-    if email is None: email = False
+    email = get_request_parameter("email", request, json=False, required=False)
+    if email is None:
+        email = False
 
     result = get_transformers_by_archetype_id(client_sdr_id, archetype_id, email)
 
-    return jsonify(result), result.get('status_code')
+    return jsonify(result), result.get("status_code")
 
 
 @CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/all_uploads", methods=["GET"])
@@ -560,7 +563,7 @@ def get_all_uploads(client_sdr_id: int, archetype_id: int):
 
     result = get_all_uploads_by_archetype_id(client_sdr_id, archetype_id)
 
-    return jsonify(result), result.get('status_code')
+    return jsonify(result), result.get("status_code")
 
 
 @CLIENT_BLUEPRINT.route("/sdr/toggle_autopilot_enabled", methods=["POST"])
@@ -572,4 +575,45 @@ def post_toggle_client_sdr_autopilot_enabled():
     success = toggle_client_sdr_autopilot_enabled(client_sdr_id=client_sdr_id)
     if not success:
         return "Failed to toggle autopilot enabled", 400
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/pod", methods=["POST"])
+def post_create_pod():
+    client_id: int = get_request_parameter(
+        "client_id", request, json=True, required=True
+    )
+    name: str = get_request_parameter("name", request, json=True, required=True)
+    client_pod: ClientPod = create_client_pod(
+        client_id=client_id,
+        name=name,
+    )
+    return jsonify(client_pod.to_dict()), 200
+
+
+@CLIENT_BLUEPRINT.route("/pod", methods=["DELETE"])
+def delete_pod():
+    client_pod_id: int = get_request_parameter(
+        "client_pod_id", request, json=True, required=True
+    )
+    success, message = delete_client_pod(client_pod_id=client_pod_id)
+    if not success:
+        return message, 400
+    return message, 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/add_to_pod", methods=["POST"])
+def post_add_sdr_to_pod():
+    client_sdr_id: int = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    client_pod_id: int = get_request_parameter(
+        "client_pod_id", request, json=True, required=True
+    )
+    success = add_client_sdr_to_client_pod(
+        client_sdr_id=client_sdr_id,
+        client_pod_id=client_pod_id,
+    )
+    if not success:
+        return "Failed to add SDR to pod", 400
     return "OK", 200

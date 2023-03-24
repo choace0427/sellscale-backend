@@ -1,5 +1,5 @@
 from src.echo.models import Echo
-from src.client.models import Client, ClientArchetype, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR, ClientPod
 from src.prospecting.models import (
     Prospect,
     ProspectStatus,
@@ -61,5 +61,9 @@ from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
 )
-from src.integrations.models import VesselMailboxes, VesselSequences, VesselAPICachedResponses
+from src.integrations.models import (
+    VesselMailboxes,
+    VesselSequences,
+    VesselAPICachedResponses,
+)
 from src.integrations.vessel_analytics_job import get_emails_for_contact_async

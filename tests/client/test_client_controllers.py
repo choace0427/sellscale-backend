@@ -1,5 +1,11 @@
 from app import app, db
-from model_import import Client, ClientArchetype, ClientSDR, ResearchPointType
+from model_import import (
+    Client,
+    ClientArchetype,
+    ClientSDR,
+    ResearchPointType,
+    ClientPod,
+)
 from decorators import use_app_context
 from test_utils import (
     test_app,
@@ -392,3 +398,64 @@ def test_post_toggle_client_sdr_autopilot_enabled():
 
     client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
     assert client_sdr.autopilot_enabled == False
+
+
+@use_app_context
+def test_create_delete_client_pod_and_add_remove_sdr_from_pod():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+
+    # create client pod
+    response = app.test_client().post(
+        "client/pod",
+        headers={
+            "Content-Type": "application/json",
+        },
+        data=json.dumps({"client_id": client.id, "name": "test_pod"}),
+    )
+    assert response.status_code == 200
+
+    client_pod = ClientPod.query.filter_by(client_id=client.id).first()
+    assert client_pod != None
+    assert client_pod.name == "test_pod"
+
+    # add sdr to pod
+    response = app.test_client().post(
+        "client/sdr/add_to_pod",
+        headers={
+            "Content-Type": "application/json",
+        },
+        data=json.dumps(
+            {"client_sdr_id": client_sdr.id, "client_pod_id": client_pod.id}
+        ),
+    )
+    assert response.status_code == 200
+
+    client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
+    assert client_sdr.client_pod_id == client_pod.id
+
+    # remove sdr from pod
+    response = app.test_client().post(
+        "client/sdr/add_to_pod",
+        headers={
+            "Content-Type": "application/json",
+        },
+        data=json.dumps({"client_sdr_id": client_sdr.id, "client_pod_id": None}),
+    )
+    assert response.status_code == 200
+
+    client_sdr = ClientSDR.query.filter_by(id=client_sdr.id).first()
+    assert client_sdr.client_pod_id == None
+
+    # remove pod
+    response = app.test_client().delete(
+        "client/pod",
+        headers={
+            "Content-Type": "application/json",
+        },
+        data=json.dumps({"client_pod_id": client_pod.id}),
+    )
+    assert response.status_code == 200
+
+    client_pod = ClientPod.query.filter_by(id=client_pod.id).first()
+    assert client_pod == None

@@ -43,7 +43,8 @@ from model_import import (
     IScraperPayloadCache,
     IScraperPayloadType,
     GeneratedMessageJobQueue,
-    GeneratedMessageJobStatus
+    GeneratedMessageJobStatus,
+    ClientPod,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -105,6 +106,7 @@ def test_app():
         clear_all_entities(StackRankedMessageGenerationConfiguration)
         clear_all_entities(ClientArchetype)
         clear_all_entities(ClientSDR)
+        clear_all_entities(ClientPod)
         clear_all_entities(Client)
         clear_all_entities(Editor)
 
@@ -137,12 +139,12 @@ def basic_editor() -> Editor:
     return e
 
 
-def basic_archetype(client: Client, client_sdr: Optional[ClientSDR] = None) -> ClientArchetype:
+def basic_archetype(
+    client: Client, client_sdr: Optional[ClientSDR] = None
+) -> ClientArchetype:
     client_sdr_id = None if client_sdr is None else client_sdr.id
     a = ClientArchetype(
-        client_id=client.id,
-        client_sdr_id=client_sdr_id,
-        archetype="Testing archetype"
+        client_id=client.id, client_sdr_id=client_sdr_id, archetype="Testing archetype"
     )
     db.session.add(a)
     db.session.commit()
@@ -269,7 +271,11 @@ def basic_generated_message_cta(archetype: ClientArchetype):
     return g
 
 
-def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel, message_cta: Optional[GeneratedMessageCTA] = None):
+def basic_generated_message(
+    prospect: Prospect,
+    gnlp_model: GNLPModel,
+    message_cta: Optional[GeneratedMessageCTA] = None,
+):
     from model_import import (
         GeneratedMessage,
         GeneratedMessageStatus,
@@ -285,7 +291,7 @@ def basic_generated_message(prospect: Prospect, gnlp_model: GNLPModel, message_c
         completion="this is a test",
         message_status=GeneratedMessageStatus.DRAFT,
         message_type=GeneratedMessageType.LINKEDIN,
-        message_cta=message_cta_id
+        message_cta=message_cta_id,
     )
     db.session.add(g)
     db.session.commit()
@@ -489,7 +495,7 @@ def basic_generated_message_job_queue(
     outbound_campaign: OutboundCampaign,
     status: GeneratedMessageJobStatus,
     error_message: Optional[str] = "test_error_message",
-    attempts: Optional[str] = 0
+    attempts: Optional[str] = 0,
 ):
 
     job = GeneratedMessageJobQueue(
@@ -509,17 +515,14 @@ EXAMPLE_PAYLOAD_PERSONAL = {
         {
             "company": {
                 "name": "Test",
-                "url": "https://www.linkedin.com/company/test_company"
+                "url": "https://www.linkedin.com/company/test_company",
             }
         },
     ]
 }
 
-EXAMPLE_PAYLOAD_COMPANY = {
-    "details": {
-        "name": "Fake Company TEST"
-    }
-}
+EXAMPLE_PAYLOAD_COMPANY = {"details": {"name": "Fake Company TEST"}}
+
 
 def basic_iscraper_payload_cache(
     linkedin_url: str = "test_linkedin_url",

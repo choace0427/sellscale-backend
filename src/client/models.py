@@ -40,8 +40,6 @@ class Client(db.Model):
     vessel_crm_access_token = db.Column(db.String, nullable=True)
     vessel_personalization_field_name = db.Column(db.String, nullable=True)
 
-    client_pod_id = db.Column(db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
-
     def to_dict(self) -> dict:
         return {
             "company": self.company,
@@ -175,6 +173,8 @@ class ClientSDR(db.Model):
     autopilot_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
     questionnaire = db.Column(SDRQuestionaireColumn, nullable=True)
+
+    client_pod_id = db.Column(db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
