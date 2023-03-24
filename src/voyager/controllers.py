@@ -26,11 +26,11 @@ def get_profile(client_sdr_id: int):
 def send_message(client_sdr_id: int):
     """Sends a LinkedIn message to a prospect"""
 
-    public_id = get_request_parameter("public_id", request, json=True, required=True)
+    urn_id = get_request_parameter("urn_id", request, json=True, required=True)
     msg = get_request_parameter("message", request, json=True, required=True)
 
     api = Linkedin(client_sdr_id)
-    api.send_message(msg, recipients=[api.get_urn_id_from_public_id(public_id)])
+    api.send_message(msg, recipients=[urn_id])
 
     return jsonify({"message": "Sent message"}), 200
 
@@ -40,11 +40,11 @@ def send_message(client_sdr_id: int):
 def get_conversation(client_sdr_id: int):
     """Gets a conversation with a prospect"""
 
-    public_id = get_request_parameter("public_id", request, json=False, required=True)
+    urn_id = get_request_parameter("urn_id", request, json=False, required=True)
 
     api = Linkedin(client_sdr_id)
 
-    details = api.get_conversation_details(api.get_urn_id_from_public_id(public_id))
+    details = api.get_conversation_details(urn_id)
     convo = api.get_conversation(details['entityUrn'].replace('urn:li:fs_conversation:', ''))
 
     return jsonify({"message": "Success", "data": convo}), 200
@@ -94,8 +94,8 @@ def update_auth_tokens(client_sdr_id: int):
 def update_li_conversation_entries(client_sdr_id: int):
     """Updates the LinkedIn auth tokens for a SDR"""
 
-    public_id = get_request_parameter("public_id", request, json=False, required=True)
+    urn_id = get_request_parameter("urn_id", request, json=False, required=True)
 
-    update_conversation_entries(client_sdr_id, public_id)
+    update_conversation_entries(client_sdr_id, urn_id)
 
     return jsonify({"message": 'Updated conversation'}), 200

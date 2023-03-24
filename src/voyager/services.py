@@ -31,20 +31,18 @@ def update_linked_cookies(client_sdr_id: int, cookies: str):
     return "Updated cookies", 200
 
 
-def update_conversation_entries(client_sdr_id: int, public_id: str):
+def update_conversation_entries(client_sdr_id: int, target_urn_id: str):
     """ Updates LinkedinConversationEntry table with new entries
 
     Args:
         client_sdr_id (int): ID of the client SDR
-        public_id (str): LinkedIn public id
+        target_urn_id (str): LinkedIn profile URN id
 
     Returns:
         status_code (int), message (str): HTTP status code 
     """
 
     api = Linkedin(client_sdr_id)
-
-    target_urn_id = api.get_urn_id_from_public_id(public_id)
 
     details = api.get_conversation_details(target_urn_id)
     if not details:
