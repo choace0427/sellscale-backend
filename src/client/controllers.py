@@ -623,7 +623,7 @@ def post_add_sdr_to_pod():
 @CLIENT_BLUEPRINT.route("/pod/get_pods", methods=["GET"])
 def post_get_pods():
     client_id: int = get_request_parameter(
-        "client_id", request, json=True, required=True
+        "client_id", request, json=False, required=True
     )
     pods_dict = get_client_pods_for_client(client_id=client_id)
     return jsonify(pods_dict), 200

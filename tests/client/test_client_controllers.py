@@ -436,11 +436,10 @@ def test_create_delete_client_pod_and_add_remove_sdr_from_pod():
 
     # get list of pods
     response = app.test_client().get(
-        "client/pod/get_pods",
+        "client/pod/get_pods?client_id={}".format(client.id),
         headers={
             "Content-Type": "application/json",
         },
-        data=json.dumps({"client_id": client.id}),
     )
     assert response.status_code == 200
 
