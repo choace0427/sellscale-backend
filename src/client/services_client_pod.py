@@ -85,7 +85,11 @@ def get_client_pods_for_client(client_id: int):
         )
 
     # put all client sdrs without a pod at the end in a group called 'Unassigned to Pod'
-    client_sdrs_without_pod = ClientSDR.query.filter_by(client_pod_id=None).all()
+    client_sdrs_without_pod = (
+        ClientSDR.query.filter_by(client_pod_id=None)
+        .filter_by(client_id=client_id)
+        .all()
+    )
     if len(client_sdrs_without_pod) > 0:
         client_pods_with_sdrs.append(
             {
