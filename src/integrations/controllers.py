@@ -19,7 +19,7 @@ def get_mailbox_by_email():
     client_id = get_request_parameter("client_id", request, json=False, required=True)
 
     integration = SalesEngagementIntegration(
-        client_id=client_id,
+        client_id=int(client_id),
     )
     options = integration.find_mailbox_autofill_by_email(email=email)
     return jsonify({"mailbox_options": options})
@@ -31,7 +31,7 @@ def get_sequences_by_name():
     client_id = get_request_parameter("client_id", request, json=False, required=True)
 
     integration = SalesEngagementIntegration(
-        client_id=client_id,
+        client_id=int(client_id),
     )
     options = integration.find_sequence_autofill_by_name(name=name)
     return jsonify({"sequence_options": options})
@@ -69,9 +69,9 @@ def post_vessel_exchange_link_token(client_sdr_id: int):
         db.session.commit()
 
         return 'OK', 200
-    
+
     return jsonify(data)
-    
+
 @INTEGRATION_BLUEPRINT.route("/vessel/sales-engagement-connection")
 @require_user
 def get_vessel_sales_engagement_connection(client_sdr_id: int):
