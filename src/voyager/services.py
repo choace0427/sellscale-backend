@@ -31,23 +31,21 @@ def update_linked_cookies(client_sdr_id: int, cookies: str):
     return "Updated cookies", 200
 
 
-def update_conversation_entries(client_sdr_id: int, target_urn_id: str):
+def update_conversation_entries(api: Linkedin, convo_urn_id: str):
     """ Updates LinkedinConversationEntry table with new entries
 
     Args:
-        client_sdr_id (int): ID of the client SDR
-        target_urn_id (str): LinkedIn profile URN id
+        api (LinkedIn): instance of LinkedIn class
+        convo_urn_id (str): LinkedIn convo URN id
 
     Returns:
         status_code (int), message (str): HTTP status code 
     """
 
-    api = Linkedin(client_sdr_id)
+    convo = api.get_conversation(convo_urn_id)
 
-    details = api.get_conversation_details(target_urn_id)
-    if not details:
-      return "No conversation found with this public id", 400
-    convo = api.get_conversation(details['entityUrn'].replace('urn:li:fs_conversation:', ''))
+    if not convo or not convo.get('elements'):
+      return "No conversation found", 400
 
     bulk_objects = []
     for message in tqdm(convo['elements']):
@@ -70,7 +68,8 @@ def update_conversation_entries(client_sdr_id: int, target_urn_id: str):
                 profile_url="https://www.linkedin.com/in/{value}/".format(value=urn_id),
                 headline=headline,
                 img_url="",
-                connection_degree='1st' if urn_id == target_urn_id else 'You',
+                # TODO: This should be based on a profile id instead of the name
+                connection_degree='You' if api.is_profile(first_name, last_name) else '1st',
                 li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
                 message=msg,
             )

@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from src.client.models import ClientSDR
 from src.voyager.services import update_conversation_entries
 from src.voyager.services import update_linked_cookies
 from src.authentication.decorators import require_user
@@ -40,12 +41,19 @@ def send_message(client_sdr_id: int):
 def get_conversation(client_sdr_id: int):
     """Gets a conversation with a prospect"""
 
-    urn_id = get_request_parameter("urn_id", request, json=False, required=True)
+    urn_id = get_request_parameter("urn_id", request, json=False, required=False)
+    convo_urn_id = get_request_parameter("convo_urn_id", request, json=False, required=False)
+
+    if not urn_id and not convo_urn_id:
+      return jsonify({"message": "Missing required parameter"}), 400
 
     api = Linkedin(client_sdr_id)
 
-    details = api.get_conversation_details(urn_id)
-    convo = api.get_conversation(details['entityUrn'].replace('urn:li:fs_conversation:', ''))
+    if not convo_urn_id:
+      details = api.get_conversation_details(urn_id)
+      convo_urn_id = details['entityUrn'].replace('urn:li:fs_conversation:', '')
+
+    convo = api.get_conversation(convo_urn_id)
 
     return jsonify({"message": "Success", "data": convo}), 200
 
@@ -94,8 +102,18 @@ def update_auth_tokens(client_sdr_id: int):
 def update_li_conversation_entries(client_sdr_id: int):
     """Updates the LinkedIn auth tokens for a SDR"""
 
-    urn_id = get_request_parameter("urn_id", request, json=False, required=True)
+    urn_id = get_request_parameter("urn_id", request, json=False, required=False)
+    convo_urn_id = get_request_parameter("convo_urn_id", request, json=False, required=False)
 
-    update_conversation_entries(client_sdr_id, urn_id)
+    if not urn_id and not convo_urn_id:
+      return jsonify({"message": "Missing required parameter"}), 400
+
+    api = Linkedin(client_sdr_id)
+
+    if not convo_urn_id:
+      details = api.get_conversation_details(urn_id)
+      convo_urn_id = details['entityUrn'].replace('urn:li:fs_conversation:', '')
+
+    update_conversation_entries(api, convo_urn_id)
 
     return jsonify({"message": 'Updated conversation'}), 200
