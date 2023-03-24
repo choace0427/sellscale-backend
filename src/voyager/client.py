@@ -96,7 +96,10 @@ class Client(object):
             self.logger.debug("Attempting to use cached cookies")
             client_sdr: ClientSDR = ClientSDR.query.filter_by(
                 id=client_sdr_id).first()
-            cookies = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
+            if client_sdr.li_cookies:
+              cookies = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
+            else:
+              cookies = None
             if cookies:
                 self.logger.debug("Using cached cookies")
                 self._set_session_cookies(cookies)

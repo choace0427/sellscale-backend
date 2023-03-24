@@ -213,7 +213,7 @@ class Linkedin(object):
         :type public_id: str
         """
         data = self.get_profile(public_id)
-        return data['entityUrn'].replace('urn:li:fs_profile:', '')
+        return data['profile_id']
 
     def send_message(self, message_body, conversation_urn_id=None, recipients=None):
         """Send a message to a given conversation.
