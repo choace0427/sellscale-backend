@@ -96,11 +96,12 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                 if not oc:
                     send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.", [SLACK_CHANNEL])
                 # Generate the campaign
-                generating = generate_campaign(oc.id)
-                if not generating:
-                    send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
                 else:
-                    generated_types.append(GeneratedMessageType.LINKEDIN.value)
+                    generating = generate_campaign(oc.id)
+                    if not generating:
+                        send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
+                    else:
+                        generated_types.append(GeneratedMessageType.LINKEDIN.value)
             else:
                 send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for LinkedIn has been filled.", [SLACK_CHANNEL])
 
@@ -125,11 +126,12 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                 if not oc:
                     send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.", [SLACK_CHANNEL])
                 # Generate the campaign
-                generating = generate_campaign(oc.id)
-                if not generating:
-                    send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
                 else:
-                    generated_types.append(GeneratedMessageType.EMAIL.value)
+                    generating = generate_campaign(oc.id)
+                    if not generating:
+                        send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
+                    else:
+                        generated_types.append(GeneratedMessageType.EMAIL.value)
             else:
                 send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.", [SLACK_CHANNEL])
 
