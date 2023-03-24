@@ -10,6 +10,7 @@ from operator import itemgetter
 from time import sleep, time
 from urllib.parse import quote, urlencode
 
+from src.client.models import ClientSDR
 from src.voyager.client import Client
 from src.voyager.utils.helpers import (
     append_update_post_field_to_posts_list,
@@ -71,13 +72,15 @@ class Linkedin(object):
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         self.logger = logger
 
+        self.client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+
         if authenticate:
             if cookies:
                 # If the cookies are expired, the API won't work anymore since
                 # `username` and `password` are not used at all in this case.
                 self.client._set_session_cookies(cookies)
             else:
-                self.client.authenticate(client_sdr_id)
+                self.client.authenticate(self.client_sdr)
 
     def _fetch(self, uri, evade=default_evade, base_request=False, **kwargs):
         """GET request to Linkedin API"""
@@ -93,6 +96,10 @@ class Linkedin(object):
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
         return self.client.session.post(url, **kwargs)
 
+
+    def is_profile(self, first_name: str, last_name: str):
+        """Checks if this LinkedIn instance is associated with the given name"""
+        return self.client_sdr.name.startswith(first_name) and self.client_sdr.name.endswith(last_name)
 
     def get_profile(self, public_id=None, urn_id=None):
         """Fetch data for a given LinkedIn profile.

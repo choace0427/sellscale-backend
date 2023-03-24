@@ -91,11 +91,9 @@ class Client(object):
     def cookies(self):
         return self.session.cookies
 
-    def authenticate(self, client_sdr_id):
+    def authenticate(self, client_sdr: ClientSDR):
         if self._use_cookie_cache:
             self.logger.debug("Attempting to use cached cookies")
-            client_sdr: ClientSDR = ClientSDR.query.filter_by(
-                id=client_sdr_id).first()
             if client_sdr.li_cookies:
               cookies = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
             else:
@@ -106,7 +104,7 @@ class Client(object):
                 self._fetch_metadata()
                 return
 
-        self._do_authentication_request(client_sdr_id)
+        self._do_authentication_request(client_sdr)
         self._fetch_metadata()
 
     def _fetch_metadata(self):
@@ -142,7 +140,7 @@ class Client(object):
             }
             self.metadata["clientPageInstanceId"] = clientPageInstanceId
 
-    def _do_authentication_request(self, client_sdr_id):
+    def _do_authentication_request(self, client_sdr: ClientSDR):
         """
         Authenticate with Linkedin.
         Return a session object that is authenticated.
@@ -176,6 +174,6 @@ class Client(object):
 
         self._set_session_cookies(res.cookies)
         ClientSDR.query.filter(
-            ClientSDR.id == client_sdr_id
+            ClientSDR.id == client_sdr.id
         ).update({"li_cookies": json.dumps(res.cookies.get_dict())})
         db.session.commit()

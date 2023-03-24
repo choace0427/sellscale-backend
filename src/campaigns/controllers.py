@@ -445,7 +445,7 @@ def get_campaign_analytics() -> tuple[dict, int]:
     campaign_id = get_request_parameter(
         "campaign_id", request, json=False, required=True
     )
-    campaign_analytics = get_outbound_campaign_analytics(campaign_id)
+    campaign_analytics = get_outbound_campaign_analytics(int(campaign_id))
 
     return campaign_analytics, 200
 
