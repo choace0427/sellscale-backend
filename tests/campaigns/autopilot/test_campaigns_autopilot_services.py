@@ -26,8 +26,9 @@ import mock
 
 
 @use_app_context
+@mock.patch("src.campaigns.autopilot.services.generate_campaign")
 @mock.patch("src.campaigns.autopilot.services.send_slack_message")
-def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock):
+def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock, gen_campaign_mock):
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
@@ -69,7 +70,7 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock):
 
         # Constraint: Must have SLA space for Email
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        sdr.weekly_li_outbound_target = 10
+        sdr.weekly_li_outbound_target = 2
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
         # assert status == (False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): SLA for Email has been filled")
         campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).all()
@@ -79,14 +80,14 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock):
             assert campaign.campaign_end_date.weekday() == 6 # Sunday
             assert campaign.campaign_start_date.date() == campaign_start_date.date()
 
-        # Works
+        # Works. Should generate a campaign for email. The previous test should have generated a campaign for LinkedIn
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        sdr.weekly_email_outbound_target = 10
-        sdr.weekly_li_outbound_target = 10
+        sdr.weekly_email_outbound_target = 2
+        sdr.weekly_li_outbound_target = 2
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
-        assert status == (True, f"Autopilot Campaign successfully queued for ['LINKEDIN', 'EMAIL'] generation: {client_sdr.name} (#{client_sdr.id})")
+        assert status == (True, f"Autopilot Campaign successfully queued for ['EMAIL'] generation: {client_sdr.name} (#{client_sdr.id})")
         campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).all()
-        assert len(campaigns) == 5
+        assert len(campaigns) == 4
         for campaign in campaigns:
             assert campaign.campaign_start_date.weekday() == 0 # Monday
             assert campaign.campaign_end_date.weekday() == 6 # Sunday

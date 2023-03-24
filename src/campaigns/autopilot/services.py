@@ -14,6 +14,7 @@ from src.utils.datetime.dateutils import get_next_next_monday_sunday
 from src.campaigns.services import (
     create_outbound_campaign,
     generate_campaign,
+    smart_get_prospects_for_campaign
 )
 from typing import Optional
 from datetime import datetime, timedelta
@@ -58,6 +59,9 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
         if len(archetypes) > 1:
             send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Too many active archetypes.", [SLACK_CHANNEL])
             return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Too many active archetypes"
+        elif len(archetypes) == 0:
+            send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active archetypes.", [SLACK_CHANNEL])
+            return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active archetypes"
 
         # Get date of next next monday, and next next sunday (campaign timespan)
         next_next_monday, next_next_sunday = get_next_next_monday_sunday(
@@ -82,26 +86,32 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                 client_sdr_id, archetypes[0].id, GeneratedMessageType.LINKEDIN, datetime.today())
             if sla_count < client_sdr.weekly_li_outbound_target:
                 num_can_generate = client_sdr.weekly_li_outbound_target - sla_count
-                # Create the campaign
-                oc = create_outbound_campaign(
-                    prospect_ids=[],
-                    num_prospects=num_can_generate,
-                    campaign_type=GeneratedMessageType.LINKEDIN,
-                    client_archetype_id=archetypes[0].id,
-                    client_sdr_id=client_sdr.id,
-                    campaign_start_date=next_next_monday,
-                    campaign_end_date=next_next_sunday,
-                    ctas=[cta.id for cta in ctas],
-                )
-                if not oc:
-                    send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.", [SLACK_CHANNEL])
-                # Generate the campaign
-                else:
-                    generating = generate_campaign(oc.id)
-                    if not generating:
-                        send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
+                # Check that there are enough prospects to generate the campaign
+                num_available_prospects = len(smart_get_prospects_for_campaign(archetypes[0].id, num_can_generate, GeneratedMessageType.LINKEDIN))
+                print(num_available_prospects)
+                if num_can_generate <= num_available_prospects:
+                    # Create the campaign
+                    oc = create_outbound_campaign(
+                        prospect_ids=[],
+                        num_prospects=num_can_generate,
+                        campaign_type=GeneratedMessageType.LINKEDIN,
+                        client_archetype_id=archetypes[0].id,
+                        client_sdr_id=client_sdr.id,
+                        campaign_start_date=next_next_monday,
+                        campaign_end_date=next_next_sunday,
+                        ctas=[cta.id for cta in ctas],
+                    )
+                    if not oc:
+                        send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.", [SLACK_CHANNEL])
+                    # Generate the campaign
                     else:
-                        generated_types.append(GeneratedMessageType.LINKEDIN.value)
+                        generating = generate_campaign(oc.id)
+                        if not generating:
+                            send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
+                        else:
+                            generated_types.append(GeneratedMessageType.LINKEDIN.value)
+                else:
+                    send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate LINKEDIN campaign.", [SLACK_CHANNEL])
             else:
                 send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for LinkedIn has been filled.", [SLACK_CHANNEL])
 
@@ -112,26 +122,31 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                 client_sdr_id, archetypes[0].id, GeneratedMessageType.EMAIL, datetime.today())
             if sla_count < client_sdr.weekly_email_outbound_target:
                 num_can_generate = client_sdr.weekly_email_outbound_target - sla_count
-                # Create the campaign
-                oc = create_outbound_campaign(
-                    prospect_ids=[],
-                    num_prospects=num_can_generate,
-                    campaign_type=GeneratedMessageType.EMAIL,
-                    client_archetype_id=archetypes[0].id,
-                    client_sdr_id=client_sdr.id,
-                    campaign_start_date=next_next_monday,
-                    campaign_end_date=next_next_sunday,
-                    ctas=[cta.id for cta in ctas],
-                )
-                if not oc:
-                    send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.", [SLACK_CHANNEL])
-                # Generate the campaign
-                else:
-                    generating = generate_campaign(oc.id)
-                    if not generating:
-                        send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
+                # Check that there are enough prospects to generate the campaign
+                num_available_prospects = len(smart_get_prospects_for_campaign(archetypes[0].id, num_can_generate, GeneratedMessageType.EMAIL))
+                if num_can_generate <= num_available_prospects:
+                    # Create the campaign
+                    oc = create_outbound_campaign(
+                        prospect_ids=[],
+                        num_prospects=num_can_generate,
+                        campaign_type=GeneratedMessageType.EMAIL,
+                        client_archetype_id=archetypes[0].id,
+                        client_sdr_id=client_sdr.id,
+                        campaign_start_date=next_next_monday,
+                        campaign_end_date=next_next_sunday,
+                        ctas=[cta.id for cta in ctas],
+                    )
+                    if not oc:
+                        send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.", [SLACK_CHANNEL])
+                    # Generate the campaign
                     else:
-                        generated_types.append(GeneratedMessageType.EMAIL.value)
+                        generating = generate_campaign(oc.id)
+                        if not generating:
+                            send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
+                        else:
+                            generated_types.append(GeneratedMessageType.EMAIL.value)
+                else:
+                    send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate EMAIL campaign.", [SLACK_CHANNEL])
             else:
                 send_slack_message(f"🤖 🔴 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.", [SLACK_CHANNEL])
 
