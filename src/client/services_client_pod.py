@@ -83,4 +83,16 @@ def get_client_pods_for_client(client_id: int):
                 "client_sdrs": [sdr.to_dict() for sdr in client_sdrs],
             }
         )
+
+    # put all client sdrs without a pod at the end in a group called 'Unassigned to Pod'
+    client_sdrs_without_pod = ClientSDR.query.filter_by(client_pod_id=None).all()
+    if len(client_sdrs_without_pod) > 0:
+        client_pods_with_sdrs.append(
+            {
+                "name": "Unassigned to Pod",
+                "id": None,
+                "client_sdrs": [sdr.to_dict() for sdr in client_sdrs_without_pod],
+            }
+        )
+
     return client_pods_with_sdrs
