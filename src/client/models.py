@@ -30,8 +30,12 @@ class Client(db.Model):
     monthly_revenue = db.Column(db.Integer, nullable=True)
     seat_expansion_opportunity = db.Column(db.Integer, nullable=True)
 
-    vessel_access_token = db.Column(db.String, nullable=True) # access token for sales engagement
-    vessel_sales_engagement_connection_id = db.Column(db.String, nullable=True) # connection id for sales engagement connection 
+    vessel_access_token = db.Column(
+        db.String, nullable=True
+    )  # access token for sales engagement
+    vessel_sales_engagement_connection_id = db.Column(
+        db.String, nullable=True
+    )  # connection id for sales engagement connection
 
     vessel_crm_access_token = db.Column(db.String, nullable=True)
     vessel_personalization_field_name = db.Column(db.String, nullable=True)
@@ -84,10 +88,28 @@ class ClientArchetype(db.Model):
         }
 
 
+class ClientPod(db.Model):
+    __tablename__ = "client_pod"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    name = db.Column(db.String)
+    active = db.Column(db.Boolean, nullable=True, default=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "name": self.name,
+            "active": self.active,
+        }
+
+
 class SDRQuestionaireColumn(sa.types.TypeDecorator):
     impl = sa.types.JSON
 
-    COLUMN_SCHEMA = {   # Can be used in future for strong enforcement. For now just used for documentation.
+    COLUMN_SCHEMA = {  # Can be used in future for strong enforcement. For now just used for documentation.
         "education": [
             {
                 "name": "University of California, Berkeley",
