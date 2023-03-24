@@ -7,6 +7,20 @@ from src.voyager.linkedin import Linkedin
 
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 
+
+@VOYAGER_BLUEPRINT.route("/profile", methods=["GET"])
+@require_user
+def get_profile(client_sdr_id: int):
+    """Get profile data for a prospect"""
+
+    public_id = get_request_parameter("public_id", request, json=False, required=True)
+
+    api = Linkedin(client_sdr_id)
+    profile = api.get_profile(public_id)
+
+    return jsonify({"message": "Success", "data": profile}), 200
+
+
 @VOYAGER_BLUEPRINT.route("/send_message", methods=["POST"])
 @require_user
 def send_message(client_sdr_id: int):
