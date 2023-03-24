@@ -180,6 +180,7 @@ class ClientSDR(db.Model):
         client: Client = Client.query.get(self.client_id)
 
         return {
+            "id": self.id,
             "client_name": client.company,
             "sdr_name": self.name,
             "sdr_email": self.email,
