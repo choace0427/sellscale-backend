@@ -801,6 +801,7 @@ def email_analytics(client_sdr_id: int) -> dict:
           left join client on client.id = prospect.client_id
           left join vessel_sequences on vessel_sequences.sequence_id = cast(prospect_email.vessel_sequence_id as varchar)
         where outbound_campaign.client_sdr_id = {client_sdr_id}
+            and outbound_campaign.campaign_type = 'EMAIL'
           and outbound_campaign.status = 'COMPLETE'
           and vessel_sequences.id is not null
         group by 3,4,5,6
