@@ -1074,7 +1074,7 @@ def test_get_campaign_analytics():
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    assert response.json["campaign_id"] == str(campaign_id)
+    assert response.json["campaign_id"] == campaign_id
     assert response.json["campaign_type"] == "EMAIL"
     assert response.json["campaign_name"] == campaign.name
     assert response.json["not_sent"] == []

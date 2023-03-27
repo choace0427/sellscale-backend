@@ -3,7 +3,7 @@ from flask import jsonify
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.message_generation.models import GeneratedMessageCTA, GeneratedMessage
+from src.message_generation.models import GeneratedMessageCTA, GeneratedMessage, GeneratedMessageStatus
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
@@ -672,13 +672,13 @@ def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int, emai
     # Get transformer stats
     transformer_stats = db.session.execute(
         """
-        select 
+        select
           client_archetype.archetype,
           research_point.research_point_type,
           count(distinct prospect.id) num_prospects,
           count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') num_accepted_prospects,
           count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') / cast(count(distinct prospect.id) as float) percent_accepted
-        from prospect 
+        from prospect
           join client_archetype on client_archetype.id = prospect.archetype_id
           join generated_message on generated_message.prospect_id = prospect.id
           join research_point on research_point.id = any(generated_message.research_points)
@@ -728,7 +728,7 @@ def get_prospect_upload_details_by_upload_id(client_sdr_id: int, prospect_upload
         return {'message': 'Upload not found', "status_code": 404}
     elif prospect_uploads_raw_csv.client_sdr_id != client_sdr_id:
         return {'message': 'Not authorized', "status_code": 401}
-    
+
 
     # Get all prospect details of the upload
     all_prospect_details = ProspectUploads.query.filter_by(
@@ -780,7 +780,8 @@ def get_cta_stats(cta_id: int) -> dict:
     """
     # Get GeneratedMessages
     generated_messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
-        GeneratedMessage.message_cta == cta_id
+        GeneratedMessage.message_cta == cta_id,
+        GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).all()
 
     # Get Prospect IDs

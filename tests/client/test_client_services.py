@@ -431,6 +431,7 @@ def test_get_cta_stats():
     prospect = basic_prospect(client, archetype)
     cta = basic_generated_message_cta_with_text(archetype, "test_cta")
     generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message.message_status = "SENT"
 
     stats = get_cta_stats(cta.id)
     assert stats.get("total_count") == 1
