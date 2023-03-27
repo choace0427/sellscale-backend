@@ -142,6 +142,9 @@ class ProspectStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"
 
     NOT_QUALIFIED = "NOT_QUALIFIED"
+
+    QUEUED_FOR_OUTREACH = "QUEUED_FOR_OUTREACH"
+    SEND_OUTREACH_FAILED = "SEND_OUTREACH_FAILED"
     SENT_OUTREACH = "SENT_OUTREACH"
 
     ACCEPTED = "ACCEPTED"
@@ -159,6 +162,8 @@ class ProspectStatus(enum.Enum):
         return {
             "PROSPECTED": "Prospected",
             "NOT_QUALIFIED": "Not Qualified",
+            "QUEUED_FOR_OUTREACH": "Queued for Outreach",
+            "SEND_OUTREACH_FAILED": "Send Outreach Failed",
             "SENT_OUTREACH": "Sent Outreach",
             "ACCEPTED": "Accepted",
             "RESPONDED": "Bumped",
@@ -174,6 +179,8 @@ class ProspectStatus(enum.Enum):
         return [
             ProspectStatus.PROSPECTED,
             ProspectStatus.NOT_QUALIFIED,
+            ProspectStatus.QUEUED_FOR_OUTREACH,
+            ProspectStatus.SEND_OUTREACH_FAILED,
             ProspectStatus.SENT_OUTREACH,
             ProspectStatus.ACCEPTED,
             ProspectStatus.RESPONDED,
@@ -206,6 +213,18 @@ class ProspectStatus(enum.Enum):
                 "name": "Not Qualified",
                 "description": "Prospect is not qualified to receive outreach.",
                 "enum_val": ProspectStatus.NOT_QUALIFIED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
+            },
+            ProspectStatus.QUEUED_FOR_OUTREACH.value: {
+                "name": "Queued for Outreach",
+                "description": "Prospect is queued for outreach.",
+                "enum_val": ProspectStatus.QUEUED_FOR_OUTREACH.value,
+                "sellscale_enum_val": ProspectOverallStatus.PROSPECTED.value,
+            },
+            ProspectStatus.SEND_OUTREACH_FAILED.value: {
+                "name": "Send Outreach Failed",
+                "description": "Outreach was unable to be sent to the Prospect.",
+                "enum_val": ProspectStatus.SEND_OUTREACH_FAILED.value,
                 "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
             ProspectStatus.SENT_OUTREACH.value: {
@@ -570,6 +589,11 @@ class ProspectUploads(db.Model):
 VALID_NEXT_LINKEDIN_STATUSES = {
     ProspectStatus.PROSPECTED: [
         ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.QUEUED_FOR_OUTREACH,
+        ProspectStatus.SENT_OUTREACH,
+    ],
+    ProspectStatus.QUEUED_FOR_OUTREACH: [
+        ProspectStatus.SEND_OUTREACH_FAILED,
         ProspectStatus.SENT_OUTREACH,
     ],
     ProspectStatus.SENT_OUTREACH: [
@@ -610,6 +634,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.NOT_QUALIFIED,
     ],
     ProspectStatus.NOT_QUALIFIED: [],
+    ProspectStatus.SEND_OUTREACH_FAILED: [ProspectStatus.PROSPECTED],   # Permissable to retry
     ProspectStatus.DEMO_WON: [],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_WON],
 }

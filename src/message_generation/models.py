@@ -8,6 +8,8 @@ class GeneratedMessageStatus(enum.Enum):
     DRAFT = "DRAFT"
     BLOCKED = "BLOCKED"
     APPROVED = "APPROVED"
+    QUEUED_FOR_OUTREACH = "QUEUED_FOR_OUTREACH"
+    FAILED_TO_SEND = "FAILED_TO_SEND"
     SENT = "SENT"
 
 
