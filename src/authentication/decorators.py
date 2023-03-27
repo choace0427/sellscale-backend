@@ -30,7 +30,7 @@ def require_user(f):
         try:
             sdr: ClientSDR = ClientSDR.query.filter_by(auth_token=token).first()
             sdr_id = sdr.id
-        except:
+        except AttributeError:
             return jsonify({'message': 'Authentication token is invalid.'}), 401
 
         return f(sdr_id, *args, **kwargs)

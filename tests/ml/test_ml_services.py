@@ -18,7 +18,9 @@ from src.ml.services import (
     create_upload_jsonl_file,
     initiate_fine_tune_job,
     check_statuses_of_fine_tune_jobs,
-    get_aree_fix_basic
+    get_aree_fix_basic,
+    get_sequence_value_props,
+    get_sequence_draft
 )
 from model_import import GNLPModelFineTuneJobs
 
@@ -96,3 +98,23 @@ def test_get_aree_fix_basic(create_completion_mock):
     response = get_aree_fix_basic(generated_message_id)
     assert create_completion_mock.call_count == 1
     assert response == "test"
+
+
+@use_app_context
+@mock.patch("src.ml.services.wrapped_create_completion", return_value="test")
+def test_get_sequence_value_props(create_completion_mock):
+
+    # No problems
+    response = get_sequence_value_props('Test', 'Test', 'Test', 1)
+    assert create_completion_mock.call_count == 1
+    assert response == ["test"]
+
+
+@use_app_context
+@mock.patch("src.ml.services.wrapped_create_completion", return_value="Value Prop 1: Test\nValue Prop 2: Test")
+def test_get_sequence_draft(create_completion_mock):
+
+    # No problems
+    response = get_sequence_draft(['Test', 'Test'])
+    assert create_completion_mock.call_count == 1
+    assert response == [' Test\n', ' Test']

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype
@@ -10,7 +11,7 @@ from src.ml.models import (
     GNLPModelType,
     ModelProvider,
 )
-from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL
+from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL, CURRENT_OPENAI_CHAT_GPT_MODEL
 import regex as rx
 import re
 
@@ -214,3 +215,41 @@ def get_aree_fix_basic(message_id: int) -> str:
     )
 
     return fixed_completion
+
+
+def get_sequence_value_props(company: str, selling_to: str, selling_what: str, num: int):
+
+    prompt = f"You are a writing assistant that helps write email sequences. Here is the information:\n"
+    prompt += f"- Company: {company}\n"
+    prompt += f"- Who are you selling to?: {selling_to}\n"
+    prompt += f"- What are you selling?: {selling_what}\n"
+    prompt += f"- Number of emails in the sequence: {num}\n"
+    prompt += "\n\nBased on this information, generate {num} value props we can use to target. Each value prop should be a 5-10 word phrase with a hyphen and one sentance describing it in detail.".format(num=num)
+    
+    fixed_completion = wrapped_create_completion(
+        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        prompt=prompt,
+        temperature=1,
+        max_tokens=20+30*num,
+    )
+
+    props = re.sub(r'\d+\. ', '', fixed_completion).split('\n')
+    return props
+
+
+def get_sequence_draft(value_props: List[str]):
+
+    prompt = f"Value Props:\n"
+    for i, v in enumerate(value_props):
+        prompt += f"{i+1}. {v}\n"
+    prompt += "\n\nBased on the {num} value props, write a subject line and body for each value prop. Include [first_name] as a placeholder for first name. In only the first value prop, include a field for [sellscale_personalization] before the body of the email.".format(num=len(value_props))
+    
+    fixed_completion = wrapped_create_completion(
+        # TODO: Use CURRENT_OPENAI_LATEST_GPT_MODEL when we gain access.
+        model=CURRENT_OPENAI_CHAT_GPT_MODEL,
+        prompt=prompt,
+        temperature=0,
+        max_tokens=50+200*len(value_props),
+    )
+
+    return re.split(r'Value Prop \d+\:', fixed_completion, flags=re.IGNORECASE | re.MULTILINE)[1:]

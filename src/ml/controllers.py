@@ -1,3 +1,4 @@
+from src.authentication.decorators import require_user
 from app import db
 
 from flask import Blueprint, jsonify, request
@@ -7,7 +8,9 @@ from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
     get_fine_tune_timeline,
     initiate_fine_tune_job,
-    get_aree_fix_basic
+    get_aree_fix_basic,
+    get_sequence_draft,
+    get_sequence_value_props,
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -102,3 +105,28 @@ def get_aree_fix_endpoint(message_id):
     # THIS NEEDS TO BE AUTHENTICATED EVENTUALLY
     completion = get_aree_fix_basic(int(message_id))
     return jsonify({"completion": completion})
+
+
+@ML_BLUEPRINT.route("/generate_sequence_value_props", methods=["POST"])
+def get_sequence_value_props_endpoint():
+
+    company = get_request_parameter("company", request, json=True, required=True, parameter_type=str)
+    selling_to = get_request_parameter("selling_to", request, json=True, required=True, parameter_type=str)
+    selling_what = get_request_parameter("selling_what", request, json=True, required=True, parameter_type=str)
+    num = get_request_parameter("num", request, json=True, required=True, parameter_type=int)
+
+    result = get_sequence_value_props(company, selling_to, selling_what, num)
+
+    return jsonify({"message": 'Success', 'data': result}), 200
+
+
+@ML_BLUEPRINT.route("/generate_sequence_draft", methods=["POST"])
+def get_sequence_draft_endpoint():
+
+    value_props = get_request_parameter("value_props", request, json=True, required=True)
+
+    print(value_props)
+
+    result = get_sequence_draft(value_props)
+
+    return jsonify({"message": 'Success', 'data': result}), 200
