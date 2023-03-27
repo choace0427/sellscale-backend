@@ -92,7 +92,15 @@ def get_campaign_details_by_uuid(campaign_uuid: str):
     if not campaign:
         return jsonify({"message": "Campaign not found."}), 404
 
-    oc_details = get_outbound_campaign_details_for_edit_tool(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id)
+    approved_filter = get_request_parameter("approved_filter", request, json=False, required=False, parameter_type=str)
+    if approved_filter and approved_filter.lower() == "true":
+        approved_filter = True
+    elif approved_filter and approved_filter.lower() == "false":
+        approved_filter = False
+    else:
+        approved_filter = None
+
+    oc_details = get_outbound_campaign_details_for_edit_tool(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id, approved_filter=approved_filter)
     status_code = oc_details.get("status_code")
     if status_code != 200:
         return jsonify({"message": oc_details.get("message")}), status_code

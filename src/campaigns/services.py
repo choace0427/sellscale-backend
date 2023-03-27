@@ -122,13 +122,14 @@ def get_outbound_campaign_details(
 
 
 def get_outbound_campaign_details_for_edit_tool(
-    client_sdr_id: int, campaign_id: int
+    client_sdr_id: int, campaign_id: int, approved_filter: Optional[bool] = None
 ) -> dict:
     """Gets the details of an outbound campaign, specific for the editing tool.
 
     Args:
         client_sdr_id (int): The ID of the SDR.
         campaign_id (int): The ID of the campaign to get.
+        approved_filter (bool, optional): Whether to filter by approved or not. Defaults to None. None = no filter (all). False = not approved. True = approved.
 
     Returns:
         dict: A dictionary containing campaign details, status code, and message.
@@ -156,7 +157,6 @@ def get_outbound_campaign_details_for_edit_tool(
                 Prospect.approved_outreach_message_id == GeneratedMessage.id,
             )
             .filter(Prospect.id.in_(oc.prospect_ids))
-            .all()
         )
     if oc.campaign_type.value == "EMAIL":
         joined_prospect_message = (
@@ -177,10 +177,16 @@ def get_outbound_campaign_details_for_edit_tool(
                 ProspectEmail.personalized_first_line == GeneratedMessage.id,
             )
             .filter(Prospect.id.in_(oc.prospect_ids))
-            .all()
         )
-        print(joined_prospect_message)
 
+    # Filter by approved messages if filter is set
+    if approved_filter is False:
+        joined_prospect_message = joined_prospect_message.filter(or_(GeneratedMessage.ai_approved == False, GeneratedMessage.ai_approved == None))
+    elif approved_filter is True:
+        joined_prospect_message = joined_prospect_message.filter(GeneratedMessage.ai_approved == True)
+    joined_prospect_message = joined_prospect_message.all()
+
+    # Get information from the joined table
     prospects = []
     for p in joined_prospect_message:
         prospects.append(
