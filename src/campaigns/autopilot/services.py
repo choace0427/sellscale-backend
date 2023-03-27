@@ -191,7 +191,7 @@ def get_sla_count(client_sdr_id: int, client_archetype_id: int, campaign_type: G
         OutboundCampaign.campaign_type == campaign_type,
         OutboundCampaign.client_archetype_id == client_archetype_id,
         OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
-        func.date(OutboundCampaign.campaign_start_date) == next_next_monday.date()
+        func.date(OutboundCampaign.campaign_start_date) == next_next_monday
     ).all()
 
     # Count the number of prospects in each campaign
