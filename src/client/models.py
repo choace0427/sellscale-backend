@@ -40,6 +40,9 @@ class Client(db.Model):
     vessel_crm_access_token = db.Column(db.String, nullable=True)
     vessel_personalization_field_name = db.Column(db.String, nullable=True)
 
+    tagline = db.Column(db.String, nullable=True)
+    description = db.Column(db.String, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "company": self.company,
