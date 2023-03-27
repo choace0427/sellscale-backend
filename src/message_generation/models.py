@@ -78,6 +78,8 @@ class GeneratedMessage(db.Model):
         nullable=True,
     )
 
+    failed_outreach_error = db.Column(db.String, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
