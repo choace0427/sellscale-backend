@@ -44,7 +44,7 @@ def get_current_year():
     return datetime.now().year
 
 
-def get_next_next_monday_sunday(date: Optional[datetime]) -> tuple[datetime, datetime]:
+def get_next_next_monday_sunday(date: Optional[datetime]) -> tuple[datetime.date, datetime.date]:
     date = date or datetime.today()
 
     days_until_next_monday = (7 - date.weekday()) % 7
@@ -54,4 +54,4 @@ def get_next_next_monday_sunday(date: Optional[datetime]) -> tuple[datetime, dat
     next_next_monday = next_monday + timedelta(days=7)
     next_next_sunday = next_next_monday + timedelta(days=6)
 
-    return next_next_monday, next_next_sunday
+    return next_next_monday.date(), next_next_sunday.date()
