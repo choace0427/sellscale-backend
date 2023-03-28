@@ -519,6 +519,7 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
 
     # Grab the result object
     result_object = pb_payload.get("resultObject")
+    result_object = json.loads(result_object)
     if not result_object:
         return False
 

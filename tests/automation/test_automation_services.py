@@ -51,23 +51,14 @@ def test_create_pb_linkedin_invite_csv():
 
 
 EXAMPLE_PB_WEBHOOK_RESPONSE_GOOD = {
-    "resultObject": [
-        {
-            "0" : "https://www.linkedin.com/in/davidmwei",
-        }
-    ],
+    "resultObject": '[{"0" : "https://www.linkedin.com/in/davidmwei"}]',
     "exitCode": 0,
 }
 
 
 
 EXAMPLE_PB_WEBHOOK_RESPONSE_BAD = {
-    "resultObject": [
-        {
-            "0" : "https://www.linkedin.com/in/davidmwei",
-            "error" : "Email needed to add this person",
-        }
-    ],
+    "resultObject": '[{"0" : "https://www.linkedin.com/in/davidmwei", "error" : "Email needed to add this person"}]',
     "exitCode": 0,
 }
 
