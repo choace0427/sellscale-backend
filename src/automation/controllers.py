@@ -170,4 +170,4 @@ def send_phantom_buster_linkedin_invite(client_sdr_id: int):
     if not data:
         return "No data found", 404
 
-    return send_csv
+    return send_csv(data, filename="data.csv", fields=["Linkedin", "Message"])
