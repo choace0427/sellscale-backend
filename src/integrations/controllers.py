@@ -126,3 +126,28 @@ def post_linkedin_cookie(client_sdr_id: int):
     )
 
     return jsonify({"message": 'Sent cookie'}), 200
+
+
+@INTEGRATION_BLUEPRINT.route("/outreach/send-sequence", methods=["POST"])
+@require_user
+def post_outreach_sequence(client_sdr_id: int):
+    steps = get_request_parameter("steps", request, json=True, required=True)
+
+    client_sdr = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    client: Client = Client.query.get(client_id)
+
+    steps_str = ""
+    for i, step in enumerate(steps):
+        steps_str += "{num}. {step}\n".format(step=step, num=i+1)
+
+    send_slack_message(
+        message="*Sequence for Outreach*\nFor {client_sdr_name} from {client_company} :tada:\n\n_Steps:_\n{steps_str}".format(
+          client_sdr_name=client_sdr.name,
+          client_company=client.company,
+          steps_str=steps_str
+        ),
+        webhook_urls=[URL_MAP["outreach-send-to"]],
+    )
+
+    return jsonify({"message": 'Sent sequence'}), 200
