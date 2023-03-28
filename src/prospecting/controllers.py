@@ -8,6 +8,7 @@ from src.prospecting.services import (
     search_prospects,
     get_prospects,
     batch_mark_prospects_as_sent_outreach,
+    mark_prospects_as_queued_for_outreach,
     create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,
     batch_mark_as_lead,
@@ -139,11 +140,11 @@ def get_all_emails(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect not found"}), 404
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
-    
+
     prospect_email: ProspectEmail = ProspectEmail.query.filter(ProspectEmail.prospect_id == prospect.id).first()
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
-    
+
     try:
       sei = SalesEngagementIntegration(prospect.client_id)
 
@@ -169,7 +170,7 @@ def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
     prospect_email: ProspectEmail = ProspectEmail.query.filter(ProspectEmail.prospect_id == prospect.id).first()
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
-    
+
     try:
       sei = SalesEngagementIntegration(prospect.client_id)
 
@@ -180,7 +181,7 @@ def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
       data = {}
 
     return jsonify({"message": "Success", "data": data['email'] if data.get('email') else None}), 200
-    
+
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/<outbound_type>/get_generated_message/", methods=["GET"])
 # TODO: Needs some form of authentication
@@ -355,6 +356,30 @@ def batch_mark_sent():
         ),
     )
     return jsonify({"updates": updates})
+
+
+@PROSPECTING_BLUEPRINT.route("/batch_mark_queued", methods=["POST"])
+def batch_mark_queued():
+    prospect_ids=get_request_parameter(
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
+    client_sdr_id=get_request_parameter(
+        "client_sdr_id", request, json=True, required=True, parameter_type=int
+    )
+
+    # ONLY ALLOW SELLSCALE ATM
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if sdr.client_id != 1:
+        return jsonify({"message": "Not allowed"}), 403
+
+    success = mark_prospects_as_queued_for_outreach(
+        prospect_ids=prospect_ids, client_sdr_id=client_sdr_id
+    )
+
+    if success:
+        return jsonify({"message": "Success"}), 200
+    else:
+        return jsonify({"message": "Failed to update"}), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/batch_update_status", methods=["POST"])

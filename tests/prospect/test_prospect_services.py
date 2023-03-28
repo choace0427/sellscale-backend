@@ -25,6 +25,7 @@ from src.prospecting.services import (
     update_prospect_status_email,
     create_prospect_from_linkedin_link,
     create_prospect_note,
+    mark_prospects_as_queued_for_outreach,
 )
 from model_import import (
     Prospect,
@@ -36,6 +37,7 @@ from model_import import (
     ProspectOverallStatus,
     Client,
     IScraperPayloadCache,
+    GeneratedMessage
 )
 from decorators import use_app_context
 import mock
@@ -944,3 +946,27 @@ def test_update_prospect_status_email():
         prospect_email_status_record[1].to_status
         == ProspectEmailOutreachStatus.DEMO_SET
     )
+
+
+@use_app_context
+def test_mark_prospects_as_queued_for_outreach():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    prospect = basic_prospect(client, archetype, sdr)
+    prospect_id = prospect.id
+    gnlp = basic_gnlp_model(archetype)
+    cta = basic_generated_message_cta(archetype)
+    generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message_id = generated_message.id
+    generated_message.message_status = "APPROVED"
+    prospect.approved_outreach_message_id=generated_message.id
+    prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
+
+    result = mark_prospects_as_queued_for_outreach([prospect.id], sdr.id)
+    assert result == True
+    prospect = Prospect.query.get(prospect_id)
+    assert prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH
+    assert prospect.overall_status == ProspectOverallStatus.PROSPECTED
+    generated_message = GeneratedMessage.query.get(generated_message_id)
+    assert generated_message.message_status.value == "QUEUED_FOR_OUTREACH"

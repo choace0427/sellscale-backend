@@ -33,10 +33,11 @@ def test_get_valid_next_prospect_statuses():
 
     # Test LinkedIn
     valid_next_statuses = get_valid_next_prospect_statuses(prospect.id, "LINKEDIN")
-    assert len(valid_next_statuses["valid_next_statuses"]) == 2
+    assert len(valid_next_statuses["valid_next_statuses"]) == 3
+    assert valid_next_statuses["valid_next_statuses"][ProspectStatus.QUEUED_FOR_OUTREACH.value] is not None
     assert valid_next_statuses["valid_next_statuses"][ProspectStatus.SENT_OUTREACH.value] is not None
     assert valid_next_statuses["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
-    assert len(valid_next_statuses["all_statuses"]) == 11
+    assert len(valid_next_statuses["all_statuses"]) == 13
 
     # Test LinkedIn again
     prospect.status = ProspectStatus.SENT_OUTREACH
@@ -46,7 +47,7 @@ def test_get_valid_next_prospect_statuses():
     assert valid_next_statuses["valid_next_statuses"][ProspectStatus.RESPONDED.value] is not None
     assert valid_next_statuses["valid_next_statuses"][ProspectStatus.ACTIVE_CONVO.value] is not None
     assert valid_next_statuses["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
-    assert len(valid_next_statuses["all_statuses"]) == 11
+    assert len(valid_next_statuses["all_statuses"]) == 13
 
     # Test Email
     prospect_email = basic_prospect_email(prospect)

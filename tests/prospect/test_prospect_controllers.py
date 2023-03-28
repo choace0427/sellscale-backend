@@ -6,12 +6,16 @@ from test_utils import (
     test_app,
     basic_client_sdr,
     basic_generated_message,
+    basic_generated_message_cta,
     basic_gnlp_model,
     basic_prospect_email,
     basic_research_payload,
     get_login_token,
 )
-from src.prospecting.services import match_prospect_as_sent_outreach
+from src.prospecting.services import (
+    match_prospect_as_sent_outreach,
+    mark_prospects_as_queued_for_outreach
+)
 from model_import import (
     Prospect,
     ProspectStatus,
@@ -19,7 +23,8 @@ from model_import import (
     ProspectChannels,
     ProspectEmail,
     ProspectEmailOutreachStatus,
-    ProspectOverallStatus
+    ProspectOverallStatus,
+    GeneratedMessage
 )
 from decorators import use_app_context
 import json
@@ -519,10 +524,11 @@ def test_get_valid_next_prospect_statuses_endpoint():
         },
     )
     assert linkedin_response.status_code == 200
-    assert len(linkedin_response.json["valid_next_statuses"]) == 2
+    assert len(linkedin_response.json["valid_next_statuses"]) == 3
+    assert linkedin_response.json["valid_next_statuses"][ProspectStatus.QUEUED_FOR_OUTREACH.value] is not None
     assert linkedin_response.json["valid_next_statuses"][ProspectStatus.SENT_OUTREACH.value] is not None
     assert linkedin_response.json["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
-    assert len(linkedin_response.json["all_statuses"]) == 11
+    assert len(linkedin_response.json["all_statuses"]) == 13
 
     # Another LinkedIn
     prospect.status = ProspectStatus.ACCEPTED
@@ -538,7 +544,7 @@ def test_get_valid_next_prospect_statuses_endpoint():
     assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.RESPONDED.value] is not None
     assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.ACTIVE_CONVO.value] is not None
     assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
-    assert len(linkedin_another_response.json["all_statuses"]) == 11
+    assert len(linkedin_another_response.json["all_statuses"]) == 13
 
     # Email
     prospect_email = basic_prospect_email(prospect)

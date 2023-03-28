@@ -849,6 +849,48 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int
     return updates
 
 
+def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int) -> bool:
+    """ Marks prospects and messages as queued for outreach
+
+    Args:
+        prospect_ids (list): List of prospect ids
+        client_sdr_id (int): Client SDR id
+
+    Returns:
+        bool: True if successful
+    """
+    # Get prospects
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(prospect_ids),
+        Prospect.client_sdr_id == client_sdr_id,
+    ).all()
+    prospect_ids = [prospect.id for prospect in prospects]
+
+    # Get messages
+    messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id.in_(prospect_ids),
+        GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
+    ).all()
+    messages_ids = [message.id for message in messages]
+
+    # Update prospects
+    for id in prospect_ids:
+        update_prospect_status_linkedin(id, ProspectStatus.QUEUED_FOR_OUTREACH)
+
+    # Update messages
+    updated_messages = []
+    for id in messages_ids:
+        message: GeneratedMessage = GeneratedMessage.query.get(id)
+        message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
+        updated_messages.append(message)
+
+    # Commit
+    db.session.bulk_save_objects(updated_messages)
+    db.session.commit()
+
+    return True
+
+
 @celery.task(bind=True, max_retries=3)
 def match_prospect_as_sent_outreach(self, prospect_id: int, client_sdr_id: int):
     try:
@@ -1171,6 +1213,8 @@ def map_prospect_linkedin_status_to_prospect_overall_status(
 ):
     prospect_status_map = {
         ProspectStatus.PROSPECTED: ProspectOverallStatus.PROSPECTED,
+        ProspectStatus.QUEUED_FOR_OUTREACH: ProspectOverallStatus.PROSPECTED,
+        ProspectStatus.SEND_OUTREACH_FAILED: ProspectOverallStatus.REMOVED,
         ProspectStatus.NOT_QUALIFIED: ProspectOverallStatus.REMOVED,
         ProspectStatus.SENT_OUTREACH: ProspectOverallStatus.SENT_OUTREACH,
         ProspectStatus.ACCEPTED: ProspectOverallStatus.ACCEPTED,
