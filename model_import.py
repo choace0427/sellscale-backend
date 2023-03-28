@@ -67,3 +67,4 @@ from src.integrations.models import (
     VesselAPICachedResponses,
 )
 from src.integrations.vessel_analytics_job import get_emails_for_contact_async
+from src.bump_framework.models import BumpFramework
