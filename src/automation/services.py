@@ -1,9 +1,10 @@
 from app import db, celery
 from sqlalchemy.sql.expression import func
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
-from model_import import Client, ClientSDR
+from model_import import Client, ClientSDR, ProspectStatus
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
+from src.prospecting.services import update_prospect_status_linkedin
 import json
 import requests
 import os
@@ -533,6 +534,7 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
         ).first()
         if not prospect:
             continue
+        prospect_id = prospect.id
 
         # Grab the message
         message: GeneratedMessage = GeneratedMessage.query.filter(
@@ -540,6 +542,7 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
         ).first()
         if not message:
             continue
+        message_id = message.id
 
         # Check for error, otherwise set the message to sent
         error = result.get("error")
@@ -547,6 +550,8 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
             message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
             message.failed_outreach_error = error
         else:
+            update_prospect_status_linkedin(prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH)
+            message: GeneratedMessage = GeneratedMessage.query.get(message_id)
             message.message_status = GeneratedMessageStatus.SENT
             message.date_sent = datetime.now()
             message.failed_outreach_error = None

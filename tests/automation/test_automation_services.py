@@ -65,23 +65,30 @@ EXAMPLE_PB_WEBHOOK_RESPONSE_BAD = {
 
 @use_app_context
 def test_update_pb_linkedin_send_status():
+    from model_import import GeneratedMessage, Prospect
     client = basic_client()
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, sdr)
     prospect = basic_prospect(client, archetype, sdr)
+    p_id = prospect.id
     gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
     generated_message = basic_generated_message(prospect, gnlp, cta)
+    gm_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
     prospect.approved_outreach_message_id=generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
     response = update_pb_linkedin_send_status(sdr.id, EXAMPLE_PB_WEBHOOK_RESPONSE_BAD)
     assert response == True
+    generated_message = GeneratedMessage.query.get(gm_id)
     assert generated_message.message_status.value == "FAILED_TO_SEND"
     assert generated_message.failed_outreach_error == "Email needed to add this person"
 
     response = update_pb_linkedin_send_status(sdr.id, EXAMPLE_PB_WEBHOOK_RESPONSE_GOOD)
     assert response == True
+    generated_message = GeneratedMessage.query.get(gm_id)
     assert generated_message.message_status.value == "SENT"
     assert generated_message.failed_outreach_error == None
+    prospect = Prospect.query.get(p_id)
+    assert prospect.status.value == "SENT_OUTREACH"
