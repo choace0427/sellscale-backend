@@ -25,6 +25,38 @@ import mock
 
 
 @use_app_context
+def test_create_client():
+    clients: list = Client.query.all()
+    assert len(clients) == 0
+
+    response = app.test_client().post(
+        "client/",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "company": "test company",
+                "contact_name": "test contact name",
+                "contact_email": "test contact email",
+                "linkedin_outbound_enabled": True,
+                "email_outbound_enabled": True,
+                "tagline": "test tagline",
+                "description": "test description",
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    client = Client.query.first()
+    assert client.company == "test company"
+    assert client.contact_name == "test contact name"
+    assert client.contact_email == "test contact email"
+    assert client.linkedin_outbound_enabled == True
+    assert client.email_outbound_enabled == True
+    assert client.tagline == "test tagline"
+    assert client.description == "test description"
+
+
+@use_app_context
 def test_get_archetypes():
     client = basic_client()
     client_sdr = basic_client_sdr(client)

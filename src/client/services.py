@@ -3,7 +3,11 @@ from flask import jsonify
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.message_generation.models import GeneratedMessageCTA, GeneratedMessage, GeneratedMessageStatus
+from src.message_generation.models import (
+    GeneratedMessageCTA,
+    GeneratedMessage,
+    GeneratedMessageStatus,
+)
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
@@ -28,6 +32,8 @@ def create_client(
     contact_email: str,
     linkedin_outbound_enabled: bool,
     email_outbound_enabled: bool,
+    tagline: Optional[str] = None,
+    description: Optional[str] = None,
 ):
     c: Client = Client.query.filter_by(company=company).first()
     if c:
@@ -46,6 +52,8 @@ def create_client(
         ],
         linkedin_outbound_enabled=linkedin_outbound_enabled,
         email_outbound_enabled=email_outbound_enabled,
+        tagline=tagline,
+        description=description,
     )
     db.session.add(c)
     db.session.commit()
@@ -590,7 +598,9 @@ def get_cta_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
     return {"message": "Success", "status_code": 200, "ctas": cta_dicts}
 
 
-def get_prospect_upload_stats_by_upload_id(client_sdr_id: int, prospect_uploads_raw_csv_id: int) -> dict:
+def get_prospect_upload_stats_by_upload_id(
+    client_sdr_id: int, prospect_uploads_raw_csv_id: int
+) -> dict:
     """Get the basic stats for a prospect upload
 
     This function is authenticated.
@@ -604,11 +614,13 @@ def get_prospect_upload_stats_by_upload_id(client_sdr_id: int, prospect_uploads_
     """
 
     # Validate parameters
-    prospect_uploads_raw_csv: ProspectUploadsRawCSV = ProspectUploadsRawCSV.query.get(prospect_uploads_raw_csv_id)
+    prospect_uploads_raw_csv: ProspectUploadsRawCSV = ProspectUploadsRawCSV.query.get(
+        prospect_uploads_raw_csv_id
+    )
     if not prospect_uploads_raw_csv:
-        return {'message': 'Upload not found', "status_code": 404}
+        return {"message": "Upload not found", "status_code": 404}
     elif prospect_uploads_raw_csv.client_sdr_id != client_sdr_id:
-        return {'message': 'Not authorized', "status_code": 401}
+        return {"message": "Not authorized", "status_code": 401}
 
     # Get stats for the upload
     upload_stats = db.session.execute(
@@ -624,31 +636,33 @@ def get_prospect_upload_stats_by_upload_id(client_sdr_id: int, prospect_uploads_
         from prospect_uploads
         where prospect_uploads.prospect_uploads_raw_csv_id = {upload_id} and prospect_uploads.client_sdr_id = {client_sdr_id}
         """.format(
-          upload_id=prospect_uploads_raw_csv_id,
-          client_sdr_id=client_sdr_id
+            upload_id=prospect_uploads_raw_csv_id, client_sdr_id=client_sdr_id
         )
-      ).fetchall()
+    ).fetchall()
 
     # index to status map
     status_map = {
-      0: 'success',
-      1: 'in_progress',
-      2: 'queued',
-      3: 'not_started',
-      4: 'disqualified',
-      5: 'failed',
-      6: 'total'
+        0: "success",
+        1: "in_progress",
+        2: "queued",
+        3: "not_started",
+        4: "disqualified",
+        5: "failed",
+        6: "total",
     }
 
     # Convert and format output
     upload_stats = [tuple(row) for row in upload_stats][0]
-    upload_stats = {status_map.get(i, 'unknown'): row for i, row in enumerate(upload_stats)}
+    upload_stats = {
+        status_map.get(i, "unknown"): row for i, row in enumerate(upload_stats)
+    }
 
     return {"message": "Success", "status_code": 200, "stats": upload_stats}
 
 
-
-def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int, email: bool) -> dict:
+def get_transformers_by_archetype_id(
+    client_sdr_id: int, archetype_id: int, email: bool
+) -> dict:
     """Gets all transformers belonging to an Archetype, alongside stats.
 
     This function is authenticated.
@@ -665,9 +679,9 @@ def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int, emai
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
-        return {'message': 'Archetype not found', "status_code": 404}
+        return {"message": "Archetype not found", "status_code": 404}
     elif archetype.client_id != client_sdr.client_id:
-        return {'message': 'Not authorized', "status_code": 401}
+        return {"message": "Not authorized", "status_code": 401}
 
     # Get transformer stats
     transformer_stats = db.session.execute(
@@ -688,28 +702,35 @@ def get_transformers_by_archetype_id(client_sdr_id: int, archetype_id: int, emai
         group by 1,2
         order by 5 desc
         """.format(
-          archetype_id=archetype_id,
-          email_join='left outer join prospect_email on prospect.id = prospect_email.prospect_id' if email else '',
-          email_filter='and prospect_email.prospect_id is null' if email else ''
+            archetype_id=archetype_id,
+            email_join="left outer join prospect_email on prospect.id = prospect_email.prospect_id"
+            if email
+            else "",
+            email_filter="and prospect_email.prospect_id is null" if email else "",
         )
-      ).fetchall()
+    ).fetchall()
 
     # index to column
     column_map = {
-      0: 'archetype',
-      1: 'research_point_type',
-      2: 'num_prospects',
-      3: 'num_accepted_prospects',
-      4: 'percent_accepted',
+        0: "archetype",
+        1: "research_point_type",
+        2: "num_prospects",
+        3: "num_accepted_prospects",
+        4: "percent_accepted",
     }
 
     # Convert and format output
-    transformer_stats = [{column_map.get(i, 'unknown'): value for i, value in enumerate(tuple(row))} for row in transformer_stats]
+    transformer_stats = [
+        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        for row in transformer_stats
+    ]
 
     return {"message": "Success", "status_code": 200, "stats": transformer_stats}
 
 
-def get_prospect_upload_details_by_upload_id(client_sdr_id: int, prospect_uploads_raw_csv_id: int) -> dict:
+def get_prospect_upload_details_by_upload_id(
+    client_sdr_id: int, prospect_uploads_raw_csv_id: int
+) -> dict:
     """Get the individual prospect details of the prospect upload
 
     This function is authenticated.
@@ -723,20 +744,29 @@ def get_prospect_upload_details_by_upload_id(client_sdr_id: int, prospect_upload
     """
 
     # Validate parameters
-    prospect_uploads_raw_csv: ProspectUploadsRawCSV = ProspectUploadsRawCSV.query.get(prospect_uploads_raw_csv_id)
+    prospect_uploads_raw_csv: ProspectUploadsRawCSV = ProspectUploadsRawCSV.query.get(
+        prospect_uploads_raw_csv_id
+    )
     if not prospect_uploads_raw_csv:
-        return {'message': 'Upload not found', "status_code": 404}
+        return {"message": "Upload not found", "status_code": 404}
     elif prospect_uploads_raw_csv.client_sdr_id != client_sdr_id:
-        return {'message': 'Not authorized', "status_code": 401}
-
+        return {"message": "Not authorized", "status_code": 401}
 
     # Get all prospect details of the upload
-    all_prospect_details = ProspectUploads.query.filter_by(
-        prospect_uploads_raw_csv_id=prospect_uploads_raw_csv_id,
-        client_sdr_id=client_sdr_id,
-    ).order_by(ProspectUploads.updated_at.desc()).all()
+    all_prospect_details = (
+        ProspectUploads.query.filter_by(
+            prospect_uploads_raw_csv_id=prospect_uploads_raw_csv_id,
+            client_sdr_id=client_sdr_id,
+        )
+        .order_by(ProspectUploads.updated_at.desc())
+        .all()
+    )
 
-    return {"message": "Success", "status_code": 200, "uploads": [x.to_dict() for x in all_prospect_details] }
+    return {
+        "message": "Success",
+        "status_code": 200,
+        "uploads": [x.to_dict() for x in all_prospect_details],
+    }
 
 
 def get_all_uploads_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
@@ -756,17 +786,25 @@ def get_all_uploads_by_archetype_id(client_sdr_id: int, archetype_id: int) -> di
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
-        return {'message': 'Archetype not found', "status_code": 404}
+        return {"message": "Archetype not found", "status_code": 404}
     elif archetype.client_id != client_sdr.client_id:
-        return {'message': 'Not authorized', "status_code": 401}
+        return {"message": "Not authorized", "status_code": 401}
 
     # Get all uploads
-    all_uploads = ProspectUploadsRawCSV.query.filter_by(
-        client_archetype_id=archetype_id,
-        client_sdr_id=client_sdr_id,
-    ).order_by(ProspectUploadsRawCSV.created_at.desc()).all()
+    all_uploads = (
+        ProspectUploadsRawCSV.query.filter_by(
+            client_archetype_id=archetype_id,
+            client_sdr_id=client_sdr_id,
+        )
+        .order_by(ProspectUploadsRawCSV.created_at.desc())
+        .all()
+    )
 
-    return {"message": "Success", "status_code": 200, "uploads": [x.to_dict() for x in all_uploads] }
+    return {
+        "message": "Success",
+        "status_code": 200,
+        "uploads": [x.to_dict() for x in all_uploads],
+    }
 
 
 def get_cta_stats(cta_id: int) -> dict:

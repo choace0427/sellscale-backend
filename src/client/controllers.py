@@ -68,6 +68,10 @@ def create():
     email_outbound_enabled = get_request_parameter(
         "email_outbound_enabled", request, json=True, required=True
     )
+    tagline = get_request_parameter("tagline", request, json=True, required=False)
+    description = get_request_parameter(
+        "description", request, json=True, required=False
+    )
 
     resp = create_client(
         company=company,
@@ -75,6 +79,8 @@ def create():
         contact_email=contact_email,
         linkedin_outbound_enabled=linkedin_outbound_enabled,
         email_outbound_enabled=email_outbound_enabled,
+        tagline=tagline,
+        description=description,
     )
 
     return jsonify(resp)
