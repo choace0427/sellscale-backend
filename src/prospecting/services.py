@@ -882,6 +882,7 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
     for id in messages_ids:
         message: GeneratedMessage = GeneratedMessage.query.get(id)
         message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
+        message.date_sent = datetime.utcnow()
         updated_messages.append(message)
 
     # Commit
