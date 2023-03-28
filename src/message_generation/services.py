@@ -1158,7 +1158,7 @@ Output:
 
     ctas = []
 
-    options = response["choices"][0]["text"].split("\n- ")
+    options = response["choices"][0]["text"].split("\n")
     for option in options:
         tag, cta = option.split("] ")
         tag = tag[1:]
