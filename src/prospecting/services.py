@@ -836,12 +836,9 @@ def create_prospect_from_linkedin_link(
 def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int):
     from src.prospecting.models import Prospect
 
-    prospects = Prospect.query.filter(Prospect.id.in_(prospect_ids)).all()
     updates = []
 
-    for p in prospects:
-        prospect_id = p.id
-
+    for prospect_id in prospect_ids:
         match_prospect_as_sent_outreach.delay(
             prospect_id=prospect_id,
             client_sdr_id=client_sdr_id,
