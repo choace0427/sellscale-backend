@@ -14,7 +14,7 @@ from test_utils import (
 )
 from src.prospecting.services import (
     match_prospect_as_sent_outreach,
-    mark_prospects_as_queued_for_outreach
+    mark_prospects_as_queued_for_outreach,
 )
 from model_import import (
     Prospect,
@@ -24,7 +24,7 @@ from model_import import (
     ProspectEmail,
     ProspectEmailOutreachStatus,
     ProspectOverallStatus,
-    GeneratedMessage
+    GeneratedMessage,
 )
 from decorators import use_app_context
 import json
@@ -229,7 +229,9 @@ def test_patch_update_status_endpoint_failed():
 
 
 @use_app_context
-@mock.patch("src.prospecting.controllers.create_prospect_from_linkedin_link.apply_async")
+@mock.patch(
+    "src.prospecting.controllers.create_prospect_from_linkedin_link.apply_async"
+)
 def test_post_prospect_from_link(create_prospect_from_linkedin_link_patch):
     client = basic_client()
     archetype = basic_archetype(client)
@@ -297,7 +299,7 @@ def test_post_add_note():
         "prospect/add_note",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + get_login_token()
+            "Authorization": "Bearer " + get_login_token(),
         },
         data=json.dumps(
             {
@@ -314,7 +316,7 @@ def test_post_add_note():
         "prospect/add_note",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + get_login_token()
+            "Authorization": "Bearer " + get_login_token(),
         },
         data=json.dumps(
             {
@@ -335,7 +337,7 @@ def test_post_add_note():
         "prospect/add_note",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + get_login_token()
+            "Authorization": "Bearer " + get_login_token(),
         },
         data=json.dumps(
             {
@@ -345,7 +347,9 @@ def test_post_add_note():
         ),
     )
     assert nonauthorized_response.status_code == 403
-    assert nonauthorized_response.json.get("message") == "Prospect does not belong to user"
+    assert (
+        nonauthorized_response.json.get("message") == "Prospect does not belong to user"
+    )
 
 
 @use_app_context
@@ -525,9 +529,25 @@ def test_get_valid_next_prospect_statuses_endpoint():
     )
     assert linkedin_response.status_code == 200
     assert len(linkedin_response.json["valid_next_statuses"]) == 3
-    assert linkedin_response.json["valid_next_statuses"][ProspectStatus.QUEUED_FOR_OUTREACH.value] is not None
-    assert linkedin_response.json["valid_next_statuses"][ProspectStatus.SENT_OUTREACH.value] is not None
-    assert linkedin_response.json["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
+    assert (
+        linkedin_response.json["valid_next_statuses"][
+            ProspectStatus.QUEUED_FOR_OUTREACH.value
+        ]
+        is not None
+    )
+    assert (
+        linkedin_response.json["valid_next_statuses"][
+            ProspectStatus.SENT_OUTREACH.value
+        ]
+        is not None
+    )
+    assert (
+        linkedin_response.json["valid_next_statuses"][
+            ProspectStatus.NOT_QUALIFIED.value
+        ]
+        is not None
+    )
+
     assert len(linkedin_response.json["all_statuses"]) == 13
 
     # Another LinkedIn
@@ -541,9 +561,24 @@ def test_get_valid_next_prospect_statuses_endpoint():
     )
     assert linkedin_another_response.status_code == 200
     assert len(linkedin_another_response.json["valid_next_statuses"]) == 3
-    assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.RESPONDED.value] is not None
-    assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.ACTIVE_CONVO.value] is not None
-    assert linkedin_another_response.json["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value] is not None
+    assert (
+        linkedin_another_response.json["valid_next_statuses"][
+            ProspectStatus.RESPONDED.value
+        ]
+        is not None
+    )
+    assert (
+        linkedin_another_response.json["valid_next_statuses"][
+            ProspectStatus.ACTIVE_CONVO.value
+        ]
+        is not None
+    )
+    assert (
+        linkedin_another_response.json["valid_next_statuses"][
+            ProspectStatus.NOT_QUALIFIED.value
+        ]
+        is not None
+    )
     assert len(linkedin_another_response.json["all_statuses"]) == 13
 
     # Email
@@ -558,8 +593,18 @@ def test_get_valid_next_prospect_statuses_endpoint():
     )
     assert email_response.status_code == 200
     assert len(email_response.json["valid_next_statuses"]) == 2
-    assert email_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.SENT_OUTREACH.value] is not None
-    assert email_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.NOT_SENT.value] is not None
+    assert (
+        email_response.json["valid_next_statuses"][
+            ProspectEmailOutreachStatus.SENT_OUTREACH.value
+        ]
+        is not None
+    )
+    assert (
+        email_response.json["valid_next_statuses"][
+            ProspectEmailOutreachStatus.NOT_SENT.value
+        ]
+        is not None
+    )
     assert len(email_response.json["all_statuses"]) == 11
 
     # Another Email
@@ -574,6 +619,16 @@ def test_get_valid_next_prospect_statuses_endpoint():
     assert email_another_response.status_code == 200
     assert len(email_another_response.json["valid_next_statuses"]) == 2
     print(email_another_response.json["valid_next_statuses"])
-    assert email_another_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.SCHEDULING.value] is not None
-    assert email_another_response.json["valid_next_statuses"][ProspectEmailOutreachStatus.NOT_INTERESTED.value] is not None
+    assert (
+        email_another_response.json["valid_next_statuses"][
+            ProspectEmailOutreachStatus.SCHEDULING.value
+        ]
+        is not None
+    )
+    assert (
+        email_another_response.json["valid_next_statuses"][
+            ProspectEmailOutreachStatus.NOT_INTERESTED.value
+        ]
+        is not None
+    )
     assert len(email_another_response.json["all_statuses"]) == 11

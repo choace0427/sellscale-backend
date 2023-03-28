@@ -5,7 +5,7 @@ from test_utils import (
     basic_client,
     basic_client_sdr,
     basic_prospect,
-    basic_archetype
+    basic_archetype,
 )
 from model_import import ProspectStatus, ProspectOverallStatus
 from src.analytics.services import get_sdr_pipeline_all_details
@@ -18,58 +18,78 @@ def test_get_sdr_pipeline_all_details():
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype, client_sdr, overall_status=ProspectOverallStatus.SENT_OUTREACH)
-    prospect_2 = basic_prospect(client, archetype, client_sdr, overall_status=ProspectOverallStatus.SENT_OUTREACH)
-    prospect_3 = basic_prospect(client, archetype, client_sdr, overall_status=ProspectOverallStatus.ACCEPTED)
-    prospect_4 = basic_prospect(client, archetype, client_sdr, overall_status=ProspectOverallStatus.ACTIVE_CONVO)
-    prospect_5 = basic_prospect(client, archetype, client_sdr, overall_status=ProspectOverallStatus.REMOVED)
+    prospect = basic_prospect(
+        client,
+        archetype,
+        client_sdr,
+        overall_status=ProspectOverallStatus.SENT_OUTREACH,
+    )
+    prospect_2 = basic_prospect(
+        client,
+        archetype,
+        client_sdr,
+        overall_status=ProspectOverallStatus.SENT_OUTREACH,
+    )
+    prospect_3 = basic_prospect(
+        client, archetype, client_sdr, overall_status=ProspectOverallStatus.ACCEPTED
+    )
+    prospect_4 = basic_prospect(
+        client, archetype, client_sdr, overall_status=ProspectOverallStatus.ACTIVE_CONVO
+    )
+    prospect_5 = basic_prospect(
+        client, archetype, client_sdr, overall_status=ProspectOverallStatus.REMOVED
+    )
 
     details = get_sdr_pipeline_all_details(client_sdr_id=client_sdr.id)
     assert details == {
-        'prospected': 5,
-        'not_qualified': 0,
-        'sent_outreach': 0,
-        'accepted': 0,
-        'responded': 0,
-        'active_convo': 0,
-        'scheduling': 0,
-        'not_interested': 0,
-        'demo_set': 0,
-        'demo_won': 0,
-        'demo_loss': 0,
-        'LINKEDIN': {
-            'prospected': 5,
-            'not_qualified': 0,
-            'sent_outreach': 0,
-            'accepted': 0,
-            'responded': 0,
-            'active_convo': 0,
-            'scheduling': 0,
-            'not_interested': 0,
-            'demo_set': 0,
-            'demo_won': 0,
-            'demo_loss': 0
+        "prospected": 5,
+        "not_qualified": 0,
+        "sent_outreach": 0,
+        "accepted": 0,
+        "responded": 0,
+        "active_convo": 0,
+        "scheduling": 0,
+        "not_interested": 0,
+        "demo_set": 0,
+        "demo_won": 0,
+        "demo_loss": 0,
+        "queued_for_outreach": 0,
+        "send_outreach_failed": 0,
+        "LINKEDIN": {
+            "prospected": 5,
+            "not_qualified": 0,
+            "sent_outreach": 0,
+            "accepted": 0,
+            "responded": 0,
+            "active_convo": 0,
+            "scheduling": 0,
+            "not_interested": 0,
+            "demo_set": 0,
+            "demo_won": 0,
+            "demo_loss": 0,
+            "send_outreach_failed": 0,
+            "queued_for_outreach": 0,
         },
-        'SELLSCALE': {
-            'PROSPECTED': 0,
-            'SENT_OUTREACH': 2,
-            'ACCEPTED': 1,
-            'BUMPED': 0,
-            'ACTIVE_CONVO': 1,
-            'DEMO': 0,
-            'REMOVED': 1
+        "SELLSCALE": {
+            "PROSPECTED": 0,
+            "SENT_OUTREACH": 2,
+            "ACCEPTED": 1,
+            "BUMPED": 0,
+            "ACTIVE_CONVO": 1,
+            "DEMO": 0,
+            "REMOVED": 1,
         },
-        'EMAIL': {
-            'UNKNOWN': 0,
-            'NOT_SENT': 0,
-            'SENT_OUTREACH': 0,
-            'EMAIL_OPENED': 0,
-            'ACCEPTED': 0,
-            'ACTIVE_CONVO': 0,
-            'SCHEDULING': 0,
-            'NOT_INTERESTED': 0,
-            'DEMO_SET': 0,
-            'DEMO_WON': 0,
-            'DEMO_LOST': 0
-        }
+        "EMAIL": {
+            "UNKNOWN": 0,
+            "NOT_SENT": 0,
+            "SENT_OUTREACH": 0,
+            "EMAIL_OPENED": 0,
+            "ACCEPTED": 0,
+            "ACTIVE_CONVO": 0,
+            "SCHEDULING": 0,
+            "NOT_INTERESTED": 0,
+            "DEMO_SET": 0,
+            "DEMO_WON": 0,
+            "DEMO_LOST": 0,
+        },
     }

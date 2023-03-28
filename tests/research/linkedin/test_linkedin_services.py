@@ -8,13 +8,14 @@ from test_utils import (
     basic_prospect,
     basic_research_payload,
     basic_iscraper_payload_cache,
-    clear_all_entities
+    clear_all_entities,
 )
 from src.research.linkedin.services import (
     sanitize_payload,
     get_iscraper_payload_error,
-    get_research_payload_new
+    get_research_payload_new,
 )
+import json
 from model_import import IScraperPayloadCache, ResearchPayload, IScraperPayloadType
 from freezegun import freeze_time
 import pytest
@@ -27,21 +28,17 @@ EXAMPLE_PAYLOAD = {
             {
                 "company": {
                     "name": "Athelas",
-                    "url": "https://www.linkedin.com/company/athelas/"
+                    "url": "https://www.linkedin.com/company/athelas/",
                 }
             },
-            {
-                "company": {
-                    "name": "Curative (acq. Doximity)"
-                }
-            },
+            {"company": {"name": "Curative (acq. Doximity)"}},
         ]
     },
     "company": {
         "details": {
             "name": "HEAL Security | Cognitive Cybersecurity Intelligence for the Healthcare Sector"
         }
-    }
+    },
 }
 
 EXAMPLE_PAYLOAD_PERSONAL = {
@@ -49,17 +46,13 @@ EXAMPLE_PAYLOAD_PERSONAL = {
         {
             "company": {
                 "name": "Test",
-                "url": "https://www.linkedin.com/company/test_company"
+                "url": "https://www.linkedin.com/company/test_company",
             }
         },
     ]
 }
 
-EXAMPLE_PAYLOAD_COMPANY = {
-    "details": {
-        "name": "Fake Company Mock"
-    }
-}
+EXAMPLE_PAYLOAD_COMPANY = {"details": {"name": "Fake Company Mock"}}
 
 
 @use_app_context
@@ -103,9 +96,16 @@ def test_get_research_payload_new_payload_exists():
     returned = get_research_payload_new(prospect_id)
     assert returned == payload.payload
 
+
 @use_app_context
-@mock.patch("src.research.linkedin.services.research_personal_profile_details", return_value=EXAMPLE_PAYLOAD_PERSONAL)
-@mock.patch("src.research.linkedin.services.research_corporate_profile_details", return_value=EXAMPLE_PAYLOAD_COMPANY)
+@mock.patch(
+    "src.research.linkedin.services.research_personal_profile_details",
+    return_value=json.dumps(EXAMPLE_PAYLOAD_PERSONAL),
+)
+@mock.patch(
+    "src.research.linkedin.services.research_corporate_profile_details",
+    return_value=json.dumps(EXAMPLE_PAYLOAD_COMPANY),
+)
 def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company):
     client = basic_client()
     sdr = basic_client_sdr(client)
@@ -115,7 +115,9 @@ def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company)
     prospect.linkedin_url = "https://www.linkedin.com/in/test"
 
     # iScraper Cache Exists
-    cache = basic_iscraper_payload_cache(linkedin_url="https://www.linkedin.com/in/test")
+    cache = basic_iscraper_payload_cache(
+        linkedin_url="https://www.linkedin.com/in/test"
+    )
     returned = get_research_payload_new(prospect.id)
     assert returned == {"personal": cache.payload, "company": EXAMPLE_PAYLOAD_COMPANY}
 
@@ -126,20 +128,35 @@ def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company)
     cache = basic_iscraper_payload_cache()
     with freeze_time(datetime.now() + timedelta(weeks=3)):
         returned = get_research_payload_new(prospect_id)
-        assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": EXAMPLE_PAYLOAD_COMPANY}
+        assert returned == {
+            "personal": EXAMPLE_PAYLOAD_PERSONAL,
+            "company": EXAMPLE_PAYLOAD_COMPANY,
+        }
 
     clear_all_entities(ResearchPayload)
     clear_all_entities(IScraperPayloadCache)
 
     # iScraper Cache Exists for Company
-    cache = basic_iscraper_payload_cache(linkedin_url="https://www.linkedin.com/company/test_company", is_company_payload=True)
+    cache = basic_iscraper_payload_cache(
+        linkedin_url="https://www.linkedin.com/company/test_company",
+        is_company_payload=True,
+    )
     returned = get_research_payload_new(prospect_id)
-    assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": {"details": {"name": "Fake Company TEST"}}}
+    assert returned == {
+        "personal": EXAMPLE_PAYLOAD_PERSONAL,
+        "company": {"details": {"name": "Fake Company TEST"}},
+    }
     clear_all_entities(ResearchPayload)
     clear_all_entities(IScraperPayloadCache)
 
     # iScraper Cache Exists for Company but is too old
-    cache = basic_iscraper_payload_cache(linkedin_url="https://www.linkedin.com/company/test_company", is_company_payload=True)
+    cache = basic_iscraper_payload_cache(
+        linkedin_url="https://www.linkedin.com/company/test_company",
+        is_company_payload=True,
+    )
     with freeze_time(datetime.now() + timedelta(weeks=3)):
         returned = get_research_payload_new(prospect_id)
-        assert returned == {"personal": EXAMPLE_PAYLOAD_PERSONAL, "company": EXAMPLE_PAYLOAD_COMPANY}
+        assert returned == {
+            "personal": EXAMPLE_PAYLOAD_PERSONAL,
+            "company": EXAMPLE_PAYLOAD_COMPANY,
+        }

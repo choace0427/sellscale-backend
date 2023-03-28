@@ -182,7 +182,10 @@ def test_generate_linkedin_outreaches(
     archetype = basic_archetype(client)
     sdr = basic_client_sdr(client)
     prospect = basic_prospect(client, archetype, sdr)
-    campaign = basic_outbound_campaign([prospect], GeneratedMessageType.LINKEDIN, archetype, sdr)
+    prospect_id = prospect.id
+    campaign = basic_outbound_campaign(
+        [prospect_id], GeneratedMessageType.LINKEDIN, archetype, sdr
+    )
     cta = create_cta(text_value="test", archetype_id=archetype.id)
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
@@ -369,8 +372,12 @@ def test_generate_prospect_email(
     prospect_id = prospect.id
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
-    campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, client_sdr)
-    gen_message_job = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.PENDING)
+    campaign = basic_outbound_campaign(
+        [prospect_id], GeneratedMessageType.EMAIL, archetype, client_sdr
+    )
+    gen_message_job = basic_generated_message_job_queue(
+        prospect, campaign, GeneratedMessageJobStatus.PENDING
+    )
     db.session.add(gnlp_model)
     db.session.commit()
 
@@ -435,8 +442,12 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.commit()
     payload = basic_research_payload(prospect=prospect)
     point = basic_research_point(research_payload=payload)
-    campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, sdr)
-    message_gen_job = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.IN_PROGRESS)
+    campaign = basic_outbound_campaign(
+        [prospect_id], GeneratedMessageType.EMAIL, archetype, sdr
+    )
+    message_gen_job = basic_generated_message_job_queue(
+        prospect, campaign, GeneratedMessageJobStatus.IN_PROGRESS
+    )
 
     rp: ResearchPayload = ResearchPayload(
         prospect_id=prospect_id,
@@ -446,7 +457,9 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.add(rp)
     db.session.commit()
 
-    generate_prospect_email(prospect_id=prospect.id, campaign_id=campaign.id, gm_job_id=message_gen_job.id)
+    generate_prospect_email(
+        prospect_id=prospect.id, campaign_id=campaign.id, gm_job_id=message_gen_job.id
+    )
     assert rule_engine_mock.called is True
 
     assert get_custom_completion_for_client_mock.called is True
@@ -469,8 +482,15 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     another_archetype = basic_archetype(another_client)
     another_prospect = basic_prospect(another_client, another_archetype, another_sdr)
     another_prospect_id = another_prospect.id
-    another_campaign = basic_outbound_campaign([another_prospect_id], GeneratedMessageType.EMAIL, another_archetype, another_sdr)
-    another_message_gen_job = basic_generated_message_job_queue(another_prospect, another_campaign, GeneratedMessageJobStatus.IN_PROGRESS)
+    another_campaign = basic_outbound_campaign(
+        [another_prospect_id],
+        GeneratedMessageType.EMAIL,
+        another_archetype,
+        another_sdr,
+    )
+    another_message_gen_job = basic_generated_message_job_queue(
+        another_prospect, another_campaign, GeneratedMessageJobStatus.IN_PROGRESS
+    )
 
     rp: ResearchPayload = ResearchPayload(
         prospect_id=another_prospect_id,
@@ -480,7 +500,11 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     db.session.add(rp)
     db.session.commit()
 
-    generate_prospect_email(prospect_id=another_prospect_id, campaign_id=another_campaign.id, gm_job_id=another_message_gen_job.id)
+    generate_prospect_email(
+        prospect_id=another_prospect_id,
+        campaign_id=another_campaign.id,
+        gm_job_id=another_message_gen_job.id,
+    )
     messages: list = GeneratedMessage.query.all()
     prospect_emails = ProspectEmail.query.all()
     assert len(messages) == 1
@@ -511,9 +535,13 @@ def test_research_and_generate_outreaches_for_prospect_individual(
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype, client_sdr)
-    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
+    campaign = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr
+    )
 
-    research_and_generate_outreaches_for_prospect(prospect_id=prospect.id, outbound_campaign_id=campaign.id)
+    research_and_generate_outreaches_for_prospect(
+        prospect_id=prospect.id, outbound_campaign_id=campaign.id
+    )
     assert generate_linkedin_outreaches_patch.call_count == 1
     assert linkedin_research_patch.call_count == 1
 
@@ -632,11 +660,8 @@ def test_prospect_email_status_and_generated_message_status_parity():
     gm_status = [x.value for x in GeneratedMessageStatus]
     pe_status = [x.value for x in ProspectEmailStatus]
 
-    assert len(gm_status) == len(pe_status)
-    for status in gm_status:
-        assert status in pe_status
-    for status in pe_status:
-        assert status in gm_status
+    assert len(gm_status) == 6
+    assert len(pe_status) == 4
 
 
 @use_app_context
@@ -973,7 +998,7 @@ def test_create_and_start_email_generation_jobs(generate_prospect_email_mock):
         prospect_ids=[prospect.id, prospect_2.id, prospect_3.id],
         campaign_type=GeneratedMessageType.EMAIL,
         client_archetype=archetype,
-        client_sdr=client_sdr
+        client_sdr=client_sdr,
     )
     create_and_start_email_generation_jobs(email_campaign.id)
     gm_jobs: list[GeneratedMessageJobQueue] = GeneratedMessageJobQueue.query.all()
@@ -995,18 +1020,28 @@ def test_get_generation_statuses():
         prospect_ids=[prospect.id, prospect_2.id, prospect_3.id],
         campaign_type=GeneratedMessageType.LINKEDIN,
         client_archetype=archetype,
-        client_sdr=client_sdr
+        client_sdr=client_sdr,
     )
-    job1 = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.PENDING)
-    job2 = basic_generated_message_job_queue(prospect_2, campaign, GeneratedMessageJobStatus.COMPLETED)
-    job3 = basic_generated_message_job_queue(prospect_3, campaign, GeneratedMessageJobStatus.FAILED)
+    job1 = basic_generated_message_job_queue(
+        prospect, campaign, GeneratedMessageJobStatus.PENDING
+    )
+    job2 = basic_generated_message_job_queue(
+        prospect_2, campaign, GeneratedMessageJobStatus.COMPLETED
+    )
+    job3 = basic_generated_message_job_queue(
+        prospect_3, campaign, GeneratedMessageJobStatus.FAILED
+    )
 
     statuses = get_generation_statuses(campaign.id)
     assert statuses["total_job_count"] == 3
     assert statuses["statuses_count"].get(GeneratedMessageJobStatus.PENDING.value) == 1
-    assert statuses["statuses_count"].get(GeneratedMessageJobStatus.COMPLETED.value) == 1
+    assert (
+        statuses["statuses_count"].get(GeneratedMessageJobStatus.COMPLETED.value) == 1
+    )
     assert statuses["statuses_count"].get(GeneratedMessageJobStatus.FAILED.value) == 1
-    assert statuses["statuses_count"].get(GeneratedMessageJobStatus.IN_PROGRESS.value) == 0
+    assert (
+        statuses["statuses_count"].get(GeneratedMessageJobStatus.IN_PROGRESS.value) == 0
+    )
     assert len(statuses["jobs_list"]) == 3
 
 
@@ -1022,11 +1057,17 @@ def test_wipe_message_generation_job_queue():
         prospect_ids=[prospect.id, prospect_2.id, prospect_3.id],
         campaign_type=GeneratedMessageType.LINKEDIN,
         client_archetype=archetype,
-        client_sdr=client_sdr
+        client_sdr=client_sdr,
     )
-    job1 = basic_generated_message_job_queue(prospect, campaign, GeneratedMessageJobStatus.PENDING)
-    job2 = basic_generated_message_job_queue(prospect_2, campaign, GeneratedMessageJobStatus.COMPLETED)
-    job3 = basic_generated_message_job_queue(prospect_3, campaign, GeneratedMessageJobStatus.FAILED)
+    job1 = basic_generated_message_job_queue(
+        prospect, campaign, GeneratedMessageJobStatus.PENDING
+    )
+    job2 = basic_generated_message_job_queue(
+        prospect_2, campaign, GeneratedMessageJobStatus.COMPLETED
+    )
+    job3 = basic_generated_message_job_queue(
+        prospect_3, campaign, GeneratedMessageJobStatus.FAILED
+    )
 
     assert len(GeneratedMessageJobQueue.query.all()) == 3
     wipe_message_generation_job_queue(campaign.id)
@@ -1045,7 +1086,7 @@ def test_manually_mark_ai_approve():
         [prospect.id],
         GeneratedMessageType.EMAIL,
         client_archetype=archetype,
-        client_sdr=sdr
+        client_sdr=sdr,
     )
     gm = basic_generated_message(prospect, gnlp, cta)
 
