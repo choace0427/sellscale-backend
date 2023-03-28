@@ -20,7 +20,7 @@ from model_import import (
     GeneratedMessageType,
     ClientArchetype,
 )
-from sqlalchemy.sql.expression import func, select
+from sqlalchemy.sql.expression import func
 from src.email_outbound.services import get_approved_prospect_email_by_id
 from src.integrations.vessel import SalesEngagementIntegration
 from tqdm import tqdm

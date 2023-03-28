@@ -1,11 +1,13 @@
 import json
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
+from flask_csv import send_csv
 from src.automation.models import PhantomBusterType
 from src.automation.services import (
     create_phantom_buster_config,
     get_all_phantom_busters,
     create_new_auto_connect_phantom,
     update_phantom_buster_li_at,
+    create_pb_linkedin_invite_csv,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
@@ -159,3 +161,13 @@ def post_send_slack_message():
     channel = get_request_parameter("channel", request, json=True, required=True)
     send_slack_message(message=message, webhook_urls=[channel])
     return "OK", 200
+
+
+@AUTOMATION_BLUEPRINT.route("/phantombuster/send_invite/<int:client_sdr_id>", methods=["GET"])
+def send_phantom_buster_linkedin_invite(client_sdr_id: int):
+
+    data = create_pb_linkedin_invite_csv(client_sdr_id)
+    if not data:
+        return "No data found", 404
+
+    return send_csv

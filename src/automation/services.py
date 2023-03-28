@@ -1,11 +1,14 @@
-import json
+from app import db, celery
+from sqlalchemy.sql.expression import func
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from model_import import Client, ClientSDR
 from src.automation.models import PhantomBusterAgent
-from app import db, celery
+from tqdm import tqdm
+import json
 import requests
 import os
-from tqdm import tqdm
+import io
+import csv
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 GET_PHANTOMBUSTER_AGENTS_URL = "https://api.phantombuster.com/api/v2/agents/fetch-all"
@@ -435,7 +438,7 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
         li_at (str): LinkedIn authentication token
 
     Returns:
-        status_code (int), message (str): HTTP status code 
+        status_code (int), message (str): HTTP status code
     """
     pbs: PhantomBusterConfig = PhantomBusterConfig.query.filter(
         PhantomBusterConfig.client_sdr_id == client_sdr_id
@@ -449,13 +452,48 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
         arguments = pb_agent.get_arguments()
         if 'sessionCookie' in arguments:
             pb_agent.update_argument(key='sessionCookie', new_value=li_at)
-    
+
     sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not sdr:
-        return "No client sdr found with this id", 400 
+        return "No client sdr found with this id", 400
 
     sdr.li_at_token = li_at
     db.session.add(sdr)
     db.session.commit()
 
     return "OK", 200
+
+
+def create_pb_linkedin_invite_csv(client_sdr_id: int) -> str:
+    """ Creates a CSV used by the phantom buster agent to invite people on LinkedIn
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+    """
+    from model_import import Prospect, GeneratedMessage, GeneratedMessageStatus
+
+    # Grab two random  messages that belong to the ClientSDR
+    joined_prospect_message = (
+        db.session.query(
+            Prospect.linkedin_url.label("linkedin_url"),
+            GeneratedMessage.completion.label("completion"),
+        )
+        .join(GeneratedMessage, Prospect.id == GeneratedMessage.prospect_id)
+        .filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.approved_outreach_message_id != None,
+            GeneratedMessage.message_status == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
+        )
+        .order_by(func.random())
+        .limit(2)
+    ).all()
+
+    data = []
+    # Write the data rows
+    for message in joined_prospect_message:
+        data.append({
+            "Linkedin": message.linkedin_url,
+            "Message": message.completion,
+        })
+
+    return data
