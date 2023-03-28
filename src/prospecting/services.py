@@ -855,18 +855,19 @@ def match_prospect_as_sent_outreach(self, prospect_id: int, client_sdr_id: int):
         prospect: Prospect = Prospect.query.get(prospect_id)
 
         prospect.client_sdr_id = client_sdr_id
+        approved_outreach_message_id = prospect.approved_outreach_message_id
         db.session.add(prospect)
         db.session.commit()
 
-        if not prospect or not prospect.approved_outreach_message_id:
+        if not prospect or not approved_outreach_message_id:
             return
 
         update_prospect_status_linkedin(
-            prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH
+            prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH
         )
 
         message: GeneratedMessage = GeneratedMessage.query.get(
-            prospect.approved_outreach_message_id
+            approved_outreach_message_id
         )
         message.message_status = GeneratedMessageStatus.SENT
         message.date_sent = datetime.now()
