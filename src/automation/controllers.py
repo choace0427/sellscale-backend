@@ -8,6 +8,7 @@ from src.automation.services import (
     create_new_auto_connect_phantom,
     update_phantom_buster_li_at,
     create_pb_linkedin_invite_csv,
+    update_pb_linkedin_send_status
 )
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
@@ -163,11 +164,22 @@ def post_send_slack_message():
     return "OK", 200
 
 
-@AUTOMATION_BLUEPRINT.route("/phantombuster/send_invite/<int:client_sdr_id>", methods=["GET"])
-def send_phantom_buster_linkedin_invite(client_sdr_id: int):
-
+@AUTOMATION_BLUEPRINT.route("/phantombuster/auto_connect_csv/<int:client_sdr_id>", methods=["GET"])
+def get_phantombuster_autoconnect_csv(client_sdr_id: int):
+    """ Creates a CSV file with the data to be used by the phantombuster auto connect script """
     data = create_pb_linkedin_invite_csv(client_sdr_id)
     if not data:
         return "No data found", 404
 
     return send_csv(data, filename="data.csv", fields=["Linkedin", "Message"])
+
+
+@AUTOMATION_BLUEPRINT.route("/phantombuster/auto_connect_webhook/<int:client_sdr_id>", methods=["POST"])
+def post_phantombuster_autoconnect_webhook(client_sdr_id: int):
+    """ Webhook to be called by phantombuster after the auto connect script finishes """
+    pb_payload = request.get_json()
+
+    success = update_pb_linkedin_send_status(client_sdr_id, pb_payload)
+
+    # Since this is a webhook, we need to return a response that PB won't flag
+    return "OK", 200

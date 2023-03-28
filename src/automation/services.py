@@ -497,3 +497,60 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> str:
         })
 
     return data
+
+
+def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool:
+    """ Updates the status of a LinkedIn message sent by the phantom buster agent
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        pb_payload (dict): Payload from the phantom buster agent
+
+    Example resultObject (use JSON Formatter to view):
+        [{"0":"linkedin.com/in/steve-hyndman-8a57b816","fullName":"Steve Hyndman","firstName":"Steve","lastName":"Hyndman","connectionDegree":"1st","url":"https://www.linkedin.com/in/steve-hyndman-8a57b816","Message":"Hi Steve! I read that you have a passion for diversity and inclusion and experience in transformation risk and financial crime - an impressive career you have there! Id love to show you how monday can help your team’s productivity. No harm in benchmarking against your current system - up for a chat?","baseUrl":"linkedin.com/in/steve-hyndman-8a57b816","profileId":"steve-hyndman-8a57b816","profileUrl":"https://www.linkedin.com/in/steve-hyndman-8a57b816/","error":"Already in network","timestamp":"2023-03-28T16:42:40.033Z"},{"0":"linkedin.com/in/supriya-uchil","fullName":"Supriya Uchil","firstName":"Supriya","lastName":"Uchil","connectionDegree":"2nd","url":"https://www.linkedin.com/in/supriya-uchil","Message":"Hi Supriya! I read you've worked for great companies like Depop, Self Employed and BookingGo. Now as Vice Chair at Ounass, I'm sure you're looking for the best tools to help your team with productivity. Heard of monday.com? I'd love to show you how it can help supercharge your team - open to chat?","baseUrl":"linkedin.com/in/supriya-uchil","profileId":"supriya-uchil","profileUrl":"https://www.linkedin.com/in/supriya-uchil/","message":"Hi Supriya! I read you've worked for great companies like Depop, Self Employed and BookingGo. Now as Vice Chair at Ounass, I'm sure you're looking for the best tools to help your team with productivity. Heard of monday.com? I'd love to show you how it can help supercharge your team - open to chat?","error":"Email needed to add this person","timestamp":"2023-03-28T16:43:59.678Z"}]
+    """
+    from model_import import Prospect, GeneratedMessage, GeneratedMessageStatus
+
+    # Check if the payload is valid
+    exit_code = pb_payload.get("exitCode")
+    if exit_code != 0:
+        return False
+
+    # Grab the result object
+    result_object = pb_payload.get("resultObject")
+    if not result_object:
+        return False
+
+    # Loop through the results
+    messages: list[GeneratedMessage] = []
+    for result in result_object:
+        # Grab the prospect
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.linkedin_url == result.get("0"),
+            Prospect.client_sdr_id == client_sdr_id,
+        ).first()
+        if not prospect:
+            continue
+
+        # Grab the message
+        message: GeneratedMessage = GeneratedMessage.query.filter(
+            GeneratedMessage.id == prospect.approved_outreach_message_id
+        ).first()
+        if not message:
+            continue
+
+        # Check for error, otherwise set the message to sent
+        error = result.get("error")
+        if error:
+            message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
+            message.failed_outreach_error = error
+        else:
+            message.message_status = GeneratedMessageStatus.SENT
+            message.failed_outreach_error = None
+
+        messages.append(message)
+
+    db.session.bulk_save_objects(messages)
+    db.session.commit()
+
+    return True
