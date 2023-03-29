@@ -45,6 +45,7 @@ from model_import import (
     GeneratedMessageJobQueue,
     GeneratedMessageJobStatus,
     ClientPod,
+    BumpFramework,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -67,6 +68,7 @@ def test_app():
         )
 
     with app.app_context():
+        clear_all_entities(BumpFramework)
         clear_all_entities(Echo)
         for p in Prospect.query.all():
             prospect: Prospect = p

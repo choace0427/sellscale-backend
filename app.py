@@ -122,6 +122,7 @@ def register_blueprints(app):
     from src.daily_notifications.controllers import DAILY_NOTIFICATIONS_BLUEPRINT
     from src.integrations.controllers import INTEGRATION_BLUEPRINT
     from src.voyager.controllers import VOYAGER_BLUEPRINT
+    from src.bump_framework.controllers import BUMP_FRAMEWORK_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -148,6 +149,7 @@ def register_blueprints(app):
     app.register_blueprint(AUTHENTICATION_BLUEPRINT, url_prefix="/auth")
     app.register_blueprint(INTEGRATION_BLUEPRINT, url_prefix="/integration")
     app.register_blueprint(VOYAGER_BLUEPRINT, url_prefix="/voyager")
+    app.register_blueprint(BUMP_FRAMEWORK_BLUEPRINT, url_prefix="/bump_framework")
 
     db.init_app(app)
 

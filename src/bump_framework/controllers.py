@@ -38,7 +38,7 @@ def post_create_bump_framework():
     return "Could not create bump framework.", 400
 
 
-@BUMP_FRAMEWORK_BLUEPRINT.route("/delete", methods=["POST"])
+@BUMP_FRAMEWORK_BLUEPRINT.route("/", methods=["DELETE"])
 def post_delete_bump_framework():
     bump_framework_id = get_request_parameter(
         "bump_framework_id", request, json=True, required=True
@@ -47,7 +47,7 @@ def post_delete_bump_framework():
     return "OK", 200
 
 
-@BUMP_FRAMEWORK_BLUEPRINT.route("/get", methods=["GET"])
+@BUMP_FRAMEWORK_BLUEPRINT.route("/", methods=["GET"])
 def get_bump_frameworks():
     client_sdr_id = get_request_parameter(
         "client_sdr_id", request, json=True, required=True

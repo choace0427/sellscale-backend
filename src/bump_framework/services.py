@@ -52,4 +52,5 @@ def toggle_bump_framework_active(bump_framework_id: int) -> None:
     """
     bump_framework = BumpFramework.query.get(bump_framework_id)
     bump_framework.active = not bump_framework.active
+    db.session.add(bump_framework)
     db.session.commit()
