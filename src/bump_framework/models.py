@@ -1,5 +1,6 @@
 from app import db
 import enum
+
 from src.prospecting.models import ProspectOverallStatus
 
 
