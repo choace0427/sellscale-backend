@@ -1,11 +1,45 @@
 import json
 import datetime as dt
+
+from src.research.models import IScraperPayloadCache
+from src.prospecting.models import Prospect
 from src.li_conversation.services import create_linkedin_conversation_entry
 from model_import import ClientSDR
 from app import db
 from tqdm import tqdm
 from src.utils.abstract.attr_utils import deep_get
 from src.voyager.linkedin import Linkedin
+
+def get_profile_urn_id(prospect_id: int):
+  """ Gets the URN ID of a prospect, saving the URN ID if it's not already saved
+
+    Args:
+        prospect_id (int): ID of the prospect
+
+    Returns:
+        li_urn_id (str) or None: LinkedIn URN ID
+    """
+
+  prospect: Prospect = Prospect.query.get(prospect_id)
+
+  if not prospect:
+    return None
+  if prospect.li_urn_id:
+    return str(prospect.li_urn_id)
+  
+  # If we don't have the URN ID, we get one from the iscraper data
+  iscraper_data: IScraperPayloadCache = IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(prospect.linkedin_url)
+  if iscraper_data:
+    personal_info = json.loads(iscraper_data.payload)
+    urn_id = personal_info.get("entity_urn", None)
+    if urn_id:
+      prospect.li_urn_id = urn_id
+      db.session.add(prospect)
+      db.session.commit()
+      return str(urn_id)
+  
+  return None
+
 
 def update_linked_cookies(client_sdr_id: int, cookies: str):
     """ Updates LinkedIn cookies for Voyager

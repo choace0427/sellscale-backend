@@ -75,6 +75,8 @@ class ClientArchetype(db.Model):
     )
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    persona_description = db.Column(db.String, nullable=True)
+    persona_fit_reason = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -88,6 +90,8 @@ class ClientArchetype(db.Model):
             else [],
             "disable_ai_after_prospect_engaged": self.disable_ai_after_prospect_engaged,
             "client_sdr_id": self.client_sdr_id,
+            "persona_description": self.persona_description,
+            "persona_fit_reason": self.persona_fit_reason,
         }
 
 

@@ -343,6 +343,7 @@ class Prospect(db.Model):
     li_last_message_from_prospect = db.Column(db.String, nullable=True)
     li_num_followers = db.Column(db.Integer, nullable=True)
     li_should_deep_scrape = db.Column(db.Boolean, nullable=True)
+    li_urn_id = db.Column(db.String, nullable=True)
 
     health_check_score = db.Column(db.Float, nullable=True)
 
@@ -421,6 +422,7 @@ class Prospect(db.Model):
             "li_is_last_message_from_sdr": self.li_is_last_message_from_sdr,
             "li_last_message_from_prospect": self.li_last_message_from_prospect,
             "li_num_followers": self.li_num_followers,
+            "li_urn_id": self.li_urn_id,
             "health_check_score": self.health_check_score,
             "last_reviewed": self.last_reviewed,
             "times_bumped": self.times_bumped,

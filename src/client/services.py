@@ -129,6 +129,8 @@ def create_client_archetype(
     filters: any,
     base_archetype_id: Optional[int] = None,
     disable_ai_after_prospect_engaged: bool = False,
+    persona_description: str = "",
+    persona_fit_reason: str = "",
 ):
     c: Client = get_client(client_id=client_id)
     if not c:
@@ -140,6 +142,8 @@ def create_client_archetype(
         archetype=archetype,
         filters=filters,
         disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
+        persona_description=persona_description,
+        persona_fit_reason=persona_fit_reason,
     )
     db.session.add(client_archetype)
     db.session.commit()

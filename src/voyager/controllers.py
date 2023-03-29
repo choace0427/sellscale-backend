@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from src.voyager.services import get_profile_urn_id
 from src.client.models import ClientSDR
 from src.voyager.services import update_conversation_entries
 from src.voyager.services import update_linked_cookies
