@@ -184,6 +184,7 @@ class ClientSDR(db.Model):
     client_pod_id = db.Column(db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
 
     nylas_auth_code = db.Column(db.String, nullable=True)
+    nylas_account_id = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
