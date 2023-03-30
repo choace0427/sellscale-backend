@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from src.client.models import ClientSDR
-from src.voyager.services import update_linkedin_cookies, fetch_conversation, update_conversation_entries, get_profile_urn_id
+from src.voyager.services import update_linkedin_cookies, fetch_conversation, update_conversation_entries, get_profile_urn_id, clear_linkedin_cookies
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.voyager.linkedin import LinkedIn
@@ -90,6 +90,16 @@ def update_auth_tokens(client_sdr_id: int):
     cookies = get_request_parameter("cookies", request, json=True, required=True, parameter_type=str)
 
     status_text, status = update_linkedin_cookies(client_sdr_id, cookies)
+
+    return jsonify({"message": status_text}), status
+
+
+@VOYAGER_BLUEPRINT.route("/auth_tokens", methods=["DELETE"])
+@require_user
+def clear_auth_tokens(client_sdr_id: int):
+    """Clears the LinkedIn auth tokens for a SDR"""
+
+    status_text, status = clear_linkedin_cookies(client_sdr_id)
 
     return jsonify({"message": status_text}), status
 

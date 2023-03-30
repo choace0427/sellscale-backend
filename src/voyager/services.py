@@ -80,6 +80,28 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
     return "Updated cookies", 200
 
 
+def clear_linkedin_cookies(client_sdr_id: int):
+    """ Clears LinkedIn cookies for Voyager
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+
+    Returns:
+        status_code (int), message (str): HTTP status code 
+    """
+    
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return "No client sdr found with this id", 400 
+
+    sdr.li_cookies = None
+
+    db.session.add(sdr)
+    db.session.commit()
+
+    return "Cleared cookies", 200
+
+
 def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool = True):
     """ Gets the latest conversation with a prospect, syncing the db as needed
 
