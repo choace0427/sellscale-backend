@@ -169,7 +169,8 @@ def get_phantombuster_autoconnect_csv(client_sdr_id: int):
     """ Creates a CSV file with the data to be used by the phantombuster auto connect script """
     data = create_pb_linkedin_invite_csv(client_sdr_id)
     if not data:
-        return "No data found", 404
+        empty_data = [{"Linkedin": "", "Message": ""}]
+        return send_csv(empty_data, filename="empty_data.csv", fields=["Linkedin", "Message"])
 
     return send_csv(data, filename="data.csv", fields=["Linkedin", "Message"])
 

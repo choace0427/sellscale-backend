@@ -465,7 +465,7 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
     return "OK", 200
 
 
-def create_pb_linkedin_invite_csv(client_sdr_id: int) -> str:
+def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
     """ Creates a CSV used by the phantom buster agent to invite people on LinkedIn
 
     Args:
