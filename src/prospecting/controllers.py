@@ -447,6 +447,10 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     email_enabled = get_request_parameter(
         "email_enabled", request, json=True, required=False, parameter_type=bool
     )
+    allow_duplicates = get_request_parameter(
+        "allow_duplicates", request, json=True, required=False, parameter_type=bool
+    )
+    allow_duplicates = True if allow_duplicates is None else allow_duplicates
 
     if len(csv_payload) >= 2000:
         return "Too many rows in CSV", 400
@@ -462,12 +466,17 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     if not archetype:
         return "Archetype with given ID not found", 400
 
+    # Check for duplicates is always enabled if client is not SellScale
+    if archetype.client_id != 1:
+        allow_duplicates = True
+
     # Create prospect_uploads_csv_raw with a single entry
     raw_csv_entry_id = create_raw_csv_entry_from_json_payload(
         client_id=archetype.client_id,
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
         payload=csv_payload,
+        allow_duplicates=allow_duplicates,
     )
     if raw_csv_entry_id == -1:
         return (
@@ -482,13 +491,14 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         prospect_uploads_raw_csv_id=raw_csv_entry_id,
         payload=csv_payload,
+        allow_duplicates=allow_duplicates,
     )
     if not success:
         return "Failed to create prospect uploads", 400
 
     # Collect eligible prospect rows and create prospects
     collect_and_run_celery_jobs_for_upload.apply_async(
-        args=[archetype.client_id, archetype_id, client_sdr_id],
+        args=[archetype.client_id, archetype_id, client_sdr_id, allow_duplicates],
         queue="prospecting",
         routing_key="prospecting",
         priority=1,

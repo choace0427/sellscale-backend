@@ -645,6 +645,7 @@ def add_prospect(
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
     email: Optional[str] = None,
+    allow_duplicates: bool = True,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -663,6 +664,7 @@ def add_prospect(
         title (Optional[str], optional): Prospect's LinkedIn Title. Defaults to None.
         twitter_url (Optional[str], optional): Prospect's Twitter URL. Defaults to None.
         email (Optional[str], optional): Prospect's email. Defaults to None.
+        allow_duplicates (bool, optional): Whether or not to check for duplicate prospects. Defaults to True.
 
     Returns:
         int or None: ID of the Prospect if it was added successfully, None otherwise
@@ -696,7 +698,8 @@ def add_prospect(
     first_name = get_first_name_from_full_name(full_name=full_name)
     last_name = get_last_name_from_full_name(full_name=full_name)
 
-    if not prospect_exists:
+    can_create_prospect = not prospect_exists or not allow_duplicates
+    if can_create_prospect:
         prospect: Prospect = Prospect(
             client_id=client_id,
             archetype_id=archetype_id,

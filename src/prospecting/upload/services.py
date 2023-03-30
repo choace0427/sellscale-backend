@@ -27,7 +27,7 @@ from src.prospecting.hunter import find_hunter_email_from_prospect_id
 
 
 def create_raw_csv_entry_from_json_payload(
-    client_id: int, client_archetype_id: int, client_sdr_id: int, payload: list
+    client_id: int, client_archetype_id: int, client_sdr_id: int, payload: list, allow_duplicates: bool = True
 ):
     """Create a raw CSV entry from the JSON payload sent by the SDR.
 
@@ -38,6 +38,7 @@ def create_raw_csv_entry_from_json_payload(
         client_archetype_id (int): The client archetype ID.
         client_sdr_id (int): The client SDR ID.
         payload (list[dict]): The payload sent by the SDR.
+        allow_duplicates (bool): Whether to check for duplicates. Defaults to True.
 
     Returns:
         int: The ID of the raw CSV entry. -1 if the hash already exists (duplicate payload).
@@ -54,7 +55,7 @@ def create_raw_csv_entry_from_json_payload(
         client_sdr_id=client_sdr_id,
         csv_data_hash=payload_hash_value,
     ).first()
-    if exists:
+    if allow_duplicates and exists:
         return -1
 
     # Create a ProspectUploadsRawCSV entry using the payload as csv_data.
@@ -77,6 +78,7 @@ def populate_prospect_uploads_from_json_payload(
     client_sdr_id: int,
     prospect_uploads_raw_csv_id: int,
     payload: dict,
+    allow_duplicates: bool = True,
 ) -> bool:
     """Populate the ProspectUploads table from the JSON payload sent by the SDR.
 
@@ -86,6 +88,7 @@ def populate_prospect_uploads_from_json_payload(
         client_sdr_id (int): The client SDR ID.
         prospect_uploads_raw_csv_id (int): The ID of the ProspectUploadsRawCSV entry.
         payload (dict): The payload sent by the SDR.
+        allow_duplicates (bool): Whether to check for duplicates. Defaults to True.
 
     Returns:
         bool: True if the ProspectUploads table was populated successfully. Errors otherwise.
@@ -121,8 +124,9 @@ def populate_prospect_uploads_from_json_payload(
         ProspectUploads.csv_row_hash.in_(prospect_hashes),
     ).all()
     existing_prospect_hash = set()
-    for existing_prospect_upload in existing_prospect_uploads:
-        existing_prospect_hash.add(existing_prospect_upload.csv_row_hash)
+    if allow_duplicates:
+        for existing_prospect_upload in existing_prospect_uploads:
+            existing_prospect_hash.add(existing_prospect_upload.csv_row_hash)
 
     # Create ProspectUploads
     prospect_uploads = []
@@ -157,7 +161,7 @@ def populate_prospect_uploads_from_json_payload(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def collect_and_run_celery_jobs_for_upload(
-    self, client_id: int, client_archetype_id: int, client_sdr_id: int
+    self, client_id: int, client_archetype_id: int, client_sdr_id: int, allow_duplicates: bool = True,
 ) -> bool:
     """Collects the rows eligible for upload and runs the celery jobs for them.
 
@@ -165,6 +169,7 @@ def collect_and_run_celery_jobs_for_upload(
         client_id (int): The client ID.
         client_archetype_id (int): The client archetype ID.
         client_sdr_id (int): The client SDR ID.
+        allow_duplicates (bool): Whether to check for duplicates. Defaults to True.
 
     Returns:
         bool: True if the celery jobs were collected and scheduled successfully. Errors otherwise.
@@ -199,7 +204,7 @@ def collect_and_run_celery_jobs_for_upload(
                 db.session.add(prospect_upload)
                 db.session.commit()
                 create_prospect_from_prospect_upload_row.apply_async(
-                    args=[prospect_upload.id],
+                    args=[prospect_upload.id, allow_duplicates],
                     queue="prospecting",
                     routing_key="prospecting",
                     priority=2,
@@ -212,7 +217,7 @@ def collect_and_run_celery_jobs_for_upload(
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> None:
+def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int, allow_duplicates: bool = True) -> None:
     """Celery task for creating a prospect from a ProspectUploads row.
 
     This will call the create_prospect_from_linkedin_link function which will create the prospect.
@@ -220,6 +225,7 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
 
     Args:
         prospect_upload_id (int): The ID of the ProspectUploads row.
+        allow_duplicates (bool): Whether to check for duplicates. Defaults to True.
 
     Raises:
         self.retry: If the task fails, it will retry, up to the max_retries limit.
@@ -234,7 +240,7 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
 
         # Create the prospect using the LinkedIn URL.
         create_prospect_from_linkedin_link.apply_async(
-            args=[prospect_upload.id],
+            args=[prospect_upload.id, allow_duplicates],
             queue="prospecting",
             routing_key="prospecting",
             priority=2,
@@ -249,11 +255,12 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int) -> N
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
+def create_prospect_from_linkedin_link(self, prospect_upload_id: int, allow_duplicates: bool = True) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
     Args:
         prospect_upload_id (int): The ID of the ProspectUploads row.
+        allow_duplicates (bool): Whether to check for duplicates. Defaults to True.
         email (str, optional): An email to add to the prospect. Defaults to None.
 
     Raises:
@@ -347,6 +354,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int) -> bool:
             twitter_url=twitter_url,
             email=email,
             linkedin_num_followers=followers_count,
+            allow_duplicates=allow_duplicates,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
