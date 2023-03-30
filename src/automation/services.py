@@ -536,6 +536,7 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
         if not prospect:
             continue
         prospect_id = prospect.id
+        prospect_li = prospect.linkedin_url
 
         # Grab the message
         message: GeneratedMessage = GeneratedMessage.query.filter(
@@ -551,14 +552,17 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
             message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
             message.failed_outreach_error = error
         else:
-            update_prospect_status_linkedin(prospect_id=prospect.id, new_status=ProspectStatus.SENT_OUTREACH)
+            update_prospect_status_linkedin(prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH)
             message: GeneratedMessage = GeneratedMessage.query.get(message_id)
             message.message_status = GeneratedMessageStatus.SENT
             message.date_sent = datetime.now()
             message.failed_outreach_error = None
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            sdr_name = sdr.name
+            message_completion = message.completion
+
             send_slack_message(
-                message=f"LinkedIn Autoconnect: {sdr.name} sent a message to {prospect.linkedin_url}\nmessage: {message.completion}",
+                message=f"LinkedIn Autoconnect: {sdr_name} sent a message to {prospect_li}\nmessage: {message_completion}",
                 webhook_urls=[URL_MAP["operations-li-sent-messages"]],
             )
 
