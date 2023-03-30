@@ -5,6 +5,7 @@ from model_import import Client, ClientSDR, ProspectStatus
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
 from src.prospecting.services import update_prospect_status_linkedin
+from src.utils.slack import send_slack_message, URL_MAP
 import json
 import requests
 import os
@@ -555,6 +556,11 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
             message.message_status = GeneratedMessageStatus.SENT
             message.date_sent = datetime.now()
             message.failed_outreach_error = None
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            send_slack_message(
+                f"LinkedIn Autoconnect: {sdr.name} sent a message to {prospect.linkedin_url}\nmessage: {message.completion}",
+                URL_MAP["operations-li-sent-messages"],
+            )
 
         messages.append(message)
 
