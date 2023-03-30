@@ -19,6 +19,7 @@ class LinkedinConversationEntry(db.Model):
     li_url = db.Column(db.String, nullable=True)
     message = db.Column(db.String, nullable=True)
     entry_processed = db.Column(db.Boolean, default=False)
+    urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
     def li_conversation_thread_by_prospect_id(prospect_id: int):
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
@@ -44,5 +45,6 @@ class LinkedinConversationEntry(db.Model):
             "img_url": self.img_url,
             "connection_degree": self.connection_degree,
             "li_url": self.li_url,
+            "urn_id": self.urn_id,
             "message": self.message,
         }

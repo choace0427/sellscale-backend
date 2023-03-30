@@ -1,20 +1,23 @@
 import json
 import datetime as dt
 
+from src.li_conversation.models import LinkedinConversationEntry
 from src.research.models import IScraperPayloadCache
 from src.prospecting.models import Prospect
+from typing import Union
 from src.li_conversation.services import create_linkedin_conversation_entry
 from model_import import ClientSDR
 from app import db
 from tqdm import tqdm
 from src.utils.abstract.attr_utils import deep_get
-from src.voyager.linkedin import Linkedin
+from src.voyager.linkedin import LinkedIn
 
-def get_profile_urn_id(prospect_id: int):
+def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
   """ Gets the URN ID of a prospect, saving the URN ID if it's not already saved
 
     Args:
         prospect_id (int): ID of the prospect
+        client_sdr_id (int): Optional - ID of the client SDR
 
     Returns:
         li_urn_id (str) or None: LinkedIn URN ID
@@ -38,10 +41,22 @@ def get_profile_urn_id(prospect_id: int):
       db.session.commit()
       return str(urn_id)
   
+  # If we still don't have the URN ID, we get one from Voyager using the public id
+  if api and prospect.linkedin_url:
+    public_id = prospect.linkedin_url.split("/in/")[1].split("/")[0]
+    if public_id:
+      profile = api.get_profile(public_id)
+      urn_id = profile.get("profile_id", None)
+      if urn_id:
+        prospect.li_urn_id = urn_id
+        db.session.add(prospect)
+        db.session.commit()
+        return str(urn_id)
+
   return None
 
 
-def update_linked_cookies(client_sdr_id: int, cookies: str):
+def update_linkedin_cookies(client_sdr_id: int, cookies: str):
     """ Updates LinkedIn cookies for Voyager
 
     Args:
@@ -65,7 +80,49 @@ def update_linked_cookies(client_sdr_id: int, cookies: str):
     return "Updated cookies", 200
 
 
-def update_conversation_entries(api: Linkedin, convo_urn_id: str):
+def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool = True):
+    """ Gets the latest conversation with a prospect, syncing the db as needed
+
+    Args:
+        api (LinkedIN): instance of LinkedIn class
+        prospect_id (int): ID of the prospect
+        check_for_update (bool): Optional - Whether to check for new messages from LinkedIn
+
+    Returns:
+        convo_entries (LinkedinConversationEntry[]): List of conversation entries
+    """
+
+    # Utility function for getting db conversation entries to json
+    def get_convo_entries(convo_urn_id: str) -> list[str]:
+      return [e.to_dict() for e in LinkedinConversationEntry.query.filter_by(
+        conversation_url=f'https://www.linkedin.com/messaging/thread/{convo_urn_id}/'
+      ).order_by(LinkedinConversationEntry.date.desc()).all()]
+
+    prospect_urn_id = get_profile_urn_id(prospect_id, api)
+
+    # Check if we need to update the conversation 
+    details = api.get_conversation_details(prospect_urn_id)
+    convo_urn_id = details['id']
+    last_msg_urn_id = details['events'][0]['dashEntityUrn'].replace("urn:li:fsd_message:", "")
+    convo_entry = LinkedinConversationEntry.query.filter_by(urn_id=last_msg_urn_id).first()
+
+    # If li_conversation_thread_id not set, might as well save it now
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect.li_conversation_thread_id:
+      prospect.li_conversation_thread_id = f'https://www.linkedin.com/messaging/thread/{convo_urn_id}/'
+      db.session.add(prospect)
+      db.session.commit()
+
+    # If not, we return the conversation from the database
+    if convo_entry or not check_for_update:
+      return get_convo_entries(convo_urn_id)
+    else:
+      # If we need to update the conversation, we do so
+      update_conversation_entries(api, convo_urn_id)
+      return get_convo_entries(convo_urn_id)
+
+
+def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
     """ Updates LinkedinConversationEntry table with new entries
 
     Args:
@@ -89,6 +146,7 @@ def update_conversation_entries(api: Linkedin, convo_urn_id: str):
         urn_id = public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("entityUrn", "").replace("urn:li:fs_miniProfile:", "")
         public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("publicIdentifier", "")
         headline = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("occupation", "")
+        msg_urn_id = message.get('dashEntityUrn', "").replace("urn:li:fsd_message:", "")
 
         msg = message.get("eventContent", {}).get("com.linkedin.voyager.messaging.event.MessageEvent", {}).get("attributedBody", {}).get("text", "")
 
@@ -106,6 +164,7 @@ def update_conversation_entries(api: Linkedin, convo_urn_id: str):
                 connection_degree='You' if api.is_profile(first_name, last_name) else '1st',
                 li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
                 message=msg,
+                urn_id=msg_urn_id,
             )
         )
     print("saving objects ...")

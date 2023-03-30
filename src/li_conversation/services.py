@@ -1,3 +1,4 @@
+from typing import Union
 from app import db, celery
 
 from model_import import LinkedinConversationEntry, ClientSDR, Prospect
@@ -79,6 +80,7 @@ def create_linkedin_conversation_entry(
     connection_degree: str,
     li_url: str,
     message: str,
+    urn_id: Union[str, None] = None,
 ):
     """
     Check for duplicates and duplicate does not exist, create a new LinkedinConversationEntry
@@ -101,10 +103,18 @@ def create_linkedin_conversation_entry(
             connection_degree=connection_degree,
             li_url=li_url,
             message=message,
+            urn_id=urn_id,
         )
         return new_linkedin_conversation_entry
     else:
-        return None
+        # Populate the urn_id is it's not already set
+        if urn_id and not duplicate_exists.urn_id:
+            duplicate_exists.urn_id = urn_id
+            db.session.add(duplicate_exists)
+            db.session.commit()
+            return duplicate_exists
+        else:
+            return None
 
 
 def update_li_conversation_extractor_phantom(client_sdr_id) -> tuple[str, int]:

@@ -1,11 +1,9 @@
 from flask import Blueprint, jsonify, request
-from src.voyager.services import get_profile_urn_id
 from src.client.models import ClientSDR
-from src.voyager.services import update_conversation_entries
-from src.voyager.services import update_linked_cookies
+from src.voyager.services import update_linkedin_cookies, fetch_conversation, update_conversation_entries, get_profile_urn_id
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.voyager.linkedin import Linkedin
+from src.voyager.linkedin import LinkedIn
 
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 
@@ -17,7 +15,7 @@ def get_profile(client_sdr_id: int):
 
     public_id = get_request_parameter("public_id", request, json=False, required=True)
 
-    api = Linkedin(client_sdr_id)
+    api = LinkedIn(client_sdr_id)
     profile = api.get_profile(public_id)
 
     return jsonify({"message": "Success", "data": profile}), 200
@@ -28,10 +26,11 @@ def get_profile(client_sdr_id: int):
 def send_message(client_sdr_id: int):
     """Sends a LinkedIn message to a prospect"""
 
-    urn_id = get_request_parameter("urn_id", request, json=True, required=True)
+    prospect_id = get_request_parameter("prospect_id", request, json=True, required=True, parameter_type=int)
     msg = get_request_parameter("message", request, json=True, required=True)
 
-    api = Linkedin(client_sdr_id)
+    api = LinkedIn(client_sdr_id)
+    urn_id = get_profile_urn_id(prospect_id, api)
     api.send_message(msg, recipients=[urn_id])
 
     return jsonify({"message": "Sent message"}), 200
@@ -42,19 +41,16 @@ def send_message(client_sdr_id: int):
 def get_conversation(client_sdr_id: int):
     """Gets a conversation with a prospect"""
 
-    urn_id = get_request_parameter("urn_id", request, json=False, required=False)
-    convo_urn_id = get_request_parameter("convo_urn_id", request, json=False, required=False)
+    prospect_id = get_request_parameter("prospect_id", request, json=False, required=True)
+    check_for_update = get_request_parameter("check_for_update", request, json=False, required=False)
 
-    if not urn_id and not convo_urn_id:
-      return jsonify({"message": "Missing required parameter"}), 400
+    if check_for_update is None:
+      check_for_update = True
+    else:
+      check_for_update = bool(check_for_update)
 
-    api = Linkedin(client_sdr_id)
-
-    if not convo_urn_id:
-      details = api.get_conversation_details(urn_id)
-      convo_urn_id = details['entityUrn'].replace('urn:li:fs_conversation:', '')
-
-    convo = api.get_conversation(convo_urn_id)
+    api = LinkedIn(client_sdr_id)
+    convo = fetch_conversation(api, prospect_id, check_for_update)
 
     return jsonify({"message": "Success", "data": convo}), 200
 
@@ -69,7 +65,7 @@ def get_recent_conversations(client_sdr_id: int):
     starred = get_request_parameter("starred", request, json=False, required=False)
     with_connection = get_request_parameter("with_connection", request, json=False, required=False)
 
-    api = Linkedin(client_sdr_id)
+    api = LinkedIn(client_sdr_id)
 
     data = api.get_conversations()
     convos = data['elements']
@@ -93,7 +89,7 @@ def update_auth_tokens(client_sdr_id: int):
 
     cookies = get_request_parameter("cookies", request, json=True, required=True, parameter_type=str)
 
-    status_text, status = update_linked_cookies(client_sdr_id, cookies)
+    status_text, status = update_linkedin_cookies(client_sdr_id, cookies)
 
     return jsonify({"message": status_text}), status
 
@@ -109,7 +105,7 @@ def update_li_conversation_entries(client_sdr_id: int):
     if not urn_id and not convo_urn_id:
       return jsonify({"message": "Missing required parameter"}), 400
 
-    api = Linkedin(client_sdr_id)
+    api = LinkedIn(client_sdr_id)
 
     if not convo_urn_id:
       details = api.get_conversation_details(urn_id)

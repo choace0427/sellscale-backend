@@ -2,6 +2,7 @@
 Provides linkedin api-related code
 """
 import base64
+import urllib.parse
 import json
 import logging
 import random
@@ -37,7 +38,7 @@ def default_evade():
     sleep(random.randint(2, 5))  # sleep a random duration to try and evade suspention
 
 
-class Linkedin(object):
+class LinkedIn(object):
     """
     Class for accessing the LinkedIn API.
     :param username: Username of LinkedIn account.
@@ -320,5 +321,19 @@ class Linkedin(object):
         :rtype: dict
         """
         res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
+
+        return res.json()
+
+    def get_mail_box(self, profile_urn_id):
+        # TODO: This is still in progress!
+        """Fetch conversation mail box data for a given LinkedIn profile.
+        :param profile_urn_id: LinkedIn profile URN ID
+        :type profile_urn_id: str
+        :return: Mail box data
+        :rtype: dict
+        """
+        encode_str = urllib.parse.quote(f"urn:li:fsd_profile:{profile_urn_id}")
+        # TODO: Get queryId
+        res = self._fetch(f"/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.2782734f1f251808c1959921bd56a2e4&variables=(mailboxUrn:{encode_str})")
 
         return res.json()
