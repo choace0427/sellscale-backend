@@ -558,8 +558,8 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
             message.failed_outreach_error = None
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             send_slack_message(
-                f"LinkedIn Autoconnect: {sdr.name} sent a message to {prospect.linkedin_url}\nmessage: {message.completion}",
-                URL_MAP["operations-li-sent-messages"],
+                message=f"LinkedIn Autoconnect: {sdr.name} sent a message to {prospect.linkedin_url}\nmessage: {message.completion}",
+                webhook_urls=[URL_MAP["operations-li-sent-messages"]],
             )
 
         messages.append(message)
