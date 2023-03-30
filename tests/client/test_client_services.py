@@ -24,6 +24,7 @@ from src.client.services import (
     get_cta_by_archetype_id,
     get_client_sdr,
     get_sdr_available_outbound_channels,
+    nylas_exchange_for_authorization_code
 )
 import json
 import mock
@@ -463,3 +464,20 @@ def test_get_sdr_available_outbound_channels():
     assert email["name"] != None
     assert email["description"] != None
     assert email["statuses_available"] != None
+
+
+@use_app_context
+@mock.patch("src.client.services.post_nylas_oauth_token", return_value={"access_token": "test_token", "account_id": "test_id", "email_address": "test_email"})
+def test_nylas_exchange_for_authorization_code(mock_post_nylas_oauth_token):
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    sdr_id = client_sdr.id
+    client_sdr.email = "test_email"
+
+    result = nylas_exchange_for_authorization_code(client_sdr.id, "test_code")
+    assert result[1] == "test_token"
+    assert result[0] == True
+    assert mock_post_nylas_oauth_token.call_count == 1
+    client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
+    assert client_sdr.nylas_account_id == "test_id"
+    assert client_sdr.nylas_auth_code == "test_token"

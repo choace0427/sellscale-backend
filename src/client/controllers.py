@@ -29,6 +29,7 @@ from src.client.services import (
     get_transformers_by_archetype_id,
     get_all_uploads_by_archetype_id,
     toggle_client_sdr_autopilot_enabled,
+    nylas_exchange_for_authorization_code
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -637,3 +638,17 @@ def post_get_pods():
     )
     pods_dict = get_client_pods_for_client(client_id=client_id)
     return jsonify(pods_dict), 200
+
+
+@CLIENT_BLUEPRINT.route("/nylas/exchange_for_authorization_code", methods=["POST"])
+@require_user
+def post_nylas_exchange_for_authorization_code(client_sdr_id: int):
+    """Exchanges for an authorization code from Nylas"""
+    code: str = get_request_parameter("nylas_code", request, json=True, required=True)
+    success, authorization_code = nylas_exchange_for_authorization_code(
+        client_sdr_id=client_sdr_id,
+        code=code,
+    )
+    if not success:
+        return jsonify({"message": "Failed to perform Nylas exchange. Please try again."}), 400
+    return jsonify({"message": "Success", "authorization_code": authorization_code}), 200

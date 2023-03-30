@@ -15,6 +15,7 @@ from typing import Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
 import os
+import requests
 
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
 STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
@@ -845,3 +846,79 @@ def get_cta_stats(cta_id: int) -> dict:
             statuses_map[prospect.overall_status.value] += 1
 
     return {"status_map": statuses_map, "total_count": len(prospects)}
+
+
+def nylas_exchange_for_authorization_code(client_sdr_id: int, code: str) -> tuple[bool, str]:
+    """Exchange authentication token for Nylas authorization code
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        code (str): Authorization code
+
+    Returns:
+        tuple[bool, str]: Tuple containing the success status and message
+    """
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Exchange for access token
+    response = post_nylas_oauth_token(code)
+
+    # Validate response
+    if response.get("status_code") and response.get("status_code") == 500:
+        return {"message": "Error exchanging for access token", "status_code": 500}
+
+    # Get access token
+    access_token = response.get("access_token")
+    if not access_token:
+        return {"message": "Error exchanging for access token", "status_code": 500}
+
+    # Get account id
+    account_id = response.get("account_id")
+    if not account_id:
+        return {"message": "Error getting account id", "status_code": 500}
+
+    # Validate email matches Client SDR
+    response = response.get("email_address")
+    if not response:
+        return {"message": "Error getting email address", "status_code": 500}
+    elif response != client_sdr.email:
+        return {"message": "Email address does not match", "status_code": 401}
+
+    # Update Client SDR
+    client_sdr.nylas_auth_code = access_token
+    client_sdr.nylas_account_id = account_id
+
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    return True, access_token
+
+
+def post_nylas_oauth_token(code: int) -> dict:
+    """ Wrapper for https://api.nylas.com/oauth/token
+
+    Args:
+        code (int): Authentication token
+
+    Returns:
+        dict: Dict containing the response
+    """
+    secret = os.environ.get("NYLAS_CLIENT_SECRET")
+    response = requests.post(
+        "https://api.nylas.com/oauth/token",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Basic {secret}".format(secret=secret),
+        },
+        json={
+            "grant_type": "authorization_code",
+            "client_id": os.environ.get("NYLAS_CLIENT_ID"),
+            "client_secret": os.environ.get("NYLAS_CLIENT_SECRET"),
+            "code": code,
+        }
+    )
+    if response.status_code != 200:
+        return {"message": "Error exchanging for access token", "status_code": 500}
+
+    return response.json()
