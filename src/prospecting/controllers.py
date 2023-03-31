@@ -345,17 +345,17 @@ def prospect_from_link_chain():
     return "Failed to create prospect", 404
 
 
-@PROSPECTING_BLUEPRINT.route("/batch_mark_sent", methods=["POST"])
-def batch_mark_sent():
-    updates = batch_mark_prospects_as_sent_outreach(
-        prospect_ids=get_request_parameter(
-            "prospect_ids", request, json=True, required=True
-        ),
-        client_sdr_id=get_request_parameter(
-            "client_sdr_id", request, json=True, required=True
-        ),
-    )
-    return jsonify({"updates": updates})
+# @PROSPECTING_BLUEPRINT.route("/batch_mark_sent", methods=["POST"])
+# def batch_mark_sent():
+#     updates = batch_mark_prospects_as_sent_outreach(
+#         prospect_ids=get_request_parameter(
+#             "prospect_ids", request, json=True, required=True
+#         ),
+#         client_sdr_id=get_request_parameter(
+#             "client_sdr_id", request, json=True, required=True
+#         ),
+#     )
+#     return jsonify({"updates": updates})
 
 
 @PROSPECTING_BLUEPRINT.route("/batch_mark_queued", methods=["POST"])
@@ -366,11 +366,6 @@ def batch_mark_queued():
     client_sdr_id=get_request_parameter(
         "client_sdr_id", request, json=True, required=True, parameter_type=int
     )
-
-    # ONLY ALLOW SELLSCALE ATM
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if sdr.client_id != 1:
-        return jsonify({"message": "Not allowed"}), 403
 
     success = mark_prospects_as_queued_for_outreach(
         prospect_ids=prospect_ids, client_sdr_id=client_sdr_id

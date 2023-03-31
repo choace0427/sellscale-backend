@@ -32,6 +32,7 @@ from model_import import (
     LinkedinConversationEntry,
     IScraperPayloadCache,
     IScraperPayloadType,
+    OutboundCampaignStatus
 )
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
@@ -862,6 +863,9 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
     Returns:
         bool: True if successful
     """
+    from src.campaigns.services import (
+        change_campaign_status
+    )
     # Get prospects
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.id.in_(prospect_ids),
@@ -874,6 +878,9 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
         GeneratedMessage.prospect_id.in_(prospect_ids),
         GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
     ).all()
+    if not messages:
+        return False
+    campaign_id = messages[0].outbound_campaign_id
     messages_ids = [message.id for message in messages]
 
     # Update prospects
@@ -887,6 +894,9 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
         message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
         message.date_sent = datetime.utcnow()
         updated_messages.append(message)
+
+    # Mark campaign as complete
+    change_campaign_status(campaign_id, OutboundCampaignStatus.COMPLETE)
 
     # Commit
     db.session.bulk_save_objects(updated_messages)

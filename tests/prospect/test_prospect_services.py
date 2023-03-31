@@ -10,6 +10,7 @@ from test_utils import (
     basic_generated_message,
     basic_gnlp_model,
     basic_generated_message_cta,
+    basic_outbound_campaign
 )
 from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
 from src.prospecting.services import (
@@ -37,7 +38,10 @@ from model_import import (
     ProspectOverallStatus,
     Client,
     IScraperPayloadCache,
-    GeneratedMessage
+    GeneratedMessage,
+    OutboundCampaign,
+    OutboundCampaignStatus,
+    GeneratedMessageType,
 )
 from decorators import use_app_context
 import mock
@@ -958,8 +962,11 @@ def test_mark_prospects_as_queued_for_outreach():
     gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
     generated_message = basic_generated_message(prospect, gnlp, cta)
+    oc = basic_outbound_campaign([prospect_id], GeneratedMessageType.LINKEDIN, archetype, sdr)
+    oc_id = oc.id
     generated_message_id = generated_message.id
     generated_message.message_status = "APPROVED"
+    generated_message.outbound_campaign_id = oc_id
     prospect.approved_outreach_message_id=generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
@@ -970,3 +977,5 @@ def test_mark_prospects_as_queued_for_outreach():
     assert prospect.overall_status == ProspectOverallStatus.PROSPECTED
     generated_message = GeneratedMessage.query.get(generated_message_id)
     assert generated_message.message_status.value == "QUEUED_FOR_OUTREACH"
+    oc: OutboundCampaign = OutboundCampaign.query.get(oc_id)
+    assert oc.status == OutboundCampaignStatus.COMPLETE
