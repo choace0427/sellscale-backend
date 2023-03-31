@@ -206,7 +206,7 @@ def create_auto_connect_agent(
     )
     api_url = os.environ.get("SELLSCALE_API_URL")
     csv_api = f"{api_url}/automation/phantombuster/auto_connect_csv/{client_sdr_id}"
-    phantom_webhook = f"{api_url}/automation/phantombuster/auto_connect_webhook/1"
+    phantom_webhook = f"{api_url}/automation/phantombuster/auto_connect_webhook/{client_sdr_id}"
 
     payload = json.dumps(
         {
@@ -345,10 +345,10 @@ def save_agent_groups(agent_groups: list):
 def create_new_auto_connect_phantom(
     client_sdr_id: int, linkedin_session_cookie: str
 ):
-    client_sdr: ClientSDR = ClientSDR.query.filter(
-        ClientSDR.id == client_sdr_id
-    ).first()
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr: return None, None
     client_sdr_name = client_sdr.name
+    client_sdr.li_at_token = linkedin_session_cookie
     client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
     client_id = client.id
     company_name = client.company
