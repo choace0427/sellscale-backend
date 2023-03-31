@@ -22,7 +22,6 @@ def create_phantom_buster_config(
     phantom_name: str,
     phantom_uuid: str,
     phantom_type: PhantomBusterType,
-    google_sheets_uuid: str = None,
 ):
     existing_config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
         PhantomBusterConfig.client_sdr_id == client_sdr_id,
@@ -34,7 +33,6 @@ def create_phantom_buster_config(
     pb_config = PhantomBusterConfig(
         client_id=client_id,
         client_sdr_id=client_sdr_id,
-        google_sheets_uuid=google_sheets_uuid,
         pb_type=phantom_type,
         phantom_name=phantom_name,
         phantom_uuid=phantom_uuid,
@@ -197,6 +195,7 @@ def create_auto_connect_agent(
     client_sdr_id: int, linkedin_session_cookie: str, google_spreadsheet_uuid: str
 ):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sdr_id = client_sdr.id
     client: Client = Client.query.get(client_sdr.client_id)
     client_sdr_name: str = client_sdr.name
     client_company = client.company
@@ -205,11 +204,9 @@ def create_auto_connect_agent(
     phantom_name = "LinkedIn Auto Connect - {company} ({sdr_name})".format(
         company=client_company, sdr_name=client_sdr_name
     )
-    google_sheet_link = (
-        "https://docs.google.com/spreadsheets/d/{}/edit?usp=sharing".format(
-            google_spreadsheet_uuid
-        )
-    )
+    api_url = os.environ.get("SELLSCALE_API_URL")
+    csv_api = f"{api_url}/automation/phantombuster/auto_connect_csv/{client_sdr_id}"
+    phantom_webhook = f"{api_url}/automation/phantombuster/auto_connect_webhook/1"
 
     payload = json.dumps(
         {
@@ -221,7 +218,7 @@ def create_auto_connect_agent(
             "argument": '{\n\t"onlySecondCircle": false,\n\t"waitDuration": 30,\n\t"skipProfiles": true,\n\t"dwellTime": true,\n\t"sessionCookie": "'
             + linkedin_session_cookie
             + '",\n\t"spreadsheetUrl": "'
-            + google_sheet_link
+            + csv_api
             + '",\n\t"message": "#Message#",\n\t"spreadsheetUrlExclusionList": [],\n\t"numberOfAddsPerLaunch": 2\n}',
             "launchType": "repeatedly",
             "repeatedLaunchTimes": {
@@ -297,6 +294,7 @@ def create_auto_connect_agent(
                 "mailAutomaticLaunchError": False,
                 "slackAutomaticExitSuccess": False,
                 "slackAutomaticLaunchError": True,
+                "webhook": phantom_webhook
             },
             "proxyAddress": "",
             "proxyType": "none",
@@ -345,7 +343,7 @@ def save_agent_groups(agent_groups: list):
 
 
 def create_new_auto_connect_phantom(
-    client_sdr_id: int, linkedin_session_cookie: str, google_sheet_uuid: str
+    client_sdr_id: int, linkedin_session_cookie: str
 ):
     client_sdr: ClientSDR = ClientSDR.query.filter(
         ClientSDR.id == client_sdr_id
@@ -359,7 +357,7 @@ def create_new_auto_connect_phantom(
         client_sdr_id, linkedin_session_cookie
     )
     auto_connect_agent_id, auto_connect_agent_name = create_auto_connect_agent(
-        client_sdr_id, linkedin_session_cookie, google_sheet_uuid
+        client_sdr_id, linkedin_session_cookie
     )
 
     agent_groups = get_all_agent_groups()
@@ -385,7 +383,6 @@ def create_new_auto_connect_phantom(
         phantom_name=auto_connect_agent_name,
         phantom_uuid=auto_connect_agent_id,
         phantom_type=PhantomBusterType.OUTBOUND_ENGINE,
-        google_sheets_uuid=google_sheet_uuid,
     )
 
     return inbox_scraper_pb_config, auto_connect_pb_config
