@@ -888,11 +888,25 @@ def nylas_exchange_for_authorization_code(client_sdr_id: int, code: str) -> tupl
     # Update Client SDR
     client_sdr.nylas_auth_code = access_token
     client_sdr.nylas_account_id = account_id
+    client_sdr.nylas_active = True
 
     db.session.add(client_sdr)
     db.session.commit()
 
     return True, access_token
+
+
+def check_nylas_status(client_sdr_id: int) -> bool:
+    """Check if Nylas is connected
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+
+    Returns:
+        bool: True if connected, False otherwise
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    return client_sdr.nylas_active
 
 
 def post_nylas_oauth_token(code: int) -> dict:

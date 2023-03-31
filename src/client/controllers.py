@@ -44,6 +44,7 @@ from src.client.services_client_pod import (
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.client.models import ClientSDR, Client
+import os
 
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
 
@@ -640,15 +641,32 @@ def post_get_pods():
     return jsonify(pods_dict), 200
 
 
+@CLIENT_BLUEPRINT.route("/nylas/check_nylas_status", methods=["GET"])
+@require_user
+def get_check_nylas_status(client_sdr_id: int):
+    """Checks the Nylas status for a client"""
+    status = check_nylas_status(client_sdr_id=client_sdr_id)
+    return jsonify({'status': status}), 200
+
+
+@CLIENT_BLUEPRINT.route("/nylas/get_nylas_client_id", methods=["GET"])
+@require_user
+def get_nylas_client_id(client_sdr_id: int):
+    """Gets the Nylas client id"""
+
+    nylas_client_id = os.environ.get("NYLAS_CLIENT_ID")
+    return jsonify({"nylas_client_id": nylas_client_id}), 200
+
+
 @CLIENT_BLUEPRINT.route("/nylas/exchange_for_authorization_code", methods=["POST"])
 @require_user
 def post_nylas_exchange_for_authorization_code(client_sdr_id: int):
     """Exchanges for an authorization code from Nylas"""
-    code: str = get_request_parameter("nylas_code", request, json=True, required=True)
+    code: str = get_request_parameter("nylas_code", request, json=True, required=True, parameter_type=str)
     success, authorization_code = nylas_exchange_for_authorization_code(
         client_sdr_id=client_sdr_id,
         code=code,
     )
     if not success:
         return jsonify({"message": "Failed to perform Nylas exchange. Please try again."}), 400
-    return jsonify({"message": "Success", "authorization_code": authorization_code}), 200
+    return jsonify({"message": "Success"}), 200

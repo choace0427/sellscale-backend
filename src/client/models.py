@@ -185,6 +185,7 @@ class ClientSDR(db.Model):
 
     nylas_auth_code = db.Column(db.String, nullable=True)
     nylas_account_id = db.Column(db.String, nullable=True)
+    nylas_active = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
