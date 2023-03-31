@@ -192,7 +192,7 @@ def create_inbox_scraper_agent(client_sdr_id: int, linkedin_session_cookie: str)
 
 
 def create_auto_connect_agent(
-    client_sdr_id: int, linkedin_session_cookie: str, google_spreadsheet_uuid: str
+    client_sdr_id: int, linkedin_session_cookie: str
 ):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_sdr_id = client_sdr.id
