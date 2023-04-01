@@ -173,6 +173,7 @@ def research_and_generate_outreaches_for_prospect(
         # Generate outreaches for the Prospect
         if prospect.client_id in (
             1,
+            8,
             10,
             15,
             16,
@@ -486,7 +487,6 @@ def update_message(message_id: int, update: str, editor_id=None):
                 if diff_count >= 2:
                     message.human_edited = True
                     break
-
 
     db.session.add(message)
     db.session.commit()
@@ -1334,7 +1334,9 @@ def get_generation_statuses(campaign_id: int) -> dict:
     jobs_list = []
 
     # Get generation jobs
-    generation_jobs: list[GeneratedMessageJobQueue] = GeneratedMessageJobQueue.query.filter(
+    generation_jobs: list[
+        GeneratedMessageJobQueue
+    ] = GeneratedMessageJobQueue.query.filter(
         GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
     ).all()
 
@@ -1396,7 +1398,9 @@ def wipe_message_generation_job_queue(self, campaign_id: int) -> tuple[bool, str
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-def manually_mark_ai_approve(generated_message_id: int, new_ai_approve_status: bool) -> bool:
+def manually_mark_ai_approve(
+    generated_message_id: int, new_ai_approve_status: bool
+) -> bool:
     """Marks a GeneratedMessage.ai_approved as a specified value, manually.
 
     Should be used by UW.
