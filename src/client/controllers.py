@@ -29,7 +29,8 @@ from src.client.services import (
     get_transformers_by_archetype_id,
     get_all_uploads_by_archetype_id,
     toggle_client_sdr_autopilot_enabled,
-    nylas_exchange_for_authorization_code
+    nylas_exchange_for_authorization_code,
+    get_unused_linkedin_and_email_prospect_for_persona,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -99,8 +100,12 @@ def create_archetype(client_sdr_id: int):
     base_archetype_id = get_request_parameter(
         "base_archetype_id", request, json=True, required=False
     )
-    persona_description = get_request_parameter("description", request, json=True, required=False)
-    persona_fit_reason = get_request_parameter("fit_reason", request, json=True, required=False)
+    persona_description = get_request_parameter(
+        "description", request, json=True, required=False
+    )
+    persona_fit_reason = get_request_parameter(
+        "fit_reason", request, json=True, required=False
+    )
 
     # Get client ID from client SDR ID.
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
@@ -646,7 +651,7 @@ def post_get_pods():
 def get_check_nylas_status(client_sdr_id: int):
     """Checks the Nylas status for a client"""
     status = check_nylas_status(client_sdr_id=client_sdr_id)
-    return jsonify({'status': status}), 200
+    return jsonify({"status": status}), 200
 
 
 @CLIENT_BLUEPRINT.route("/nylas/get_nylas_client_id", methods=["GET"])
@@ -662,11 +667,29 @@ def get_nylas_client_id(client_sdr_id: int):
 @require_user
 def post_nylas_exchange_for_authorization_code(client_sdr_id: int):
     """Exchanges for an authorization code from Nylas"""
-    code: str = get_request_parameter("nylas_code", request, json=True, required=True, parameter_type=str)
+    code: str = get_request_parameter(
+        "nylas_code", request, json=True, required=True, parameter_type=str
+    )
     success, authorization_code = nylas_exchange_for_authorization_code(
         client_sdr_id=client_sdr_id,
         code=code,
     )
     if not success:
-        return jsonify({"message": "Failed to perform Nylas exchange. Please try again."}), 400
+        return (
+            jsonify({"message": "Failed to perform Nylas exchange. Please try again."}),
+            400,
+        )
     return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])
+@require_user
+def get_unused_li_and_email_prospects_count(client_sdr_id: int):
+    """Gets unused LI and email prospects count for a client"""
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    data = get_unused_linkedin_and_email_prospect_for_persona(
+        client_archetype_id=client_archetype_id
+    )
+    return jsonify(data)

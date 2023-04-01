@@ -1,7 +1,11 @@
 from app import db
 from flask import jsonify
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
-from src.prospecting.models import ProspectUploadsRawCSV, ProspectUploads
+from src.prospecting.models import (
+    ProspectOverallStatus,
+    ProspectUploadsRawCSV,
+    ProspectUploads,
+)
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.message_generation.models import (
     GeneratedMessageCTA,
@@ -848,7 +852,9 @@ def get_cta_stats(cta_id: int) -> dict:
     return {"status_map": statuses_map, "total_count": len(prospects)}
 
 
-def nylas_exchange_for_authorization_code(client_sdr_id: int, code: str) -> tuple[bool, str]:
+def nylas_exchange_for_authorization_code(
+    client_sdr_id: int, code: str
+) -> tuple[bool, str]:
     """Exchange authentication token for Nylas authorization code
 
     Args:
@@ -910,7 +916,7 @@ def check_nylas_status(client_sdr_id: int) -> bool:
 
 
 def post_nylas_oauth_token(code: int) -> dict:
-    """ Wrapper for https://api.nylas.com/oauth/token
+    """Wrapper for https://api.nylas.com/oauth/token
 
     Args:
         code (int): Authentication token
@@ -930,9 +936,28 @@ def post_nylas_oauth_token(code: int) -> dict:
             "client_id": os.environ.get("NYLAS_CLIENT_ID"),
             "client_secret": os.environ.get("NYLAS_CLIENT_SECRET"),
             "code": code,
-        }
+        },
     )
     if response.status_code != 200:
         return {"message": "Error exchanging for access token", "status_code": 500}
 
     return response.json()
+
+
+def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int):
+    unused_linkedin_prospects = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.linkedin_url != None,
+        Prospect.approved_outreach_message_id == None,
+    ).count()
+
+    unused_email_prospects = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.email != None,
+        Prospect.approved_prospect_email_id == None,
+    ).count()
+
+    return {
+        "unused_linkedin_prospects": unused_linkedin_prospects,
+        "unused_email_prospects": unused_email_prospects,
+    }
