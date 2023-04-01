@@ -22,7 +22,7 @@ from src.prospecting.services import (
     get_prospect_details,
     batch_update_prospect_statuses,
     mark_prospect_reengagement,
-    get_prospect_generated_message
+    get_prospect_generated_message,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -31,7 +31,7 @@ from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
     populate_prospect_uploads_from_json_payload,
     collect_and_run_celery_jobs_for_upload,
-    run_and_assign_health_score
+    run_and_assign_health_score,
 )
 from src.utils.request_helpers import get_request_parameter
 
@@ -43,6 +43,7 @@ from src.authentication.decorators import require_user
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
 from src.integrations.vessel import SalesEngagementIntegration
+from src.prospecting.hunter import find_hunter_emails_for_prospects_under_client_sdr
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -71,22 +72,35 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>", methods=["PATCH"])
 @require_user
 def update_status(client_sdr_id: int, prospect_id: int):
-    """ Update prospect status or apply note """
+    """Update prospect status or apply note"""
     # Get parameters
-    channel_type = get_request_parameter("channel_type", request, json=True, required=True, parameter_type=str) or ProspectChannels.LINKEDIN.value
+    channel_type = (
+        get_request_parameter(
+            "channel_type", request, json=True, required=True, parameter_type=str
+        )
+        or ProspectChannels.LINKEDIN.value
+    )
     if channel_type == ProspectChannels.LINKEDIN.value:
-        new_status = ProspectStatus[get_request_parameter("new_status", request, json=True, required=True, parameter_type=str)]
+        new_status = ProspectStatus[
+            get_request_parameter(
+                "new_status", request, json=True, required=True, parameter_type=str
+            )
+        ]
     elif channel_type == ProspectChannels.EMAIL.value:
-        new_status = ProspectEmailOutreachStatus[get_request_parameter("new_status", request, json=True, required=True, parameter_type=str)]
+        new_status = ProspectEmailOutreachStatus[
+            get_request_parameter(
+                "new_status", request, json=True, required=True, parameter_type=str
+            )
+        ]
     else:
-        return jsonify({'message': 'Invalid channel type'}), 400
+        return jsonify({"message": "Invalid channel type"}), 400
 
     # Validate parameters
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
-        return jsonify({'message': 'Prospect not found'}), 404
+        return jsonify({"message": "Prospect not found"}), 404
     elif prospect.client_sdr_id != client_sdr_id:
-        return jsonify({'message': 'Not authorized'}), 401
+        return jsonify({"message": "Not authorized"}), 401
 
     # Update prospect status
     if channel_type == ProspectChannels.LINKEDIN.value:
@@ -94,17 +108,27 @@ def update_status(client_sdr_id: int, prospect_id: int):
             prospect_id=prospect_id, new_status=new_status
         )
         if (len(success) == 2 and success[0]) or (len(success) == 1 and success):
-            return jsonify({'message': 'Successfully updated Prospect LinkedIn channel status'}), 200
+            return (
+                jsonify(
+                    {"message": "Successfully updated Prospect LinkedIn channel status"}
+                ),
+                200,
+            )
         else:
-            return jsonify({'message': "Failed to update: " + str(success[1])}), 400
+            return jsonify({"message": "Failed to update: " + str(success[1])}), 400
     elif channel_type == ProspectChannels.EMAIL.value:
         success = update_prospect_status_email(
             prospect_id=prospect_id, new_status=new_status, override_status=True
         )
         if success[0]:
-            return jsonify({'message': 'Successfully updated Prospect Email channel status'}), 200
+            return (
+                jsonify(
+                    {"message": "Successfully updated Prospect Email channel status"}
+                ),
+                200,
+            )
         else:
-            return jsonify({'message': "Failed to update: " + success[1]}), 400
+            return jsonify({"message": "Failed to update: " + success[1]}), 400
 
 
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/get_valid_next_statuses", methods=["GET"])
@@ -141,18 +165,21 @@ def get_all_emails(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    prospect_email: ProspectEmail = ProspectEmail.query.filter(ProspectEmail.prospect_id == prospect.id).first()
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(
+        ProspectEmail.prospect_id == prospect.id
+    ).first()
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
 
     try:
-      sei = SalesEngagementIntegration(prospect.client_id)
+        sei = SalesEngagementIntegration(prospect.client_id)
 
-      emails = sei.get_emails_for_contact(
-          contact_id=prospect.vessel_contact_id, sequence_id=prospect_email.vessel_sequence_id
-      )
+        emails = sei.get_emails_for_contact(
+            contact_id=prospect.vessel_contact_id,
+            sequence_id=prospect_email.vessel_sequence_id,
+        )
     except:
-      emails = []
+        emails = []
 
     return jsonify({"message": "Success", "data": emails}), 200
 
@@ -167,23 +194,30 @@ def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    prospect_email: ProspectEmail = ProspectEmail.query.filter(ProspectEmail.prospect_id == prospect.id).first()
+    prospect_email: ProspectEmail = ProspectEmail.query.filter(
+        ProspectEmail.prospect_id == prospect.id
+    ).first()
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
 
     try:
-      sei = SalesEngagementIntegration(prospect.client_id)
+        sei = SalesEngagementIntegration(prospect.client_id)
 
-      data = sei.get_email_by_id(
-          email_id=email_id
-      )
+        data = sei.get_email_by_id(email_id=email_id)
     except:
-      data = {}
+        data = {}
 
-    return jsonify({"message": "Success", "data": data['email'] if data.get('email') else None}), 200
+    return (
+        jsonify(
+            {"message": "Success", "data": data["email"] if data.get("email") else None}
+        ),
+        200,
+    )
 
 
-@PROSPECTING_BLUEPRINT.route("/<prospect_id>/<outbound_type>/get_generated_message/", methods=["GET"])
+@PROSPECTING_BLUEPRINT.route(
+    "/<prospect_id>/<outbound_type>/get_generated_message/", methods=["GET"]
+)
 # TODO: Needs some form of authentication
 def get_generated_message_endpoint(prospect_id: int, outbound_type: str):
     """Get generated message"""
@@ -191,7 +225,9 @@ def get_generated_message_endpoint(prospect_id: int, outbound_type: str):
     if not prospect:
         return jsonify({"message": "Prospect not found"}), 404
 
-    message = get_prospect_generated_message(prospect_id=prospect_id, outbound_type=outbound_type)
+    message = get_prospect_generated_message(
+        prospect_id=prospect_id, outbound_type=outbound_type
+    )
 
     return jsonify({"message": message})
 
@@ -243,7 +279,7 @@ def get_prospects_endpoint(client_sdr_id: int):
             get_request_parameter(
                 "channel", request, json=True, required=False, parameter_type=str
             )
-            or ProspectChannels.LINKEDIN.value # Default to LinkedIn for the time being
+            or ProspectChannels.LINKEDIN.value  # Default to LinkedIn for the time being
         )
         status = (
             get_request_parameter(
@@ -322,8 +358,8 @@ def prospect_from_link():
             queue="prospecting",
             routing_key="prospecting",
             priority=3,
-            immutable=True
-        )
+            immutable=True,
+        ),
     )
 
     return "OK", 200
@@ -360,10 +396,10 @@ def prospect_from_link_chain():
 
 @PROSPECTING_BLUEPRINT.route("/batch_mark_queued", methods=["POST"])
 def batch_mark_queued():
-    prospect_ids=get_request_parameter(
+    prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True, parameter_type=list
     )
-    client_sdr_id=get_request_parameter(
+    client_sdr_id = get_request_parameter(
         "client_sdr_id", request, json=True, required=True, parameter_type=int
     )
 
@@ -457,7 +493,10 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
         return reason, 400
 
     # Get client ID from client archetype ID.
-    archetype = ClientArchetype.query.filter(ClientArchetype.id == archetype_id, ClientArchetype.client_sdr_id == client_sdr_id).first()
+    archetype = ClientArchetype.query.filter(
+        ClientArchetype.id == archetype_id,
+        ClientArchetype.client_sdr_id == client_sdr_id,
+    ).first()
     if not archetype:
         return "Archetype with given ID not found", 400
 
@@ -503,20 +542,23 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
             routing_key="prospecting",
             priority=3,
             immutable=True,
-        )
+        ),
     )
 
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     client = Client.query.filter(Client.id == client_sdr.client_id).first()
     try:
-      send_slack_message(
-          message="{user} uploaded {X} prospects under the {persona} persona from {client_name}".format(
-            user=client_sdr.name, X=len(csv_payload), persona=archetype.archetype, client_name=client.company
-          ),
-          webhook_urls=[URL_MAP["operations-prospect-uploads"]],
-      )
+        send_slack_message(
+            message="{user} uploaded {X} prospects under the {persona} persona from {client_name}".format(
+                user=client_sdr.name,
+                X=len(csv_payload),
+                persona=archetype.archetype,
+                client_name=client.company,
+            ),
+            webhook_urls=[URL_MAP["operations-prospect-uploads"]],
+        )
     except Exception as e:
-      print("Failed to send slack notification: {}".format(e))
+        print("Failed to send slack notification: {}".format(e))
 
     return "Upload job scheduled.", 200
 
@@ -544,7 +586,10 @@ def retrigger_upload_prospect_job(client_sdr_id: int):
         priority=1,
     )
 
-    return jsonify({"message": "Upload jobs successfully collected and scheduled."}), 200
+    return (
+        jsonify({"message": "Upload jobs successfully collected and scheduled."}),
+        200,
+    )
 
 
 @PROSPECTING_BLUEPRINT.route("/delete_prospect", methods=["DELETE"])
@@ -576,13 +621,15 @@ def post_toggle_ai_engagement():
 @PROSPECTING_BLUEPRINT.route("/add_note", methods=["POST"])
 @require_user
 def post_add_note(client_sdr_id: int):
-    prospect_id = get_request_parameter( "prospect_id", request, json=True, required=True, parameter_type=int)
-    note = get_request_parameter("note", request, json=True, required=True, parameter_type=str)
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    note = get_request_parameter(
+        "note", request, json=True, required=True, parameter_type=str
+    )
 
     # Check that prospect exists and belongs to user
-    prospect: Prospect = Prospect.query.filter(
-        Prospect.id == prospect_id
-    ).first()
+    prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
     if prospect is None:
         return jsonify({"message": "Prospect not found"}), 404
     elif prospect.client_sdr_id != client_sdr_id:
@@ -607,3 +654,19 @@ def get_valid_channel_types():
         "prospect_id", request, json=False, required=True
     )
     return jsonify({"choices": get_valid_channel_type_choices(prospect_id)})
+
+
+@PROSPECTING_BLUEPRINT.route("/pull_emails", methods=["POST"])
+@require_user
+def pull_prospect_emails(client_sdr_id: int):
+    success = find_hunter_emails_for_prospects_under_client_sdr(client_sdr_id)
+    if success:
+        return "OK", 200
+    return "Unable to fetch emails", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/get_credits", methods=["GET"])
+@require_user
+def get_credits(client_sdr_id: int):
+    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    return jsonify({"email_fetching_credits": client_sdr.email_fetching_credits})
