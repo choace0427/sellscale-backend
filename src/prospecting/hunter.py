@@ -1,9 +1,12 @@
 import requests
 import os
-from model_import import Prospect
+from model_import import Prospect, ClientSDR
 from app import db, celery
 
 HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY")
+DEFAULT_MONTHLY_EMAIL_FETCHING_CREDITS = (
+    2000  # number of email credits each sdr has per month
+)
 
 
 def get_email_from_hunter(
@@ -52,6 +55,32 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     score = data["score"]
     p.email = email
     p.hunter_email_score = score
+    client_sdr_id = p.client_sdr_id
     db.session.add(p)
     db.session.commit()
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sdr.email_fetching_credits = client_sdr.email_fetching_credits - 1
+    db.session.add(client_sdr)
+    db.session.commit()
+
     return p
+
+
+def find_hunter_emails_for_prospects_under_client_sdr(client_sdr_id: int):
+    prospects: list = Prospect.query.filter_by(
+        client_sdr_id=client_sdr_id, email=None
+    ).all()
+    for prospect in prospects:
+        p_id: int = prospect.id
+        find_hunter_email_from_prospect_id.delay(p_id)
+
+    return True
+
+
+def replenish_all_email_credits_for_all_sdrs():
+    client_sdrs: list = ClientSDR.query.all()
+    for sdr in client_sdrs:
+        sdr.email_fetching_credits = DEFAULT_MONTHLY_EMAIL_FETCHING_CREDITS
+        db.session.add(sdr)
+        db.session.commit()
