@@ -6,7 +6,6 @@ from src.prospecting.models import ProspectOverallStatus
 def create_bump_framework(
     title: str,
     description: str,
-    client_sdr_id: int,
     overall_status: ProspectOverallStatus,
     active: bool = True,
 ) -> BumpFramework:
@@ -16,7 +15,6 @@ def create_bump_framework(
     bump_framework = BumpFramework(
         title=title,
         description=description,
-        client_sdr_id=client_sdr_id,
         overall_status=overall_status,
         active=active,
     )
@@ -35,14 +33,12 @@ def delete_bump_framework(bump_framework_id: int) -> None:
 
 
 def get_bump_frameworks_for_sdr(
-    client_sdr_id: int, overall_status: ProspectOverallStatus
+    overall_status: ProspectOverallStatus,
 ) -> list[BumpFramework]:
     """
     Get all bump frameworks for a given SDR
     """
-    bf_list = BumpFramework.query.filter_by(
-        client_sdr_id=client_sdr_id, overall_status=overall_status
-    ).all()
+    bf_list = BumpFramework.query.filter_by(overall_status=overall_status).all()
     return [bf.to_dict() for bf in bf_list]
 
 

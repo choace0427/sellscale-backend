@@ -13,10 +13,6 @@ class BumpFramework(db.Model):
 
     active = db.Column(db.Boolean, nullable=False, default=True)
 
-    client_sdr_id = db.Column(
-        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
-    )
-
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
 
     def to_dict(self):
@@ -25,5 +21,4 @@ class BumpFramework(db.Model):
             "title": self.title,
             "description": self.description,
             "active": self.active,
-            "client_sdr_id": self.client_sdr_id,
         }

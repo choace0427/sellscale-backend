@@ -10,13 +10,7 @@ from model_import import BumpFramework
 
 @use_app_context
 def test_create_bump_framework():
-    client = basic_client()
-    client_sdr = basic_client_sdr(client)
-    client_sdr_id = client_sdr.id
-
-    bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-        client_sdr_id=client_sdr_id
-    ).all()
+    bump_frameworks: list[BumpFramework] = BumpFramework.query.all()
     assert len(bump_frameworks) == 0
 
     response = app.test_client().post(
@@ -26,37 +20,27 @@ def test_create_bump_framework():
             {
                 "title": "Test Bump Framework",
                 "description": "Test Bump Framework Description",
-                "client_sdr_id": client_sdr_id,
                 "overall_status": "ACCEPTED",
             }
         ),
     )
     assert response.status_code == 200
 
-    bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-        client_sdr_id=client_sdr_id
-    ).all()
+    bump_frameworks: list[BumpFramework] = BumpFramework.query.all()
     assert len(bump_frameworks) == 1
 
 
 @use_app_context
 def test_delete_bump_framework():
-    client = basic_client()
-    client_sdr = basic_client_sdr(client)
-    client_sdr_id = client_sdr.id
-
     bump_framework = BumpFramework(
         title="Test Bump Framework",
         description="Test Bump Framework Description",
-        client_sdr_id=client_sdr_id,
         overall_status="ACCEPTED",
     )
     db.session.add(bump_framework)
     db.session.commit()
 
-    bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-        client_sdr_id=client_sdr_id
-    ).all()
+    bump_frameworks: list[BumpFramework] = BumpFramework.query.all()
     assert len(bump_frameworks) == 1
 
     response = app.test_client().delete(
@@ -66,22 +50,17 @@ def test_delete_bump_framework():
     )
     assert response.status_code == 200
 
-    bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-        client_sdr_id=client_sdr_id
-    ).all()
+    bump_frameworks: list[BumpFramework] = BumpFramework.query.all()
     assert len(bump_frameworks) == 0
 
 
 @use_app_context
 def test_toggle_bump_framework_active():
     client = basic_client()
-    client_sdr = basic_client_sdr(client)
-    client_sdr_id = client_sdr.id
 
     bump_framework = BumpFramework(
         title="Test Bump Framework",
         description="Test Bump Framework Description",
-        client_sdr_id=client_sdr_id,
         overall_status="ACCEPTED",
     )
     db.session.add(bump_framework)
@@ -103,13 +82,10 @@ def test_toggle_bump_framework_active():
 @use_app_context
 def test_get_bump_frameworks():
     client = basic_client()
-    client_sdr = basic_client_sdr(client)
-    client_sdr_id = client_sdr.id
 
     bump_framework = BumpFramework(
         title="Test Bump Framework",
         description="Test Bump Framework Description",
-        client_sdr_id=client_sdr_id,
         overall_status="ACCEPTED",
     )
     db.session.add(bump_framework)
@@ -120,7 +96,6 @@ def test_get_bump_frameworks():
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "client_sdr_id": client_sdr_id,
                 "overall_status": "ACCEPTED",
             }
         ),

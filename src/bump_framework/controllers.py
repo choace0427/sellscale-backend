@@ -20,9 +20,6 @@ def post_create_bump_framework():
     description = get_request_parameter(
         "description", request, json=True, required=True
     )
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
-    )
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True
     )
@@ -30,7 +27,6 @@ def post_create_bump_framework():
     bump_framework = create_bump_framework(
         title=title,
         description=description,
-        client_sdr_id=client_sdr_id,
         overall_status=overall_status,
     )
     if bump_framework:
@@ -49,13 +45,10 @@ def post_delete_bump_framework():
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/", methods=["GET"])
 def get_bump_frameworks():
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
-    )
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True
     )
-    bump_frameworks = get_bump_frameworks_for_sdr(client_sdr_id, overall_status)
+    bump_frameworks = get_bump_frameworks_for_sdr(overall_status)
     return jsonify(bump_frameworks), 200
 
 
