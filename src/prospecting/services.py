@@ -853,7 +853,7 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int
     return updates
 
 
-def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int) -> bool:
+def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int) -> tuple[bool, dict]:
     """ Marks prospects and messages as queued for outreach
 
     Args:
@@ -879,7 +879,7 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
         GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
     ).all()
     if not messages:
-        return False
+        return False, {"error": "No messages in APPROVED found. May have already been queued."}
     campaign_id = messages[0].outbound_campaign_id
     messages_ids = [message.id for message in messages]
 
@@ -902,7 +902,7 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
     db.session.bulk_save_objects(updated_messages)
     db.session.commit()
 
-    return True
+    return True, None
 
 
 @celery.task(bind=True, max_retries=3)

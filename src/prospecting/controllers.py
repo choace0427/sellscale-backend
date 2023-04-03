@@ -403,14 +403,14 @@ def batch_mark_queued():
         "client_sdr_id", request, json=True, required=True, parameter_type=int
     )
 
-    success = mark_prospects_as_queued_for_outreach(
+    success, err = mark_prospects_as_queued_for_outreach(
         prospect_ids=prospect_ids, client_sdr_id=client_sdr_id
     )
 
     if success:
         return jsonify({"message": "Success"}), 200
     else:
-        return jsonify({"message": "Failed to update"}), 400
+        return jsonify({"message": "Failed to update", "error": err.get("error")}), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/batch_update_status", methods=["POST"])
