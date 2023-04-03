@@ -10,6 +10,10 @@ from model_import import BumpFramework
 
 @use_app_context
 def test_create_bump_framework():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
+
     bump_frameworks: list[BumpFramework] = BumpFramework.query.all()
     assert len(bump_frameworks) == 0
 
@@ -21,6 +25,7 @@ def test_create_bump_framework():
                 "title": "Test Bump Framework",
                 "description": "Test Bump Framework Description",
                 "overall_status": "ACCEPTED",
+                "client_sdr_id": client_sdr_id,
             }
         ),
     )
@@ -28,6 +33,10 @@ def test_create_bump_framework():
 
     bump_frameworks: list[BumpFramework] = BumpFramework.query.all()
     assert len(bump_frameworks) == 1
+    assert bump_frameworks[0].title == "Test Bump Framework"
+    assert bump_frameworks[0].description == "Test Bump Framework Description"
+    assert bump_frameworks[0].overall_status.value == "ACCEPTED"
+    assert bump_frameworks[0].client_sdr_id == client_sdr_id
 
 
 @use_app_context
@@ -56,8 +65,6 @@ def test_delete_bump_framework():
 
 @use_app_context
 def test_toggle_bump_framework_active():
-    client = basic_client()
-
     bump_framework = BumpFramework(
         title="Test Bump Framework",
         description="Test Bump Framework Description",
@@ -82,11 +89,14 @@ def test_toggle_bump_framework_active():
 @use_app_context
 def test_get_bump_frameworks():
     client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
 
     bump_framework = BumpFramework(
         title="Test Bump Framework",
         description="Test Bump Framework Description",
         overall_status="ACCEPTED",
+        client_sdr_id=client_sdr_id,
     )
     db.session.add(bump_framework)
     db.session.commit()
@@ -97,6 +107,7 @@ def test_get_bump_frameworks():
         data=json.dumps(
             {
                 "overall_status": "ACCEPTED",
+                "client_sdr_id": client_sdr_id,
             }
         ),
     )

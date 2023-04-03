@@ -23,11 +23,15 @@ def post_create_bump_framework():
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True
     )
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
 
     bump_framework = create_bump_framework(
         title=title,
         description=description,
         overall_status=overall_status,
+        client_sdr_id=client_sdr_id,
     )
     if bump_framework:
         return "OK", 200
@@ -48,7 +52,10 @@ def get_bump_frameworks():
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True
     )
-    bump_frameworks = get_bump_frameworks_for_sdr(overall_status)
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    bump_frameworks = get_bump_frameworks_for_sdr(client_sdr_id, overall_status)
     return jsonify(bump_frameworks), 200
 
 
