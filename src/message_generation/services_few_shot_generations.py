@@ -2,6 +2,8 @@ from model_import import (
     GeneratedMessage,
     EmailSchema,
     ProspectEmail,
+    StackRankedMessageGenerationConfiguration,
+    ClientSDR
 )
 from src.research.models import ResearchPayload, ResearchPoints
 from model_import import Prospect, GNLPModelType
@@ -150,6 +152,19 @@ def can_generate_with_few_shot(prospect_id: int):
     Checks if we can generate a few shot message for a prospect by seeing if there are at least two 'good samples' for the prospect's persona
     """
     return len(get_similar_prospects(prospect_id, 2)) >= 2
+
+
+def can_generate_with_patterns(client_sdr_id: int):
+    """Checks if we can generate a message with patterns for a client sdr
+
+    Args:
+        client_sdr_id (int): The ID of the Client SDR
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = sdr.client_id
+    return StackRankedMessageGenerationConfiguration.query.filter(
+        StackRankedMessageGenerationConfiguration.client_id == client_id,
+    ).count() > 0
 
 
 def clear_all_good_messages_by_archetype_id(archetype_id: int):

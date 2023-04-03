@@ -31,7 +31,7 @@ from src.message_generation.services import (
 )
 from src.research.linkedin.services import reset_prospect_research_and_messages
 from src.message_generation.services_few_shot_generations import (
-    can_generate_with_few_shot,
+    can_generate_with_patterns,
 )
 from src.utils.random_string import generate_random_alphanumeric
 from src.utils.slack import send_slack_message, URL_MAP
@@ -393,12 +393,12 @@ def create_outbound_campaign(
     prospect1 = Prospect.query.get(prospect_ids[0])
     if (
         prospect1
-        and not can_generate_with_few_shot(prospect1.id)
+        and not can_generate_with_patterns(prospect1.id)
         and len(prospect_ids) > 10
         and campaign_type == GeneratedMessageType.LINKEDIN.value
     ):
         raise Exception(
-            "Cannot generate Linkedin campaign of more than 10 prospects without few shot generation enabled. Enable few shot first!"
+            "This client needs their baseline configuration. Contact Engineer."
         )
 
     campaign = OutboundCampaign(

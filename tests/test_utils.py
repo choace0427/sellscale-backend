@@ -46,6 +46,8 @@ from model_import import (
     GeneratedMessageJobStatus,
     ClientPod,
     BumpFramework,
+    StackRankedMessageGenerationConfiguration,
+    ConfigurationType,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -510,6 +512,37 @@ def basic_generated_message_job_queue(
     db.session.add(job)
     db.session.commit()
     return job
+
+
+def basic_stack_ranked_message_generation_config(
+        instruction: str = "test_instruction",
+        computed_prompt: str = "test_computed_prompt",
+        configuration_type: ConfigurationType = ConfigurationType.DEFAULT,
+        generated_message_type: GeneratedMessageType = GeneratedMessageType.LINKEDIN,
+        research_point_types: Optional[list[GeneratedMessageType]] = None,
+        active: Optional[bool] = True,
+        always_enable: Optional[bool] = False,
+        name: Optional[str] = "test_name",
+        client_id: Optional[int] = None,
+        archetype_id: Optional[int] = None,
+        priority: Optional[int] = None,
+):
+    config = StackRankedMessageGenerationConfiguration(
+        configuration_type=configuration_type,
+        generated_message_type=generated_message_type,
+        research_point_types=research_point_types,
+        instruction=instruction,
+        computed_prompt=computed_prompt,
+        active=active,
+        always_enable=always_enable,
+        name=name,
+        client_id=client_id,
+        archetype_id=archetype_id,
+        priority=priority
+    )
+    db.session.add(config)
+    db.session.commit()
+    return config
 
 
 EXAMPLE_PAYLOAD_PERSONAL = {

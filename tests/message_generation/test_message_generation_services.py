@@ -16,6 +16,7 @@ from test_utils import (
     basic_research_point,
     basic_outbound_campaign,
     basic_generated_message_job_queue,
+    basic_stack_ranked_message_generation_config,
     test_app,
 )
 
@@ -57,6 +58,9 @@ from src.message_generation.services import (
     wipe_message_generation_job_queue,
     manually_mark_ai_approve,
     update_message,
+)
+from src.message_generation.services_few_shot_generations import (
+    can_generate_with_patterns
 )
 from src.research.models import ResearchPointType, ResearchType
 
@@ -1135,3 +1139,16 @@ def test_update_message_service(rule_engine_mock):
     assert message.human_edited is True
     gm_record = GeneratedMessageEditRecord.query.all()
     assert len(gm_record) == 2
+
+
+@use_app_context
+def test_can_generate_with_patterns():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    client_id = client.id
+    sdr_id = sdr.id
+
+    assert can_generate_with_patterns(sdr_id) is False
+
+    pattern = basic_stack_ranked_message_generation_config(client_id=client_id)
+    assert can_generate_with_patterns(sdr_id) is True

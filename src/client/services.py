@@ -15,6 +15,7 @@ from src.message_generation.models import (
 from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
+from model_import import StackRankedMessageGenerationConfiguration
 from typing import Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
@@ -223,6 +224,14 @@ def toggle_client_sdr_autopilot_enabled(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return None
+
+    # Can't enable if there is no pattern:
+    if not sdr.autopilot_enabled:
+        num_patterns = StackRankedMessageGenerationConfiguration.query.filter(
+            StackRankedMessageGenerationConfiguration.client_id == sdr.client_id
+        ).count()
+        if num_patterns == 0:
+            return None
 
     sdr.autopilot_enabled = not sdr.autopilot_enabled
     db.session.add(sdr)
