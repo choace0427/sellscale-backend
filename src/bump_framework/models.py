@@ -12,6 +12,7 @@ class BumpFramework(db.Model):
     description = db.Column(db.String(255), nullable=False)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
 
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
 
