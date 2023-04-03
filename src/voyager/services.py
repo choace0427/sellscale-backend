@@ -124,6 +124,8 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
     # Check if we need to update the conversation 
     details = api.get_conversation_details(prospect_urn_id)
+    if not details:
+      return []
     convo_urn_id = details['id']
     last_msg_urn_id = details['events'][0]['dashEntityUrn'].replace("urn:li:fsd_message:", "")
     convo_entry = LinkedinConversationEntry.query.filter_by(urn_id=last_msg_urn_id).first()
