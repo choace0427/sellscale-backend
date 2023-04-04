@@ -900,7 +900,8 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
         updated_messages.append(message)
 
     # Mark campaign as complete
-    change_campaign_status(campaign_id, OutboundCampaignStatus.COMPLETE)
+    if campaign_id is not None:
+        change_campaign_status(campaign_id, OutboundCampaignStatus.COMPLETE)
 
     # Commit
     db.session.bulk_save_objects(updated_messages)
