@@ -17,6 +17,8 @@ def get_profile(client_sdr_id: int):
 
     api = LinkedIn(client_sdr_id)
     profile = api.get_profile(public_id)
+    if(not api.is_valid()):
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     return jsonify({"message": "Success", "data": profile}), 200
 
@@ -32,6 +34,8 @@ def send_message(client_sdr_id: int):
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
     api.send_message(msg, recipients=[urn_id])
+    if(not api.is_valid()):
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     return jsonify({"message": "Sent message"}), 200
 
@@ -51,6 +55,8 @@ def get_conversation(client_sdr_id: int):
 
     api = LinkedIn(client_sdr_id)
     convo = fetch_conversation(api, prospect_id, check_for_update)
+    if(not api.is_valid()):
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     return jsonify({"message": "Success", "data": convo}), 200
 
@@ -68,6 +74,9 @@ def get_recent_conversations(client_sdr_id: int):
     api = LinkedIn(client_sdr_id)
 
     data = api.get_conversations()
+    if(not api.is_valid()):
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+    
     convos = data['elements']
 
     if timestamp:
@@ -122,5 +131,7 @@ def update_li_conversation_entries(client_sdr_id: int):
       convo_urn_id = details['entityUrn'].replace('urn:li:fs_conversation:', '')
 
     update_conversation_entries(api, convo_urn_id)
+    if(not api.is_valid()):
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     return jsonify({"message": 'Updated conversation'}), 200

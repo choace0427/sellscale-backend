@@ -10,6 +10,10 @@ import uuid
 from operator import itemgetter
 from time import sleep, time
 from urllib.parse import quote, urlencode
+from flask import Response, jsonify, make_response
+from app import db
+
+from requests import TooManyRedirects
 
 from src.client.models import ClientSDR
 from src.voyager.client import Client
@@ -88,15 +92,34 @@ class LinkedIn(object):
         evade()
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
-        return self.client.session.get(url, **kwargs)
+        try:
+          return self.client.session.get(url, **kwargs)
+        except TooManyRedirects as e:
+          sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
+          if sdr:
+            sdr.li_cookies = 'INVALID'
+            db.session.add(sdr)
+            db.session.commit()
+          return None
 
     def _post(self, uri, evade=default_evade, base_request=False, **kwargs):
         """POST request to Linkedin API"""
         evade()
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
-        return self.client.session.post(url, **kwargs)
+        try:
+          return self.client.session.post(url, **kwargs)
+        except TooManyRedirects as e:
+          sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
+          if sdr:
+            sdr.li_cookies = 'INVALID'
+            db.session.add(sdr)
+            db.session.commit()
+          return None
 
+    def is_valid(self):
+        """Checks if the client SDR is valid"""
+        return self.client_sdr.li_cookies != 'INVALID'
 
     def is_profile(self, first_name: str, last_name: str):
         """Checks if this LinkedIn instance is associated with the given name"""
@@ -114,6 +137,7 @@ class LinkedIn(object):
         # TODO: this still works for now, but will probably eventually have to be converted to
         # https://www.linkedin.com/voyager/api/identity/profiles/ACoAAAKT9JQBsH7LwKaE9Myay9WcX8OVGuDq9Uw
         res = self._fetch(f"/identity/profiles/{public_id or urn_id}/profileView")
+        if res is None or res.status_code == 403: return None
 
         data = res.json()
         if data and "status" in data and data["status"] != 200:
@@ -276,7 +300,7 @@ class LinkedIn(object):
                 data=json.dumps(payload),
             )
 
-        return res.status_code != 201 # type: ignore
+        return res and res.status_code != 201 # type: ignore
 
     def get_conversation_details(self, profile_urn_id):
         """Fetch conversation (message thread) details for a given LinkedIn profile.
@@ -291,6 +315,7 @@ class LinkedIn(object):
             f"/messaging/conversations?\
             keyVersion=LEGACY_INBOX&q=participants&recipients=List({profile_urn_id})"
         )
+        if res is None or res.status_code == 403: return None
 
         data = res.json()
 
@@ -310,6 +335,7 @@ class LinkedIn(object):
         params = {"keyVersion": "LEGACY_INBOX"}
 
         res = self._fetch(f"/messaging/conversations", params=params)
+        if res is None or res.status_code == 403: return None
 
         return res.json()
 
@@ -321,6 +347,7 @@ class LinkedIn(object):
         :rtype: dict
         """
         res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
+        if res is None or res.status_code == 403: return None
 
         return res.json()
 
@@ -335,5 +362,6 @@ class LinkedIn(object):
         encode_str = urllib.parse.quote(f"urn:li:fsd_profile:{profile_urn_id}")
         # TODO: Get queryId
         res = self._fetch(f"/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.2782734f1f251808c1959921bd56a2e4&variables=(mailboxUrn:{encode_str})")
+        if res is None or res.status_code == 403: return None
 
         return res.json()

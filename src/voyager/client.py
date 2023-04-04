@@ -94,7 +94,7 @@ class Client(object):
     def authenticate(self, client_sdr: ClientSDR):
         if self._use_cookie_cache:
             self.logger.debug("Attempting to use cached cookies")
-            if client_sdr.li_cookies:
+            if client_sdr.li_cookies and client_sdr.li_cookies != 'INVALID':
               cookies = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
             else:
               cookies = None
@@ -104,20 +104,23 @@ class Client(object):
                 self._fetch_metadata()
                 return
 
-        self._do_authentication_request(client_sdr)
-        self._fetch_metadata()
+        #self._do_authentication_request(client_sdr)
+        #self._fetch_metadata()
 
     def _fetch_metadata(self):
         """
         Get metadata about the "instance" of the LinkedIn application for the signed in user.
         Store this data in self.metadata
         """
-        res = requests.get(
-            f"{Client.LINKEDIN_BASE_URL}",
-            cookies=self.session.cookies,
-            headers=Client.AUTH_REQUEST_HEADERS,
-            proxies=self.proxies,
-        )
+        try:
+          res = requests.get(
+              f"{Client.LINKEDIN_BASE_URL}",
+              cookies=self.session.cookies,
+              headers=Client.AUTH_REQUEST_HEADERS,
+              proxies=self.proxies,
+          )
+        except Exception as e:
+          return
 
         soup = BeautifulSoup(res.text, "lxml")
 
