@@ -16,6 +16,7 @@ import regex as rx
 import re
 
 import openai
+import json
 
 
 def remove_control_characters(str):
@@ -237,7 +238,7 @@ def get_sequence_value_props(company: str, selling_to: str, selling_what: str, n
     return props
 
 
-def get_sequence_draft(value_props: List[str], client_sdr_id: int) -> List[str]:
+def get_sequence_draft(value_props: list[str], client_sdr_id: int, archetype_id: int) -> list[dict]:
     """ Generates a sequence draft for a client.
 
     Args:
@@ -247,24 +248,59 @@ def get_sequence_draft(value_props: List[str], client_sdr_id: int) -> List[str]:
     Returns:
         List[str]: The sequence draft.
     """
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     personalization_field_name = client.vessel_personalization_field_name
 
-    prompt = f"Value Props:\n"
+    # Prompt Engineering - Value Proposition
+    prompt = f"Value Proposition:\n"
     for i, v in enumerate(value_props):
         prompt += f"{i+1}. {v}\n"
-    prompt += "\n\nBased on the {num} value props, write a subject line and body for each value prop. Include [first_name] as a placeholder for first name. In only the first value prop, include a field for [{personalization}] before the body of the email.".format(
-        num=len(value_props),
-        personalization=personalization_field_name
-    )
 
-    fixed_completion = wrapped_create_completion(
+    # Prompt Engineering - Persona
+    prompt += f"\nPersona:\n"
+    prompt += f"- Name: {archetype.archetype}\n"
+    prompt += f"- Description: {archetype.persona_description}\n"
+    prompt += f"- Fit Reason: {archetype.persona_fit_reason}\n"
+
+    # Prompt Engineering - SDR
+    prompt += f"\nSales Person:\n"
+    prompt += f"- Name: {client_sdr.name}\n"
+
+    # Prompt Engineering - Instructions
+    prompt += f"\nInstructions:\n"
+    prompt += f"- Write a sequence of emails that targets the value props and persona.\n"
+    prompt += f"- The emails need to address the recipient using {{{{first_name}}}} as a placeholder for the first name.\n"
+    prompt += f"- The emails need to build off of each other.\n"
+    prompt += f"- The second email should open with a question.\n"
+    prompt += f"- The third email should reference results or a case study.\n"
+    prompt += f"- Limit the sequence to 3 emails.\n"
+    prompt += f"- In only the first email, you must include {{{{{personalization_field_name}}}}} after the salutation but before the introduction and body.\n"
+    prompt += f"- Do not include other custom fields in the completion.\n"
+    prompt += f"- Sign the email using 'Best' and the Sales Person's name.\n"
+    prompt += f"- Output in the form of a JSON array with a dictionary representation of 'subject_line' and 'email'.\n"
+
+    # Prompt Engineering - Finish
+    prompt += f"\nSequence:"
+
+    # Generate Completion
+    emails = wrapped_create_completion(
         # TODO: Use CURRENT_OPENAI_LATEST_GPT_MODEL when we gain access.
         model=CURRENT_OPENAI_CHAT_GPT_MODEL,
         prompt=prompt,
-        temperature=0,
-        max_tokens=50+200*len(value_props),
+        temperature=0.7,
+        frequency_penalty=1.15,
+        max_tokens=500,
     )
 
-    return re.split(r'Value Prop \d+\:', fixed_completion, flags=re.IGNORECASE | re.MULTILINE)[1:]
+    # Parse Completion
+    parsed_emails = []
+    json_emails: list[dict] = json.loads(emails)
+    for email in json_emails:
+        parsed_emails.append({
+            'subject_line': email.get('subject_line'),
+            'email': email.get('email'),
+        })
+
+    return parsed_emails

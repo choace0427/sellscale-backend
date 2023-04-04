@@ -4,6 +4,7 @@ from app import db
 from flask import Blueprint, jsonify, request
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.ml.models import GNLPModelType
+from model_import import ClientArchetype
 from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
     get_fine_tune_timeline,
@@ -124,8 +125,15 @@ def get_sequence_value_props_endpoint():
 @require_user
 def get_sequence_draft_endpoint(client_sdr_id: int):
     """Gets a sequence draft for a given value prop"""
-    value_props = get_request_parameter("value_props", request, json=True, required=True)
+    value_props = get_request_parameter("value_props", request, json=True, required=True, parameter_type=list)
+    archetype_id = get_request_parameter("archetype_id", request, json=True, required=True, parameter_type=int)
 
-    result = get_sequence_draft(value_props, client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if archetype is None:
+        return jsonify({"message": 'Archetype not found'}), 404
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+
+    result = get_sequence_draft(value_props, client_sdr_id, archetype_id)
 
     return jsonify({"message": 'Success', 'data': result}), 200
