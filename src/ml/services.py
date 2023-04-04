@@ -291,7 +291,7 @@ def get_sequence_draft(value_props: list[str], client_sdr_id: int, archetype_id:
         prompt=prompt,
         temperature=0.7,
         frequency_penalty=1.15,
-        max_tokens=500,
+        max_tokens=600,
     )
 
     # Parse Completion
