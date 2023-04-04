@@ -74,6 +74,7 @@ def get_prospects(
     query: str = "",
     channel: str = ProspectChannels.LINKEDIN.value,
     status: list[str] = None,
+    persona_id: int = -1,
     limit: int = 50,
     offset: int = 0,
     ordering: list[dict[str, int]] = [],
@@ -87,6 +88,7 @@ def get_prospects(
         query (str, optional): Query. Defaults to "".
         channel (str, optional): Channel to filter by. Defaults to ProspectChannels.SELLSCALE.value.
         status (list[str], optional): List of statuses to filter by. Defaults to None.
+        persona_id (int, optional): Persona ID to filter by. Defaults to -1.
         limit (int, optional): Number of records to return. Defaults to 50.
         offset (int, optional): The offset to start returning from. Defaults to 0.
         ordering (list, optional): Ordering to apply. See below. Defaults to [].
@@ -182,6 +184,8 @@ def get_prospects(
         .order_by(ordering_arr[2])
         .order_by(ordering_arr[3])
     )
+    if(persona_id != -1):
+        prospects = prospects.filter(Prospect.archetype_id == persona_id)
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
     return {"total_count": total_count, "prospects": prospects}
