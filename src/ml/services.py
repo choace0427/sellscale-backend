@@ -287,7 +287,7 @@ def get_sequence_draft(value_props: list[str], client_sdr_id: int, archetype_id:
     # Generate Completion
     emails = wrapped_create_completion(
         # TODO: Use CURRENT_OPENAI_LATEST_GPT_MODEL when we gain access.
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL,
+        model=CURRENT_OPENAI_DAVINCI_MODEL,
         prompt=prompt,
         temperature=0.7,
         frequency_penalty=1.15,
