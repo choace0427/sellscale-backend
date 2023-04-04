@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 from app import db, celery
 import os
-from src.client.models import Client, ClientArchetype
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.message_generation.models import GeneratedMessage
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
@@ -225,7 +225,7 @@ def get_sequence_value_props(company: str, selling_to: str, selling_what: str, n
     prompt += f"- What are you selling?: {selling_what}\n"
     prompt += f"- Number of emails in the sequence: {num}\n"
     prompt += "\n\nBased on this information, generate {num} value props we can use to target. Each value prop should be a 5-10 word phrase with a hyphen and one sentance describing it in detail.".format(num=num)
-    
+
     fixed_completion = wrapped_create_completion(
         model=CURRENT_OPENAI_DAVINCI_MODEL,
         prompt=prompt,
@@ -237,13 +237,28 @@ def get_sequence_value_props(company: str, selling_to: str, selling_what: str, n
     return props
 
 
-def get_sequence_draft(value_props: List[str]):
+def get_sequence_draft(value_props: List[str], client_sdr_id: int) -> List[str]:
+    """ Generates a sequence draft for a client.
+
+    Args:
+        value_props (List[str]): The value props to use in the sequence.
+        client_sdr_id (int): The client SDR id.
+
+    Returns:
+        List[str]: The sequence draft.
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    personalization_field_name = client.vessel_personalization_field_name
 
     prompt = f"Value Props:\n"
     for i, v in enumerate(value_props):
         prompt += f"{i+1}. {v}\n"
-    prompt += "\n\nBased on the {num} value props, write a subject line and body for each value prop. Include [first_name] as a placeholder for first name. In only the first value prop, include a field for [sellscale_personalization] before the body of the email.".format(num=len(value_props))
-    
+    prompt += "\n\nBased on the {num} value props, write a subject line and body for each value prop. Include [first_name] as a placeholder for first name. In only the first value prop, include a field for [{personalization}] before the body of the email.".format(
+        num=len(value_props),
+        personalization=personalization_field_name
+    )
+
     fixed_completion = wrapped_create_completion(
         # TODO: Use CURRENT_OPENAI_LATEST_GPT_MODEL when we gain access.
         model=CURRENT_OPENAI_CHAT_GPT_MODEL,

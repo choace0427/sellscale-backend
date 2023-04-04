@@ -113,8 +113,10 @@ def test_get_sequence_value_props(create_completion_mock):
 @use_app_context
 @mock.patch("src.ml.services.wrapped_create_completion", return_value="Value Prop 1: Test\nValue Prop 2: Test")
 def test_get_sequence_draft(create_completion_mock):
+    client = basic_client()
+    sdr = basic_client_sdr(client)
 
     # No problems
-    response = get_sequence_draft(['Test', 'Test'])
+    response = get_sequence_draft(['Test', 'Test'], sdr.id)
     assert create_completion_mock.call_count == 1
     assert response == [' Test\n', ' Test']

@@ -121,12 +121,11 @@ def get_sequence_value_props_endpoint():
 
 
 @ML_BLUEPRINT.route("/generate_sequence_draft", methods=["POST"])
-def get_sequence_draft_endpoint():
-
+@require_user
+def get_sequence_draft_endpoint(client_sdr_id: int):
+    """Gets a sequence draft for a given value prop"""
     value_props = get_request_parameter("value_props", request, json=True, required=True)
 
-    print(value_props)
-
-    result = get_sequence_draft(value_props)
+    result = get_sequence_draft(value_props, client_sdr_id)
 
     return jsonify({"message": 'Success', 'data': result}), 200
