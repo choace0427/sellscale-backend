@@ -22,7 +22,8 @@ from src.ml.services import (
     get_sequence_value_props,
     get_sequence_draft,
     get_icp_classification_prompt_by_archetype_id,
-    patch_icp_classification_prompt
+    patch_icp_classification_prompt,
+    icp_classify
 )
 from model_import import GNLPModelFineTuneJobs
 
@@ -144,3 +145,22 @@ def test_patch_icp_classification_prompt():
     assert archetype.icp_matching_prompt == "test"
     patch_icp_classification_prompt(archetype.id, "test2")
     assert archetype.icp_matching_prompt == "test2"
+
+
+@use_app_context
+@mock.patch("src.ml.services.wrapped_chat_gpt_completion", return_value="Fit: HIGH\nReason: Some reason")
+def test_icp_classify(wrapped_chat_gpt_completion_mock):
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    archetype.icp_matching_prompt = "test"
+    prospect = basic_prospect(client, archetype, sdr)
+    prospect_id = prospect.id
+
+    assert prospect.icp_fit_score is None
+    assert prospect.icp_fit_reason is None
+    result = icp_classify(prospect.id, sdr.id, archetype.id)
+    assert wrapped_chat_gpt_completion_mock.call_count == 1
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    assert prospect.icp_fit_score == "HIGH"
+    assert prospect.icp_fit_reason == "Some reason"

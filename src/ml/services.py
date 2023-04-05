@@ -3,6 +3,7 @@ from typing import List
 from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.prospecting.models import Prospect
 from src.message_generation.models import GeneratedMessage
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
@@ -11,7 +12,7 @@ from src.ml.models import (
     GNLPModelType,
     ModelProvider,
 )
-from src.ml.openai_wrappers import wrapped_create_completion, CURRENT_OPENAI_DAVINCI_MODEL, CURRENT_OPENAI_CHAT_GPT_MODEL
+from src.ml.openai_wrappers import wrapped_create_completion, wrapped_chat_gpt_completion, CURRENT_OPENAI_DAVINCI_MODEL, CURRENT_OPENAI_CHAT_GPT_MODEL
 import regex as rx
 import re
 
@@ -327,6 +328,7 @@ def patch_icp_classification_prompt(archetype_id: int, prompt: str) -> bool:
 
     Args:
         archetype_id (int): The archetype id.
+        prompt (str): The new prompt.
 
     Returns:
         bool: True if successful, False otherwise.
@@ -341,3 +343,107 @@ def patch_icp_classification_prompt(archetype_id: int, prompt: str) -> bool:
     db.session.commit()
 
     return True
+
+
+def trigger_icp_classification(client_sdr_id: int, archetype_id: int, prospect_ids: list[int]) -> bool:
+    """Triggers the ICP Classification Endpoint for a given client SDR id and archetype id.
+
+    Args (used to verify the client SDR id and archetype id):
+        client_sdr_id (int): The client SDR id.
+        archetype_id (int): The archetype id.
+        prospect_ids (List[int]): The prospect ids.
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    # Run celery job for each prospect id
+    for prospect_id in prospect_ids:
+        icp_classify.apply_async(
+            args=[prospect_id, client_sdr_id, archetype_id]
+        )
+
+    return True
+
+
+@celery.task(bind=True, max_retries=2)
+def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) -> bool:
+    """Classifies a prospect as an ICP or not.
+
+    Args:
+        prospect_id (int): The prospect id.
+        client_sdr_id (int): The client SDR id.
+        archetype_id (int): The archetype id.
+
+    Returns:
+        bool: True if the prospect is an ICP, False otherwise.
+    """
+    try:
+        # Get Prospect
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.id == prospect_id,
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.archetype_id == archetype_id,
+        ).first()
+        if not prospect:
+            return False
+
+        # Get Archetype for prompt
+        archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+        prompt = archetype.icp_matching_prompt
+        if not prompt:
+            prospect.icp_fit_score = "ERROR"
+            prospect.icp_fit_reason = "No ICP Classification Prompt"
+            return False
+
+        # Create Prompt
+        prompt += f"""\n\nHere is a potential prospect:
+        Title: {prospect.title}
+        LinkedIn Bio: {prospect.linkedin_bio}\n\n"""
+
+        prompt += HARD_CODE_ICP_PROMPT
+
+        # Generate Completion
+        completion = wrapped_chat_gpt_completion(
+            model=CURRENT_OPENAI_CHAT_GPT_MODEL,
+            messages=[{
+                "role": "user", "content": prompt
+            }]
+        )
+        fit = completion.split('Fit:')[1].split('Reason:')[0].strip()
+        reason = completion.split('Reason:')[1].strip()
+
+        # Update Prospect
+        prospect.icp_fit_score = fit
+        prospect.icp_fit_reason = reason
+        db.session.add(prospect)
+        db.session.commit()
+        return True
+
+    except Exception as e:
+        db.session.rollback()
+
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.id == prospect_id,
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.archetype_id == archetype_id,
+        )
+        if not prospect:
+            return False
+        prospect.icp_fit_score = "ERROR"
+        prospect.icp_fit_reason = f"Unknown Error: {e}"
+        db.session.add(prospect)
+        db.session.commit()
+
+        raise self.retry(exc=Exception("Retrying task"))
+
+
+HARD_CODE_ICP_PROMPT = """Based on this information, label the person based on if they are the ideal ICP using:
+
+- "VERY HIGH" - They are very much the right fit
+- "HIGH" - They are likely the right fit
+- “MEDIUM” - they may be the right fit
+- "LOW" - They are unlikely to be the right fit
+- “VERY LOW” - They are most probably not the right fit.
+
+Include this label next to the word "fit:" based on if this person is the ideal ICP. Then add a new line and say "reason:" with 1-2 sentences describing why this label was chosen.
+"""

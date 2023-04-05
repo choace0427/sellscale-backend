@@ -13,7 +13,8 @@ from src.ml.services import (
     get_sequence_draft,
     get_sequence_value_props,
     get_icp_classification_prompt_by_archetype_id,
-    patch_icp_classification_prompt
+    patch_icp_classification_prompt,
+    trigger_icp_classification
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -171,3 +172,20 @@ def patch_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int,
     result = patch_icp_classification_prompt(archetype_id, prompt)
 
     return jsonify({"message": 'Success', 'data': result}), 200
+
+
+@ML_BLUEPRINT.route("/icp_classification/trigger/<int:archetype_id>", methods=["POST"])
+@require_user
+def trigger_icp_classification_endpoint(client_sdr_id: int, archetype_id: int):
+    """Runs ICP classification for prospects in a given archetype"""
+    prospect_ids = get_request_parameter("prospect_ids", request, json=True, required=True, parameter_type=list[int])
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if archetype is None:
+        return jsonify({"message": 'Archetype not found'}), 404
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+
+    result = trigger_icp_classification(client_sdr_id, archetype_id, prospect_ids)
+
+    return jsonify({"message": 'Successfully triggered ICP classification. This may take a few minutes.'}), 200
