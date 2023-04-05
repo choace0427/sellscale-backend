@@ -46,7 +46,7 @@ def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
     public_id = prospect.linkedin_url.split("/in/")[1].split("/")[0]
     if public_id:
       profile = api.get_profile(public_id)
-      urn_id = profile.get("profile_id", None)
+      urn_id = profile.get("profile_id", None) if profile else None
       if urn_id:
         prospect.li_urn_id = urn_id
         db.session.add(prospect)
