@@ -57,7 +57,7 @@ def wrapped_create_completion(
     DEFAULT_FREQUENCY_PENALTY: 0
     DEFAULT_STOP: None
     """
-    if model == "gpt-3.5-turbo":
+    if model == CURRENT_OPENAI_CHAT_GPT_MODEL:
         return wrapped_chat_gpt_completion(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=max_tokens,

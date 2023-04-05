@@ -111,10 +111,13 @@ def test_get_sequence_value_props(create_completion_mock):
 
 
 @use_app_context
-@mock.patch("src.ml.services.wrapped_create_completion", return_value="Value Prop 1: Test\nValue Prop 2: Test")
+@mock.patch("src.ml.services.wrapped_create_completion", return_value="[{\"subject_line\": \"test_subject_line\"}, {\"email\": \"test_email\"}]")
 def test_get_sequence_draft(create_completion_mock):
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
 
     # No problems
-    response = get_sequence_draft(['Test', 'Test'])
+    response = get_sequence_draft(['Test', 'Test'], sdr.id, archetype.id)
     assert create_completion_mock.call_count == 1
-    assert response == [' Test\n', ' Test']
+    assert response == [{'subject_line': 'test_subject_line', 'email': None}, {'subject_line': None, 'email': 'test_email'}]

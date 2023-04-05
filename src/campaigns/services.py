@@ -393,7 +393,7 @@ def create_outbound_campaign(
     prospect1 = Prospect.query.get(prospect_ids[0])
     if (
         prospect1
-        and not can_generate_with_patterns(prospect1.id)
+        and not can_generate_with_patterns(client_sdr_id)
         and len(prospect_ids) > 10
         and campaign_type == GeneratedMessageType.LINKEDIN.value
     ):

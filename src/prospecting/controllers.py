@@ -271,6 +271,7 @@ def get_prospects_endpoint(client_sdr_id: int):
         - query (str) (optional): A filter query
         - channel (str) (optional): The channel to filter by (ProspectChannels)
         - status (str) (optional): The status of the prospect (ProspectStatus)
+        - persona_id (int) (optional): The id of the persona to filter by
         - limit (int) (optional): The number of results to return
         - offset (int) (optional): The offset to start from
     """
@@ -292,6 +293,12 @@ def get_prospects_endpoint(client_sdr_id: int):
                 "query", request, json=True, required=False, parameter_type=str
             )
             or ""
+        )
+        persona_id = (
+            get_request_parameter(
+                "persona_id", request, json=True, required=False, parameter_type=int
+            )
+            or -1
         )
         limit = (
             get_request_parameter(
@@ -322,7 +329,7 @@ def get_prospects_endpoint(client_sdr_id: int):
                 return jsonify({"message": "Invalid filters supplied to API"}), 400
 
     prospects_info: dict[int, list[Prospect]] = get_prospects(
-        client_sdr_id, query, channel, status, limit, offset, ordering
+        client_sdr_id, query, channel, status, persona_id, limit, offset, ordering
     )
 
     total_count = prospects_info.get("total_count")

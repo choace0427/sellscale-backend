@@ -79,7 +79,6 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
 
     return "Updated cookies", 200
 
-
 def clear_linkedin_cookies(client_sdr_id: int):
     """ Clears LinkedIn cookies for Voyager
 
