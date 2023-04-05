@@ -178,7 +178,7 @@ def patch_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int,
 @require_user
 def trigger_icp_classification_endpoint(client_sdr_id: int, archetype_id: int):
     """Runs ICP classification for prospects in a given archetype"""
-    prospect_ids = get_request_parameter("prospect_ids", request, json=True, required=True, parameter_type=list[int])
+    prospect_ids = get_request_parameter("prospect_ids", request, json=True, required=True, parameter_type=list)
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if archetype is None:
