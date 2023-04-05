@@ -5,7 +5,6 @@ from typing import Optional
 
 
 def create_bump_framework(
-    title: str,
     description: str,
     overall_status: ProspectOverallStatus,
     active: bool = True,
@@ -15,7 +14,6 @@ def create_bump_framework(
     Create a new bump framework
     """
     bump_framework = BumpFramework(
-        title=title,
         description=description,
         overall_status=overall_status,
         active=active,

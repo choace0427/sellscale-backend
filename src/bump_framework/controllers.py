@@ -16,7 +16,6 @@ BUMP_FRAMEWORK_BLUEPRINT = Blueprint("bump_framework", __name__)
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/create", methods=["POST"])
 def post_create_bump_framework():
-    title = get_request_parameter("title", request, json=True, required=True)
     description = get_request_parameter(
         "description", request, json=True, required=True
     )
@@ -28,7 +27,6 @@ def post_create_bump_framework():
     )
 
     bump_framework = create_bump_framework(
-        title=title,
         description=description,
         overall_status=overall_status,
         client_sdr_id=client_sdr_id,

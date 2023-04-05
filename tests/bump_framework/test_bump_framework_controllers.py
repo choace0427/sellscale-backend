@@ -22,7 +22,6 @@ def test_create_bump_framework():
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "title": "Test Bump Framework",
                 "description": "Test Bump Framework Description",
                 "overall_status": "ACCEPTED",
                 "client_sdr_id": client_sdr_id,
@@ -33,7 +32,6 @@ def test_create_bump_framework():
 
     bump_frameworks: list[BumpFramework] = BumpFramework.query.all()
     assert len(bump_frameworks) == 1
-    assert bump_frameworks[0].title == "Test Bump Framework"
     assert bump_frameworks[0].description == "Test Bump Framework Description"
     assert bump_frameworks[0].overall_status.value == "ACCEPTED"
     assert bump_frameworks[0].client_sdr_id == client_sdr_id
@@ -42,7 +40,6 @@ def test_create_bump_framework():
 @use_app_context
 def test_delete_bump_framework():
     bump_framework = BumpFramework(
-        title="Test Bump Framework",
         description="Test Bump Framework Description",
         overall_status="ACCEPTED",
     )
@@ -66,7 +63,6 @@ def test_delete_bump_framework():
 @use_app_context
 def test_toggle_bump_framework_active():
     bump_framework = BumpFramework(
-        title="Test Bump Framework",
         description="Test Bump Framework Description",
         overall_status="ACCEPTED",
     )
@@ -93,7 +89,6 @@ def test_get_bump_frameworks():
     client_sdr_id = client_sdr.id
 
     bump_framework = BumpFramework(
-        title="Test Bump Framework",
         description="Test Bump Framework Description",
         overall_status="ACCEPTED",
         client_sdr_id=client_sdr_id,
