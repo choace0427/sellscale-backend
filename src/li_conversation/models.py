@@ -26,8 +26,11 @@ class LinkedinConversationEntry(db.Model):
         li_conversation_thread_id = p.li_conversation_thread_id
 
         return (
-            LinkedinConversationEntry.query.filter_by(
-                conversation_url=li_conversation_thread_id
+            # contains instead of equals
+            LinkedinConversationEntry.query.filter(
+                LinkedinConversationEntry.conversation_url.ilike(
+                    "%" + li_conversation_thread_id + "%"
+                )
             )
             .order_by(LinkedinConversationEntry.date.desc())
             .all()
