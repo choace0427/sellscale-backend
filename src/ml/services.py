@@ -393,6 +393,8 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         if not prompt:
             prospect.icp_fit_score = "ERROR"
             prospect.icp_fit_reason = "No ICP Classification Prompt"
+            db.session.add(prospect)
+            db.session.commit()
             return False
 
         # Create Prompt
