@@ -97,14 +97,10 @@ def test_get_bump_frameworks():
     db.session.commit()
 
     response = app.test_client().get(
-        "/bump_framework/",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(
-            {
-                "overall_status": "ACCEPTED",
-                "client_sdr_id": client_sdr_id,
-            }
+        "/bump_framework/?overall_status=ACCEPTED&client_sdr_id={}".format(
+            client_sdr_id
         ),
+        headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
 
