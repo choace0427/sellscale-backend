@@ -163,6 +163,9 @@ def patch_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int,
     """Updates the ICP classification prompt for a given archetype"""
     prompt = get_request_parameter("prompt", request, json=True, required=True, parameter_type=str)
 
+    if prompt == "":
+        return jsonify({"message": 'Prompt cannot be empty'}), 400
+
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if archetype is None:
         return jsonify({"message": 'Archetype not found'}), 404

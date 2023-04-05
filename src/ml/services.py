@@ -356,11 +356,24 @@ def trigger_icp_classification(client_sdr_id: int, archetype_id: int, prospect_i
     Returns:
         bool: True if successful, False otherwise.
     """
-    # Run celery job for each prospect id
-    for prospect_id in prospect_ids:
-        icp_classify.apply_async(
-            args=[prospect_id, client_sdr_id, archetype_id]
-        )
+    if len(prospect_ids) > 0:
+        # Run celery job for each prospect id
+        for prospect_id in prospect_ids:
+            icp_classify.apply_async(
+                args=[prospect_id, client_sdr_id, archetype_id]
+            )
+    else:
+        # Get all prospects for the client SDR id and archetype id
+        prospects: list[Prospect] = Prospect.query.filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.archetype_id == archetype_id,
+        ).all()
+
+        # Run celery job for each prospect
+        for prospect in prospects:
+            icp_classify.apply_async(
+                args=[prospect.id, client_sdr_id, archetype_id]
+            )
 
     return True
 
@@ -390,7 +403,7 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         # Get Archetype for prompt
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
         prompt = archetype.icp_matching_prompt
-        if not prompt:
+        if not prompt or prompt.strip() == "":
             prospect.icp_fit_score = "ERROR"
             prospect.icp_fit_reason = "No ICP Classification Prompt"
             db.session.add(prospect)
