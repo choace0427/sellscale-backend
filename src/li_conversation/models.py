@@ -25,6 +25,9 @@ class LinkedinConversationEntry(db.Model):
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         li_conversation_thread_id = p.li_conversation_thread_id
 
+        if not li_conversation_thread_id:
+            return []
+
         return (
             # contains instead of equals
             LinkedinConversationEntry.query.filter(
