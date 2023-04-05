@@ -4,9 +4,7 @@ from model_import import ProspectStatus, Prospect, ClientSDR, GeneratedMessage
 import requests
 import json
 import os
-from src.prospecting.services import (
-    get_linkedin_slug_from_url
-)
+from src.prospecting.services import get_linkedin_slug_from_url
 from tqdm import tqdm
 
 from src.prospecting.services import update_prospect_status_linkedin
@@ -94,7 +92,10 @@ def process_inbox(message_payload, client_sdr_id):
             # Check if the last message timestamp is different from the one in the db
             # If it is, then we should deep scrape the prospect
             last_message_timestamp = prospect.li_last_message_timestamp
-            if last_message_timestamp and last_message_timestamp != li_last_message_timestamp:
+            if (
+                last_message_timestamp
+                and last_message_timestamp != li_last_message_timestamp
+            ):
                 deep_scrape_count += 1
                 prospect.li_should_deep_scrape = True
 
@@ -159,6 +160,7 @@ def process_inbox(message_payload, client_sdr_id):
     return deep_scrape_count
 
 
+@celery.task
 def scrape_inbox(client_sdr_id: int):
     """Scrape the inbox of a client on Linkedin"""
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -180,7 +182,9 @@ def scrape_inbox(client_sdr_id: int):
         s3Folder=s3Folder, orgS3Folder=orgS3Folder
     )
 
-    deep_scrape_count = process_inbox(message_payload=data_payload, client_sdr_id=client_sdr_id)
+    deep_scrape_count = process_inbox(
+        message_payload=data_payload, client_sdr_id=client_sdr_id
+    )
 
     return True
 
@@ -189,10 +193,10 @@ def scrape_inbox(client_sdr_id: int):
 def scrape_all_inboxes():
     client_sdr_ids = [x.id for x in ClientSDR.query.all()]
     for cs_id in tqdm(client_sdr_ids):
-        scrape_inbox(client_sdr_id=cs_id)
+        scrape_inbox.delay(client_sdr_id=cs_id)
 
     send_slack_message(
-        message='🔎 Finished basic scrape for all SDRs',
-        webhook_urls=[URL_MAP['eng-sandbox']]
+        message="🔎 Finished basic scrape for all SDRs",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
     )
     return
