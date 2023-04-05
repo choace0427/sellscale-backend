@@ -198,7 +198,7 @@ def generate_chat_gpt_response_to_conversation_thread(
             select
                 *
             from linkedin_conversation_entry
-            where conversation_url = '{conversation_url}'
+            where conversation_url ilike concat('%','{conversation_url}','%')
             order by date desc
             limit 10
         )
