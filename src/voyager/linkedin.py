@@ -95,6 +95,7 @@ class LinkedIn(object):
         try:
           return self.client.session.get(url, **kwargs)
         except TooManyRedirects as e:
+          print('TooManyRedirects - Invalidating cookies')
           sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
           if sdr:
             sdr.li_cookies = 'INVALID'
@@ -246,6 +247,23 @@ class LinkedIn(object):
         """
         data = self.get_profile(public_id)
         return data['profile_id']
+    
+    def get_user_profile(self, use_cache=True):
+        """Get the current user profile. If not cached, a network request will be fired.
+        :return: Profile data for currently logged in user
+        :rtype: dict
+        """
+        me_profile = self.client.metadata.get("me")
+        print(me_profile)
+        if not self.client.metadata.get("me") or not use_cache:
+            res = self._fetch(f"/me")
+            print(res)
+            if res is None or res.status_code == 403: return None
+            me_profile = res.json()
+            # cache profile
+            self.client.metadata["me"] = me_profile
+
+        return me_profile
 
     def send_message(self, message_body, conversation_urn_id=None, recipients=None):
         """Send a message to a given conversation.

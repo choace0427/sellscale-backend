@@ -105,7 +105,7 @@ class Client(object):
                 return
 
         #self._do_authentication_request(client_sdr)
-        #self._fetch_metadata()
+        self._fetch_metadata()
 
     def _fetch_metadata(self):
         """

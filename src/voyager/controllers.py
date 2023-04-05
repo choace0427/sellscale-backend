@@ -8,6 +8,19 @@ from src.voyager.linkedin import LinkedIn
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 
 
+@VOYAGER_BLUEPRINT.route("/profile/self", methods=["GET"])
+@require_user
+def get_self_profile(client_sdr_id: int):
+    """Get profile data for the SDR"""
+
+    api = LinkedIn(client_sdr_id)
+    profile = api.get_user_profile(use_cache=False)
+    if(not api.is_valid()): 
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+
+    return jsonify({"message": "Success", "data": profile}), 200
+
+
 @VOYAGER_BLUEPRINT.route("/profile", methods=["GET"])
 @require_user
 def get_profile(client_sdr_id: int):
