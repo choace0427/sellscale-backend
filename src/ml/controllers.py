@@ -12,6 +12,8 @@ from src.ml.services import (
     get_aree_fix_basic,
     get_sequence_draft,
     get_sequence_value_props,
+    get_icp_classification_prompt_by_archetype_id,
+    patch_icp_classification_prompt
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -135,5 +137,37 @@ def get_sequence_draft_endpoint(client_sdr_id: int):
         return jsonify({"message": 'Archetype does not belong to this user'}), 401
 
     result = get_sequence_draft(value_props, client_sdr_id, archetype_id)
+
+    return jsonify({"message": 'Success', 'data': result}), 200
+
+
+@ML_BLUEPRINT.route("/icp_classification/icp_prompt/<int:archetype_id>", methods=["GET"])
+@require_user
+def get_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int, archetype_id: int):
+    """Gets the ICP classification prompt for a given archetype"""
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if archetype is None:
+        return jsonify({"message": 'Archetype not found'}), 404
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+
+    result = get_icp_classification_prompt_by_archetype_id(archetype_id)
+
+    return jsonify({"message": 'Success', 'data': result}), 200
+
+
+@ML_BLUEPRINT.route("/icp_classification/icp_prompt/<int:archetype_id>", methods=["PATCH"])
+@require_user
+def patch_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int, archetype_id: int):
+    """Updates the ICP classification prompt for a given archetype"""
+    prompt = get_request_parameter("prompt", request, json=True, required=True, parameter_type=str)
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if archetype is None:
+        return jsonify({"message": 'Archetype not found'}), 404
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+
+    result = patch_icp_classification_prompt(archetype_id, prompt)
 
     return jsonify({"message": 'Success', 'data': result}), 200

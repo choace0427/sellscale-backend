@@ -304,3 +304,40 @@ def get_sequence_draft(value_props: list[str], client_sdr_id: int, archetype_id:
         })
 
     return parsed_emails
+
+
+def get_icp_classification_prompt_by_archetype_id(archetype_id: int) -> str:
+    """Gets the ICP Classification Prompt for a given archetype id.
+
+    Args:
+        archetype_id (int): The archetype id.
+
+    Returns:
+        str: The prompt.
+    """
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return None
+
+    return archetype.icp_matching_prompt
+
+
+def patch_icp_classification_prompt(archetype_id: int, prompt: str) -> bool:
+    """Modifies the ICP Classification Prompt for a given archetype id.
+
+    Args:
+        archetype_id (int): The archetype id.
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return False
+
+    archetype.icp_matching_prompt = prompt
+
+    db.session.add(archetype)
+    db.session.commit()
+
+    return True

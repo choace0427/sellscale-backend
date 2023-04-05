@@ -20,7 +20,9 @@ from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
     get_aree_fix_basic,
     get_sequence_value_props,
-    get_sequence_draft
+    get_sequence_draft,
+    get_icp_classification_prompt_by_archetype_id,
+    patch_icp_classification_prompt
 )
 from model_import import GNLPModelFineTuneJobs
 
@@ -121,3 +123,24 @@ def test_get_sequence_draft(create_completion_mock):
     response = get_sequence_draft(['Test', 'Test'], sdr.id, archetype.id)
     assert create_completion_mock.call_count == 1
     assert response == [{'subject_line': 'test_subject_line', 'email': None}, {'subject_line': None, 'email': 'test_email'}]
+
+
+@use_app_context
+def test_get_icp_classification_prompt_by_archetype_id():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype.icp_matching_prompt = "test"
+
+    prompt = get_icp_classification_prompt_by_archetype_id(archetype.id)
+    assert prompt == archetype.icp_matching_prompt
+
+
+@use_app_context
+def test_patch_icp_classification_prompt():
+    client = basic_client()
+    archetype = basic_archetype(client)
+    archetype.icp_matching_prompt = "test"
+
+    assert archetype.icp_matching_prompt == "test"
+    patch_icp_classification_prompt(archetype.id, "test2")
+    assert archetype.icp_matching_prompt == "test2"

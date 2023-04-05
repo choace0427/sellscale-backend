@@ -434,6 +434,8 @@ class Prospect(db.Model):
             "vessel_contact_id": self.vessel_contact_id,
             "vessel_crm_id": self.vessel_crm_id,
             "generated_message_info": generated_message_info,
+            "icp_fit_score": self.icp_fit_score,
+            "icp_fit_reason": self.icp_fit_reason,
         }
 
 
