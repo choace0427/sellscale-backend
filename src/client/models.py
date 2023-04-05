@@ -78,6 +78,8 @@ class ClientArchetype(db.Model):
     persona_description = db.Column(db.String, nullable=True)
     persona_fit_reason = db.Column(db.String, nullable=True)
 
+    icp_matching_prompt = db.Column(db.String, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
