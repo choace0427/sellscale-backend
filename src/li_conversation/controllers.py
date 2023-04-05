@@ -45,7 +45,9 @@ def get_li_conversation_csv(client_sdr_id):
         updated_prospects.append(prospect)
 
         if prospect.linkedin_url:
-            linkedin_urls.append({"linkedin_url": "https://www." + prospect.linkedin_url})
+            linkedin_urls.append(
+                {"linkedin_url": "https://www." + prospect.linkedin_url}
+            )
 
     db.session.bulk_save_objects(updated_prospects)
     db.session.commit()
@@ -71,13 +73,17 @@ def get_prospect_li_conversation():
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True
     )
+    bump_framework_id = get_request_parameter(
+        "bump_framework_id", request, json=True, required=False
+    )
+
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
     conversation_url = prospect.li_conversation_thread_id
     if not conversation_url:
         return "No conversation thread found.", 404
 
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
-        conversation_url
+        conversation_url, bump_framework_id
     )
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200

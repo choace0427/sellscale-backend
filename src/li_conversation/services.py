@@ -10,6 +10,7 @@ from datetime import datetime
 from tqdm import tqdm
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message
+from model_import import BumpFramework
 import random
 
 
@@ -187,7 +188,9 @@ def run_next_client_sdr_scrape():
         )
 
 
-def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
+def generate_chat_gpt_response_to_conversation_thread(
+    conversation_url: str, bump_framework_id: int
+):
     from model_import import Prospect, ProspectStatus
 
     query = """
@@ -240,6 +243,12 @@ def generate_chat_gpt_response_to_conversation_thread(conversation_url: str):
             + sender
             + ". Mention that you're doing one last follow up."
         )
+
+    bump_framework: BumpFramework = BumpFramework.query.filter_by(
+        id=bump_framework_id
+    ).first()
+    if bump_framework:
+        message_content = "Take note of the following: " + bump_framework.description
 
     response = wrapped_chat_gpt_completion(
         [
