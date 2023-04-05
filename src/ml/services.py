@@ -441,7 +441,7 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
             Prospect.id == prospect_id,
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.archetype_id == archetype_id,
-        )
+        ).first()
         if not prospect:
             return False
         prospect.icp_fit_score = "ERROR"
