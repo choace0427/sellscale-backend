@@ -80,6 +80,8 @@ class ClientArchetype(db.Model):
 
     icp_matching_prompt = db.Column(db.String, nullable=True)
 
+    vessel_sequence_id = db.Column(db.Integer, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -94,6 +96,7 @@ class ClientArchetype(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "persona_description": self.persona_description,
             "persona_fit_reason": self.persona_fit_reason,
+            "vessel_sequence_id": self.vessel_sequence_id,
         }
 
 

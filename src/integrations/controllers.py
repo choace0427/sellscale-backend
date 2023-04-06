@@ -1,3 +1,4 @@
+from src.client.models import ClientArchetype
 from app import db
 
 from flask import Blueprint, request, jsonify
@@ -23,6 +24,40 @@ def get_mailbox_by_email():
     )
     options = integration.find_mailbox_autofill_by_email(email=email)
     return jsonify({"mailbox_options": options})
+
+
+@INTEGRATION_BLUEPRINT.route("/set-persona-sequence", methods=["POST"])
+@require_user
+def post_set_persona_sequence(client_sdr_id: int):
+    
+    #TODO: Confirm that the user has access to this persona
+
+    persona_id = get_request_parameter("persona_id", request, json=True, required=True, parameter_type=int)
+    sequence_id = get_request_parameter("sequence_id", request, json=True, required=True, parameter_type=int)
+    if sequence_id == -1: sequence_id = None
+
+    client_archetype = ClientArchetype.query.get(persona_id)
+    if not client_archetype:
+      return jsonify({"message": 'Persona not found'}), 404
+    
+    client_archetype.vessel_sequence_id = sequence_id
+    db.session.add(client_archetype)
+    db.session.commit()
+
+    return jsonify({"message": 'Set sequence'}), 200
+
+
+@INTEGRATION_BLUEPRINT.route("/sequences-auth", methods=["GET"])
+@require_user
+def get_all_sequences(client_sdr_id: int):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    integration = SalesEngagementIntegration(
+        client_id=int(client_sdr.client_id),
+    )
+    options = integration.find_all_sequences()
+    return jsonify({"sequence_options": options})
 
 
 @INTEGRATION_BLUEPRINT.route("/sequences", methods=["GET"])

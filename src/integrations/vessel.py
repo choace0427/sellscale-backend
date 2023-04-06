@@ -224,6 +224,21 @@ class SalesEngagementIntegration:
             {"sequence_id": sequence.sequence_id, "name": sequence.name}
             for sequence in sequence_options
         ]
+    
+    def find_all_sequences(self):
+        """
+        Find a Sales Engagement sequence
+        """
+        sequence_options = (
+            VesselSequences.query.filter(
+                VesselSequences.access_token == self.vessel_access_token,
+            )
+            .all()
+        )
+        return [
+            {"sequence_id": sequence.sequence_id, "name": sequence.name}
+            for sequence in sequence_options
+        ]
 
     def sync_data(self):
         """
