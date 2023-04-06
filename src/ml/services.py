@@ -419,7 +419,6 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
 
         # Generate Completion
         completion = wrapped_chat_gpt_completion(
-            model=CURRENT_OPENAI_CHAT_GPT_MODEL,
             messages=[{
                 "role": "user", "content": prompt
             }]
