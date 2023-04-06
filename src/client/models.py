@@ -206,6 +206,7 @@ class ClientSDR(db.Model):
             "client_name": client.company,
             "sdr_name": self.name,
             "sdr_email": self.email,
+            "active": self.active,
             "weekly_li_outbound_target": self.weekly_li_outbound_target,
             "weekly_email_outbound_target": self.weekly_email_outbound_target,
             "scheduling_link": self.scheduling_link,
