@@ -238,8 +238,33 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
         return False
 
     sdr.active = False
-    sdr.weekly_li_outbound_target = 0
-    sdr.weekly_email_outbound_target = 0
+    sdr.weekly_li_outbound_target = None
+    sdr.weekly_email_outbound_target = None
+
+    db.session.add(sdr)
+    db.session.commit()
+
+    return True
+
+
+def activate_client_sdr(client_sdr_id: int, li_target: Optional[int] = 0, email_target: Optional[int] = 0) -> bool:
+    """Activates a Client SDR and sets their SLAs
+
+    Args:
+        client_sdr_id (int): The ID of the Client SDR
+        li_target (int): The LI outbound target
+        email_target (int): The email outbound target
+
+    Returns:
+        bool: Whether or not the Client SDR was activated
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    sdr.active = True
+    sdr.weekly_li_outbound_target = li_target
+    sdr.weekly_email_outbound_target = email_target
 
     db.session.add(sdr)
     db.session.commit()

@@ -25,6 +25,7 @@ from src.client.services import (
     get_cta_by_archetype_id,
     get_client_sdr,
     deactivate_client_sdr,
+    activate_client_sdr,
     get_prospect_upload_stats_by_upload_id,
     get_prospect_upload_details_by_upload_id,
     get_transformers_by_archetype_id,
@@ -183,6 +184,21 @@ def deactivate_sdr_endpoint():
         return "Failed to deactive", 404
 
     return jsonify({"message": "Deactivated SDR"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/activate", methods=["POST"])
+def activate_sdr_endpoint():
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True, parameter_type=int
+    )
+    li_sla = get_request_parameter("li_sla", request, json=True, required=False, parameter_type=int)
+    email_sla = get_request_parameter("email_sla", request, json=True, required=False, parameter_type=int)
+
+    success = activate_client_sdr(client_sdr_id=client_sdr_id, li_target=li_sla, email_target=email_sla)
+    if not success:
+        return "Failed to activate", 404
+
+    return jsonify({"message": "Activated SDR"}), 200
 
 
 @CLIENT_BLUEPRINT.route("/reset_client_sdr_auth_token", methods=["POST"])
