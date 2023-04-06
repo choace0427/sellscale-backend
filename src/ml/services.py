@@ -421,9 +421,11 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         completion = wrapped_chat_gpt_completion(
             messages=[{
                 "role": "user", "content": prompt
-            }]
+            }],
+            max_tokens=100,
         )
         fit = completion.split('Fit:')[1].split('Reason:')[0].strip()
+        fit = int(fit)
         reason = completion.split('Reason:')[1].strip()
 
         # Update Prospect

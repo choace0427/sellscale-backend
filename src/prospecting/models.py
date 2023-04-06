@@ -357,7 +357,7 @@ class Prospect(db.Model):
     vessel_contact_id = db.Column(db.String, nullable=True)
     vessel_crm_id = db.Column(db.String, nullable=True)
 
-    icp_fit_score = db.Column(db.String, nullable=True)
+    icp_fit_score = db.Column(db.Integer, nullable=True)
     icp_fit_reason = db.Column(db.String, nullable=True)
 
     def get_by_id(prospect_id: int):
