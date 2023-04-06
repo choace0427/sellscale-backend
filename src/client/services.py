@@ -220,6 +220,33 @@ def create_client_sdr(client_id: int, name: str, email: str):
     return {"client_sdr_id": sdr.id}
 
 
+def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
+    """Deactives a Client SDR and sets their SLAs to 0
+
+    Args:
+        client_sdr_id (int): The ID of the Client SDR
+        email (str): The email of the Client SDR
+
+    Returns:
+        bool: Whether or not the Client SDR was deactivated
+    """
+    sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id,
+        ClientSDR.email == email,
+    ).first()
+    if not sdr:
+        return False
+
+    sdr.active = False
+    sdr.weekly_li_outbound_target = 0
+    sdr.weekly_email_outbound_target = 0
+
+    db.session.add(sdr)
+    db.session.commit()
+
+    return True
+
+
 def toggle_client_sdr_autopilot_enabled(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
