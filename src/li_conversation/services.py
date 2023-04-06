@@ -58,15 +58,21 @@ def check_for_duplicate_linkedin_conversation_entry(
     conversation_url: str,
     author: str,
     message: str,
+    urn_id: Union[str, None] = None,
 ):
     """
     Check for duplicates and return True if duplicate exists
     """
-    return LinkedinConversationEntry.query.filter(
-        LinkedinConversationEntry.conversation_url == conversation_url,
-        LinkedinConversationEntry.author == author,
-        LinkedinConversationEntry.message == message,
-    ).first()
+    if urn_id:
+      return LinkedinConversationEntry.query.filter(
+          LinkedinConversationEntry.urn_id == urn_id,
+      ).first()
+    else:
+      return LinkedinConversationEntry.query.filter(
+          LinkedinConversationEntry.conversation_url == conversation_url,
+          LinkedinConversationEntry.author == author,
+          LinkedinConversationEntry.message == message,
+      ).first()
 
 
 def create_linkedin_conversation_entry(
@@ -90,6 +96,7 @@ def create_linkedin_conversation_entry(
         conversation_url=conversation_url,
         author=author,
         message=message,
+        urn_id=urn_id,
     )
     if not duplicate_exists:
         new_linkedin_conversation_entry = LinkedinConversationEntry(
