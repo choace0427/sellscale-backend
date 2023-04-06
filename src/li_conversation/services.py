@@ -130,7 +130,7 @@ def create_linkedin_conversation_entry(
             added = True
         
         # If the current image is expired, replace it
-        if img_expire and time.time()*1000 > duplicate_exists.img_expire:
+        if img_expire and time.time()*1000 > int(duplicate_exists.img_expire):
             duplicate_exists.img_url = img_url
             duplicate_exists.img_expire = img_expire
             added = True

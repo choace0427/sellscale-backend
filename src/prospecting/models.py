@@ -360,6 +360,9 @@ class Prospect(db.Model):
     icp_fit_score = db.Column(db.Integer, nullable=True)
     icp_fit_reason = db.Column(db.String, nullable=True)
 
+    img_url = db.Column(db.String, nullable=True)
+    img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)
+
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
 
@@ -436,6 +439,8 @@ class Prospect(db.Model):
             "generated_message_info": generated_message_info,
             "icp_fit_score": self.icp_fit_score,
             "icp_fit_reason": self.icp_fit_reason,
+            "img_url": self.img_url,
+            "img_expire": self.img_expire,
         }
 
 

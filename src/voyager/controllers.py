@@ -1,9 +1,11 @@
 from flask import Blueprint, jsonify, request
 from src.client.models import ClientSDR
-from src.voyager.services import update_linkedin_cookies, fetch_conversation, update_conversation_entries, get_profile_urn_id, clear_linkedin_cookies
+from src.voyager.services import update_linkedin_cookies, fetch_conversation, get_profile_urn_id, clear_linkedin_cookies
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.voyager.linkedin import LinkedIn
+from app import db
+import time
 
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 
@@ -15,8 +17,15 @@ def get_self_profile(client_sdr_id: int):
 
     api = LinkedIn(client_sdr_id)
     profile = api.get_user_profile(use_cache=False)
-    if(not api.is_valid()): 
+    if(not api.is_valid()):
       return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+    
+    # If the SDR's profile img is expired, update it
+    if profile and time.time()*1000 > int(api.client_sdr.img_expire):
+      api.client_sdr.img_url = profile.get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("rootUrl", "")+profile.get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("fileIdentifyingUrlPathSegment", "")
+      api.client_sdr.img_expire = profile.get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("expiresAt", 0)
+      db.session.add(api.client_sdr)
+      db.session.commit()
 
     return jsonify({"message": "Success", "data": profile}), 200
 
@@ -66,6 +75,21 @@ def get_raw_conversation(client_sdr_id: int):
       return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     return jsonify({"message": "Success", "data": convo}), 200
+
+
+@VOYAGER_BLUEPRINT.route("/raw_conversation_details", methods=["GET"])
+@require_user
+def get_raw_conversation_details(client_sdr_id: int):
+    """Gets a conversation details with a prospect in raw li data"""
+
+    prospect_urn_id = get_request_parameter("prospect_urn_id", request, json=False, required=True)
+
+    api = LinkedIn(client_sdr_id)
+    details = api.get_conversation_details(prospect_urn_id)
+    if(not api.is_valid()):
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+
+    return jsonify({"message": "Success", "data": details}), 200
 
 
 @VOYAGER_BLUEPRINT.route("/conversation", methods=["GET"])
@@ -139,27 +163,3 @@ def clear_auth_tokens(client_sdr_id: int):
     status_text, status = clear_linkedin_cookies(client_sdr_id)
 
     return jsonify({"message": status_text}), status
-
-
-@VOYAGER_BLUEPRINT.route("/update_conversation_entries", methods=["POST"])
-@require_user
-def update_li_conversation_entries(client_sdr_id: int):
-    """Updates the LinkedIn auth tokens for a SDR"""
-
-    urn_id = get_request_parameter("urn_id", request, json=False, required=False)
-    convo_urn_id = get_request_parameter("convo_urn_id", request, json=False, required=False)
-
-    if not urn_id and not convo_urn_id:
-      return jsonify({"message": "Missing required parameter"}), 400
-
-    api = LinkedIn(client_sdr_id)
-
-    if not convo_urn_id:
-      details = api.get_conversation_details(urn_id)
-      convo_urn_id = details['entityUrn'].replace('urn:li:fs_conversation:', '')
-
-    update_conversation_entries(api, convo_urn_id)
-    if(not api.is_valid()):
-      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
-
-    return jsonify({"message": 'Updated conversation'}), 200

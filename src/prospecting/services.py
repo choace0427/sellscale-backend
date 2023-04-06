@@ -1180,7 +1180,6 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
     prospect_notes = [x.to_dict() for x in prospect_notes]
 
     iset: IScraperExtractorTransformer = IScraperExtractorTransformer(prospect_id)
-    personal_profile_picture = iset.get_personal_profile_picture()
 
     company_logo = iset.get_company_logo()
     company_name = iset.get_company_name()
@@ -1206,7 +1205,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 else p.status.value,
                 "linkedin_status": p.status.value,
                 "email_status": p_email_status,
-                "profile_pic": personal_profile_picture,
+                "profile_pic": p.img_url,
                 "ai_responses_disabled": p.deactivate_ai_engagement,
                 "notes": prospect_notes,
                 "persona": archetype_name,

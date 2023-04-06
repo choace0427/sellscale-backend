@@ -194,6 +194,9 @@ class ClientSDR(db.Model):
 
     email_fetching_credits = db.Column(db.Integer, nullable=True, default=2000)
 
+    img_url = db.Column(db.String, nullable=True)
+    img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)
+
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
 
@@ -208,4 +211,6 @@ class ClientSDR(db.Model):
             "last_li_conversation_scrape_date": self.last_li_conversation_scrape_date,
             "li_connected": self.li_at_token is not None,
             "li_voyager_connected": self.li_cookies is not None and self.li_cookies != 'INVALID',
+            "img_url": self.img_url,
+            "img_expire": self.img_expire,
         }

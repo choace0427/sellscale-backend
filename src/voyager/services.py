@@ -1,4 +1,5 @@
 import json
+import time
 import datetime as dt
 
 from src.li_conversation.models import LinkedinConversationEntry
@@ -129,8 +130,22 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     last_msg_urn_id = details['events'][0]['dashEntityUrn'].replace("urn:li:fsd_message:", "")
     convo_entry = LinkedinConversationEntry.query.filter_by(urn_id=last_msg_urn_id).first()
 
-    # If li_conversation_thread_id not set, might as well save it now
     prospect: Prospect = Prospect.query.get(prospect_id)
+
+    # If the prospect's profile img is expired, update it
+    if time.time()*1000 > int(prospect.img_expire):
+      prospect.img_url = details.get("participants", [])[0].get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("rootUrl", "")+details.get("participants", [])[0].get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("fileIdentifyingUrlPathSegment", "")
+      prospect.img_expire = details.get("participants", [])[0].get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("expiresAt", 0)
+      db.session.add(prospect)
+      db.session.commit()
+    # If the SDR's profile img is expired, update it
+    if time.time()*1000 > int(api.client_sdr.img_expire):
+      api.client_sdr.img_url = details.get("events", [])[0].get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("rootUrl", "")+details.get("events", [])[0].get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("fileIdentifyingUrlPathSegment", "")
+      api.client_sdr.img_expire = details.get("events", [])[0].get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("expiresAt", 0)
+      db.session.add(api.client_sdr)
+      db.session.commit()
+
+    # If li_conversation_thread_id not set, might as well save it now
     if not prospect.li_conversation_thread_id:
       prospect.li_conversation_thread_id = f'https://www.linkedin.com/messaging/thread/{convo_urn_id}/'
       db.session.add(prospect)
@@ -169,11 +184,12 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
         urn_id = public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("entityUrn", "").replace("urn:li:fs_miniProfile:", "")
         public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("publicIdentifier", "")
         headline = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("occupation", "")
-        image_url = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("rootUrl", "")+message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[0].get("fileIdentifyingUrlPathSegment", "")
-        image_expire = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[0].get("expiresAt", 0)
+        image_url = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("rootUrl", "")+message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("fileIdentifyingUrlPathSegment", "")
+        image_expire = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("expiresAt", 0)
         msg_urn_id = message.get('dashEntityUrn', "").replace("urn:li:fsd_message:", "")
 
         msg = message.get("eventContent", {}).get("com.linkedin.voyager.messaging.event.MessageEvent", {}).get("attributedBody", {}).get("text", "")
+        connection_degree = 'You' if api.is_profile(first_name, last_name) else '1st'
 
         bulk_objects.append(
             create_linkedin_conversation_entry(
@@ -187,7 +203,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
                 img_url=image_url,
                 img_expire=image_expire,
                 # TODO: This should be based on a profile id instead of the name
-                connection_degree='You' if api.is_profile(first_name, last_name) else '1st',
+                connection_degree=connection_degree,
                 li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
                 message=msg,
                 urn_id=msg_urn_id,
