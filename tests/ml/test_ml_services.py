@@ -148,7 +148,7 @@ def test_patch_icp_classification_prompt():
 
 
 @use_app_context
-@mock.patch("src.ml.services.wrapped_chat_gpt_completion", return_value="Fit: HIGH\nReason: Some reason")
+@mock.patch("src.ml.services.wrapped_chat_gpt_completion", return_value="Fit: 6\nReason: Some reason")
 def test_icp_classify(wrapped_chat_gpt_completion_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)
@@ -162,5 +162,5 @@ def test_icp_classify(wrapped_chat_gpt_completion_mock):
     result = icp_classify(prospect.id, sdr.id, archetype.id)
     assert wrapped_chat_gpt_completion_mock.call_count == 1
     prospect: Prospect = Prospect.query.get(prospect_id)
-    assert prospect.icp_fit_score == "HIGH"
+    assert prospect.icp_fit_score == 6
     assert prospect.icp_fit_reason == "Some reason"

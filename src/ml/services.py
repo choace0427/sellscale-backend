@@ -455,11 +455,15 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
 
 HARD_CODE_ICP_PROMPT = """Based on this information, label the person based on if they are the ideal ICP using:
 
-- "VERY HIGH" - They are very much the right fit
-- "HIGH" - They are likely the right fit
-- “MEDIUM” - they may be the right fit
-- "LOW" - They are unlikely to be the right fit
-- “VERY LOW” - They are most probably not the right fit.
+- "4" - They are very much the right fit
+- "3" - They are likely the right fit
+- “2” - they may be the right fit
+- "1" - They are unlikely to be the right fit
+- “0” - They are most probably not the right fit.
 
-Include this label next to the word "fit:" based on if this person is the ideal ICP. Then add a new line and say "reason:" with 1-2 sentences describing why this label was chosen.
+Include this numeric label next to the word "Fit:" based on if this person is the ideal ICP. Then add a new line and say "Reason:" with 1-2 sentences describing why this label was chosen.
+
+Example:
+Fit: 1
+Reason: Some reason
 """
