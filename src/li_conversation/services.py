@@ -12,6 +12,7 @@ from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message
 from model_import import BumpFramework
 import random
+import time
 
 
 def update_linkedin_conversation_entries():
@@ -88,6 +89,7 @@ def create_linkedin_conversation_entry(
     li_url: str,
     message: str,
     urn_id: Union[str, None] = None,
+    img_expire: int = 0,
 ):
     """
     Check for duplicates and duplicate does not exist, create a new LinkedinConversationEntry
@@ -108,6 +110,7 @@ def create_linkedin_conversation_entry(
             profile_url=profile_url,
             headline=headline,
             img_url=img_url,
+            img_expire=img_expire,
             connection_degree=connection_degree,
             li_url=li_url,
             message=message,
@@ -116,11 +119,26 @@ def create_linkedin_conversation_entry(
         return new_linkedin_conversation_entry
     else:
         # Populate the urn_id is it's not already set
+        added = False
+        
         if urn_id and not duplicate_exists.urn_id:
             duplicate_exists.urn_id = urn_id
-            db.session.add(duplicate_exists)
-            db.session.commit()
-            return duplicate_exists
+            added = True
+
+        if img_url and not duplicate_exists.img_url:
+            duplicate_exists.img_url = img_url
+            added = True
+        
+        # If the current image is expired, replace it
+        if img_expire and time.time()*1000 > duplicate_exists.img_expire:
+            duplicate_exists.img_url = img_url
+            duplicate_exists.img_expire = img_expire
+            added = True
+        
+        if added:
+          db.session.add(duplicate_exists)
+          db.session.commit()
+          return duplicate_exists
         else:
             return None
 

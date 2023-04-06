@@ -15,6 +15,7 @@ class LinkedinConversationEntry(db.Model):
     profile_url = db.Column(db.String, nullable=True)
     headline = db.Column(db.String, nullable=True)
     img_url = db.Column(db.String, nullable=True)
+    img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)
     connection_degree = db.Column(db.String, nullable=True)
     li_url = db.Column(db.String, nullable=True)
     message = db.Column(db.String, nullable=True)
@@ -49,6 +50,7 @@ class LinkedinConversationEntry(db.Model):
             "profile_url": self.profile_url,
             "headline": self.headline,
             "img_url": self.img_url,
+            "img_expire": self.img_expire,
             "connection_degree": self.connection_degree,
             "li_url": self.li_url,
             "urn_id": self.urn_id,

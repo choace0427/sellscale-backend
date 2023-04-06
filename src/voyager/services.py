@@ -169,6 +169,8 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
         urn_id = public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("entityUrn", "").replace("urn:li:fs_miniProfile:", "")
         public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("publicIdentifier", "")
         headline = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("occupation", "")
+        image_url = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("rootUrl", "")+message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[0].get("fileIdentifyingUrlPathSegment", "")
+        image_expire = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[0].get("expiresAt", 0)
         msg_urn_id = message.get('dashEntityUrn', "").replace("urn:li:fsd_message:", "")
 
         msg = message.get("eventContent", {}).get("com.linkedin.voyager.messaging.event.MessageEvent", {}).get("attributedBody", {}).get("text", "")
@@ -182,7 +184,8 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
                 date=dt.datetime.utcfromtimestamp(message.get("createdAt", 0)/1000),
                 profile_url="https://www.linkedin.com/in/{value}/".format(value=urn_id),
                 headline=headline,
-                img_url="",
+                img_url=image_url,
+                img_expire=image_expire,
                 # TODO: This should be based on a profile id instead of the name
                 connection_degree='You' if api.is_profile(first_name, last_name) else '1st',
                 li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),

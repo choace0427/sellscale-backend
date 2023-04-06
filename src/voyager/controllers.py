@@ -53,6 +53,21 @@ def send_message(client_sdr_id: int):
     return jsonify({"message": "Sent message"}), 200
 
 
+@VOYAGER_BLUEPRINT.route("/raw_conversation", methods=["GET"])
+@require_user
+def get_raw_conversation(client_sdr_id: int):
+    """Gets a conversation with a prospect in raw li data"""
+
+    convo_urn_id = get_request_parameter("convo_urn_id", request, json=False, required=True)
+
+    api = LinkedIn(client_sdr_id)
+    convo = api.get_conversation(convo_urn_id)
+    if(not api.is_valid()):
+      return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+
+    return jsonify({"message": "Success", "data": convo}), 200
+
+
 @VOYAGER_BLUEPRINT.route("/conversation", methods=["GET"])
 @require_user
 def get_conversation(client_sdr_id: int):
