@@ -404,7 +404,7 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
         prompt = archetype.icp_matching_prompt
         if not prompt or prompt.strip() == "":
-            prospect.icp_fit_score = "ERROR"
+            prospect.icp_fit_score = -1
             prospect.icp_fit_reason = "No ICP Classification Prompt"
             db.session.add(prospect)
             db.session.commit()
@@ -445,7 +445,7 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         ).first()
         if not prospect:
             return False
-        prospect.icp_fit_score = "ERROR"
+        prospect.icp_fit_score = -1
         prospect.icp_fit_reason = f"Unknown Error: {e}"
         db.session.add(prospect)
         db.session.commit()
