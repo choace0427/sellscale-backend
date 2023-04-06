@@ -99,6 +99,7 @@ def get_prospects(
             - company: 1 or -1, indicating ascending or descending order
             - status: 1 or -1, indicating ascending or descending order
             - last_updated: 1 or -1, indicating ascending or descending order
+            - icp_fit_score: 1 or -1, indicating ascending or descending order
         The query will be ordered by these fields in the order provided
     """
     # Make sure that the provided status is in the channel's status enum
@@ -137,6 +138,11 @@ def get_prospects(
                 ordering_arr.append(Prospect.updated_at.asc())
             elif order_direction == -1:
                 ordering_arr.append(Prospect.updated_at.desc())
+        elif order_name == "icp_fit_score":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.icp_fit_score.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.icp_fit_score.desc())
 
     # Pad ordering array with None values, set to number of ordering options: 4
     while len(ordering_arr) < 4:

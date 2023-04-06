@@ -274,6 +274,7 @@ def get_prospects_endpoint(client_sdr_id: int):
         - persona_id (int) (optional): The id of the persona to filter by
         - limit (int) (optional): The number of results to return
         - offset (int) (optional): The offset to start from
+        - ordering (str) (optional): The ordering of the results
     """
     try:
         channel = (
