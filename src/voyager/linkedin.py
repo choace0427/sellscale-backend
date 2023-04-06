@@ -334,8 +334,12 @@ class LinkedIn(object):
             keyVersion=LEGACY_INBOX&q=participants&recipients=List({profile_urn_id})"
         )
         if res is None or res.status_code == 403: return None
-
-        data = res.json()
+        
+        try:
+          data = res.json()
+        except:
+          print('Failed to get request JSON: ', res)
+          return None
 
         if data["elements"] == []:
             return {}
@@ -367,7 +371,13 @@ class LinkedIn(object):
         res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
         if res is None or res.status_code == 403: return None
 
-        return res.json()
+        try:
+          data = res.json()
+        except:
+          print('Failed to get request JSON: ', res)
+          return None
+
+        return data
 
     def get_mail_box(self, profile_urn_id):
         # TODO: This is still in progress!
