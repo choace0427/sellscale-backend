@@ -214,6 +214,8 @@ class ClientSDR(db.Model):
             "last_li_conversation_scrape_date": self.last_li_conversation_scrape_date,
             "li_connected": self.li_at_token is not None,
             "li_voyager_connected": self.li_cookies is not None and self.li_cookies != 'INVALID',
+            "email_fetching_credits": self.email_fetching_credits,
+            "icp_matching_credits": self.icp_matching_credits,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
         }
