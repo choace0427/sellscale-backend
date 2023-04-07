@@ -157,11 +157,11 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
       return get_convo_entries(convo_urn_id)
     else:
       # If we need to update the conversation, we do so
-      update_conversation_entries(api, convo_urn_id)
+      update_conversation_entries(api, convo_urn_id, prospect)
       return get_convo_entries(convo_urn_id)
 
 
-def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
+def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Prospect):
     """ Updates LinkedinConversationEntry table with new entries
 
     Args:
@@ -190,7 +190,6 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
         msg_urn_id = message.get('dashEntityUrn', "").replace("urn:li:fsd_message:", "")
 
         msg = message.get("eventContent", {}).get("com.linkedin.voyager.messaging.event.MessageEvent", {}).get("attributedBody", {}).get("text", "")
-        connection_degree = 'You' if api.is_profile(first_name, last_name) else '1st'
 
         bulk_objects.append(
             create_linkedin_conversation_entry(
@@ -203,8 +202,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str):
                 headline=headline,
                 img_url=image_url,
                 img_expire=image_expire,
-                # TODO: This should be based on a profile id instead of the name
-                connection_degree=connection_degree,
+                connection_degree='1st' if prospect.li_urn_id == urn_id else 'You',
                 li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
                 message=msg,
                 urn_id=msg_urn_id,

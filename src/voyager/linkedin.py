@@ -42,7 +42,7 @@ def default_evade(request_count: int):
     if request_count == 1:
       return
     else:
-      sleep(random.uniform(0, 1.5))  # sleep a random duration to try and evade suspention
+      sleep(random.uniform(0.01, 0.90))  # sleep a random duration to try and evade suspention
 
 class LinkedIn(object):
     """
@@ -139,10 +139,6 @@ class LinkedIn(object):
     def is_valid(self):
         """Checks if the client SDR is valid"""
         return self.client_sdr.li_cookies != 'INVALID'
-
-    def is_profile(self, first_name: str, last_name: str):
-        """Checks if this LinkedIn instance is associated with the given name"""
-        return self.client_sdr.name.startswith(first_name) and self.client_sdr.name.endswith(last_name)
 
     def get_profile(self, public_id=None, urn_id=None):
         """Fetch data for a given LinkedIn profile.
