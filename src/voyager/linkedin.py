@@ -34,13 +34,15 @@ from src.voyager.utils.helpers import (
 
 logger = logging.getLogger(__name__)
 
-def default_evade():
+def default_evade(request_count: int):
     """
     A catch-all method to try and evade suspension from Linkedin.
     Currenly, just delays the request by a random (bounded) time
     """
-    sleep(random.randint(2, 5))  # sleep a random duration to try and evade suspention
-
+    if request_count == 1:
+      return
+    else:
+      sleep(random.uniform(0, 1.5))  # sleep a random duration to try and evade suspention
 
 class LinkedIn(object):
     """
@@ -74,6 +76,8 @@ class LinkedIn(object):
             debug=debug,
             proxies=proxies,
         )
+        self.request_count = 0  # number of requests made to linkedin
+
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         self.logger = logger
 
@@ -89,11 +93,18 @@ class LinkedIn(object):
 
     def _fetch(self, uri, evade=default_evade, base_request=False, **kwargs):
         """GET request to Linkedin API"""
-        evade()
+        self.request_count += 1
+        evade(self.request_count)
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
         try:
-          return self.client.session.get(url, **kwargs)
+          res = self.client.session.get(url, **kwargs)
+          
+          # Attempt request again if we're being rate limited
+          if res.status_code == 400 and self.request_count < 20:
+              return self._fetch(uri)
+
+          return res
         except TooManyRedirects as e:
           print('TooManyRedirects - Invalidating cookies')
           sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
@@ -105,11 +116,18 @@ class LinkedIn(object):
 
     def _post(self, uri, evade=default_evade, base_request=False, **kwargs):
         """POST request to Linkedin API"""
-        evade()
+        self.request_count += 1
+        evade(self.request_count)
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
         try:
-          return self.client.session.post(url, **kwargs)
+          res = self.client.session.post(url, **kwargs)
+        
+          # Attempt request again if we're being rate limited
+          if res.status_code == 400 and self.request_count < 20:
+              return self._fetch(uri)
+
+          return res
         except TooManyRedirects as e:
           sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
           if sdr:
@@ -254,10 +272,8 @@ class LinkedIn(object):
         :rtype: dict
         """
         me_profile = self.client.metadata.get("me")
-        print(me_profile)
         if not self.client.metadata.get("me") or not use_cache:
             res = self._fetch(f"/me")
-            print(res)
             if res is None or res.status_code == 403: return None
             me_profile = res.json()
             # cache profile
