@@ -434,10 +434,9 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
 
         # Charge the SDR credits
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        client_sdr.icp_matching_credits -= int(math.ceil(1 * (len(prompt) / 1500)))
+        client_sdr.icp_matching_credits -= 1
 
-        db.session.add(client_sdr)
-        db.session.add(prospect)
+        db.session.add_all([client_sdr, prospect])
         db.session.commit()
         return True
 
