@@ -194,6 +194,7 @@ class ClientSDR(db.Model):
     nylas_active = db.Column(db.Boolean, nullable=True, default=False)
 
     email_fetching_credits = db.Column(db.Integer, nullable=True, default=2000)
+    icp_matching_credits = db.Column(db.Integer, nullable=True, default=4000)
 
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)

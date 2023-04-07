@@ -25,7 +25,7 @@ from src.ml.services import (
     patch_icp_classification_prompt,
     icp_classify
 )
-from model_import import GNLPModelFineTuneJobs
+from model_import import GNLPModelFineTuneJobs, ClientSDR
 
 
 @use_app_context
@@ -152,6 +152,8 @@ def test_patch_icp_classification_prompt():
 def test_icp_classify(wrapped_chat_gpt_completion_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)
+    sdr_id = sdr.id
+    sdr.icp_matching_credits = 1
     archetype = basic_archetype(client, sdr)
     archetype.icp_matching_prompt = "test"
     prospect = basic_prospect(client, archetype, sdr)
@@ -164,3 +166,5 @@ def test_icp_classify(wrapped_chat_gpt_completion_mock):
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.icp_fit_score == 6
     assert prospect.icp_fit_reason == "Some reason"
+    sdr: ClientSDR = ClientSDR.query.get(sdr_id)
+    assert sdr.icp_matching_credits == 0

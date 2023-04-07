@@ -15,7 +15,7 @@ from src.ml.models import (
 from src.ml.openai_wrappers import wrapped_create_completion, wrapped_chat_gpt_completion, CURRENT_OPENAI_DAVINCI_MODEL, CURRENT_OPENAI_CHAT_GPT_MODEL
 import regex as rx
 import re
-
+import math
 import openai
 import json
 
@@ -431,6 +431,12 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         # Update Prospect
         prospect.icp_fit_score = fit
         prospect.icp_fit_reason = reason
+
+        # Charge the SDR credits
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client_sdr.icp_matching_credits -= int(math.ceil(1 * (len(prompt) / 1500)))
+
+        db.session.add(client_sdr)
         db.session.add(prospect)
         db.session.commit()
         return True
