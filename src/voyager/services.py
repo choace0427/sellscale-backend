@@ -125,8 +125,11 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     # Check if we need to update the conversation 
     details = api.get_conversation_details(prospect_urn_id)
 
-    if not details:
-      return []
+    if details is None:
+      return [], "INVALID_CONVO"
+    if details == {}:
+      return [], "NO_CONVO"
+
     convo_urn_id = details['id']
     last_msg_urn_id = details['events'][0]['dashEntityUrn'].replace("urn:li:fsd_message:", "")
     convo_entry = LinkedinConversationEntry.query.filter_by(urn_id=last_msg_urn_id).first()
@@ -154,11 +157,11 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
     # If not, we return the conversation from the database
     if convo_entry or not check_for_update:
-      return get_convo_entries(convo_urn_id)
+      return get_convo_entries(convo_urn_id), "NO_UPDATE"
     else:
       # If we need to update the conversation, we do so
       update_conversation_entries(api, convo_urn_id, prospect)
-      return get_convo_entries(convo_urn_id)
+      return get_convo_entries(convo_urn_id), "UPDATED"
 
 
 def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Prospect):

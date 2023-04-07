@@ -106,11 +106,11 @@ def get_conversation(client_sdr_id: int):
       check_for_update = bool(check_for_update)
 
     api = LinkedIn(client_sdr_id)
-    convo = fetch_conversation(api, prospect_id, check_for_update)
+    convo, status_text = fetch_conversation(api, prospect_id, check_for_update)
     if(not api.is_valid()):
       return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
-    return jsonify({"message": "Success", "data": convo}), 200
+    return jsonify({"message": "Success", "data": convo, "data_status": status_text}), 200
 
 
 @VOYAGER_BLUEPRINT.route("/recent_conversations", methods=["GET"])
