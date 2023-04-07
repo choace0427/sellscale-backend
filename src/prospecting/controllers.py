@@ -491,7 +491,7 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     )
     allow_duplicates = True if allow_duplicates is None else allow_duplicates
 
-    if len(csv_payload) >= 2000:
+    if len(csv_payload) >= 3000:
         return "Too many rows in CSV", 400
 
     validated, reason = validate_prospect_json_payload(
@@ -667,7 +667,7 @@ def get_valid_channel_types():
 @PROSPECTING_BLUEPRINT.route("/pull_emails", methods=["POST"])
 @require_user
 def pull_prospect_emails(client_sdr_id: int):
-    success = find_hunter_emails_for_prospects_under_client_sdr(client_sdr_id)
+    success = find_hunter_emails_for_prospects_under_client_sdr.delay(client_sdr_id)
     if success:
         return "OK", 200
     return "Unable to fetch emails", 400

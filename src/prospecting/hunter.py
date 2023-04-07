@@ -2,6 +2,7 @@ import requests
 import os
 from model_import import Prospect, ClientSDR
 from app import db, celery
+import time
 
 HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY")
 DEFAULT_MONTHLY_EMAIL_FETCHING_CREDITS = (
@@ -32,6 +33,8 @@ def get_email_from_hunter(
 @celery.task
 def find_hunter_email_from_prospect_id(prospect_id: int):
     p: Prospect = Prospect.query.get(prospect_id)
+    print("\nProcessesing prospect: ", p.id)
+
     if not p or p.email:
         return None
     first_name = p.first_name
@@ -39,7 +42,7 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     company_website = p.company_url
     company_name = p.company
 
-    if "linkedin.com/" in p.company_url:
+    if not p.company_url or "linkedin.com/" in p.company_url:
         return None
 
     success, data = get_email_from_hunter(
@@ -49,6 +52,7 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
         company_name=company_name,
     )
     if not success:
+        print(data)
         return None
 
     email = data["email"]
@@ -67,11 +71,16 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     return p
 
 
+@celery.task
 def find_hunter_emails_for_prospects_under_client_sdr(client_sdr_id: int):
     prospects: list = Prospect.query.filter_by(
         client_sdr_id=client_sdr_id, email=None
     ).all()
+    count = 0
     for prospect in prospects:
+        count += 1
+        if count % 5 == 0:
+            time.sleep(1)
         p_id: int = prospect.id
         find_hunter_email_from_prospect_id.delay(p_id)
 
