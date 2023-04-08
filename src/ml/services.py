@@ -12,8 +12,13 @@ from src.ml.models import (
     GNLPModelType,
     ModelProvider,
 )
-from src.prospecting.upload.services import run_and_assign_intent_score
-from src.ml.openai_wrappers import wrapped_create_completion, wrapped_chat_gpt_completion, CURRENT_OPENAI_DAVINCI_MODEL, CURRENT_OPENAI_CHAT_GPT_MODEL
+
+from src.ml.openai_wrappers import (
+    wrapped_create_completion,
+    wrapped_chat_gpt_completion,
+    CURRENT_OPENAI_DAVINCI_MODEL,
+    CURRENT_OPENAI_CHAT_GPT_MODEL,
+)
 import regex as rx
 import re
 import math
@@ -214,34 +219,40 @@ def get_aree_fix_basic(message_id: int) -> str:
         model=CURRENT_OPENAI_DAVINCI_MODEL,
         prompt=prompt,
         temperature=0,
-        max_tokens=len(completion)+10,
+        max_tokens=len(completion) + 10,
     )
 
     return fixed_completion
 
 
-def get_sequence_value_props(company: str, selling_to: str, selling_what: str, num: int):
+def get_sequence_value_props(
+    company: str, selling_to: str, selling_what: str, num: int
+):
 
     prompt = f"You are a writing assistant that helps write email sequences. Here is the information:\n"
     prompt += f"- Company: {company}\n"
     prompt += f"- Who are you selling to?: {selling_to}\n"
     prompt += f"- What are you selling?: {selling_what}\n"
     prompt += f"- Number of emails in the sequence: {num}\n"
-    prompt += "\n\nBased on this information, generate {num} value props we can use to target. Each value prop should be a 5-10 word phrase with a hyphen and one sentance describing it in detail.".format(num=num)
+    prompt += "\n\nBased on this information, generate {num} value props we can use to target. Each value prop should be a 5-10 word phrase with a hyphen and one sentance describing it in detail.".format(
+        num=num
+    )
 
     fixed_completion = wrapped_create_completion(
         model=CURRENT_OPENAI_DAVINCI_MODEL,
         prompt=prompt,
         temperature=1,
-        max_tokens=20+30*num,
+        max_tokens=20 + 30 * num,
     )
 
-    props = re.sub(r'\d+\. ', '', fixed_completion).split('\n')
+    props = re.sub(r"\d+\. ", "", fixed_completion).split("\n")
     return props
 
 
-def get_sequence_draft(value_props: list[str], client_sdr_id: int, archetype_id: int) -> list[dict]:
-    """ Generates a sequence draft for a client.
+def get_sequence_draft(
+    value_props: list[str], client_sdr_id: int, archetype_id: int
+) -> list[dict]:
+    """Generates a sequence draft for a client.
 
     Args:
         value_props (List[str]): The value props to use in the sequence.
@@ -272,7 +283,9 @@ def get_sequence_draft(value_props: list[str], client_sdr_id: int, archetype_id:
 
     # Prompt Engineering - Instructions
     prompt += f"\nInstructions:\n"
-    prompt += f"- Write a sequence of emails that targets the value props and persona.\n"
+    prompt += (
+        f"- Write a sequence of emails that targets the value props and persona.\n"
+    )
     prompt += f"- The emails need to address the recipient using {{{{first_name}}}} as a placeholder for the first name.\n"
     prompt += f"- The emails need to build off of each other.\n"
     prompt += f"- The second email should open with a question.\n"
@@ -300,10 +313,12 @@ def get_sequence_draft(value_props: list[str], client_sdr_id: int, archetype_id:
     parsed_emails = []
     json_emails: list[dict] = json.loads(emails)
     for email in json_emails:
-        parsed_emails.append({
-            'subject_line': email.get('subject_line'),
-            'email': email.get('email'),
-        })
+        parsed_emails.append(
+            {
+                "subject_line": email.get("subject_line"),
+                "email": email.get("email"),
+            }
+        )
 
     return parsed_emails
 
@@ -346,7 +361,9 @@ def patch_icp_classification_prompt(archetype_id: int, prompt: str) -> bool:
     return True
 
 
-def trigger_icp_classification(client_sdr_id: int, archetype_id: int, prospect_ids: list[int]) -> bool:
+def trigger_icp_classification(
+    client_sdr_id: int, archetype_id: int, prospect_ids: list[int]
+) -> bool:
     """Triggers the ICP Classification Endpoint for a given client SDR id and archetype id.
 
     Args (used to verify the client SDR id and archetype id):
@@ -360,9 +377,7 @@ def trigger_icp_classification(client_sdr_id: int, archetype_id: int, prospect_i
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         for prospect_id in prospect_ids:
-            icp_classify.apply_async(
-                args=[prospect_id, client_sdr_id, archetype_id]
-            )
+            icp_classify.apply_async(args=[prospect_id, client_sdr_id, archetype_id])
     else:
         # Get all prospects for the client SDR id and archetype id
         prospects: list[Prospect] = Prospect.query.filter(
@@ -372,9 +387,7 @@ def trigger_icp_classification(client_sdr_id: int, archetype_id: int, prospect_i
 
         # Run celery job for each prospect
         for prospect in prospects:
-            icp_classify.apply_async(
-                args=[prospect.id, client_sdr_id, archetype_id]
-            )
+            icp_classify.apply_async(args=[prospect.id, client_sdr_id, archetype_id])
 
     return True
 
@@ -391,6 +404,8 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
     Returns:
         bool: True if the prospect is an ICP, False otherwise.
     """
+    from src.prospecting.upload.services import run_and_assign_intent_score
+
     try:
         # Get Prospect
         prospect: Prospect = Prospect.query.filter(
@@ -420,14 +435,12 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
 
         # Generate Completion
         completion = wrapped_chat_gpt_completion(
-            messages=[{
-                "role": "user", "content": prompt
-            }],
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=100,
         )
-        fit = completion.split('Fit:')[1].split('Reason:')[0].strip()
+        fit = completion.split("Fit:")[1].split("Reason:")[0].strip()
         fit = int(fit)
-        reason = completion.split('Reason:')[1].strip()
+        reason = completion.split("Reason:")[1].strip()
 
         # Update Prospect
         prospect.icp_fit_score = fit
