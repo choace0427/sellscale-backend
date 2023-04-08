@@ -346,6 +346,8 @@ class Prospect(db.Model):
     li_urn_id = db.Column(db.String, nullable=True)
 
     health_check_score = db.Column(db.Float, nullable=True)
+    li_intent_score = db.Column(db.Float, nullable=True)
+    email_intent_score = db.Column(db.Float, nullable=True)
 
     last_reviewed = db.Column(db.DateTime, nullable=True)  # last message date
     times_bumped = db.Column(db.Integer, nullable=True)

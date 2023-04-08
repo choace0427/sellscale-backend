@@ -24,7 +24,9 @@ from src.prospecting.upload.services import (
     create_prospect_from_prospect_upload_row,
     create_prospect_from_linkedin_link,
     run_and_assign_health_score,
-    calculate_health_check_follower_sigmoid
+    calculate_health_check_follower_sigmoid,
+    calculate_weighted_fit_score,
+    run_and_assign_intent_score
 )
 
 import mock
@@ -346,3 +348,43 @@ def test_calculate_health_check_follower_sigmoid():
 
         high_score = calculate_health_check_follower_sigmoid(random_high_count)
         assert high_score >= 37.5 and high_score <= 75      # We know this to be true since our midpoint is set to 300
+
+
+@use_app_context
+def test_calculate_weighted_fit_score():
+    score = -1
+    assert calculate_weighted_fit_score(score) == (-1/4 * 50)
+
+    score = 0
+    assert calculate_weighted_fit_score(score) == (0/4 * 50)
+
+    score = 1
+    assert calculate_weighted_fit_score(score) == (1/4 * 50)
+
+    score = 2
+    assert calculate_weighted_fit_score(score) == (2/4 * 50)
+
+    score = 3
+    assert calculate_weighted_fit_score(score) == (3/4 * 50)
+
+    score = 4
+    assert calculate_weighted_fit_score(score) == (4/4 * 50)
+
+
+@use_app_context
+def test_run_and_assign_intent_score():
+    c = basic_client()
+    sdr = basic_client_sdr(c)
+    a = basic_archetype(c, sdr)
+    p = basic_prospect(c, a, sdr)
+    p_id = p.id
+    p.health_check_score = 60
+    p.hunter_email_score = 40
+    p.icp_fit_score = 3
+
+    response = run_and_assign_intent_score(p_id)
+    assert response == True
+
+    p: Prospect = Prospect.query.get(p_id)
+    assert p.li_intent_score == ((60 * .5) + (3/4 * 50))
+    assert p.email_intent_score == ((40 * .5) + (3/4 * 50))

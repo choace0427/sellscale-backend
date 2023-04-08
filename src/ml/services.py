@@ -12,6 +12,7 @@ from src.ml.models import (
     GNLPModelType,
     ModelProvider,
 )
+from src.prospecting.upload.services import run_and_assign_intent_score
 from src.ml.openai_wrappers import wrapped_create_completion, wrapped_chat_gpt_completion, CURRENT_OPENAI_DAVINCI_MODEL, CURRENT_OPENAI_CHAT_GPT_MODEL
 import regex as rx
 import re
@@ -438,6 +439,8 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
 
         db.session.add_all([client_sdr, prospect])
         db.session.commit()
+
+        run_and_assign_intent_score(prospect_id)
         return True
 
     except Exception as e:

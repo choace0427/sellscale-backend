@@ -495,3 +495,52 @@ def refresh_bio_followers_for_prospect(self, prospect_id: int):
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
+def run_and_assign_intent_score(self, prospect_id: int):
+    """ Runs and assigns a Prospect.email_intent_score and Prospect.li_intent_score based on either their LI or their Email
+
+    Args:
+        prospect_id (int): The prospect id to run the intent score on.
+    """
+    try:
+        # Get Prospect
+        p: Prospect = Prospect.query.get(prospect_id)
+        if p is None:
+            return False
+
+        # Get ICP fit score
+        icp_fit_score = p.icp_fit_score or -1
+        weighted_fit_score = calculate_weighted_fit_score(icp_fit_score)
+
+        # Get Intent Score for LI
+        if p.health_check_score is not None:
+            li_intent_score = p.health_check_score * .5 + weighted_fit_score
+            p.li_intent_score = li_intent_score
+
+        # Get Intent Score for Email
+        if p.hunter_email_score is not None:
+            email_intent_score = p.hunter_email_score * .5 + weighted_fit_score
+            p.email_intent_score = email_intent_score
+
+        db.session.add(p)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def calculate_weighted_fit_score(icp_fit_score: int) -> float:
+    """ Calculates the weighted fit score for a prospect.
+
+    icp_fit_score ranges between 0 and 4, we apply a simple scalar to get a weighted fit score between 0 and 50.
+
+    Args:
+        icp_fit_score (int): The ICP fit score for a prospect.
+
+    Returns:
+        int: The weighted fit score for a prospect.
+    """
+    return (icp_fit_score / 4) * 50
