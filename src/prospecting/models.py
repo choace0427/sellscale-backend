@@ -432,6 +432,8 @@ class Prospect(db.Model):
             "li_num_followers": self.li_num_followers,
             "li_urn_id": self.li_urn_id,
             "health_check_score": self.health_check_score,
+            "li_intent_score": self.li_intent_score,
+            "email_intent_score": self.email_intent_score,
             "last_reviewed": self.last_reviewed,
             "times_bumped": self.times_bumped,
             "deactivate_ai_engagement": self.deactivate_ai_engagement,
