@@ -32,7 +32,7 @@ from model_import import (
     LinkedinConversationEntry,
     IScraperPayloadCache,
     IScraperPayloadType,
-    OutboundCampaignStatus
+    OutboundCampaignStatus,
 )
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
@@ -190,7 +190,7 @@ def get_prospects(
         .order_by(ordering_arr[2])
         .order_by(ordering_arr[3])
     )
-    if(persona_id != -1):
+    if persona_id != -1:
         prospects = prospects.filter(Prospect.archetype_id == persona_id)
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
@@ -681,6 +681,7 @@ def add_prospect(
         int or None: ID of the Prospect if it was added successfully, None otherwise
     """
     status = ProspectStatus.PROSPECTED
+    overall_status = ProspectOverallStatus.PROSPECTED
 
     # full_name typically comes fron iScraper LinkedIn, so we run a Title Case check on it
     if full_name and needs_title_casing(full_name):
@@ -729,6 +730,7 @@ def add_prospect(
             email=email,
             client_sdr_id=client_sdr_id,
             li_num_followers=linkedin_num_followers,
+            overall_status=overall_status,
         )
         db.session.add(prospect)
         db.session.commit()
@@ -863,8 +865,10 @@ def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int
     return updates
 
 
-def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int) -> tuple[bool, dict]:
-    """ Marks prospects and messages as queued for outreach
+def mark_prospects_as_queued_for_outreach(
+    prospect_ids: list, client_sdr_id: int
+) -> tuple[bool, dict]:
+    """Marks prospects and messages as queued for outreach
 
     Args:
         prospect_ids (list): List of prospect ids
@@ -873,9 +877,8 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
     Returns:
         bool: True if successful
     """
-    from src.campaigns.services import (
-        change_campaign_status
-    )
+    from src.campaigns.services import change_campaign_status
+
     # Get prospects
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.id.in_(prospect_ids),
@@ -889,7 +892,9 @@ def mark_prospects_as_queued_for_outreach(prospect_ids: list, client_sdr_id: int
         GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
     ).all()
     if not messages:
-        return False, {"error": "No messages in APPROVED found. May have already been queued."}
+        return False, {
+            "error": "No messages in APPROVED found. May have already been queued."
+        }
     campaign_id = messages[0].outbound_campaign_id
     messages_ids = [message.id for message in messages]
 
