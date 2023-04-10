@@ -25,7 +25,7 @@ import math
 import openai
 import json
 
-from utils.slack import send_slack_message, URL_MAP
+from src.automation.slack_notification import send_slack_message, URL_MAP
 
 
 def remove_control_characters(str):
