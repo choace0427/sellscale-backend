@@ -25,6 +25,8 @@ import math
 import openai
 import json
 
+from utils.slack import send_slack_message, URL_MAP
+
 
 def remove_control_characters(str):
     return rx.sub(r"\p{C}", "", str)
@@ -337,6 +339,64 @@ def get_icp_classification_prompt_by_archetype_id(archetype_id: int) -> str:
         return None
 
     return archetype.icp_matching_prompt
+
+
+def post_icp_classification_prompt_change_request(client_sdr_id: int, archetype_id: int, new_prompt: str) -> tuple[bool, str]:
+    """Sends a message to Slack notifying SellScale of a requested ICP Classification Prompt change.
+
+    Args:
+        client_sdr_id (int): ID of the client SDR.
+        archetype_id (int): ID of the archetype.
+        new_prompt (str): The new prompt.
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return False, "Archetype not found."
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False, "Client SDR not found."
+
+    message_sent = send_slack_message(
+        message="ICP Classification Prompt Change Requested",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Pulse Check Change Requested - {sdr}".format(
+                        sdr=sdr.name
+                    ),
+                }
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "Persona: {persona} ({archetype_id})".format(
+                            persona=archetype.archetype, archetype_id=archetype_id
+                        )
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "New Prompt:\n\n{new_prompt}".format(new_prompt=new_prompt)
+                }
+            }
+        ],
+        webhook_urls=[URL_MAP.get("operations-pulse-change")],
+    )
+    if not message_sent:
+        return False, "Failed to send update request."
+
+    return True, "Success"
 
 
 def patch_icp_classification_prompt(archetype_id: int, prompt: str) -> bool:

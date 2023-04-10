@@ -13,6 +13,7 @@ from src.ml.services import (
     get_sequence_draft,
     get_sequence_value_props,
     get_icp_classification_prompt_by_archetype_id,
+    post_icp_classification_prompt_change_request,
     patch_icp_classification_prompt,
     trigger_icp_classification
 )
@@ -155,6 +156,27 @@ def get_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int, a
     result = get_icp_classification_prompt_by_archetype_id(archetype_id)
 
     return jsonify({"message": 'Success', 'data': result}), 200
+
+
+@ML_BLUEPRINT.route("/icp_classification/icp_prompt/<int:archetype_id>/request_update", methods=["POST"])
+@require_user
+def post_icp_classification_prompt_change_request_endpoint(client_sdr_id: int, archetype_id: int):
+    """Requests an update to the ICP classification prompt for a given archetype
+
+    This is a Wizard of Oz endpoint that will send a slack message
+    """
+    new_prompt = get_request_parameter("new_prompt", request, json=True, required=True, parameter_type=str)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if archetype is None:
+        return jsonify({"message": 'Archetype not found'}), 404
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+
+    result, msg = post_icp_classification_prompt_change_request(client_sdr_id, archetype_id, new_prompt)
+    if not result:
+        return jsonify({"message": msg}), 400
+
+    return jsonify({"message": 'Success', 'data': msg}), 200
 
 
 @ML_BLUEPRINT.route("/icp_classification/icp_prompt/<int:archetype_id>", methods=["PATCH"])

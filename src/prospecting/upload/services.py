@@ -413,6 +413,9 @@ def run_and_assign_health_score(self, archetype_id: Optional[int] = None, prospe
                 health_check_score=None,
             ).first()
 
+            if not prospect:
+                return
+
             if (
                 prospect.li_num_followers is None
             ):  # This should only happen on existent records, iScraper won't give None here.
