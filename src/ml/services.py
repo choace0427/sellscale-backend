@@ -25,8 +25,6 @@ import math
 import openai
 import json
 
-from src.automation.slack_notification import send_slack_message, URL_MAP
-
 
 def remove_control_characters(str):
     return rx.sub(r"\p{C}", "", str)
@@ -352,6 +350,8 @@ def post_icp_classification_prompt_change_request(client_sdr_id: int, archetype_
     Returns:
         bool: True if successful, False otherwise.
     """
+    from src.automation.slack_notification import send_slack_message, URL_MAP
+
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
         return False, "Archetype not found."
