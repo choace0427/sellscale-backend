@@ -366,7 +366,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, allow_dupl
             db.session.add(prospect_upload)
             db.session.commit()
             run_and_assign_health_score.apply_async(
-                args=[prospect_upload.client_archetype_id],
+                args=[None, new_prospect_id],
                 queue="prospecting",
                 routing_key="prospecting",
                 priority=5,
@@ -393,7 +393,7 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, allow_dupl
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def run_and_assign_health_score(self, archetype_id: int):
+def run_and_assign_health_score(self, archetype_id: Optional[int] = None, prospect_id: Optional[int] = None):
     """Celery task for running and assigning health scores to prospects.
 
     Only runs on prospects that have not been assigned a health score.
@@ -406,6 +406,33 @@ def run_and_assign_health_score(self, archetype_id: int):
     """
     # Get the prospects for the archetype
     try:
+        # Add a short_circuit which will use prospect_id
+        if prospect_id is not None:
+            prospect: Prospect = Prospect.query.filter_by(
+                id=prospect_id,
+                health_check_score=None,
+            ).first()
+
+            if (
+                prospect.li_num_followers is None
+            ):  # This should only happen on existent records, iScraper won't give None here.
+                return
+
+            health_score = 0
+
+            if prospect.linkedin_bio is not None and len(prospect.linkedin_bio) > 0:
+                health_score += 25
+
+            # Calculate score based off of Sigmoid Function (using follower count)
+            sig_score = calculate_health_check_follower_sigmoid(prospect.li_num_followers or 0)
+            health_score += sig_score
+
+            prospect.health_check_score = health_score
+            db.session.add(prospect)
+            db.session.commit()
+            return
+
+        # Regular, archetype-wide health score
         prospects: list[Prospect] = Prospect.query.filter_by(
             archetype_id=archetype_id,
             health_check_score=None,

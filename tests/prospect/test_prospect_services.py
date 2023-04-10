@@ -971,7 +971,7 @@ def test_mark_prospects_as_queued_for_outreach():
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
     result = mark_prospects_as_queued_for_outreach([prospect.id], sdr.id)
-    assert result == True
+    assert result == (True, None)
     prospect = Prospect.query.get(prospect_id)
     assert prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH
     assert prospect.overall_status == ProspectOverallStatus.PROSPECTED

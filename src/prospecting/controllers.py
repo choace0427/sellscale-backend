@@ -544,13 +544,6 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
-        link=run_and_assign_health_score.signature(
-            args=[archetype_id],
-            queue="prospecting",
-            routing_key="prospecting",
-            priority=3,
-            immutable=True,
-        ),
     )
 
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
