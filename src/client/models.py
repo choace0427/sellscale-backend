@@ -97,6 +97,7 @@ class ClientArchetype(db.Model):
             "persona_description": self.persona_description,
             "persona_fit_reason": self.persona_fit_reason,
             "vessel_sequence_id": self.vessel_sequence_id,
+            "icp_matching_prompt": self.icp_matching_prompt,
         }
 
 
