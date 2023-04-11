@@ -138,7 +138,10 @@ def get_sequence_draft_endpoint(client_sdr_id: int):
     elif archetype.client_sdr_id != client_sdr_id:
         return jsonify({"message": 'Archetype does not belong to this user'}), 401
 
-    result = get_sequence_draft(value_props, client_sdr_id, archetype_id)
+    try:
+      result = get_sequence_draft(value_props, client_sdr_id, archetype_id)
+    except Exception as e:
+      return jsonify({"message": f'Error: {str(e)}'}), 500
 
     return jsonify({"message": 'Success', 'data': result}), 200
 

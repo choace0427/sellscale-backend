@@ -1,6 +1,8 @@
 import hashlib
 import json
 import datetime
+from flask import jsonify
+from src.email_outbound.models import Sequence, SequenceStatus
 
 from app import db, celery
 from model_import import (
@@ -406,3 +408,55 @@ EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS = {
     EmailInteractionState.EMAIL_CLICKED: ProspectEmailOutreachStatus.ACCEPTED,
     EmailInteractionState.EMAIL_REPLIED: ProspectEmailOutreachStatus.ACTIVE_CONVO,
 }
+
+
+def add_sequence(title: str, client_sdr_id: int, archetype_id: int, data):
+    """ Add a sequence to the database.
+
+    Args:
+        title (str): Title of the sequence.
+        client_sdr_id (int): ID of the SDR.
+        archetype_id (int): ID of the archetype.
+        data (_type_): JSON data for the sequence, { subject: str, body: str }[]
+
+    Returns:
+        (JSON, HTTP status): JSON response and HTTP status code.
+    """
+    
+    ca: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.id == archetype_id,
+    ).first()
+    if not ca:
+        return jsonify({"message": 'Archetype not found for this SDR'}), 404
+    
+    sequence = Sequence(
+        title=title,
+        client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
+        # TODO: Confirm the JSON data is valid?
+        data=data,
+        status=SequenceStatus.PENDING,
+        sales_engagement_id=None,
+    )
+    db.session.add(sequence)
+    db.session.commit()
+    
+    return jsonify({"message": 'Created', "data": sequence.to_dict()}), 200
+
+
+def get_sequences(client_sdr_id: int, archetype_id: int):
+    """Get all sequences for a given archetype.
+
+    Args:
+        client_sdr_id (int): ID of the SDR.
+        archetype_id (int): ID of the archetype.
+
+    Returns:
+        (JSON, HTTP status): JSON response and HTTP status code.
+    """
+    sequences = Sequence.query.filter(
+        Sequence.archetype_id == archetype_id,
+        Sequence.client_sdr_id == client_sdr_id,
+    ).all()
+    return jsonify({"message": "Success", "data": [s.to_dict() for s in sequences]}), 200

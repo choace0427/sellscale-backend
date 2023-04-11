@@ -389,3 +389,33 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.NOT_INTERESTED,
     ],
 }
+
+
+class SequenceStatus(enum.Enum):
+    PENDING = "PENDING"
+    IMPORTED = "IMPORTED"
+    CANCELLED = "CANCELLED"
+
+class Sequence(db.Model):
+    __tablename__ = "sequence"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+    archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
+    data = db.Column(db.JSON, nullable=False)
+    status = db.Column(db.Enum(SequenceStatus), nullable=False)
+    sales_engagement_id = db.Column(db.Integer, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "client_sdr_id": self.client_sdr_id,
+            "archetype_id": self.archetype_id,
+            "data": self.data,
+            "status": self.status.value,
+            "sales_engagement_id": self.sales_engagement_id,
+        }
+
+
