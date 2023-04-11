@@ -338,7 +338,7 @@ def get_sequence_draft(
         parts = email.strip().split('\n', 1)
         if len(parts) != 2:
             continue
-        
+
         subject = re.sub(r"^subject: ", '', parts[0].strip(), flags=re.IGNORECASE)
 
         body = re.sub(r"--\s?$", '', parts[1].strip(), flags=re.IGNORECASE)
@@ -508,13 +508,16 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
 
         # Get Archetype for prompt
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-        prompt = archetype.icp_matching_prompt
-        if not prompt or prompt.strip() == "":
+        icp = archetype.icp_matching_prompt
+        if not icp or icp.strip() == "":
             prospect.icp_fit_score = -1
             prospect.icp_fit_reason = "No ICP Classification Prompt"
             db.session.add(prospect)
             db.session.commit()
             return False
+
+        prompt = HARD_CODE_ICP_HEADER
+        prompt += icp
 
         # Create Prompt
         prompt += f"""\n\nHere is a potential prospect:
@@ -562,6 +565,9 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         db.session.commit()
 
         raise self.retry(exc=Exception("Retrying task"))
+
+
+HARD_CODE_ICP_HEADER = "I am a sales researcher. This is the Ideal Customer Profile for my target customer:\n\n"
 
 
 HARD_CODE_ICP_PROMPT = """Based on this information, label the person based on if they are the ideal ICP using:
