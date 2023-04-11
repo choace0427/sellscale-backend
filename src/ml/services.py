@@ -245,7 +245,9 @@ def get_sequence_value_props(
         max_tokens=20 + 30 * num,
     )
 
+    print(fixed_completion)
     props = re.sub(r"\d+\. ", "", fixed_completion).split("\n")
+    print(props)
     return props
 
 
@@ -297,7 +299,6 @@ def get_sequence_draft(
     prompt += f"Example sequence:\n"
     prompt += f"subject: 80% of US Physicians are on Doximity\n"
     prompt += f"Hey {{First_Name}},"
-    prompt += f"{{SellScale_Personalization}}"
     prompt += f"As Doximity’s official physician staffing firm, we use our exclusive access to 80% of U.S. physicians on Doximity and our sophisticated technology to intelligently source candidates so organizations like {{account_name_or_company}} can land their next physician hire faster and more cost-effectively."
     prompt += f"I’d love to chat for 15 minutes about how Curative can help fill your most challenging roles –⁠ when are you free to chat?"
     prompt += f"Thanks,"
@@ -341,7 +342,8 @@ def get_sequence_draft(
         subject = re.sub(r"^subject: ", '', parts[0].strip(), flags=re.IGNORECASE)
 
         body = re.sub(r"--\s?$", '', parts[1].strip(), flags=re.IGNORECASE)
-        body = re.sub(r"{{None}},\n", '{{First_Name}},\n\n{{SellScale_Personalization}}\n', body, flags=re.IGNORECASE)
+        body = re.sub(r"-\s?$", '', body, flags=re.IGNORECASE)
+        body = re.sub(r"^(.+){{.+}},", lambda m: f'{m.group(1)}{{First_Name}},\n\n{{SellScale_Personalization}}', body)
 
         parsed_emails.append({
             'subject_line': subject.strip(),
