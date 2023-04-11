@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from src.client.services import check_nylas_status
 from model_import import ClientPod
 from src.message_generation.models import GeneratedMessageCTA
 from src.client.services import (
