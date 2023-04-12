@@ -447,8 +447,8 @@ def smart_get_prospects_for_campaign(
             Prospect.approved_outreach_message_id == None,
             or_(
                 Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
-                Prospect.status == ProspectOverallStatus.SENT_OUTREACH.value,
-                Prospect.status == ProspectOverallStatus.BUMPED.value,
+                Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
+                Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
             ),
         )
     elif campaign_type == GeneratedMessageType.EMAIL.value:
@@ -457,8 +457,8 @@ def smart_get_prospects_for_campaign(
             Prospect.email.isnot(None),
             or_(
                 Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
-                Prospect.status == ProspectOverallStatus.SENT_OUTREACH.value,
-                Prospect.status == ProspectOverallStatus.BUMPED.value,
+                Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
+                Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
             ),
         )
 
