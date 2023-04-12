@@ -25,7 +25,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('client_sdr_id', sa.Integer(), nullable=False),
     sa.Column('prospect_id', sa.Integer(), nullable=False),
-    sa.Column('type', postgresql.ENUM(name='prospectchannels', create_type=False), nullable=False),
+    sa.Column('type', sa.Enum('LINKEDIN', 'EMAIL', 'SElLSCALE', name='prospectchannels', create_type=False), nullable=False),
     sa.Column('viewed', sa.Boolean(), nullable=False),
     sa.Column('engagement_metadata', sa.JSON(), nullable=False),
     sa.ForeignKeyConstraint(['client_sdr_id'], ['client_sdr.id'], ),
