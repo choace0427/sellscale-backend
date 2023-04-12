@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
 from sqlalchemy import or_
 import requests
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
@@ -202,7 +203,24 @@ def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):
     
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     res = requests.get(f'https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
-    return res.json()
+    result = res.json()
+
+    for thread in result:
+      model: EmailConversationThread = EmailConversationThread(
+          client_sdr_id=client_sdr_id,
+          prospect_id=prospect.id,
+          subject = thread.get('subject'),
+          snippet = thread.get('snippet'),
+          prospect_email = prospect.email,
+          sdr_email = client_sdr.email,
+          nylas_thread_id = thread.get('id'),
+          nylas_data = thread
+      )
+      db.session.add(model)
+      
+    db.session.commit()
+
+    return result
 
 
 def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list[str], thread_id: str):
@@ -215,8 +233,26 @@ def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list
       res = requests.get(f'https://api.nylas.com/messages?thread_id={thread_id}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
     else:
       return {}
+    
+    result = res.json()
+    
+    for thread in result:
+      model: EmailConversationMessage = EmailConversationMessage(
+          client_sdr_id=client_sdr_id,
+          prospect_id=prospect.id,
+          subject = thread.get('subject'),
+          snippet = thread.get('snippet'),
+          prospect_email = prospect.email,
+          sdr_email = client_sdr.email,
+          nylas_thread_id = thread.get('thread_id'),
+          nylas_message_id = thread.get('id'),
+          nylas_data = thread
+      )
+      db.session.add(model)
 
-    return res.json()
+    db.session.commit()
+
+    return result
 
 
 def prospect_exists_for_client(full_name: str, client_id: int):

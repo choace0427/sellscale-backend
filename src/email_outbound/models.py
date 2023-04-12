@@ -419,3 +419,62 @@ class Sequence(db.Model):
         }
 
 
+
+class EmailConversationThread(db.Model):
+    __tablename__ = "email_conversation_thread"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
+
+    subject = db.Column(db.String, nullable=False)
+    snippet = db.Column(db.String, nullable=False)
+    prospect_email = db.Column(db.String, nullable=False)
+    sdr_email = db.Column(db.String, nullable=False)
+
+    nylas_thread_id = db.Column(db.String, nullable=False, index=True, unique=True)
+    nylas_data = db.Column(db.JSON, nullable=False)
+
+    def to_dict(self):
+        return {
+            "client_sdr_id": self.client_sdr_id,
+            "prospect_id": self.prospect_id,
+            "subject": self.subject,
+            "snippet": self.snippet,
+            "prospect_email": self.prospect_email,
+            "sdr_email": self.sdr_email,
+            "nylas_thread_id": self.nylas_thread_id,
+            "nylas_data": self.nylas_data,
+        }
+
+
+class EmailConversationMessage(db.Model):
+    __tablename__ = "email_conversation_message"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
+
+    subject = db.Column(db.String, nullable=False)
+    snippet = db.Column(db.String, nullable=False)
+    prospect_email = db.Column(db.String, nullable=False)
+    sdr_email = db.Column(db.String, nullable=False)
+
+    nylas_thread_id = db.Column(db.String, nullable=False)
+    nylas_message_id = db.Column(db.String, nullable=False, index=True, unique=True)
+    nylas_data = db.Column(db.JSON, nullable=False)
+
+    def to_dict(self):
+        return {
+            "client_sdr_id": self.client_sdr_id,
+            "prospect_id": self.prospect_id,
+            "subject": self.subject,
+            "snippet": self.snippet,
+            "prospect_email": self.prospect_email,
+            "sdr_email": self.sdr_email,
+            "nylas_thread_id": self.nylas_thread_id,
+            "nylas_data": self.nylas_data,
+        }
+
