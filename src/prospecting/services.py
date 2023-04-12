@@ -206,18 +206,20 @@ def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):
     result = res.json()
 
     for thread in result:
-      model: EmailConversationThread = EmailConversationThread(
-          client_sdr_id=client_sdr_id,
-          prospect_id=prospect.id,
-          subject = thread.get('subject'),
-          snippet = thread.get('snippet'),
-          prospect_email = prospect.email,
-          sdr_email = client_sdr.email,
-          nylas_thread_id = thread.get('id'),
-          nylas_data = thread
-      )
-      db.session.add(model)
-      
+      existing_thread = EmailConversationThread.query.filter_by(nylas_thread_id=thread.get('id')).first()
+      if not existing_thread:
+        model: EmailConversationThread = EmailConversationThread(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect.id,
+            subject = thread.get('subject'),
+            snippet = thread.get('snippet'),
+            prospect_email = prospect.email,
+            sdr_email = client_sdr.email,
+            nylas_thread_id = thread.get('id'),
+            nylas_data = thread
+        )
+        db.session.add(model)
+
     db.session.commit()
 
     return result
@@ -236,19 +238,21 @@ def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list
     
     result = res.json()
     
-    for thread in result:
-      model: EmailConversationMessage = EmailConversationMessage(
-          client_sdr_id=client_sdr_id,
-          prospect_id=prospect.id,
-          subject = thread.get('subject'),
-          snippet = thread.get('snippet'),
-          prospect_email = prospect.email,
-          sdr_email = client_sdr.email,
-          nylas_thread_id = thread.get('thread_id'),
-          nylas_message_id = thread.get('id'),
-          nylas_data = thread
-      )
-      db.session.add(model)
+    for message in result:
+      existing_message = EmailConversationMessage.query.filter_by(nylas_message_id=message.get('id')).first()
+      if not existing_message:
+        model: EmailConversationMessage = EmailConversationMessage(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect.id,
+            subject = message.get('subject'),
+            snippet = message.get('snippet'),
+            prospect_email = prospect.email,
+            sdr_email = client_sdr.email,
+            nylas_thread_id = message.get('thread_id'),
+            nylas_message_id = message.get('id'),
+            nylas_data = message
+        )
+        db.session.add(model)
 
     db.session.commit()
 
