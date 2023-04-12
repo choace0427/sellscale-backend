@@ -181,9 +181,16 @@ def get_outbound_campaign_details_for_edit_tool(
 
     # Filter by approved messages if filter is set
     if approved_filter is False:
-        joined_prospect_message = joined_prospect_message.filter(or_(GeneratedMessage.ai_approved == False, GeneratedMessage.ai_approved == None))
+        joined_prospect_message = joined_prospect_message.filter(
+            or_(
+                GeneratedMessage.ai_approved == False,
+                GeneratedMessage.ai_approved == None,
+            )
+        )
     elif approved_filter is True:
-        joined_prospect_message = joined_prospect_message.filter(GeneratedMessage.ai_approved == True)
+        joined_prospect_message = joined_prospect_message.filter(
+            GeneratedMessage.ai_approved == True
+        )
     joined_prospect_message = joined_prospect_message.all()
 
     # Get information from the joined table
@@ -437,12 +444,22 @@ def smart_get_prospects_for_campaign(
     )
     if campaign_type == GeneratedMessageType.LINKEDIN.value:
         prospects_query = prospects_query.filter(
-            Prospect.approved_outreach_message_id == None
+            Prospect.approved_outreach_message_id == None,
+            or_(
+                Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
+                Prospect.status == ProspectOverallStatus.SENT_OUTREACH.value,
+                Prospect.status == ProspectOverallStatus.BUMPED.value,
+            ),
         )
     elif campaign_type == GeneratedMessageType.EMAIL.value:
         prospects_query = prospects_query.filter(
             Prospect.approved_prospect_email_id == None,
             Prospect.email.isnot(None),
+            or_(
+                Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
+                Prospect.status == ProspectOverallStatus.SENT_OUTREACH.value,
+                Prospect.status == ProspectOverallStatus.BUMPED.value,
+            ),
         )
 
     prospects = (
