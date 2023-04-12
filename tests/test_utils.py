@@ -48,6 +48,7 @@ from model_import import (
     BumpFramework,
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
+    EngagementFeedItem,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -70,6 +71,7 @@ def test_app():
         )
 
     with app.app_context():
+        clear_all_entities(EngagementFeedItem)
         clear_all_entities(BumpFramework)
         clear_all_entities(Echo)
         for p in Prospect.query.all():
@@ -576,6 +578,28 @@ def basic_iscraper_payload_cache(
     db.session.add(cache)
     db.session.commit()
     return cache
+
+
+def basic_engagement_feed_item(
+    client_sdr_id: int,
+    prospect_id: int,
+    channel_type: str,
+    engagement_type: str,
+    viewed: bool = False,
+    engagement_metadata: Optional[dict] = None,
+):
+    new_item = EngagementFeedItem(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        channel_type=channel_type,
+        engagement_type=engagement_type,
+        viewed=viewed,
+        engagement_metadata=engagement_metadata,
+    )
+    db.session.add(new_item)
+    db.session.commit()
+
+    return new_item.id
 
 
 def clear_all_entities(SQLAlchemyObject):

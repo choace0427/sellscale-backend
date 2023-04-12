@@ -1,9 +1,21 @@
 from app import db
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr, basic_archetype, basic_prospect
-from src.daily_notifications.services import fill_in_daily_notifications, clear_daily_notifications
+from test_utils import (
+    test_app,
+    basic_client,
+    basic_client_sdr,
+    basic_archetype,
+    basic_prospect,
+    basic_engagement_feed_item
+)
+from src.daily_notifications.services import (
+    fill_in_daily_notifications,
+    clear_daily_notifications,
+    create_engagement_feed_item,
+    get_engagement_feed_items
+)
 from src.li_conversation.models import LinkedinConversationEntry
-from src.daily_notifications.models import DailyNotification
+from src.daily_notifications.models import DailyNotification, EngagementFeedItem
 from datetime import datetime, timedelta
 from model_import import ProspectStatus
 from freezegun import freeze_time
@@ -35,7 +47,7 @@ def test_clear_daily_notifications():
 
 def populate_db():
     """Populate prospects for testing daily notifications"""
-    
+
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -115,3 +127,36 @@ def add_linkedin_conversation_entry(day_offset: int, first_name: str, last_name:
     )
     db.session.add(li_entry)
     db.session.commit()
+
+
+@use_app_context
+def test_create_engagement_feed_item():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+
+    prospect = basic_prospect(client, archetype, client_sdr)
+
+    ef_id = create_engagement_feed_item(
+        client_sdr_id=client_sdr.id,
+        prospect_id=prospect.id,
+        channel_type='LINKEDIN',
+        engagement_type="SCHEDULING",
+        engagement_metadata={"message": "test"}
+    )
+    efs: list[EngagementFeedItem] = EngagementFeedItem.query.all()
+    assert len(efs) == 1
+    assert efs[0].id == ef_id
+
+
+@use_app_context
+def test_get_engagement_feed_items():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+
+    prospect = basic_prospect(client, archetype, client_sdr)
+    ef_id = basic_engagement_feed_item(client_sdr.id, prospect.id, "LINKEDIN", "SCHEDULING")
+    efs: list[dict] = get_engagement_feed_items(client_sdr.id)
+    assert len(efs) == 1
+    assert efs[0]["id"] == ef_id

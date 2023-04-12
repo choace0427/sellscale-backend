@@ -54,7 +54,8 @@ class EngagementFeedItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
-    type = db.Column(db.Enum(ProspectChannels), nullable=False)
+    channel_type = db.Column(db.Enum(ProspectChannels), nullable=False)
+    engagement_type = db.Column(db.Enum(EngagementFeedType), nullable=False)
 
     viewed = db.Column(db.Boolean, nullable=False, default=False)
     engagement_metadata = db.Column(db.JSON, nullable=False)
@@ -64,7 +65,8 @@ class EngagementFeedItem(db.Model):
             "id": self.id,
             "client_sdr_id": self.client_sdr_id,
             "prospect_id": self.prospect_id,
-            "type": self.type.value,
+            "channel_type": self.channel_type.value,
+            "engagement_type": self.engagement_type.value,
             "viewed": self.viewed,
             "engagement_metadata": self.engagement_metadata,
         }

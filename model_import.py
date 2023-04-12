@@ -60,6 +60,7 @@ from src.li_conversation.models import LinkedinConversationEntry
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
+    EngagementFeedItem
 )
 from src.integrations.models import (
     VesselMailboxes,

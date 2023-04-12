@@ -200,7 +200,7 @@ def get_prospects(
 
 
 def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     res = requests.get(f'https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
     result = res.json()
@@ -226,7 +226,7 @@ def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):
 
 
 def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list[str], thread_id: str):
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     if message_ids:
@@ -307,7 +307,9 @@ def update_prospect_status_linkedin(
     message: any = {},
     note: Optional[str] = None,
 ):
-    from src.prospecting.models import Prospect, ProspectStatus
+    from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
+    from src.daily_notifications.services import create_engagement_feed_item
+    from src.daily_notifications.models import EngagementFeedType
 
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
@@ -317,6 +319,13 @@ def update_prospect_status_linkedin(
 
     # notifications
     if new_status == ProspectStatus.ACCEPTED:
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.LINKEDIN.value,
+            engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
+            engagement_metadata=message,
+        )
         send_status_change_slack_block(
             outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
@@ -325,6 +334,13 @@ def update_prospect_status_linkedin(
             metadata=message,
         )
     if new_status == ProspectStatus.ACTIVE_CONVO:
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.LINKEDIN.value,
+            engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
+            engagement_metadata=message,
+        )
         send_status_change_slack_block(
             outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
@@ -333,6 +349,13 @@ def update_prospect_status_linkedin(
             metadata=message,
         )
     if new_status == ProspectStatus.SCHEDULING:
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.LINKEDIN.value,
+            engagement_type=EngagementFeedType.SCHEDULING.value,
+            engagement_metadata=message,
+        )
         send_status_change_slack_block(
             outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
@@ -341,6 +364,13 @@ def update_prospect_status_linkedin(
             metadata={"threadUrl": p.li_conversation_thread_id},
         )
     elif new_status == ProspectStatus.DEMO_SET:
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.LINKEDIN.value,
+            engagement_type=EngagementFeedType.SET_TIME_TO_DEMO.value,
+            engagement_metadata=message,
+        )
         send_status_change_slack_block(
             outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
@@ -541,6 +571,8 @@ def update_prospect_status_email(
     Returns:
         tuple[bool, str]: (success, message)
     """
+    from src.daily_notifications.services import create_engagement_feed_item
+    from src.daily_notifications.models import EngagementFeedType
 
     # Get the prospect and email record
     p: Prospect = Prospect.query.get(prospect_id)
@@ -568,6 +600,12 @@ def update_prospect_status_email(
 
     # Send a slack message if the new status is active convo (responded)
     if new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO:
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.EMAIL.value,
+            engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
+        )
         send_status_change_slack_block(
             outreach_type=ProspectChannels.EMAIL,
             prospect=p,
@@ -576,6 +614,12 @@ def update_prospect_status_email(
             metadata={},
         )
     elif new_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.EMAIL.value,
+            engagement_type=EngagementFeedType.SCHEDULING.value,
+        )
         send_status_change_slack_block(
             outreach_type=ProspectChannels.EMAIL,
             prospect=p,
@@ -584,6 +628,12 @@ def update_prospect_status_email(
             metadata={},
         )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.EMAIL.value,
+            engagement_type=EngagementFeedType.SET_TIME_TO_DEMO.value,
+        )
         send_status_change_slack_block(
             outreach_type=ProspectChannels.EMAIL,
             prospect=p,
@@ -1443,7 +1493,7 @@ def update_last_reviewed_and_times_bumped(
 
 def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
     """
-    Removes a prospect from being contacted if their client_sdr assigned 
+    Removes a prospect from being contacted if their client_sdr assigned
     is the same as the client_sdr calling this.
     """
     prospect = Prospect.query.get(prospect_id)

@@ -1,11 +1,12 @@
 from app import db, celery
-from src.daily_notifications.models import DailyNotification, NotificationType
+from src.daily_notifications.models import DailyNotification, NotificationType, EngagementFeedItem, EngagementFeedType
 from src.prospecting.models import Prospect
 from src.client.models import ClientSDR
 from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.datetime.dateutils import get_datetime_now
 from datetime import timedelta
 from src.utils.slack import send_slack_message, URL_MAP
+from typing import Optional
 
 DUE_DATE_DAYS = 1
 CLEAR_DAYS = 7
@@ -43,7 +44,7 @@ def fill_in_daily_notifications():
     )
 
     for client_sdr in ClientSDR.query.all():
-        
+
         add_unread_messages(client_sdr)
         add_schedulings(client_sdr)
 
@@ -86,7 +87,7 @@ def add_unread_messages(client_sdr):
             elif existing_record.status.value == 'CANCELLED' or existing_record.status.value == 'COMPLETE':
                 db.session.merge(daily_notification)
 
-            
+
 def add_schedulings(client_sdr):
     """Adds schedulings to the daily notifications table.
     """
@@ -144,3 +145,50 @@ def clear_daily_notifications():
     db.session.commit()
 
     return 'OK', 200
+
+
+def create_engagement_feed_item(client_sdr_id: int, prospect_id: int, channel_type: str, engagement_type: str, engagement_metadata: Optional[dict] = None) -> int:
+    """Adds an engagement feed item to the daily notifications table.
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+        prospect_id (int): Prospect ID
+        channel_type (str): Channel of the engagement
+        engagement_type (str): Type of engagement
+        engagement_metadata (dict): Engagement metadata
+
+    Returns:
+        int: Engagement feed item ID
+    """
+
+    new_item = EngagementFeedItem(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        channel_type=channel_type,
+        engagement_type=engagement_type,
+        viewed=False,
+        engagement_metadata=engagement_metadata,
+    )
+    db.session.add(new_item)
+    db.session.commit()
+
+    return new_item.id
+
+
+def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10) -> list[dict]:
+    """Gets engagement feed items for a client SDR.
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+
+    Returns:
+        list[dict]: Engagement feed items
+    """
+
+    engagement_feed_items = EngagementFeedItem.query.filter_by(
+        client_sdr_id=client_sdr_id
+    ).order_by(
+        EngagementFeedItem.created_at.desc()
+    ).limit(limit).all()
+
+    return [engagement_feed_item.to_dict() for engagement_feed_item in engagement_feed_items]
