@@ -1377,3 +1377,18 @@ def update_last_reviewed_and_times_bumped(
     prospect.times_bumped = new_times_bumped
     db.session.add(prospect)
     db.session.commit()
+
+
+def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
+    """
+    Removes a prospect from being contacted if their client_sdr assigned 
+    is the same as the client_sdr calling this.
+    """
+    prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return False
+
+    prospect.overall_status = ProspectOverallStatus.REMOVED
+    db.session.add(prospect)
+    db.session.commit()
+    return True

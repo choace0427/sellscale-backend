@@ -5,6 +5,7 @@ from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
 from src.email_outbound.models import ProspectEmail
 from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.prospecting.services import (
+    mark_prospect_as_removed,
     search_prospects,
     get_prospects,
     batch_mark_prospects_as_sent_outreach,
@@ -671,3 +672,20 @@ def pull_prospect_emails(client_sdr_id: int):
 def get_credits(client_sdr_id: int):
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     return jsonify({"email_fetching_credits": client_sdr.email_fetching_credits})
+
+
+@PROSPECTING_BLUEPRINT.route("/remove_from_contact_list", methods=["POST"])
+@require_user
+def remove_from_contact_list(client_sdr_id: int):
+    """
+    Removes a prospect from the contact list.
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True
+    )
+    success = mark_prospect_as_removed(
+        client_sdr_id=client_sdr_id, prospect_id=prospect_id
+    )
+    if success:
+        return "OK", 200
+    return "Failed to remove prospect from contact list", 400

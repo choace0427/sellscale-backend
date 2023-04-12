@@ -25,6 +25,7 @@ from model_import import (
     ProspectEmailOutreachStatus,
     ProspectOverallStatus,
     GeneratedMessage,
+    ClientSDR,
 )
 from decorators import use_app_context
 import json
@@ -632,3 +633,35 @@ def test_get_valid_next_prospect_statuses_endpoint():
         is not None
     )
     assert len(email_another_response.json["all_statuses"]) == 11
+
+
+@use_app_context
+def test_remove_prospect_from_contact_list():
+    client = basic_client()
+    client_archetype = basic_archetype(client)
+    client_sdr: ClientSDR = basic_client_sdr(client)
+    prospect = basic_prospect(
+        client=client,
+        archetype=client_archetype,
+        client_sdr=client_sdr,
+    )
+    prospect_id = prospect.id
+    prospect.overall_status = ProspectOverallStatus.ACCEPTED
+    db.session.add(prospect)
+    db.session.commit()
+
+    assert prospect.client_sdr_id == client_sdr.id
+
+    response = app.test_client().post(
+        f"prospect/remove_from_contact_list?prospect_id={prospect_id}".format(
+            prospect_id=prospect_id
+        ),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+    )
+    assert response.status_code == 200
+
+    prospect = Prospect.query.get(prospect_id)
+    assert prospect.overall_status == ProspectOverallStatus.REMOVED
