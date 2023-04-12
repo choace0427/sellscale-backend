@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import or_
+import requests
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.email_outbound.models import (
     ProspectEmail,
@@ -195,6 +196,27 @@ def get_prospects(
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
     return {"total_count": total_count, "prospects": prospects}
+
+
+def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    res = requests.get(f'https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
+    return res.json()
+
+
+def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list[str], thread_id: str):
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if message_ids:
+      res = requests.get(f'https://api.nylas.com/messages/{",".join(message_ids)}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
+    elif thread_id:
+      res = requests.get(f'https://api.nylas.com/messages?thread_id={thread_id}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
+    else:
+      return {}
+
+    return res.json()
 
 
 def prospect_exists_for_client(full_name: str, client_id: int):

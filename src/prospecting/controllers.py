@@ -1,3 +1,4 @@
+from src.prospecting.services import nylas_get_threads, nylas_get_messages
 from app import db
 
 from flask import Blueprint, jsonify, request, Response
@@ -156,9 +157,11 @@ def get_valid_next_statuses_endpoint(client_sdr_id: int, prospect_id: int):
     return jsonify(statuses)
 
 
-@PROSPECTING_BLUEPRINT.route("<prospect_id>/all_emails", methods=["GET"])
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/email/threads", methods=["GET"])
 @require_user
-def get_all_emails(client_sdr_id: int, prospect_id: int):
+def get_email_threads(client_sdr_id: int, prospect_id: int):
+    
+    limit = get_request_parameter("limit", request, json=False, required=True)
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
     if not prospect:
@@ -166,7 +169,10 @@ def get_all_emails(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    prospect_email: ProspectEmail = ProspectEmail.query.filter(
+    threads = nylas_get_threads(client_sdr_id, prospect, int(limit))
+
+
+    """     prospect_email: ProspectEmail = ProspectEmail.query.filter(
         ProspectEmail.prospect_id == prospect.id
     ).first()
     if not prospect_email:
@@ -180,9 +186,29 @@ def get_all_emails(client_sdr_id: int, prospect_id: int):
             sequence_id=prospect_email.vessel_sequence_id,
         )
     except:
-        emails = []
+        emails = [] """
 
-    return jsonify({"message": "Success", "data": emails}), 200
+    return jsonify({"message": "Success", "data": threads}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/email/messages", methods=["GET"])
+@require_user
+def get_email_messages(client_sdr_id: int, prospect_id: int):
+    
+    message_ids = get_request_parameter("message_ids", request, json=False, required=False)
+    thread_id = get_request_parameter("thread_id", request, json=False, required=False)
+    if message_ids:
+        message_ids = message_ids.split(",")
+
+    prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    messages = nylas_get_messages(client_sdr_id, prospect, message_ids=message_ids, thread_id=thread_id)
+
+    return jsonify({"message": "Success", "data": messages}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/<email_id>", methods=["GET"])
