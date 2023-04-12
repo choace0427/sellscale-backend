@@ -1,6 +1,6 @@
 import enum
 from app import db
-
+from src.prospecting.models import ProspectChannels
 
 class NotificationStatus(enum.Enum):
     PENDING = "PENDING"
@@ -37,4 +37,34 @@ class DailyNotification(db.Model):
             "description": self.description,
             "status": self.status.value,
             "due_date": self.due_date.isoformat(),
+        }
+
+
+class EngagementFeedType(enum.Enum):
+    UNKNOWN = "unknown"
+    ACCEPTED_INVITE = "ACCEPTED_INVITE"
+    RESPONDED = "RESPONDED"
+    SCHEDULING = "SCHEDULING"
+    SET_TIME_TO_DEMO = "SET_TIME_TO_DEMO"
+
+
+class EngagementFeedItem(db.Model):
+    __tablename__ = "engagement_feed_items"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
+    type = db.Column(db.Enum(ProspectChannels), nullable=False)
+
+    viewed = db.Column(db.Boolean, nullable=False, default=False)
+    engagement_metadata = db.Column(db.JSON, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "prospect_id": self.prospect_id,
+            "type": self.type.value,
+            "viewed": self.viewed,
+            "engagement_metadata": self.engagement_metadata,
         }
