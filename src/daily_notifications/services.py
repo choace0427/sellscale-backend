@@ -175,20 +175,22 @@ def create_engagement_feed_item(client_sdr_id: int, prospect_id: int, channel_ty
     return new_item.id
 
 
-def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10) -> list[dict]:
+def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, offset: Optional[int] = 0) -> list[dict]:
     """Gets engagement feed items for a client SDR.
 
     Args:
         client_sdr_id (int): Client SDR ID
+        limit (int): Number of items to return
+        offset (int): Offset
 
     Returns:
         list[dict]: Engagement feed items
     """
 
-    engagement_feed_items = EngagementFeedItem.query.filter_by(
+    engagement_feed_items: list[EngagementFeedItem] = EngagementFeedItem.query.filter_by(
         client_sdr_id=client_sdr_id
     ).order_by(
         EngagementFeedItem.created_at.desc()
-    ).limit(limit).all()
+    ).limit(limit).offset(offset).all()
 
     return [engagement_feed_item.to_dict() for engagement_feed_item in engagement_feed_items]

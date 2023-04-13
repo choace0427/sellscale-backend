@@ -1,8 +1,13 @@
 
 from flask import Blueprint, request, jsonify
 from src.daily_notifications.models import DailyNotification
+from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.daily_notifications.services import update_daily_notification_status, fill_in_daily_notifications
+from src.daily_notifications.services import (
+    update_daily_notification_status,
+    fill_in_daily_notifications,
+    get_engagement_feed_items
+)
 from src.utils.datetime.dateutils import get_datetime_now
 from datetime import timedelta
 
@@ -48,3 +53,16 @@ def put_update_status():
         return "Invalid status.", 400
 
     return update_daily_notification_status(client_sdr_id=client_sdr_id, prospect_id=prospect_id, type=type, status=status)
+
+
+@DAILY_NOTIFICATIONS_BLUEPRINT.route("/engagement/feed", methods=["GET"])
+@require_user
+def get_engagement_feed(client_sdr_id: int):
+    """Gets the engagement feed for the client SDR with id client_sdr_id.
+    """
+    limit = get_request_parameter("limit", request, required=False, parameter_type=int) or 10
+    offset = get_request_parameter("offset", request, required=False, parameter_type=int) or 0
+
+    items = get_engagement_feed_items(client_sdr_id, limit, offset)
+
+    return jsonify({"message": "Success", "engagement_feed_items": items})
