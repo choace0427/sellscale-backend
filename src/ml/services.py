@@ -330,6 +330,8 @@ def get_sequence_draft(
         frequency_penalty=1.15,
         max_tokens=600,
     )
+    if not emails:
+        return False
 
     # Parse Completion
     parsed_emails = []

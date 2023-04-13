@@ -32,7 +32,7 @@ def wrapped_create_completion(
     n: Optional[int] = DEFAULT_N,
     frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
-) -> str:
+) -> str | bool:
     """Wrapper for OpenAI's Completion.create() function.
 
     Args:
@@ -57,39 +57,42 @@ def wrapped_create_completion(
     DEFAULT_FREQUENCY_PENALTY: 0
     DEFAULT_STOP: None
     """
-    if model == CURRENT_OPENAI_CHAT_GPT_MODEL:
-        return wrapped_chat_gpt_completion(
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            n=n,
-            frequency_penalty=frequency_penalty,
-            stop=stop,
-        )
-    else:
-        response = openai.Completion.create(
-            model=model,
-            prompt=prompt,
-            suffix=suffix,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            n=n,
-            frequency_penalty=frequency_penalty,
-            stop=stop,
-        )
-        if (
-            response is None
-            or response["choices"] is None
-            or len(response["choices"]) == 0
-        ):
-            return ""
+    try:
+        if model == CURRENT_OPENAI_CHAT_GPT_MODEL:
+            return wrapped_chat_gpt_completion(
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                n=n,
+                frequency_penalty=frequency_penalty,
+                stop=stop,
+            )
+        else:
+            response = openai.Completion.create(
+                model=model,
+                prompt=prompt,
+                suffix=suffix,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                n=n,
+                frequency_penalty=frequency_penalty,
+                stop=stop,
+            )
+            if (
+                response is None
+                or response["choices"] is None
+                or len(response["choices"]) == 0
+            ):
+                return ""
 
-        choices = response["choices"]
-        top_choice = choices[0]
-        preview = top_choice["text"].strip()
-        return preview
+            choices = response["choices"]
+            top_choice = choices[0]
+            preview = top_choice["text"].strip()
+            return preview
+    except Exception as e:
+        return False
 
 
 def wrapped_chat_gpt_completion(
