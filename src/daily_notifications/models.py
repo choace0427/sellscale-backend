@@ -89,7 +89,7 @@ class EngagementFeedItem(db.Model):
         ss_controlled_metadata['message'] = metadata.get('message')
         ss_controlled_metadata['sender_first_name'] = metadata.get('firstnameFrom')
         ss_controlled_metadata['sender_last_name'] = metadata.get('lastnameFrom')
-        ss_controlled_metadata['read'] = metadata.get('read')
-        ss_controlled_metadata['last_message_timestamp'] = metadata.get('lastMessageData')
+        ss_controlled_metadata['read'] = metadata.get('readStatus')
+        ss_controlled_metadata['last_message_timestamp'] = metadata.get('lastMessageDate')
 
         return ss_controlled_metadata
