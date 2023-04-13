@@ -193,4 +193,22 @@ def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, off
         EngagementFeedItem.created_at.desc()
     ).limit(limit).offset(offset).all()
 
-    return [engagement_feed_item.to_dict() for engagement_feed_item in engagement_feed_items]
+    better_ef_item_list = []
+    for ef_item in engagement_feed_items:
+        item = ef_item.to_dict()
+        item['prospect_name'] = None
+        item['prospect_title'] = None
+        item['prospect_company'] = None
+
+        prospect_id = item.get('prospect_id')
+        if prospect_id:
+            prospect: Prospect = Prospect.query.get(item['prospect_id'])
+            if prospect:
+                item['prospect_name'] = prospect.full_name
+                item['prospect_title'] = prospect.title
+                item['prospect_company'] = prospect.company
+
+        better_ef_item_list.append(item)
+
+
+    return better_ef_item_list
