@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status
 from model_import import ClientPod
 from src.message_generation.models import GeneratedMessageCTA
@@ -55,6 +56,30 @@ CLIENT_BLUEPRINT = Blueprint("client", __name__)
 
 @CLIENT_BLUEPRINT.route("/")
 def index():
+    return "OK", 200
+
+@CLIENT_BLUEPRINT.route("/submit-error", methods=["POST"])
+@require_user
+def post_submit_error(client_sdr_id: int):
+    
+    error = get_request_parameter(
+        "error", request, json=True, required=True, parameter_type=str
+    )
+    user_agent = get_request_parameter(
+        "user_agent", request, json=True, required=True, parameter_type=str
+    )
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    
+    send_slack_message(
+        message=" An error occurred for *{client_sdr_name}*, on '{user_agent}':\n{error}".format(
+            error=error,
+            client_sdr_name=client_sdr.name,
+            user_agent=user_agent,
+        ),
+        webhook_urls=[URL_MAP["user-errors"]],
+    )
+
     return "OK", 200
 
 
