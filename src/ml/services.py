@@ -334,7 +334,7 @@ def get_sequence_draft(
     # Parse Completion
     parsed_emails = []
 
-    for email in re.split(r"\s+subject: ", emails, flags = re.IGNORECASE | re.MULTILINE):
+    for i, email in enumerate(re.split(r"\s+subject: ", emails, flags = re.IGNORECASE | re.MULTILINE)):
         parts = email.strip().split('\n', 1)
         if len(parts) != 2:
             continue
@@ -343,7 +343,8 @@ def get_sequence_draft(
 
         body = re.sub(r"--\s?$", '', parts[1].strip(), flags=re.IGNORECASE)
         body = re.sub(r"-\s?$", '', body, flags=re.IGNORECASE)
-        body = re.sub(r"^(.+){{.+}},", lambda m: f'{m.group(1)}{{First_Name}},\n\n{{SellScale_Personalization}}', body)
+        if i == 0:
+          body = re.sub(r"^(.+){{.+}},", lambda m: f'{m.group(1)}{{First_Name}},\n\n{{SellScale_Personalization}}', body)
 
         parsed_emails.append({
             'subject_line': subject.strip(),
