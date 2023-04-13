@@ -81,6 +81,9 @@ class EngagementFeedItem(db.Model):
             dict: Parsed metadata that is SellScale controlled
         """
         ss_controlled_metadata = {}
+        if metadata is None:
+            return ss_controlled_metadata
+
         ss_controlled_metadata['li_thread_url'] = metadata.get('threadUrl')
         ss_controlled_metadata['message'] = metadata.get('message')
         ss_controlled_metadata['sender_first_name'] = metadata.get('firstnameFrom')
