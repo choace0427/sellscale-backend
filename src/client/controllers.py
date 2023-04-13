@@ -10,6 +10,7 @@ from src.client.services import (
     get_sdr_available_outbound_channels,
     rename_archetype,
     toggle_archetype_active,
+    clear_nylas_tokens,
     update_client_sdr_email,
     update_client_sdr_scheduling_link,
     update_client_pipeline_notification_webhook,
@@ -737,6 +738,16 @@ def post_nylas_exchange_for_authorization_code(client_sdr_id: int):
             400,
         )
     return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/nylas/auth_tokens", methods=["DELETE"])
+@require_user
+def clear_auth_tokens(client_sdr_id: int):
+    """Clears the Nylas auth tokens for a SDR"""
+
+    status_text, status = clear_nylas_tokens(client_sdr_id)
+
+    return jsonify({"message": status_text}), status
 
 
 @CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])

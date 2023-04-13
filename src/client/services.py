@@ -976,6 +976,30 @@ def check_nylas_status(client_sdr_id: int) -> bool:
     return client_sdr.nylas_active
 
 
+def clear_nylas_tokens(client_sdr_id: int):
+    """ Clears Nylas tokens
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+
+    Returns:
+        status_code (int), message (str): HTTP status code 
+    """
+    
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return "No client sdr found with this id", 400 
+
+    sdr.nylas_auth_code = None
+    sdr.nylas_account_id = None
+    sdr.nylas_active = False
+
+    db.session.add(sdr)
+    db.session.commit()
+
+    return "Cleared tokens", 200
+
+
 def post_nylas_oauth_token(code: int) -> dict:
     """Wrapper for https://api.nylas.com/oauth/token
 
