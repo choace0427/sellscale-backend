@@ -186,6 +186,8 @@ def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, off
     Returns:
         list[dict]: Engagement feed items
     """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    img_url = sdr.img_url
 
     engagement_feed_items: list[EngagementFeedItem] = EngagementFeedItem.query.filter_by(
         client_sdr_id=client_sdr_id
@@ -200,7 +202,8 @@ def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, off
         item['prospect_name'] = None
         item['prospect_title'] = None
         item['prospect_company'] = None
-        item['img_url'] = None
+        item['prospect_img_url'] = None
+        item['sdr_img_url'] = img_url
 
         prospect_id = item.get('prospect_id')
         if prospect_id:
@@ -212,7 +215,7 @@ def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, off
                 item['prospect_name'] = prospect.full_name
                 item['prospect_title'] = prospect.title
                 item['prospect_company'] = prospect.company
-                item['img_url'] = prospect.img_url
+                item['prospect_img_url'] = prospect.img_url
 
         better_ef_item_list.append(item)
 
