@@ -60,8 +60,8 @@ def put_update_status():
 def get_engagement_feed(client_sdr_id: int):
     """Gets the engagement feed for the client SDR with id client_sdr_id.
     """
-    limit = get_request_parameter("limit", request, required=False, parameter_type=int) or 10
-    offset = get_request_parameter("offset", request, required=False, parameter_type=int) or 0
+    limit = int(get_request_parameter("limit", request, required=False)) or 10
+    offset = int(get_request_parameter("offset", request, required=False)) or 0
 
     items = get_engagement_feed_items(client_sdr_id, limit, offset)
 
