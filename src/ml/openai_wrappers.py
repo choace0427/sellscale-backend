@@ -32,7 +32,7 @@ def wrapped_create_completion(
     n: Optional[int] = DEFAULT_N,
     frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
-) -> str | bool:
+) -> Union[str, bool]:
     """Wrapper for OpenAI's Completion.create() function.
 
     Args:
