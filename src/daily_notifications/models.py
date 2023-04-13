@@ -63,6 +63,7 @@ class EngagementFeedItem(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "created_at": str(self.created_at),
             "client_sdr_id": self.client_sdr_id,
             "prospect_id": self.prospect_id,
             "channel_type": self.channel_type.value,
