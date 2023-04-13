@@ -68,5 +68,24 @@ class EngagementFeedItem(db.Model):
             "channel_type": self.channel_type.value,
             "engagement_type": self.engagement_type.value,
             "viewed": self.viewed,
-            "engagement_metadata": self.engagement_metadata,
+            "engagement_metadata": self.parse_iscraper_metadata(self.engagement_metadata),
         }
+
+    def parse_iscraper_metadata(self, metadata: dict) -> dict:
+        """Parses metadata from iScraper.
+
+        Args:
+            metadata (dict): Metadata
+
+        Returns:
+            dict: Parsed metadata that is SellScale controlled
+        """
+        ss_controlled_metadata = {}
+        ss_controlled_metadata['li_thread_url'] = metadata.get('threadUrl')
+        ss_controlled_metadata['message'] = metadata.get('message')
+        ss_controlled_metadata['sender_first_name'] = metadata.get('firstnameFrom')
+        ss_controlled_metadata['sender_last_name'] = metadata.get('lastnameFrom')
+        ss_controlled_metadata['read'] = metadata.get('read')
+        ss_controlled_metadata['last_message_timestamp'] = metadata.get('lastMessageData')
+
+        return ss_controlled_metadata

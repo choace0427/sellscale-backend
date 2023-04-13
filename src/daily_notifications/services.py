@@ -1,7 +1,7 @@
 from app import db, celery
 from src.daily_notifications.models import DailyNotification, NotificationType, EngagementFeedItem, EngagementFeedType
 from src.prospecting.models import Prospect
-from src.client.models import ClientSDR
+from src.client.models import ClientSDR, ClientArchetype
 from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.datetime.dateutils import get_datetime_now
 from datetime import timedelta
@@ -196,17 +196,23 @@ def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, off
     better_ef_item_list = []
     for ef_item in engagement_feed_items:
         item = ef_item.to_dict()
+        item['archetype_name'] = None
         item['prospect_name'] = None
         item['prospect_title'] = None
         item['prospect_company'] = None
+        item['img_url'] = None
 
         prospect_id = item.get('prospect_id')
         if prospect_id:
             prospect: Prospect = Prospect.query.get(item['prospect_id'])
+            archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+            if archetype:
+                item['archetype_name'] = archetype.archetype
             if prospect:
                 item['prospect_name'] = prospect.full_name
                 item['prospect_title'] = prospect.title
                 item['prospect_company'] = prospect.company
+                item['img_url'] = prospect.img_url
 
         better_ef_item_list.append(item)
 
