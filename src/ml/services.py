@@ -334,7 +334,8 @@ def get_sequence_draft(
     # Parse Completion
     parsed_emails = []
 
-    for i, email in enumerate(re.split(r"\s+subject: ", emails, flags = re.IGNORECASE | re.MULTILINE)):
+    i = 0
+    for email in re.split(r"\s+subject: ", emails, flags = re.IGNORECASE | re.MULTILINE):
         parts = email.strip().split('\n', 1)
         if len(parts) != 2:
             continue
@@ -350,6 +351,7 @@ def get_sequence_draft(
             'subject_line': subject.strip(),
             'email': body.strip(),
         })
+        i += 1
 
     return parsed_emails
 
