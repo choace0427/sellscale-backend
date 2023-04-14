@@ -378,7 +378,7 @@ def create_outbound_campaign(
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
         top_prospects = smart_get_prospects_for_campaign(
-            client_archetype_id, num_prospects - len(prospect_ids), campaign_type.value
+            client_archetype_id, num_prospects - len(prospect_ids), campaign_type
         )
         prospect_ids.extend(top_prospects)
         pass

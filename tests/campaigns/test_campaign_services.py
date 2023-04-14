@@ -201,7 +201,7 @@ def test_create_outbound_campaign():
     campaign = create_outbound_campaign(
         prospect_ids=[prospect.id],
         num_prospects=2,
-        campaign_type=GeneratedMessageType.LINKEDIN,
+        campaign_type=GeneratedMessageType.LINKEDIN.value,
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
         campaign_start_date=start_date,
