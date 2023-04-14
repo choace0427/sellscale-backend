@@ -95,9 +95,9 @@ def batch_update_messages():
     """
     payload = get_request_parameter("payload", request, json=True, required=True)
     for prospect in payload:
-        message_id = prospect["message_id"]
+        prospect_id = prospect["prospect_id"]
         update = prospect["completion"]
-        update_message(message_id=message_id, update=update)
+        update_message(prospect_id=prospect_id, update=update)
 
     return "OK", 200
 

@@ -455,10 +455,17 @@ def create_new_edit_message_record(
     return True
 
 
-def update_message(message_id: int, update: str, editor_id=None):
+def update_message(prospect_id: int, update: str, editor_id=None):
     from model_import import GeneratedMessage
 
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False
+    message_id = prospect.generated_message_id
+
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    if not message:
+        return False
 
     original_text = message.completion
     edited_text = update
