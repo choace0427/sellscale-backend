@@ -378,7 +378,7 @@ def create_outbound_campaign(
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
         top_prospects = smart_get_prospects_for_campaign(
-            client_archetype_id, num_prospects - len(prospect_ids), campaign_type
+            client_archetype_id, num_prospects - len(prospect_ids), campaign_type.value
         )
         prospect_ids.extend(top_prospects)
         pass
@@ -429,7 +429,11 @@ def create_outbound_campaign(
 def smart_get_prospects_for_campaign(
     client_archetype_id: int, num_prospects: int, campaign_type: str
 ) -> list[int]:
-    """Smartly gets prospects for a campaign (based on health check score)
+    """Smartly gets prospects for a campaign
+
+    Top priority: ICP intent score
+    Second priority: Health check
+    Third priority: random
 
     Args:
         client_archetype_id (int): Client archetype id
@@ -438,56 +442,160 @@ def smart_get_prospects_for_campaign(
     Returns:
         list[int]: List of prospect ids
     """
-    prospects_query = Prospect.query.filter(
-        Prospect.archetype_id == client_archetype_id,
-        Prospect.health_check_score != None,
-    )
-    if campaign_type == GeneratedMessageType.LINKEDIN.value:
-        prospects_query = prospects_query.filter(
-            Prospect.approved_outreach_message_id == None,
+    # Get prospects with highest ICP intent score
+    top_intent_prospects = get_top_intent_prospects(client_archetype_id, num_prospects, campaign_type)
+    remaining_num_prospects = num_prospects - len(top_intent_prospects)
+
+    # Get prospects with highest health check score
+    top_healthscore_prospects = get_top_healthscore_prospects(
+        client_archetype_id=client_archetype_id,
+        num_prospects=remaining_num_prospects,
+        campaign_type=campaign_type,
+        blacklist=top_intent_prospects)
+    remaining_num_prospects = remaining_num_prospects - len(top_healthscore_prospects)
+
+    # Get prospects randomly
+    random_prospects = get_random_prospects(
+        client_archetype_id=client_archetype_id,
+        num_prospects=remaining_num_prospects,
+        campaign_type=campaign_type,
+        blacklist=top_intent_prospects + top_healthscore_prospects)
+    remaining_num_prospects = remaining_num_prospects - len(random_prospects)
+
+    prospect_ids: list[int] = top_intent_prospects + top_healthscore_prospects + random_prospects
+    return prospect_ids
+
+
+def get_top_intent_prospects(client_archetype_id: int, num_prospects: int, campaign_type: str, blacklist: Optional[list[int]] = []) -> list[int]:
+    """Gets the top prospects using intent score (LinkedIn or Email)
+
+    Args:
+        client_archetype_id (int): Client archetype id
+        num_prospects (int): Number of prospects to get
+        campaign_type (str): Type of campaign
+        blacklist (list[int]): List of prospect ids to exclude
+
+    Returns:
+        list[int]: List of prospect ids
+    """
+    if num_prospects <= 0:
+        return []
+
+    # Get prospects that are available for outreach
+    prospects = (
+        Prospect.query.filter(
+            Prospect.archetype_id == client_archetype_id,
             or_(
                 Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
                 Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
                 Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
             ),
+            Prospect.id.notin_(blacklist),
         )
-    elif campaign_type == GeneratedMessageType.EMAIL.value:
-        prospects_query = prospects_query.filter(
+    )
+
+    # Filter prospects based on the campaign type
+    if campaign_type == GeneratedMessageType.EMAIL.value:
+        prospects = prospects.filter(
+            Prospect.email_intent_score != None,
             Prospect.approved_prospect_email_id == None,
             Prospect.email.isnot(None),
+        ).order_by(Prospect.email_intent_score.desc(), func.random()).limit(num_prospects).all()
+    elif campaign_type == GeneratedMessageType.LINKEDIN.value:
+        prospects = prospects.filter(
+            Prospect.li_intent_score != None,
+            Prospect.approved_outreach_message_id == None,
+        ).order_by(Prospect.li_intent_score.desc(), func.random()).limit(num_prospects).all()
+
+    prospect_ids: list[int] = [p.id for p in prospects]
+    return prospect_ids
+
+
+def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, campaign_type: str, blacklist: Optional[list[int]] = []) -> list[int]:
+    """Gets the top prospects using health score (LinkedIn or Email)
+
+    Args:
+        client_archetype_id (int): Client archetype id
+        num_prospects (int): Number of prospects to get
+        campaign_type (str): Type of campaign
+        blacklist (list[int]): List of prospect ids to exclude
+
+    Returns:
+        list[int]: List of prospect ids
+    """
+    # If there are no more prospects to be grabbed, return empty list
+    if num_prospects <= 0:
+        return []
+
+    # Get prospects that are available for outreach
+    prospects = (
+        Prospect.query.filter(
+            Prospect.archetype_id == client_archetype_id,
+            Prospect.health_check_score != None,
+            Prospect.id.notin_(blacklist),
             or_(
                 Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
                 Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
                 Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
             ),
         )
-
-    prospects = (
-        prospects_query.order_by(Prospect.health_check_score.desc(), func.random())
-        .limit(num_prospects)
-        .all()
     )
 
-    if len(prospects) < num_prospects:
-        additional_prospects_query = Prospect.query.filter(
+    # Filter prospects based on the campaign type
+    if campaign_type == GeneratedMessageType.EMAIL.value:
+        prospects = prospects.filter(
+            Prospect.email.isnot(None),
+            Prospect.approved_prospect_email_id == None,
+        )
+    elif campaign_type == GeneratedMessageType.LINKEDIN.value:
+        prospects = prospects.filter(
+            Prospect.approved_outreach_message_id == None,
+        )
+    prospects = prospects.order_by(Prospect.health_check_score.desc(), func.random()).limit(num_prospects).all()
+
+    prospect_ids: list[int] = [p.id for p in prospects]
+    return prospect_ids
+
+
+def get_random_prospects(client_archetype_id: int, num_prospects: int, campaign_type: str, blacklist: Optional[list[int]] = []) -> list[int]:
+    """Gets a random set of prospects
+
+    Args:
+        client_archetype_id (int): Client archetype id
+        num_prospects (int): Number of prospects to get
+        campaign_type (str): Campaign type
+        blacklist (list[int], optional): List of prospect ids to exclude. Defaults to [].
+
+    Returns:
+        list[int]: List of prospect ids
+    """
+    if num_prospects <= 0:
+        return []
+
+    # Get prospects that are available for outreach
+    prospects = (
+        Prospect.query.filter(
             Prospect.archetype_id == client_archetype_id,
-            Prospect.health_check_score == None,
+            Prospect.id.notin_(blacklist),
+            or_(
+                Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
+                Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
+                Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
+            ),
         )
-        if campaign_type == GeneratedMessageType.LINKEDIN.value:
-            additional_prospects_query = additional_prospects_query.filter(
-                Prospect.approved_outreach_message_id == None
-            )
-        elif campaign_type == GeneratedMessageType.EMAIL.value:
-            additional_prospects_query = additional_prospects_query.filter(
-                Prospect.approved_prospect_email_id == None,
-                Prospect.email.isnot(None),
-            )
-        additional_prospects = (
-            additional_prospects_query.order_by(func.random())
-            .limit(num_prospects - len(prospects))
-            .all()
+    )
+
+    # Filter prospects based on the campaign type
+    if campaign_type == GeneratedMessageType.EMAIL.value:
+        prospects = prospects.filter(
+            Prospect.email.isnot(None),
+            Prospect.approved_prospect_email_id == None,
         )
-        prospects.extend(additional_prospects)
+    elif campaign_type == GeneratedMessageType.LINKEDIN.value:
+        prospects = prospects.filter(
+            Prospect.approved_outreach_message_id == None,
+        )
+    prospects = prospects.order_by(func.random()).limit(num_prospects).all()
 
     prospect_ids: list[int] = [p.id for p in prospects]
     return prospect_ids
