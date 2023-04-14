@@ -461,7 +461,7 @@ def update_message(prospect_id: int, update: str, editor_id=None):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
         return False
-    message_id = prospect.generated_message_id
+    message_id = prospect.approved_outreach_message_id
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     if not message:
