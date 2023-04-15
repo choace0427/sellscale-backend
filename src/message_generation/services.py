@@ -455,13 +455,19 @@ def create_new_edit_message_record(
     return True
 
 
+def update_linkedin_message_for_prospect_id(prospect_id: int, update: str):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False
+    message_id = prospect.approved_outreach_message_id
+    update_message(
+        message_id=message_id,
+        update=update,
+    )
+
+
 def update_message(message_id: int, update: str, editor_id=None):
     from model_import import GeneratedMessage
-
-    # prospect: Prospect = Prospect.query.get(prospect_id)
-    # if not prospect:
-    #     return False
-    # message_id = prospect.approved_outreach_message_id
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     if not message:

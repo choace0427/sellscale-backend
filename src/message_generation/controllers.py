@@ -3,6 +3,7 @@ from app import db
 from flask import Blueprint, request, jsonify
 from src.message_generation.services import (
     approve_message,
+    update_linkedin_message_for_prospect_id,
     update_message,
     batch_approve_message_generations_by_heuristic,
     batch_disapprove_message_generations,
@@ -95,9 +96,9 @@ def batch_update_messages():
     """
     payload = get_request_parameter("payload", request, json=True, required=True)
     for prospect in payload:
-        message_id = prospect["message_id"]
+        prospect_id = prospect["prospect_id"]
         update = prospect["completion"]
-        update_message(message_id=message_id, update=update)
+        update_linkedin_message_for_prospect_id(prospect_id=prospect_id, update=update)
 
     return "OK", 200
 
