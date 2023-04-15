@@ -53,11 +53,14 @@ def get_all_sequences(client_sdr_id: int):
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    integration = SalesEngagementIntegration(
-        client_id=int(client_sdr.client_id),
-    )
-    options = integration.find_all_sequences()
-    return jsonify({"sequence_options": options})
+    try:
+        integration = SalesEngagementIntegration(
+            client_id=int(client_sdr.client_id),
+        )
+        options = integration.find_all_sequences()
+        return jsonify({"sequence_options": options})
+    except Exception as e:
+        return jsonify({"message": 'No vessel access token'}), 200
 
 
 @INTEGRATION_BLUEPRINT.route("/sequences", methods=["GET"])
@@ -65,11 +68,14 @@ def get_sequences_by_name():
     name = get_request_parameter("name", request, json=False, required=True)
     client_id = get_request_parameter("client_id", request, json=False, required=True)
 
-    integration = SalesEngagementIntegration(
-        client_id=int(client_id),
-    )
-    options = integration.find_sequence_autofill_by_name(name=name)
-    return jsonify({"sequence_options": options})
+    try:
+        integration = SalesEngagementIntegration(
+            client_id=int(client_id),
+        )
+        options = integration.find_sequence_autofill_by_name(name=name)
+        return jsonify({"sequence_options": options})
+    except Exception as e:
+        return jsonify({"message": 'No vessel access token'}), 200
 
 
 @INTEGRATION_BLUEPRINT.route("/vessel/link-token", methods=["POST"])

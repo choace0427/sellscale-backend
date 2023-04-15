@@ -201,7 +201,7 @@ def test_create_outbound_campaign():
     campaign = create_outbound_campaign(
         prospect_ids=[prospect.id],
         num_prospects=2,
-        campaign_type=GeneratedMessageType.LINKEDIN,
+        campaign_type=GeneratedMessageType.LINKEDIN.value,
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
         campaign_start_date=start_date,
@@ -243,6 +243,18 @@ def test_smart_get_prospects_for_campaign():
     assert low_prospect_id not in higher_prospects
 
     prospect_no_score = basic_prospect(client, archetype, client_sdr)
+    prospect_no_score_id = prospect_no_score.id
     all_prospects = smart_get_prospects_for_campaign(archetype_id, 4, "LINKEDIN")
     assert len(all_prospects) == 4
-    assert prospect_no_score.id in all_prospects
+    assert prospect_no_score_id in all_prospects
+
+    prospect_high_intent = basic_prospect(client, archetype, client_sdr)
+    prospect_high_intent_id = prospect_high_intent.id
+    prospect_high_intent.li_intent_score = 100
+    db.session.add(prospect_high_intent)
+    db.session.commit()
+    all_prospects = smart_get_prospects_for_campaign(archetype_id, 4, "LINKEDIN")
+    assert len(all_prospects) == 4
+    assert prospect_high_intent_id in all_prospects
+    assert prospect_no_score_id not in all_prospects
+
