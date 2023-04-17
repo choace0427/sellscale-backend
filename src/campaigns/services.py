@@ -381,6 +381,7 @@ def create_outbound_campaign(
             client_archetype_id, num_prospects - len(prospect_ids), campaign_type
         )
         prospect_ids.extend(top_prospects)
+        return len(prospect_ids)
         # Add a check that the number of prospects is correct
         if len(prospect_ids) > num_prospects:
             raise Exception(
