@@ -40,7 +40,6 @@ def collect_and_generate_all_autopilot_campaigns():
     # Generate campaigns for SDRs, using another function
     for sdr in sdrs:
         sdr_id = sdr.id
-        # if sdr_id == 25 or client_id == 8:
         collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id])
 
 
@@ -49,6 +48,8 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
     try:
         # Get SDR
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if client_sdr != 3:
+            return
 
         # Get active archetypes for SDR. If more than one, block and send slack message
         archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
@@ -104,11 +105,12 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                         send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.", [SLACK_CHANNEL])
                     # Generate the campaign
                     else:
-                        generating = generate_campaign(oc.id)
-                        if not generating:
-                            send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
-                        else:
-                            generated_types.append(GeneratedMessageType.LINKEDIN.value)
+                        send_slack_message(f"DELETE ME: Campaign generated: {oc.id}, with {len(OutboundCampaign.query.get(oc.id).prospect_ids)} prospects")
+                        # generating = generate_campaign(oc.id)
+                        # if not generating:
+                        #     send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
+                        # else:
+                        #     generated_types.append(GeneratedMessageType.LINKEDIN.value)
                 else:
                     send_slack_message(f"🤖 ❌ 🧑‍🤝‍🧑 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate LINKEDIN campaign.", [SLACK_CHANNEL])
             else:
@@ -139,11 +141,12 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                         send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.", [SLACK_CHANNEL])
                     # Generate the campaign
                     else:
-                        generating = generate_campaign(oc.id)
-                        if not generating:
-                            send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
-                        else:
-                            generated_types.append(GeneratedMessageType.EMAIL.value)
+                        send_slack_message(f"DELETE ME: Campaign generated: {oc.id}, with {len(OutboundCampaign.query.get(oc.id).prospect_ids)} prospects")
+                        # generating = generate_campaign(oc.id)
+                        # if not generating:
+                        #     send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
+                        # else:
+                        #     generated_types.append(GeneratedMessageType.EMAIL.value)
                 else:
                     send_slack_message(f"🤖 ❌ 🧑‍🤝‍🧑 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate EMAIL campaign.", [SLACK_CHANNEL])
             else:
