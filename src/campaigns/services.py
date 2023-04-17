@@ -433,7 +433,7 @@ def create_outbound_campaign(
 
 
 def smart_get_prospects_for_campaign(
-    client_archetype_id: int, num_prospects: int, campaign_type: str
+    client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType
 ) -> list[int]:
     """Smartly gets prospects for a campaign
 
