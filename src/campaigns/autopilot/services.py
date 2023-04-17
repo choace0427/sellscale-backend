@@ -48,7 +48,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
     try:
         # Get SDR
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        if client_sdr != 3:
+        if client_sdr != 32:
             return
 
         # Get active archetypes for SDR. If more than one, block and send slack message
