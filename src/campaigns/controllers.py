@@ -243,7 +243,10 @@ def create_new_campaign(client_sdr_id: int):
     )
 
     # Turn campaign type from string to enum
-    campaign_type = next((key for key, value in GeneratedMessageType.__members__.items() if value == campaign_type), None)
+    if campaign_type == "EMAIL":
+        campaign_type = GeneratedMessageType.EMAIL
+    elif campaign_type == "LINKEDIN":
+        campaign_type = GeneratedMessageType.LINKEDIN
 
     try:
         campaign: OutboundCampaign = create_outbound_campaign(
