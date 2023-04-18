@@ -2,9 +2,8 @@ import json
 from app import db
 from flask import Blueprint, request, jsonify
 from flask_csv import send_csv
-from model_import import Prospect
+from model_import import Prospect, LinkedinConversationEntry
 from datetime import datetime, timedelta
-from model_import import ClientSDR
 from src.li_conversation.services import (
     update_linkedin_conversation_entries,
     update_li_conversation_extractor_phantom,
@@ -106,3 +105,18 @@ def post_prospect_li_conversation_woz(client_sdr_id: int):
     )
 
     return jsonify({"message": message})
+
+
+@LI_CONVERASTION_BLUEPRINT.route("/prospect/processed", methods=["POST"])
+def post_prospect_li_conversation_processed():
+    """Marks a prospect's LinkedIn conversation entry as processed."""
+    li_conversation_id = get_request_parameter(
+        "li_conversation_id", request, json=True, required=True, parameter_type=int
+    )
+
+    li_entry: LinkedinConversationEntry = LinkedinConversationEntry.query.get(li_conversation_id)
+    li_entry.entry_processed = True
+    db.session.add(li_entry)
+    db.session.commit()
+
+    return "OK", 200
