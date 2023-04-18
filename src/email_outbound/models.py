@@ -191,7 +191,9 @@ class ProspectEmailOutreachStatus(enum.Enum):
         next_status_descriptions = {}
         all_status_descriptions = ProspectEmailOutreachStatus.status_descriptions()
         for status in VALID_NEXT_EMAIL_STATUSES.get(current_status, []):
-            next_status_descriptions[status.value] = all_status_descriptions.get(status.value, {})
+            next_status_descriptions[status.value] = all_status_descriptions.get(
+                status.value, {}
+            )
 
         return next_status_descriptions
 
@@ -201,7 +203,9 @@ class ProspectEmail(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
-    outbound_campaign_id = db.Column(db.Integer, db.ForeignKey("outbound_campaign.id"), nullable=True)
+    outbound_campaign_id = db.Column(
+        db.Integer, db.ForeignKey("outbound_campaign.id"), nullable=True
+    )
     email_status = db.Column(db.Enum(ProspectEmailStatus), nullable=True)
     outreach_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=True)
 
@@ -212,7 +216,7 @@ class ProspectEmail(db.Model):
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
 
-    vessel_sequence_id = db.Column(db.Integer, nullable=True)
+    vessel_sequence_id = db.Column(db.String, nullable=True)
     vessel_sequence_payload_str = db.Column(db.String, nullable=True)
 
 
@@ -396,6 +400,7 @@ class SequenceStatus(enum.Enum):
     IMPORTED = "IMPORTED"
     CANCELLED = "CANCELLED"
 
+
 class Sequence(db.Model):
     __tablename__ = "sequence"
 
@@ -419,13 +424,14 @@ class Sequence(db.Model):
         }
 
 
-
 class EmailConversationThread(db.Model):
     __tablename__ = "email_conversation_thread"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
 
     subject = db.Column(db.String, nullable=False)
@@ -454,7 +460,9 @@ class EmailConversationMessage(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
 
     subject = db.Column(db.String, nullable=False)
@@ -477,4 +485,3 @@ class EmailConversationMessage(db.Model):
             "nylas_thread_id": self.nylas_thread_id,
             "nylas_data": self.nylas_data,
         }
-

@@ -80,7 +80,7 @@ class ClientArchetype(db.Model):
 
     icp_matching_prompt = db.Column(db.String, nullable=True)
 
-    vessel_sequence_id = db.Column(db.Integer, nullable=True)
+    vessel_sequence_id = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -198,7 +198,7 @@ class ClientSDR(db.Model):
     icp_matching_credits = db.Column(db.Integer, nullable=True, default=4000)
 
     img_url = db.Column(db.String, nullable=True)
-    img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)
+    img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
@@ -214,7 +214,8 @@ class ClientSDR(db.Model):
             "scheduling_link": self.scheduling_link,
             "last_li_conversation_scrape_date": self.last_li_conversation_scrape_date,
             "li_connected": self.li_at_token is not None,
-            "li_voyager_connected": self.li_cookies is not None and self.li_cookies != 'INVALID',
+            "li_voyager_connected": self.li_cookies is not None
+            and self.li_cookies != "INVALID",
             "nylas_connected": self.nylas_account_id is not None and self.nylas_active,
             "email_fetching_credits": self.email_fetching_credits,
             "icp_matching_credits": self.icp_matching_credits,
