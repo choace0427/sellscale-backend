@@ -63,6 +63,6 @@ def get_engagement_feed(client_sdr_id: int):
     limit = int(get_request_parameter("limit", request, required=False)) or 10
     offset = int(get_request_parameter("offset", request, required=False)) or 0
 
-    items = get_engagement_feed_items(client_sdr_id, limit, offset)
+    total_count, items = get_engagement_feed_items(client_sdr_id, limit, offset)
 
-    return jsonify({"message": "Success", "engagement_feed_items": items})
+    return jsonify({"message": "Success", "engagement_feed_items": items, 'total_count': total_count}), 200
