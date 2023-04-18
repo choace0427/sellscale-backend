@@ -381,6 +381,11 @@ def create_outbound_campaign(
             client_archetype_id, num_prospects - len(prospect_ids), campaign_type
         )
         prospect_ids.extend(top_prospects)
+        # Add a check that the number of prospects is correct
+        if len(prospect_ids) > num_prospects:
+            raise Exception(
+                "Incorrect number of prospects returned from smart_get_prospects_for_campaign"
+            )
         pass
 
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
@@ -427,7 +432,7 @@ def create_outbound_campaign(
 
 
 def smart_get_prospects_for_campaign(
-    client_archetype_id: int, num_prospects: int, campaign_type: str
+    client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType
 ) -> list[int]:
     """Smartly gets prospects for a campaign
 
@@ -445,6 +450,8 @@ def smart_get_prospects_for_campaign(
     # Get prospects with highest ICP intent score
     top_intent_prospects = get_top_intent_prospects(client_archetype_id, num_prospects, campaign_type)
     remaining_num_prospects = num_prospects - len(top_intent_prospects)
+    if remaining_num_prospects < 0:
+        raise Exception("Incorrect number of prospects returned from get_top_intent_prospects")
 
     # Get prospects with highest health check score
     top_healthscore_prospects = get_top_healthscore_prospects(
@@ -453,6 +460,8 @@ def smart_get_prospects_for_campaign(
         campaign_type=campaign_type,
         blacklist=top_intent_prospects)
     remaining_num_prospects = remaining_num_prospects - len(top_healthscore_prospects)
+    if remaining_num_prospects < 0:
+        raise Exception("Incorrect number of prospects returned from get_top_healthscore_prospects")
 
     # Get prospects randomly
     random_prospects = get_random_prospects(
@@ -461,18 +470,20 @@ def smart_get_prospects_for_campaign(
         campaign_type=campaign_type,
         blacklist=top_intent_prospects + top_healthscore_prospects)
     remaining_num_prospects = remaining_num_prospects - len(random_prospects)
+    if remaining_num_prospects < 0:
+        raise Exception("Incorrect number of prospects returned from get_top_healthscore_prospects")
 
     prospect_ids: list[int] = top_intent_prospects + top_healthscore_prospects + random_prospects
     return prospect_ids
 
 
-def get_top_intent_prospects(client_archetype_id: int, num_prospects: int, campaign_type: str, blacklist: Optional[list[int]] = []) -> list[int]:
+def get_top_intent_prospects(client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType, blacklist: Optional[list[int]] = []) -> list[int]:
     """Gets the top prospects using intent score (LinkedIn or Email)
 
     Args:
         client_archetype_id (int): Client archetype id
         num_prospects (int): Number of prospects to get
-        campaign_type (str): Type of campaign
+        campaign_type (GeneratedMessageType): Type of campaign
         blacklist (list[int]): List of prospect ids to exclude
 
     Returns:
@@ -495,13 +506,13 @@ def get_top_intent_prospects(client_archetype_id: int, num_prospects: int, campa
     )
 
     # Filter prospects based on the campaign type
-    if campaign_type == GeneratedMessageType.EMAIL.value:
+    if campaign_type == GeneratedMessageType.EMAIL:
         prospects = prospects.filter(
             Prospect.email_intent_score != None,
             Prospect.approved_prospect_email_id == None,
             Prospect.email.isnot(None),
         ).order_by(Prospect.email_intent_score.desc(), func.random()).limit(num_prospects).all()
-    elif campaign_type == GeneratedMessageType.LINKEDIN.value:
+    elif campaign_type == GeneratedMessageType.LINKEDIN:
         prospects = prospects.filter(
             Prospect.li_intent_score != None,
             Prospect.approved_outreach_message_id == None,
@@ -511,13 +522,13 @@ def get_top_intent_prospects(client_archetype_id: int, num_prospects: int, campa
     return prospect_ids
 
 
-def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, campaign_type: str, blacklist: Optional[list[int]] = []) -> list[int]:
+def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType, blacklist: Optional[list[int]] = []) -> list[int]:
     """Gets the top prospects using health score (LinkedIn or Email)
 
     Args:
         client_archetype_id (int): Client archetype id
         num_prospects (int): Number of prospects to get
-        campaign_type (str): Type of campaign
+        campaign_type (GeneratedMessageType): Type of campaign
         blacklist (list[int]): List of prospect ids to exclude
 
     Returns:
@@ -542,12 +553,12 @@ def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, 
     )
 
     # Filter prospects based on the campaign type
-    if campaign_type == GeneratedMessageType.EMAIL.value:
+    if campaign_type == GeneratedMessageType.EMAIL:
         prospects = prospects.filter(
             Prospect.email.isnot(None),
             Prospect.approved_prospect_email_id == None,
         )
-    elif campaign_type == GeneratedMessageType.LINKEDIN.value:
+    elif campaign_type == GeneratedMessageType.LINKEDIN:
         prospects = prospects.filter(
             Prospect.approved_outreach_message_id == None,
         )
@@ -557,13 +568,13 @@ def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, 
     return prospect_ids
 
 
-def get_random_prospects(client_archetype_id: int, num_prospects: int, campaign_type: str, blacklist: Optional[list[int]] = []) -> list[int]:
+def get_random_prospects(client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType, blacklist: Optional[list[int]] = []) -> list[int]:
     """Gets a random set of prospects
 
     Args:
         client_archetype_id (int): Client archetype id
         num_prospects (int): Number of prospects to get
-        campaign_type (str): Campaign type
+        campaign_type (GeneratedMessageType): Campaign type
         blacklist (list[int], optional): List of prospect ids to exclude. Defaults to [].
 
     Returns:
@@ -586,12 +597,12 @@ def get_random_prospects(client_archetype_id: int, num_prospects: int, campaign_
     )
 
     # Filter prospects based on the campaign type
-    if campaign_type == GeneratedMessageType.EMAIL.value:
+    if campaign_type == GeneratedMessageType.EMAIL:
         prospects = prospects.filter(
             Prospect.email.isnot(None),
             Prospect.approved_prospect_email_id == None,
         )
-    elif campaign_type == GeneratedMessageType.LINKEDIN.value:
+    elif campaign_type == GeneratedMessageType.LINKEDIN:
         prospects = prospects.filter(
             Prospect.approved_outreach_message_id == None,
         )

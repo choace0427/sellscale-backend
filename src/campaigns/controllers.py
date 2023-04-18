@@ -219,6 +219,7 @@ def get_all_campaigns(client_sdr_id: int):
 @CAMPAIGN_BLUEPRINT.route("/", methods=["POST"])
 @require_user
 def create_new_campaign(client_sdr_id: int):
+    from model_import import GeneratedMessageType
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True, parameter_type=list
     )
@@ -240,6 +241,12 @@ def create_new_campaign(client_sdr_id: int):
     ctas = get_request_parameter(
         "ctas", request, json=True, required=False, parameter_type=list
     )
+
+    # Turn campaign type from string to enum
+    if campaign_type == "EMAIL":
+        campaign_type = GeneratedMessageType.EMAIL
+    elif campaign_type == "LINKEDIN":
+        campaign_type = GeneratedMessageType.LINKEDIN
 
     try:
         campaign: OutboundCampaign = create_outbound_campaign(

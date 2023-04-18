@@ -40,7 +40,6 @@ def collect_and_generate_all_autopilot_campaigns():
     # Generate campaigns for SDRs, using another function
     for sdr in sdrs:
         sdr_id = sdr.id
-        # if sdr_id == 25 or client_id == 8:
         collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id])
 
 
