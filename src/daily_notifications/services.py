@@ -175,7 +175,7 @@ def create_engagement_feed_item(client_sdr_id: int, prospect_id: int, channel_ty
     return new_item.id
 
 
-def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, offset: Optional[int] = 0) -> list[dict]:
+def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, offset: Optional[int] = 0) -> tuple[int, list[dict]]:
     """Gets engagement feed items for a client SDR.
 
     Args:
@@ -193,7 +193,9 @@ def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, off
         client_sdr_id=client_sdr_id
     ).order_by(
         EngagementFeedItem.created_at.desc()
-    ).limit(limit).offset(offset).all()
+    )
+    total_count = engagement_feed_items.count()
+    engagement_feed_items = engagement_feed_items.limit(limit).offset(offset).all()
 
     better_ef_item_list = []
     for ef_item in engagement_feed_items:
@@ -220,4 +222,4 @@ def get_engagement_feed_items(client_sdr_id: int, limit: Optional[int] = 10, off
         better_ef_item_list.append(item)
 
 
-    return better_ef_item_list
+    return total_count, better_ef_item_list

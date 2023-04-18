@@ -157,6 +157,7 @@ def test_get_engagement_feed_items():
 
     prospect = basic_prospect(client, archetype, client_sdr)
     ef_id = basic_engagement_feed_item(client_sdr.id, prospect.id, "LINKEDIN", "SCHEDULING")
-    efs: list[dict] = get_engagement_feed_items(client_sdr.id)
+    total_count, efs = get_engagement_feed_items(client_sdr.id)
+    assert total_count == 1
     assert len(efs) == 1
     assert efs[0]["id"] == ef_id
