@@ -396,7 +396,7 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
                     'sdr_auth_token': client_sdr.auth_token,
                     'client_name': client.company,
                     'prospect_name': prospect.full_name,
-                    'prospect_status': prospect.status,
+                    'prospect_status': prospect.status.value,
                 })
 
     return data
