@@ -375,6 +375,10 @@ def create_outbound_campaign(
     Returns:
         OutboundCampaign: The newly created outbound campaign
     """
+    # If number of prospects is over 500, do not generate
+    if num_prospects >= 500:
+        raise Exception("Number of prospects must be less than 500")
+
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
         top_prospects = smart_get_prospects_for_campaign(
