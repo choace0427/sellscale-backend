@@ -448,36 +448,53 @@ def smart_get_prospects_for_campaign(
         list[int]: List of prospect ids
     """
     # Get prospects with highest ICP intent score
-    top_intent_prospects = get_top_intent_prospects(client_archetype_id, num_prospects, campaign_type)
+    top_intent_prospects = get_top_intent_prospects(
+        client_archetype_id, num_prospects, campaign_type
+    )
     remaining_num_prospects = num_prospects - len(top_intent_prospects)
     if remaining_num_prospects < 0:
-        raise Exception("Incorrect number of prospects returned from get_top_intent_prospects")
+        raise Exception(
+            "Incorrect number of prospects returned from get_top_intent_prospects"
+        )
 
     # Get prospects with highest health check score
     top_healthscore_prospects = get_top_healthscore_prospects(
         client_archetype_id=client_archetype_id,
         num_prospects=remaining_num_prospects,
         campaign_type=campaign_type,
-        blacklist=top_intent_prospects)
+        blacklist=top_intent_prospects,
+    )
     remaining_num_prospects = remaining_num_prospects - len(top_healthscore_prospects)
     if remaining_num_prospects < 0:
-        raise Exception("Incorrect number of prospects returned from get_top_healthscore_prospects")
+        raise Exception(
+            "Incorrect number of prospects returned from get_top_healthscore_prospects"
+        )
 
     # Get prospects randomly
     random_prospects = get_random_prospects(
         client_archetype_id=client_archetype_id,
         num_prospects=remaining_num_prospects,
         campaign_type=campaign_type,
-        blacklist=top_intent_prospects + top_healthscore_prospects)
+        blacklist=top_intent_prospects + top_healthscore_prospects,
+    )
     remaining_num_prospects = remaining_num_prospects - len(random_prospects)
     if remaining_num_prospects < 0:
-        raise Exception("Incorrect number of prospects returned from get_top_healthscore_prospects")
+        raise Exception(
+            "Incorrect number of prospects returned from get_top_healthscore_prospects"
+        )
 
-    prospect_ids: list[int] = top_intent_prospects + top_healthscore_prospects + random_prospects
+    prospect_ids: list[int] = (
+        top_intent_prospects + top_healthscore_prospects + random_prospects
+    )
     return prospect_ids
 
 
-def get_top_intent_prospects(client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType, blacklist: Optional[list[int]] = []) -> list[int]:
+def get_top_intent_prospects(
+    client_archetype_id: int,
+    num_prospects: int,
+    campaign_type: GeneratedMessageType,
+    blacklist: Optional[list[int]] = [],
+) -> list[int]:
     """Gets the top prospects using intent score (LinkedIn or Email)
 
     Args:
@@ -493,36 +510,49 @@ def get_top_intent_prospects(client_archetype_id: int, num_prospects: int, campa
         return []
 
     # Get prospects that are available for outreach
-    prospects = (
-        Prospect.query.filter(
-            Prospect.archetype_id == client_archetype_id,
-            or_(
-                Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
-                Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
-                Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
-            ),
-            Prospect.id.notin_(blacklist),
-        )
+    prospects = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        or_(
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
+            Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
+            Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
+        ),
+        Prospect.id.notin_(blacklist),
     )
 
     # Filter prospects based on the campaign type
     if campaign_type == GeneratedMessageType.EMAIL:
-        prospects = prospects.filter(
-            Prospect.email_intent_score != None,
-            Prospect.approved_prospect_email_id == None,
-            Prospect.email.isnot(None),
-        ).order_by(Prospect.email_intent_score.desc(), func.random()).limit(num_prospects).all()
+        prospects = (
+            prospects.filter(
+                Prospect.email_intent_score != None,
+                Prospect.approved_prospect_email_id == None,
+                Prospect.email.isnot(None),
+            )
+            .order_by(Prospect.email_intent_score.desc(), func.random())
+            .limit(num_prospects)
+            .all()
+        )
     elif campaign_type == GeneratedMessageType.LINKEDIN:
-        prospects = prospects.filter(
-            Prospect.li_intent_score != None,
-            Prospect.approved_outreach_message_id == None,
-        ).order_by(Prospect.li_intent_score.desc(), func.random()).limit(num_prospects).all()
+        prospects = (
+            prospects.filter(
+                Prospect.li_intent_score != None,
+                Prospect.approved_outreach_message_id == None,
+            )
+            .order_by(Prospect.li_intent_score.desc(), func.random())
+            .limit(num_prospects)
+            .all()
+        )
 
     prospect_ids: list[int] = [p.id for p in prospects]
     return prospect_ids
 
 
-def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType, blacklist: Optional[list[int]] = []) -> list[int]:
+def get_top_healthscore_prospects(
+    client_archetype_id: int,
+    num_prospects: int,
+    campaign_type: GeneratedMessageType,
+    blacklist: Optional[list[int]] = [],
+) -> list[int]:
     """Gets the top prospects using health score (LinkedIn or Email)
 
     Args:
@@ -539,17 +569,15 @@ def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, 
         return []
 
     # Get prospects that are available for outreach
-    prospects = (
-        Prospect.query.filter(
-            Prospect.archetype_id == client_archetype_id,
-            Prospect.health_check_score != None,
-            Prospect.id.notin_(blacklist),
-            or_(
-                Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
-                Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
-                Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
-            ),
-        )
+    prospects = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.health_check_score != None,
+        Prospect.id.notin_(blacklist),
+        or_(
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
+            Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
+            Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
+        ),
     )
 
     # Filter prospects based on the campaign type
@@ -562,13 +590,22 @@ def get_top_healthscore_prospects(client_archetype_id: int, num_prospects: int, 
         prospects = prospects.filter(
             Prospect.approved_outreach_message_id == None,
         )
-    prospects = prospects.order_by(Prospect.health_check_score.desc(), func.random()).limit(num_prospects).all()
+    prospects = (
+        prospects.order_by(Prospect.health_check_score.desc(), func.random())
+        .limit(num_prospects)
+        .all()
+    )
 
     prospect_ids: list[int] = [p.id for p in prospects]
     return prospect_ids
 
 
-def get_random_prospects(client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType, blacklist: Optional[list[int]] = []) -> list[int]:
+def get_random_prospects(
+    client_archetype_id: int,
+    num_prospects: int,
+    campaign_type: GeneratedMessageType,
+    blacklist: Optional[list[int]] = [],
+) -> list[int]:
     """Gets a random set of prospects
 
     Args:
@@ -584,16 +621,14 @@ def get_random_prospects(client_archetype_id: int, num_prospects: int, campaign_
         return []
 
     # Get prospects that are available for outreach
-    prospects = (
-        Prospect.query.filter(
-            Prospect.archetype_id == client_archetype_id,
-            Prospect.id.notin_(blacklist),
-            or_(
-                Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
-                Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
-                Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
-            ),
-        )
+    prospects = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.id.notin_(blacklist),
+        or_(
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
+            Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
+            Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
+        ),
     )
 
     # Filter prospects based on the campaign type
@@ -1494,7 +1529,7 @@ def send_email_campaign_from_sales_engagement(
             prospect_email
             and prospect_email.email_status == ProspectEmailStatus.APPROVED
         ):
-            personalize_and_enroll_in_sequence.delay(
+            personalize_and_enroll_in_sequence(
                 client_id=client.id,
                 prospect_id=prospect_id,
                 mailbox_id=sdr.vessel_mailbox_id,

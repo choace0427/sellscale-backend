@@ -81,6 +81,8 @@ class SalesEngagementIntegration:
         if self.client_id == 9:  # only for AdQuick / Outreach users
             return {"attributes": personalization_dict}
 
+        return {"custom_fields": personalization_dict}
+
     def create_contact(self, first_name, last_name, job_title, emails, additional={}):
         """
         Create a Sales Engagement contact
@@ -224,17 +226,14 @@ class SalesEngagementIntegration:
             {"sequence_id": sequence.sequence_id, "name": sequence.name}
             for sequence in sequence_options
         ]
-    
+
     def find_all_sequences(self):
         """
         Find a Sales Engagement sequence
         """
-        sequence_options = (
-            VesselSequences.query.filter(
-                VesselSequences.access_token == self.vessel_access_token,
-            )
-            .all()
-        )
+        sequence_options = VesselSequences.query.filter(
+            VesselSequences.access_token == self.vessel_access_token,
+        ).all()
         return [
             {"sequence_id": sequence.sequence_id, "name": sequence.name}
             for sequence in sequence_options
