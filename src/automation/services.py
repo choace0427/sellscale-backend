@@ -191,9 +191,7 @@ def create_inbox_scraper_agent(client_sdr_id: int, linkedin_session_cookie: str)
     return phantom_id, phantom_name
 
 
-def create_auto_connect_agent(
-    client_sdr_id: int, linkedin_session_cookie: str
-):
+def create_auto_connect_agent(client_sdr_id: int, linkedin_session_cookie: str):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_sdr_id = client_sdr.id
     client: Client = Client.query.get(client_sdr.client_id)
@@ -206,7 +204,9 @@ def create_auto_connect_agent(
     )
     api_url = os.environ.get("SELLSCALE_API_URL")
     csv_api = f"{api_url}/automation/phantombuster/auto_connect_csv/{client_sdr_id}"
-    phantom_webhook = f"{api_url}/automation/phantombuster/auto_connect_webhook/{client_sdr_id}"
+    phantom_webhook = (
+        f"{api_url}/automation/phantombuster/auto_connect_webhook/{client_sdr_id}"
+    )
 
     payload = json.dumps(
         {
@@ -294,7 +294,7 @@ def create_auto_connect_agent(
                 "mailAutomaticLaunchError": False,
                 "slackAutomaticExitSuccess": False,
                 "slackAutomaticLaunchError": True,
-                "webhook": phantom_webhook
+                "webhook": phantom_webhook,
             },
             "proxyAddress": "",
             "proxyType": "none",
@@ -342,11 +342,10 @@ def save_agent_groups(agent_groups: list):
     return response.json()
 
 
-def create_new_auto_connect_phantom(
-    client_sdr_id: int, linkedin_session_cookie: str
-):
+def create_new_auto_connect_phantom(client_sdr_id: int, linkedin_session_cookie: str):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not client_sdr: return None, None
+    if not client_sdr:
+        return None, None
     client_sdr_name = client_sdr.name
     client_sdr.li_at_token = linkedin_session_cookie
     client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
@@ -430,7 +429,7 @@ def update_phantom_buster_run_status(phantom_id: str):
 
 
 def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
-    """ Updates a PhantomBuster's LinkedIn authentication token
+    """Updates a PhantomBuster's LinkedIn authentication token
 
     Args:
         client_sdr_id (int): ID of the client SDR
@@ -449,8 +448,8 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
         pb_id = pb.phantom_uuid
         pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=pb_id)
         arguments = pb_agent.get_arguments()
-        if 'sessionCookie' in arguments:
-            pb_agent.update_argument(key='sessionCookie', new_value=li_at)
+        if "sessionCookie" in arguments:
+            pb_agent.update_argument(key="sessionCookie", new_value=li_at)
 
     sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not sdr:
@@ -464,7 +463,7 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
 
 
 def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
-    """ Creates a CSV used by the phantom buster agent to invite people on LinkedIn
+    """Creates a CSV used by the phantom buster agent to invite people on LinkedIn
 
     Args:
         client_sdr_id (int): ID of the client SDR
@@ -481,25 +480,28 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
         .filter(
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.approved_outreach_message_id != None,
-            GeneratedMessage.message_status == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
+            GeneratedMessage.message_status
+            == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
         )
         .order_by(func.random())
-        .limit(2)
+        .limit(10)
     ).all()
 
     data = []
     # Write the data rows
     for message in joined_prospect_message:
-        data.append({
-            "Linkedin": message.linkedin_url,
-            "Message": message.completion,
-        })
+        data.append(
+            {
+                "Linkedin": message.linkedin_url,
+                "Message": message.completion,
+            }
+        )
 
     return data
 
 
 def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool:
-    """ Updates the status of a LinkedIn message sent by the phantom buster agent
+    """Updates the status of a LinkedIn message sent by the phantom buster agent
 
     Args:
         client_sdr_id (int): ID of the client SDR
@@ -546,11 +548,15 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
         # Check for error, otherwise set the message to sent
         error = result.get("error")
         if error:
-            update_prospect_status_linkedin(prospect_id=prospect_id, new_status=ProspectStatus.SEND_OUTREACH_FAILED)
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id, new_status=ProspectStatus.SEND_OUTREACH_FAILED
+            )
             message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
             message.failed_outreach_error = error
         else:
-            update_prospect_status_linkedin(prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH)
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH
+            )
             message: GeneratedMessage = GeneratedMessage.query.get(message_id)
             message.message_status = GeneratedMessageStatus.SENT
             message.date_sent = datetime.now()
@@ -572,11 +578,19 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
     return True
 
 
-
 def backfill_func():
     from app import db
-    from model_import import Prospect, GeneratedMessage, GeneratedMessageStatus, ProspectStatus, ProspectOverallStatus
-    backfill_prospect_ids: list[int] = [int(num) for num in """
+    from model_import import (
+        Prospect,
+        GeneratedMessage,
+        GeneratedMessageStatus,
+        ProspectStatus,
+        ProspectOverallStatus,
+    )
+
+    backfill_prospect_ids: list[int] = [
+        int(num)
+        for num in """
     22797
 22883
 22890
@@ -864,18 +878,22 @@ def backfill_func():
 26384
 26508
 29839
-    """.split()]
+    """.split()
+    ]
     print(backfill_prospect_ids)
     updated_prospects = []
     updated_messages = []
     from tqdm import tqdm
+
     for prospect_id in tqdm(backfill_prospect_ids):
         prospect: Prospect = Prospect.query.get(prospect_id)
         if prospect is None:
             continue
         prospect.status = ProspectStatus.QUEUED_FOR_OUTREACH
         prospect.overall_status = ProspectOverallStatus.PROSPECTED
-        gm: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+        gm: GeneratedMessage = GeneratedMessage.query.get(
+            prospect.approved_outreach_message_id
+        )
         gm.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
         updated_prospects.append(prospect)
         updated_messages.append(gm)
