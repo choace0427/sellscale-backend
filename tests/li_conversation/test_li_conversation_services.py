@@ -1,10 +1,18 @@
 from app import db
 from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr
+from test_utils import (
+    test_app,
+    basic_client,
+    basic_client_sdr,
+    basic_archetype,
+    basic_prospect,
+    basic_linkedin_conversation_entry
+)
 from src.li_conversation.services import (
     update_linkedin_conversation_entries,
     create_linkedin_conversation_entry,
     update_li_conversation_extractor_phantom,
+    get_li_conversation_entries,
 )
 from datetime import datetime
 from app import app
@@ -85,3 +93,28 @@ def test_update_li_conversation_extractor_phantom(
     db.session.commit()
     client_sdr_id = client_sdr.id
     update_li_conversation_extractor_phantom(client_sdr_id)
+
+
+@use_app_context
+def test_get_li_conversation_entries():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr, li_conversation_thread_id='test-thread-id')
+    li_entry = basic_linkedin_conversation_entry(\
+        conversation_url="test-thread-id",
+        author="test-author",
+        message="test-message",
+        connection_degree="test-degree",
+        date=datetime.now(),
+    )
+
+    client.active = True
+    prospect.status = "ACTIVE_CONVO"
+
+    data = get_li_conversation_entries()
+    assert data[0]['conversation_url'] == 'test-thread-id'
+    assert data[0]['author'] == 'test-author'
+    assert data[0]['message'] == 'test-message'
+    assert data[0]['connection_degree'] == 'test-degree'
+    assert data[0]['sdr_name'] == 'Test SDR'

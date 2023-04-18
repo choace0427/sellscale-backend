@@ -1,4 +1,6 @@
-from typing import Union
+from typing import Union, Optional
+
+from sqlalchemy import or_
 from app import db, celery
 
 from model_import import LinkedinConversationEntry, ClientSDR, Prospect
@@ -6,7 +8,7 @@ from src.automation.models import PhantomBusterAgent
 from src.ml.openai_wrappers import wrapped_create_completion
 from src.utils.slack import URL_MAP
 from src.utils.slack import send_slack_message
-from datetime import datetime
+from datetime import datetime, timedelta
 from tqdm import tqdm
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message
@@ -120,7 +122,7 @@ def create_linkedin_conversation_entry(
     else:
         # Populate the urn_id is it's not already set
         added = False
-        
+
         if urn_id and not duplicate_exists.urn_id:
             duplicate_exists.urn_id = urn_id
             added = True
@@ -128,13 +130,13 @@ def create_linkedin_conversation_entry(
         if img_url and not duplicate_exists.img_url:
             duplicate_exists.img_url = img_url
             added = True
-        
+
         # If the current image is expired, replace it
         if img_expire and time.time()*1000 > int(duplicate_exists.img_expire):
             duplicate_exists.img_url = img_url
             duplicate_exists.img_expire = img_expire
             added = True
-        
+
         if added:
           db.session.add(duplicate_exists)
           db.session.commit()
@@ -347,3 +349,54 @@ def backfill_all_prospects():
         prospects.append(p)
     db.session.bulk_save_objects(prospects)
     db.session.commit()
+
+
+def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
+    """Gets the last `hours` hours of LinkedIn conversation entries.
+
+    This method returns more than just the raw conversation entry, it also returns information
+    about the ClientSDR, the Client, and the Prospect. This will also, for now, only return
+    conversation entries that belong to Prospects that are in the `ACTIVE_CONVO` status.
+
+    Args:
+        hours (Optional[int], optional): The number of hours in the past, from now, to see. Defaults to 168.
+    """
+    from model_import import Prospect, Client
+
+    data = []
+
+    # Get all the conversation entries that are in the past `hours` hours and are not from the user
+    past_entries: list[LinkedinConversationEntry] = LinkedinConversationEntry.query.filter(
+        LinkedinConversationEntry.created_at > datetime.now() - timedelta(hours=hours),
+        LinkedinConversationEntry.connection_degree != 'You'
+    )
+
+    # Parse the entries to get meaningful data
+    for entry in past_entries:
+        conversation_url = entry.conversation_url
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.li_conversation_thread_id.isnot(None),
+            or_(
+                Prospect.li_conversation_thread_id == conversation_url,
+                Prospect.li_conversation_thread_id.ilike('%' + conversation_url + '%'),
+            )
+        ).first()
+        if prospect:
+            client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+            client: Client = Client.query.get(client_sdr.client_id)
+            if client_sdr.active and client.active:
+                data.append({
+                    'linkedin_conversation_entry_id': entry.id,
+                    'conversation_url': entry.conversation_url,
+                    'author': entry.author,
+                    'connection_degree': entry.connection_degree,
+                    'date': entry.date,
+                    'message': entry.message,
+                    'sdr_name': client_sdr.name,
+                    'sdr_auth_token': client_sdr.auth_token,
+                    'client_name': client.company,
+                    'prospect_name': prospect.full_name,
+                    'prospect_status': prospect.status,
+                })
+
+    return data

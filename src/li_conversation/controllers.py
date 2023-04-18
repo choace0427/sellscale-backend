@@ -8,6 +8,7 @@ from src.li_conversation.services import (
     update_linkedin_conversation_entries,
     update_li_conversation_extractor_phantom,
     generate_chat_gpt_response_to_conversation_thread,
+    get_li_conversation_entries,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
@@ -120,3 +121,15 @@ def post_prospect_li_conversation_processed():
     db.session.commit()
 
     return "OK", 200
+
+
+@LI_CONVERASTION_BLUEPRINT.route("/", methods=["GET"])
+def get_li_conversation_entries_endpoint():
+    """Returns a list of LinkedIn conversation entries, in the past user-defined hours"""
+    hours = get_request_parameter(
+        "hours", request, required=False
+    ) or 168
+
+    conversation_entries = get_li_conversation_entries(int(hours))
+
+    return jsonify({'message': 'Success', 'li_conversation_entries': conversation_entries}), 200
