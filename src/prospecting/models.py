@@ -338,6 +338,7 @@ class Prospect(db.Model):
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     li_conversation_thread_id = db.Column(db.String, nullable=True)
+    li_conversation_urn_id = db.Column(db.String, nullable=True)
     li_last_message_timestamp = db.Column(db.DateTime, nullable=True)
     li_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
     li_last_message_from_prospect = db.Column(db.String, nullable=True)
@@ -364,6 +365,10 @@ class Prospect(db.Model):
 
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)
+
+    __table_args__ = (
+        db.Index('idx_li_urn_id', 'li_urn_id'),
+    )
 
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
