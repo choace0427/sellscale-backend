@@ -108,7 +108,7 @@ def post_prospect_li_conversation_woz(client_sdr_id: int):
     return jsonify({"message": message})
 
 
-@LI_CONVERASTION_BLUEPRINT.route("/prospect/processed", methods=["POST"])
+@LI_CONVERASTION_BLUEPRINT.route("/processed", methods=["POST"])
 def post_prospect_li_conversation_processed():
     """Marks a prospect's LinkedIn conversation entry as processed."""
     li_conversation_id = get_request_parameter(
@@ -116,7 +116,7 @@ def post_prospect_li_conversation_processed():
     )
 
     li_entry: LinkedinConversationEntry = LinkedinConversationEntry.query.get(li_conversation_id)
-    li_entry.entry_processed = True
+    li_entry.entry_processed_manually = True
     db.session.add(li_entry)
     db.session.commit()
 

@@ -20,6 +20,8 @@ class LinkedinConversationEntry(db.Model):
     li_url = db.Column(db.String, nullable=True)
     message = db.Column(db.String, nullable=True)
     entry_processed = db.Column(db.Boolean, default=False)
+    entry_processed_manually = db.Column(db.Boolean, default=False)
+    thread_urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
     urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
     def li_conversation_thread_by_prospect_id(prospect_id: int):
@@ -53,6 +55,9 @@ class LinkedinConversationEntry(db.Model):
             "img_expire": self.img_expire,
             "connection_degree": self.connection_degree,
             "li_url": self.li_url,
+            "entry_processed": self.entry_processed,
+            "entry_processed_manually": self.entry_processed_manually,
+            "thread_urn_id": self.thread_urn_id,
             "urn_id": self.urn_id,
             "message": self.message,
         }

@@ -102,6 +102,15 @@ def create_linkedin_conversation_entry(
         message=message,
         urn_id=urn_id,
     )
+
+    # Get the Thread URN ID from the conversation URL
+    try:
+        if conversation_url:
+            splitted = conversation_url.split("/")
+            thread_urn_id = splitted[-2]
+    except:
+        thread_urn_id = ""
+
     if not duplicate_exists:
         new_linkedin_conversation_entry = LinkedinConversationEntry(
             conversation_url=conversation_url,
@@ -116,6 +125,7 @@ def create_linkedin_conversation_entry(
             connection_degree=connection_degree,
             li_url=li_url,
             message=message,
+            thread_urn_id=thread_urn_id,
             urn_id=urn_id,
         )
         return new_linkedin_conversation_entry
