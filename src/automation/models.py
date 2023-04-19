@@ -135,7 +135,8 @@ class PhantomBusterAgent:
     #
 
     def get_phantom_buster_payload(self, s3Folder, orgS3Folder):
-        url = "https://cache1.phantombooster.com/{orgS3Folder}/{s3Folder}/000001410/result.json".format(
+
+        url = "https://cache1.phantombooster.com/{orgS3Folder}/{s3Folder}/result.json".format(
             orgS3Folder=orgS3Folder, s3Folder=s3Folder
         )
 
