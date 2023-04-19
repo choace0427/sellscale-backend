@@ -286,6 +286,7 @@ class SalesEngagementIntegration:
                     mailbox_id=mailbox["id"],
                     email=mailbox["email"],
                     access_token=self.vessel_access_token,
+                    client_id=self.client_id,
                 )
                 unadded_mailboxes.append(vessel_mailbox)
             db.session.bulk_save_objects(unadded_mailboxes)
@@ -319,6 +320,7 @@ class SalesEngagementIntegration:
                     sequence_id=sequence["id"],
                     name=sequence["name"],
                     access_token=self.vessel_access_token,
+                    client_id=self.client_id,
                 )
                 unadded_sequences.append(vessel_sequence)
             db.session.bulk_save_objects(unadded_sequences)

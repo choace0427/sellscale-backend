@@ -9,6 +9,7 @@ class VesselMailboxes(db.Model):
     access_token = db.Column(db.String, nullable=False)
     mailbox_id = db.Column(db.String, nullable=False)
     email = db.Column(db.String, nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
 
 
 class VesselSequences(db.Model):
@@ -18,6 +19,7 @@ class VesselSequences(db.Model):
     access_token = db.Column(db.String, nullable=False)
     sequence_id = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
 
 
 class VesselAPICachedResponses(db.Model):
