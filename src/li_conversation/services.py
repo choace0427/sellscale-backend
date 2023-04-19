@@ -69,6 +69,7 @@ def check_for_duplicate_linkedin_conversation_entry(
     if urn_id:
         return LinkedinConversationEntry.query.filter(
             LinkedinConversationEntry.urn_id == urn_id,
+            LinkedinConversationEntry.message == message,
         ).first()
     else:
         return LinkedinConversationEntry.query.filter(
