@@ -15,13 +15,13 @@ class LinkedinConversationEntry(db.Model):
     profile_url = db.Column(db.String, nullable=True)
     headline = db.Column(db.String, nullable=True)
     img_url = db.Column(db.String, nullable=True)
-    img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)
+    img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
     connection_degree = db.Column(db.String, nullable=True)
     li_url = db.Column(db.String, nullable=True)
     message = db.Column(db.String, nullable=True)
     entry_processed = db.Column(db.Boolean, default=False)
     entry_processed_manually = db.Column(db.Boolean, default=False)
-    thread_urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
+    thread_urn_id = db.Column(db.String, nullable=True, index=True)
     urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
     def li_conversation_thread_by_prospect_id(prospect_id: int):
