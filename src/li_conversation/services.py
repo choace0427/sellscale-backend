@@ -67,15 +67,15 @@ def check_for_duplicate_linkedin_conversation_entry(
     Check for duplicates and return True if duplicate exists
     """
     if urn_id:
-      return LinkedinConversationEntry.query.filter(
-          LinkedinConversationEntry.urn_id == urn_id,
-      ).first()
+        return LinkedinConversationEntry.query.filter(
+            LinkedinConversationEntry.urn_id == urn_id,
+        ).first()
     else:
-      return LinkedinConversationEntry.query.filter(
-          LinkedinConversationEntry.conversation_url == conversation_url,
-          LinkedinConversationEntry.author == author,
-          LinkedinConversationEntry.message == message,
-      ).first()
+        return LinkedinConversationEntry.query.filter(
+            LinkedinConversationEntry.conversation_url == conversation_url,
+            LinkedinConversationEntry.author == author,
+            LinkedinConversationEntry.message == message,
+        ).first()
 
 
 def create_linkedin_conversation_entry(
@@ -142,15 +142,15 @@ def create_linkedin_conversation_entry(
             added = True
 
         # If the current image is expired, replace it
-        if img_expire and time.time()*1000 > int(duplicate_exists.img_expire):
+        if img_expire and time.time() * 1000 > int(duplicate_exists.img_expire):
             duplicate_exists.img_url = img_url
             duplicate_exists.img_expire = img_expire
             added = True
 
         if added:
-          db.session.add(duplicate_exists)
-          db.session.commit()
-          return duplicate_exists
+            db.session.add(duplicate_exists)
+            db.session.commit()
+            return duplicate_exists
         else:
             return None
 
@@ -376,9 +376,11 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
     data = []
 
     # Get all the conversation entries that are in the past `hours` hours and are not from the user
-    past_entries: list[LinkedinConversationEntry] = LinkedinConversationEntry.query.filter(
+    past_entries: list[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.query.filter(
         LinkedinConversationEntry.created_at > datetime.now() - timedelta(hours=hours),
-        LinkedinConversationEntry.connection_degree != 'You'
+        LinkedinConversationEntry.connection_degree != "You",
     )
 
     # Parse the entries to get meaningful data
@@ -388,25 +390,27 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
             Prospect.li_conversation_thread_id.isnot(None),
             or_(
                 Prospect.li_conversation_thread_id == conversation_url,
-                Prospect.li_conversation_thread_id.ilike('%' + conversation_url + '%'),
-            )
+                Prospect.li_conversation_thread_id.ilike("%" + conversation_url + "%"),
+            ),
         ).first()
         if prospect:
             client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
             client: Client = Client.query.get(client_sdr.client_id)
             if client_sdr.active and client.active:
-                data.append({
-                    'linkedin_conversation_entry_id': entry.id,
-                    'conversation_url': entry.conversation_url,
-                    'author': entry.author,
-                    'connection_degree': entry.connection_degree,
-                    'date': entry.date,
-                    'message': entry.message,
-                    'sdr_name': client_sdr.name,
-                    'sdr_auth_token': client_sdr.auth_token,
-                    'client_name': client.company,
-                    'prospect_name': prospect.full_name,
-                    'prospect_status': prospect.status.value,
-                })
+                data.append(
+                    {
+                        "linkedin_conversation_entry_id": entry.id,
+                        "conversation_url": entry.conversation_url,
+                        "author": entry.author,
+                        "connection_degree": entry.connection_degree,
+                        "date": entry.date,
+                        "message": entry.message,
+                        "sdr_name": client_sdr.name,
+                        "sdr_auth_token": client_sdr.auth_token,
+                        "client_name": client.company,
+                        "prospect_name": prospect.full_name,
+                        "prospect_status": prospect.status.value,
+                    }
+                )
 
     return data

@@ -362,9 +362,10 @@ class Prospect(db.Model):
 
     icp_fit_score = db.Column(db.Integer, nullable=True)
     icp_fit_reason = db.Column(db.String, nullable=True)
+    # account_research_description = db.Column(db.String, nullable=True)
 
     img_url = db.Column(db.String, nullable=True)
-    img_expire = db.Column(db.Numeric(20, 0), server_default='0', nullable=False)
+    img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
     __table_args__ = (
         db.Index('idx_li_urn_id', 'li_urn_id'),
@@ -655,7 +656,9 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.NOT_QUALIFIED,
     ],
     ProspectStatus.NOT_QUALIFIED: [],
-    ProspectStatus.SEND_OUTREACH_FAILED: [ProspectStatus.PROSPECTED],   # Permissable to retry
+    ProspectStatus.SEND_OUTREACH_FAILED: [
+        ProspectStatus.PROSPECTED
+    ],  # Permissable to retry
     ProspectStatus.DEMO_WON: [],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_WON],
 }
