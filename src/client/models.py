@@ -221,4 +221,5 @@ class ClientSDR(db.Model):
             "icp_matching_credits": self.icp_matching_credits,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
+            "vessel_mailbox": self.vessel_mailbox,
         }
