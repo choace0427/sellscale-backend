@@ -70,7 +70,6 @@ def format_entities(
     return
 
 
-@celery.task
 def run_message_rule_engine(message_id: int):
     """Adversarial AI ruleset.
 
