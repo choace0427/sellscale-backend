@@ -34,15 +34,19 @@ from src.voyager.utils.helpers import (
 
 logger = logging.getLogger(__name__)
 
+
 def default_evade(request_count: int):
     """
     A catch-all method to try and evade suspension from Linkedin.
     Currenly, just delays the request by a random (bounded) time
     """
     if request_count == 1:
-      return
+        return
     else:
-      sleep(random.uniform(0.01, 0.90))  # sleep a random duration to try and evade suspention
+        sleep(
+            random.uniform(0.01, 0.90)
+        )  # sleep a random duration to try and evade suspention
+
 
 class LinkedIn(object):
     """
@@ -98,21 +102,21 @@ class LinkedIn(object):
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
         try:
-          res = self.client.session.get(url, **kwargs)
-          
-          # Attempt request again if we're being rate limited
-          if res.status_code == 400 and self.request_count < 20:
-              return self._fetch(uri)
+            res = self.client.session.get(url, **kwargs)
 
-          return res
+            # Attempt request again if we're being rate limited
+            if res.status_code == 400 and self.request_count < 20:
+                return self._fetch(uri)
+
+            return res
         except TooManyRedirects as e:
-          print('TooManyRedirects - Invalidating cookies')
-          sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
-          if sdr:
-            sdr.li_cookies = 'INVALID'
-            db.session.add(sdr)
-            db.session.commit()
-          return None
+            print("TooManyRedirects - Invalidating cookies")
+            sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
+            if sdr:
+                sdr.li_cookies = "INVALID"
+                db.session.add(sdr)
+                db.session.commit()
+            return None
 
     def _post(self, uri, evade=default_evade, base_request=False, **kwargs):
         """POST request to Linkedin API"""
@@ -121,24 +125,24 @@ class LinkedIn(object):
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
         try:
-          res = self.client.session.post(url, **kwargs)
-        
-          # Attempt request again if we're being rate limited
-          if res.status_code == 400 and self.request_count < 20:
-              return self._fetch(uri)
+            res = self.client.session.post(url, **kwargs)
 
-          return res
+            # Attempt request again if we're being rate limited
+            if res.status_code == 400 and self.request_count < 20:
+                return self._fetch(uri)
+
+            return res
         except TooManyRedirects as e:
-          sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
-          if sdr:
-            sdr.li_cookies = 'INVALID'
-            db.session.add(sdr)
-            db.session.commit()
-          return None
+            sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
+            if sdr:
+                sdr.li_cookies = "INVALID"
+                db.session.add(sdr)
+                db.session.commit()
+            return None
 
     def is_valid(self):
         """Checks if the client SDR is valid"""
-        return self.client_sdr.li_cookies != 'INVALID'
+        return self.client_sdr.li_cookies != "INVALID"
 
     def get_profile(self, public_id=None, urn_id=None):
         """Fetch data for a given LinkedIn profile.
@@ -152,7 +156,8 @@ class LinkedIn(object):
         # TODO: this still works for now, but will probably eventually have to be converted to
         # https://www.linkedin.com/voyager/api/identity/profiles/ACoAAAKT9JQBsH7LwKaE9Myay9WcX8OVGuDq9Uw
         res = self._fetch(f"/identity/profiles/{public_id or urn_id}/profileView")
-        if res is None or res.status_code == 403: return None
+        if res is None or res.status_code == 403:
+            return None
 
         data = res.json()
         if data and "status" in data and data["status"] != 200:
@@ -260,8 +265,8 @@ class LinkedIn(object):
         :type public_id: str
         """
         data = self.get_profile(public_id)
-        return data['profile_id']
-    
+        return data["profile_id"]
+
     def get_user_profile(self, use_cache=True):
         """Get the current user profile. If not cached, a network request will be fired.
         :return: Profile data for currently logged in user
@@ -270,7 +275,8 @@ class LinkedIn(object):
         me_profile = self.client.metadata.get("me")
         if not self.client.metadata.get("me") or not use_cache:
             res = self._fetch(f"/me")
-            if res is None or res.status_code == 403: return None
+            if res is None or res.status_code == 403:
+                return None
             me_profile = res.json()
             # cache profile
             self.client.metadata["me"] = me_profile
@@ -330,7 +336,7 @@ class LinkedIn(object):
                 data=json.dumps(payload),
             )
 
-        return res and res.status_code != 201 # type: ignore
+        return res and res.status_code != 201  # type: ignore
 
     def get_conversation_details(self, profile_urn_id):
         """Fetch conversation (message thread) details for a given LinkedIn profile.
@@ -345,13 +351,14 @@ class LinkedIn(object):
             f"/messaging/conversations?\
             keyVersion=LEGACY_INBOX&q=participants&recipients=List({profile_urn_id})"
         )
-        if res is None or res.status_code == 403: return None
-        
+        if res is None or res.status_code == 403:
+            return None
+
         try:
-          data = res.json()
+            data = res.json()
         except:
-          print('Failed to get request JSON: ', res)
-          return None
+            print("Failed to get request JSON: ", res)
+            return None
 
         if data["elements"] == []:
             return {}
@@ -361,17 +368,39 @@ class LinkedIn(object):
 
         return item
 
-    def get_conversations(self):
+    def get_conversations(self, createdBefore=None):
         """Fetch list of conversations the user is in.
         :return: List of conversations
         :rtype: list
         """
-        params = {"keyVersion": "LEGACY_INBOX"}
+        params = {"keyVersion": "LEGACY_INBOX", "start": 1}
 
-        res = self._fetch(f"/messaging/conversations", params=params)
-        if res is None or res.status_code == 403: return None
+        url = f"/messaging/conversations"
+        if createdBefore:
+            url = url + "?createdBefore=" + str(createdBefore)
+        res = self._fetch(url, params=params)
+        if res is None or res.status_code == 403:
+            return None
 
         return res.json()
+
+    def get_last_n_conversations(self, n=100):
+        conversations = []
+        x = self.get_conversations()
+        if x is None:
+            return []
+        count = 0
+        while True:
+            conversations += x["elements"]
+            x = self.get_conversations(
+                createdBefore=x["elements"][19]["events"][0]["createdAt"]
+            )
+            count = count + 1
+            print(count)
+
+            if len(conversations) > n:
+                break
+        return conversations
 
     def get_conversation(self, conversation_urn_id):
         """Fetch data about a given conversation.
@@ -381,13 +410,14 @@ class LinkedIn(object):
         :rtype: dict
         """
         res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
-        if res is None or res.status_code == 403: return None
+        if res is None or res.status_code == 403:
+            return None
 
         try:
-          data = res.json()
+            data = res.json()
         except:
-          print('Failed to get request JSON: ', res)
-          return None
+            print("Failed to get request JSON: ", res)
+            return None
 
         return data
 
@@ -401,7 +431,10 @@ class LinkedIn(object):
         """
         encode_str = urllib.parse.quote(f"urn:li:fsd_profile:{profile_urn_id}")
         # TODO: Get queryId
-        res = self._fetch(f"/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.2782734f1f251808c1959921bd56a2e4&variables=(mailboxUrn:{encode_str})")
-        if res is None or res.status_code == 403: return None
+        res = self._fetch(
+            f"/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.2782734f1f251808c1959921bd56a2e4&variables=(mailboxUrn:{encode_str})"
+        )
+        if res is None or res.status_code == 403:
+            return None
 
         return res.json()

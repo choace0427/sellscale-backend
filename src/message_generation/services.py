@@ -476,10 +476,6 @@ def update_message(message_id: int, update: str, editor_id=None):
     original_text = message.completion
     edited_text = update
 
-    # If the text is the same, don't update
-    if original_text == edited_text:
-        return False
-
     create_new_edit_message_record(
         generated_message_id=message_id,
         original_text=original_text,
@@ -504,7 +500,7 @@ def update_message(message_id: int, update: str, editor_id=None):
     db.session.add(message)
     db.session.commit()
 
-    run_message_rule_engine(message_id=message.id)
+    run_message_rule_engine.delay(message_id=message.id)
 
     return True
 
@@ -547,7 +543,7 @@ def approve_message(message_id: int):
     db.session.add(prospect)
 
     db.session.commit()
-    run_message_rule_engine(message_id=message_id)
+    run_message_rule_engine.delay(message_id=message_id)
 
     return True
 
@@ -965,7 +961,7 @@ def mark_prospect_email_approved(prospect_email_id: int):
         prospect_email_id=prospect_email_id, status=ProspectEmailStatus.APPROVED
     )
 
-    run_message_rule_engine(message_id=prospect_email.personalized_first_line)
+    run_message_rule_engine.delay(message_id=prospect_email.personalized_first_line)
 
     return success
 

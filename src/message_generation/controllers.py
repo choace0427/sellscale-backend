@@ -53,7 +53,9 @@ def update():
 
     return (
         jsonify(
-            {"message": "Failed to update, double check that the message is different."}
+            {
+                "message": "Failed to update. Please try again. Contact engineer if error persists."
+            }
         ),
         400,
     )

@@ -70,6 +70,7 @@ def format_entities(
     return
 
 
+@celery.task
 def run_message_rule_engine(message_id: int):
     """Adversarial AI ruleset.
 
@@ -111,8 +112,12 @@ def run_message_rule_engine(message_id: int):
     rule_no_url(completion, problems, highlighted_words)
     rule_linkedin_length(message.message_type, completion, problems, highlighted_words)
 
-    if message.message_type == GeneratedMessageType.LINKEDIN: # Only apply this rule to LinkedIn messages
-        rule_address_doctor(prompt, completion, problems, highlighted_words, prospect_name)
+    if (
+        message.message_type == GeneratedMessageType.LINKEDIN
+    ):  # Only apply this rule to LinkedIn messages
+        rule_address_doctor(
+            prompt, completion, problems, highlighted_words, prospect_name
+        )
 
     # Warnings
     rule_no_cookies(completion, problems, highlighted_words)
@@ -175,7 +180,11 @@ def rule_no_symbols(completion: str, problems: list, highlighted_words: list):
 
 
 def rule_address_doctor(
-    prompt: str, completion: str, problems: list, highlighted_words: list, prospect_name: str
+    prompt: str,
+    completion: str,
+    problems: list,
+    highlighted_words: list,
+    prospect_name: str,
 ):
     """Rule: Address Doctor
 
@@ -211,7 +220,9 @@ def rule_address_doctor(
             title_section,
         )
         if title_search is not None and "dr." not in completion:
-            problems.append(f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}")
+            problems.append(
+                f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}"
+            )
             highlighted_words.extend(name_splitted)
             return
 
@@ -228,7 +239,9 @@ def rule_address_doctor(
             name_section,
         )
         if name_search is not None and "dr." not in completion:
-            problems.append(f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}")
+            problems.append(
+                f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}"
+            )
             highlighted_words.extend(name_splitted)
             return
 
@@ -325,7 +338,9 @@ def rule_linkedin_length(
     Linkedin messages must be less than 300 characters.
     """
     if message_type == GeneratedMessageType.LINKEDIN and len(completion) > 300:
-        problems.append("The message is over 300 characters long. Please reduce to just under 300 characters.")
+        problems.append(
+            "The message is over 300 characters long. Please reduce to just under 300 characters."
+        )
 
     return
 
@@ -409,7 +424,7 @@ def rule_catch_strange_titles(
         chief_index = lower_title.find("chief")
         officer_index = lower_title.find("officer")
         if chief_index < officer_index:
-            title = title_section[chief_index:officer_index+1]
+            title = title_section[chief_index : officer_index + 1]
             if title in roles:
                 if roles[title] in completion.lower():
                     return
@@ -467,12 +482,12 @@ def rule_no_hard_years(
         return
 
     # Catch colloquial years that should be rounded.
-    if "nine years"in completion:
+    if "nine years" in completion:
         problems.append(
             "'nine years' is non-colloquial. Please use 'nearly a decade' instead."
         )
         highlighted_words.append("nine years")
-    elif "eight years"in completion:
+    elif "eight years" in completion:
         problems.append(
             "'eight years' is non-colloquial. Please use 'nearly a decade' instead."
         )
@@ -492,7 +507,9 @@ def rule_no_hard_years(
             if word == "years":
                 year = splitted[i - 1]
                 if year.isdigit():
-                    problems.append('A hard number year may appear non-colloquial. Reference the number without using a digit.')
+                    problems.append(
+                        "A hard number year may appear non-colloquial. Reference the number without using a digit."
+                    )
                     highlighted_words.append(year + " " + word)
                     break
 
