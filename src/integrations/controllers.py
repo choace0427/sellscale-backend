@@ -2,7 +2,7 @@ from src.client.models import ClientArchetype
 from app import db
 
 from flask import Blueprint, request, jsonify
-from model_import import ClientSDR, Client
+from model_import import ClientSDR, Client, VesselMailboxes
 from src.utils.request_helpers import get_request_parameter
 from src.integrations.vessel import SalesEngagementIntegration
 import os
@@ -182,3 +182,50 @@ def post_linkedin_cookie(client_sdr_id: int):
 def post_outreach_sequence(client_sdr_id: int):
 
     return jsonify({"message": "Deprecated."}), 204
+
+
+@INTEGRATION_BLUEPRINT.route("/vessel/mailboxes", methods=["GET"])
+@require_user
+def get_vessel_mailboxes(client_sdr_id: int):
+    """Get mailboxes for a client."""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    vessel_mailboxes: list[VesselMailboxes] = VesselMailboxes.query.filter_by(client_id=client_id).all()
+
+    return jsonify({"mailboxes": [mailbox.to_dict() for mailbox in vessel_mailboxes]})
+
+
+@INTEGRATION_BLUEPRINT.route("/vessel/mailboxes/select", methods=["POST"])
+@require_user
+def post_vessel_mailboxes_select(client_sdr_id: int):
+    """Select a mailbox for a client."""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    vessel_mailbox_id = get_request_parameter("vessel_mailbox_id", request, json=True, required=True, parameter_type=int)
+
+    vessel_mailbox: VesselMailboxes = VesselMailboxes.query.get(vessel_mailbox_id)
+    if not vessel_mailbox:
+        return jsonify({"message": "Mailbox does not exist"}), 400
+    if vessel_mailbox.client_id != client_id:
+        return jsonify({"message": "Mailbox does not belong to client"}), 400
+
+    client_sdr.vessel_mailbox_id = vessel_mailbox.mailbox_id
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    return jsonify({"message": "Mailbox successfully set"})
+
+
+@INTEGRATION_BLUEPRINT.route("/vessel/mailboxes/remove", methods=["POST"])
+@require_user
+def post_vessel_mailboxes_remove(client_sdr_id: int):
+    """Remove a mailbox for a client."""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sdr.vessel_mailbox_id = None
+
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    return jsonify({"message": "Mailbox successfully removed"})

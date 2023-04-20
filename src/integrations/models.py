@@ -11,6 +11,15 @@ class VesselMailboxes(db.Model):
     email = db.Column(db.String, nullable=False)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "access_token": self.access_token,
+            "mailbox_id": self.mailbox_id,
+            "email": self.email,
+            "client_id": self.client_id,
+        }
+
 
 class VesselSequences(db.Model):
     __tablename__ = "vessel_sequences"
