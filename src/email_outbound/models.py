@@ -469,7 +469,9 @@ class EmailConversationMessage(db.Model):
     snippet = db.Column(db.String, nullable=False)
     prospect_email = db.Column(db.String, nullable=False)
     sdr_email = db.Column(db.String, nullable=False)
+    from_sdr = db.Column(db.Boolean, nullable=False)
 
+    email_conversation_thread_id = db.Column(db.Integer, db.ForeignKey("email_conversation_thread.id"), nullable=False)
     nylas_thread_id = db.Column(db.String, nullable=False)
     nylas_message_id = db.Column(db.String, nullable=False, index=True, unique=True)
     nylas_data = db.Column(db.JSON, nullable=False)
@@ -482,6 +484,8 @@ class EmailConversationMessage(db.Model):
             "snippet": self.snippet,
             "prospect_email": self.prospect_email,
             "sdr_email": self.sdr_email,
+            "from_sdr": self.from_sdr,
+            "email_conversation_thread_id": self.email_conversation_thread_id,
             "nylas_thread_id": self.nylas_thread_id,
             "nylas_data": self.nylas_data,
         }

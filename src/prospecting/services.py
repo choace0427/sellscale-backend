@@ -235,12 +235,24 @@ def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list
       res = requests.get(f'https://api.nylas.com/messages?thread_id={thread_id}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
     else:
       return {}
-    
+
     result = res.json()
-    
+
     for message in result:
       existing_message = EmailConversationMessage.query.filter_by(nylas_message_id=message.get('id')).first()
       if not existing_message:
+        message_from_sdr = False
+        message_from = message.get('from')
+        if message_from and len(message_from) > 0:
+            message_from_email = message_from[0].get('email')
+            prospect_email = prospect.email
+            if message_from_email != prospect_email:
+                message_from_sdr = True
+
+        existing_thread: EmailConversationThread = EmailConversationThread.query.filter_by(nylas_thread_id=message.get('thread_id')).first()
+        if not existing_thread:
+            raise Exception(f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}')
+
         model: EmailConversationMessage = EmailConversationMessage(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect.id,
@@ -248,6 +260,8 @@ def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list
             snippet = message.get('snippet'),
             prospect_email = prospect.email,
             sdr_email = client_sdr.email,
+            from_sdr = message_from_sdr,
+            email_conversation_thread_id=existing_thread.id,
             nylas_thread_id = message.get('thread_id'),
             nylas_message_id = message.get('id'),
             nylas_data = message

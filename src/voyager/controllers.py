@@ -68,9 +68,11 @@ def get_raw_conversation(client_sdr_id: int):
     """Gets a conversation with a prospect in raw li data"""
 
     convo_urn_id = get_request_parameter("convo_urn_id", request, json=False, required=True)
+    limit = get_request_parameter("limit", request, json=False, required=False)
+    if limit is None: limit = 20
 
     api = LinkedIn(client_sdr_id)
-    convo = api.get_conversation(convo_urn_id)
+    convo = api.get_conversation(convo_urn_id, int(limit))
     if(not api.is_valid()):
       return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
@@ -122,14 +124,17 @@ def get_recent_conversations(client_sdr_id: int):
     read = get_request_parameter("read", request, json=False, required=False)
     starred = get_request_parameter("starred", request, json=False, required=False)
     with_connection = get_request_parameter("with_connection", request, json=False, required=False)
+    limit = get_request_parameter("limit", request, json=False, required=False)
+    if limit is None: limit = 20
 
     api = LinkedIn(client_sdr_id)
 
-    data = api.get_conversations()
+    convos = api.get_conversations(int(limit))
     if(not api.is_valid()):
       return jsonify({"message": "Invalid LinkedIn cookies"}), 403
     
-    convos = data['elements']
+    if not convos:
+      convos = []
 
     if timestamp:
       convos = filter(lambda x: x['lastActivityAt'] > int(timestamp), convos)

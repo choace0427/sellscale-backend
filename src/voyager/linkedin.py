@@ -2,6 +2,7 @@
 Provides linkedin api-related code
 """
 import base64
+import math
 import urllib.parse
 import json
 import logging
@@ -368,58 +369,56 @@ class LinkedIn(object):
 
         return item
 
-    def get_conversations(self, createdBefore=None):
+    def get_conversations(self, limit=20):
         """Fetch list of conversations the user is in.
         :return: List of conversations
         :rtype: list
         """
         params = {"keyVersion": "LEGACY_INBOX", "start": 1}
 
-        url = f"/messaging/conversations"
-        if createdBefore:
-            url = url + "?createdBefore=" + str(createdBefore)
-        res = self._fetch(url, params=params)
-        if res is None or res.status_code == 403:
-            return None
+        if limit == 20:
+            res = self._fetch(f"/messaging/conversations", params=params)
+            if res is None or res.status_code == 403: return None
+            return res.json()
+        else:
+            conversations = []
+            for i in range(math.ceil(limit / 20)):
+                q_param = '' if len(conversations) == 0 else f'?createdBefore={conversations[-1].get("events")[0].get("createdAt")}'
+                res = self._fetch(f"/messaging/conversations{q_param}", params=params)
+                result = res.json()['elements'] if res and res.status_code != 403 else []
+                if isinstance(result, list):
+                    conversations += result
+            return conversations[:limit]
 
-        return res.json()
-
-    def get_last_n_conversations(self, n=100):
-        conversations = []
-        x = self.get_conversations()
-        if x is None:
-            return []
-        count = 0
-        while True:
-            conversations += x["elements"]
-            x = self.get_conversations(
-                createdBefore=x["elements"][19]["events"][0]["createdAt"]
-            )
-            count = count + 1
-            print(count)
-
-            if len(conversations) > n:
-                break
-        return conversations
-
-    def get_conversation(self, conversation_urn_id):
+    def get_conversation(self, conversation_urn_id, limit=20):
         """Fetch data about a given conversation.
         :param conversation_urn_id: LinkedIn URN ID for a conversation
         :type conversation_urn_id: str
         :return: Conversation data
         :rtype: dict
         """
-        res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
-        if res is None or res.status_code == 403:
-            return None
 
-        try:
-            data = res.json()
-        except:
-            print("Failed to get request JSON: ", res)
-            return None
+        if limit == 20:
+            res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
+            if res is None or res.status_code == 403: return None
+            try:
+                return res.json()['elements']
+            except:
+                print('Failed to get request JSON: ', res)
+                return None
+        else:
+            messages = []
+            for i in range(math.ceil(limit / 20)):
+                q_param = '' if len(messages) == 0 else f'?start={i*20}'
+                res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events{q_param}")
+                try:
+                    result = res.json()['elements'] if res and res.status_code != 403 else []
+                except:
+                    result = []
+                if isinstance(result, list):
+                    messages += result
+            return messages[:limit]
 
-        return data
 
     def get_mail_box(self, profile_urn_id):
         # TODO: This is still in progress!

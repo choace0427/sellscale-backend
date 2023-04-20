@@ -200,6 +200,9 @@ class ClientSDR(db.Model):
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
+    scrape_time = db.Column(db.Time, nullable=True)# in UTC
+    next_scrape = db.Column(db.DateTime, nullable=True)# in UTC
+
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
 

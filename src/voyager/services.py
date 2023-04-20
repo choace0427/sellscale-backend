@@ -175,17 +175,17 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
         status_code (int), message (str): HTTP status code 
     """
 
-    convo = api.get_conversation(convo_urn_id)
+    convo = api.get_conversation(convo_urn_id, limit=60)
 
-    if not convo or not convo.get('elements'):
+    if not convo or len(convo) == 0:
       return "No conversation found", 400
 
     bulk_objects = []
-    for message in tqdm(convo['elements']):
+    for message in tqdm(convo):
 
         first_name = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("firstName", "")
         last_name = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("lastName", "")
-        urn_id = public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("entityUrn", "").replace("urn:li:fs_miniProfile:", "")
+        urn_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("entityUrn", "").replace("urn:li:fs_miniProfile:", "")
         public_id = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("publicIdentifier", "")
         headline = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("occupation", "")
         image_url = message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("rootUrl", "")+message.get("from", {}).get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("picture", {}).get("com.linkedin.common.VectorImage", {}).get("artifacts", [])[2].get("fileIdentifyingUrlPathSegment", "")

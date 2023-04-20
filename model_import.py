@@ -56,7 +56,7 @@ from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus
 from src.response_ai.models import ResponseConfiguration
 from src.onboarding.models import SightOnboarding
 from src.editor.models import Editor, EditorTypes
-from src.li_conversation.models import LinkedinConversationEntry
+from src.li_conversation.models import LinkedinConversationEntry, LinkedinConversationScrapeQueue
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
