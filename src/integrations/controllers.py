@@ -195,7 +195,7 @@ def get_vessel_mailbox(client_sdr_id: int):
         return jsonify({"mailbox": None})
 
     vessel_mailbox: VesselMailboxes = VesselMailboxes.query.filter_by(
-        client_id=client_id, vessel_mailbox=client_sdr.vessel_mailbox
+        client_id=client_id, mailbox_id=client_sdr.vessel_mailbox
     ).first()
     if not vessel_mailbox:
         return jsonify({"mailbox": None})
