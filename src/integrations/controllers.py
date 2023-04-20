@@ -184,10 +184,10 @@ def post_outreach_sequence(client_sdr_id: int):
     return jsonify({"message": "Deprecated."}), 204
 
 
-@INTEGRATION_BLUEPRINT.route("/vessel/mailbox", methods=["GET"])
+@INTEGRATION_BLUEPRINT.route("/vessel/current_mailbox", methods=["GET"])
 @require_user
 def get_vessel_mailbox(client_sdr_id: int):
-    """Get mailboxes for a client."""
+    """Get current mailbox for a client."""
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
 
