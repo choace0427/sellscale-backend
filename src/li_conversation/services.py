@@ -5,7 +5,12 @@ from src.voyager.linkedin import LinkedIn
 from sqlalchemy import or_
 from app import db, celery
 
-from model_import import LinkedinConversationEntry, ClientSDR, Prospect, LinkedinConversationScrapeQueue
+from model_import import (
+    LinkedinConversationEntry,
+    ClientSDR,
+    Prospect,
+    LinkedinConversationScrapeQueue,
+)
 from src.automation.models import PhantomBusterAgent
 from src.ml.openai_wrappers import wrapped_create_completion
 from src.utils.slack import URL_MAP
@@ -293,6 +298,18 @@ def generate_chat_gpt_response_to_conversation_thread(
             + bump_framework.description
         )
 
+    # account_research = """
+    #     - Recent fundraise: Their just raised a $40m Series B from Sequoia Capital and Accel Partners.
+    #     - Relevant position: Their position suggests they are a decision maker since they are a VP of Product.
+    #     - Company size: Their company has 100-500 employees.
+    #     - Company growth: Their company is growing fast, with 10% growth in the last year.
+    # """
+    # if account_research:
+    #     message_content = message_content + (
+    #         "\nUse what you think is relevant from this account research: "
+    #         + account_research
+    #     )
+
     response = wrapped_chat_gpt_completion(
         [
             {"role": "system", "content": message_content},
@@ -422,14 +439,16 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
     return data
 
 
-scrape_time_offset = 30 * 60 #30 minutes in seconds
+scrape_time_offset = 30 * 60  # 30 minutes in seconds
+
+
 @celery.task
 def scrape_conversations_inbox():
 
     client_sdr: List[ClientSDR] = ClientSDR.query.filter(
         ClientSDR.active == True,
         ClientSDR.li_cookies is not None,
-        ClientSDR.li_cookies != 'INVALID',
+        ClientSDR.li_cookies != "INVALID",
         ClientSDR.scrape_time is not None,
         ClientSDR.next_scrape < datetime.utcnow(),
     ).all()
@@ -440,8 +459,17 @@ def scrape_conversations_inbox():
         scrape_datetime = datetime.combine(datetime.utcnow().date(), sdr.scrape_time)
 
         new_date = datetime.utcnow() + timedelta(days=1)
-        next_time = scrape_datetime + timedelta(seconds=random.randint(-scrape_time_offset, scrape_time_offset))
-        next_datetime = datetime(new_date.year, new_date.month, new_date.day, next_time.hour, next_time.minute, next_time.second)
+        next_time = scrape_datetime + timedelta(
+            seconds=random.randint(-scrape_time_offset, scrape_time_offset)
+        )
+        next_datetime = datetime(
+            new_date.year,
+            new_date.month,
+            new_date.day,
+            next_time.hour,
+            next_time.minute,
+            next_time.second,
+        )
 
         sdr.next_scrape = next_datetime
         db.session.add(sdr)
@@ -450,40 +478,71 @@ def scrape_conversations_inbox():
         # Get the conversations
         api = LinkedIn(sdr.id)
         convos = api.get_conversations(120)
-        if convos is None: continue
+        if convos is None:
+            continue
         for convo in convos:
-            last_msg_urn_id = convo.get('events')[0]['dashEntityUrn'].replace("urn:li:fsd_message:", "")
-            convo_entry = LinkedinConversationEntry.query.filter_by(urn_id=last_msg_urn_id).first()
-            convo_urn_id = convo.get('dashEntityUrn').replace("urn:li:fsd_conversation:", "")
-            if len(convo.get('participants', [])) != 1: continue # Skip group conversations
-            profile_urn_id = convo.get('participants')[0].get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("entityUrn", "").replace("urn:li:fs_miniProfile:", "")
-            profile_public_id = convo.get('participants')[0].get("com.linkedin.voyager.messaging.MessagingMember", {}).get("miniProfile", {}).get("publicIdentifier", "")
-            if not convo_entry and not db.session.query(LinkedinConversationScrapeQueue).filter_by(conversation_urn_id=convo_urn_id).first():
-                
-                prospect: Prospect = Prospect.query.filter(Prospect.li_urn_id == profile_urn_id).first()
+            last_msg_urn_id = convo.get("events")[0]["dashEntityUrn"].replace(
+                "urn:li:fsd_message:", ""
+            )
+            convo_entry = LinkedinConversationEntry.query.filter_by(
+                urn_id=last_msg_urn_id
+            ).first()
+            convo_urn_id = convo.get("dashEntityUrn").replace(
+                "urn:li:fsd_conversation:", ""
+            )
+            if len(convo.get("participants", [])) != 1:
+                continue  # Skip group conversations
+            profile_urn_id = (
+                convo.get("participants")[0]
+                .get("com.linkedin.voyager.messaging.MessagingMember", {})
+                .get("miniProfile", {})
+                .get("entityUrn", "")
+                .replace("urn:li:fs_miniProfile:", "")
+            )
+            profile_public_id = (
+                convo.get("participants")[0]
+                .get("com.linkedin.voyager.messaging.MessagingMember", {})
+                .get("miniProfile", {})
+                .get("publicIdentifier", "")
+            )
+            if (
+                not convo_entry
+                and not db.session.query(LinkedinConversationScrapeQueue)
+                .filter_by(conversation_urn_id=convo_urn_id)
+                .first()
+            ):
+
+                prospect: Prospect = Prospect.query.filter(
+                    Prospect.li_urn_id == profile_urn_id
+                ).first()
                 if prospect is None:
                     # Fill in the prospect's urn_id if it's not in the database
-                    prospect = Prospect.query.filter(Prospect.linkedin_url.like(f'%/in/{profile_public_id}%')).first()
+                    prospect = Prospect.query.filter(
+                        Prospect.linkedin_url.like(f"%/in/{profile_public_id}%")
+                    ).first()
                     if prospect is not None:
                         prospect.li_urn_id = profile_urn_id
                         db.session.add(prospect)
                 if prospect is None:
-                    continue # Skip if prospect is not in the database
+                    continue  # Skip if prospect is not in the database
                 if prospect.client_sdr_id != sdr.id:
-                    continue # Skip if prospect is not assigned to this SDR
-                
+                    continue  # Skip if prospect is not assigned to this SDR
+
                 scrape = LinkedinConversationScrapeQueue(
-                    conversation_urn_id = convo_urn_id,
-                    client_sdr_id = sdr.id,
-                    prospect_id = prospect.id,
-                    scrape_time = (datetime.utcnow() + timedelta(seconds=random.randint(0, scrape_time_offset)))
+                    conversation_urn_id=convo_urn_id,
+                    client_sdr_id=sdr.id,
+                    prospect_id=prospect.id,
+                    scrape_time=(
+                        datetime.utcnow()
+                        + timedelta(seconds=random.randint(0, scrape_time_offset))
+                    ),
                 )
                 db.session.add(scrape)
                 db.session.commit()
 
                 send_slack_message(
-                    message=f'Scheduled scrape for convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) at {scrape.scrape_time} UTC 👌',
-                    webhook_urls=[URL_MAP['operations-linkedin-scraping-with-voyager']],
+                    message=f"Scheduled scrape for convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) at {scrape.scrape_time} UTC 👌",
+                    webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
                 )
 
 
@@ -492,7 +551,9 @@ def scrape_conversation_queue():
 
     from src.voyager.services import update_conversation_entries
 
-    scrape_queue: List[LinkedinConversationScrapeQueue] = LinkedinConversationScrapeQueue.query.filter(
+    scrape_queue: List[
+        LinkedinConversationScrapeQueue
+    ] = LinkedinConversationScrapeQueue.query.filter(
         LinkedinConversationScrapeQueue.scrape_time < datetime.utcnow()
     ).all()
 
@@ -503,16 +564,16 @@ def scrape_conversation_queue():
 
             api = LinkedIn(scrape.client_sdr_id)
             prospect: Prospect = Prospect.query.get(scrape.prospect_id)
-            if prospect is None: continue
-            status, msg = update_conversation_entries(api, scrape.conversation_urn_id, prospect)
+            if prospect is None:
+                continue
+            status, msg = update_conversation_entries(
+                api, scrape.conversation_urn_id, prospect
+            )
 
             send_slack_message(
-                message=f'••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}',
-                webhook_urls=[URL_MAP['operations-linkedin-scraping-with-voyager']],
+                message=f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
+                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
 
         except Exception as e:
             continue
-        
-
-
