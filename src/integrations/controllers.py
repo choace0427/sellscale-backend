@@ -222,9 +222,9 @@ def post_vessel_mailboxes_select(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
 
-    vessel_mailbox = get_request_parameter("vessel_mailbox", request, json=True, required=True, parameter_type=int)
+    vessel_mailbox_id = get_request_parameter("vessel_mailbox_id", request, json=True, required=True, parameter_type=int)
 
-    vessel_mailbox: VesselMailboxes = VesselMailboxes.query.get(vessel_mailbox)
+    vessel_mailbox: VesselMailboxes = VesselMailboxes.query.get(vessel_mailbox_id)
     if not vessel_mailbox:
         return jsonify({"message": "Mailbox does not exist"}), 400
     if vessel_mailbox.client_id != client_id:
