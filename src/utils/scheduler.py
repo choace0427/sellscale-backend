@@ -82,15 +82,15 @@ def run_sync_vessel_mailboxes_and_sequences_job():
 def scrape_li_inboxes():
     from src.li_conversation.services import scrape_conversations_inbox
 
-    #if os.environ.get("FLASK_ENV") == "production":
-    scrape_conversations_inbox.delay()
+    if os.environ.get("FLASK_ENV") == "production":
+        scrape_conversations_inbox.delay()
 
 # Using Voyager!
 def scrape_li_convos():
     from src.li_conversation.services import scrape_conversation_queue
 
-    #if os.environ.get("FLASK_ENV") == "production":
-    scrape_conversation_queue.delay()
+    if os.environ.get("FLASK_ENV") == "production":
+        scrape_conversation_queue.delay()
 
 
 # Add all jobs to scheduler
