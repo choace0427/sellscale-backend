@@ -10,6 +10,10 @@ class ResearchType(enum.Enum):
     SDR_QUESTIONNAIRE = "SDR_QUESTIONNAIRE"
 
 
+class AccountResearchType(enum.Enum):
+    GENERIC_RESEARCH = "GENERIC_RESEARCH"
+
+
 class ResearchPointType(enum.Enum):
     CURRENT_JOB_DESCRIPTION = (
         "CURRENT_JOB_DESCRIPTION"  # Description of Current Company
@@ -129,6 +133,7 @@ class IScraperPayloadType(enum.Enum):
 
     Typically there will be a PERSONAL payload and a COMPANY payload for each Prospect
     """
+
     PERSONAL = "PERSONAL"
     COMPANY = "COMPANY"
 
@@ -142,6 +147,18 @@ class IScraperPayloadCache(db.Model):
     payload_type = db.Column(db.Enum(IScraperPayloadType), nullable=False)
 
     def get_iscraper_payload_cache_by_linkedin_url(linkedin_url: str):
-        return IScraperPayloadCache.query.filter_by(
-            linkedin_url=linkedin_url
-        ).order_by(IScraperPayloadCache.created_at.desc()).first()
+        return (
+            IScraperPayloadCache.query.filter_by(linkedin_url=linkedin_url)
+            .order_by(IScraperPayloadCache.created_at.desc())
+            .first()
+        )
+
+
+class AccountResearchPoints(db.Model):
+    __tablename__ = "account_research_point"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    account_research_type = db.Column(db.Enum(AccountResearchType), nullable=False)
+    title = db.Column(db.String, nullable=False)
+    reason = db.Column(db.String, nullable=False)
