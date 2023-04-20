@@ -182,7 +182,7 @@ class ClientSDR(db.Model):
     last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
     li_cookies = db.Column(db.String)
 
-    vessel_mailbox_id = db.Column(db.String, nullable=True)
+    vessel_mailbox = db.Column(db.String, nullable=True)
 
     autopilot_enabled = db.Column(db.Boolean, nullable=True, default=False)
 

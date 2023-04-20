@@ -1524,7 +1524,7 @@ def send_email_campaign_from_sales_engagement(
         raise Exception("Client not found")
     if not client.vessel_access_token:
         raise Exception("Client does not have a connected sales engagement tool")
-    if not sdr.vessel_mailbox_id:
+    if not sdr.vessel_mailbox:
         raise Exception("SDR does not have a connected sales engagement tool")
 
     for prospect_id in campaign.prospect_ids:
@@ -1536,7 +1536,7 @@ def send_email_campaign_from_sales_engagement(
             personalize_and_enroll_in_sequence(
                 client_id=client.id,
                 prospect_id=prospect_id,
-                mailbox_id=sdr.vessel_mailbox_id,
+                mailbox_id=sdr.vessel_mailbox,
                 sequence_id=sequence_id,
             )
 

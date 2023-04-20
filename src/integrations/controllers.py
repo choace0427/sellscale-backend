@@ -184,6 +184,25 @@ def post_outreach_sequence(client_sdr_id: int):
     return jsonify({"message": "Deprecated."}), 204
 
 
+@INTEGRATION_BLUEPRINT.route("/vessel/mailbox", methods=["GET"])
+@require_user
+def get_vessel_mailbox(client_sdr_id: int):
+    """Get mailboxes for a client."""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    if not client_sdr.vessel_mailbox:
+        return jsonify({"mailbox": None})
+
+    vessel_mailbox: VesselMailboxes = VesselMailboxes.query.filter_by(
+        client_id=client_id, vessel_mailbox=client_sdr.vessel_mailbox
+    ).first()
+    if not vessel_mailbox:
+        return jsonify({"mailbox": None})
+
+    return jsonify({"mailbox": vessel_mailbox.to_dict()})
+
+
 @INTEGRATION_BLUEPRINT.route("/vessel/mailboxes", methods=["GET"])
 @require_user
 def get_vessel_mailboxes(client_sdr_id: int):
@@ -203,15 +222,15 @@ def post_vessel_mailboxes_select(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
 
-    vessel_mailbox_id = get_request_parameter("vessel_mailbox_id", request, json=True, required=True, parameter_type=int)
+    vessel_mailbox = get_request_parameter("vessel_mailbox", request, json=True, required=True, parameter_type=int)
 
-    vessel_mailbox: VesselMailboxes = VesselMailboxes.query.get(vessel_mailbox_id)
+    vessel_mailbox: VesselMailboxes = VesselMailboxes.query.get(vessel_mailbox)
     if not vessel_mailbox:
         return jsonify({"message": "Mailbox does not exist"}), 400
     if vessel_mailbox.client_id != client_id:
         return jsonify({"message": "Mailbox does not belong to client"}), 400
 
-    client_sdr.vessel_mailbox_id = vessel_mailbox.mailbox_id
+    client_sdr.vessel_mailbox = vessel_mailbox.mailbox_id
     db.session.add(client_sdr)
     db.session.commit()
 
@@ -223,7 +242,7 @@ def post_vessel_mailboxes_select(client_sdr_id: int):
 def post_vessel_mailboxes_remove(client_sdr_id: int):
     """Remove a mailbox for a client."""
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client_sdr.vessel_mailbox_id = None
+    client_sdr.vessel_mailbox = None
 
     db.session.add(client_sdr)
     db.session.commit()
