@@ -78,6 +78,21 @@ def run_sync_vessel_mailboxes_and_sequences_job():
         sync_vessel_mailboxes_and_sequences()
 
 
+# Using Voyager!
+def scrape_li_inboxes():
+    from src.li_conversation.services import scrape_conversations_inbox
+
+    #if os.environ.get("FLASK_ENV") == "production":
+    scrape_conversations_inbox.delay()
+
+# Using Voyager!
+def scrape_li_convos():
+    from src.li_conversation.services import scrape_conversation_queue
+
+    #if os.environ.get("FLASK_ENV") == "production":
+    scrape_conversation_queue.delay()
+
+
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
@@ -98,6 +113,10 @@ scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hou
 scheduler.add_job(
     func=run_sync_vessel_mailboxes_and_sequences_job, trigger="interval", hours=24
 )
+
+scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
+scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
+
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())

@@ -2,6 +2,17 @@ from app import db
 from src.prospecting.models import Prospect
 
 
+class LinkedinConversationScrapeQueue(db.Model):
+    __tablename__ = "linkedin_conversation_scrape_queue"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    conversation_urn_id = db.Column(db.String, unique=True, index=True, nullable=False)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
+    scrape_time = db.Column(db.DateTime, nullable=False)
+
+
 class LinkedinConversationEntry(db.Model):
     __tablename__ = "linkedin_conversation_entry"
 
