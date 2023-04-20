@@ -286,7 +286,10 @@ def generate_chat_gpt_response_to_conversation_thread(
         id=bump_framework_id
     ).first()
     if bump_framework:
-        message_content = "Take note of the following: " + bump_framework.description
+        message_content = message_content + (
+            "\nHere are other relevant details you can use to make the message better: "
+            + bump_framework.description
+        )
 
     response = wrapped_chat_gpt_completion(
         [

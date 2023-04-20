@@ -7,7 +7,22 @@ from src.ml.openai_wrappers import (
 import json
 
 
-def generate_prospect_research(prospect_id: int) -> tuple[str, list]:
+def generate_research(prompt: str, retries: int):
+    attempts = 0
+    while attempts < retries:
+        json_str = wrapped_create_completion(
+            prompt=prompt, model=CURRENT_OPENAI_CHAT_GPT_MODEL, max_tokens=1000
+        )
+        research = json.loads(json_str)
+        if research:
+            break
+        attempts += 1
+    return research
+
+
+def generate_prospect_research(
+    prospect_id: int, print_research: bool = False
+) -> tuple[str, list]:
     """
     Given a prospect ID, this will generate a research report for the prospect that
     contains 3-4 bullet points of information about the prospect and why
@@ -16,10 +31,16 @@ def generate_prospect_research(prospect_id: int) -> tuple[str, list]:
     Return prompt and array of research points
     """
     prompt = get_research_generation_prompt(prospect_id)
-    json_str = wrapped_create_completion(
-        prompt=prompt, model=CURRENT_OPENAI_CHAT_GPT_MODEL, max_tokens=1000
-    )
-    research = json.loads(json_str)
+    research = generate_research(prompt=prompt, retries=3)
+
+    try:
+        if print_research:
+            print("**Prompt:**\n---\n", prompt, "\n---\n\n", "**Research:**\n")
+            for point in research:
+                print("- ", point["title"], ": ", point["reason"])
+    except:
+        print("Error printing research")
+
     return prompt, research
 
 
@@ -54,7 +75,9 @@ Product Information:
 - company tagline: {company_tagline}
 - archetype value prop: {archetype_value_prop}
 
-You are a sales account research assistant. Using the information about the Prospect and Product, explain why the prospect would be a good fit for buying the product. Generate a JSON payload that contains an array of objects. Each object should have two elements: title and reason. Keep reasons short, to 1 sentence maximum. Keep titles to 2-4 words in length maximum.
+You are a sales account research assistant. Using the information about the Prospect and Product, explain why the prospect would be a good fit for buying the product. 
+
+Generate a javascript array of objects. Each object should have two elements: title and reason. Keep titles to 2-4 words in length maximum. Keep reasons short, to 1 sentence maximum.
 
 JSON payload:""".format(
         prospect_name=prospect_name,
