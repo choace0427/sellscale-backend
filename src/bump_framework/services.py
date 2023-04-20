@@ -15,9 +15,11 @@ def create_bump_framework(
     """
     bump_framework = BumpFramework(
         description=description,
+        title="",  # @david fix this
         overall_status=overall_status,
         active=active,
         client_sdr_id=client_sdr_id,
+        default=True,  # @david fix this
     )
     db.session.add(bump_framework)
     db.session.commit()
