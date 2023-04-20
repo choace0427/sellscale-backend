@@ -177,7 +177,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
 
     convo = api.get_conversation(convo_urn_id, limit=60)
 
-    if not convo:
+    if not convo or len(convo) == 0:
       return "No conversation found", 400
 
     bulk_objects = []
