@@ -501,13 +501,13 @@ def scrape_conversation_queue():
             api = LinkedIn(scrape.client_sdr_id)
             prospect: Prospect = Prospect.query.get(scrape.prospect_id)
             if prospect is None: continue
+            status, msg = update_conversation_entries(api, scrape.conversation_urn_id, prospect)
 
             send_slack_message(
-                message=f'••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖',
+                message=f'••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}',
                 webhook_urls=[URL_MAP['operations-linkedin-scraping-with-voyager']],
             )
 
-            status, msg = update_conversation_entries(api, scrape.conversation_urn_id, prospect)
         except Exception as e:
             continue
         
