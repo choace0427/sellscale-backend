@@ -153,3 +153,12 @@ JSON payload:""".format(
     )
 
     return prompt
+
+
+def get_account_research_points_by_prospect_id(
+    prospect_id: int,
+) -> list[dict]:
+    account_research_points: list[
+        AccountResearchPoints
+    ] = AccountResearchPoints.query.filter_by(prospect_id=prospect_id).all()
+    return [arp.to_dict() for arp in account_research_points]

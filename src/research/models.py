@@ -162,3 +162,12 @@ class AccountResearchPoints(db.Model):
     account_research_type = db.Column(db.Enum(AccountResearchType), nullable=False)
     title = db.Column(db.String, nullable=False)
     reason = db.Column(db.String, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "account_research_type": self.account_research_type.value,
+            "title": self.title,
+            "reason": self.reason,
+        }

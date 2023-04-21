@@ -1,5 +1,6 @@
 import re
 from flask import Blueprint, jsonify, request
+from src.prospecting.models import Prospect
 from src.research.linkedin.iscraper import (
     get_linkedin_search_results_from_iscraper,
     get_linkedin_link_from_iscraper,
@@ -16,7 +17,9 @@ from .linkedin.services import (
 from src.research.account_research import (
     run_research_extraction_for_prospects_in_archetype,
     generate_prospect_research,
+    get_account_research_points_by_prospect_id,
 )
+from src.authentication.decorators import require_user
 
 RESEARCH_BLUEPRINT = Blueprint("research", __name__)
 
@@ -89,3 +92,17 @@ def flag_research():
 @RESEARCH_BLUEPRINT.route("/all_research_point_types_details", methods=["GET"])
 def get_all_research_point_types_details():
     return jsonify(get_all_research_point_types())
+
+
+@RESEARCH_BLUEPRINT.route("/account_research_points", methods=["GET"])
+@require_user
+def get_account_research_points(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True
+    )
+
+    prospect = Prospect.query.filter_by(id=prospect_id).first()
+    if prospect.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    return jsonify(get_account_research_points_by_prospect_id(prospect_id=prospect_id))
