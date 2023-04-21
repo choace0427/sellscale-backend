@@ -49,6 +49,7 @@ from model_import import (
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
     EngagementFeedItem,
+    AccountResearchPoints,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -91,6 +92,7 @@ def test_app():
         clear_all_entities(SightOnboarding)
         clear_all_entities(ProspectEmailStatusRecords)
         clear_all_entities(ProspectEmail)
+        clear_all_entities(AccountResearchPoints)
         clear_all_entities(SalesEngagementInteractionSS)
         clear_all_entities(SalesEngagementInteractionRaw)
         clear_all_entities(EmailSchema)
@@ -517,17 +519,17 @@ def basic_generated_message_job_queue(
 
 
 def basic_stack_ranked_message_generation_config(
-        instruction: str = "test_instruction",
-        computed_prompt: str = "test_computed_prompt",
-        configuration_type: ConfigurationType = ConfigurationType.DEFAULT,
-        generated_message_type: GeneratedMessageType = GeneratedMessageType.LINKEDIN,
-        research_point_types: Optional[list[GeneratedMessageType]] = None,
-        active: Optional[bool] = True,
-        always_enable: Optional[bool] = False,
-        name: Optional[str] = "test_name",
-        client_id: Optional[int] = None,
-        archetype_id: Optional[int] = None,
-        priority: Optional[int] = None,
+    instruction: str = "test_instruction",
+    computed_prompt: str = "test_computed_prompt",
+    configuration_type: ConfigurationType = ConfigurationType.DEFAULT,
+    generated_message_type: GeneratedMessageType = GeneratedMessageType.LINKEDIN,
+    research_point_types: Optional[list[GeneratedMessageType]] = None,
+    active: Optional[bool] = True,
+    always_enable: Optional[bool] = False,
+    name: Optional[str] = "test_name",
+    client_id: Optional[int] = None,
+    archetype_id: Optional[int] = None,
+    priority: Optional[int] = None,
 ):
     config = StackRankedMessageGenerationConfiguration(
         configuration_type=configuration_type,
@@ -540,7 +542,7 @@ def basic_stack_ranked_message_generation_config(
         name=name,
         client_id=client_id,
         archetype_id=archetype_id,
-        priority=priority
+        priority=priority,
     )
     db.session.add(config)
     db.session.commit()
