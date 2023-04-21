@@ -135,7 +135,7 @@ Our Product Information:
 - the company name: {company_name}
 - the persona we're selling to: {prospect_archetype}
 - the company tagline: {company_tagline}
-- the archetype value prop: {archetype_value_prop}
+- why this persona would buy this product: {archetype_value_prop}
 
 You are a sales account research assistant. Using the information about the Prospect and Product, explain why the prospect would be a good fit for buying the product. 
 
