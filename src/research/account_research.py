@@ -58,7 +58,7 @@ def generate_generic_research(prompt: str, retries: int):
 
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_research(
-    prospect_id: int, print_research: bool = False, hard_refresh: bool = False
+    self, prospect_id: int, print_research: bool = False, hard_refresh: bool = False
 ) -> tuple[str, list]:
     """
     Given a prospect ID, this will generate a research report for the prospect that
