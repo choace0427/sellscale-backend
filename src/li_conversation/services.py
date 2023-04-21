@@ -116,6 +116,8 @@ def create_linkedin_conversation_entry(
         if conversation_url:
             splitted = conversation_url.split("/")
             thread_urn_id = splitted[-2]
+        else:
+            thread_urn_id = ""
     except:
         thread_urn_id = ""
 
@@ -147,6 +149,10 @@ def create_linkedin_conversation_entry(
 
         if img_url and not duplicate_exists.img_url:
             duplicate_exists.img_url = img_url
+            added = True
+
+        if thread_urn_id and not duplicate_exists.thread_urn_id:
+            duplicate_exists.thread_urn_id = thread_urn_id
             added = True
 
         # If the current image is expired, replace it

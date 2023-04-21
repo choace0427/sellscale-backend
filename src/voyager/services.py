@@ -4,7 +4,7 @@ import datetime as dt
 
 from src.li_conversation.models import LinkedinConversationEntry
 from src.research.models import IScraperPayloadCache
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
 from typing import Union
 from src.li_conversation.services import create_linkedin_conversation_entry
 from model_import import ClientSDR
@@ -216,5 +216,15 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
     db.session.bulk_save_objects(bulk_objects)
     db.session.commit()
     print("Done saving!")
+
+
+    # If they accepted our connection request and we just sent them a message, they're considered bumped
+    if prospect.status == ProspectStatus.ACCEPTED:
+      latest_convo_entry = LinkedinConversationEntry.query.filter_by(thread_urn_id=convo_urn_id).order_by(LinkedinConversationEntry.date.desc()).first()
+      if latest_convo_entry.connection_degree == 'You':
+        prospect.status = ProspectStatus.RESPONDED
+        prospect.overall_status = ProspectOverallStatus.BUMPED
+        db.session.add(prospect)
+        db.session.commit()
 
     return "OK", 200

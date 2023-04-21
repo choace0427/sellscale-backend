@@ -138,6 +138,19 @@ class ProspectOverallStatus(enum.Enum):
         }
 
 
+class ProspectOverallSubStatus(enum.Enum):
+    NONE = "NONE"
+    BUMPED_1 = "BUMPED_1"
+    BUMPED_2 = "BUMPED_2"
+    BUMPED_3_PLUS = "BUMPED_3_PLUS"
+    ACTIVE_CONVO_QUESTION = "ACTIVE_CONVO_QUESTION"
+    ACTIVE_CONVO_QUAL_NEEDED = "ACTIVE_CONVO_QUAL_NEEDED"
+    ACTIVE_CONVO_OBJECTION = "ACTIVE_CONVO_OBJECTION"
+    ACTIVE_CONVO_SCHEDULING = "ACTIVE_CONVO_SCHEDULING"
+    DEMO_SET = "DEMO_SET"
+    DEMO_WON = "DEMO_WON"
+    DEMO_LOSS = "DEMO_LOSS"
+
 class ProspectStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"
 
@@ -328,6 +341,7 @@ class Prospect(db.Model):
     batch = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
+    overall_sub_status = db.Column(db.Enum(ProspectOverallSubStatus), server_default='NONE', nullable=False)
 
     approved_outreach_message_id = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")  # approved linkedin message
