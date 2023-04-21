@@ -124,3 +124,28 @@ def get_account_research_points_inputs_endpoint(client_sdr_id: int):
         return "Unauthorized", 401
 
     return jsonify(get_account_research_points_inputs(archetype_id=archetype_id))
+
+
+@RESEARCH_BLUEPRINT.route("/account_research_points/generate", methods=["POST"])
+@require_user
+def generate_account_research_points_endpoint(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True
+    )
+    hard_refresh = get_request_parameter(
+        "hard_refresh", request, json=True, required=False
+    )
+
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=archetype_id
+    ).first()
+    if archetype.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    success = run_research_extraction_for_prospects_in_archetype(
+        archetype_id=archetype_id, hard_refresh=hard_refresh
+    )
+
+    if success:
+        return "OK", 200
+    return "Failed to generate research points", 500

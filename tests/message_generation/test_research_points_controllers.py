@@ -44,7 +44,8 @@ def test_get_all_research_point_types():
 
 
 @use_app_context
-def test_get_account_research_points():
+@mock.patch("src.research.account_research.generate_prospect_research.delay")
+def test_get_account_research_points(generate_prospect_research_delay_patch):
     """Assert that the research points returned from GET /research/account_research_points
     are the same as the ones returned from the database."""
     client = basic_client()
@@ -105,3 +106,16 @@ def test_get_account_research_points():
         "company_tagline": client.tagline,
         "persona_value_prop": archetype.persona_fit_reason,
     }
+
+    # generate account research
+    response = app.test_client().post(
+        f"research/account_research_points/generate",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + "TEST_AUTH_TOKEN",
+        },
+        data=json.dumps({"archetype_id": archetype.id, "hard_refresh": True}),
+    )
+    assert response.status_code == 200
+
+    assert generate_prospect_research_delay_patch.call_count == 1

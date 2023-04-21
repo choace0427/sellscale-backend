@@ -24,7 +24,9 @@ def run_research_extraction_for_prospects_in_archetype(
         archetype_id=archetype_id
     ).all()
     for prospect in prospects:
+        # todo(Aakash) add credits system here to prevent abuse
         generate_prospect_research.delay(prospect.id, False, hard_refresh)
+    return True
 
 
 def generate_generic_research(prompt: str, retries: int):

@@ -1,5 +1,10 @@
 from app import app, db
 from model_import import (
+    ConfigurationType,
+    GeneratedMessageType,
+    StackRankedMessageGenerationConfiguration,
+)
+from model_import import (
     Client,
     ClientArchetype,
     ClientSDR,
@@ -403,6 +408,15 @@ def test_get_sdr_available_outbound_channels_endpoint():
 def test_post_toggle_client_sdr_autopilot_enabled():
     client = basic_client()
     client_sdr = basic_client_sdr(client)
+    srmgc = StackRankedMessageGenerationConfiguration(
+        configuration_type=ConfigurationType.DEFAULT,
+        generated_message_type=GeneratedMessageType.LINKEDIN,
+        instruction="some instruction",
+        computed_prompt="some prompt",
+        client_id=client.id,
+    )
+    db.session.add(srmgc)
+    db.session.commit()
 
     assert client_sdr.autopilot_enabled == False
 
@@ -506,3 +520,39 @@ def test_create_delete_client_pod_and_add_remove_sdr_from_pod():
 
     client_pod = ClientPod.query.filter_by(id=client_pod.id).first()
     assert client_pod == None
+
+
+@use_app_context
+def test_post_update_description_and_fit():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_archetype = basic_archetype(client, client_sdr)
+    client_sdr_id = client_sdr.id
+    client_archetype_id = client_archetype.id
+
+    # check old description
+    assert client_archetype.persona_description == None
+    assert client_archetype.persona_fit_reason == None
+
+    # update description
+    response = app.test_client().post(
+        "client/archetype/{client_archetype_id}/update_description_and_fit".format(
+            client_archetype_id=client_archetype_id
+        ),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
+        data=json.dumps(
+            {
+                "updated_persona_description": "test description",
+                "updated_persona_fit_reason": "test fit reason",
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    # check new description
+    client_archetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    assert client_archetype.persona_description == "test description"
+    assert client_archetype.persona_fit_reason == "test fit reason"
