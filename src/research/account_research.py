@@ -58,7 +58,7 @@ def generate_generic_research(prompt: str, retries: int):
     return research
 
 
-@celery.task
+@celery.task(bind=True, max_retries=3)
 def generate_prospect_research(
     prospect_id: int, print_research: bool = False, hard_refresh: bool = False
 ) -> tuple[str, list]:
@@ -69,39 +69,43 @@ def generate_prospect_research(
 
     Return prompt and array of research points
     """
-    account_research_points = AccountResearchPoints.query.filter_by(
-        prospect_id=prospect_id
-    ).all()
-    if not hard_refresh and account_research_points:
-        return "", []
+    try:
+        account_research_points = AccountResearchPoints.query.filter_by(
+            prospect_id=prospect_id
+        ).all()
+        if not hard_refresh and account_research_points:
+            return "", []
 
-    if hard_refresh:
-        for account_research_point in account_research_points:
-            db.session.delete(account_research_point)
+        if hard_refresh:
+            for account_research_point in account_research_points:
+                db.session.delete(account_research_point)
+            db.session.commit()
+
+        prompt = get_research_generation_prompt(prospect_id)
+        research = generate_generic_research(prompt=prompt, retries=3)
+
+        try:
+            if print_research:
+                print("**Prompt:**\n---\n", prompt, "\n---\n\n", "**Research:**\n")
+                for point in research:
+                    print("- ", point["title"], ": ", point["reason"])
+        except:
+            print("Error printing research")
+
+        for point in research:
+            account_research_point: AccountResearchPoints = AccountResearchPoints(
+                prospect_id=prospect_id,
+                account_research_type=AccountResearchType.GENERIC_RESEARCH,
+                title=point["title"],
+                reason=point["reason"],
+            )
+            db.session.add(account_research_point)
         db.session.commit()
 
-    prompt = get_research_generation_prompt(prospect_id)
-    research = generate_generic_research(prompt=prompt, retries=3)
-
-    try:
-        if print_research:
-            print("**Prompt:**\n---\n", prompt, "\n---\n\n", "**Research:**\n")
-            for point in research:
-                print("- ", point["title"], ": ", point["reason"])
-    except:
-        print("Error printing research")
-
-    for point in research:
-        account_research_point: AccountResearchPoints = AccountResearchPoints(
-            prospect_id=prospect_id,
-            account_research_type=AccountResearchType.GENERIC_RESEARCH,
-            title=point["title"],
-            reason=point["reason"],
-        )
-        db.session.add(account_research_point)
-    db.session.commit()
-
-    return prompt, research
+        return prompt, research
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 def get_research_generation_prompt(prospect_id: int) -> str:
