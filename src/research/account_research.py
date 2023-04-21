@@ -31,12 +31,12 @@ def generate_generic_research(prompt: str, retries: int):
     """
     Generates generic research and outputs a JSON array of objects
 
-    Each object should have two elements: title and reason
+    Each object should have two elements: source and reason
 
     Return Value:
     [
         {
-            "title": "title",
+            "source": "source",
             "reason": "reason"
         },
         {
@@ -86,7 +86,7 @@ def generate_prospect_research(
             if print_research:
                 print("**Prompt:**\n---\n", prompt, "\n---\n\n", "**Research:**\n")
                 for point in research:
-                    print("- ", point["title"], ": ", point["reason"])
+                    print("- ", point["source"], ": ", point["reason"])
         except:
             print("Error printing research")
 
@@ -94,7 +94,7 @@ def generate_prospect_research(
             account_research_point: AccountResearchPoints = AccountResearchPoints(
                 prospect_id=prospect_id,
                 account_research_type=AccountResearchType.GENERIC_RESEARCH,
-                title=point["title"],
+                title=point["source"],
                 reason=point["reason"],
             )
             db.session.add(account_research_point)
@@ -139,7 +139,7 @@ Our Product Information:
 
 You are a sales account research assistant. Using the information about the Prospect and Product, explain why the prospect would be a good fit for buying the product. 
 
-Generate a javascript array of objects. Each object should have two elements: title and reason. Keep titles to 2-4 words in length maximum. Keep reasons short, to 1 sentence maximum.
+Generate a javascript array of objects. Each object should have two elements: source and reason. In source, label which prospect information you used to gather the data point. Keep reasons short, to 1 sentence maximum.
 
 JSON payload:""".format(
         prospect_name=prospect_name,
