@@ -37,6 +37,7 @@ from src.client.services import (
     nylas_exchange_for_authorization_code,
     get_unused_linkedin_and_email_prospect_for_persona,
     update_persona_description_and_fit_reason,
+    predict_persona_fit_reason,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -797,3 +798,20 @@ def post_update_description_and_fit(client_sdr_id: int, archetype_id: int):
         return "OK", 200
 
     return "Failed to update description and fit", 400
+
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<archetype_id>/predict_persona_fit_reason", methods=["GET"]
+)
+@require_user
+def get_predict_persona_fit_reason(client_sdr_id: int, archetype_id: int):
+    """Predicts the fit reason for an archetype"""
+    success, message = predict_persona_fit_reason(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=archetype_id,
+    )
+
+    if not success:
+        return message, 400
+
+    return jsonify({"reason": message}), 200

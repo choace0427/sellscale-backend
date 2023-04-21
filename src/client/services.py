@@ -1,5 +1,9 @@
 from app import db
 from flask import jsonify
+from src.ml.openai_wrappers import (
+    CURRENT_OPENAI_CHAT_GPT_MODEL,
+    wrapped_create_completion,
+)
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.prospecting.models import (
     ProspectOverallStatus,
@@ -1069,3 +1073,40 @@ def update_persona_description_and_fit_reason(
     db.session.commit()
 
     return True
+
+
+def predict_persona_fit_reason(
+    client_sdr_id: int, client_archetype_id: int
+) -> tuple[bool, str]:
+    """
+    Based on the company's name, archetype's name, company's tagline, and company's description, predict the reason why the archetype would purchase the product
+    from the company.
+
+    returns:
+        (success: bool, message: str)
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    if (
+        not client_sdr
+        or not client_archetype
+        or client_archetype.client_sdr_id != client_sdr.id
+    ):
+        return False, "Unauthorized access"
+
+    # Get company name, archetype name, company tagline, and company description
+    company_name = client.company
+    archetype_name = client_archetype.archetype
+    company_tagline = client.tagline
+    company_description = client.description
+
+    # create prompt
+    prompt = f"Based on the company's name, archetype's name, company's tagline, and company's description, predict the reason why the archetype would purchase the product from the company.\n\nCompany Name: {company_name}\nArchetype Name: {archetype_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nWhy would they buy the product?:"
+    response = wrapped_create_completion(
+        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+    )
+    if response == False:
+        return False, "Error generating prediction"
+
+    return True, response
