@@ -1,5 +1,6 @@
 import re
 from flask import Blueprint, jsonify, request
+from model_import import ClientArchetype
 from src.prospecting.models import Prospect
 from src.research.linkedin.iscraper import (
     get_linkedin_search_results_from_iscraper,
@@ -18,6 +19,7 @@ from src.research.account_research import (
     run_research_extraction_for_prospects_in_archetype,
     generate_prospect_research,
     get_account_research_points_by_prospect_id,
+    get_account_research_points_inputs,
 )
 from src.authentication.decorators import require_user
 
@@ -106,3 +108,19 @@ def get_account_research_points(client_sdr_id: int):
         return "Unauthorized", 401
 
     return jsonify(get_account_research_points_by_prospect_id(prospect_id=prospect_id))
+
+
+@RESEARCH_BLUEPRINT.route("/account_research_points/inputs", methods=["GET"])
+@require_user
+def get_account_research_points_inputs_endpoint(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True
+    )
+
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=archetype_id
+    ).first()
+    if archetype.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    return jsonify(get_account_research_points_inputs(archetype_id=archetype_id))

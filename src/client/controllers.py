@@ -36,6 +36,7 @@ from src.client.services import (
     toggle_client_sdr_autopilot_enabled,
     nylas_exchange_for_authorization_code,
     get_unused_linkedin_and_email_prospect_for_persona,
+    update_persona_description_and_fit_reason,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -59,10 +60,11 @@ CLIENT_BLUEPRINT = Blueprint("client", __name__)
 def index():
     return "OK", 200
 
+
 @CLIENT_BLUEPRINT.route("/submit-error", methods=["POST"])
 @require_user
 def post_submit_error(client_sdr_id: int):
-    
+
     error = get_request_parameter(
         "error", request, json=True, required=True, parameter_type=str
     )
@@ -71,7 +73,7 @@ def post_submit_error(client_sdr_id: int):
     )
 
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
-    
+
     send_slack_message(
         message=" An error occurred for *{client_sdr_name}*, on '{user_agent}':\n{error}".format(
             error=error,
@@ -204,7 +206,9 @@ def deactivate_sdr_endpoint():
     client_sdr_id = get_request_parameter(
         "client_sdr_id", request, json=True, required=True, parameter_type=int
     )
-    email = get_request_parameter("email", request, json=True, required=True, parameter_type=str)
+    email = get_request_parameter(
+        "email", request, json=True, required=True, parameter_type=str
+    )
 
     success = deactivate_client_sdr(client_sdr_id=client_sdr_id, email=email)
     if not success:
@@ -218,10 +222,16 @@ def activate_sdr_endpoint():
     client_sdr_id = get_request_parameter(
         "client_sdr_id", request, json=True, required=True, parameter_type=int
     )
-    li_sla = get_request_parameter("li_sla", request, json=True, required=False, parameter_type=int)
-    email_sla = get_request_parameter("email_sla", request, json=True, required=False, parameter_type=int)
+    li_sla = get_request_parameter(
+        "li_sla", request, json=True, required=False, parameter_type=int
+    )
+    email_sla = get_request_parameter(
+        "email_sla", request, json=True, required=False, parameter_type=int
+    )
 
-    success = activate_client_sdr(client_sdr_id=client_sdr_id, li_target=li_sla, email_target=email_sla)
+    success = activate_client_sdr(
+        client_sdr_id=client_sdr_id, li_target=li_sla, email_target=email_sla
+    )
     if not success:
         return "Failed to activate", 404
 
@@ -761,3 +771,29 @@ def get_unused_li_and_email_prospects_count(client_sdr_id: int):
         client_archetype_id=client_archetype_id
     )
     return jsonify(data)
+
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<archetype_id>/update_description_and_fit", methods=["POST"]
+)
+@require_user
+def post_update_description_and_fit(client_sdr_id: int, archetype_id: int):
+    """Updates the description and fit for an archetype"""
+    updated_persona_description = get_request_parameter(
+        "updated_persona_description", request, json=True, required=False
+    )
+    updated_persona_fit_reason = get_request_parameter(
+        "updated_persona_fit_reason", request, json=True, required=False
+    )
+
+    success = update_persona_description_and_fit_reason(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=archetype_id,
+        updated_persona_description=updated_persona_description,
+        updated_persona_fit_reason=updated_persona_fit_reason,
+    )
+
+    if success:
+        return "OK", 200
+
+    return "Failed to update description and fit", 400

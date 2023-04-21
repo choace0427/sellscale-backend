@@ -162,3 +162,16 @@ def get_account_research_points_by_prospect_id(
         AccountResearchPoints
     ] = AccountResearchPoints.query.filter_by(prospect_id=prospect_id).all()
     return [arp.to_dict() for arp in account_research_points]
+
+
+def get_account_research_points_inputs(archetype_id: int):
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    client_id: int = client_archetype.client_id
+    client: Client = Client.query.get(client_id)
+
+    return {
+        "company": client.company,
+        "persona": client_archetype.archetype,
+        "company_tagline": client.tagline,
+        "persona_value_prop": client_archetype.persona_fit_reason,
+    }

@@ -247,7 +247,9 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
     return True
 
 
-def activate_client_sdr(client_sdr_id: int, li_target: Optional[int] = 0, email_target: Optional[int] = 0) -> bool:
+def activate_client_sdr(
+    client_sdr_id: int, li_target: Optional[int] = 0, email_target: Optional[int] = 0
+) -> bool:
     """Activates a Client SDR and sets their SLAs
 
     Args:
@@ -977,18 +979,18 @@ def check_nylas_status(client_sdr_id: int) -> bool:
 
 
 def clear_nylas_tokens(client_sdr_id: int):
-    """ Clears Nylas tokens
+    """Clears Nylas tokens
 
     Args:
         client_sdr_id (int): ID of the client SDR
 
     Returns:
-        status_code (int), message (str): HTTP status code 
+        status_code (int), message (str): HTTP status code
     """
-    
+
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
-        return "No client sdr found with this id", 400 
+        return "No client sdr found with this id", 400
 
     sdr.nylas_auth_code = None
     sdr.nylas_account_id = None
@@ -1046,3 +1048,24 @@ def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int)
         "unused_linkedin_prospects": unused_linkedin_prospects,
         "unused_email_prospects": unused_email_prospects,
     }
+
+
+def update_persona_description_and_fit_reason(
+    client_sdr_id: int,
+    client_archetype_id: int,
+    updated_persona_description: Optional[str],
+    updated_persona_fit_reason: Optional[str],
+):
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return False
+
+    if updated_persona_description:
+        client_archetype.persona_description = updated_persona_description
+    if updated_persona_fit_reason:
+        client_archetype.persona_fit_reason = updated_persona_fit_reason
+
+    db.session.add(client_archetype)
+    db.session.commit()
+
+    return True

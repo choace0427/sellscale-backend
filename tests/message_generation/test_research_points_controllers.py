@@ -48,8 +48,10 @@ def test_get_account_research_points():
     """Assert that the research points returned from GET /research/account_research_points
     are the same as the ones returned from the database."""
     client = basic_client()
-    archetype = basic_archetype(client)
+    client_company = client.company
     client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+
     prospect = basic_prospect(
         client=client,
         archetype=archetype,
@@ -87,3 +89,19 @@ def test_get_account_research_points():
 
     research_points = response.json or []
     assert len(research_points) == 1
+
+    response = app.test_client().get(
+        f"research/account_research_points/inputs?archetype_id={archetype.id}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + "TEST_AUTH_TOKEN",
+        },
+    )
+    assert response.status_code == 200
+
+    assert response.json == {
+        "company": client_company,
+        "persona": archetype.archetype,
+        "company_tagline": client.tagline,
+        "persona_value_prop": archetype.persona_fit_reason,
+    }
