@@ -24,9 +24,7 @@ def run_research_extraction_for_prospects_in_archetype(
         archetype_id=archetype_id
     ).all()
     for prospect in prospects:
-        generate_prospect_research.delay(
-            prospect_id=prospect.id, hard_refresh=hard_refresh
-        )
+        generate_prospect_research.delay(prospect.id, False, hard_refresh)
 
 
 def generate_generic_research(prompt: str, retries: int):
