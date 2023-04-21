@@ -92,6 +92,7 @@ def wrapped_create_completion(
             preview = top_choice["text"].strip()
             return preview
     except Exception as e:
+        print(e)
         return False
 
 

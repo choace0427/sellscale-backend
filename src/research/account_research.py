@@ -5,9 +5,47 @@ from src.ml.openai_wrappers import (
     CURRENT_OPENAI_CHAT_GPT_MODEL,
 )
 import json
+from model_import import AccountResearchType, AccountResearchPoints
+from app import db, celery
 
 
-def generate_research(prompt: str, retries: int):
+def run_research_extraction_for_prospects_in_archetype(
+    archetype_id: int,
+    hard_refresh: bool = False,
+):
+    """
+    Runs research extraction for all prospects in an archetype
+
+    Args:
+        archetype_id (int): the archetype ID
+        hard_refresh (bool, optional): whether to hard refresh the research points. Defaults to False.
+    """
+    prospects: list[Prospect] = Prospect.query.filter_by(
+        archetype_id=archetype_id
+    ).all()
+    for prospect in prospects:
+        generate_prospect_research.delay(
+            prospect_id=prospect.id, hard_refresh=hard_refresh
+        )
+
+
+def generate_generic_research(prompt: str, retries: int):
+    """
+    Generates generic research and outputs a JSON array of objects
+
+    Each object should have two elements: title and reason
+
+    Return Value:
+    [
+        {
+            "title": "title",
+            "reason": "reason"
+        },
+        {
+        ...
+        }
+    ]
+    """
     attempts = 0
     while attempts < retries:
         json_str = wrapped_create_completion(
@@ -20,8 +58,9 @@ def generate_research(prompt: str, retries: int):
     return research
 
 
+@celery.task
 def generate_prospect_research(
-    prospect_id: int, print_research: bool = False
+    prospect_id: int, print_research: bool = False, hard_refresh: bool = False
 ) -> tuple[str, list]:
     """
     Given a prospect ID, this will generate a research report for the prospect that
@@ -30,8 +69,19 @@ def generate_prospect_research(
 
     Return prompt and array of research points
     """
+    account_research_points = AccountResearchPoints.query.filter_by(
+        prospect_id=prospect_id
+    ).all()
+    if not hard_refresh and account_research_points:
+        return "", []
+
+    if hard_refresh:
+        for account_research_point in account_research_points:
+            db.session.delete(account_research_point)
+        db.session.commit()
+
     prompt = get_research_generation_prompt(prospect_id)
-    research = generate_research(prompt=prompt, retries=3)
+    research = generate_generic_research(prompt=prompt, retries=3)
 
     try:
         if print_research:
@@ -40,6 +90,16 @@ def generate_prospect_research(
                 print("- ", point["title"], ": ", point["reason"])
     except:
         print("Error printing research")
+
+    for point in research:
+        account_research_point: AccountResearchPoints = AccountResearchPoints(
+            prospect_id=prospect_id,
+            account_research_type=AccountResearchType.GENERIC_RESEARCH,
+            title=point["title"],
+            reason=point["reason"],
+        )
+        db.session.add(account_research_point)
+    db.session.commit()
 
     return prompt, research
 
@@ -64,16 +124,16 @@ def get_research_generation_prompt(prospect_id: int) -> str:
     archetype_value_prop = client_archetype.persona_fit_reason
 
     prompt: str = """Prospect Information:
-- full name: {prospect_name}
-- title: {prospect_title}
-- bio: {prospect_bio}
-- company: {prospect_company}
+- prospect's full name: {prospect_name}
+- prospect's title: {prospect_title}
+- prospect's bio: {prospect_bio}
+- prospect's company: {prospect_company}
 
-Product Information:
-- company name: {company_name}
-- persona selling to: {prospect_archetype}
-- company tagline: {company_tagline}
-- archetype value prop: {archetype_value_prop}
+Our Product Information:
+- the company name: {company_name}
+- the persona we're selling to: {prospect_archetype}
+- the company tagline: {company_tagline}
+- the archetype value prop: {archetype_value_prop}
 
 You are a sales account research assistant. Using the information about the Prospect and Product, explain why the prospect would be a good fit for buying the product. 
 

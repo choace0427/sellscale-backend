@@ -20,6 +20,8 @@ from src.research.models import (
     ResearchType,
     IScraperPayloadCache,
     IScraperPayloadType,
+    AccountResearchPoints,
+    AccountResearchType,
 )
 from src.message_generation.models import (
     GeneratedMessage,
@@ -56,11 +58,14 @@ from src.campaigns.models import OutboundCampaign, OutboundCampaignStatus
 from src.response_ai.models import ResponseConfiguration
 from src.onboarding.models import SightOnboarding
 from src.editor.models import Editor, EditorTypes
-from src.li_conversation.models import LinkedinConversationEntry, LinkedinConversationScrapeQueue
+from src.li_conversation.models import (
+    LinkedinConversationEntry,
+    LinkedinConversationScrapeQueue,
+)
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
-    EngagementFeedItem
+    EngagementFeedItem,
 )
 from src.integrations.models import (
     VesselMailboxes,

@@ -13,6 +13,10 @@ from .linkedin.services import (
     reset_prospect_research_and_messages,
     reset_batch_of_prospect_research_and_messages,
 )
+from src.research.account_research import (
+    run_research_extraction_for_prospects_in_archetype,
+    generate_prospect_research,
+)
 
 RESEARCH_BLUEPRINT = Blueprint("research", __name__)
 
