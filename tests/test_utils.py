@@ -604,6 +604,30 @@ def basic_engagement_feed_item(
     return new_item.id
 
 
+def basic_bump_framework(
+    client_sdr: ClientSDR,
+    title: str = "test-title",
+    description: str = "test-description",
+    active: bool = True,
+    overall_status: ProspectOverallStatus = ProspectOverallStatus.BUMPED,
+    default: bool = False,
+):
+    from model_import import BumpFramework
+
+    bump_framework = BumpFramework(
+        client_sdr_id=client_sdr.id,
+        title=title,
+        description=description,
+        active=active,
+        overall_status=overall_status,
+        default=default,
+    )
+    db.session.add(bump_framework)
+    db.session.commit()
+
+    return bump_framework
+
+
 def clear_all_entities(SQLAlchemyObject):
     echos = SQLAlchemyObject.query.all()
     for e in echos:

@@ -23,6 +23,7 @@ class BumpFramework(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
+            "overall_status": self.overall_status.value if self.overall_status else None,
             "active": self.active,
             "default": self.default,
         }
