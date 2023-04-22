@@ -20,6 +20,7 @@ from src.prospecting.models import (
     ProspectUploadBatch,
     ProspectNote,
     ProspectOverallStatus,
+    ProspectHiddenReason,
     VALID_NEXT_LINKEDIN_STATUSES,
 )
 from app import db, celery
@@ -39,7 +40,7 @@ from model_import import (
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
 from src.utils.converters.string_converters import needs_title_casing
-
+import datetime
 
 def search_prospects(
     query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0
@@ -328,6 +329,9 @@ def update_prospect_status_linkedin(
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
 
+    # Make sure the prospect isn't in the main pipeline for 48 hours
+    send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
+
     if note:
         create_note(prospect_id=prospect_id, note=note)
 
@@ -599,6 +603,9 @@ def update_prospect_status_email(
         return False, "Prospect email not found"
     p_email_id = p_email.id
     old_status = p_email.outreach_status or ProspectEmailOutreachStatus.UNKNOWN
+
+    # Make sure the prospect isn't in the main pipeline for 48 hours
+    send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
 
     # Check if we can override the status, regardless of the current status
     if override_status:
@@ -1518,3 +1525,11 @@ def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
     db.session.add(prospect)
     db.session.commit()
     return True
+
+
+def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+    prospect.hidden_reason = reason
+    db.session.add(prospect)
+    db.session.commit()

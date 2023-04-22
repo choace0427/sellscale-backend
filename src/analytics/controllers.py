@@ -34,6 +34,12 @@ def get_weekly_li_benchmarks():
 def get_all_pipeline_details(client_sdr_id: int):
     """Endpoint to get all pipeline details for a given SDR."""
 
-    details = get_sdr_pipeline_all_details(client_sdr_id=client_sdr_id)
+    include_purgatory = get_request_parameter("include_purgatory", request, json=False, required=False)
+    if include_purgatory is None:
+        include_purgatory = False
+    else:
+        include_purgatory = include_purgatory.lower() == 'true'
+
+    details = get_sdr_pipeline_all_details(client_sdr_id=client_sdr_id, include_purgatory=include_purgatory)
 
     return {"message": "Success", "pipeline_data": details}, 200

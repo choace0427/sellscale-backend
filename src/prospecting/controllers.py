@@ -1,8 +1,9 @@
+from src.prospecting.services import send_to_purgatory
 from src.prospecting.services import nylas_get_threads, nylas_get_messages
 from app import db
 
 from flask import Blueprint, jsonify, request, Response
-from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
+from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels, ProspectHiddenReason
 from src.email_outbound.models import ProspectEmail
 from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.prospecting.services import (
@@ -209,6 +210,23 @@ def get_email_messages(client_sdr_id: int, prospect_id: int):
     messages = nylas_get_messages(client_sdr_id, prospect, message_ids=message_ids, thread_id=thread_id)
 
     return jsonify({"message": "Success", "data": messages}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/send_to_purgatory", methods=["POST"])
+@require_user
+def post_send_to_purgatory(client_sdr_id: int, prospect_id: int):
+
+    days = get_request_parameter("days", request, json=False, required=True)
+
+    prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    send_to_purgatory(prospect_id, int(days), ProspectHiddenReason.MANUAL)
+
+    return jsonify({"message": "Success"}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/<email_id>", methods=["GET"])

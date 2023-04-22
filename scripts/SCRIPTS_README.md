@@ -5,3 +5,6 @@ All scripts should be written in a way that they are to be executed from the sel
 ## Scripts:
 * `migrate_new_enum <table_name> <column_name> <new_value>`
 > Args are case sensitive! A flask db migrate is not required as this command creates the migration file.
+
+* `get_linkedin_url <name> <email>`
+> Should probably use quotes for name. Results are: "linkedin.com/in/<public_id>" or "None found."

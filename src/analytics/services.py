@@ -7,6 +7,7 @@ from src.prospecting.models import *
 from src.email_outbound.models import *
 
 from datetime import datetime, timedelta
+from sqlalchemy import and_, or_, not_
 
 
 def get_all_latest_week_benchmarks_for_clients():
@@ -191,7 +192,7 @@ def get_li_message_benchmarks_for_client(client_id: int):
     return updates
 
 
-def get_sdr_pipeline_all_details(client_sdr_id: int) -> dict:
+def get_sdr_pipeline_all_details(client_sdr_id: int, include_purgatory: bool = False) -> dict:
     """Gets a holistic view of ProspectStatus details for a given ClientSDR
 
     Args:
@@ -205,26 +206,39 @@ def get_sdr_pipeline_all_details(client_sdr_id: int) -> dict:
     # Get LinkedIn Statuses
     li_statuses_count = {}
     for li_status in ProspectStatus.all_statuses():
-        li_statuses_count[li_status.value.lower()] = (
-            Prospect.query.filter(
+
+        query = Prospect.query.filter(
                 Prospect.client_sdr_id == client_sdr_id,
                 Prospect.status == li_status,
-            )
-            .count()
         )
+        if not include_purgatory:
+            query = query.filter(
+                or_(
+                    Prospect.hidden_until == None,
+                    not_(Prospect.hidden_until > datetime.utcnow())
+                )
+            )
+
+        li_statuses_count[li_status.value.lower()] = (query.count())
     all_pipeline_details.update(li_statuses_count)          # TODO REMOVE THIS
     all_pipeline_details[ProspectChannels.LINKEDIN.value] = li_statuses_count
 
     # Get Overall Statuses
     overall_statuses_count = {}
     for overall_status in ProspectOverallStatus.all_statuses():
-        overall_statuses_count[overall_status.value] = (
-            Prospect.query.filter(
+        query = Prospect.query.filter(
                 Prospect.client_sdr_id == client_sdr_id,
                 Prospect.overall_status == overall_status,
-            )
-            .count()
         )
+        if not include_purgatory:
+            query = query.filter(
+                or_(
+                    Prospect.hidden_until == None,
+                    not_(Prospect.hidden_until > datetime.utcnow())
+                )
+            )
+
+        overall_statuses_count[overall_status.value] = (query.count())
     all_pipeline_details[ProspectChannels.SELLSCALE.value] = overall_statuses_count
 
     # Get Email Statuses

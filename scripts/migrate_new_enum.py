@@ -13,62 +13,29 @@ os.chdir('./migrations')
 result = subprocess.run(f'alembic revision -m "Autogen - Added {new_value} to enum column {column_name} in table {table_name}"', shell=True, capture_output=True)
 
 output = result.stdout.decode()
-file_name = output.split('/versions/')[1].split('.py')[0]
+file_name = output.replace('\n', '').replace(' ', '').split('/versions/')[1].split('.py')[0]
 
 insert_import = f'from sqlalchemy import Table, MetaData\n'
 insert_upgrade = f'''
-    # Bind the engine and create a MetaData object
-    bind = op.get_bind()
-    metadata = MetaData(bind=bind)
-
-    # Reflect the table that contains the Enum column
-    table = Table('{table_name}', metadata, autoload=True)
-
-    # Get the Enum column and its Enum type
-    enum_column = table.columns['{column_name}']
-    enum_type = enum_column.type
-
-    # Add the new value to the existing values
-    new_values = list(enum_type.enums) + ['{new_value}']
-
-    # Perform the upgrade operation
-    op.execute(f"""
-        BEGIN;
-            ALTER TYPE {{enum_type.name}} RENAME TO {{enum_type.name}}_temp;
-            CREATE TYPE {{enum_type.name}} AS ENUM ('{{"', '".join(new_values)}}');
-            ALTER TABLE {{table.name}} ALTER COLUMN {{enum_column.name}} TYPE {{enum_type.name}} USING {{enum_column.name}}::text::{{enum_type.name}};
-            DROP TYPE {{enum_type.name}}_temp;
-        COMMIT;
-    """)
+    # Get the name of the enum type associated with the column
+    result = op.get_bind().execute("SELECT udt_name FROM information_schema.columns WHERE table_name = '{table_name}' AND column_name = '{column_name}'").fetchone()
+    enum_type_name = result[0]
+    
+    # Get the current values of the enum type
+    current_values = op.get_bind().execute("SELECT enumlabel FROM pg_enum WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = '%s')" % enum_type_name).fetchall()
+    values = [value[0] for value in current_values]
+    
+    # Add the new value to the enum type
+    values.append('{new_value}')
+    op.execute("ALTER TYPE %s ADD VALUE '%s'" % (enum_type_name, '{new_value}'))
 '''
 insert_downgrade = f'''
-    # Bind the engine and create a MetaData object
-    bind = op.get_bind()
-    metadata = MetaData(bind=bind)
-
-    # Reflect the table that contains the Enum column
-    table = Table('{table_name}', metadata, autoload=True)
-
-    # Get the Enum column and its Enum type
-    enum_column = table.columns['{column_name}']
-    enum_type = enum_column.type
-
-    # Get the existing values and remove the new value
-    existing_values = [v for v in enum_type.enums if v != '{new_value}']
-
-    # Perform the downgrade operation
-    try:
-        op.execute(f"""
-            BEGIN;
-                ALTER TYPE {{enum_type.name}} RENAME TO {{enum_type.name}}_temp;
-                CREATE TYPE {{enum_type.name}} AS ENUM ('{{"', '".join(existing_values)}}');
-                ALTER TABLE {{table.name}} ALTER COLUMN {{enum_column.name}} TYPE {{enum_type.name}} USING {{enum_column.name}}::text::{{enum_type.name}};
-                DROP TYPE {{enum_type.name}}_temp;
-            COMMIT;
-        """)
-    except Exception as e:
-        print('Failed to execute downgrade, does a row currently use this enum?')
-        print(e)
+    # Get the name of the enum type associated with the column
+    result = op.get_bind().execute("SELECT udt_name FROM information_schema.columns WHERE table_name = '{table_name}' AND column_name = '{column_name}'").fetchone()
+    enum_type_name = result[0]
+    
+    # Remove the new value from the enum type
+    op.execute("ALTER TYPE %s DROP VALUE '{new_value}'" % enum_type_name)
 '''
 
 # Read the contents of the file into a list of lines

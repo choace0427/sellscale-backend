@@ -2,9 +2,11 @@ import json
 import time
 import datetime as dt
 
+from src.prospecting.services import send_to_purgatory
+
 from src.li_conversation.models import LinkedinConversationEntry
 from src.research.models import IScraperPayloadCache
-from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
+from src.prospecting.models import Prospect, ProspectStatus, ProspectHiddenReason
 from typing import Union
 from src.li_conversation.services import create_linkedin_conversation_entry
 from model_import import ClientSDR
@@ -217,14 +219,50 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
     db.session.commit()
     print("Done saving!")
 
+    update_prospect_status(prospect, convo_urn_id)
+
+    return "OK", 200
+
+
+def update_prospect_status(prospect: Prospect, convo_urn_id: str):
+   
+    print("Checking for prospect status updates...")
+    latest_convo_entries = LinkedinConversationEntry.query.filter_by(thread_urn_id=convo_urn_id).order_by(LinkedinConversationEntry.date.desc()).all()
+    if not latest_convo_entries or len(latest_convo_entries) == 0: return
+
+    last_msg_was_you = latest_convo_entries[0].connection_degree == 'You'
+    last_2_msg_was_you = len(latest_convo_entries) > 1 and last_msg_was_you and latest_convo_entries[1].connection_degree == 'You'
+    last_3_msg_was_you = len(latest_convo_entries) > 2 and last_2_msg_was_you and latest_convo_entries[2].connection_degree == 'You'
 
     # If they accepted our connection request and we just sent them a message, they're considered bumped
-    if prospect.status == ProspectStatus.ACCEPTED:
-      latest_convo_entry = LinkedinConversationEntry.query.filter_by(thread_urn_id=convo_urn_id).order_by(LinkedinConversationEntry.date.desc()).first()
-      if latest_convo_entry.connection_degree == 'You':
+    if prospect.status == ProspectStatus.ACCEPTED and last_msg_was_you:
         prospect.status = ProspectStatus.RESPONDED
-        prospect.overall_status = ProspectOverallStatus.BUMPED
+        prospect.times_bumped = 1
         db.session.add(prospect)
         db.session.commit()
 
-    return "OK", 200
+        # Make sure the prospect isn't in the main pipeline for 48 hours
+        send_to_purgatory(prospect.id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
+
+        return
+
+    # Set the bumped status and times bumped
+    if last_3_msg_was_you:
+        prospect.status = ProspectStatus.RESPONDED
+        prospect.times_bumped = 3
+        db.session.add(prospect)
+        db.session.commit()
+        return
+    if last_2_msg_was_you:
+        prospect.status = ProspectStatus.RESPONDED
+        prospect.times_bumped = 2
+        db.session.add(prospect)
+        db.session.commit()
+        return
+    if last_msg_was_you:
+        prospect.status = ProspectStatus.RESPONDED
+        prospect.times_bumped = 1
+        db.session.add(prospect)
+        db.session.commit()
+        return
+

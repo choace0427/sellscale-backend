@@ -5,6 +5,11 @@ import json
 from typing import Optional
 
 
+class ProspectHiddenReason(enum.Enum):
+    RECENTLY_BUMPED = "RECENTLY_BUMPED"
+    STATUS_CHANGE = "STATUS_CHANGE"
+    MANUAL = "MANUAL"
+
 class ProspectChannels(enum.Enum):
     LINKEDIN = "LINKEDIN"
     EMAIL = "EMAIL"
@@ -138,19 +143,6 @@ class ProspectOverallStatus(enum.Enum):
         }
 
 
-class ProspectOverallSubStatus(enum.Enum):
-    NONE = "NONE"
-    BUMPED_1 = "BUMPED_1"
-    BUMPED_2 = "BUMPED_2"
-    BUMPED_3_PLUS = "BUMPED_3_PLUS"
-    ACTIVE_CONVO_QUESTION = "ACTIVE_CONVO_QUESTION"
-    ACTIVE_CONVO_QUAL_NEEDED = "ACTIVE_CONVO_QUAL_NEEDED"
-    ACTIVE_CONVO_OBJECTION = "ACTIVE_CONVO_OBJECTION"
-    ACTIVE_CONVO_SCHEDULING = "ACTIVE_CONVO_SCHEDULING"
-    DEMO_SET = "DEMO_SET"
-    DEMO_WON = "DEMO_WON"
-    DEMO_LOSS = "DEMO_LOSS"
-
 class ProspectStatus(enum.Enum):
     PROSPECTED = "PROSPECTED"
 
@@ -170,6 +162,12 @@ class ProspectStatus(enum.Enum):
 
     DEMO_WON = "DEMO_WON"
     DEMO_LOSS = "DEMO_LOSS"
+
+    # Temp solution
+    ACTIVE_CONVO_QUESTION = "ACTIVE_CONVO_QUESTION"
+    ACTIVE_CONVO_QUAL_NEEDED = "ACTIVE_CONVO_QUAL_NEEDED"
+    ACTIVE_CONVO_OBJECTION = "ACTIVE_CONVO_OBJECTION"
+    ACTIVE_CONVO_SCHEDULING = "ACTIVE_CONVO_SCHEDULING"
 
     def to_dict():
         return {
@@ -203,6 +201,10 @@ class ProspectStatus(enum.Enum):
             ProspectStatus.DEMO_SET,
             ProspectStatus.DEMO_WON,
             ProspectStatus.DEMO_LOSS,
+            ProspectStatus.ACTIVE_CONVO_QUESTION,
+            ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+            ProspectStatus.ACTIVE_CONVO_OBJECTION,
+            ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ]
 
     def status_descriptions():
@@ -294,6 +296,30 @@ class ProspectStatus(enum.Enum):
                 "enum_val": ProspectStatus.DEMO_LOSS.value,
                 "sellscale_enum_val": ProspectOverallStatus.DEMO.value,
             },
+            ProspectStatus.ACTIVE_CONVO_QUESTION.value: {
+                "name": "Active Convo - Question",
+                "description": "The Prospect has a question.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO_QUESTION.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+            },
+            ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED.value: {
+                "name": "Active Convo - Qualification Needed",
+                "description": "The Prospect's qualifications need to be clarified.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+            },
+            ProspectStatus.ACTIVE_CONVO_OBJECTION.value: {
+                "name": "Active Convo - Objection",
+                "description": "The Prospect has an objection.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO_OBJECTION.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+            },
+            ProspectStatus.ACTIVE_CONVO_SCHEDULING.value: {
+                "name": "Active Convo - Scheduling",
+                "description": "The Prospect is discussing scheduling.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO_SCHEDULING.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+            },
         }
 
     def valid_next_statuses(current_status) -> dict:
@@ -341,7 +367,9 @@ class Prospect(db.Model):
     batch = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
-    overall_sub_status = db.Column(db.Enum(ProspectOverallSubStatus), server_default='NONE', nullable=False)
+
+    hidden_until = db.Column(db.DateTime, nullable=True) # in UTC, used to hide prospects from the UI until a certain date
+    hidden_reason = db.Column(db.Enum(ProspectHiddenReason), nullable=True)
 
     approved_outreach_message_id = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")  # approved linkedin message
@@ -465,6 +493,8 @@ class Prospect(db.Model):
             "icp_fit_reason": self.icp_fit_reason,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
+            "hidden_until": self.hidden_until,
+            "hidden_reason": self.hidden_reason.value if self.hidden_reason is not None else None,
         }
 
 
@@ -653,6 +683,46 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+    ],
+        ProspectStatus.ACTIVE_CONVO_OBJECTION: [
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+    ],
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+    ],
+        ProspectStatus.ACTIVE_CONVO_QUESTION: [
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+    ],
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO,
     ],
     ProspectStatus.SCHEDULING: [
         ProspectStatus.DEMO_SET,

@@ -8,8 +8,6 @@ Create Date: 2023-03-09 12:30:07.384613
 from alembic import op
 import sqlalchemy as sa
 
-from src.client.models import SDRQuestionaireColumn
-
 
 # revision identifiers, used by Alembic.
 revision = '4cd0cf89ab71'
