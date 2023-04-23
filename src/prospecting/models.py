@@ -10,6 +10,7 @@ class ProspectHiddenReason(enum.Enum):
     STATUS_CHANGE = "STATUS_CHANGE"
     MANUAL = "MANUAL"
 
+
 class ProspectChannels(enum.Enum):
     LINKEDIN = "LINKEDIN"
     EMAIL = "EMAIL"
@@ -368,7 +369,9 @@ class Prospect(db.Model):
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
 
-    hidden_until = db.Column(db.DateTime, nullable=True) # in UTC, used to hide prospects from the UI until a certain date
+    hidden_until = db.Column(
+        db.DateTime, nullable=True
+    )  # in UTC, used to hide prospects from the UI until a certain date
     hidden_reason = db.Column(db.Enum(ProspectHiddenReason), nullable=True)
 
     approved_outreach_message_id = db.Column(
@@ -409,9 +412,7 @@ class Prospect(db.Model):
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
-    __table_args__ = (
-        db.Index('idx_li_urn_id', 'li_urn_id'),
-    )
+    __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
@@ -494,7 +495,9 @@ class Prospect(db.Model):
             "img_url": self.img_url,
             "img_expire": self.img_expire,
             "hidden_until": self.hidden_until,
-            "hidden_reason": self.hidden_reason.value if self.hidden_reason is not None else None,
+            "hidden_reason": self.hidden_reason.value
+            if self.hidden_reason is not None
+            else None,
         }
 
 
@@ -678,6 +681,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.DEMO_SET,
         ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.RESPONDED,
     ],
     ProspectStatus.ACTIVE_CONVO: [
         ProspectStatus.NOT_INTERESTED,
@@ -687,8 +691,9 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.RESPONDED,
     ],
-        ProspectStatus.ACTIVE_CONVO_OBJECTION: [
+    ProspectStatus.ACTIVE_CONVO_OBJECTION: [
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
@@ -696,8 +701,9 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.RESPONDED,
     ],
-        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
+    ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
@@ -705,8 +711,9 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.RESPONDED,
     ],
-        ProspectStatus.ACTIVE_CONVO_QUESTION: [
+    ProspectStatus.ACTIVE_CONVO_QUESTION: [
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
@@ -714,8 +721,9 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.RESPONDED,
     ],
-        ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
+    ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
@@ -723,11 +731,13 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.RESPONDED,
     ],
     ProspectStatus.SCHEDULING: [
         ProspectStatus.DEMO_SET,
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.RESPONDED,
     ],
     ProspectStatus.DEMO_SET: [
         ProspectStatus.DEMO_WON,
