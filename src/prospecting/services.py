@@ -42,6 +42,7 @@ from src.automation.slack_notification import send_status_change_slack_block
 from src.utils.converters.string_converters import needs_title_casing
 import datetime
 
+
 def search_prospects(
     query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0
 ):
@@ -203,71 +204,92 @@ def get_prospects(
 def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    res = requests.get(f'https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
+    res = requests.get(
+        f"https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}",
+        headers={"Authorization": f"Bearer {client_sdr.nylas_auth_code}"},
+    )
     result = res.json()
 
     for thread in result:
-      existing_thread = EmailConversationThread.query.filter_by(nylas_thread_id=thread.get('id')).first()
-      if not existing_thread:
-        model: EmailConversationThread = EmailConversationThread(
-            client_sdr_id=client_sdr_id,
-            prospect_id=prospect.id,
-            subject = thread.get('subject'),
-            snippet = thread.get('snippet'),
-            prospect_email = prospect.email,
-            sdr_email = client_sdr.email,
-            nylas_thread_id = thread.get('id'),
-            nylas_data = thread
-        )
-        db.session.add(model)
+        existing_thread = EmailConversationThread.query.filter_by(
+            nylas_thread_id=thread.get("id")
+        ).first()
+        if not existing_thread:
+            model: EmailConversationThread = EmailConversationThread(
+                client_sdr_id=client_sdr_id,
+                prospect_id=prospect.id,
+                subject=thread.get("subject"),
+                snippet=thread.get("snippet"),
+                prospect_email=prospect.email,
+                sdr_email=client_sdr.email,
+                nylas_thread_id=thread.get("id"),
+                nylas_data=thread,
+            )
+            db.session.add(model)
 
     db.session.commit()
 
     return result
 
 
-def nylas_get_messages(client_sdr_id: int, prospect: Prospect, message_ids: list[str], thread_id: str):
+def nylas_get_messages(
+    client_sdr_id: int, prospect: Prospect, message_ids: list[str], thread_id: str
+):
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     if message_ids:
-      res = requests.get(f'https://api.nylas.com/messages/{",".join(message_ids)}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
+        res = requests.get(
+            f'https://api.nylas.com/messages/{",".join(message_ids)}',
+            headers={"Authorization": f"Bearer {client_sdr.nylas_auth_code}"},
+        )
     elif thread_id:
-      res = requests.get(f'https://api.nylas.com/messages?thread_id={thread_id}', headers = {"Authorization": f'Bearer {client_sdr.nylas_auth_code}'})
+        res = requests.get(
+            f"https://api.nylas.com/messages?thread_id={thread_id}",
+            headers={"Authorization": f"Bearer {client_sdr.nylas_auth_code}"},
+        )
     else:
-      return {}
+        return {}
 
     result = res.json()
 
     for message in result:
-      existing_message = EmailConversationMessage.query.filter_by(nylas_message_id=message.get('id')).first()
-      if not existing_message:
-        message_from_sdr = False
-        message_from = message.get('from')
-        if message_from and len(message_from) > 0:
-            message_from_email = message_from[0].get('email')
-            prospect_email = prospect.email
-            if message_from_email != prospect_email:
-                message_from_sdr = True
+        existing_message = EmailConversationMessage.query.filter_by(
+            nylas_message_id=message.get("id")
+        ).first()
+        if not existing_message:
+            message_from_sdr = False
+            message_from = message.get("from")
+            if message_from and len(message_from) > 0:
+                message_from_email = message_from[0].get("email")
+                prospect_email = prospect.email
+                if message_from_email != prospect_email:
+                    message_from_sdr = True
 
-        existing_thread: EmailConversationThread = EmailConversationThread.query.filter_by(nylas_thread_id=message.get('thread_id')).first()
-        if not existing_thread:
-            raise Exception(f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}')
+            existing_thread: EmailConversationThread = (
+                EmailConversationThread.query.filter_by(
+                    nylas_thread_id=message.get("thread_id")
+                ).first()
+            )
+            if not existing_thread:
+                raise Exception(
+                    f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}'
+                )
 
-        model: EmailConversationMessage = EmailConversationMessage(
-            client_sdr_id=client_sdr_id,
-            prospect_id=prospect.id,
-            subject = message.get('subject'),
-            snippet = message.get('snippet'),
-            prospect_email = prospect.email,
-            sdr_email = client_sdr.email,
-            from_sdr = message_from_sdr,
-            email_conversation_thread_id=existing_thread.id,
-            nylas_thread_id = message.get('thread_id'),
-            nylas_message_id = message.get('id'),
-            nylas_data = message
-        )
-        db.session.add(model)
+            model: EmailConversationMessage = EmailConversationMessage(
+                client_sdr_id=client_sdr_id,
+                prospect_id=prospect.id,
+                subject=message.get("subject"),
+                snippet=message.get("snippet"),
+                prospect_email=prospect.email,
+                sdr_email=client_sdr.email,
+                from_sdr=message_from_sdr,
+                email_conversation_thread_id=existing_thread.id,
+                nylas_thread_id=message.get("thread_id"),
+                nylas_message_id=message.get("id"),
+                nylas_data=message,
+            )
+            db.session.add(model)
 
     db.session.commit()
 
@@ -501,7 +523,7 @@ def update_prospect_status_linkedin(
         ProspectStatus.RESPONDED,
         ProspectStatus.NOT_INTERESTED,
     ):
-        p.last_reviewed = datetime.now()
+        p.last_reviewed = datetime.datetime.now()
         db.session.add(p)
         db.session.commit()
 
@@ -766,7 +788,7 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
         webhook_urls=c_csdr_webhook_urls,
     )
     if sent:
-        p.last_reviewed = datetime.now()
+        p.last_reviewed = datetime.datetime.now()
         p.deactivate_ai_engagement = True
         db.session.add(p)
         db.session.commit()
