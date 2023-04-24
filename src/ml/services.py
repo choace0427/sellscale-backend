@@ -478,7 +478,12 @@ def trigger_icp_classification(
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         for prospect_id in prospect_ids:
-            icp_classify.apply_async(args=[prospect_id, client_sdr_id, archetype_id])
+            icp_classify.apply_async(
+                args=[prospect_id, client_sdr_id, archetype_id],
+                queue="ml_prospect_classification",
+                routing_key="ml_prospect_classification",
+                priority=1,
+            )
     else:
         # Get all prospects for the client SDR id and archetype id
         prospects: list[Prospect] = Prospect.query.filter(
@@ -488,7 +493,12 @@ def trigger_icp_classification(
 
         # Run celery job for each prospect
         for prospect in prospects:
-            icp_classify.apply_async(args=[prospect.id, client_sdr_id, archetype_id])
+            icp_classify.apply_async(
+                args=[prospect_id, client_sdr_id, archetype_id],
+                queue="ml_prospect_classification",
+                routing_key="ml_prospect_classification",
+                priority=1,
+            )
 
     return True
 

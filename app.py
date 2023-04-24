@@ -53,9 +53,11 @@ def make_celery(app):
 
     default_exchange = Exchange("default", type="direct")
     prospecting_exchange = Exchange("prospecting", type="direct")
+    ml_prospect_classification_exchange = Exchange("ml_prospect_classification", type="direct")
     celery.conf.task_queues = (
         Queue("default", default_exchange, routing_key="default"),
         Queue("prospecting", prospecting_exchange, routing_key="prospecting"),
+        Queue("ml_prospect_classification", ml_prospect_classification_exchange, routing_key="ml_prospect_classification"),
     )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"

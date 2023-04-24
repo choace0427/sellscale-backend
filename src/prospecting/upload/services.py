@@ -404,6 +404,8 @@ def run_and_assign_health_score(self, archetype_id: Optional[int] = None, prospe
     Raises:
         self.retry: If the task fails, it will retry, up to the max_retries limit.
     """
+    from src.ml.services import icp_classify
+
     # Get the prospects for the archetype
     try:
         # Add a short_circuit which will use prospect_id
@@ -412,6 +414,8 @@ def run_and_assign_health_score(self, archetype_id: Optional[int] = None, prospe
                 id=prospect_id,
                 health_check_score=None,
             ).first()
+            client_sdr_id = prospect.client_sdr_id
+            archetype_id = prospect.archetype_id
 
             if not prospect:
                 return
@@ -433,6 +437,13 @@ def run_and_assign_health_score(self, archetype_id: Optional[int] = None, prospe
             prospect.health_check_score = health_score
             db.session.add(prospect)
             db.session.commit()
+
+            icp_classify.apply_async(
+                args=[prospect.id, client_sdr_id, archetype_id],
+                queue="ml_prospect_classification",
+                routing_key="ml_prospect_classification",
+                priority=3,
+            )
             return
 
         # Regular, archetype-wide health score
