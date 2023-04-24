@@ -40,6 +40,7 @@ from src.client.services import (
     predict_persona_fit_reason,
     generate_persona_description,
     generate_persona_buy_reason,
+    generate_persona_icp_matching_prompt,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -851,6 +852,34 @@ def post_generate_persona_buy_reason(client_sdr_id: int):
     message = generate_persona_buy_reason(
         client_sdr_id=client_sdr_id,
         persona_name=persona_name,
+    )
+
+    if not message:
+        return "Failed to generate", 400
+
+    return jsonify({"description": message})
+
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/generate_persona_icp_matching_prompt", methods=["POST"]
+)
+@require_user
+def post_generate_persona_icp_matching_prompt(client_sdr_id: int):
+    """Generates a persona description"""
+    persona_name = get_request_parameter(
+        "persona_name", request, json=True, required=True
+    )
+    persona_description = get_request_parameter(
+        "persona_description", request, json=True, required=False
+    )
+    persona_buy_reason = get_request_parameter(
+        "persona_buy_reason", request, json=True, required=False
+    )
+    message = generate_persona_icp_matching_prompt(
+        client_sdr_id=client_sdr_id,
+        persona_name=persona_name,
+        persona_description=persona_description,
+        persona_buy_reason=persona_buy_reason,
     )
 
     if not message:

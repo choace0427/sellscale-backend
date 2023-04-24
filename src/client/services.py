@@ -1162,3 +1162,58 @@ def generate_persona_buy_reason(client_sdr_id: int, persona_name: str):
     return wrapped_create_completion(
         model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
     )
+
+
+def generate_persona_icp_matching_prompt(
+    client_sdr_id: int,
+    persona_name: str,
+    persona_description: str = "",
+    persona_buy_reason: str = "",
+):
+    """
+    Generate a persona ICP matching prompt for a persona
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        persona_name (str): Name of the persona
+        persona_description (str): Description of the persona
+        persona_buy_reason (str): Buy reason of the persona
+
+    Returns:
+        str: Generated persona buy reason
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    company_name = client.company
+    company_tagline = client.tagline
+    company_description = client.description
+
+    prompt = """
+You are a sales research assistant for {company_name}. {company_name}'s tagline is {company_tagline}. Here is a quick description of what {company_name} does: {company_description}
+
+Given the company name, persona name, persona description, and persona fit reason, create an ICP Scoring Prompt. An ICP scoring prompt contains the following:
+
+Role(s): which types of roles would this comprise of
+Seniority(s): what is the seniority level of this persona
+Location(s): what is the scope of locations (if any)
+Other Note(s): bullet point list of notes to keep in mind
+Tier List: bullet point list of Tiers and what would need to match to fit in that Tier. Tier 1 is VERY HIGH, Tier 5 is VERY LOW.
+
+Here is the information about the persona we want to create an ICP Scoring Prompt for:
+Persona: {persona_name}
+Persona Description: {persona_description}
+Persona Fit Reason: {persona_fit_reason}
+
+ICP Scoring Prompt:
+    """.format(
+        company_name=company_name,
+        company_tagline=company_tagline,
+        company_description=company_description,
+        persona_name=persona_name,
+        persona_description=persona_description,
+        persona_fit_reason=persona_buy_reason,
+    )
+    return wrapped_create_completion(
+        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+    )
