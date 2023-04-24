@@ -610,7 +610,7 @@ The writer has given you the following prompt to edit the text:
 
 Make the requested edits.    
 
-Edit Text:""".format(
+Edited Text:""".format(
         initial_text=initial_text, edit_prompt=edit_prompt
     )
     response = wrapped_chat_gpt_completion(
