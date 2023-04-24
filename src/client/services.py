@@ -1,3 +1,4 @@
+from click import Option
 from app import db
 from flask import jsonify
 from src.ml.openai_wrappers import (
@@ -1111,3 +1112,27 @@ def predict_persona_fit_reason(
         return False, "Error generating prediction"
 
     return True, response
+
+
+def generate_persona_description(client_sdr_id: int, persona_name: str):
+    """
+    Generate a persona description for a persona
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        persona_name (str): Name of the persona
+
+    Returns:
+        str: Generated persona description
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    company_name = client.company
+    company_tagline = client.tagline
+    company_description = client.description
+
+    prompt = f"You are a sales researcher for {company_name}. You are tasked with understanding a new persona target which is called '{persona_name}'. Given the company's name, company's tagline, and company's description, generate a persona description for the persona.\n\nCompany Name: {company_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nPersona Description:"
+    return wrapped_create_completion(
+        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+    )

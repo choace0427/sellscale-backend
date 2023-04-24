@@ -38,6 +38,7 @@ from src.client.services import (
     get_unused_linkedin_and_email_prospect_for_persona,
     update_persona_description_and_fit_reason,
     predict_persona_fit_reason,
+    generate_persona_description,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -815,3 +816,21 @@ def get_predict_persona_fit_reason(client_sdr_id: int, archetype_id: int):
         return message, 400
 
     return jsonify({"reason": message}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/generate_persona_description", methods=["POST"])
+@require_user
+def post_generate_persona_description(client_sdr_id: int):
+    """Generates a persona description"""
+    persona_name = get_request_parameter(
+        "persona_name", request, json=True, required=True
+    )
+    message = generate_persona_description(
+        client_sdr_id=client_sdr_id,
+        persona_name=persona_name,
+    )
+
+    if not message:
+        return "Failed to generate", 400
+
+    return jsonify({"description": message})
