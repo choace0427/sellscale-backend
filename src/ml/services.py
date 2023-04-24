@@ -617,6 +617,6 @@ Make the requested edits.
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        max_tokens=int(len(initial_text) / 4),
+        max_tokens=int(len(initial_text) / 4) + 100,
     )
     return response
