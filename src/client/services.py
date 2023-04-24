@@ -1136,3 +1136,27 @@ def generate_persona_description(client_sdr_id: int, persona_name: str):
     return wrapped_create_completion(
         model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
     )
+
+
+def generate_persona_buy_reason(client_sdr_id: int, persona_name: str):
+    """
+    Generate a persona buy reason for a persona
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        persona_name (str): Name of the persona
+
+    Returns:
+        str: Generated persona buy reason
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    company_name = client.company
+    company_tagline = client.tagline
+    company_description = client.description
+
+    prompt = f"You are a sales researcher for {company_name}. You are tasked with understanding a new persona target which is called '{persona_name}'. Given the company's name, company's tagline, and company's description, generate a reason why this persona would buy your company's product or offering.\n\nCompany Name: {company_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nPersona Buy Reason:"
+    return wrapped_create_completion(
+        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+    )

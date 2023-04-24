@@ -39,6 +39,7 @@ from src.client.services import (
     update_persona_description_and_fit_reason,
     predict_persona_fit_reason,
     generate_persona_description,
+    generate_persona_buy_reason,
 )
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
@@ -826,6 +827,42 @@ def post_generate_persona_description(client_sdr_id: int):
         "persona_name", request, json=True, required=True
     )
     message = generate_persona_description(
+        client_sdr_id=client_sdr_id,
+        persona_name=persona_name,
+    )
+
+    if not message:
+        return "Failed to generate", 400
+
+    return jsonify({"description": message})
+
+
+@CLIENT_BLUEPRINT.route("/archetype/generate_persona_buy_reason", methods=["POST"])
+@require_user
+def post_generate_persona_description(client_sdr_id: int):
+    """Generates a persona description"""
+    persona_name = get_request_parameter(
+        "persona_name", request, json=True, required=True
+    )
+    message = generate_persona_description(
+        client_sdr_id=client_sdr_id,
+        persona_name=persona_name,
+    )
+
+    if not message:
+        return "Failed to generate", 400
+
+    return jsonify({"description": message})
+
+
+@CLIENT_BLUEPRINT.route("/archetype/generate_persona_buy_reason", methods=["POST"])
+@require_user
+def post_generate_persona_buy_reason(client_sdr_id: int):
+    """Generates a persona description"""
+    persona_name = get_request_parameter(
+        "persona_name", request, json=True, required=True
+    )
+    message = generate_persona_buy_reason(
         client_sdr_id=client_sdr_id,
         persona_name=persona_name,
     )
