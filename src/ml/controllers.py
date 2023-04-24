@@ -15,7 +15,8 @@ from src.ml.services import (
     get_icp_classification_prompt_by_archetype_id,
     post_icp_classification_prompt_change_request,
     patch_icp_classification_prompt,
-    trigger_icp_classification
+    trigger_icp_classification,
+    edit_text,
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -115,107 +116,164 @@ def get_aree_fix_endpoint(message_id):
 @ML_BLUEPRINT.route("/generate_sequence_value_props", methods=["POST"])
 def get_sequence_value_props_endpoint():
 
-    company = get_request_parameter("company", request, json=True, required=True, parameter_type=str)
-    selling_to = get_request_parameter("selling_to", request, json=True, required=True, parameter_type=str)
-    selling_what = get_request_parameter("selling_what", request, json=True, required=True, parameter_type=str)
-    num = get_request_parameter("num", request, json=True, required=True, parameter_type=int)
+    company = get_request_parameter(
+        "company", request, json=True, required=True, parameter_type=str
+    )
+    selling_to = get_request_parameter(
+        "selling_to", request, json=True, required=True, parameter_type=str
+    )
+    selling_what = get_request_parameter(
+        "selling_what", request, json=True, required=True, parameter_type=str
+    )
+    num = get_request_parameter(
+        "num", request, json=True, required=True, parameter_type=int
+    )
 
     result = get_sequence_value_props(company, selling_to, selling_what, num)
 
-    return jsonify({"message": 'Success', 'data': result}), 200
+    return jsonify({"message": "Success", "data": result}), 200
 
 
 @ML_BLUEPRINT.route("/generate_sequence_draft", methods=["POST"])
 @require_user
 def get_sequence_draft_endpoint(client_sdr_id: int):
     """Gets a sequence draft for a given value prop"""
-    value_props = get_request_parameter("value_props", request, json=True, required=True, parameter_type=list)
-    archetype_id = get_request_parameter("archetype_id", request, json=True, required=True, parameter_type=int)
+    value_props = get_request_parameter(
+        "value_props", request, json=True, required=True, parameter_type=list
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if archetype is None:
-        return jsonify({"message": 'Archetype not found'}), 404
+        return jsonify({"message": "Archetype not found"}), 404
     elif archetype.client_sdr_id != client_sdr_id:
-        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+        return jsonify({"message": "Archetype does not belong to this user"}), 401
 
     try:
-      result = get_sequence_draft(value_props, client_sdr_id, archetype_id)
-      if not result:
-          return jsonify({"message": "Generation rejected, please try again."}), 424
+        result = get_sequence_draft(value_props, client_sdr_id, archetype_id)
+        if not result:
+            return jsonify({"message": "Generation rejected, please try again."}), 424
     except Exception as e:
-      return jsonify({"message": f'Error: {str(e)}'}), 500
+        return jsonify({"message": f"Error: {str(e)}"}), 500
 
-    return jsonify({"message": 'Success', 'data': result}), 200
+    return jsonify({"message": "Success", "data": result}), 200
 
 
-@ML_BLUEPRINT.route("/icp_classification/icp_prompt/<int:archetype_id>", methods=["GET"])
+@ML_BLUEPRINT.route(
+    "/icp_classification/icp_prompt/<int:archetype_id>", methods=["GET"]
+)
 @require_user
-def get_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int, archetype_id: int):
+def get_icp_classification_prompt_by_archetype_id_endpoint(
+    client_sdr_id: int, archetype_id: int
+):
     """Gets the ICP classification prompt for a given archetype"""
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if archetype is None:
-        return jsonify({"message": 'Archetype not found'}), 404
+        return jsonify({"message": "Archetype not found"}), 404
     elif archetype.client_sdr_id != client_sdr_id:
-        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+        return jsonify({"message": "Archetype does not belong to this user"}), 401
 
     result = get_icp_classification_prompt_by_archetype_id(archetype_id)
 
-    return jsonify({"message": 'Success', 'data': result}), 200
+    return jsonify({"message": "Success", "data": result}), 200
 
 
-@ML_BLUEPRINT.route("/icp_classification/icp_prompt/<int:archetype_id>/request_update", methods=["POST"])
+@ML_BLUEPRINT.route(
+    "/icp_classification/icp_prompt/<int:archetype_id>/request_update", methods=["POST"]
+)
 @require_user
-def post_icp_classification_prompt_change_request_endpoint(client_sdr_id: int, archetype_id: int):
+def post_icp_classification_prompt_change_request_endpoint(
+    client_sdr_id: int, archetype_id: int
+):
     """Requests an update to the ICP classification prompt for a given archetype
 
     This is a Wizard of Oz endpoint that will send a slack message
     """
-    new_prompt = get_request_parameter("new_prompt", request, json=True, required=True, parameter_type=str)
+    new_prompt = get_request_parameter(
+        "new_prompt", request, json=True, required=True, parameter_type=str
+    )
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if archetype is None:
-        return jsonify({"message": 'Archetype not found'}), 404
+        return jsonify({"message": "Archetype not found"}), 404
     elif archetype.client_sdr_id != client_sdr_id:
-        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+        return jsonify({"message": "Archetype does not belong to this user"}), 401
 
-    result, msg = post_icp_classification_prompt_change_request(client_sdr_id, archetype_id, new_prompt)
+    result, msg = post_icp_classification_prompt_change_request(
+        client_sdr_id, archetype_id, new_prompt
+    )
     if not result:
         return jsonify({"message": msg}), 400
 
-    return jsonify({"message": 'Success', 'data': msg}), 200
+    return jsonify({"message": "Success", "data": msg}), 200
 
 
-@ML_BLUEPRINT.route("/icp_classification/icp_prompt/<int:archetype_id>", methods=["PATCH"])
+@ML_BLUEPRINT.route(
+    "/icp_classification/icp_prompt/<int:archetype_id>", methods=["PATCH"]
+)
 @require_user
-def patch_icp_classification_prompt_by_archetype_id_endpoint(client_sdr_id: int, archetype_id: int):
+def patch_icp_classification_prompt_by_archetype_id_endpoint(
+    client_sdr_id: int, archetype_id: int
+):
     """Updates the ICP classification prompt for a given archetype"""
-    prompt = get_request_parameter("prompt", request, json=True, required=True, parameter_type=str)
+    prompt = get_request_parameter(
+        "prompt", request, json=True, required=True, parameter_type=str
+    )
 
     if prompt == "":
-        return jsonify({"message": 'Prompt cannot be empty'}), 400
+        return jsonify({"message": "Prompt cannot be empty"}), 400
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if archetype is None:
-        return jsonify({"message": 'Archetype not found'}), 404
+        return jsonify({"message": "Archetype not found"}), 404
     elif archetype.client_sdr_id != client_sdr_id:
-        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+        return jsonify({"message": "Archetype does not belong to this user"}), 401
 
     result = patch_icp_classification_prompt(archetype_id, prompt)
 
-    return jsonify({"message": 'Success', 'data': result}), 200
+    return jsonify({"message": "Success", "data": result}), 200
 
 
 @ML_BLUEPRINT.route("/icp_classification/trigger/<int:archetype_id>", methods=["POST"])
 @require_user
 def trigger_icp_classification_endpoint(client_sdr_id: int, archetype_id: int):
     """Runs ICP classification for prospects in a given archetype"""
-    prospect_ids = get_request_parameter("prospect_ids", request, json=True, required=True, parameter_type=list)
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if archetype is None:
-        return jsonify({"message": 'Archetype not found'}), 404
+        return jsonify({"message": "Archetype not found"}), 404
     elif archetype.client_sdr_id != client_sdr_id:
-        return jsonify({"message": 'Archetype does not belong to this user'}), 401
+        return jsonify({"message": "Archetype does not belong to this user"}), 401
 
     result = trigger_icp_classification(client_sdr_id, archetype_id, prospect_ids)
 
-    return jsonify({"message": 'Successfully triggered ICP classification. This may take a few minutes.'}), 200
+    return (
+        jsonify(
+            {
+                "message": "Successfully triggered ICP classification. This may take a few minutes."
+            }
+        ),
+        200,
+    )
+
+
+@ML_BLUEPRINT.route("/edit_text", methods=["POST"])
+@require_user
+def post_edit_text(client_sr_id: int):
+    """
+    Enable user to edit text given an initial text and an instruction prompt.
+    """
+    initial_text = get_request_parameter(
+        "initial_text", request, json=True, required=True, parameter_type=str
+    )
+    edit_prompt = get_request_parameter(
+        "prompt", request, json=True, required=True, parameter_type=str
+    )
+
+    result = edit_text(initial_text=initial_text, edit_prompt=edit_prompt)
+
+    return jsonify({"message": "Success", "data": result}), 200

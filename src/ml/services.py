@@ -337,22 +337,28 @@ def get_sequence_draft(
     parsed_emails = []
 
     i = 0
-    for email in re.split(r"\s+subject: ", emails, flags = re.IGNORECASE | re.MULTILINE):
-        parts = email.strip().split('\n', 1)
+    for email in re.split(r"\s+subject: ", emails, flags=re.IGNORECASE | re.MULTILINE):
+        parts = email.strip().split("\n", 1)
         if len(parts) != 2:
             continue
 
-        subject = re.sub(r"^subject: ", '', parts[0].strip(), flags=re.IGNORECASE)
+        subject = re.sub(r"^subject: ", "", parts[0].strip(), flags=re.IGNORECASE)
 
-        body = re.sub(r"--\s?$", '', parts[1].strip(), flags=re.IGNORECASE)
-        body = re.sub(r"-\s?$", '', body, flags=re.IGNORECASE)
+        body = re.sub(r"--\s?$", "", parts[1].strip(), flags=re.IGNORECASE)
+        body = re.sub(r"-\s?$", "", body, flags=re.IGNORECASE)
         if i == 0:
-          body = re.sub(r"^(.+){{.+}},", lambda m: f'{m.group(1)}{{First_Name}},\n\n{{SellScale_Personalization}}', body)
+            body = re.sub(
+                r"^(.+){{.+}},",
+                lambda m: f"{m.group(1)}{{First_Name}},\n\n{{SellScale_Personalization}}",
+                body,
+            )
 
-        parsed_emails.append({
-            'subject_line': subject.strip(),
-            'email': body.strip(),
-        })
+        parsed_emails.append(
+            {
+                "subject_line": subject.strip(),
+                "email": body.strip(),
+            }
+        )
         i += 1
 
     return parsed_emails
@@ -374,7 +380,9 @@ def get_icp_classification_prompt_by_archetype_id(archetype_id: int) -> str:
     return archetype.icp_matching_prompt
 
 
-def post_icp_classification_prompt_change_request(client_sdr_id: int, archetype_id: int, new_prompt: str) -> tuple[bool, str]:
+def post_icp_classification_prompt_change_request(
+    client_sdr_id: int, archetype_id: int, new_prompt: str
+) -> tuple[bool, str]:
     """Sends a message to Slack notifying SellScale of a requested ICP Classification Prompt change.
 
     Args:
@@ -402,10 +410,8 @@ def post_icp_classification_prompt_change_request(client_sdr_id: int, archetype_
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "Pulse Check Change Requested - {sdr}".format(
-                        sdr=sdr.name
-                    ),
-                }
+                    "text": "Pulse Check Change Requested - {sdr}".format(sdr=sdr.name),
+                },
             },
             {
                 "type": "context",
@@ -414,17 +420,17 @@ def post_icp_classification_prompt_change_request(client_sdr_id: int, archetype_
                         "type": "mrkdwn",
                         "text": "Persona: {persona} ({archetype_id})".format(
                             persona=archetype.archetype, archetype_id=archetype_id
-                        )
+                        ),
                     }
-                ]
+                ],
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "New Prompt:\n\n{new_prompt}".format(new_prompt=new_prompt)
-                }
-            }
+                    "text": "New Prompt:\n\n{new_prompt}".format(new_prompt=new_prompt),
+                },
+            },
         ],
         webhook_urls=[URL_MAP.get("operations-pulse-change")],
     )
@@ -589,3 +595,28 @@ Example:
 Fit: 1
 Reason: Some reason
 """
+
+
+def edit_text(initial_text: str, edit_prompt: str) -> str:
+    system_prompt = """
+You are an editing assistant. You are helping a writer edit their text. 
+    """
+    user_prompt = """
+The writer has written the following text:
+{initial_text}
+
+The writer has given you the following prompt to edit the text:
+{edit_prompt}
+
+Make the requested edits.    
+""".format(
+        initial_text=initial_text, edit_prompt=edit_prompt
+    )
+    response = wrapped_chat_gpt_completion(
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=int(len(initial_text) / 4),
+    )
+    return response
