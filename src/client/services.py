@@ -208,7 +208,8 @@ def create_client_sdr(client_id: int, name: str, email: str):
         client_id=client_id,
         name=name,
         email=email,
-        weekly_li_outbound_target=100,
+        weekly_li_outbound_target=25,
+        weekly_email_outbound_target=0,
         notification_allowlist=[
             ProspectStatus.SCHEDULING,
             ProspectStatus.DEMO_SET,
@@ -242,8 +243,8 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
         return False
 
     sdr.active = False
-    sdr.weekly_li_outbound_target = None
-    sdr.weekly_email_outbound_target = None
+    sdr.weekly_li_outbound_target = 0
+    sdr.weekly_email_outbound_target = 0
 
     db.session.add(sdr)
     db.session.commit()
