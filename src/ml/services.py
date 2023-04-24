@@ -494,7 +494,7 @@ def trigger_icp_classification(
         # Run celery job for each prospect
         for prospect in prospects:
             icp_classify.apply_async(
-                args=[prospect_id, client_sdr_id, archetype_id],
+                args=[prospect.id, client_sdr_id, archetype_id],
                 queue="ml_prospect_classification",
                 routing_key="ml_prospect_classification",
                 priority=1,
@@ -609,7 +609,7 @@ Reason: Some reason
 
 def edit_text(initial_text: str, edit_prompt: str) -> str:
     system_prompt = """
-You are an editing assistant. You are helping a writer edit their text. 
+You are an editing assistant. You are helping a writer edit their text.
     """
     user_prompt = """
 The writer has written the following text:
@@ -618,7 +618,7 @@ The writer has written the following text:
 The writer has given you the following prompt to edit the text:
 {edit_prompt}
 
-Make the requested edits.    
+Make the requested edits.
 
 Edited Text:""".format(
         initial_text=initial_text, edit_prompt=edit_prompt
