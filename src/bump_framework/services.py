@@ -14,7 +14,7 @@ def get_bump_frameworks_for_sdr(
     Args:
         client_sdr_id (int): The id of the SDR
         overall_status (ProspectOverallStatus): The overall status of the bump framework
-        activ
+        activeOnly (Optional[bool], optional): Whether to only return active bump frameworks. Defaults to True.
 
     Returns:
         list[dict]: A list of bump frameworks
