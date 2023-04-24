@@ -140,6 +140,9 @@ def create_archetype(client_sdr_id: int):
     persona_fit_reason = get_request_parameter(
         "fit_reason", request, json=True, required=False
     )
+    icp_matching_prompt = get_request_parameter(
+        "icp_matching_prompt", request, json=True, required=False
+    )
 
     # Get client ID from client SDR ID.
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
@@ -155,6 +158,7 @@ def create_archetype(client_sdr_id: int):
         disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
         persona_description=persona_description,
         persona_fit_reason=persona_fit_reason,
+        icp_matching_prompt=icp_matching_prompt,
     )
     if not ca:
         return "Client not found", 404
