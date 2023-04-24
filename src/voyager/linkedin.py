@@ -13,6 +13,7 @@ from time import sleep, time
 from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
 from app import db
+from sqlalchemy.orm import Session
 
 from requests import TooManyRedirects
 
@@ -86,7 +87,8 @@ class LinkedIn(object):
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         self.logger = logger
 
-        self.client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+        self.client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        self.client_sdr_id = client_sdr_id
 
         if authenticate:
             if cookies:
@@ -143,7 +145,11 @@ class LinkedIn(object):
 
     def is_valid(self):
         """Checks if the client SDR is valid"""
-        return self.client_sdr.li_cookies != "INVALID"
+        client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
+        if client_sdr:
+            return client_sdr.li_cookies != "INVALID"
+        else:
+            return False
 
     def get_profile(self, public_id=None, urn_id=None):
         """Fetch data for a given LinkedIn profile.

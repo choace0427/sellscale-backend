@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from src.prospecting.models import Prospect
 from src.client.models import ClientSDR
 from src.voyager.services import update_linkedin_cookies, fetch_conversation, get_profile_urn_id, clear_linkedin_cookies
 from src.authentication.decorators import require_user
@@ -112,7 +113,9 @@ def get_conversation(client_sdr_id: int):
     if(not api.is_valid()):
       return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
-    return jsonify({"message": "Success", "data": convo, "data_status": status_text}), 200
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    return jsonify({"message": "Success", "data": convo, "prospect": prospect.to_dict(), "data_status": status_text}), 200
 
 
 @VOYAGER_BLUEPRINT.route("/recent_conversations", methods=["GET"])

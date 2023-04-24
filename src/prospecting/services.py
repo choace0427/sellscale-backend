@@ -351,8 +351,10 @@ def update_prospect_status_linkedin(
     p: Prospect = Prospect.query.get(prospect_id)
     current_status = p.status
 
-    # Make sure the prospect isn't in the main pipeline for 48 hours
-    send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
+    # If the new status isn't an active convo sub status,
+    if not new_status.value.startswith('ACTIVE_CONVO_'):
+        # Make sure the prospect isn't in the main pipeline for 48 hours
+        send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
 
     if note:
         create_note(prospect_id=prospect_id, note=note)
