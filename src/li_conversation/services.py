@@ -240,7 +240,7 @@ def run_next_client_sdr_scrape():
 
 
 def generate_chat_gpt_response_to_conversation_thread(
-    conversation_url: str, bump_framework_id: int
+    conversation_url: str, bump_framework_id: int, account_research_copy: str = ""
 ):
     from model_import import Prospect, ProspectStatus
 
@@ -304,17 +304,11 @@ def generate_chat_gpt_response_to_conversation_thread(
             + bump_framework.description
         )
 
-    # account_research = """
-    #     - Recent fundraise: Their just raised a $40m Series B from Sequoia Capital and Accel Partners.
-    #     - Relevant position: Their position suggests they are a decision maker since they are a VP of Product.
-    #     - Company size: Their company has 100-500 employees.
-    #     - Company growth: Their company is growing fast, with 10% growth in the last year.
-    # """
-    # if account_research:
-    #     message_content = message_content + (
-    #         "\nUse what you think is relevant from this account research: "
-    #         + account_research
-    #     )
+    if account_research_copy:
+        message_content = message_content + (
+            "\nUse what you think is relevant from this account research: "
+            + account_research_copy
+        )
 
     response = wrapped_chat_gpt_completion(
         [

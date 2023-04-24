@@ -76,6 +76,9 @@ def get_prospect_li_conversation():
     bump_framework_id = get_request_parameter(
         "bump_framework_id", request, json=True, required=False
     )
+    account_research_copy = get_request_parameter(
+        "account_research_copy", request, json=True, required=False
+    )
 
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
     conversation_url = prospect.li_conversation_thread_id
@@ -83,7 +86,9 @@ def get_prospect_li_conversation():
         return "No conversation thread found.", 404
 
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
-        conversation_url, bump_framework_id
+        conversation_url=conversation_url,
+        bump_framework_id=bump_framework_id,
+        account_research_copy=account_research_copy,
     )
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200
@@ -115,7 +120,9 @@ def post_prospect_li_conversation_processed():
         "li_conversation_id", request, json=True, required=True, parameter_type=int
     )
 
-    li_entry: LinkedinConversationEntry = LinkedinConversationEntry.query.get(li_conversation_id)
+    li_entry: LinkedinConversationEntry = LinkedinConversationEntry.query.get(
+        li_conversation_id
+    )
     li_entry.entry_processed_manually = True
     db.session.add(li_entry)
     db.session.commit()
@@ -126,10 +133,13 @@ def post_prospect_li_conversation_processed():
 @LI_CONVERASTION_BLUEPRINT.route("/", methods=["GET"])
 def get_li_conversation_entries_endpoint():
     """Returns a list of LinkedIn conversation entries, in the past user-defined hours"""
-    hours = get_request_parameter(
-        "hours", request, required=False
-    ) or 168
+    hours = get_request_parameter("hours", request, required=False) or 168
 
     conversation_entries = get_li_conversation_entries(int(hours))
 
-    return jsonify({'message': 'Success', 'li_conversation_entries': conversation_entries}), 200
+    return (
+        jsonify(
+            {"message": "Success", "li_conversation_entries": conversation_entries}
+        ),
+        200,
+    )
