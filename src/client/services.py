@@ -1215,5 +1215,5 @@ ICP Scoring Prompt:
         persona_fit_reason=persona_buy_reason,
     )
     return wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=400
     )
