@@ -1,24 +1,23 @@
 #!/usr/bin/env python
 
-import requests
 import re
 import sys
+from duckduckgo_search import ddg
 args = sys.argv
 
 name = args[1]
 email = args[2]
-
-# Get DuckDuckGo search results
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
-}
+region = 'us-en' # or 'uk-en' for Monday.com?
 
 query = f'{name}, {email}, linkedin'
-result = requests.get(f'https://duckduckgo.com/html?q={query}', headers=headers).text
 
-match = re.search(r'linkedin\.com\/in\/([^">]+)', result)
+results = ddg(query, region=region, time='y')
+
+match = re.search(r'linkedin\.com\/in\/([^"\'>]+)', str(results))
 
 if match:
     print(match.group(0))
 else:
     print('None found.')
+
+# Before each run: time.sleep(random.uniform(1, 5))
