@@ -43,7 +43,7 @@ from tqdm import tqdm
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["GET"])
+@MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["POST"])
 @require_user
 def get_messages_queued_for_outreach_endpoint(client_sdr_id: int):
     """Returns all messages queued for outreach for a given client_sdr_id"""
