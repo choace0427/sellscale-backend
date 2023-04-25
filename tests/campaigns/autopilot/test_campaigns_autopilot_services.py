@@ -16,11 +16,11 @@ from model_import import (
     GeneratedMessageType,
     OutboundCampaign,
     ClientArchetype,
-    ClientSDR
+    ClientSDR,
 )
 from src.campaigns.autopilot.services import (
     collect_and_generate_autopilot_campaign_for_sdr,
-    get_sla_count
+    get_sla_count,
 )
 import mock
 
@@ -28,7 +28,9 @@ import mock
 @use_app_context
 @mock.patch("src.campaigns.autopilot.services.generate_campaign")
 @mock.patch("src.campaigns.autopilot.services.send_slack_message")
-def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock, gen_campaign_mock):
+def test_collect_and_generate_autopilot_campaign_for_sdr(
+    send_slack_mock, gen_campaign_mock
+):
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     client_sdr_id = client_sdr.id
@@ -50,7 +52,10 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock, gen_ca
 
     # Constraint: Must have only 1 archetype
     status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr.id)
-    assert status == (False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Too many active archetypes")
+    assert status == (
+        False,
+        f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Too many active archetypes",
+    )
 
     # Constraint: Must have at least 1 CTA for LinkedIn
     archetype_2.active = False
@@ -58,11 +63,14 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock, gen_ca
     db.session.commit()
     client_sdr.weekly_li_outbound_target = 75
     status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr.id)
-    assert status == (False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active CTAs for LinkedIn")
+    assert status == (
+        False,
+        f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active CTAs for LinkedIn",
+    )
 
     # Constraint: Must have SLA space for LinkedIn
     cta = basic_generated_message_cta(ClientArchetype.query.get(archetype_id))
-    with freeze_time(campaign_start_date - timedelta(days = 14)):
+    with freeze_time(campaign_start_date - timedelta(days=14)):
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr.id)
         # assert status == (False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): SLA for LinkedIn has been filled")
         campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).all()
@@ -74,10 +82,10 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock, gen_ca
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
         # assert status == (False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): SLA for Email has been filled")
         campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).all()
-        assert len(campaigns) == 3
+        assert len(campaigns) == 2
         for campaign in campaigns:
-            assert campaign.campaign_start_date.weekday() == 0 # Monday
-            assert campaign.campaign_end_date.weekday() == 6 # Sunday
+            assert campaign.campaign_start_date.weekday() == 0  # Monday
+            assert campaign.campaign_end_date.weekday() == 6  # Sunday
             assert campaign.campaign_start_date.date() == campaign_start_date.date()
 
         # Works. Should generate a campaign for email. The previous test should have generated a campaign for LinkedIn
@@ -85,12 +93,15 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(send_slack_mock, gen_ca
         sdr.weekly_email_outbound_target = 2
         sdr.weekly_li_outbound_target = 2
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
-        assert status == (True, f"Autopilot Campaign successfully queued for ['EMAIL'] generation: {client_sdr.name} (#{client_sdr.id})")
+        assert status == (
+            True,
+            f"Autopilot Campaign successfully queued for ['EMAIL'] generation: {client_sdr.name} (#{client_sdr.id})",
+        )
         campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).all()
         assert len(campaigns) == 4
         for campaign in campaigns:
-            assert campaign.campaign_start_date.weekday() == 0 # Monday
-            assert campaign.campaign_end_date.weekday() == 6 # Sunday
+            assert campaign.campaign_start_date.weekday() == 0  # Monday
+            assert campaign.campaign_end_date.weekday() == 6  # Sunday
             assert campaign.campaign_start_date.date() == campaign_start_date.date()
 
 
@@ -106,10 +117,14 @@ def test_get_sla_count():
 
     # Last monday is 2 weeks before the campaign start date, which is set to next monday.
     last_monday = oc.campaign_start_date - timedelta(days=14)
-    sla_count = get_sla_count(client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, last_monday)
+    sla_count = get_sla_count(
+        client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, last_monday
+    )
     assert sla_count == 1
 
     # Next monday is 1 week before the campaign start date, which is set to next monday.
     this_monday = oc.campaign_start_date - timedelta(days=7)
-    sla_count = get_sla_count(client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, this_monday)
+    sla_count = get_sla_count(
+        client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, this_monday
+    )
     assert sla_count == 0

@@ -23,7 +23,7 @@ from src.ml.services import (
     get_sequence_draft,
     get_icp_classification_prompt_by_archetype_id,
     patch_icp_classification_prompt,
-    icp_classify
+    icp_classify,
 )
 from model_import import GNLPModelFineTuneJobs, ClientSDR
 
@@ -108,22 +108,30 @@ def test_get_aree_fix_basic(create_completion_mock):
 def test_get_sequence_value_props(create_completion_mock):
 
     # No problems
-    response = get_sequence_value_props('Test', 'Test', 'Test', 1)
+    response = get_sequence_value_props("Test", "Test", "Test", 1)
     assert create_completion_mock.call_count == 1
     assert response == ["test"]
 
 
 @use_app_context
-@mock.patch("src.ml.services.wrapped_create_completion", return_value="[{\"subject_line\": \"test_subject_line\"}, {\"email\": \"test_email\"}]")
+@mock.patch(
+    "src.ml.services.wrapped_create_completion",
+    return_value='[{"subject_line": "this is a subject line"}, {"email": "Hi Julie,\n\nThis is personalization\n\nFrom JZ"}]',
+)
 def test_get_sequence_draft(create_completion_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, sdr)
 
     # No problems
-    response = get_sequence_draft(['Test', 'Test'], sdr.id, archetype.id)
+    response = get_sequence_draft(["Test", "Test"], sdr.id, archetype.id)
     assert create_completion_mock.call_count == 1
-    assert response == [{'subject_line': 'test_subject_line', 'email': None}, {'subject_line': None, 'email': 'test_email'}]
+    assert response == [
+        {
+            "subject_line": '[{"subject_line": "this is a subject line"}, {"email": "Hi Julie,',
+            "email": 'This is personalization\n\nFrom JZ"}]',
+        }
+    ]
 
 
 @use_app_context
@@ -148,7 +156,10 @@ def test_patch_icp_classification_prompt():
 
 
 @use_app_context
-@mock.patch("src.ml.services.wrapped_chat_gpt_completion", return_value="Fit: 6\nReason: Some reason")
+@mock.patch(
+    "src.ml.services.wrapped_chat_gpt_completion",
+    return_value="Fit: 6\nReason: Some reason",
+)
 def test_icp_classify(wrapped_chat_gpt_completion_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)

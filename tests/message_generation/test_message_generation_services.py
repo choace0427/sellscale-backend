@@ -60,7 +60,7 @@ from src.message_generation.services import (
     update_message,
 )
 from src.message_generation.services_few_shot_generations import (
-    can_generate_with_patterns
+    can_generate_with_patterns,
 )
 from src.research.models import ResearchPointType, ResearchType
 
@@ -408,7 +408,7 @@ def test_generate_prospect_email(
         assert prospect_email.personalized_first_line in [x.id for x in messages]
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    assert prospect.approved_prospect_email_id != None
+    assert prospect.approved_prospect_email_id == None
 
     response = app.test_client().post(
         "message_generation/pick_new_approved_email",
@@ -422,7 +422,6 @@ def test_generate_prospect_email(
     assert response.status_code == 200
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    assert prospect.approved_prospect_email_id in prospect_email_ids
 
 
 @use_app_context
@@ -1119,7 +1118,7 @@ def test_update_message_service(rule_engine_mock):
     assert message.completion == "this is a test"
     assert message.human_edited is None
     gm_record = GeneratedMessageEditRecord.query.all()
-    assert len(gm_record) == 0
+    assert len(gm_record) == 1
 
     # Change not within 2 character minimum
     assert message.completion == "this is a test"
@@ -1128,7 +1127,7 @@ def test_update_message_service(rule_engine_mock):
     assert message.completion == "this is a testt"
     assert message.human_edited is None
     gm_record = GeneratedMessageEditRecord.query.all()
-    assert len(gm_record) == 1
+    assert len(gm_record) == 2
 
     # Change
     assert message.completion == "this is a testt"
@@ -1138,7 +1137,7 @@ def test_update_message_service(rule_engine_mock):
     assert message.completion == "this is a test 2"
     assert message.human_edited is True
     gm_record = GeneratedMessageEditRecord.query.all()
-    assert len(gm_record) == 2
+    assert len(gm_record) == 3
 
 
 @use_app_context

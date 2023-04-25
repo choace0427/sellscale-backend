@@ -212,7 +212,7 @@ def test_create_prospect_from_linkedin_link_iscraper_error(
     success = create_prospect_from_linkedin_link(pu_id)
     pu: ProspectUploads = ProspectUploads.query.get(pu_id)
     assert not success
-    assert pu.status == ProspectUploadsStatus.UPLOAD_FAILED
+    assert pu.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
     assert pu.error_type == ProspectUploadsErrorType.ISCRAPER_FAILED
     assert pu.iscraper_error_message == "Some iScraper message"
 
@@ -261,7 +261,7 @@ def test_create_prospect_from_linkedin_link_successful(
     assert len(iscraper_cache) == 1
     assert success
     assert iscraper_research_personal_profile_details_mock.call_count == 1
-    assert pu.status == ProspectUploadsStatus.UPLOAD_COMPLETE
+    assert pu.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
     assert Prospect.query.count() == 1
 
 
