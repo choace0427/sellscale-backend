@@ -80,6 +80,8 @@ class GeneratedMessage(db.Model):
 
     failed_outreach_error = db.Column(db.String, nullable=True)
 
+    pb_csv_count = db.Column(db.Integer, nullable=True, default=0)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,

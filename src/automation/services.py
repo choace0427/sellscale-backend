@@ -470,11 +470,32 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
     """
     from model_import import Prospect, GeneratedMessage, GeneratedMessageStatus
 
+    # CSV limit is default to 10
+    csv_limit = 2
+
+    # Get the phantom buster for config data
+    pb: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+        PhantomBusterConfig.client_sdr_id == client_sdr_id,
+        PhantomBusterConfig.pb_type == PhantomBusterType.OUTBOUND_ENGINE,
+    ).first()
+    if pb:
+        pb_agent = PhantomBusterAgent(pb.phantom_uuid)
+        if pb_agent:
+            config_data = pb_agent.get_agent_data()
+            if config_data:
+                argument = config_data.get("argument")
+                if argument:
+                    argument: dict = json.loads(argument)
+                    csv_limit = argument.get("numberOfAddsPerLaunch", csv_limit)
+
+
     # Grab two random  messages that belong to the ClientSDR
     joined_prospect_message = (
         db.session.query(
             Prospect.linkedin_url.label("linkedin_url"),
+            Prospect.id.label("prospect_id"),
             GeneratedMessage.completion.label("completion"),
+            GeneratedMessage.id.label("generated_message_id"),
         )
         .join(GeneratedMessage, Prospect.id == GeneratedMessage.prospect_id)
         .filter(
@@ -482,9 +503,10 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
             Prospect.approved_outreach_message_id != None,
             GeneratedMessage.message_status
             == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
+            GeneratedMessage.pb_csv_count <= 2,                 # Only grab messages that have not been sent twice
         )
-        .order_by(func.random())
-        .limit(10)
+        .order_by(GeneratedMessage.created_at.asc())
+        .limit(csv_limit)
     ).all()
 
     data = []
@@ -496,6 +518,22 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
                 "Message": message.completion,
             }
         )
+        prospect_id = message.prospect_id
+        generated_message_id = message.generated_message_id
+
+        # Update the pb_csv_count
+        gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+        if not gm:
+            continue
+        gm.pb_csv_count += 1
+
+        # If the message has now been sent more than twice, we mark it as failed until the PB webhook is called
+        if gm.pb_csv_count > 2:
+            gm.message_status = GeneratedMessageStatus.FAILED_TO_SEND
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id, new_status=ProspectStatus.SEND_OUTREACH_FAILED
+            )
+        db.session.commit()
 
     return data
 
@@ -572,7 +610,6 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
 
         messages.append(message)
 
-    db.session.bulk_save_objects(messages)
     db.session.commit()
 
     return True
