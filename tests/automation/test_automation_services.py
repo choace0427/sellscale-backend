@@ -30,13 +30,18 @@ def test_update_phantom_buster_li_at(pbagent_get_arguments_mock):
 
 @use_app_context
 def test_create_pb_linkedin_invite_csv():
+    from model_import import GeneratedMessage, Prospect
     client = basic_client()
     sdr = basic_client_sdr(client)
+    sdr_id = sdr.id
     archetype = basic_archetype(client, sdr)
     prospect = basic_prospect(client, archetype, sdr)
+    prospect.status = "QUEUED_FOR_OUTREACH"
+    prospect_id = prospect.id
     gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
     generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
     prospect.approved_outreach_message_id=generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
@@ -48,13 +53,39 @@ def test_create_pb_linkedin_invite_csv():
             "Message": "this is a test",
         }
     ]
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    assert gm.pb_csv_count == 1
+
+    data = create_pb_linkedin_invite_csv(sdr.id)
+    assert data == [
+        {
+            "Linkedin": "https://www.linkedin.com/in/davidmwei",
+            "Message": "this is a test",
+        }
+    ]
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    assert gm.pb_csv_count == 2
+
+    data = create_pb_linkedin_invite_csv(sdr.id)
+    assert data == [
+        {
+            "Linkedin": "https://www.linkedin.com/in/davidmwei",
+            "Message": "this is a test",
+        }
+    ]
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    assert gm.pb_csv_count == 3
+    p: Prospect = Prospect.query.get(prospect_id)
+    assert p.status.value == "SEND_OUTREACH_FAILED"
+
+    data = create_pb_linkedin_invite_csv(sdr_id)
+    assert data == []
 
 
 EXAMPLE_PB_WEBHOOK_RESPONSE_GOOD = {
     "resultObject": '[{"0" : "https://www.linkedin.com/in/davidmwei"}]',
     "exitCode": 0,
 }
-
 
 
 EXAMPLE_PB_WEBHOOK_RESPONSE_BAD = {
