@@ -363,6 +363,7 @@ class LinkedIn(object):
 
         try:
             data = res.json()
+            data["elements"]
         except:
             print("Failed to get request JSON: ", res)
             return None

@@ -320,6 +320,8 @@ def get_prospects_endpoint(client_sdr_id: int):
         - limit (int) (optional): The number of results to return
         - offset (int) (optional): The offset to start from
         - ordering (str) (optional): The ordering of the results
+        - bumped (str) (optional): The bumped count of the prospect
+        - show_purgatory (bool) (optional): Whether to show prospects in purgatory
     """
     try:
         channel = (
@@ -364,6 +366,18 @@ def get_prospects_endpoint(client_sdr_id: int):
             )
             or []
         )
+        bumped = (
+            get_request_parameter(
+                "bumped", request, json=True, required=False, parameter_type=str
+            )
+            or "all"
+        )
+        show_purgatory = (
+            get_request_parameter(
+                "show_purgatory", request, json=True, required=False, parameter_type=bool
+            )
+            or False
+        )
     except Exception as e:
         return e.args[0], 400
 
@@ -375,7 +389,7 @@ def get_prospects_endpoint(client_sdr_id: int):
                 return jsonify({"message": "Invalid filters supplied to API"}), 400
 
     prospects_info: dict[int, list[Prospect]] = get_prospects(
-        client_sdr_id, query, channel, status, persona_id, limit, offset, ordering
+        client_sdr_id, query, channel, status, persona_id, limit, offset, ordering, bumped, show_purgatory
     )
 
     total_count = prospects_info.get("total_count")

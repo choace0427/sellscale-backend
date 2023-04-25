@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from src.voyager.services import fetch_li_prospects_for_sdr
 from src.prospecting.models import Prospect
 from src.client.models import ClientSDR
 from src.voyager.services import update_linkedin_cookies, fetch_conversation, get_profile_urn_id, clear_linkedin_cookies
@@ -171,3 +172,13 @@ def clear_auth_tokens(client_sdr_id: int):
     status_text, status = clear_linkedin_cookies(client_sdr_id)
 
     return jsonify({"message": status_text}), status
+
+
+@VOYAGER_BLUEPRINT.route("/refetch_all_convos", methods=["GET"])
+@require_user
+def get_refetch_all_convos(client_sdr_id: int):
+    """Refetches all convos for the SDR"""
+
+    fetch_li_prospects_for_sdr(client_sdr_id)
+
+    return jsonify({"message": 'Success'}), 200

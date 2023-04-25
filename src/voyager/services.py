@@ -1,6 +1,9 @@
 import json
 import time
 import datetime as dt
+import random
+
+from src.prospecting.models import ProspectOverallStatus
 
 from src.prospecting.services import send_to_purgatory, update_prospect_status_linkedin
 
@@ -14,6 +17,7 @@ from app import db
 from tqdm import tqdm
 from src.utils.abstract.attr_utils import deep_get
 from src.voyager.linkedin import LinkedIn
+from sqlalchemy import or_
 
 
 def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
@@ -75,7 +79,8 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
         status_code (int), message (str): HTTP status code
     """
 
-    sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id).first()
     if not sdr:
         return "No client sdr found with this id", 400
 
@@ -154,18 +159,14 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     # If the prospect's profile img is expired, update it
-    if time.time() * 1000 > int(prospect.img_expire):
+    if time.time() * 1000 > int(prospect.img_expire) and len(details.get("participants", [])) > 0:
         prospect.img_url = details.get("participants", [])[0].get(
             "com.linkedin.voyager.messaging.MessagingMember", {}
         ).get("miniProfile", {}).get("picture", {}).get(
             "com.linkedin.common.VectorImage", {}
         ).get(
             "rootUrl", ""
-        ) + details.get(
-            "participants", []
-        )[
-            0
-        ].get(
+        ) + details.get("participants", [])[0].get(
             "com.linkedin.voyager.messaging.MessagingMember", {}
         ).get(
             "miniProfile", {}
@@ -174,7 +175,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
         ).get(
             "com.linkedin.common.VectorImage", {}
         ).get(
-            "artifacts", []
+            "artifacts", [{}, {}, {}]
         )[
             2
         ].get(
@@ -186,7 +187,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
             .get("miniProfile", {})
             .get("picture", {})
             .get("com.linkedin.common.VectorImage", {})
-            .get("artifacts", [])[2]
+            .get("artifacts", [{}, {}, {}])[2]
             .get("expiresAt", 0)
         )
         db.session.add(prospect)
@@ -317,7 +318,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
         ).get(
             "com.linkedin.common.VectorImage", {}
         ).get(
-            "artifacts", []
+            "artifacts", [{}, {}, {}]
         )[
             2
         ].get(
@@ -329,10 +330,11 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
             .get("miniProfile", {})
             .get("picture", {})
             .get("com.linkedin.common.VectorImage", {})
-            .get("artifacts", [])[2]
+            .get("artifacts", [{}, {}, {}])[2]
             .get("expiresAt", 0)
         )
-        msg_urn_id = message.get("dashEntityUrn", "").replace("urn:li:fsd_message:", "")
+        msg_urn_id = message.get("dashEntityUrn", "").replace(
+            "urn:li:fsd_message:", "")
 
         msg = (
             message.get("eventContent", {})
@@ -351,13 +353,16 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
                 author=first_name + " " + last_name,
                 first_name=first_name,
                 last_name=last_name,
-                date=dt.datetime.utcfromtimestamp(message.get("createdAt", 0) / 1000),
-                profile_url="https://www.linkedin.com/in/{value}/".format(value=urn_id),
+                date=dt.datetime.utcfromtimestamp(
+                    message.get("createdAt", 0) / 1000),
+                profile_url="https://www.linkedin.com/in/{value}/".format(
+                    value=urn_id),
                 headline=headline,
                 img_url=image_url,
                 img_expire=image_expire,
                 connection_degree="1st" if prospect.li_urn_id == urn_id else "You",
-                li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
+                li_url="https://www.linkedin.com/in/{value}/".format(
+                    value=public_id),
                 message=msg,
                 urn_id=msg_urn_id,
             )
@@ -373,25 +378,33 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
     return "OK", 200
 
 
-def update_prospect_status(prospect: Prospect, convo_urn_id: str):
+def update_prospect_status(prospect_id: int, convo_urn_id: str):
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
 
     print("Checking for prospect status updates...")
     latest_convo_entries = (
-        LinkedinConversationEntry.query.filter_by(thread_urn_id=convo_urn_id)
+        LinkedinConversationEntry.query.filter_by(conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/")
         .order_by(LinkedinConversationEntry.date.desc())
         .all()
     )
+
     if not latest_convo_entries or len(latest_convo_entries) == 0:
+        # Set to -1 so we know we check them and they have missing li convo data
+        prospect.times_bumped = -1
+        db.session.add(prospect)
+        db.session.commit()
         return
 
-    last_msg_was_you = latest_convo_entries[0].connection_degree == "You"
+    last_msg_was_you = len(
+        latest_convo_entries) > 1 and latest_convo_entries[0].connection_degree == "You"
     last_2_msg_was_you = (
-        len(latest_convo_entries) > 1
+        len(latest_convo_entries) > 2
         and last_msg_was_you
         and latest_convo_entries[1].connection_degree == "You"
     )
     last_3_msg_was_you = (
-        len(latest_convo_entries) > 2
+        len(latest_convo_entries) > 3
         and last_2_msg_was_you
         and latest_convo_entries[2].connection_degree == "You"
     )
@@ -427,3 +440,33 @@ def update_prospect_status(prospect: Prospect, convo_urn_id: str):
         db.session.add(prospect)
         db.session.commit()
         return
+
+    
+
+
+def fetch_li_prospects_for_sdr(client_sdr_id: int):
+
+    prospects = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        or_(
+            Prospect.overall_status == ProspectOverallStatus.ACTIVE_CONVO,
+            Prospect.overall_status == ProspectOverallStatus.BUMPED,
+            Prospect.overall_status == ProspectOverallStatus.DEMO,
+        ),
+    ).all()
+
+    print("Fetching conversations for {num} prospects...".format(
+        num=len(prospects)))
+    
+    prospect_ids = [{ 'id': p.id, 'thread': p.li_conversation_thread_id } for p in prospects]
+
+    for prospect_id in prospect_ids:
+        if prospect_id['thread'] is None: continue
+
+        # Just update statuses for now
+        update_prospect_status(prospect_id['id'], prospect_id['thread'].split("/thread/")[1])
+
+        #api = LinkedIn(client_sdr_id)
+        #convos, status_text = fetch_conversation(api, prospect_id)
+        #print(f"Fetched {len(convos)}, returned status: {status_text}")
+        #time.sleep(random.uniform(1, 3))

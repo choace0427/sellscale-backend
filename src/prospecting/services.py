@@ -82,6 +82,8 @@ def get_prospects(
     limit: int = 50,
     offset: int = 0,
     ordering: list[dict[str, int]] = [],
+    bumped: str = 'all',
+    show_purgatory: bool = False,
 ) -> dict[int, list[Prospect]]:
     """Gets prospects belonging to the SDR, with optional query and ordering.
 
@@ -96,6 +98,8 @@ def get_prospects(
         limit (int, optional): Number of records to return. Defaults to 50.
         offset (int, optional): The offset to start returning from. Defaults to 0.
         ordering (list, optional): Ordering to apply. See below. Defaults to [].
+        bumped (str, optional): Filter by bumped status. Defaults to 'all'.
+        show_purgatory (bool, optional): Whether to show purgatory prospects. Defaults to False.
 
     Ordering logic is as follows
         The ordering list should have the following tuples:
@@ -196,8 +200,21 @@ def get_prospects(
     )
     if persona_id != -1:
         prospects = prospects.filter(Prospect.archetype_id == persona_id)
+
+    if bumped != "all":
+        prospects = prospects.filter(Prospect.times_bumped == int(bumped))
+
+    if not show_purgatory:
+        prospects = prospects.filter(
+            or_(
+                Prospect.hidden_until == None,
+                Prospect.hidden_until < datetime.datetime.utcnow()
+            )
+        )
+
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
+
     return {"total_count": total_count, "prospects": prospects}
 
 
