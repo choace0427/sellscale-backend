@@ -82,6 +82,10 @@ class ClientArchetype(db.Model):
 
     vessel_sequence_id = db.Column(db.String, nullable=True)
 
+    is_unassigned_contact_archetype = db.Column(
+        db.Boolean, nullable=True, default=False
+    )  # if true, this archetype will be used for unassigned contacts
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -200,8 +204,8 @@ class ClientSDR(db.Model):
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
-    scrape_time = db.Column(db.Time, nullable=True)# in UTC
-    next_scrape = db.Column(db.DateTime, nullable=True)# in UTC
+    scrape_time = db.Column(db.Time, nullable=True)  # in UTC
+    next_scrape = db.Column(db.DateTime, nullable=True)  # in UTC
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
