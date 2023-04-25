@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from app import db, celery
 from sqlalchemy.sql.expression import func
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
@@ -503,7 +504,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
             Prospect.approved_outreach_message_id != None,
             GeneratedMessage.message_status
             == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
-            GeneratedMessage.pb_csv_count <= 2,                 # Only grab messages that have not been sent twice
+            or_(GeneratedMessage.pb_csv_count <= 2, GeneratedMessage.pb_csv_count == None)                 # Only grab messages that have not been sent twice
         )
         .order_by(GeneratedMessage.created_at.asc())
         .limit(csv_limit)
