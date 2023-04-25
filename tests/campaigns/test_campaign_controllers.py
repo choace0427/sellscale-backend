@@ -32,7 +32,9 @@ def test_get_campaign_details():
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
     prospect = basic_prospect(client, archetype, client_sdr)
-    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
+    campaign = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr
+    )
     campaign_id = campaign.id
 
     response = app.test_client().get(
@@ -40,11 +42,17 @@ def test_get_campaign_details():
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {get_login_token()}",
-        }
+        },
     )
     assert response.status_code == 200
-    assert response.json.get("campaign_details").get("campaign_raw").get("id") == campaign.id
-    assert response.json.get("campaign_details").get("prospects")[0].get("id") == prospect.id
+    assert (
+        response.json.get("campaign_details").get("campaign_raw").get("id")
+        == campaign.id
+    )
+    assert (
+        response.json.get("campaign_details").get("prospects")[0].get("id")
+        == prospect.id
+    )
 
     client_sdr_2 = basic_client_sdr(client)
     client_sdr_2.auth_token = "1234"
@@ -56,7 +64,7 @@ def test_get_campaign_details():
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer 1234",
-        }
+        },
     )
     assert denied_response.status_code == 403
 
@@ -65,10 +73,9 @@ def test_get_campaign_details():
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {get_login_token()}",
-        }
+        },
     )
     assert no_record_response.status_code == 404
-
 
 
 @use_app_context
@@ -77,18 +84,23 @@ def test_get_campaign_details_by_uuid():
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
     prospect = basic_prospect(client, archetype, client_sdr)
-    campaign = basic_outbound_campaign([prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr)
-    campaign.uuid = 'test_uuid'
+    campaign = basic_outbound_campaign(
+        [prospect.id], GeneratedMessageType.LINKEDIN, archetype, client_sdr
+    )
+    campaign.uuid = "test_uuid"
     campaign_id = campaign.id
 
     response = app.test_client().get(
         f"campaigns/uuid/{campaign.uuid}",
         headers={
             "Content-Type": "application/json",
-        }
+        },
     )
     assert response.status_code == 200
-    assert response.json.get("campaign_details").get("campaign_raw").get("id") == campaign.id
+    assert (
+        response.json.get("campaign_details").get("campaign_raw").get("id")
+        == campaign.id
+    )
 
 
 @use_app_context
@@ -120,7 +132,14 @@ def test_get_all_campaigns():
 
 
 @use_app_context
-def test_create_generate_message_campaign():
+@mock.patch("src.campaigns.services.create_and_start_email_generation_jobs.apply_async")
+@mock.patch(
+    "src.campaigns.services.generate_outreaches_for_prospect_list_from_multiple_ctas.apply_async"
+)
+def test_create_generate_message_campaign(
+    mock_generate_outreaches_for_prospect_list_from_multiple_ctas,
+    mock_create_and_start_email_generation_jobs,
+):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)
@@ -173,11 +192,11 @@ def test_create_generate_message_campaign():
     )
     assert response.status_code == 200
 
+    assert mock_generate_outreaches_for_prospect_list_from_multiple_ctas.call_count == 1
+
 
 @use_app_context
-@mock.patch(
-    "src.message_generation.services.research_and_generate_outreaches_for_prospect.delay"
-)
+@mock.patch("src.campaigns.services.create_and_start_email_generation_jobs.apply_async")
 def test_create_generate_email_campaign(message_gen_call_patch):
     client = basic_client()
     archetype = basic_archetype(client)
@@ -223,7 +242,7 @@ def test_create_generate_email_campaign(message_gen_call_patch):
         },
     )
     assert response.status_code == 200
-    assert message_gen_call_patch.call_count == 0
+    assert message_gen_call_patch.call_count == 1
 
     campaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.editing_due_date > datetime.datetime.now()
@@ -248,7 +267,9 @@ def test_create_generate_email_campaign(message_gen_call_patch):
 @mock.patch(
     "src.campaigns.services.generate_outreaches_for_prospect_list_from_multiple_ctas.apply_async"
 )
-def test_change_campaign_status(generate_outreaches_for_prospect_list_from_multiple_ctas_patch):
+def test_change_campaign_status(
+    generate_outreaches_for_prospect_list_from_multiple_ctas_patch,
+):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)

@@ -15,7 +15,7 @@ from model_import import (
     ProspectUploads,
     ProspectUploadsStatus,
     ProspectUploadsErrorType,
-    IScraperPayloadCache
+    IScraperPayloadCache,
 )
 from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
@@ -26,7 +26,7 @@ from src.prospecting.upload.services import (
     run_and_assign_health_score,
     calculate_health_check_follower_sigmoid,
     calculate_weighted_fit_score,
-    run_and_assign_intent_score
+    run_and_assign_intent_score,
 )
 
 import mock
@@ -306,13 +306,13 @@ def test_run_and_assign_health_score():
     prospect_2 = basic_prospect(client, archetype, sdr)
     prospect_3 = basic_prospect(client, archetype, sdr)
     prospect_4 = basic_prospect(client, archetype, sdr)
-    prospect.linkedin_bio = ""                  # Should get 0 points
+    prospect.linkedin_bio = ""  # Should get 0 points
     prospect.li_num_followers = 0
-    prospect_2.linkedin_bio = "Some bio"        # Should get 25 points
+    prospect_2.linkedin_bio = "Some bio"  # Should get 25 points
     prospect_2.li_num_followers = 0
-    prospect_3.linkedin_bio = "Some bio"        # Should get around 25 + 37.5 points
+    prospect_3.linkedin_bio = "Some bio"  # Should get around 25 + 37.5 points
     prospect_3.li_num_followers = 300
-    prospect_4.linkedin_bio = "Some bio"        # Should get some points > 25 + 37.5 but < 100
+    prospect_4.linkedin_bio = "Some bio"  # Should get some points > 25 + 37.5 but < 100
     prospect_4.li_num_followers = 1000
     prospect_id = prospect.id
     prospect_2_id = prospect_2.id
@@ -347,28 +347,30 @@ def test_calculate_health_check_follower_sigmoid():
         assert score >= 0 and score <= 75
 
         high_score = calculate_health_check_follower_sigmoid(random_high_count)
-        assert high_score >= 37.5 and high_score <= 75      # We know this to be true since our midpoint is set to 300
+        assert (
+            high_score >= 37.5 and high_score <= 75
+        )  # We know this to be true since our midpoint is set to 300
 
 
 @use_app_context
 def test_calculate_weighted_fit_score():
     score = -1
-    assert calculate_weighted_fit_score(score) == (-1/4 * 50)
+    assert calculate_weighted_fit_score(score) == (-1 / 4 * 50)
 
     score = 0
-    assert calculate_weighted_fit_score(score) == (0/4 * 50)
+    assert calculate_weighted_fit_score(score) == (0 / 4 * 50)
 
     score = 1
-    assert calculate_weighted_fit_score(score) == (1/4 * 50)
+    assert calculate_weighted_fit_score(score) == (1 / 4 * 50)
 
     score = 2
-    assert calculate_weighted_fit_score(score) == (2/4 * 50)
+    assert calculate_weighted_fit_score(score) == (2 / 4 * 50)
 
     score = 3
-    assert calculate_weighted_fit_score(score) == (3/4 * 50)
+    assert calculate_weighted_fit_score(score) == (3 / 4 * 50)
 
     score = 4
-    assert calculate_weighted_fit_score(score) == (4/4 * 50)
+    assert calculate_weighted_fit_score(score) == (4 / 4 * 50)
 
 
 @use_app_context
@@ -382,9 +384,9 @@ def test_run_and_assign_intent_score():
     p.hunter_email_score = 40
     p.icp_fit_score = 3
 
-    response = run_and_assign_intent_score(p_id)
+    response = run_and_assign_intent_score(prospect_id=p_id)
     assert response == True
 
     p: Prospect = Prospect.query.get(p_id)
-    assert p.li_intent_score == ((60 * .5) + (3/4 * 50))
-    assert p.email_intent_score == ((40 * .5) + (3/4 * 50))
+    assert p.li_intent_score == ((60 * 0.5) + (3 / 4 * 50))
+    assert p.email_intent_score == ((40 * 0.5) + (3 / 4 * 50))

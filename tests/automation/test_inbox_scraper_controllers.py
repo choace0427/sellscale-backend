@@ -16,11 +16,8 @@ class FakePostResponse:
 
 
 @use_app_context
-@mock.patch(
-    "src.automation.services.requests.request",
-    return_value=FakePostResponse(),
-)
-def test_scrape_all_inboxes(request_patch):
+@mock.patch("src.automation.inbox_scraper.scrape_inbox.delay")
+def test_scrape_all_inboxes(scrape_patch):
     client = basic_client()
     sdr = basic_client_sdr(client)
     sdr_id = sdr.id
@@ -37,35 +34,13 @@ def test_scrape_all_inboxes(request_patch):
     db.session.commit()
 
     scrape_all_inboxes()
+
+    assert scrape_patch.call_count == 1
 
 
 @use_app_context
-@mock.patch(
-    "src.automation.services.requests.request",
-    return_value=FakePostResponse(),
-)
-@mock.patch(
-    "src.automation.inbox_scraper.get_phantom_buster_payload",
-    return_value=[
-        {
-            "firstnameFrom": "Zaheer",
-            "isLastMessageFromMe": True,
-            "lastMessageDate": "2022-10-20T06:01:08.960Z",
-            "lastMessageFromUrl": "https://www.linkedin.com/in/zmohiuddin/",
-            "lastnameFrom": "Mohiuddin",
-            "linkedInUrls": ["https://www.linkedin.com/in/doug-ayers-7b8b10b/"],
-            "message": "looking forward to it!",
-            "occupationFrom": "Co-Founder at Levels.fyi | Get Paid, Not Played",
-            "readStatus": True,
-            "threadUrl": "https://www.linkedin.com/messaging/thread/2-MDllMWY4YzEtZGFjNy00NWU1LWFhYWYtZWVlZTczZmFjNWJkXzAxMg==",
-            "timestamp": "2022-10-20T06:06:54.106Z",
-        }
-    ],
-)
-def test_scrape_all_inboxes_fake_payload(
-    get_phantom_buster_payload_patch,
-    request_patch,
-):
+@mock.patch("src.automation.inbox_scraper.scrape_inbox.delay")
+def test_scrape_all_inboxes_fake_payload(scrape_inbox_patch):
     client = basic_client()
     sdr = basic_client_sdr(client)
     sdr_id = sdr.id
@@ -82,3 +57,5 @@ def test_scrape_all_inboxes_fake_payload(
     db.session.commit()
 
     scrape_all_inboxes()
+
+    assert scrape_inbox_patch.call_count == 1

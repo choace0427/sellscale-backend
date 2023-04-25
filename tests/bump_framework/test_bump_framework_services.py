@@ -4,7 +4,7 @@ from test_utils import (
     basic_client,
     basic_client_sdr,
     basic_bump_framework,
-    )
+)
 from decorators import use_app_context
 from src.bump_framework.services import (
     get_bump_frameworks_for_sdr,
@@ -28,7 +28,9 @@ def test_get_bump_frameworks_for_sdr():
     assert len(bumps) == 1
     assert bumps[0]["id"] == bump_framework.id
 
-    bumps = get_bump_frameworks_for_sdr(sdr.id, bump_framework.overall_status, activeOnly=False)
+    bumps = get_bump_frameworks_for_sdr(
+        sdr.id, bump_framework.overall_status, activeOnly=False
+    )
     assert len(bumps) == 2
     assert bumps[0]["id"] == bump_framework.id
     assert bumps[1]["id"] == bump_framework2.id
@@ -39,9 +41,13 @@ def test_create_bump_framework():
     client = basic_client()
     sdr = basic_client_sdr(client)
 
-    create_bump_framework(sdr.id, "title", "description", ProspectOverallStatus.ACTIVE_CONVO, True, True)
+    create_bump_framework(
+        sdr.id, "title", "description", ProspectOverallStatus.ACTIVE_CONVO, True, True
+    )
     assert BumpFramework.query.count() == 1
-    bump_framework: BumpFramework = BumpFramework.query.filter_by(client_sdr_id=sdr.id).first()
+    bump_framework: BumpFramework = BumpFramework.query.filter_by(
+        client_sdr_id=sdr.id
+    ).first()
     assert bump_framework.title == "title"
     assert bump_framework.description == "description"
     assert bump_framework.overall_status == ProspectOverallStatus.ACTIVE_CONVO
@@ -55,8 +61,17 @@ def test_modify_bump_framework():
     sdr = basic_client_sdr(client)
     bump_framework = basic_bump_framework(sdr, active=True)
 
-    modify_bump_framework(sdr.id, bump_framework.id, "new title", "new description", True)
-    bump_framework: BumpFramework = BumpFramework.query.filter_by(client_sdr_id=sdr.id).first()
+    modify_bump_framework(
+        client_sdr_id=sdr.id,
+        bump_framework_id=bump_framework.id,
+        overall_status=ProspectOverallStatus.PROSPECTED,
+        title="new title",
+        description="new description",
+        default=True,
+    )
+    bump_framework: BumpFramework = BumpFramework.query.filter_by(
+        client_sdr_id=sdr.id
+    ).first()
     assert bump_framework.title == "new title"
     assert bump_framework.description == "new description"
     assert bump_framework.default == True
@@ -69,7 +84,9 @@ def test_deactivate_bump_framework():
     bump_framework = basic_bump_framework(sdr, active=True)
 
     deactivate_bump_framework(sdr.id, bump_framework.id)
-    bump_framework: BumpFramework = BumpFramework.query.filter_by(client_sdr_id=sdr.id).first()
+    bump_framework: BumpFramework = BumpFramework.query.filter_by(
+        client_sdr_id=sdr.id
+    ).first()
     assert bump_framework.active == False
 
 
@@ -80,5 +97,7 @@ def test_activate_bump_framework():
     bump_framework = basic_bump_framework(sdr, active=False)
 
     activate_bump_framework(sdr.id, bump_framework.id)
-    bump_framework: BumpFramework = BumpFramework.query.filter_by(client_sdr_id=sdr.id).first()
+    bump_framework: BumpFramework = BumpFramework.query.filter_by(
+        client_sdr_id=sdr.id
+    ).first()
     assert bump_framework.active == True

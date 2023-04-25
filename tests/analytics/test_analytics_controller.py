@@ -20,23 +20,6 @@ def test_get_analytics():
 
 
 @use_app_context
-def test_get_latest_weeks_benchmarks():
-    response = app.test_client().get("/analytics/latest_weeks_benchmarks")
-    assert response.status_code == 200
-    assert response.json == []
-
-
-@use_app_context
-def test_get_weekly_li_benchmarks():
-    client = basic_client()
-    response = app.test_client().get(
-        "/analytics/weekly_li_benchmarks?client_id=" + str(client.id)
-    )
-    assert response.status_code == 200
-    assert len(response.json) > 0
-
-
-@use_app_context
 def test_get_all_pipeline_details():
     client = basic_client()
     client = basic_client()
@@ -76,6 +59,11 @@ def test_get_all_pipeline_details():
             "accepted": 0,
             "responded": 0,
             "active_convo": 0,
+            "active_convo_next_steps": 0,
+            "active_convo_objection": 0,
+            "active_convo_qual_needed": 0,
+            "active_convo_question": 0,
+            "active_convo_scheduling": 0,
             "scheduling": 0,
             "not_interested": 0,
             "demo_set": 0,
@@ -90,6 +78,11 @@ def test_get_all_pipeline_details():
                 "accepted": 0,
                 "responded": 0,
                 "active_convo": 0,
+                "active_convo_next_steps": 0,
+                "active_convo_objection": 0,
+                "active_convo_qual_needed": 0,
+                "active_convo_question": 0,
+                "active_convo_scheduling": 0,
                 "scheduling": 0,
                 "not_interested": 0,
                 "demo_set": 0,

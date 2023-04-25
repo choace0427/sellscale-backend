@@ -27,7 +27,11 @@ from src.prospecting.hunter import find_hunter_email_from_prospect_id
 
 
 def create_raw_csv_entry_from_json_payload(
-    client_id: int, client_archetype_id: int, client_sdr_id: int, payload: list, allow_duplicates: bool = True
+    client_id: int,
+    client_archetype_id: int,
+    client_sdr_id: int,
+    payload: list,
+    allow_duplicates: bool = True,
 ):
     """Create a raw CSV entry from the JSON payload sent by the SDR.
 
@@ -161,7 +165,11 @@ def populate_prospect_uploads_from_json_payload(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def collect_and_run_celery_jobs_for_upload(
-    self, client_id: int, client_archetype_id: int, client_sdr_id: int, allow_duplicates: bool = True,
+    self,
+    client_id: int,
+    client_archetype_id: int,
+    client_sdr_id: int,
+    allow_duplicates: bool = True,
 ) -> bool:
     """Collects the rows eligible for upload and runs the celery jobs for them.
 
@@ -217,7 +225,9 @@ def collect_and_run_celery_jobs_for_upload(
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int, allow_duplicates: bool = True) -> None:
+def create_prospect_from_prospect_upload_row(
+    self, prospect_upload_id: int, allow_duplicates: bool = True
+) -> None:
     """Celery task for creating a prospect from a ProspectUploads row.
 
     This will call the create_prospect_from_linkedin_link function which will create the prospect.
@@ -255,7 +265,9 @@ def create_prospect_from_prospect_upload_row(self, prospect_upload_id: int, allo
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def create_prospect_from_linkedin_link(self, prospect_upload_id: int, allow_duplicates: bool = True) -> bool:
+def create_prospect_from_linkedin_link(
+    self, prospect_upload_id: int, allow_duplicates: bool = True
+) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
     Args:
@@ -393,7 +405,9 @@ def create_prospect_from_linkedin_link(self, prospect_upload_id: int, allow_dupl
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def run_and_assign_health_score(self, archetype_id: Optional[int] = None, prospect_id: Optional[int] = None):
+def run_and_assign_health_score(
+    self, archetype_id: Optional[int] = None, prospect_id: Optional[int] = None
+):
     """Celery task for running and assigning health scores to prospects.
 
     Only runs on prospects that have not been assigned a health score.
@@ -431,7 +445,9 @@ def run_and_assign_health_score(self, archetype_id: Optional[int] = None, prospe
                 health_score += 25
 
             # Calculate score based off of Sigmoid Function (using follower count)
-            sig_score = calculate_health_check_follower_sigmoid(prospect.li_num_followers or 0)
+            sig_score = calculate_health_check_follower_sigmoid(
+                prospect.li_num_followers or 0
+            )
             health_score += sig_score
 
             prospect.health_check_score = health_score
@@ -540,7 +556,7 @@ def refresh_bio_followers_for_prospect(self, prospect_id: int):
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def run_and_assign_intent_score(self, prospect_id: int):
-    """ Runs and assigns a Prospect.email_intent_score and Prospect.li_intent_score based on either their LI or their Email
+    """Runs and assigns a Prospect.email_intent_score and Prospect.li_intent_score based on either their LI or their Email
 
     Args:
         prospect_id (int): The prospect id to run the intent score on.
@@ -557,12 +573,12 @@ def run_and_assign_intent_score(self, prospect_id: int):
 
         # Get Intent Score for LI
         if p.health_check_score is not None:
-            li_intent_score = p.health_check_score * .5 + weighted_fit_score
+            li_intent_score = p.health_check_score * 0.5 + weighted_fit_score
             p.li_intent_score = li_intent_score
 
         # Get Intent Score for Email
         if p.hunter_email_score is not None:
-            email_intent_score = p.hunter_email_score * .5 + weighted_fit_score
+            email_intent_score = p.hunter_email_score * 0.5 + weighted_fit_score
             p.email_intent_score = email_intent_score
 
         db.session.add(p)
@@ -574,7 +590,7 @@ def run_and_assign_intent_score(self, prospect_id: int):
 
 
 def calculate_weighted_fit_score(icp_fit_score: int) -> float:
-    """ Calculates the weighted fit score for a prospect.
+    """Calculates the weighted fit score for a prospect.
 
     icp_fit_score ranges between 0 and 4, we apply a simple scalar to get a weighted fit score between 0 and 50.
 
