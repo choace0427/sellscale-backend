@@ -12,7 +12,7 @@ def create_unassigned_contacts_archetype(client_sdr_id: int) -> tuple[bool, str]
     ] = ClientArchetype.query.filter_by(
         client_sdr_id=client_sdr_id, is_unassigned_contact_archetype=True
     ).all()
-    if len(unassigned_contacts_client_archetypes) > 1:
+    if len(unassigned_contacts_client_archetypes) >= 1:
         return False, "Unassigned Contacts Archetype already exists"
 
     data = create_client_archetype(
