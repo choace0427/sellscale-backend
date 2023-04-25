@@ -1,6 +1,7 @@
 from click import Option
 from app import db
 from flask import jsonify
+
 from src.ml.openai_wrappers import (
     CURRENT_OPENAI_CHAT_GPT_MODEL,
     wrapped_create_completion,
@@ -143,7 +144,7 @@ def create_client_archetype(
     persona_description: str = "",
     persona_fit_reason: str = "",
     icp_matching_prompt: str = "",
-    is_unassigned_contacts_archetype: bool = False,
+    is_unassigned_contact_archetype: bool = False,
 ):
     c: Client = get_client(client_id=client_id)
     if not c:
@@ -158,7 +159,7 @@ def create_client_archetype(
         persona_description=persona_description,
         persona_fit_reason=persona_fit_reason,
         icp_matching_prompt=icp_matching_prompt,
-        is_unassigned_contacts_archetype=is_unassigned_contacts_archetype,
+        is_unassigned_contact_archetype=is_unassigned_contact_archetype,
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -205,6 +206,10 @@ def get_client_sdr(client_sdr_id: int) -> dict:
 
 
 def create_client_sdr(client_id: int, name: str, email: str):
+    from src.client.services_unassigned_contacts_archetype import (
+        create_unassigned_contacts_archetype,
+    )
+
     c: Client = get_client(client_id=client_id)
     if not c:
         return None
@@ -226,6 +231,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
     db.session.commit()
 
     create_sight_onboarding(sdr.id)
+    create_unassigned_contacts_archetype(sdr.id)
 
     return {"client_sdr_id": sdr.id}
 

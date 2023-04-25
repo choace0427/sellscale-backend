@@ -1,6 +1,12 @@
 from app import app, db
 from decorators import use_app_context
-from model_import import Client, ClientArchetype, ClientSDR, GNLPModel, ProspectOverallStatus
+from model_import import (
+    Client,
+    ClientArchetype,
+    ClientSDR,
+    GNLPModel,
+    ProspectOverallStatus,
+)
 from test_utils import (
     test_app,
     basic_client,
@@ -11,7 +17,7 @@ from test_utils import (
     basic_gnlp_model,
     basic_generated_message_cta_with_text,
     basic_generated_message,
-    basic_generated_message_cta
+    basic_generated_message_cta,
 )
 from src.client.services import (
     create_client,
@@ -24,7 +30,7 @@ from src.client.services import (
     get_cta_by_archetype_id,
     get_client_sdr,
     get_sdr_available_outbound_channels,
-    nylas_exchange_for_authorization_code
+    nylas_exchange_for_authorization_code,
 )
 import json
 import mock
@@ -69,7 +75,9 @@ def test_get_client_archetype_performance():
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, client_sdr)
     prospect = basic_prospect(client, archetype, client_sdr)
-    prospect_2 = basic_prospect(client, archetype, client_sdr, overall_status=ProspectOverallStatus.DEMO)
+    prospect_2 = basic_prospect(
+        client, archetype, client_sdr, overall_status=ProspectOverallStatus.DEMO
+    )
 
     result = get_client_archetype_performance(client_sdr.id, archetype.id)
     assert result.get("status_map").get("PROSPECTED") == 1
@@ -274,6 +282,10 @@ def test_add_client_and_archetype_and_sdr():
     client_sdrs: ClientSDR = ClientSDR.query.get(client_sdrs[1].id)
     assert client_sdrs.auth_token is not None
 
+    client_archetypes: list = ClientArchetype.query.all()
+    client_sdrs: list = ClientSDR.query.all()
+    assert len(client_archetypes) == len(client_sdrs)
+
 
 @use_app_context
 def test_update_client_sdr_scheduling_link_endpoint():
@@ -436,9 +448,8 @@ def test_get_cta_stats():
 
     stats = get_cta_stats(cta.id)
     assert stats.get("total_count") == 1
-    assert stats.get("status_map") == {
-        "PROSPECTED": 1
-    }
+    assert stats.get("status_map") == {"PROSPECTED": 1}
+
 
 @use_app_context
 def test_get_sdr_available_outbound_channels():
@@ -467,7 +478,14 @@ def test_get_sdr_available_outbound_channels():
 
 
 @use_app_context
-@mock.patch("src.client.services.post_nylas_oauth_token", return_value={"access_token": "test_token", "account_id": "test_id", "email_address": "test_email"})
+@mock.patch(
+    "src.client.services.post_nylas_oauth_token",
+    return_value={
+        "access_token": "test_token",
+        "account_id": "test_id",
+        "email_address": "test_email",
+    },
+)
 def test_nylas_exchange_for_authorization_code(mock_post_nylas_oauth_token):
     client = basic_client()
     client_sdr = basic_client_sdr(client)
