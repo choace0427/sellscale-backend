@@ -43,14 +43,14 @@ from tqdm import tqdm
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["POST"])
+@MESSAGE_GENERATION_BLUEPRINT.route("/", methods=["GET"])
 @require_user
 def get_messages_queued_for_outreach_endpoint(client_sdr_id: int):
     """Returns all messages queued for outreach for a given client_sdr_id"""
-    limit = get_request_parameter("limit", request, required=False, parameter_type=int) or 5
-    offset = get_request_parameter("offset", request, required=False, parameter_type=int) or 0
+    limit = get_request_parameter("limit", request, json=False, required=False) or 5
+    offset = get_request_parameter("offset", request, json=False, required=False) or 0
 
-    messages = get_messages_queued_for_outreach(client_sdr_id=client_sdr_id, limit=limit, offset=offset)
+    messages = get_messages_queued_for_outreach(client_sdr_id=client_sdr_id, limit=int(limit), offset=int(offset))
 
     return jsonify({
         "message": "Success",
