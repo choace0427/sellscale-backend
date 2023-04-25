@@ -169,6 +169,7 @@ class ProspectStatus(enum.Enum):
     ACTIVE_CONVO_QUAL_NEEDED = "ACTIVE_CONVO_QUAL_NEEDED"
     ACTIVE_CONVO_OBJECTION = "ACTIVE_CONVO_OBJECTION"
     ACTIVE_CONVO_SCHEDULING = "ACTIVE_CONVO_SCHEDULING"
+    ACTIVE_CONVO_NEXT_STEPS = "ACTIVE_CONVO_NEXT_STEPS"
 
     def to_dict():
         return {
@@ -205,6 +206,7 @@ class ProspectStatus(enum.Enum):
             ProspectStatus.ACTIVE_CONVO_QUESTION,
             ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
             ProspectStatus.ACTIVE_CONVO_OBJECTION,
+            ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
             ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ]
 
@@ -319,6 +321,12 @@ class ProspectStatus(enum.Enum):
                 "name": "Active Convo - Scheduling",
                 "description": "The Prospect is discussing scheduling.",
                 "enum_val": ProspectStatus.ACTIVE_CONVO_SCHEDULING.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+            },
+            ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value: {
+                "name": "Active Convo - Next Steps",
+                "description": "The Prospect gave short reply and needs follow up.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value,
                 "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
         }
@@ -691,6 +699,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
     ],
     ProspectStatus.ACTIVE_CONVO_OBJECTION: [
@@ -701,6 +710,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
     ],
     ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
@@ -711,6 +721,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
     ],
     ProspectStatus.ACTIVE_CONVO_QUESTION: [
@@ -721,6 +732,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
     ],
     ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
@@ -730,6 +742,18 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_OBJECTION,
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
         ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.RESPONDED,
+    ],
+    ProspectStatus.ACTIVE_CONVO_NEXT_STEPS: [
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.RESPONDED,
     ],
