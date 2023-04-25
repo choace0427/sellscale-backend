@@ -352,7 +352,7 @@ def update_prospect_status_linkedin(
     current_status = p.status
 
     # If the new status isn't an active convo sub status,
-    if not new_status.value.startswith('ACTIVE_CONVO_'):
+    if not new_status.value.startswith("ACTIVE_CONVO_"):
         # Make sure the prospect isn't in the main pipeline for 48 hours
         send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
 
@@ -1064,7 +1064,7 @@ def mark_prospects_as_queued_for_outreach(
     for id in messages_ids:
         message: GeneratedMessage = GeneratedMessage.query.get(id)
         message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
-        message.date_sent = datetime.utcnow()
+        message.date_sent = datetime.datetime.utcnow()
         updated_messages.append(message)
 
     # Mark campaign as complete
@@ -1127,7 +1127,7 @@ def mark_prospect_reengagement(prospect_id: int):
         )
 
     prospect = Prospect.query.get(prospect_id)
-    prospect.last_reviewed = datetime.now()
+    prospect.last_reviewed = datetime.datetime.now()
 
     if not prospect.times_bumped:
         prospect.times_bumped = 0
