@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
 from model_import import (
@@ -52,6 +53,57 @@ from src.message_generation.services_stack_ranked_configurations import (
 
 
 HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
+
+
+def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 5, offset: Optional[int] = 0) -> list[dict]:
+    """Gets the messages queued for outreach for a client SDR
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        limit (Optional[int], optional): Number of messages to grab. Defaults to 5.
+        offset (Optional[int], optional): Offset to start grabbing messages from. Defaults to 0.
+
+    Returns:
+        list[dict]: List of messages queued for outreach
+    """
+    joined_prospect_message = (
+        db.session.query(
+            Prospect.id.label("prospect_id"),
+            Prospect.full_name.label("full_name"),
+            Prospect.title.label("title"),
+            Prospect.company.label("company"),
+            Prospect.img_url.label("img_url"),
+            GeneratedMessage.id.label("message_id"),
+            GeneratedMessage.completion.label("completion"),
+        )
+        .join(
+            GeneratedMessage,
+            Prospect.approved_outreach_message_id == GeneratedMessage.id,
+        )
+        .filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            GeneratedMessage.message_status
+            == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
+            or_(GeneratedMessage.pb_csv_count <= 2, GeneratedMessage.pb_csv_count == None)                 # Only grab messages that have not been sent twice
+        )
+        .order_by(GeneratedMessage.created_at.asc())
+        .limit(limit)
+        .offset(offset)
+    ).all()
+
+    message_list = []
+    for row in joined_prospect_message:
+        message_list.append({
+            "prospect_id": row.prospect_id,
+            "full_name": row.full_name,
+            "title": row.title,
+            "company": row.company,
+            "img_url": row.img_url,
+            "message_id": row.message_id,
+            "completion": row.completion,
+        })
+
+    return message_list
 
 
 @celery.task(bind=True, max_retries=3)

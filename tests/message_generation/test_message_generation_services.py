@@ -40,6 +40,7 @@ from src.message_generation.services import (
     ResearchPayload,
     ResearchPoints,
     create_and_start_email_generation_jobs,
+    get_messages_queued_for_outreach,
     clear_prospect_approved_email,
     create_cta,
     delete_cta,
@@ -63,6 +64,39 @@ from src.message_generation.services_few_shot_generations import (
     can_generate_with_patterns,
 )
 from src.research.models import ResearchPointType, ResearchType
+
+
+@use_app_context
+def test_get_messages_queued_for_outreach():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    sdr_id = sdr.id
+    archetype = basic_archetype(client, sdr)
+    prospect = basic_prospect(client, archetype, sdr)
+    prospect.company = 'Test Company'
+    prospect.status = "QUEUED_FOR_OUTREACH"
+    prospect_id = prospect.id
+    gnlp = basic_gnlp_model(archetype)
+    cta = basic_generated_message_cta(archetype)
+    generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message_id = generated_message.id
+    generated_message.message_status = "QUEUED_FOR_OUTREACH"
+    prospect.approved_outreach_message_id=generated_message.id
+    prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
+
+    messages = get_messages_queued_for_outreach(sdr_id)
+    assert len(messages) == 1
+    assert messages == [
+        {
+            'prospect_id': prospect_id,
+            'full_name': 'Testing Testasara',
+            'title': 'Testing Director',
+            'company': 'Test Company',
+            'img_url': None,
+            'message_id': generated_message_id,
+            'completion': 'this is a test'
+        }
+    ]
 
 
 @use_app_context
