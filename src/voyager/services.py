@@ -376,7 +376,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
     db.session.commit()
     print("Done saving!")
 
-    update_prospect_status(prospect, convo_urn_id)
+    update_prospect_status(prospect.id, convo_urn_id)
 
     return "OK", 200
 
