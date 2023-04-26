@@ -48,6 +48,7 @@ from src.client.services_unassigned_contacts_archetype import (
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
     replicate_transformer_blocklist,
+    get_archetype_details_for_sdr,
 )
 from src.client.services_client_pod import (
     create_client_pod,
@@ -913,5 +914,16 @@ def post_predict_persona_buckets_from_client_archetype(client_sdr_id: int):
 
     if not success:
         return data, 400
+
+    return jsonify({"data": data}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/get_details", methods=["GET"])
+@require_user
+def get_archetype_details(client_sdr_id: int):
+    """Gets the archetype details"""
+    data = get_archetype_details_for_sdr(
+        client_sdr_id=client_sdr_id,
+    )
 
     return jsonify({"data": data}), 200

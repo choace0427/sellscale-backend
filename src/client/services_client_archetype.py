@@ -55,3 +55,61 @@ def replicate_transformer_blocklist(
     db.session.commit()
 
     return True, "OK"
+
+
+def get_archetype_details_for_sdr(client_sdr_id: int):
+    """
+    Given a client sdr id, return the archetype details.
+
+    Details look like so:
+    [
+        {
+            id: (int) client archetype id,
+            name: (str) client archetype name,
+            active: (bool) if the client archetype is active,
+            num_prospects: (int) number of prospects with this archetype
+            num_unused_li_prospects: (int) number of prospects with this archetype that are unused LI prospects
+            num_unused_email_prospects: (int) number of prospects with this archetype that are unused email prospects
+            percent_unused_li_prospects: (float) percent of prospects with this archetype that are unused LI prospects
+            percent_unused_email_prospects: (float) percent of prospects with this archetype that are unused email prospects
+        },
+        ...
+    ]
+    """
+
+    query = """
+        select 
+            client_archetype.id,
+            client_archetype.archetype "name",
+            client_archetype.active,
+            count(distinct prospect.id) "num_prospects",
+            count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is null) "num_unused_li_prospects",
+            count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is null)"num_unused_email_prospects",
+            cast(count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is null) as float) / count(distinct prospect.id) "percent_unused_li_prospects",
+            cast(count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is null) as float) / count(distinct prospect.id) "percent_unused_li_prospects"
+        from client_archetype
+            join prospect on prospect.archetype_id = client_archetype.id
+        where client_archetype.client_sdr_id = {client_sdr_id}
+        group by 1,2,3
+        order by active desc, archetype desc;
+    """.format(
+        client_sdr_id=client_sdr_id
+    )
+
+    data = db.session.execute(query).fetchall()
+    list_of_archetypes = []
+    for entry in data:
+        list_of_archetypes.append(
+            {
+                "id": entry[0],
+                "name": entry[1],
+                "active": entry[2],
+                "num_prospects": entry[3],
+                "num_unused_li_prospects": entry[4],
+                "num_unused_email_prospects": entry[5],
+                "percent_unused_li_prospects": entry[6],
+                "percent_unused_email_prospects": entry[7],
+            }
+        )
+
+    return list_of_archetypes
