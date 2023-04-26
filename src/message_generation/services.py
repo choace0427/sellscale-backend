@@ -87,7 +87,7 @@ def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 
     total_count = joined_prospect_message.count()
 
     joined_prospect_message = joined_prospect_message.order_by(
-        GeneratedMessage.created_at.asc()
+        GeneratedMessage.created_at.desc()
     ).limit(
         limit
     ).offset(
