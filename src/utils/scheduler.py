@@ -9,35 +9,50 @@ ENV = os.environ.get("FLASK_ENV")
 def scrape_all_inboxes_job():
     from src.automation.inbox_scraper import scrape_all_inboxes
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         scrape_all_inboxes.delay()
 
 
 def fill_in_daily_notifications():
     from src.daily_notifications.services import fill_in_daily_notifications
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         fill_in_daily_notifications.delay()
 
 
 def clear_daily_notifications():
     from src.daily_notifications.services import clear_daily_notifications
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         clear_daily_notifications.delay()
 
 
 def refresh_fine_tune_statuses_job():
     from src.ml.services import check_statuses_of_fine_tune_jobs
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         check_statuses_of_fine_tune_jobs.delay()
 
 
 def update_all_phantom_buster_run_statuses_job():
     from src.automation.services import update_all_phantom_buster_run_statuses
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         update_all_phantom_buster_run_statuses()
 
 
@@ -47,7 +62,10 @@ def run_next_client_sdr_li_conversation_scraper_job():
         run_all_conversation_analyzers,
     )
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         run_next_client_sdr_scrape.apply_async(
             link=run_all_conversation_analyzers.signature(immutable=True)
         )
@@ -58,7 +76,10 @@ def run_backfill_analytics_for_sdrs_job():
         backfill_analytics_for_sdrs,
     )
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         backfill_analytics_for_sdrs.delay()
 
 
@@ -67,14 +88,20 @@ def run_scrape_campaigns_for_day_job():
         scrape_campaigns_for_day,
     )
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         scrape_campaigns_for_day.delay()
 
 
 def run_sync_vessel_mailboxes_and_sequences_job():
     from src.integrations.vessel import sync_vessel_mailboxes_and_sequences
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         sync_vessel_mailboxes_and_sequences()
 
 
@@ -82,14 +109,21 @@ def run_sync_vessel_mailboxes_and_sequences_job():
 def scrape_li_inboxes():
     from src.li_conversation.services import scrape_conversations_inbox
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         scrape_conversations_inbox.delay()
+
 
 # Using Voyager!
 def scrape_li_convos():
     from src.li_conversation.services import scrape_conversation_queue
 
-    if os.environ.get("FLASK_ENV") == "production":
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == True
+    ):
         scrape_conversation_queue.delay()
 
 
