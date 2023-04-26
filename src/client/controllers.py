@@ -42,6 +42,9 @@ from src.client.services import (
     generate_persona_buy_reason,
     generate_persona_icp_matching_prompt,
 )
+from src.client.services_unassigned_contacts_archetype import (
+    predict_persona_buckets_from_client_archetype,
+)
 from src.client.services_client_archetype import (
     update_transformer_blocklist,
     replicate_transformer_blocklist,
@@ -886,3 +889,29 @@ def post_generate_persona_icp_matching_prompt(client_sdr_id: int):
         return "Failed to generate", 400
 
     return jsonify({"description": message})
+
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/predict_persona_buckets_from_client_archetype", methods=["POST"]
+)
+@require_user
+def post_predict_persona_buckets_from_client_archetype(client_sdr_id: int):
+    """Predicts the persona buckets from a client archetype's prospects"""
+    from model_import import ClientArchetype
+
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not ca or ca.client_sdr_id != client_sdr_id:
+        return "Invalid client archetype", 400
+
+    success, data = predict_persona_buckets_from_client_archetype(
+        client_archetype_id=client_archetype_id,
+    )
+
+    if not success:
+        return data, 400
+
+    return jsonify({"data": data}), 200
