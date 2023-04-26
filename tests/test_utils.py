@@ -50,6 +50,8 @@ from model_import import (
     ConfigurationType,
     EngagementFeedItem,
     AccountResearchPoints,
+    PersonaSplitRequest,
+    PersonaSplitRequestTask,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -82,6 +84,8 @@ def test_app():
             db.session.add(prospect)
             db.session.commit()
         clear_all_entities(IScraperPayloadCache)
+        clear_all_entities(PersonaSplitRequestTask)
+        clear_all_entities(PersonaSplitRequest)
         clear_all_entities(LinkedinConversationEntry)
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)

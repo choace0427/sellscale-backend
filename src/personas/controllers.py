@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from src.personas.services import (
     create_persona_split_request,
     get_recent_split_requests,
+    get_split_request_details,
 )
 from src.utils.request_helpers import get_request_parameter
 
@@ -32,7 +33,6 @@ def post_split_prospects(client_sdr_id: int):
     return "OK", 200
 
 
-# get recent split requests
 @PERSONAS_BLUEPRINT.route("/recent_split_requests", methods=["GET"])
 @require_user
 def get_recent_split_requests_endpoint(client_sdr_id: int):
@@ -46,7 +46,6 @@ def get_recent_split_requests_endpoint(client_sdr_id: int):
     return jsonify({"recent_requests": recent_requests}), 200
 
 
-# get split request by id
 @PERSONAS_BLUEPRINT.route("/split_request", methods=["GET"])
 @require_user
 def get_split_request(client_sdr_id: int):
@@ -54,5 +53,6 @@ def get_split_request(client_sdr_id: int):
         "split_request_id", request, json=False, required=True
     )
 
-    # not implemented
-    raise NotImplementedError()
+    details = get_split_request_details(split_request_id=split_request_id)
+
+    return jsonify({"details": details}), 200
