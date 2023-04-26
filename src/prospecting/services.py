@@ -543,7 +543,6 @@ def update_prospect_status_linkedin(
         ProspectStatus.RESPONDED,
         ProspectStatus.NOT_INTERESTED,
     ):
-        p.last_reviewed = datetime.datetime.now()
         db.session.add(p)
         db.session.commit()
 
@@ -808,7 +807,6 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
         webhook_urls=c_csdr_webhook_urls,
     )
     if sent:
-        p.last_reviewed = datetime.datetime.now()
         p.deactivate_ai_engagement = True
         db.session.add(p)
         db.session.commit()
@@ -1145,7 +1143,6 @@ def mark_prospect_reengagement(prospect_id: int):
         )
 
     prospect = Prospect.query.get(prospect_id)
-    prospect.last_reviewed = datetime.datetime.now()
 
     if not prospect.times_bumped:
         prospect.times_bumped = 0
