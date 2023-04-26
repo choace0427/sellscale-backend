@@ -683,6 +683,10 @@ def get_cta_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
         raw_cta["performance"] = get_cta_stats(cta.id)
         cta_dicts.append(raw_cta)
 
+    import pdb
+
+    pdb.set_trace()
+
     return {"message": "Success", "status_code": 200, "ctas": cta_dicts}
 
 
