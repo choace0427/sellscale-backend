@@ -19,6 +19,14 @@ class PersonaSplitRequest(db.Model):
     )
     destination_client_archetype_ids = db.Column(db.ARRAY(db.Integer))
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "source_client_archetype_id": self.source_client_archetype_id,
+            "destination_client_archetype_ids": self.destination_client_archetype_ids,
+        }
+
 
 class PersonaSplitRequestTask(db.Model):
     __tablename__ = "persona_split_request_task"

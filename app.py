@@ -53,11 +53,17 @@ def make_celery(app):
 
     default_exchange = Exchange("default", type="direct")
     prospecting_exchange = Exchange("prospecting", type="direct")
-    ml_prospect_classification_exchange = Exchange("ml_prospect_classification", type="direct")
+    ml_prospect_classification_exchange = Exchange(
+        "ml_prospect_classification", type="direct"
+    )
     celery.conf.task_queues = (
         Queue("default", default_exchange, routing_key="default"),
         Queue("prospecting", prospecting_exchange, routing_key="prospecting"),
-        Queue("ml_prospect_classification", ml_prospect_classification_exchange, routing_key="ml_prospect_classification"),
+        Queue(
+            "ml_prospect_classification",
+            ml_prospect_classification_exchange,
+            routing_key="ml_prospect_classification",
+        ),
     )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"
@@ -125,6 +131,7 @@ def register_blueprints(app):
     from src.integrations.controllers import INTEGRATION_BLUEPRINT
     from src.voyager.controllers import VOYAGER_BLUEPRINT
     from src.bump_framework.controllers import BUMP_FRAMEWORK_BLUEPRINT
+    from src.personas.controllers import PERSONAS_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -152,6 +159,7 @@ def register_blueprints(app):
     app.register_blueprint(INTEGRATION_BLUEPRINT, url_prefix="/integration")
     app.register_blueprint(VOYAGER_BLUEPRINT, url_prefix="/voyager")
     app.register_blueprint(BUMP_FRAMEWORK_BLUEPRINT, url_prefix="/bump_framework")
+    app.register_blueprint(PERSONAS_BLUEPRINT, url_prefix="/personas")
 
     db.init_app(app)
 
