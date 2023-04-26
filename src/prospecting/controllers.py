@@ -3,7 +3,12 @@ from src.prospecting.services import nylas_get_threads, nylas_get_messages
 from app import db
 
 from flask import Blueprint, jsonify, request, Response
-from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels, ProspectHiddenReason
+from src.prospecting.models import (
+    Prospect,
+    ProspectStatus,
+    ProspectChannels,
+    ProspectHiddenReason,
+)
 from src.email_outbound.models import ProspectEmail
 from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.prospecting.services import (
@@ -108,7 +113,9 @@ def update_status(client_sdr_id: int, prospect_id: int):
     # Update prospect status
     if channel_type == ProspectChannels.LINKEDIN.value:
         success = update_prospect_status_linkedin(
-            prospect_id=prospect_id, new_status=new_status
+            prospect_id=prospect_id,
+            new_status=new_status,
+            manually_send_to_purgatory=False,
         )
         if (len(success) == 2 and success[0]) or (len(success) == 1 and success):
             return (
@@ -161,7 +168,7 @@ def get_valid_next_statuses_endpoint(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/threads", methods=["GET"])
 @require_user
 def get_email_threads(client_sdr_id: int, prospect_id: int):
-    
+
     limit = get_request_parameter("limit", request, json=False, required=True)
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
@@ -171,7 +178,6 @@ def get_email_threads(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
     threads = nylas_get_threads(client_sdr_id, prospect, int(limit))
-
 
     """     prospect_email: ProspectEmail = ProspectEmail.query.filter(
         ProspectEmail.prospect_id == prospect.id
@@ -195,8 +201,10 @@ def get_email_threads(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/messages", methods=["GET"])
 @require_user
 def get_email_messages(client_sdr_id: int, prospect_id: int):
-    
-    message_ids = get_request_parameter("message_ids", request, json=False, required=False)
+
+    message_ids = get_request_parameter(
+        "message_ids", request, json=False, required=False
+    )
     thread_id = get_request_parameter("thread_id", request, json=False, required=False)
     if message_ids:
         message_ids = message_ids.split(",")
@@ -207,7 +215,9 @@ def get_email_messages(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    messages = nylas_get_messages(client_sdr_id, prospect, message_ids=message_ids, thread_id=thread_id)
+    messages = nylas_get_messages(
+        client_sdr_id, prospect, message_ids=message_ids, thread_id=thread_id
+    )
 
     return jsonify({"message": "Success", "data": messages}), 200
 
@@ -374,7 +384,11 @@ def get_prospects_endpoint(client_sdr_id: int):
         )
         show_purgatory = (
             get_request_parameter(
-                "show_purgatory", request, json=True, required=False, parameter_type=bool
+                "show_purgatory",
+                request,
+                json=True,
+                required=False,
+                parameter_type=bool,
             )
             or False
         )
@@ -389,7 +403,16 @@ def get_prospects_endpoint(client_sdr_id: int):
                 return jsonify({"message": "Invalid filters supplied to API"}), 400
 
     prospects_info: dict[int, list[Prospect]] = get_prospects(
-        client_sdr_id, query, channel, status, persona_id, limit, offset, ordering, bumped, show_purgatory
+        client_sdr_id,
+        query,
+        channel,
+        status,
+        persona_id,
+        limit,
+        offset,
+        ordering,
+        bumped,
+        show_purgatory,
     )
 
     total_count = prospects_info.get("total_count")

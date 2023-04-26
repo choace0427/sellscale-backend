@@ -79,8 +79,7 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
         status_code (int), message (str): HTTP status code
     """
 
-    sdr: ClientSDR = ClientSDR.query.filter(
-        ClientSDR.id == client_sdr_id).first()
+    sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not sdr:
         return "No client sdr found with this id", 400
 
@@ -159,14 +158,21 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     # If the prospect's profile img is expired, update it
-    if time.time() * 1000 > int(prospect.img_expire) and len(details.get("participants", [])) > 0:
+    if (
+        time.time() * 1000 > int(prospect.img_expire)
+        and len(details.get("participants", [])) > 0
+    ):
         prospect.img_url = details.get("participants", [])[0].get(
             "com.linkedin.voyager.messaging.MessagingMember", {}
         ).get("miniProfile", {}).get("picture", {}).get(
             "com.linkedin.common.VectorImage", {}
         ).get(
             "rootUrl", ""
-        ) + details.get("participants", [])[0].get(
+        ) + details.get(
+            "participants", []
+        )[
+            0
+        ].get(
             "com.linkedin.voyager.messaging.MessagingMember", {}
         ).get(
             "miniProfile", {}
@@ -333,8 +339,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
             .get("artifacts", [{}, {}, {}])[2]
             .get("expiresAt", 0)
         )
-        msg_urn_id = message.get("dashEntityUrn", "").replace(
-            "urn:li:fsd_message:", "")
+        msg_urn_id = message.get("dashEntityUrn", "").replace("urn:li:fsd_message:", "")
 
         msg = (
             message.get("eventContent", {})
@@ -353,16 +358,13 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
                 author=first_name + " " + last_name,
                 first_name=first_name,
                 last_name=last_name,
-                date=dt.datetime.utcfromtimestamp(
-                    message.get("createdAt", 0) / 1000),
-                profile_url="https://www.linkedin.com/in/{value}/".format(
-                    value=urn_id),
+                date=dt.datetime.utcfromtimestamp(message.get("createdAt", 0) / 1000),
+                profile_url="https://www.linkedin.com/in/{value}/".format(value=urn_id),
                 headline=headline,
                 img_url=image_url,
                 img_expire=image_expire,
                 connection_degree="1st" if prospect.li_urn_id == urn_id else "You",
-                li_url="https://www.linkedin.com/in/{value}/".format(
-                    value=public_id),
+                li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
                 message=msg,
                 urn_id=msg_urn_id,
             )
@@ -384,9 +386,15 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
     print("Checking for prospect status updates...")
     latest_convo_entries = (
-        LinkedinConversationEntry.query.filter_by(conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/")
+        LinkedinConversationEntry.query.filter_by(
+            conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
+        )
         .order_by(LinkedinConversationEntry.date.desc())
         .all()
+    )
+
+    latest_entry_date = (
+        latest_convo_entries[0].date if latest_convo_entries else dt.datetime.now()
     )
 
     if not latest_convo_entries or len(latest_convo_entries) == 0:
@@ -396,8 +404,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.commit()
         return
 
-    last_msg_was_you = len(
-        latest_convo_entries) > 1 and latest_convo_entries[0].connection_degree == "You"
+    last_msg_was_you = (
+        len(latest_convo_entries) > 1
+        and latest_convo_entries[0].connection_degree == "You"
+    )
     last_2_msg_was_you = (
         len(latest_convo_entries) > 2
         and last_msg_was_you
@@ -413,6 +423,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
     if prospect.status == ProspectStatus.ACCEPTED and last_msg_was_you:
         update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 1
+        prospect.last_reviewed = latest_entry_date
         db.session.add(prospect)
         db.session.commit()
 
@@ -425,23 +436,24 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
     if last_3_msg_was_you:
         update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 3
+        prospect.last_reviewed = latest_entry_date
         db.session.add(prospect)
         db.session.commit()
         return
     if last_2_msg_was_you:
         update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 2
+        prospect.last_reviewed = latest_entry_date
         db.session.add(prospect)
         db.session.commit()
         return
     if last_msg_was_you:
         update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 1
+        prospect.last_reviewed = latest_entry_date
         db.session.add(prospect)
         db.session.commit()
         return
-
-    
 
 
 def fetch_li_prospects_for_sdr(client_sdr_id: int):
@@ -455,18 +467,22 @@ def fetch_li_prospects_for_sdr(client_sdr_id: int):
         ),
     ).all()
 
-    print("Fetching conversations for {num} prospects...".format(
-        num=len(prospects)))
-    
-    prospect_ids = [{ 'id': p.id, 'thread': p.li_conversation_thread_id } for p in prospects]
+    print("Fetching conversations for {num} prospects...".format(num=len(prospects)))
+
+    prospect_ids = [
+        {"id": p.id, "thread": p.li_conversation_thread_id} for p in prospects
+    ]
 
     for prospect_id in prospect_ids:
-        if prospect_id['thread'] is None: continue
+        if prospect_id["thread"] is None:
+            continue
 
         # Just update statuses for now
-        update_prospect_status(prospect_id['id'], prospect_id['thread'].split("/thread/")[1])
+        update_prospect_status(
+            prospect_id["id"], prospect_id["thread"].split("/thread/")[1]
+        )
 
-        #api = LinkedIn(client_sdr_id)
-        #convos, status_text = fetch_conversation(api, prospect_id)
-        #print(f"Fetched {len(convos)}, returned status: {status_text}")
-        #time.sleep(random.uniform(1, 3))
+        # api = LinkedIn(client_sdr_id)
+        # convos, status_text = fetch_conversation(api, prospect_id)
+        # print(f"Fetched {len(convos)}, returned status: {status_text}")
+        # time.sleep(random.uniform(1, 3))

@@ -82,7 +82,7 @@ def get_prospects(
     limit: int = 50,
     offset: int = 0,
     ordering: list[dict[str, int]] = [],
-    bumped: str = 'all',
+    bumped: str = "all",
     show_purgatory: bool = False,
 ) -> dict[int, list[Prospect]]:
     """Gets prospects belonging to the SDR, with optional query and ordering.
@@ -208,7 +208,7 @@ def get_prospects(
         prospects = prospects.filter(
             or_(
                 Prospect.hidden_until == None,
-                Prospect.hidden_until < datetime.datetime.utcnow()
+                Prospect.hidden_until < datetime.datetime.utcnow(),
             )
         )
 
@@ -360,6 +360,7 @@ def update_prospect_status_linkedin(
     new_status: ProspectStatus,
     message: any = {},
     note: Optional[str] = None,
+    manually_send_to_purgatory: bool = False,
 ):
     from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
     from src.daily_notifications.services import create_engagement_feed_item
@@ -369,7 +370,7 @@ def update_prospect_status_linkedin(
     current_status = p.status
 
     # If the new status isn't an active convo sub status,
-    if not new_status.value.startswith("ACTIVE_CONVO_"):
+    if manually_send_to_purgatory:
         # Make sure the prospect isn't in the main pipeline for 48 hours
         send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
 
@@ -1535,7 +1536,7 @@ def update_all_last_reviewed_and_times_bumped():
     """
     data = db.session.execute(query).fetchall()
     for row in data:
-        update_last_reviewed_and_times_bumped.delay(
+        update_last_reviewed_and_times_bumped(
             prospect_id=row[0],
             new_last_reviewed=row[1],
             new_times_bumped=row[2],
