@@ -66,7 +66,7 @@ def update():
 
     success = update_message(message_id=message_id, update=update)
     if success:
-        return "OK", 200
+        return jsonify({"message": "Successfully updated the message"}), 200
 
     return (
         jsonify(
