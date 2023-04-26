@@ -50,11 +50,12 @@ def get_messages_queued_for_outreach_endpoint(client_sdr_id: int):
     limit = get_request_parameter("limit", request, json=False, required=False) or 5
     offset = get_request_parameter("offset", request, json=False, required=False) or 0
 
-    messages = get_messages_queued_for_outreach(client_sdr_id=client_sdr_id, limit=int(limit), offset=int(offset))
+    messages, total_count = get_messages_queued_for_outreach(client_sdr_id=client_sdr_id, limit=int(limit), offset=int(offset))
 
     return jsonify({
         "message": "Success",
-        "messages": messages
+        "messages": messages,
+        "total_count": total_count,
     }), 200
 
 

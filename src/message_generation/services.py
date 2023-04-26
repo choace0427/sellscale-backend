@@ -55,7 +55,7 @@ from src.message_generation.services_stack_ranked_configurations import (
 HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
 
 
-def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 5, offset: Optional[int] = 0) -> list[dict]:
+def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 5, offset: Optional[int] = 0) -> tuple[list[dict], int]:
     """Gets the messages queued for outreach for a client SDR
 
     Args:
@@ -66,8 +66,7 @@ def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 
     Returns:
         list[dict]: List of messages queued for outreach
     """
-    joined_prospect_message = (
-        db.session.query(
+    joined_prospect_message = db.session.query(
             Prospect.id.label("prospect_id"),
             Prospect.full_name.label("full_name"),
             Prospect.title.label("title"),
@@ -75,20 +74,24 @@ def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 
             Prospect.img_url.label("img_url"),
             GeneratedMessage.id.label("message_id"),
             GeneratedMessage.completion.label("completion"),
-        )
-        .join(
+        ).join(
             GeneratedMessage,
             Prospect.approved_outreach_message_id == GeneratedMessage.id,
-        )
-        .filter(
+        ).filter(
             Prospect.client_sdr_id == client_sdr_id,
             GeneratedMessage.message_status
             == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
             or_(GeneratedMessage.pb_csv_count <= 2, GeneratedMessage.pb_csv_count == None)                 # Only grab messages that have not been sent twice
         )
-        .order_by(GeneratedMessage.created_at.asc())
-        .limit(limit)
-        .offset(offset)
+
+    total_count = joined_prospect_message.count()
+
+    joined_prospect_message = joined_prospect_message.order_by(
+        GeneratedMessage.created_at.asc()
+    ).limit(
+        limit
+    ).offset(
+        offset
     ).all()
 
     message_list = []
@@ -103,7 +106,7 @@ def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 
             "completion": row.completion,
         })
 
-    return message_list
+    return message_list, total_count
 
 
 @celery.task(bind=True, max_retries=3)

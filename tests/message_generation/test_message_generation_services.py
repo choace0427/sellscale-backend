@@ -84,8 +84,9 @@ def test_get_messages_queued_for_outreach():
     prospect.approved_outreach_message_id=generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
-    messages = get_messages_queued_for_outreach(sdr_id)
+    messages, total_count = get_messages_queued_for_outreach(sdr_id)
     assert len(messages) == 1
+    assert total_count == 1
     assert messages == [
         {
             'prospect_id': prospect_id,
