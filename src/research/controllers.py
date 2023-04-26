@@ -130,21 +130,36 @@ def get_account_research_points_inputs_endpoint(client_sdr_id: int):
 @require_user
 def generate_account_research_points_endpoint(client_sdr_id: int):
     archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True
+        "archetype_id", request, json=True, required=False
+    )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=False
     )
     hard_refresh = get_request_parameter(
         "hard_refresh", request, json=True, required=False
     )
 
-    archetype: ClientArchetype = ClientArchetype.query.filter_by(
-        id=archetype_id
-    ).first()
-    if archetype.client_sdr_id != client_sdr_id:
-        return "Unauthorized", 401
+    if archetype_id:
+        archetype: ClientArchetype = ClientArchetype.query.filter_by(
+            id=archetype_id
+        ).first()
+        if archetype.client_sdr_id != client_sdr_id:
+            return "Unauthorized", 401
 
-    success = run_research_extraction_for_prospects_in_archetype(
-        archetype_id=archetype_id, hard_refresh=hard_refresh
-    )
+        success = run_research_extraction_for_prospects_in_archetype(
+            archetype_id=archetype_id, hard_refresh=hard_refresh
+        )
+    elif prospect_id:
+        prospect: Prospect = Prospect.query.filter_by(
+            id=prospect_id
+        ).first()
+        if prospect.client_sdr_id != client_sdr_id:
+            return "Unauthorized", 401
+
+        generate_prospect_research.delay(prospect.id, False, hard_refresh)
+        success = True
+    else:
+        success = False
 
     if success:
         return "OK", 200
