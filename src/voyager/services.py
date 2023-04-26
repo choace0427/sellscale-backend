@@ -250,6 +250,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
     # If not, we return the conversation from the database
     if convo_entry or not check_for_update:
+        update_prospect_status(prospect_id=prospect_id, convo_urn_id=convo_urn_id)
         return get_convo_entries(convo_urn_id), "NO_UPDATE"
     else:
         # If we need to update the conversation, we do so
