@@ -499,6 +499,11 @@ def trigger_icp_classification(
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         for prospect_id in prospect_ids:
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            if prospect:
+                # Mark Prospect as IN PROGRESS
+                prospect.icp_fit_score = -2
+                prospect.icp_fit_reason = "Calculating ICP Fit Score"
             icp_classify.apply_async(
                 args=[prospect_id, client_sdr_id, archetype_id],
                 queue="ml_prospect_classification",
@@ -514,6 +519,11 @@ def trigger_icp_classification(
 
         # Run celery job for each prospect
         for prospect in prospects:
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            if prospect:
+                # Mark Prospect as IN PROGRESS
+                prospect.icp_fit_score = -2
+                prospect.icp_fit_reason = "Calculating ICP Fit Score"
             icp_classify.apply_async(
                 args=[prospect.id, client_sdr_id, archetype_id],
                 queue="ml_prospect_classification",
@@ -524,7 +534,7 @@ def trigger_icp_classification(
     return True
 
 
-@celery.task(bind=True, max_retries=2)
+@celery.task(bind=True, max_retries=3)
 def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) -> bool:
     """Classifies a prospect as an ICP or not.
 
@@ -602,11 +612,12 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         if not prospect:
             return False
         prospect.icp_fit_score = -1
-        prospect.icp_fit_reason = f"Unknown Error: {e}"
+        prospect.icp_fit_reason = "Failed to classify, please try again."
+        prospect.icp_fit_error = f"Unknown Error: {e}"
         db.session.add(prospect)
         db.session.commit()
 
-        raise self.retry(exc=Exception("Retrying task"))
+        raise self.retry(exc=e, countdown=30)
 
 
 HARD_CODE_ICP_HEADER = "I am a sales researcher. This is the Ideal Customer Profile for my target customer:\n\n"

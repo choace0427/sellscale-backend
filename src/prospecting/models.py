@@ -415,6 +415,7 @@ class Prospect(db.Model):
 
     icp_fit_score = db.Column(db.Integer, nullable=True)
     icp_fit_reason = db.Column(db.String, nullable=True)
+    icp_fit_error = db.Column(db.String, nullable=True)
     # account_research_description = db.Column(db.String, nullable=True)
 
     img_url = db.Column(db.String, nullable=True)
@@ -500,6 +501,7 @@ class Prospect(db.Model):
             "generated_message_info": generated_message_info,
             "icp_fit_score": self.icp_fit_score,
             "icp_fit_reason": self.icp_fit_reason,
+            "icp_fit_error": self.icp_fit_error,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
             "hidden_until": self.hidden_until,
