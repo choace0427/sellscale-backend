@@ -256,6 +256,7 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
     sdr.active = False
     sdr.weekly_li_outbound_target = 0
     sdr.weekly_email_outbound_target = 0
+    sdr.autopilot_enabled = False
 
     db.session.add(sdr)
     db.session.commit()
