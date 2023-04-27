@@ -149,45 +149,46 @@ def process_persona_split_request_task(self, task_id: int):
     Given a task id, process the task
     """
 
-    task: PersonaSplitRequestTask = PersonaSplitRequestTask.query.filter_by(
-        id=task_id
-    ).first()
-    if task is None:
-        return
-    if task.status != PersonaSplitRequestTaskStatus.QUEUED:
-        return
-    task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
-    task.tries += 1
-    db.session.add(task)
-    db.session.commit()
-
-    if task.tries > 3:
-        task.status = PersonaSplitRequestTaskStatus.FAILED
+    try:
+        task: PersonaSplitRequestTask = PersonaSplitRequestTask.query.filter_by(
+            id=task_id
+        ).first()
+        if task is None:
+            return
+        if task.status != PersonaSplitRequestTaskStatus.QUEUED:
+            return
+        task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
+        task.tries += 1
         db.session.add(task)
         db.session.commit()
-        return
 
-    prospect_id = task.prospect_id
-    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
-    destination_client_archetype_ids = task.destination_client_archetype_ids
-    archetypes = ClientArchetype.query.filter(
-        ClientArchetype.id.in_(destination_client_archetype_ids)
-    ).all()
+        if task.tries > 3:
+            task.status = PersonaSplitRequestTaskStatus.FAILED
+            db.session.add(task)
+            db.session.commit()
+            return
 
-    persona_options_str = "\n".join(
-        [
-            "- {archetype_id}: {archetype}".format(
-                archetype_id=archetype.id, archetype=archetype.archetype
-            )
-            for archetype in archetypes
-        ]
-    )
+        prospect_id = task.prospect_id
+        prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+        destination_client_archetype_ids = task.destination_client_archetype_ids
+        archetypes = ClientArchetype.query.filter(
+            ClientArchetype.id.in_(destination_client_archetype_ids)
+        ).all()
 
-    output = wrapped_chat_gpt_completion(
-        messages=[
-            {
-                "role": "system",
-                "content": """
+        persona_options_str = "\n".join(
+            [
+                "- {archetype_id}: {archetype}".format(
+                    archetype_id=archetype.id, archetype=archetype.archetype
+                )
+                for archetype in archetypes
+            ]
+        )
+
+        output = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
 I am splitting this Prospect into one of these personas:
 
 Persona Options:
@@ -199,41 +200,44 @@ Here is the prospect information:
 - Title: {prospect_title}
 - Company: {prospect_company}
             """.format(
-                    prospect_name=prospect.full_name,
-                    prospect_title=prospect.title,
-                    prospect_company=prospect.company,
-                    persona_options_str=persona_options_str,
-                ),
-            },
-            {
-                "role": "user",
-                "content": """
+                        prospect_name=prospect.full_name,
+                        prospect_title=prospect.title,
+                        prospect_company=prospect.company,
+                        persona_options_str=persona_options_str,
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": """
 Which persona should I bucket into? Only include the number related to the persona. Nothing else.
 
 Output a JSON object with two fields: "archetype_id" and "persona_id".
 
 Output:""",
-            },
-        ],
-        max_tokens=100,
-    )
+                },
+            ],
+            max_tokens=100,
+        )
 
-    output_dict = json.loads(output)
-    archetype_id_number = output_dict["persona_id"]
+        output_dict = json.loads(output)
+        archetype_id_number = output_dict["persona_id"]
 
-    if (
-        archetype_id_number == 0
-        or archetype_id_number not in destination_client_archetype_ids
-    ):
-        task.status = PersonaSplitRequestTaskStatus.FAILED
+        if (
+            archetype_id_number == 0
+            or archetype_id_number not in destination_client_archetype_ids
+        ):
+            task.status = PersonaSplitRequestTaskStatus.FAILED
+            db.session.add(task)
+            db.session.commit()
+            raise Exception("Invalid archetype id")
+
+        task.status = PersonaSplitRequestTaskStatus.COMPLETED
+        prospect.archetype_id = archetype_id_number
         db.session.add(task)
+        db.session.add(prospect)
         db.session.commit()
-        return
 
-    task.status = PersonaSplitRequestTaskStatus.COMPLETED
-    prospect.archetype_id = archetype_id_number
-    db.session.add(task)
-    db.session.add(prospect)
-    db.session.commit()
-
-    return persona_options_str
+        return persona_options_str
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
