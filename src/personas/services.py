@@ -55,6 +55,7 @@ def create_persona_split_request(
         )
         tasks.append(task)
     db.session.bulk_save_objects(tasks)
+    db.session.commit()
 
     return True, "OK"
 
