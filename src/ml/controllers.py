@@ -1,3 +1,4 @@
+from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user
 from app import db
 
@@ -16,6 +17,7 @@ from src.ml.services import (
     patch_icp_classification_prompt,
     trigger_icp_classification,
     edit_text,
+    generate_email,
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -267,7 +269,7 @@ def trigger_icp_classification_endpoint(client_sdr_id: int, archetype_id: int):
 
 @ML_BLUEPRINT.route("/edit_text", methods=["POST"])
 @require_user
-def post_edit_text(client_sr_id: int):
+def post_edit_text(client_sdr_id: int):
     """
     Enable user to edit text given an initial text and an instruction prompt.
     """
@@ -279,5 +281,25 @@ def post_edit_text(client_sr_id: int):
     )
 
     result = edit_text(initial_text=initial_text, edit_prompt=edit_prompt)
+
+    return jsonify({"message": "Success", "data": result}), 200
+
+
+@ML_BLUEPRINT.route("/generate_email", methods=["POST"])
+@require_user
+def post_generate_email(client_sdr_id: int):
+    """
+    Generate email given a value proposition and an archetype.
+    """
+
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    if prospect is None or prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect not found"}), 404
+    
+    result = generate_email(client_sdr_id, prospect)
 
     return jsonify({"message": "Success", "data": result}), 200

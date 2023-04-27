@@ -6,6 +6,7 @@ import requests
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.email_outbound.models import (
     ProspectEmail,
+    ProspectEmailStatus,
     ProspectEmailOutreachStatus,
     ProspectEmailStatusRecords,
     VALID_UPDATE_EMAIL_STATUS_MAP,
@@ -216,6 +217,53 @@ def get_prospects(
     prospects = prospects.limit(limit).offset(offset).all()
 
     return {"total_count": total_count, "prospects": prospects}
+
+
+def nylas_send_email(client_sdr_id: int, prospect: Prospect, subject: str, body: str):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    print(f"Sending email to {prospect.email} with subject {subject} and body {body} from {client_sdr.email}")
+
+    res = requests.post(
+        url=f"https://api.nylas.com/send",
+        headers={
+            "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        json={
+            "subject": subject,
+            "body": body,
+            "to": [{
+                "email": prospect.email,
+                "name": prospect.full_name,
+            }],
+            "from": [{
+                "email": client_sdr.email,
+                "name": client_sdr.name,
+            }],
+        },
+    )
+    result = res.json()
+
+    # Add PropsectEmail record
+    prospect_email = ProspectEmail(
+        prospect_id=prospect.id,
+        email_status=ProspectEmailStatus.SENT,
+        date_sent=datetime.datetime.utcnow(),
+        batch_id=result.get("thread_id"),
+        outreach_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+    )
+    db.session.add(prospect_email)
+    db.session.commit()
+
+    # Update Prospect
+    prospect.approved_prospect_email_id = prospect_email.id
+    db.session.add(prospect)
+    db.session.commit()
+
+    return result
 
 
 def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):

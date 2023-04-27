@@ -1,5 +1,10 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
+
+from src.research.models import ResearchPoints
+from src.research.models import ResearchPayload
+
+from src.research.models import AccountResearchPoints
 from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype, ClientSDR
@@ -647,3 +652,76 @@ Edited Text:""".format(
         max_tokens=int(len(initial_text) / 4) + 100,
     )
     return response
+
+
+def generate_email(client_sdr_id: int, prospect: Prospect):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
+        AccountResearchPoints.prospect_id == prospect.id
+    ).all()
+    research_points: List[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect.id)
+
+    company_name = client.company or ""
+    company_tagline = client.tagline or ""
+    company_description = client.description or ""
+
+    account_points = ''
+    for point in account_research:
+        account_points += f'- {point.title}: {point.reason}\n'
+
+    prospect_points = ''
+    for point in research_points:
+        account_points += f'- {point.value}\n'
+
+    prompt = f"""
+    I am writing a cold email to a prospect on behalf of `{company_name}`. {company_name} is a company with a tagline that says, "{company_tagline}". This is a description of what they do: "{company_description}"
+
+    They are reaching out to a category of people called, "{archetype.archetype}"
+
+    This is why the category would buy {company_name}'s product:
+
+    "{archetype.persona_fit_reason}"
+
+    I am reaching out to a prospect. Here is their information:
+
+    Full Name: {prospect.full_name}
+
+    Company Name: {prospect.company}
+
+    Job Title: {prospect.title}
+
+    Prospect Bio: {prospect.linkedin_bio}
+
+    Account Research:
+
+    {account_points}
+
+    Prospect Research:
+
+    {prospect_points}
+
+    Based on this information, write a brief email for {prospect.full_name} asking if they want to meet and learn more about {company_name}.
+
+    Email with subject:
+    """
+
+    response = wrapped_create_completion(
+        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        prompt=prompt,
+        temperature=1,
+        max_tokens=300,
+    )
+    response = response if isinstance(response, str) else ""
+
+    lines = response.split('\n')
+    subject = lines[0].strip()
+    body = '\n'.join(lines[1:]).strip()
+
+    return {
+        'subject': subject,
+        'body': body
+    }
+

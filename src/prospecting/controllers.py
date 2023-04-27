@@ -1,3 +1,4 @@
+from src.prospecting.services import nylas_send_email
 from src.prospecting.services import send_to_purgatory
 from src.prospecting.services import nylas_get_threads, nylas_get_messages
 from app import db
@@ -220,6 +221,24 @@ def get_email_messages(client_sdr_id: int, prospect_id: int):
     )
 
     return jsonify({"message": "Success", "data": messages}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/email", methods=["POST"])
+@require_user
+def post_send_email(client_sdr_id: int, prospect_id: int):
+
+    subject = get_request_parameter("subject", request, json=True, required=True)
+    body = get_request_parameter("body", request, json=True, required=True)
+
+    prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    result = nylas_send_email(client_sdr_id, prospect, subject, body)
+
+    return jsonify({"message": "Success", "data": result}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/send_to_purgatory", methods=["POST"])
