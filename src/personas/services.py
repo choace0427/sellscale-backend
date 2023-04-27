@@ -244,4 +244,5 @@ Output:""",
         return persona_options_str
     except Exception as e:
         db.session.rollback()
+
         raise self.retry(exc=e, countdown=2**self.request.retries)

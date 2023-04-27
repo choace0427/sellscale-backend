@@ -28,6 +28,7 @@ def create_unassigned_contacts_archetype(client_sdr_id: int) -> tuple[bool, str]
         archetype="{name}'s Unassigned Contacts".format(name=client_sdr.name),
         is_unassigned_contact_archetype=True,
         filters=[],
+        active=False,
     )
     client_archetype_id = data and data["client_archetype_id"]
 
