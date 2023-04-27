@@ -230,9 +230,6 @@ Output:""",
             archetype_id_number == 0
             or archetype_id_number not in destination_client_archetype_ids
         ):
-            task.status = PersonaSplitRequestTaskStatus.FAILED
-            db.session.add(task)
-            db.session.commit()
             raise Exception("Invalid archetype id")
 
         task.status = PersonaSplitRequestTaskStatus.COMPLETED
