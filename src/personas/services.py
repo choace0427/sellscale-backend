@@ -59,6 +59,12 @@ def create_persona_split_request(
     db.session.bulk_save_objects(tasks)
     db.session.commit()
 
+    tasks = PersonaSplitRequestTask.query.filter_by(
+        persona_split_request_id=persona_split_request_id
+    ).all()
+    for task in tasks:
+        process_persona_split_request_task.delay(task.id)
+
     return True, "OK"
 
 
