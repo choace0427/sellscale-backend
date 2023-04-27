@@ -142,10 +142,13 @@ def process_persona_split_request_task(self, task_id: int):
     """
     Given a task id, process the task
     """
+
     task: PersonaSplitRequestTask = PersonaSplitRequestTask.query.filter_by(
         id=task_id
     ).first()
     if task is None:
+        return
+    if task.status != PersonaSplitRequestTaskStatus.QUEUED:
         return
     task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
     task.tries += 1
