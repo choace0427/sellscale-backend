@@ -145,6 +145,7 @@ def create_client_archetype(
     persona_fit_reason: str = "",
     icp_matching_prompt: str = "",
     is_unassigned_contact_archetype: bool = False,
+    active: bool = True,
 ):
     c: Client = get_client(client_id=client_id)
     if not c:
@@ -160,6 +161,7 @@ def create_client_archetype(
         persona_fit_reason=persona_fit_reason,
         icp_matching_prompt=icp_matching_prompt,
         is_unassigned_contact_archetype=is_unassigned_contact_archetype,
+        active=active,
     )
     db.session.add(client_archetype)
     db.session.commit()
