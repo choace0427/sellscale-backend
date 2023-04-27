@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from src.research.models import ResearchPoints
 from src.research.models import ResearchPayload
