@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype, ClientSDR
@@ -380,28 +380,35 @@ def get_icp_classification_prompt_by_archetype_id(archetype_id: int) -> str:
     return archetype.icp_matching_prompt
 
 
-def post_icp_classification_prompt_change_request(
-    client_sdr_id: int, archetype_id: int, new_prompt: str
-) -> tuple[bool, str]:
-    """Sends a message to Slack notifying SellScale of a requested ICP Classification Prompt change.
+# def post_icp_classification_prompt_change_request(
+#     client_sdr_id: int, archetype_id: int, new_prompt: str
+# ) -> tuple[bool, str]:
+#     """Sends a message to Slack notifying SellScale of a requested ICP Classification Prompt change.
 
-    Args:
-        client_sdr_id (int): ID of the client SDR.
-        archetype_id (int): ID of the archetype.
-        new_prompt (str): The new prompt.
+#     Args:
+#         client_sdr_id (int): ID of the client SDR.
+#         archetype_id (int): ID of the archetype.
+#         new_prompt (str): The new prompt.
 
-    Returns:
-        bool: True if successful, False otherwise.
-    """
+#     Returns:
+#         bool: True if successful, False otherwise.
+#     """
+#     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+#     if not archetype:
+#         return False, "Archetype not found."
+
+#     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+#     if not sdr:
+#         return False, "Client SDR not found."
+
+#     return send_icp_classification_change_message(
+#         sdr_name=sdr.name,
+#         archetype=archetype.archetype, archetype_id=archetype.id, new_prompt=new_prompt
+#     )
+
+
+def send_icp_classification_change_message(sdr_name: str, archetype: str, archetype_id: int, new_prompt: str):
     from src.automation.slack_notification import send_slack_message, URL_MAP
-
-    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    if not archetype:
-        return False, "Archetype not found."
-
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not sdr:
-        return False, "Client SDR not found."
 
     message_sent = send_slack_message(
         message="ICP Classification Prompt Change Requested",
@@ -410,7 +417,7 @@ def post_icp_classification_prompt_change_request(
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "Pulse Check Change Requested - {sdr}".format(sdr=sdr.name),
+                    "text": "Pulse Check Change Requested - {sdr}".format(sdr=sdr_name),
                 },
             },
             {
@@ -419,7 +426,7 @@ def post_icp_classification_prompt_change_request(
                     {
                         "type": "mrkdwn",
                         "text": "Persona: {persona} ({archetype_id})".format(
-                            persona=archetype.archetype, archetype_id=archetype_id
+                            persona=archetype, archetype_id=archetype_id
                         ),
                     }
                 ],
@@ -440,7 +447,7 @@ def post_icp_classification_prompt_change_request(
     return True, "Success"
 
 
-def patch_icp_classification_prompt(archetype_id: int, prompt: str) -> bool:
+def patch_icp_classification_prompt(archetype_id: int, prompt: str, send_slack_message: Optional[bool] = False) -> bool:
     """Modifies the ICP Classification Prompt for a given archetype id.
 
     Args:
@@ -453,13 +460,22 @@ def patch_icp_classification_prompt(archetype_id: int, prompt: str) -> bool:
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
         return False
+    sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
 
     archetype.icp_matching_prompt = prompt
 
     db.session.add(archetype)
     db.session.commit()
 
-    return True
+    if send_slack_message:
+        send_icp_classification_change_message(
+            sdr_name=sdr.name,
+            archetype=archetype.archetype,
+            archetype_id=archetype.id,
+            new_prompt=prompt
+        )
+
+    return True, prompt
 
 
 def trigger_icp_classification(
