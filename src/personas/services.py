@@ -155,8 +155,12 @@ def process_persona_split_request_task(self, task_id: int):
         ).first()
         if task is None:
             return
-        if task.status != PersonaSplitRequestTaskStatus.QUEUED:
+        if task.status in [
+            PersonaSplitRequestTaskStatus.COMPLETED,
+            PersonaSplitRequestTaskStatus.FAILED,
+        ]:
             return
+
         task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
         task.tries += 1
         db.session.add(task)
