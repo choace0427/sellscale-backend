@@ -88,7 +88,7 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
             cast(count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is null) as float) / count(distinct prospect.id) "percent_unused_li_prospects",
             cast(count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is null) as float) / count(distinct prospect.id) "percent_unused_li_prospects"
         from client_archetype
-            join prospect on prospect.archetype_id = client_archetype.id
+            left join prospect on prospect.archetype_id = client_archetype.id
         where client_archetype.client_sdr_id = {client_sdr_id}
         group by 1,2,3
         order by active desc, archetype desc;
