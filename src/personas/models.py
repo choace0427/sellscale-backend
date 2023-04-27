@@ -22,6 +22,7 @@ class PersonaSplitRequest(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "created_at": self.created_at,
             "client_sdr_id": self.client_sdr_id,
             "source_client_archetype_id": self.source_client_archetype_id,
             "destination_client_archetype_ids": self.destination_client_archetype_ids,
