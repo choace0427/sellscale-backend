@@ -1,3 +1,4 @@
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from model_import import (
     PersonaSplitRequest,
     PersonaSplitRequestTask,
@@ -5,7 +6,8 @@ from model_import import (
     ClientArchetype,
     Prospect,
 )
-from app import db
+from app import db, celery
+import json
 
 
 def verify_client_sdr_can_access_archetype(client_sdr_id: int, archetype_id: int):
@@ -133,3 +135,96 @@ def get_split_request_details(split_request_id: int):
         "source_archetype_name": source_archetype.archetype,
         "destination_archetype_names": [ca.archetype for ca in destination_archetypes],
     }
+
+
+@celery.task(bind=True, max_retries=3)
+def process_persona_split_request_task(self, task_id: int):
+    """
+    Given a task id, process the task
+    """
+    task: PersonaSplitRequestTask = PersonaSplitRequestTask.query.filter_by(
+        id=task_id
+    ).first()
+    if task is None:
+        return
+    task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
+    task.tries += 1
+    db.session.add(task)
+    db.session.commit()
+
+    if task.tries > 3:
+        task.status = PersonaSplitRequestTaskStatus.FAILED
+        db.session.add(task)
+        db.session.commit()
+        return
+
+    prospect_id = task.prospect_id
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    destination_client_archetype_ids = task.destination_client_archetype_ids
+    archetypes = ClientArchetype.query.filter(
+        ClientArchetype.id.in_(destination_client_archetype_ids)
+    ).all()
+
+    persona_options_str = "\n".join(
+        [
+            "- {archetype_id}: {archetype}".format(
+                archetype_id=archetype.id, archetype=archetype.archetype
+            )
+            for archetype in archetypes
+        ]
+    )
+
+    output = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+I am splitting this Prospect into one of these personas:
+
+Persona Options:
+{persona_options_str}
+- 0: No match
+
+Here is the prospect information:
+- Full Name: {prospect_name}
+- Title: {prospect_title}
+- Company: {prospect_company}
+            """.format(
+                    prospect_name=prospect.full_name,
+                    prospect_title=prospect.title,
+                    prospect_company=prospect.company,
+                    persona_options_str=persona_options_str,
+                ),
+            },
+            {
+                "role": "user",
+                "content": """
+Which persona should I bucket into? Only include the number related to the persona. Nothing else.
+
+Output a JSON object with two fields: "archetype_id" and "persona_id".
+
+Output:""",
+            },
+        ],
+        max_tokens=100,
+    )
+
+    output_dict = json.loads(output)
+    archetype_id_number = output_dict["persona_id"]
+
+    if (
+        archetype_id_number == 0
+        or archetype_id_number not in destination_client_archetype_ids
+    ):
+        task.status = PersonaSplitRequestTaskStatus.FAILED
+        db.session.add(task)
+        db.session.commit()
+        return
+
+    task.status = PersonaSplitRequestTaskStatus.COMPLETED
+    prospect.archetype_id = archetype_id_number
+    db.session.add(task)
+    db.session.add(prospect)
+    db.session.commit()
+
+    return persona_options_str
