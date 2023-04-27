@@ -313,10 +313,8 @@ def get_prospect_upload_details(client_sdr_id: int, upload_id: int):
 
 
 @CLIENT_BLUEPRINT.route("/sdr/update_scheduling_link", methods=["PATCH"])
-def patch_update_scheduling_link():
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
-    )
+@require_user
+def patch_update_scheduling_link(client_sdr_id: int):
     scheduling_link = get_request_parameter(
         "scheduling_link", request, json=True, required=True
     )
@@ -324,10 +322,10 @@ def patch_update_scheduling_link():
     success = update_client_sdr_scheduling_link(
         client_sdr_id=client_sdr_id, scheduling_link=scheduling_link
     )
-
     if not success:
-        return "Failed to update scheduling link", 404
-    return "OK", 200
+        return jsonify({"error": "Failed to update scheduling link"}), 404
+
+    return jsonify({"message": "Scheduling link updated"}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr/update_email", methods=["PATCH"])
