@@ -417,7 +417,7 @@ def send_icp_classification_change_message(sdr_name: str, archetype: str, archet
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "Pulse Check Change Requested - {sdr}".format(sdr=sdr_name),
+                    "text": "Pulse Prompt Changed - {sdr}".format(sdr=sdr_name),
                 },
             },
             {
