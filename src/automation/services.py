@@ -568,6 +568,9 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
     # Loop through the results
     messages: list[GeneratedMessage] = []
     for result in result_object:
+        if result.get("0") is None:
+            continue
+
         # Grab the prospect
         prospect: Prospect = Prospect.query.filter(
             Prospect.linkedin_url == result.get("0"),
