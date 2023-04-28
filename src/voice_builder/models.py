@@ -27,3 +27,5 @@ class VoiceBuilderSamples(db.Model):
     sample_readable_data = db.Column(db.String, nullable=True)
     sample_prompt = db.Column(db.String, nullable=True)
     sample_completion = db.Column(db.String, nullable=True)
+
+    research_point_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
