@@ -7,6 +7,7 @@ Create Date: 2023-04-28 12:04:37.123764
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -26,7 +27,12 @@ def upgrade():
         sa.Column("client_id", sa.Integer(), nullable=True),
         sa.Column(
             "generated_message_type",
-            sa.Enum("LINKEDIN", "EMAIL", name="generatedmessagetype"),
+            postgresql.ENUM(
+                "LINKEDIN",
+                "EMAIL",
+                name="generatedmessagetype",
+                create_type=False,
+            ),
             nullable=False,
         ),
         sa.Column(
