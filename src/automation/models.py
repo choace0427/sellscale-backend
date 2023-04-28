@@ -172,13 +172,16 @@ class PhantomBusterAgent:
         dows = ["mon", "tue", "wed", "thu", "fri"]
 
         if target > 0:
+            # max slots that we can have (add more elements to support higher total target SLAs)
             minute_slots = [7, 14, 24, 38, 41, 48, 54]
             hour_slots = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
             if target > 45:
                 hours = hour_slots
+                # Only include the number of minutes that we need to reach our target
                 minutes = minute_slots[:math.ceil(target / (len(hours) * len(dows)))]
             else:
+                # Only include the number of hours that we need to reach our target
                 hours = hour_slots[:math.ceil(target / len(dows))]
                 minutes = [41]
         else:
