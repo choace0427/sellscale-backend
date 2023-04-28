@@ -37,7 +37,9 @@ class GeneratedMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
-    outbound_campaign_id = db.Column(db.Integer, db.ForeignKey("outbound_campaign.id"), nullable=True)
+    outbound_campaign_id = db.Column(
+        db.Integer, db.ForeignKey("outbound_campaign.id"), nullable=True
+    )
     gnlp_model_id = db.Column(
         db.Integer, db.ForeignKey("gnlp_models.id"), nullable=True
     )
@@ -50,7 +52,7 @@ class GeneratedMessage(db.Model):
     batch_id = db.Column(db.String, nullable=True)
 
     verified_for_send = db.Column(db.Boolean, nullable=True)
-    ai_approved = db.Column(db.Boolean, nullable=True)     # AI approved (or UW approved)
+    ai_approved = db.Column(db.Boolean, nullable=True)  # AI approved (or UW approved)
     human_edited = db.Column(db.Boolean, nullable=True)
 
     adversarial_ai_prediction = db.Column(db.Boolean, nullable=True)
@@ -111,7 +113,6 @@ class GeneratedMessage(db.Model):
             "adversary_identified_fix": self.adversary_identified_fix,
             "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
         }
-
 
 
 class GeneratedMessageInstruction(db.Model):
