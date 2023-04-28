@@ -499,16 +499,9 @@ def trigger_icp_classification(
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         for index, prospect_id in enumerate(prospect_ids):
-            prospect: Prospect = Prospect.query.get(prospect_id)
-            if prospect:
-                # Mark Prospect as QUEUED
-                prospect.icp_fit_score = -3
-                prospect.icp_fit_reason = "Queued for ICP Fit Score Calculation"
-                db.session.add(prospect)
-                db.session.commit()
-            icp_classify.apply_async(
-                args=[prospect_id, client_sdr_id, archetype_id],
-                countdown=float(index/3.0),
+            countdown = float(index/3.0)
+            mark_queued_and_classify.apply_async(
+                args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
                 routing_key="ml_prospect_classification",
                 priority=1,
@@ -522,21 +515,51 @@ def trigger_icp_classification(
 
         # Run celery job for each prospect
         for index, prospect in enumerate(prospects):
-            prospect: Prospect = Prospect.query.get(prospect.id)
             prospect_id = prospect.id
-            if prospect:
-                # Mark Prospect as QUEUED
-                prospect.icp_fit_score = -3
-                prospect.icp_fit_reason = "Queued for ICP Fit Score Calculation"
-                db.session.add(prospect)
-                db.session.commit()
-            icp_classify.apply_async(
-                args=[prospect.id, client_sdr_id, archetype_id],
-                countdown=float(index/3),
+            countdown = float(index/3.0)
+            mark_queued_and_classify.apply_async(
+                args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
                 routing_key="ml_prospect_classification",
                 priority=1,
             )
+    return True
+
+@celery.task(bind=True, max_retries=2)
+def mark_queued_and_classify(self, client_sdr_id: int, archetype_id: int, prospect_id: int, countdown: float) -> bool:
+    """ Marks a prospect as QUEUED and then ICP classifies it.
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        archetype_id (int): ID of the archetype
+        prospect_id (int): ID of the prospect
+        countdown (float): Number of seconds to wait before running the task
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    prospect: Prospect = Prospect.query.filter(
+        Prospect.id == prospect_id,
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.archetype_id == archetype_id,
+    ).first()
+    if not prospect:
+        return False
+
+    # Mark Prospect as QUEUED
+    prospect.icp_fit_score = -3
+    prospect.icp_fit_reason = "Queued for ICP Fit Score Calculation"
+    db.session.add(prospect)
+    db.session.commit()
+
+    # Classify Prospect
+    icp_classify.apply_async(
+        args=[prospect.id, client_sdr_id, archetype_id],
+        countdown=countdown,
+        queue="ml_prospect_classification",
+        routing_key="ml_prospect_classification",
+        priority=2,
+    )
 
     return True
 
