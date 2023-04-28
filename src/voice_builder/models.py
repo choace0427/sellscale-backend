@@ -15,17 +15,15 @@ class VoiceBuilderOnboarding(db.Model):
         nullable=True,
     )
 
-    sample_prompt_1 = db.Column(db.String, nullable=True)
-    sample_completion_1 = db.Column(db.String, nullable=True)
 
-    sample_prompt_2 = db.Column(db.String, nullable=True)
-    sample_completion_2 = db.Column(db.String, nullable=True)
+class VoiceBuilderSamples(db.Model):
+    __tablename__ = "voice_builder_samples"
 
-    sample_prompt_3 = db.Column(db.String, nullable=True)
-    sample_completion_3 = db.Column(db.String, nullable=True)
+    id = db.Column(db.Integer, primary_key=True)
+    voice_builder_onboarding_id = db.Column(
+        db.Integer, db.ForeignKey("voice_builder_onboarding.id")
+    )
 
-    sample_prompt_4 = db.Column(db.String, nullable=True)
-    sample_completion_4 = db.Column(db.String, nullable=True)
-
-    sample_prompt_5 = db.Column(db.String, nullable=True)
-    sample_completion_5 = db.Column(db.String, nullable=True)
+    sample_readable_data = db.Column(db.String, nullable=True)
+    sample_prompt = db.Column(db.String, nullable=True)
+    sample_completion = db.Column(db.String, nullable=True)
