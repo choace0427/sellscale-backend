@@ -519,7 +519,7 @@ def trigger_icp_classification(
 
         # Run celery job for each prospect
         for prospect in prospects:
-            prospect: Prospect = Prospect.query.get(prospect_id)
+            prospect: Prospect = Prospect.query.get(prospect.id)
             if prospect:
                 # Mark Prospect as IN PROGRESS
                 prospect.icp_fit_score = -2
