@@ -430,10 +430,23 @@ class Prospect(db.Model):
         self,
         return_messages: Optional[bool] = False,
         return_message_type: Optional[str] = None,
+        shallow_data: Optional[bool] = False,
     ) -> dict:
         from src.email_outbound.models import ProspectEmail
         from src.message_generation.models import GeneratedMessage
 
+        # Check if shallow_data is requested
+        if shallow_data:
+            return {
+                "id": self.id,
+                "full_name": self.full_name,
+                "company": self.company,
+                "title": self.title,
+                "icp_fit_score": self.icp_fit_score,
+                "icp_fit_reason": self.icp_fit_reason,
+            }
+
+        # Get prospect email status if it exists
         p_email: ProspectEmail = ProspectEmail.query.filter_by(
             prospect_id=self.id
         ).first()

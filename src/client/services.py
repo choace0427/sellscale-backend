@@ -116,7 +116,7 @@ def get_client_archetype_prospects(client_sdr_id: int, archetype_id: int, query:
         Prospect.full_name.ilike(f"%{query}%"),
     ).all()
 
-    return [p.to_dict() for p in prospects]
+    return [p.to_dict(shallow_data=True) for p in prospects]
 
 
 def get_client_archetype_performance(
