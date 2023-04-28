@@ -498,14 +498,15 @@ def trigger_icp_classification(
     """
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
-        for prospect_id in prospect_ids:
+        for index, prospect_id in enumerate(prospect_ids):
             prospect: Prospect = Prospect.query.get(prospect_id)
             if prospect:
-                # Mark Prospect as IN PROGRESS
-                prospect.icp_fit_score = -2
-                prospect.icp_fit_reason = "Calculating ICP Fit Score"
+                # Mark Prospect as QUEUED
+                prospect.icp_fit_score = -3
+                prospect.icp_fit_reason = "Queued for ICP Fit Score Calculation"
             icp_classify.apply_async(
                 args=[prospect_id, client_sdr_id, archetype_id],
+                countdown=float(index/3.0),
                 queue="ml_prospect_classification",
                 routing_key="ml_prospect_classification",
                 priority=1,
@@ -518,14 +519,15 @@ def trigger_icp_classification(
         ).all()
 
         # Run celery job for each prospect
-        for prospect in prospects:
+        for index, prospect in enumerate(prospects):
             prospect: Prospect = Prospect.query.get(prospect.id)
             if prospect:
-                # Mark Prospect as IN PROGRESS
-                prospect.icp_fit_score = -2
-                prospect.icp_fit_reason = "Calculating ICP Fit Score"
+                # Mark Prospect as QUEUED
+                prospect.icp_fit_score = -3
+                prospect.icp_fit_reason = "Queued for ICP Fit Score Calculation"
             icp_classify.apply_async(
                 args=[prospect.id, client_sdr_id, archetype_id],
+                countdown=float(index/3),
                 queue="ml_prospect_classification",
                 routing_key="ml_prospect_classification",
                 priority=1,
@@ -557,6 +559,19 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         ).first()
         if not prospect:
             return False
+
+        # Checkpoint: Mark Prospect as IN PROGRESS
+        prospect.icp_fit_score = -2
+        prospect.icp_fit_reason = "ICP Fit Score Calculation in Progress"
+        db.session.add(prospect)
+        db.session.commit()
+
+        # Reretrieve the Prospect
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.id == prospect_id,
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.archetype_id == archetype_id,
+        ).first()
 
         # Get Archetype for prompt
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
@@ -612,7 +627,7 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         if not prospect:
             return False
         prospect.icp_fit_score = -1
-        prospect.icp_fit_reason = "Failed to classify, please try again."
+        prospect.icp_fit_reason = "Error Calculating ICP Fit Score. Please try again."
         prospect.icp_fit_error = f"Unknown Error: {e}"
         db.session.add(prospect)
         db.session.commit()
