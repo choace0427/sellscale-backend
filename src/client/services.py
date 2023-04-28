@@ -1,4 +1,6 @@
 from click import Option
+from src.automation.models import PhantomBusterConfig, PhantomBusterType
+from src.automation.models import PhantomBusterAgent
 from app import db
 from flask import jsonify
 
@@ -263,6 +265,8 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
     db.session.add(sdr)
     db.session.commit()
 
+    update_phantom_buster_launch_schedule(client_sdr_id)
+
     return True
 
 
@@ -289,6 +293,8 @@ def activate_client_sdr(
 
     db.session.add(sdr)
     db.session.commit()
+
+    update_phantom_buster_launch_schedule(client_sdr_id)
 
     return True
 
@@ -615,6 +621,8 @@ def update_client_sdr_weekly_li_outbound_target(
     csdr.weekly_li_outbound_target = weekly_li_outbound_target
     db.session.add(csdr)
     db.session.commit()
+
+    update_phantom_buster_launch_schedule(client_sdr_id)
 
     return True
 
@@ -1228,3 +1236,17 @@ ICP Scoring Prompt:
     return wrapped_create_completion(
         model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=400
     )
+
+
+def update_phantom_buster_launch_schedule(client_sdr_id: int):
+
+    # Update the PhantomBuster to reflect the new SLA target
+    config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+        PhantomBusterConfig.client_sdr_id == client_sdr_id,
+        PhantomBusterConfig.pb_type == PhantomBusterType.OUTBOUND_ENGINE,
+    ).first()
+    pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=config.phantom_uuid)
+    result = pb_agent.update_launch_schedule()
+
+    print(result)
+

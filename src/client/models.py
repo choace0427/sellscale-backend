@@ -208,6 +208,8 @@ class ClientSDR(db.Model):
     scrape_time = db.Column(db.Time, nullable=True)  # in UTC
     next_scrape = db.Column(db.DateTime, nullable=True)  # in UTC
 
+    timezone = db.Column(db.String, server_default="America/Los_Angeles", nullable=False)
+
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
 
@@ -230,4 +232,5 @@ class ClientSDR(db.Model):
             "img_url": self.img_url,
             "img_expire": self.img_expire,
             "vessel_mailbox": self.vessel_mailbox,
+            "timezone": self.timezone,
         }

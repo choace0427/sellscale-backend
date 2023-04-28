@@ -1,4 +1,6 @@
 from email.policy import default
+
+from src.client.models import ClientSDR
 from app import db
 import sqlalchemy as sa
 import enum
@@ -6,6 +8,7 @@ import requests
 import datetime
 import json
 import os
+import math
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 
@@ -43,7 +46,7 @@ class PhantomBusterAgent:
     )
     LAUNCH_AGENT = "https://api.phantombuster.com/api/v1/agent/{phantom_uuid}/launch"
 
-    def __init__(self, id: int):
+    def __init__(self, id: str):
         self.id = id
         self.api_key = PHANTOMBUSTER_API_KEY
 
@@ -144,3 +147,59 @@ class PhantomBusterAgent:
         response = requests.request("GET", url, headers=headers, data={})
 
         return json.loads(response.text)
+
+
+    #
+
+    def update_launch_schedule(self):
+
+        config: PhantomBusterConfig = PhantomBusterConfig.query.filter(PhantomBusterConfig.phantom_uuid == self.id).first()
+        client_sdr: ClientSDR = ClientSDR.query.get(config.client_sdr_id)
+        
+        ADDS_PER_LAUNCH = 2
+        target = math.ceil(client_sdr.weekly_li_outbound_target / ADDS_PER_LAUNCH)
+
+        dows = ["mon", "tue", "wed", "thu", "fri"]
+
+        if target > 0:
+            minute_slots = [7, 14, 24, 38, 41, 48, 54]
+            hour_slots = [9, 10, 11, 12, 13, 14, 15, 16, 17]
+            
+            if target > 45:
+                hours = hour_slots
+                minutes = minute_slots[:math.ceil(target / (len(hours) * len(dows)))]
+            else:
+                hours = hour_slots[:math.ceil(target / len(dows))]
+                minutes = [41]
+        else:
+            hours = []
+            minutes = []
+
+        url = "https://api.phantombuster.com/api/v2/agents/save"
+
+        payload = {
+            "repeatedLaunchTimes": {
+                "minute": minutes,
+                "hour": hours,
+                "day": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+                "dow": dows,
+                "month": ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],
+                "timezone": client_sdr.timezone,
+            },
+            "id": self.id
+        }
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "X-Phantombuster-Key": self.api_key
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+
+        #print(response.text)
+
+        return {
+            "desired_target": client_sdr.weekly_li_outbound_target,
+            "actual_target": len(hours) * len(minutes) * len(dows) * ADDS_PER_LAUNCH,
+        }
+
