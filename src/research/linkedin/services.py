@@ -303,7 +303,7 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
                 ResearchPointType.COMMON_EDUCATION,
                 "common_education",
                 get_common_education,
-            )
+            ),
         ]
 
         bullets = {}
@@ -327,7 +327,9 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
                 input_payload = info
 
                 if t[0] == ResearchPointType.COMMON_EDUCATION:
-                    value = t[2](input_payload, prospect.client_sdr_id).get("response", "")
+                    value = t[2](input_payload, prospect.client_sdr_id).get(
+                        "response", ""
+                    )
                 else:
                     value = t[2](input_payload).get("response", "")
 

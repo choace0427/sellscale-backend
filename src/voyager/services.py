@@ -435,21 +435,21 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
     # Set the bumped status and times bumped
     if last_3_msg_was_you:
-        update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
+        # update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 3
         prospect.last_reviewed = latest_entry_date
         db.session.add(prospect)
         db.session.commit()
         return
     if last_2_msg_was_you:
-        update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
+        # update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 2
         prospect.last_reviewed = latest_entry_date
         db.session.add(prospect)
         db.session.commit()
         return
     if last_msg_was_you:
-        update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
+        # update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 1
         prospect.last_reviewed = latest_entry_date
         db.session.add(prospect)
