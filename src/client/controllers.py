@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.utils.slack import send_slack_message, URL_MAP
-from src.client.services import check_nylas_status
+from src.client.services import check_nylas_status, get_client_archetype_prospects
 from model_import import ClientPod
 from src.message_generation.models import GeneratedMessageCTA
 from src.client.services import (
@@ -169,6 +169,17 @@ def create_archetype(client_sdr_id: int):
         return "Client not found", 404
 
     return ca
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/prospects", methods=["GET"])
+@require_user
+def get_archetype_prospects_endpoint(client_sdr_id: int, archetype_id: int):
+    """Get all prospects, simple, for an archetype"""
+    search = get_request_parameter("search", request, json=False, required=False) or ""
+
+    prospects = get_client_archetype_prospects(client_sdr_id, archetype_id, search)
+
+    return jsonify({"message": "Success", "prospects": prospects}), 200
 
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes", methods=["GET"])

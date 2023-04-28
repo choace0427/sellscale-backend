@@ -99,6 +99,26 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
     return client_archetype_dicts
 
 
+def get_client_archetype_prospects(client_sdr_id: int, archetype_id: int, query: Optional[str] = "") -> list:
+    """Gets the prospects in an archetype
+
+    Args:
+        client_sdr_id (int): The ID of the Client SDR
+        archetype_id (int): The ID of the Client Archetype
+        query (str): The search query
+
+    Returns:
+        list: The list of prospects
+    """
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.archetype_id == archetype_id,
+        Prospect.full_name.ilike(f"%{query}%"),
+    ).all()
+
+    return [p.to_dict() for p in prospects]
+
+
 def get_client_archetype_performance(
     client_sdr_id: int, client_archetype_id: int
 ) -> dict:
