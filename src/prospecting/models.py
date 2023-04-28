@@ -440,6 +440,10 @@ class Prospect(db.Model):
             return {
                 "id": self.id,
                 "full_name": self.full_name,
+                "company": self.company,
+                "title": self.title,
+                "icp_fit_score": self.icp_fit_score,
+                "icp_fit_reason": self.icp_fit_reason,
             }
 
         # Get prospect email status if it exists
