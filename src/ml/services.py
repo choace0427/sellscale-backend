@@ -504,6 +504,8 @@ def trigger_icp_classification(
                 # Mark Prospect as QUEUED
                 prospect.icp_fit_score = -3
                 prospect.icp_fit_reason = "Queued for ICP Fit Score Calculation"
+                db.session.add(prospect)
+                db.session.commit()
             icp_classify.apply_async(
                 args=[prospect_id, client_sdr_id, archetype_id],
                 countdown=float(index/3.0),
@@ -521,10 +523,13 @@ def trigger_icp_classification(
         # Run celery job for each prospect
         for index, prospect in enumerate(prospects):
             prospect: Prospect = Prospect.query.get(prospect.id)
+            prospect_id = prospect.id
             if prospect:
                 # Mark Prospect as QUEUED
                 prospect.icp_fit_score = -3
                 prospect.icp_fit_reason = "Queued for ICP Fit Score Calculation"
+                db.session.add(prospect)
+                db.session.commit()
             icp_classify.apply_async(
                 args=[prospect.id, client_sdr_id, archetype_id],
                 countdown=float(index/3),
