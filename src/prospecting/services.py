@@ -1429,6 +1429,8 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 if p.overall_status
                 else p.status.value,
                 "linkedin_status": p.status.value,
+                "icp_fit_score": p.icp_fit_score,
+                "icp_fit_reason": p.icp_fit_reason,
                 "email_status": p_email_status,
                 "profile_pic": p.img_url,
                 "ai_responses_disabled": p.deactivate_ai_engagement,
