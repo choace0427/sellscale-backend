@@ -170,6 +170,7 @@ Werkzeug==2.1.2
 widgetsnbextension==3.6.1
 wrapt==1.14.1
 zipp==3.8.1
+duckduckgo_search==2.8.6
 sentry-sdk
 blinker
 lxml

@@ -1,3 +1,5 @@
+from src.client.models import ClientSDR
+from src.automation.li_searcher import search_for_li
 from app import db, celery
 from src.prospecting.models import (
     ProspectUploadsRawCSV,
@@ -273,7 +275,6 @@ def create_prospect_from_linkedin_link(
     Args:
         prospect_upload_id (int): The ID of the ProspectUploads row.
         allow_duplicates (bool): Whether to check for duplicates. Defaults to True.
-        email (str, optional): An email to add to the prospect. Defaults to None.
 
     Raises:
         self.retry: If the task fails, it will retry, up to the max_retries limit.
@@ -285,6 +286,8 @@ def create_prospect_from_linkedin_link(
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
             return False
+        
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect_upload.client_sdr_id)
 
         # Mark the prospect upload row as UPLOAD_IN_PROGRESS.
         prospect_upload.upload_attempts += 1
@@ -293,7 +296,30 @@ def create_prospect_from_linkedin_link(
         db.session.commit()
 
         email = prospect_upload.csv_row_data.get("email", None)
-        linkedin_url = prospect_upload.csv_row_data.get("linkedin_url")
+        linkedin_url = prospect_upload.csv_row_data.get("linkedin_url", None)
+
+        # If don't have a li_url but we have an email (and name, company?), search for the li_url
+        if not linkedin_url and email:
+
+            company = prospect_upload.csv_row_data.get("company", '')
+
+            full_name = prospect_upload.csv_row_data.get("full_name", '')
+            first_name = prospect_upload.csv_row_data.get("first_name", '')
+            last_name = prospect_upload.csv_row_data.get("last_name", '')
+
+            valid = full_name or (first_name and last_name)
+            if(not valid):
+                raise Exception("Not a valid name found to find email: {}".format(email))
+
+            result = search_for_li(email, client_sdr.timezone, str(full_name or first_name + ' ' + last_name).strip(), company)
+            
+            if result:
+                linkedin_url = result
+                #print("Found LinkedIn URL: {}".format(linkedin_url))
+            else:
+                raise Exception("No LinkedIn URL found for email: {}".format(email))
+
+
         # Get the LinkedIn URL profile id for iScraper.
         if "/in/" in linkedin_url:
             slug = get_linkedin_slug_from_url(linkedin_url)

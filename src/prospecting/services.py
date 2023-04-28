@@ -1235,10 +1235,10 @@ def validate_prospect_json_payload(payload: dict, email_enabled: bool = False):
         email = prospect.get("email")
         linkedin_url = prospect.get("linkedin_url")
 
-        if not linkedin_url:
+        if not linkedin_url and not email:
             return (
                 False,
-                "Could not find the required 'linkedin_url' field. Please check your CSV, or make sure each Prospect has a linkedin_url field.",
+                "Could not find the required 'linkedin_url' or 'email' field. Please check your CSV, or make sure each Prospect has a linkedin_url or email field.",
             )
 
         if email_enabled and not email:
