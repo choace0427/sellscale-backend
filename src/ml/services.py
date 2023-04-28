@@ -525,6 +525,31 @@ def trigger_icp_classification(
             )
     return True
 
+
+def trigger_icp_classification_single_prospect(
+    client_sdr_id: int, archetype_id: int, prospect_id: int
+) -> tuple(str, str):
+    """ Triggers the ICP Classification Endpoint for a given client SDR id and archetype id.
+
+    Args:
+        client_sdr_id (int): The client SDR id.
+        archetype_id (int): The archetype id.
+        prospect_id (int): The prospect id.
+
+    Returns:
+        tuple(str, str): The fit and reason.
+    """
+    try:
+        fit, reason = icp_classify(
+            prospect_id=prospect_id,
+            client_sdr_id=client_sdr_id,
+            archetype_id=archetype_id,
+        )
+        return fit, reason
+    except:
+        return "ERROR", "Failed to classify prospect."
+
+
 @celery.task(bind=True, max_retries=2)
 def mark_queued_and_classify(self, client_sdr_id: int, archetype_id: int, prospect_id: int, countdown: float) -> bool:
     """ Marks a prospect as QUEUED and then ICP classifies it.
@@ -565,7 +590,7 @@ def mark_queued_and_classify(self, client_sdr_id: int, archetype_id: int, prospe
 
 
 @celery.task(bind=True, max_retries=3)
-def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) -> bool:
+def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) -> tuple(int, str):
     """Classifies a prospect as an ICP or not.
 
     Args:
@@ -574,7 +599,7 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         archetype_id (int): The archetype id.
 
     Returns:
-        bool: True if the prospect is an ICP, False otherwise.
+        tuple(int, str): The ICP fit score and reason.
     """
     from src.prospecting.upload.services import run_and_assign_intent_score
 
@@ -642,7 +667,7 @@ def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) 
         db.session.commit()
 
         run_and_assign_intent_score(prospect_id)
-        return True
+        return fit, reason
 
     except Exception as e:
         db.session.rollback()
