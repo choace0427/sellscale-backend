@@ -37,6 +37,16 @@ class PhantomBusterConfig(db.Model):
     error_message = db.Column(db.String, nullable=True)
 
 
+class PhantomBusterPayload(db.Model):
+    __tablename__ = "phantom_buster_payload"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+    pb_payload = db.Column(db.JSON, nullable=True)
+    pb_type = db.Column(db.Enum(PhantomBusterType), nullable=True)
+
+
 class PhantomBusterAgent:
     FETCH_AGENT_URL = (
         url
@@ -155,7 +165,7 @@ class PhantomBusterAgent:
 
         config: PhantomBusterConfig = PhantomBusterConfig.query.filter(PhantomBusterConfig.phantom_uuid == self.id).first()
         client_sdr: ClientSDR = ClientSDR.query.get(config.client_sdr_id)
-        
+
         ADDS_PER_LAUNCH = 2
         target = math.ceil(client_sdr.weekly_li_outbound_target / ADDS_PER_LAUNCH)
 
@@ -164,7 +174,7 @@ class PhantomBusterAgent:
         if target > 0:
             minute_slots = [7, 14, 24, 38, 41, 48, 54]
             hour_slots = [9, 10, 11, 12, 13, 14, 15, 16, 17]
-            
+
             if target > 45:
                 hours = hour_slots
                 minutes = minute_slots[:math.ceil(target / (len(hours) * len(dows)))]

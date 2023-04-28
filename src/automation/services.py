@@ -1,7 +1,7 @@
 from sqlalchemy import or_
 from app import db, celery
 from sqlalchemy.sql.expression import func
-from src.automation.models import PhantomBusterConfig, PhantomBusterType
+from src.automation.models import PhantomBusterConfig, PhantomBusterType, PhantomBusterPayload
 from model_import import Client, ClientSDR, ProspectStatus
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
@@ -553,6 +553,15 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
     """
     from model_import import Prospect, GeneratedMessage, GeneratedMessageStatus
     from datetime import datetime
+
+    # Create the payload
+    payload: PhantomBusterPayload = PhantomBusterPayload(
+        client_sdr_id=client_sdr_id,
+        pb_type=PhantomBusterType.OUTBOUND_ENGINE,
+        pb_payload=pb_payload,
+    )
+    db.session.add(payload)
+    db.session.commit()
 
     # Check if the payload is valid
     exit_code = pb_payload.get("exitCode")
