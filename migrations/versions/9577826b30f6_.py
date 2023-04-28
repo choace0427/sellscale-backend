@@ -7,6 +7,7 @@ Create Date: 2023-04-28 09:44:12.907682
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -24,7 +25,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('client_sdr_id', sa.Integer(), nullable=True),
     sa.Column('pb_payload', sa.JSON(), nullable=True),
-    sa.Column('pb_type', sa.Enum('INBOX_SCRAPER', 'OUTBOUND_ENGINE', name='phantombustertype'), nullable=True),
+    sa.Column('pb_type', postgresql.ENUM('INBOX_SCRAPER', 'OUTBOUND_ENGINE', name='phantombustertype', create_type=False), nullable=True),
     sa.ForeignKeyConstraint(['client_sdr_id'], ['client_sdr.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
