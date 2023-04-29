@@ -528,7 +528,7 @@ def trigger_icp_classification(
 
 def trigger_icp_classification_single_prospect(
     client_sdr_id: int, archetype_id: int, prospect_id: int
-) -> tuple(str, str):
+) -> tuple[str, str]:
     """ Triggers the ICP Classification Endpoint for a given client SDR id and archetype id.
 
     Args:
@@ -590,7 +590,7 @@ def mark_queued_and_classify(self, client_sdr_id: int, archetype_id: int, prospe
 
 
 @celery.task(bind=True, max_retries=3)
-def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) -> tuple(int, str):
+def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) -> tuple[int, str]:
     """Classifies a prospect as an ICP or not.
 
     Args:
