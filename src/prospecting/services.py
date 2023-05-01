@@ -223,26 +223,32 @@ def nylas_send_email(client_sdr_id: int, prospect: Prospect, subject: str, body:
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    print(f"Sending email to {prospect.email} with subject {subject} and body {body} from {client_sdr.email}")
+    print(
+        f"Sending email to {prospect.email} with subject {subject} and body {body} from {client_sdr.email}"
+    )
 
     res = requests.post(
         url=f"https://api.nylas.com/send",
         headers={
             "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            "Accept": "application/json",
+            "Content-Type": "application/json",
         },
         json={
             "subject": subject,
             "body": body,
-            "to": [{
-                "email": prospect.email,
-                "name": prospect.full_name,
-            }],
-            "from": [{
-                "email": client_sdr.email,
-                "name": client_sdr.name,
-            }],
+            "to": [
+                {
+                    "email": prospect.email,
+                    "name": prospect.full_name,
+                }
+            ],
+            "from": [
+                {
+                    "email": client_sdr.email,
+                    "name": client_sdr.name,
+                }
+            ],
         },
     )
     result = res.json()
@@ -1473,6 +1479,11 @@ def map_prospect_linkedin_status_to_prospect_overall_status(
         ProspectStatus.RESPONDED: ProspectOverallStatus.BUMPED,
         ProspectStatus.ACTIVE_CONVO: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_QUESTION: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectStatus.NOT_INTERESTED: ProspectOverallStatus.REMOVED,
         ProspectStatus.DEMO_SET: ProspectOverallStatus.DEMO,
         ProspectStatus.DEMO_WON: ProspectOverallStatus.DEMO,

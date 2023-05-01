@@ -708,7 +708,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
     ],
     ProspectStatus.ACTIVE_CONVO: [
         ProspectStatus.NOT_INTERESTED,
-        ProspectStatus.SCHEDULING,
+        # ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
         ProspectStatus.ACTIVE_CONVO_OBJECTION,
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
@@ -716,10 +716,11 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
+        ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_OBJECTION: [
         ProspectStatus.NOT_INTERESTED,
-        ProspectStatus.SCHEDULING,
+        # ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
@@ -727,10 +728,11 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
+        ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
         ProspectStatus.NOT_INTERESTED,
-        ProspectStatus.SCHEDULING,
+        # ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
         ProspectStatus.ACTIVE_CONVO_OBJECTION,
         ProspectStatus.ACTIVE_CONVO,
@@ -738,10 +740,11 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
+        ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUESTION: [
         ProspectStatus.NOT_INTERESTED,
-        ProspectStatus.SCHEDULING,
+        # ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
         ProspectStatus.ACTIVE_CONVO_OBJECTION,
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
@@ -749,10 +752,11 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
+        ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
         ProspectStatus.NOT_INTERESTED,
-        ProspectStatus.SCHEDULING,
+        # ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
         ProspectStatus.ACTIVE_CONVO_OBJECTION,
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
@@ -760,10 +764,11 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.RESPONDED,
+        ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_NEXT_STEPS: [
         ProspectStatus.NOT_INTERESTED,
-        ProspectStatus.SCHEDULING,
+        # ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,
         ProspectStatus.ACTIVE_CONVO_OBJECTION,
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
@@ -771,6 +776,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.RESPONDED,
+        ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.SCHEDULING: [
         ProspectStatus.DEMO_SET,
@@ -784,14 +790,14 @@ VALID_NEXT_LINKEDIN_STATUSES = {
     ],
     ProspectStatus.NOT_INTERESTED: [
         ProspectStatus.ACTIVE_CONVO,
-        ProspectStatus.SCHEDULING,
+        # ProspectStatus.SCHEDULING,
         ProspectStatus.DEMO_SET,
         ProspectStatus.NOT_QUALIFIED,
     ],
     ProspectStatus.NOT_QUALIFIED: [],
     ProspectStatus.SEND_OUTREACH_FAILED: [
-        ProspectStatus.PROSPECTED,              # Permissable to retry
-        ProspectStatus.SENT_OUTREACH,           # Permissable to be moved.
+        ProspectStatus.PROSPECTED,  # Permissable to retry
+        ProspectStatus.SENT_OUTREACH,  # Permissable to be moved.
     ],
     ProspectStatus.DEMO_WON: [],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_WON],

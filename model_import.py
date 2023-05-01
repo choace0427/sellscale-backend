@@ -39,7 +39,11 @@ from src.message_generation.models import (
 )
 
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs
-from src.automation.models import PhantomBusterConfig, PhantomBusterType
+from src.automation.models import (
+    PhantomBusterConfig,
+    PhantomBusterType,
+    PhantomBusterPayload,
+)
 from src.email_outbound.models import (
     EmailSchema,
     EmailCustomizedFieldTypes,

@@ -52,6 +52,7 @@ from model_import import (
     AccountResearchPoints,
     PersonaSplitRequest,
     PersonaSplitRequestTask,
+    PhantomBusterPayload,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -83,6 +84,7 @@ def test_app():
             prospect.approved_prospect_email_id = None
             db.session.add(prospect)
             db.session.commit()
+        clear_all_entities(PhantomBusterPayload)
         clear_all_entities(IScraperPayloadCache)
         clear_all_entities(PersonaSplitRequestTask)
         clear_all_entities(PersonaSplitRequest)
