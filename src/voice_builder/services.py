@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 from src.message_generation.services_stack_ranked_configurations import (
     get_sample_prompt_from_config_details,
 )
@@ -37,12 +38,14 @@ def create_voice_builder_onboarding(
     client_id: int,
     generated_message_type: GeneratedMessageType,
     instruction: str,
+    client_archetype_id: Optional[int] = None,
 ) -> VoiceBuilderOnboarding:
     """Creates a voice builder onboarding for a given client."""
     voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding(
         client_id=client_id,
         generated_message_type=generated_message_type,
         instruction=instruction,
+        client_archetype_id=client_archetype_id,
     )
     db.session.add(voice_builder_onboarding)
     db.session.commit()
