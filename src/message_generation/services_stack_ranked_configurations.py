@@ -302,7 +302,9 @@ def get_random_research_point(client_id: int, research_point_type: str):
     )
     result = db.engine.execute(query)
     data = result.first()
-    return data[0], data[1]
+    if data:
+        return data[0], data[1]
+    return None, None
 
 
 def random_cta_for_prospect(prospect_id: int):
@@ -343,6 +345,8 @@ def get_sample_prompt_from_config_details(
         rp, rp_type = get_random_research_point(
             client_id=client_id, research_point_type=rpt
         )
+        if not rp:
+            continue
         research_points.append(rp)
         selected_research_point_types.append(rp_type)
 
