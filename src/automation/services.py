@@ -577,7 +577,6 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
         return False
 
     # Loop through the results
-    messages: list[GeneratedMessage] = []
     for result in result_object:
         if result.get("0") is None:
             continue
@@ -603,31 +602,33 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
         # Check for error, otherwise set the message to sent
         error = result.get("error")
         if error:
+            message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
+            message.failed_outreach_error = error
+            db.session.add(message)
+            db.session.commit()
+
             update_prospect_status_linkedin(
                 prospect_id=prospect_id, new_status=ProspectStatus.SEND_OUTREACH_FAILED
             )
-            message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
-            message.failed_outreach_error = error
         else:
-            update_prospect_status_linkedin(
-                prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH
-            )
-            message: GeneratedMessage = GeneratedMessage.query.get(message_id)
             message.message_status = GeneratedMessageStatus.SENT
             message.date_sent = datetime.now()
             message.failed_outreach_error = None
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             sdr_name = sdr.name
             message_completion = message.completion
+            db.session.add(message)
+            db.session.commit()
+
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH
+            )
 
             send_slack_message(
                 message=f"LinkedIn Autoconnect: {sdr_name} sent a message to {prospect_li}\nmessage: {message_completion}",
                 webhook_urls=[URL_MAP["operations-li-sent-messages"]],
             )
 
-        messages.append(message)
-
-    db.session.bulk_save_objects(messages)
     db.session.commit()
 
     return True
@@ -646,312 +647,94 @@ def backfill_func():
     backfill_prospect_ids: list[int] = [
         int(num)
         for num in """
-    22797
-22883
-22890
-22893
-22899
-22901
-22920
-23065
-23068
-23075
-23092
-23107
-23109
-23112
-23148
-23177
-23185
-23186
-23228
-23232
-23234
-23240
-23257
-23311
-23338
-23362
-23407
-23415
-23420
-23422
-23440
-23458
-23462
-23466
-23502
-23503
-26045
-26051
-26096
-26133
-26139
-26149
-26162
-26172
-26180
-26189
-26191
-26220
-26223
-26318
-26338
-26350
-26355
-26361
-26373
-26378
-26380
-26418
-26419
-26447
-22555
-22573
-22577
-22588
-22622
-22678
-22709
-22712
-22726
-22739
-22746
-22761
-22772
-22774
-22786
-22805
-22812
-22819
-22846
-22849
-22855
-22876
-22878
-22916
-22949
-23022
-23026
-23042
-23069
-23117
-23209
-23282
-23296
-23316
-23325
-23326
-23331
-23356
-23371
-23433
-23434
-23436
-23460
-23476
-23488
-23513
-26040
-26063
-26065
-26098
-26108
-26128
-26134
-26157
-26163
-26165
-26174
-26192
-26214
-26231
-26268
-26277
-26303
-26305
-26343
-26356
-26357
-26368
-26396
-26407
-26411
-26426
-26431
-26437
-26443
-22654
-22679
-22727
-22755
-22756
-22757
-22773
-22784
-22817
-22825
-22842
-22845
-22851
-22866
-22881
-22907
-22924
-22939
-22942
-22944
-22964
-22982
-22986
-22993
-23002
-23018
-23049
-23052
-23115
-23122
-23130
-23131
-23134
-23160
-23161
-23168
-23190
-23199
-23200
-23201
-23225
-23229
-23252
-23288
-23294
-23298
-23336
-23351
-23374
-23376
-23396
-23448
-23498
-26059
-26105
-26107
-26110
-26117
-26118
-26121
-26130
-26136
-26148
-26153
-26199
-26230
-26263
-26275
-26329
-26375
-26405
-26433
-26434
-26435
-22547
-22554
-22561
-22547
-22554
-22561
-22588
-22603
-22644
-22653
-22676
-22678
-22681
-22704
-22748
-22758
-22772
-22781
-22794
-22802
-22830
-22831
-22836
-22842
-22857
-22869
-22897
-22901
-22991
-22993
-22994
-23036
-23059
-23108
-23113
-23124
-23125
-23184
-23216
-23230
-23264
-23269
-23275
-23318
-23363
-23377
-23381
-23382
-23400
-23405
-23417
-23448
-23451
-23455
-23467
-23470
-23489
-23501
-23505
-26071
-26102
-26151
-26160
-26182
-26185
-26195
-26211
-26219
-26270
-26277
-26318
-26323
-26356
-26370
-26373
-26384
-26508
-29839
+    221491
+67773
+226960
+221508
+226287
+226149
+226676
+226160
+226164
+221419
+221471
+221239
+226781
+226638
+226295
+226107
+226100
+226767
+221930
+226643
+221501
+221960
+226792
+226489
+226722
+226232
+226399
+226433
+226247
+226567
+222021
+226465
+226133
+226553
+226602
+226128
+226715
+226298
+226302
+226626
+226251
+226440
+226607
+226695
+227014
+226674
+226919
+226309
+226687
+226048
+100546
+226210
+226042
+226241
+226450
+221444
+226541
+47260
+226977
+221582
+226224
+226407
+67813
+221489
+226557
+224594
     """.split()
     ]
     print(backfill_prospect_ids)
-    updated_prospects = []
-    updated_messages = []
+    # updated_prospects = []
+    # updated_messages = []
     from tqdm import tqdm
 
     for prospect_id in tqdm(backfill_prospect_ids):
         prospect: Prospect = Prospect.query.get(prospect_id)
         if prospect is None:
             continue
-        prospect.status = ProspectStatus.QUEUED_FOR_OUTREACH
-        prospect.overall_status = ProspectOverallStatus.PROSPECTED
+        # prospect.status = ProspectStatus.QUEUED_FOR_OUTREACH
+        # prospect.overall_status = ProspectOverallStatus.PROSPECTED
         gm: GeneratedMessage = GeneratedMessage.query.get(
             prospect.approved_outreach_message_id
         )
-        gm.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
-        updated_prospects.append(prospect)
-        updated_messages.append(gm)
-    db.session.bulk_save_objects(updated_prospects)
-    db.session.bulk_save_objects(updated_messages)
+        if not gm:
+            continue
+        # gm.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
+        gm.message_status = GeneratedMessageStatus.SENT
+        # updated_prospects.append(prospect)
+        # updated_messages.append(gm)
+    # db.session.bulk_save_objects(updated_prospects)
+    # db.session.bulk_save_objects(updated_messages)
     db.session.commit()
