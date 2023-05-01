@@ -8,6 +8,7 @@ class VoiceBuilderOnboarding(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
     generated_message_type = db.Column(db.Enum(GeneratedMessageType), nullable=False)
     stack_ranked_message_generation_configuration_id = db.Column(
         db.Integer,
