@@ -1090,8 +1090,7 @@ def mark_prospects_as_queued_for_outreach(
 
     # Update messages
     updated_messages = []
-    for id in messages_ids:
-        message: GeneratedMessage = GeneratedMessage.query.get(id)
+    for message in messages:
         message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
         message.date_sent = datetime.datetime.utcnow()
         updated_messages.append(message)

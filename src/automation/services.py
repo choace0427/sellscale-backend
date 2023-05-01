@@ -627,6 +627,7 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool
 
         messages.append(message)
 
+    db.session.bulk_save_objects(messages)
     db.session.commit()
 
     return True
