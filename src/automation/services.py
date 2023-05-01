@@ -647,81 +647,85 @@ def backfill_func():
     backfill_prospect_ids: list[int] = [
         int(num)
         for num in """
-    221491
-67773
-226960
-221508
-226287
-226149
-226676
-226160
-226164
-221419
-221471
-221239
-226781
-226638
-226295
-226107
-226100
-226767
-221930
-226643
-221501
-221960
-226792
-226489
-226722
-226232
-226399
-226433
-226247
-226567
-222021
-226465
-226133
-226553
-226602
-226128
-226715
-226298
-226302
-226626
-226251
-226440
-226607
-226695
-227014
-226674
-226919
-226309
-226687
-226048
-100546
-226210
-226042
-226241
-226450
-221444
-226541
-47260
-226977
-221582
-226224
-226407
-67813
-221489
-226557
-224594
+    70473
+14736
+74344
+7161
+74206
+74343
+74225
+74250
+74318
+70501
+9269
+70587
+107287
+70223
+74287
+9218
+70922
+74472
+74365
+74224
+74234
+74227
+74232
+69012
+70919
+70920
+74229
+74471
+74473
+74315
+74175
+74230
+74273
+99090
+70940
+99234
+74174
+74282
+74279
+74248
+74314
+74527
+74387
+98965
+74245
+74223
+74276
+74335
+74418
+106168
+74359
+74172
+74235
+74327
+74202
+74176
+74170
+74217
+74312
+74500
+74260
+74329
+74226
+74171
+74302
+68450
+74233
+74351
+74369
     """.split()
     ]
     print(backfill_prospect_ids)
-    # updated_prospects = []
-    # updated_messages = []
+    updated_prospects = []
+    updated_messages = []
     from tqdm import tqdm
 
     for prospect_id in tqdm(backfill_prospect_ids):
         prospect: Prospect = Prospect.query.get(prospect_id)
+        print(prospect)
         if prospect is None:
             continue
         # prospect.status = ProspectStatus.QUEUED_FOR_OUTREACH
@@ -732,9 +736,11 @@ def backfill_func():
         if not gm:
             continue
         # gm.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
+        print(gm.message_status.value)
         gm.message_status = GeneratedMessageStatus.SENT
-        # updated_prospects.append(prospect)
-        # updated_messages.append(gm)
-    # db.session.bulk_save_objects(updated_prospects)
-    # db.session.bulk_save_objects(updated_messages)
+        updated_prospects.append(prospect)
+        updated_messages.append(gm)
+        print(gm.message_status.value)
+    db.session.bulk_save_objects(updated_prospects)
+    db.session.bulk_save_objects(updated_messages)
     db.session.commit()
