@@ -1,6 +1,7 @@
-from message_generation.services_stack_ranked_configurations import (
+from src.message_generation.services_stack_ranked_configurations import (
     get_sample_prompt_from_config_details,
 )
+from src.ml.fine_tuned_models import get_computed_prompt_completion
 from model_import import (
     GeneratedMessageType,
     VoiceBuilderOnboarding,
@@ -61,13 +62,26 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int):
     voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
         voice_builder_onboarding_id
     )
-    # get_sample_prompt_from_config_details(
-    #     generated_message_type=voice_builder_onboarding.generated_message_type.value,
-    #     research_point_types=[
-    #         research_point_type.value
-    #         for research_point_type in ResearchPointType._value2member_map_.keys()
-    #     ],
-    # )
+    prompt, _ = get_sample_prompt_from_config_details(
+        generated_message_type=voice_builder_onboarding.generated_message_type.value,
+        research_point_types=[x.value for x in ResearchPointType],
+        configuration_type="DEFAULT",
+        client_id=voice_builder_onboarding.client_id,
+    )
+    computed_prompt = """
+{instruction}
+
+data: {prompt}
+completion:""".format(
+        instruction=voice_builder_onboarding.instruction, prompt=prompt
+    )
+
+    completion = get_computed_prompt_completion(
+        computed_prompt=computed_prompt,
+        prompt=prompt,
+    )
+
+    return prompt, computed_prompt, completion
 
 
 def edit_voice_builder_sample(

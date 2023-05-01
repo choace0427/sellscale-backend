@@ -14,6 +14,7 @@ class VoiceBuilderOnboarding(db.Model):
         db.ForeignKey("stack_ranked_message_generation_configuration.id"),
         nullable=True,
     )
+    instruction = db.Column(db.String, nullable=True)
 
 
 class VoiceBuilderSamples(db.Model):
