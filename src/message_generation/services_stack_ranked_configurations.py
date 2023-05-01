@@ -333,7 +333,7 @@ def get_sample_prompt_from_config_details(
 
     random_prospect = get_random_prospect(client_id=client_id)
     if not random_prospect:
-        return "", None, [], None
+        return "", None, [], None, {}
     prospect_id = random_prospect.id
 
     research_points = []

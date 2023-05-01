@@ -49,6 +49,22 @@ def create_voice_builder_onboarding(
     return voice_builder_onboarding
 
 
+def update_voice_builder_onboarding_instruction(
+    voice_builder_onboarding_id: int,
+    updated_instruction: str,
+):
+    """
+    Updates the instruction for a given voice builder onboarding.
+    """
+    voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
+        voice_builder_onboarding_id
+    )
+    voice_builder_onboarding.instruction = updated_instruction
+    db.session.add(voice_builder_onboarding)
+    db.session.commit()
+    return voice_builder_onboarding
+
+
 def create_voice_builder_samples(
     voice_builder_onboarding_id: int,
     n: int,
