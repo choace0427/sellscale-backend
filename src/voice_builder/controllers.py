@@ -4,7 +4,10 @@ from model_import import ClientSDR
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 
-from src.voice_builder.services import conduct_research_for_n_prospects
+from src.voice_builder.services import (
+    conduct_research_for_n_prospects,
+    create_voice_builder_onboarding,
+)
 
 VOICE_BUILDER_BLUEPRINT = Blueprint("voice_builder", __name__)
 
@@ -20,4 +23,31 @@ def get_account_research_points(client_sdr_id: int):
     success = conduct_research_for_n_prospects(client_id=client_id, n=n)
     if success:
         return "Success", 200
-    return "Failure", 500
+    return "Failed to generate research.", 400
+
+
+@VOICE_BUILDER_BLUEPRINT.route("/create_onboarding", methods=["POST"])
+@require_user
+def create_onboarding(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id: int = client_sdr.client_id
+
+    generated_message_type = get_request_parameter(
+        "generated_message_type", request, json=True, required=True
+    )
+    instruction = get_request_parameter(
+        "instruction", request, json=True, required=True
+    )
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=False
+    )
+
+    success = create_voice_builder_onboarding(
+        client_id=client_id,
+        generated_message_type=generated_message_type,
+        instruction=instruction,
+        client_archetype_id=client_archetype_id,
+    )
+    if success:
+        return "Success", 200
+    return "Failed to create voice builder onboarding.", 400
