@@ -73,6 +73,15 @@ def update_voice_builder_onboarding_instruction(
     return voice_builder_onboarding
 
 
+def get_voice_builder_samples(voice_builder_onboarding_id: int):
+    voice_builder_samples: list[
+        VoiceBuilderSamples
+    ] = VoiceBuilderSamples.query.filter_by(
+        voice_builder_onboarding_id=voice_builder_onboarding_id
+    ).all()
+    return [x.to_dict() for x in voice_builder_samples]
+
+
 def create_voice_builder_samples(
     voice_builder_onboarding_id: int,
     n: int,
@@ -81,6 +90,7 @@ def create_voice_builder_samples(
         create_voice_builder_sample(
             voice_builder_onboarding_id=voice_builder_onboarding_id
         )
+    return True
 
 
 def create_voice_builder_sample(voice_builder_onboarding_id: int):

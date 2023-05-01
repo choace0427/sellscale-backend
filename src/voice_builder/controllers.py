@@ -7,7 +7,11 @@ from src.authentication.decorators import require_user
 from src.voice_builder.services import (
     conduct_research_for_n_prospects,
     create_voice_builder_onboarding,
+    create_voice_builder_samples,
+    get_voice_builder_samples,
+    generate_computed_prompt,
 )
+from model_import import VoiceBuilderOnboarding
 
 VOICE_BUILDER_BLUEPRINT = Blueprint("voice_builder", __name__)
 
@@ -51,3 +55,47 @@ def create_onboarding(client_sdr_id: int):
     if success:
         return "Success", 200
     return "Failed to create voice builder onboarding.", 400
+
+
+@VOICE_BUILDER_BLUEPRINT.route("/create_samples", methods=["POST"])
+@require_user
+def create_samples(client_sdr_id: int):
+    voice_builder_onboarding_id: int = get_request_parameter(
+        "voice_builder_onboarding_id", request, json=True, required=True
+    )
+    n: int = get_request_parameter("n", request, json=True, required=True)
+    success = create_voice_builder_samples(
+        voice_builder_onboarding_id=voice_builder_onboarding_id, n=n
+    )
+    if success:
+        return "Success", 200
+    return "Failed to create voice builder samples.", 400
+
+
+@VOICE_BUILDER_BLUEPRINT.route("/get_details", methods=["GET"])
+@require_user
+def get_details(client_sdr_id: int):
+    voice_builder_onboarding_id: int = get_request_parameter(
+        "voice_builder_onboarding_id", request, json=True, required=True
+    )
+    voice_builder_onboarding = VoiceBuilderOnboarding.query.get(
+        voice_builder_onboarding_id
+    )
+    voice_builder_onboarding_info = voice_builder_onboarding.to_dict()
+    sample_info = get_voice_builder_samples(
+        voice_builder_onboarding_id=voice_builder_onboarding_id
+    )
+    computed_prompt = generate_computed_prompt(
+        voice_builder_onboarding_id=voice_builder_onboarding_id
+    )
+
+    return (
+        jsonify(
+            {
+                "voice_builder_onboarding_info": voice_builder_onboarding_info,
+                "sample_info": sample_info,
+                "computed_prompt": computed_prompt,
+            }
+        ),
+        200,
+    )

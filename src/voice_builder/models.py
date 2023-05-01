@@ -17,6 +17,16 @@ class VoiceBuilderOnboarding(db.Model):
     )
     instruction = db.Column(db.String, nullable=True)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_archetype_id": self.client_archetype_id,
+            "generated_message_type": self.generated_message_type,
+            "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
+            "instruction": self.instruction,
+        }
+
 
 class VoiceBuilderSamples(db.Model):
     __tablename__ = "voice_builder_samples"
@@ -32,3 +42,14 @@ class VoiceBuilderSamples(db.Model):
 
     research_point_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
     cta_id = db.Column(db.Integer, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "voice_builder_onboarding_id": self.voice_builder_onboarding_id,
+            "sample_readable_data": self.sample_readable_data,
+            "sample_prompt": self.sample_prompt,
+            "sample_completion": self.sample_completion,
+            "research_point_ids": self.research_point_ids,
+            "cta_id": self.cta_id,
+        }
