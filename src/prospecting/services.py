@@ -530,53 +530,13 @@ def update_prospect_status_linkedin(
 
     if (
         current_status == ProspectStatus.RESPONDED
-        and new_status == ProspectStatus.SCHEDULING
-    ):
-        return update_prospect_status_linkedin_multi_step(
-            prospect_id=prospect_id,
-            statuses=[
-                ProspectStatus.ACTIVE_CONVO,
-                ProspectStatus.SCHEDULING,
-            ],
-        )
-
-    if (
-        current_status == ProspectStatus.RESPONDED
         and new_status == ProspectStatus.DEMO_SET
     ):
         return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
                 ProspectStatus.ACTIVE_CONVO,
-                ProspectStatus.SCHEDULING,
                 ProspectStatus.DEMO_SET,
-            ],
-        )
-
-    if (
-        current_status == ProspectStatus.ACCEPTED
-        and new_status == ProspectStatus.SCHEDULING
-    ):
-        return update_prospect_status_linkedin_multi_step(
-            prospect_id=prospect_id,
-            statuses=[
-                ProspectStatus.RESPONDED,
-                ProspectStatus.ACTIVE_CONVO,
-                ProspectStatus.SCHEDULING,
-            ],
-        )
-
-    if (
-        current_status == ProspectStatus.SENT_OUTREACH
-        and new_status == ProspectStatus.SCHEDULING
-    ):
-        return update_prospect_status_linkedin_multi_step(
-            prospect_id=prospect_id,
-            statuses=[
-                ProspectStatus.ACCEPTED,
-                ProspectStatus.RESPONDED,
-                ProspectStatus.ACTIVE_CONVO,
-                ProspectStatus.SCHEDULING,
             ],
         )
 
@@ -587,7 +547,6 @@ def update_prospect_status_linkedin(
         return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[
-                ProspectStatus.SCHEDULING,
                 ProspectStatus.DEMO_SET,
             ],
         )
