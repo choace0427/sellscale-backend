@@ -571,6 +571,7 @@ def generate_stack_ranked_configuration_tool_sample_prompt():
         selected_research_point_types,
         _,
         _,
+        _,
     ) = get_sample_prompt_from_config_details(
         generated_message_type=generated_message_type,
         research_point_types=research_point_types,

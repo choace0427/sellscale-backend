@@ -55,7 +55,9 @@ from src.message_generation.services_stack_ranked_configurations import (
 HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
 
 
-def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 5, offset: Optional[int] = 0) -> tuple[list[dict], int]:
+def get_messages_queued_for_outreach(
+    client_sdr_id: int, limit: Optional[int] = 5, offset: Optional[int] = 0
+) -> tuple[list[dict], int]:
     """Gets the messages queued for outreach for a client SDR
 
     Args:
@@ -66,7 +68,8 @@ def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 
     Returns:
         list[dict]: List of messages queued for outreach
     """
-    joined_prospect_message = db.session.query(
+    joined_prospect_message = (
+        db.session.query(
             Prospect.id.label("prospect_id"),
             Prospect.full_name.label("full_name"),
             Prospect.title.label("title"),
@@ -74,37 +77,44 @@ def get_messages_queued_for_outreach(client_sdr_id: int, limit: Optional[int] = 
             Prospect.img_url.label("img_url"),
             GeneratedMessage.id.label("message_id"),
             GeneratedMessage.completion.label("completion"),
-        ).join(
+        )
+        .join(
             GeneratedMessage,
             Prospect.approved_outreach_message_id == GeneratedMessage.id,
-        ).filter(
+        )
+        .filter(
             Prospect.client_sdr_id == client_sdr_id,
             GeneratedMessage.message_status
             == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
-            or_(GeneratedMessage.pb_csv_count <= 2, GeneratedMessage.pb_csv_count == None)                 # Only grab messages that have not been sent twice
+            or_(
+                GeneratedMessage.pb_csv_count <= 2,
+                GeneratedMessage.pb_csv_count == None,
+            ),  # Only grab messages that have not been sent twice
         )
+    )
 
     total_count = joined_prospect_message.count()
 
-    joined_prospect_message = joined_prospect_message.order_by(
-        GeneratedMessage.created_at.desc()
-    ).limit(
-        limit
-    ).offset(
-        offset
-    ).all()
+    joined_prospect_message = (
+        joined_prospect_message.order_by(GeneratedMessage.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
 
     message_list = []
     for row in joined_prospect_message:
-        message_list.append({
-            "prospect_id": row.prospect_id,
-            "full_name": row.full_name,
-            "title": row.title,
-            "company": row.company,
-            "img_url": row.img_url,
-            "message_id": row.message_id,
-            "completion": row.completion,
-        })
+        message_list.append(
+            {
+                "prospect_id": row.prospect_id,
+                "full_name": row.full_name,
+                "title": row.title,
+                "company": row.company,
+                "img_url": row.img_url,
+                "message_id": row.message_id,
+                "completion": row.completion,
+            }
+        )
 
     return message_list, total_count
 
@@ -281,7 +291,7 @@ def generate_prompt(prospect_id: int, notes: str = ""):
         prompt.replace('"', "").replace("\\", "").replace("\n", "\\n").replace("\r", "")
     )
 
-    return prompt
+    return prompt, bio_data
 
 
 def generate_batches_of_research_points(
@@ -385,7 +395,7 @@ def generate_linkedin_outreaches_with_configurations(
             notes, research_points, _ = get_notes_and_points_from_perm(
                 perm, cta_id=cta_id
             )
-            prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+            prompt, _ = generate_prompt(prospect_id=prospect_id, notes=notes)
 
             if len(research_points) == 0:
                 continue
@@ -451,7 +461,7 @@ def generate_linkedin_outreaches(
         #       default to the normal generation using baseline / fine tuned model for
         #       the archetype
         if not able_to_generate_with_few_shot:
-            prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+            prompt, _ = generate_prompt(prospect_id=prospect_id, notes=notes)
             model_id = 5
             completions = get_few_shot_baseline_prompt(prompt=prompt)
             instruction_id = None
@@ -846,7 +856,7 @@ def generate_prospect_email(
         is_first_email = True
         for perm in perms:
             notes, research_points, _ = get_notes_and_points_from_perm(perm)
-            prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+            prompt, _ = generate_prompt(prospect_id=prospect_id, notes=notes)
 
             if len(research_points) == 0:
                 update_generated_message_job_queue_status(
@@ -961,7 +971,7 @@ def generate_new_email_content_for_approved_email(prospect_id: int):
     notes, new_research_points, _ = get_notes_and_points_from_perm(
         perm, cta_id=gm.message_cta
     )
-    new_prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+    new_prompt, _ = generate_prompt(prospect_id=prospect_id, notes=notes)
 
     if new_config:
         new_personalized_line = get_personalized_first_line_from_prompt(

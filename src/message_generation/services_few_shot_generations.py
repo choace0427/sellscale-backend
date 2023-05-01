@@ -62,7 +62,7 @@ def generate_prompt_with_instruction(
 
     prospect_data = ""
     if incomplete:
-        incomplete_prompt_value = generate_prompt(prospect_id, notes=notes)
+        incomplete_prompt_value, _ = generate_prompt(prospect_id, notes=notes)
         prompt = "prompt: {prompt_value} \n\ninstruction: {instruction_value}\n\ncompletion:".format(
             prompt_value=incomplete_prompt_value,
             instruction_value=instruction_value,

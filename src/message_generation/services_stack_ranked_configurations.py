@@ -267,7 +267,7 @@ def get_prompts_from_stack_ranked_config(
 ):
     from src.message_generation.services import generate_prompt
 
-    prospect_prompt = generate_prompt(
+    prospect_prompt, _ = generate_prompt(
         prospect_id,
         "\n-".join(list_of_research_points),
     )
@@ -360,6 +360,6 @@ def get_sample_prompt_from_config_details(
         cta_id = cta_id
 
     notes = "\n-".join(research_points)
-    prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
+    prompt, bio_data = generate_prompt(prospect_id=prospect_id, notes=notes)
 
-    return prompt, selected_research_point_types, research_point_ids, cta_id
+    return prompt, selected_research_point_types, research_point_ids, cta_id, bio_data
