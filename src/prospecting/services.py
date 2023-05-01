@@ -1088,9 +1088,12 @@ def mark_prospects_as_queued_for_outreach(
     for id in prospect_ids:
         update_prospect_status_linkedin(id, ProspectStatus.QUEUED_FOR_OUTREACH)
 
+    db.session.commit()
+
     # Update messages
     updated_messages = []
-    for message in messages:
+    for id in messages_ids:
+        message: GeneratedMessage = GeneratedMessage.query.get(id)
         message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
         message.date_sent = datetime.datetime.utcnow()
         updated_messages.append(message)
