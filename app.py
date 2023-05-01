@@ -132,6 +132,7 @@ def register_blueprints(app):
     from src.voyager.controllers import VOYAGER_BLUEPRINT
     from src.bump_framework.controllers import BUMP_FRAMEWORK_BLUEPRINT
     from src.personas.controllers import PERSONAS_BLUEPRINT
+    from src.voice_builder.controllers import VOICE_BUILDER_BLUEPRINT
 
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
@@ -160,6 +161,7 @@ def register_blueprints(app):
     app.register_blueprint(VOYAGER_BLUEPRINT, url_prefix="/voyager")
     app.register_blueprint(BUMP_FRAMEWORK_BLUEPRINT, url_prefix="/bump_framework")
     app.register_blueprint(PERSONAS_BLUEPRINT, url_prefix="/personas")
+    app.register_blueprint(VOICE_BUILDER_BLUEPRINT, url_prefix="/voice_builder")
 
     db.init_app(app)
 
