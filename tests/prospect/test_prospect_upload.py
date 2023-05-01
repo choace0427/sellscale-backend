@@ -383,6 +383,8 @@ def test_run_and_assign_intent_score():
     p.health_check_score = 60
     p.hunter_email_score = 40
     p.icp_fit_score = 3
+    db.session.add(p)
+    db.session.commit()
 
     response = run_and_assign_intent_score(prospect_id=p_id)
     assert response == True

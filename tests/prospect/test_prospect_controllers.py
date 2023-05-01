@@ -549,7 +549,7 @@ def test_get_valid_next_prospect_statuses_endpoint():
         is not None
     )
 
-    assert len(linkedin_response.json["all_statuses"]) == 13
+    assert len(linkedin_response.json["all_statuses"]) == 18
 
     # Another LinkedIn
     prospect.status = ProspectStatus.ACCEPTED

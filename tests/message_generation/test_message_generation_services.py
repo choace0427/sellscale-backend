@@ -73,7 +73,7 @@ def test_get_messages_queued_for_outreach():
     sdr_id = sdr.id
     archetype = basic_archetype(client, sdr)
     prospect = basic_prospect(client, archetype, sdr)
-    prospect.company = 'Test Company'
+    prospect.company = "Test Company"
     prospect.status = "QUEUED_FOR_OUTREACH"
     prospect_id = prospect.id
     gnlp = basic_gnlp_model(archetype)
@@ -81,7 +81,7 @@ def test_get_messages_queued_for_outreach():
     generated_message = basic_generated_message(prospect, gnlp, cta)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
-    prospect.approved_outreach_message_id=generated_message.id
+    prospect.approved_outreach_message_id = generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
     messages, total_count = get_messages_queued_for_outreach(sdr_id)
@@ -89,13 +89,13 @@ def test_get_messages_queued_for_outreach():
     assert total_count == 1
     assert messages == [
         {
-            'prospect_id': prospect_id,
-            'full_name': 'Testing Testasara',
-            'title': 'Testing Director',
-            'company': 'Test Company',
-            'img_url': None,
-            'message_id': generated_message_id,
-            'completion': 'this is a test'
+            "prospect_id": prospect_id,
+            "full_name": "Testing Testasara",
+            "title": "Testing Director",
+            "company": "Test Company",
+            "img_url": None,
+            "message_id": generated_message_id,
+            "completion": "this is a test",
         }
     ]
 
@@ -312,7 +312,9 @@ def test_update_message(rule_engine_mock):
     assert len(edit_records) == 1
 
 
-@mock.patch("src.message_generation.controllers.update_message")
+@mock.patch(
+    "src.message_generation.controllers.update_linkedin_message_for_prospect_id"
+)
 def test_batch_update_messages(update_message_mock):
     response = app.test_client().patch(
         "/message_generation/batch_update",
@@ -327,7 +329,7 @@ def test_batch_update_messages(update_message_mock):
                         "title": "VP of Sales Ops & Strategy at Velocity Global",
                         "company": "Velocity Global",
                         "completion": "This is a test 1\n",
-                        "message_id": 2,
+                        "prospect_id": 2,
                     },
                     {
                         "linkedin_url": "linkedin.com/in/jameszw",
@@ -336,7 +338,7 @@ def test_batch_update_messages(update_message_mock):
                         "title": "VP of Sales Ops & Strategy at Velocity Global",
                         "company": "Velocity Global",
                         "completion": "This is a test 1\n",
-                        "message_id": 3,
+                        "prospect_id": 3,
                     },
                 ]
             }

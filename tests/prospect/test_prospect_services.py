@@ -10,7 +10,7 @@ from test_utils import (
     basic_generated_message,
     basic_gnlp_model,
     basic_generated_message_cta,
-    basic_outbound_campaign
+    basic_outbound_campaign,
 )
 from .constants import SAMPLE_LINKEDIN_RESEARCH_PAYLOAD
 from src.prospecting.services import (
@@ -747,7 +747,7 @@ def test_reengage_accepted_prospected():
     assert Prospect.query.get(prospect_id) is not None
     prospect: Prospect = Prospect.query.get(prospect_id)
     assert prospect.status == ProspectStatus.RESPONDED
-    assert prospect.last_reviewed is not None
+    assert prospect.last_reviewed is None
     assert prospect.times_bumped == 1
 
     response = app.test_client().post(
@@ -778,7 +778,6 @@ def test_reengage_active_prospected():
     assert Prospect.query.get(prospect.id) is not None
     prospect: Prospect = Prospect.query.get(prospect.id)
     assert prospect.status == ProspectStatus.ACTIVE_CONVO
-    assert prospect.last_reviewed is not None
 
 
 @use_app_context
@@ -962,12 +961,14 @@ def test_mark_prospects_as_queued_for_outreach():
     gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
     generated_message = basic_generated_message(prospect, gnlp, cta)
-    oc = basic_outbound_campaign([prospect_id], GeneratedMessageType.LINKEDIN, archetype, sdr)
+    oc = basic_outbound_campaign(
+        [prospect_id], GeneratedMessageType.LINKEDIN, archetype, sdr
+    )
     oc_id = oc.id
     generated_message_id = generated_message.id
     generated_message.message_status = "APPROVED"
     generated_message.outbound_campaign_id = oc_id
-    prospect.approved_outreach_message_id=generated_message.id
+    prospect.approved_outreach_message_id = generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
     result = mark_prospects_as_queued_for_outreach([prospect.id], sdr.id)

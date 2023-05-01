@@ -79,10 +79,15 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(
         # Constraint: Must have SLA space for Email
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         sdr.weekly_li_outbound_target = 2
+        db.session.add(sdr)
+        db.session.commit()
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
-        # assert status == (False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): SLA for Email has been filled")
+        assert status == (
+            True,
+            f"Autopilot Campaign successfully queued for ['LINKEDIN'] generation: Test SDR (#{client_sdr.id})",
+        )
         campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).all()
-        assert len(campaigns) == 2
+        assert len(campaigns) == 3
         for campaign in campaigns:
             assert campaign.campaign_start_date.weekday() == 0  # Monday
             assert campaign.campaign_end_date.weekday() == 6  # Sunday
@@ -92,6 +97,8 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         sdr.weekly_email_outbound_target = 2
         sdr.weekly_li_outbound_target = 2
+        db.session.add(sdr)
+        db.session.commit()
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
         assert status == (
             True,

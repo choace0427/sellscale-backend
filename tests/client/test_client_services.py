@@ -297,7 +297,10 @@ def test_update_client_sdr_scheduling_link_endpoint():
 
     response = app.test_client().patch(
         "client/sdr/update_scheduling_link",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {get_login_token()}",
+        },
         data=json.dumps(
             {
                 "client_sdr_id": client_sdr_id,

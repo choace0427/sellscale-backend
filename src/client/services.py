@@ -99,7 +99,9 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
     return client_archetype_dicts
 
 
-def get_client_archetype_prospects(client_sdr_id: int, archetype_id: int, query: Optional[str] = "") -> list:
+def get_client_archetype_prospects(
+    client_sdr_id: int, archetype_id: int, query: Optional[str] = ""
+) -> list:
     """Gets the prospects in an archetype
 
     Args:
@@ -1265,8 +1267,12 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
         PhantomBusterConfig.client_sdr_id == client_sdr_id,
         PhantomBusterConfig.pb_type == PhantomBusterType.OUTBOUND_ENGINE,
     ).first()
+    if not config:
+        return False, "PhantomBuster config not found"
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=config.phantom_uuid)
     result = pb_agent.update_launch_schedule()
 
-    print(result)
+    if result:
+        return True, "PhantomBuster launch schedule updated"
 
+    return False, "PhantomBuster launch schedule failed to update"
