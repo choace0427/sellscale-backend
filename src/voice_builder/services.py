@@ -62,7 +62,7 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int):
     voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
         voice_builder_onboarding_id
     )
-    prompt, _ = get_sample_prompt_from_config_details(
+    prompt, _, research_point_ids, cta_id = get_sample_prompt_from_config_details(
         generated_message_type=voice_builder_onboarding.generated_message_type.value,
         research_point_types=[x.value for x in ResearchPointType],
         configuration_type="DEFAULT",
@@ -76,10 +76,21 @@ completion:""".format(
         instruction=voice_builder_onboarding.instruction, prompt=prompt
     )
 
-    completion = get_computed_prompt_completion(
+    completion, _ = get_computed_prompt_completion(
         computed_prompt=computed_prompt,
         prompt=prompt,
     )
+
+    voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples(
+        voice_builder_onboarding_id=voice_builder_onboarding_id,
+        sample_readable_data=prompt,
+        sample_prompt=prompt,
+        sample_completion=completion,
+        research_point_ids=research_point_ids,
+        cta_id=cta_id,
+    )
+    db.session.add(voice_builder_sample)
+    db.session.commit()
 
     return prompt, computed_prompt, completion
 

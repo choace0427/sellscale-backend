@@ -30,3 +30,4 @@ class VoiceBuilderSamples(db.Model):
     sample_completion = db.Column(db.String, nullable=True)
 
     research_point_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
+    cta_id = db.Column(db.Integer, nullable=True)

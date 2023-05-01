@@ -566,7 +566,12 @@ def generate_stack_ranked_configuration_tool_sample_prompt():
     )
     client_id = get_request_parameter("client_id", request, json=True, required=False)
 
-    prompt, selected_research_point_types = get_sample_prompt_from_config_details(
+    (
+        prompt,
+        selected_research_point_types,
+        _,
+        _,
+    ) = get_sample_prompt_from_config_details(
         generated_message_type=generated_message_type,
         research_point_types=research_point_types,
         configuration_type=configuration_type,

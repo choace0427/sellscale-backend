@@ -291,7 +291,7 @@ def get_random_prospect(client_id: int):
 
 def get_random_research_point(client_id: int, research_point_type: str):
     query = """
-    select value, research_point.research_point_type
+    select value, research_point.research_point_type, research_point.id
     from research_point
         join research_payload on research_payload.id = research_point.research_payload_id
         join prospect on prospect.id = research_payload.prospect_id
@@ -303,8 +303,8 @@ def get_random_research_point(client_id: int, research_point_type: str):
     result = db.engine.execute(query)
     data = result.first()
     if data:
-        return data[0], data[1]
-    return None, None
+        return data[0], data[1], data[2]
+    return None, None, None
 
 
 def random_cta_for_prospect(prospect_id: int):
@@ -319,7 +319,7 @@ def random_cta_for_prospect(prospect_id: int):
     )
     if not ctas:
         return ""
-    return ctas.text_value
+    return ctas.text_value, ctas.id
 
 
 def get_sample_prompt_from_config_details(
@@ -333,28 +333,33 @@ def get_sample_prompt_from_config_details(
 
     random_prospect = get_random_prospect(client_id=client_id)
     if not random_prospect:
-        return "", None
+        return "", None, [], None
     prospect_id = random_prospect.id
 
     research_points = []
+    research_point_ids = []
     selected_research_point_types = []
     if configuration_type == "DEFAULT":
         research_point_types = random.sample(research_point_types, 2)
 
     for rpt in research_point_types:
-        rp, rp_type = get_random_research_point(
+        rp, rp_type, id = get_random_research_point(
             client_id=client_id, research_point_type=rpt
         )
         if not rp:
             continue
         research_points.append(rp)
+        research_point_ids.append(id)
+
         selected_research_point_types.append(rp_type)
 
+    cta_id = None
     if generated_message_type == "LINKEDIN":
-        cta = random_cta_for_prospect(prospect_id=prospect_id)
+        cta, cta_id = random_cta_for_prospect(prospect_id=prospect_id)
         research_points.append(cta)
+        cta_id = cta_id
 
     notes = "\n-".join(research_points)
     prompt = generate_prompt(prospect_id=prospect_id, notes=notes)
 
-    return prompt, selected_research_point_types
+    return prompt, selected_research_point_types, research_point_ids, cta_id
