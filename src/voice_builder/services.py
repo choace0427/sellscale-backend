@@ -1,5 +1,7 @@
 import json
 from typing import Optional
+
+from sqlalchemy import func
 from src.message_generation.services_stack_ranked_configurations import (
     get_sample_prompt_from_config_details,
 )
@@ -26,7 +28,10 @@ def conduct_research_for_n_prospects(
 ) -> bool:
     """Triggers research for n prospects for a given client."""
     prospects: list[Prospect] = (
-        Prospect.query.filter_by(client_id=client_id).limit(n).all()
+        Prospect.query.filter_by(client_id=client_id)
+        .order_by(func.random())
+        .limit(n)
+        .all()
     )
     for prospect in prospects:
         prospect_id = prospect.id
@@ -141,8 +146,47 @@ def delete_voice_builder_sample(
     return True
 
 
+def generate_computed_prompt(voice_builder_onboarding_id: int):
+    voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
+        voice_builder_onboarding_id
+    )
+    samples: list[VoiceBuilderSamples] = VoiceBuilderSamples.query.filter_by(
+        voice_builder_onboarding_id=voice_builder_onboarding_id
+    ).all()
+
+    instruction = voice_builder_onboarding.instruction
+    sample_str = "".join(
+        [
+            "--\n\nprompt: {prompt}\ncompletion: {completion}\n\n".format(
+                prompt=sample.sample_prompt,
+                completion=sample.sample_completion,
+            )
+            for sample in samples
+        ]
+    )
+    suffix = "\nprompt: {prompt}\ncompletion:"
+
+    computed_prompt = """
+{instruction}
+
+{sample_str}
+--
+{suffix}
+    """.format(
+        instruction=instruction,
+        sample_str=sample_str,
+        suffix=suffix,
+    )
+
+    return computed_prompt
+
+
 def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     voice_builder_onboarding_id: int,
 ):
-    # convert voice builder onboarding to stack ranked message config
-    raise NotImplementedError
+    """
+    Converts a voice builder onboarding to a stack ranked message config.
+    """
+    computed_prompt = generate_computed_prompt(voice_builder_onboarding_id)
+
+    return computed_prompt
