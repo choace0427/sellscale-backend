@@ -20,12 +20,9 @@ from model_import import VoiceBuilderOnboarding
 VOICE_BUILDER_BLUEPRINT = Blueprint("voice_builder", __name__)
 
 
-@VOICE_BUILDER_BLUEPRINT.route("/generate_research", methods=["GET"])
-@require_user
-def get_account_research_points(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client_id: int = client_sdr.client_id
-
+@VOICE_BUILDER_BLUEPRINT.route("/generate_research", methods=["POST"])
+def get_account_research_points():
+    client_id = get_request_parameter("client_id", request, json=True, required=True)
     n = get_request_parameter("n", request, json=True, required=True)
 
     success = conduct_research_for_n_prospects(client_id=client_id, n=n)
