@@ -11,6 +11,8 @@ from model_import import (
     VoiceBuilderOnboarding,
     VoiceBuilderSamples,
     StackRankedMessageGenerationConfiguration,
+    Client,
+    ClientArchetype,
 )
 from model_import import Prospect, ResearchPointType
 from src.research.linkedin.services import get_research_and_bullet_points_new
@@ -197,6 +199,50 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     """
     Converts a voice builder onboarding to a stack ranked message config.
     """
+    voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
+        voice_builder_onboarding_id
+    )
     computed_prompt = generate_computed_prompt(voice_builder_onboarding_id)
 
-    return computed_prompt
+    client: Client = Client.query.get(voice_builder_onboarding.client_id)
+    company_name = client.company
+
+    sub_title = "Default"
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        voice_builder_onboarding.client_archetype_id
+    )
+    if archetype:
+        sub_title = archetype.archetype
+    srmc_name = "{company_name} - {sub_title} ({generated_message_type})".format(
+        company_name=company_name,
+        sub_title=sub_title,
+        generated_message_type=voice_builder_onboarding.generated_message_type.value,
+    )
+
+    priority = 4
+    if archetype:
+        priority = 5
+
+    srmc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration(
+            configuration_type="DEFAULT",
+            generated_message_type=voice_builder_onboarding.generated_message_type,
+            research_point_types=[x.value for x in ResearchPointType],
+            instruction=voice_builder_onboarding.instruction,
+            computed_prompt=computed_prompt,
+            active=True,
+            always_enable=False,
+            name=srmc_name,
+            client_id=voice_builder_onboarding.client_id,
+            archetype_id=voice_builder_onboarding.client_archetype_id,
+            priority=priority,
+        )
+    )
+    db.session.add(srmc)
+    db.session.commit()
+
+    voice_builder_onboarding.stack_ranked_message_generation_configuration_id = srmc.id
+    db.session.add(voice_builder_onboarding)
+    db.session.commit()
+
+    return srmc

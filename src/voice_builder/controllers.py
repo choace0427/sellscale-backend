@@ -14,6 +14,7 @@ from src.voice_builder.services import (
     update_voice_builder_onboarding_instruction,
     edit_voice_builder_sample,
     delete_voice_builder_sample,
+    convert_voice_builder_onboarding_to_stack_ranked_message_config,
 )
 from model_import import VoiceBuilderOnboarding
 
@@ -144,3 +145,16 @@ def post_delete_voice_builder_sample():
     if success:
         return "Success", 200
     return "Failed to delete voice builder sample.", 400
+
+
+@VOICE_BUILDER_BLUEPRINT.route("/convert_to_pattern", methods=["POST"])
+def post_convert_to_pattern():
+    voice_builder_onboarding_id: int = get_request_parameter(
+        "voice_builder_onboarding_id", request, json=True, required=True
+    )
+    success = convert_voice_builder_onboarding_to_stack_ranked_message_config(
+        voice_builder_onboarding_id=voice_builder_onboarding_id
+    )
+    if success:
+        return "Success", 200
+    return "Failed to convert voice builder onboarding to pattern.", 400
