@@ -140,7 +140,7 @@ def generate_research(prospect_id: int, retries: Optional[int] = 0) -> tuple[boo
             history, completion = get_research_bullet_form(prospect_id, history)
 
             # Get JSON
-            history, completion = get_research_json(prospect_id, history)
+            history, completion = get_research_json(history)
 
             research = json.loads(completion)
             return True, research
@@ -228,6 +228,7 @@ Ensure you relate each point to {prospect_name} and {prospect_company_name} and 
             },
         ],
         max_tokens=512,
+        temperature=0.75,
     )
 
     return history, completion
@@ -277,6 +278,7 @@ Keep the bullet points short and concise while ensuring that they are highly spe
         ],
         history=history,
         max_tokens=512,
+        temperature=0.75,
     )
 
     return history, completion
@@ -296,16 +298,14 @@ def get_research_json(history: list) -> tuple[list, str]:
 
     The JSON object should be a list of dictionaries, with each dictionary containing a 'source' and 'reason' key.
 
-    The format should be as following:
+    The format for the JSON object should be as follows:
 
-    ```
     [
         {
             "source": "source",
             "reason": "reason"
         },
     ]
-    ```
     """
 
     history, completion = wrapped_chat_gpt_completion_with_history(
@@ -317,6 +317,7 @@ def get_research_json(history: list) -> tuple[list, str]:
         ],
         history=history,
         max_tokens=512,
+        temperature=0.75,
     )
 
     return history, completion
