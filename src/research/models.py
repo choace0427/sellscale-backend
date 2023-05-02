@@ -12,6 +12,7 @@ class ResearchType(enum.Enum):
 
 class AccountResearchType(enum.Enum):
     GENERIC_RESEARCH = "GENERIC_RESEARCH"
+    CHATGPT_CHAIN_RESEARCH = "CHATGPT_CHAIN_RESEARCH"
 
 
 class ResearchPointType(enum.Enum):

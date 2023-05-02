@@ -64,7 +64,7 @@ def generate_generic_research(prompt: str, retries: int):
 
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_research(
-    self, prospect_id: int, print_research: bool = False, hard_refresh: bool = False, better_research: bool = False
+    self, prospect_id: int, print_research: bool = False, hard_refresh: bool = False
 ) -> tuple[str, list]:
     """
     Given a prospect ID, this will generate a research report for the prospect that
@@ -86,9 +86,7 @@ def generate_prospect_research(
             db.session.commit()
 
         prompt = get_research_generation_prompt(prospect_id)
-        research = generate_generic_research(prompt=prompt, retries=3)
-        if better_research:
-            _, research = generate_research(prospect_id, retries=3)
+        _, research = generate_research(prospect_id, retries=3)
 
         try:
             if print_research:
@@ -101,7 +99,7 @@ def generate_prospect_research(
         for point in research:
             account_research_point: AccountResearchPoints = AccountResearchPoints(
                 prospect_id=prospect_id,
-                account_research_type=AccountResearchType.GENERIC_RESEARCH,
+                account_research_type=AccountResearchType.CHATGPT_CHAIN_RESEARCH,
                 title=point["source"],
                 reason=point["reason"],
             )
