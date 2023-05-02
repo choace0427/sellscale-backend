@@ -22,7 +22,7 @@ class VoiceBuilderOnboarding(db.Model):
             "id": self.id,
             "client_id": self.client_id,
             "client_archetype_id": self.client_archetype_id,
-            "generated_message_type": self.generated_message_type,
+            "generated_message_type": self.generated_message_type.value,
             "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
             "instruction": self.instruction,
         }
