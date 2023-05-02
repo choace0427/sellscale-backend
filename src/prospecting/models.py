@@ -434,6 +434,7 @@ class Prospect(db.Model):
     ) -> dict:
         from src.email_outbound.models import ProspectEmail
         from src.message_generation.models import GeneratedMessage
+        from src.client.models import ClientArchetype
 
         # Check if shallow_data is requested
         if shallow_data:
@@ -469,10 +470,17 @@ class Prospect(db.Model):
                 generated_message.to_dict() if generated_message else {}
             )
 
+        # Get Archetype info
+        archetype_name = None
+        archetype: ClientArchetype = ClientArchetype.query.get(self.archetype_id)
+        if archetype:
+            archetype_name = archetype.archetype
+
         return {
             "id": self.id,
             "client_id": self.client_id,
             "archetype_id": self.archetype_id,
+            "archetype_name": archetype_name,
             "company": self.company,
             "company_url": self.company_url,
             "employee_count": self.employee_count,
