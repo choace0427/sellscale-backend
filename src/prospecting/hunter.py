@@ -76,11 +76,20 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     return p
 
 
-@celery.task
-def find_hunter_emails_for_prospects_under_client_sdr(client_sdr_id: int):
+@celery.task(bind=True, max_retries=3)
+def find_hunter_emails_for_prospects_under_archetype(self, client_sdr_id: int, archetype_id: int) -> bool:
+    """Finds hunter emails for all prospects under an archetype
+
+    Args:
+        archetype_id (int): archetype id
+
+    Returns:
+        bool: True
+    """
     prospects: list = Prospect.query.filter_by(
-        client_sdr_id=client_sdr_id, email=None
+        client_sdr_id=client_sdr_id, archetype_id=archetype_id, email=None
     ).all()
+
     count = 0
     for prospect in prospects:
         count += 1
