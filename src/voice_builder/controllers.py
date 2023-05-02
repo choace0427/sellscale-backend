@@ -8,8 +8,12 @@ from src.voice_builder.services import (
     conduct_research_for_n_prospects,
     create_voice_builder_onboarding,
     create_voice_builder_samples,
+    delete_voice_builder_sample,
     get_voice_builder_samples,
     generate_computed_prompt,
+    update_voice_builder_onboarding_instruction,
+    edit_voice_builder_sample,
+    delete_voice_builder_sample,
 )
 from model_import import VoiceBuilderOnboarding
 
@@ -94,3 +98,49 @@ def get_details():
         ),
         200,
     )
+
+
+@VOICE_BUILDER_BLUEPRINT.route("/update_instruction", methods=["POST"])
+def update_voice_builder_instruction():
+    voice_builder_onboarding_id: int = get_request_parameter(
+        "voice_builder_onboarding_id", request, json=True, required=True
+    )
+    instruction = get_request_parameter(
+        "instruction", request, json=True, required=True
+    )
+    success = update_voice_builder_onboarding_instruction(
+        voice_builder_onboarding_id=voice_builder_onboarding_id,
+        updated_instruction=instruction,
+    )
+    if success:
+        return "Success", 200
+    return "Failed to update voice builder instruction.", 400
+
+
+@VOICE_BUILDER_BLUEPRINT.route("/edit_sample", methods=["POST"])
+def post_edit_voice_builder_sample():
+    voice_builder_sample_id: int = get_request_parameter(
+        "voice_builder_sample_id", request, json=True, required=True
+    )
+    updated_text = get_request_parameter(
+        "updated_text", request, json=True, required=True
+    )
+    success = edit_voice_builder_sample(
+        voice_builder_sample_id=voice_builder_sample_id, updated_completion=updated_text
+    )
+    if success:
+        return "Success", 200
+    return "Failed to edit voice builder sample.", 400
+
+
+@VOICE_BUILDER_BLUEPRINT.route("/delete_sample", methods=["POST"])
+def post_delete_voice_builder_sample():
+    voice_builder_sample_id: int = get_request_parameter(
+        "voice_builder_sample_id", request, json=True, required=True
+    )
+    success = delete_voice_builder_sample(
+        voice_builder_sample_id=voice_builder_sample_id
+    )
+    if success:
+        return "Success", 200
+    return "Failed to delete voice builder sample.", 400
