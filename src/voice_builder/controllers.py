@@ -70,8 +70,7 @@ def create_samples(client_sdr_id: int):
 
 
 @VOICE_BUILDER_BLUEPRINT.route("/get_details", methods=["GET"])
-@require_user
-def get_details(client_sdr_id: int):
+def get_details():
     voice_builder_onboarding_id: int = get_request_parameter(
         "voice_builder_onboarding_id", request, json=True, required=True
     )
