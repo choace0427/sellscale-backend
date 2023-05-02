@@ -55,8 +55,7 @@ def create_onboarding():
 
 
 @VOICE_BUILDER_BLUEPRINT.route("/create_samples", methods=["POST"])
-@require_user
-def create_samples(client_sdr_id: int):
+def create_samples():
     voice_builder_onboarding_id: int = get_request_parameter(
         "voice_builder_onboarding_id", request, json=True, required=True
     )
