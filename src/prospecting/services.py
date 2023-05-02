@@ -208,14 +208,9 @@ def get_prospects(
     if not show_purgatory:
         prospects = prospects.filter(
             or_(
-                Prospect.hidden_until == None,  # @todo(Aakash) check if this works
+                Prospect.hidden_until == None,
                 Prospect.hidden_until < datetime.datetime.utcnow(),
             )
-        )
-    else:
-        prospects = prospects.filter(
-            Prospect.hidden_until
-            >= datetime.datetime.utcnow() + datetime.timedelta(days=2)
         )
 
     total_count = prospects.count()
