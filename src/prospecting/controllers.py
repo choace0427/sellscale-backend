@@ -762,7 +762,7 @@ def get_valid_channel_types():
 @require_user
 def pull_prospect_emails(client_sdr_id: int):
     archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True
+        "archetype_id", request, json=True, required=True, parameter_type=int
     )
 
     success = find_hunter_emails_for_prospects_under_archetype.apply_async(
