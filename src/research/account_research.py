@@ -88,7 +88,7 @@ def generate_prospect_research(
         prompt = get_research_generation_prompt(prospect_id)
         research = generate_generic_research(prompt=prompt, retries=3)
         if better_research:
-            research = generate_research(prospect_id, retries=3)
+            _, research = generate_research(prospect_id, retries=3)
 
         try:
             if print_research:
