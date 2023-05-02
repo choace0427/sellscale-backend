@@ -212,6 +212,10 @@ def get_prospects(
                 Prospect.hidden_until < datetime.datetime.utcnow(),
             )
         )
+    else:
+        prospects = prospects.filter(
+            Prospect.hidden_until >= datetime.datetime.utcnow()
+        )
 
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
