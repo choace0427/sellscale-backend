@@ -52,6 +52,8 @@ def get_sdr_pipeline_all_details(
                     not_(Prospect.hidden_until > datetime.utcnow()),
                 )
             )
+        else:
+            query = query.filter(Prospect.hidden_until > datetime.utcnow())
 
         li_statuses_count[li_status.value.lower()] = query.count()
     all_pipeline_details.update(li_statuses_count)  # TODO REMOVE THIS
@@ -71,6 +73,8 @@ def get_sdr_pipeline_all_details(
                     not_(Prospect.hidden_until > datetime.utcnow()),
                 )
             )
+        else:
+            query = query.filter(Prospect.hidden_until > datetime.utcnow())
 
         overall_statuses_count[overall_status.value] = query.count()
     all_pipeline_details[ProspectChannels.SELLSCALE.value] = overall_statuses_count
