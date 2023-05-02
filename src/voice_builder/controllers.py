@@ -43,14 +43,14 @@ def create_onboarding(client_sdr_id: int):
         "client_archetype_id", request, json=True, required=False
     )
 
-    success = create_voice_builder_onboarding(
+    onboarding: VoiceBuilderOnboarding = create_voice_builder_onboarding(
         client_id=client_id,
         generated_message_type=generated_message_type,
         instruction=instruction,
         client_archetype_id=client_archetype_id,
     )
-    if success:
-        return "Success", 200
+    if onboarding:
+        return jsonify(onboarding.to_dict()), 200
     return "Failed to create voice builder onboarding.", 400
 
 
