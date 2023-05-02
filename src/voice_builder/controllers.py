@@ -31,7 +31,7 @@ def get_account_research_points(client_sdr_id: int):
 
 
 @VOICE_BUILDER_BLUEPRINT.route("/create_onboarding", methods=["POST"])
-def create_onboarding(client_sdr_id: int):
+def create_onboarding():
     client_id = get_request_parameter("client_id", request, json=True, required=True)
     generated_message_type = get_request_parameter(
         "generated_message_type", request, json=True, required=True
