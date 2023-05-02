@@ -12,7 +12,6 @@ from src.email_outbound.models import (
     VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.research.linkedin.services import research_personal_profile_details
 from src.research.services import create_iscraper_payload_cache
 from src.prospecting.models import (
     Prospect,
@@ -975,6 +974,8 @@ def create_prospects_from_linkedin_link_list(
 def create_prospect_from_linkedin_link(
     self, archetype_id: int, url: str, batch: str = None, email: str = None
 ):
+    from src.research.linkedin.services import research_personal_profile_details
+
     try:
         if "/in/" in url:
             slug = get_linkedin_slug_from_url(url)

@@ -138,3 +138,53 @@ def wrapped_chat_gpt_completion(
     top_choice = choices[0]
     preview = top_choice["message"]["content"].strip()
     return preview
+
+
+def wrapped_chat_gpt_completion_with_history(
+     messages: list,
+    history: Optional[list] = [],
+    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    temperature: Optional[float] = DEFAULT_TEMPERATURE,
+    top_p: Optional[float] = DEFAULT_TOP_P,
+    n: Optional[int] = DEFAULT_N,
+    frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
+    stop: Optional[Union[str, list]] = DEFAULT_STOP,
+) -> tuple[list, str]:
+    """
+    Generates a completion using the GPT-3.5-turbo model.
+
+    messages needs to be in the format:
+    [
+        {
+            "role": "user",
+            "content": "Hello, how are you?"
+        },
+        {
+            "role": "assistant",
+            "content": "I am doing well, how about you?"
+        }
+        ...
+    ]
+    """
+    if history:
+        messages = history + messages
+
+    response = openai.ChatCompletion.create(
+        model=CURRENT_OPENAI_CHAT_GPT_MODEL,
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        n=n,
+        frequency_penalty=frequency_penalty,
+        stop=stop,
+    )
+    if response is None or response["choices"] is None or len(response["choices"]) == 0:
+        return ""
+
+    choices = response["choices"]
+    top_choice = choices[0]
+    preview = top_choice["message"]["content"].strip()
+
+    messages = messages + [{"role": "assistant", "content": preview}]
+    return messages, preview

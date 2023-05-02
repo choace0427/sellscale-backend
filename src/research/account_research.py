@@ -1,12 +1,14 @@
-from ctypes import Union
-from model_import import Prospect, Client, ClientArchetype
+from typing import Optional
+from model_import import Prospect, Client, ClientArchetype, ClientSDR
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
+    wrapped_chat_gpt_completion_with_history,
     CURRENT_OPENAI_CHAT_GPT_MODEL,
 )
 import json
 from model_import import AccountResearchType, AccountResearchPoints
 from app import db, celery
+from src.utils.abstract.attr_utils import deep_get
 
 
 def run_research_extraction_for_prospects_in_archetype(
@@ -48,19 +50,21 @@ def generate_generic_research(prompt: str, retries: int):
     """
     attempts = 0
     while attempts < retries:
-        json_str = wrapped_create_completion(
-            prompt=prompt, model=CURRENT_OPENAI_CHAT_GPT_MODEL, max_tokens=1000
-        )
-        research = json.loads(json_str)
-        if research:
-            break
-        attempts += 1
+        try:
+            json_str = wrapped_create_completion(
+                prompt=prompt, model=CURRENT_OPENAI_CHAT_GPT_MODEL, max_tokens=1000
+            )
+            research = json.loads(json_str)
+            if research:
+                break
+        except:
+            attempts += 1
     return research
 
 
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_research(
-    self, prospect_id: int, print_research: bool = False, hard_refresh: bool = False
+    self, prospect_id: int, print_research: bool = False, hard_refresh: bool = False, better_research: bool = False
 ) -> tuple[str, list]:
     """
     Given a prospect ID, this will generate a research report for the prospect that
@@ -83,6 +87,8 @@ def generate_prospect_research(
 
         prompt = get_research_generation_prompt(prospect_id)
         research = generate_generic_research(prompt=prompt, retries=3)
+        if better_research:
+            research = generate_research(prospect_id, retries=3)
 
         try:
             if print_research:
@@ -106,6 +112,214 @@ def generate_prospect_research(
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def generate_research(prospect_id: int, retries: Optional[int] = 0) -> tuple[bool, dict]:
+    """Generates sophisticated research on a Prospect through ChatGPT API chaining.
+
+    Chaining steps:
+    1. Use prospect, archetype & company info to create a 'research report'
+    2. Condense the research report into research points
+    3. Convert research points into JSON format
+
+    Args:
+        prospect_id (int): the prospect ID
+        retries (Optional[int], optional): the number of retries. Defaults to 0.
+
+    Returns:
+        tuple[bool, dict]: success status and research points
+    """
+
+    attempts = 0
+    while attempts < retries:
+        try:
+            # Get paragraph
+            history, completion = get_research_paragraph_form(prospect_id)
+
+            # Get bullet points
+            history, completion = get_research_bullet_form(prospect_id, history)
+
+            # Get JSON
+            history, completion = get_research_json(prospect_id, history)
+
+            research = json.loads(completion)
+            return True, research
+        except:
+            attempts += 1
+            continue
+
+    return False, {}
+
+
+def get_research_paragraph_form(prospect_id: int) -> tuple[list, str]:
+    """Gets research on a Prospect in paragraph form.
+
+    Args:
+        prospect_id (int): the prospect ID
+
+    Returns:
+        tuple[list, str]: chat history and research paragraph
+    """
+    from src.research.linkedin.services import get_research_payload_new
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return ""
+
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    if not archetype:
+        return ""
+
+    sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    if not sdr:
+        return ""
+
+    client: Client = Client.query.get(sdr.client_id)
+    if not client:
+        return ""
+
+    research_payload = get_research_payload_new(prospect_id)
+    company_tagline = deep_get(research_payload, "company.details.tagline")
+    company_description = deep_get(research_payload, "company.details.description")
+    company_size = deep_get(research_payload, "company.details.staff.total") or ""
+    company_size = str(company_size) + " employees" if company_size else ""
+
+    prompt: str = """I am a sales researcher who is identifying why the prospect company would be interested in purchasing my company, {sdr_company_name}'s, product or service.
+
+This is what my company, {sdr_company_name}, does:
+- tagline: {sdr_company_tagline}
+- description: {sdr_company_description}
+
+I am selling to a prospect named '{prospect_name}' who works at a company called '{prospect_company_name}'. Here is information about the prospect and the account I am selling to:
+- Prospect Name: {prospect_name}
+- Prospect Title: {prospect_title}
+- Prospect Persona: {prospect_persona_name}
+- Prospect Bio: {prospect_bio}
+- Persona Description: {prospect_persona_description}
+- Persona Buy Reason: {prospect_persona_buy_reason}
+- Company Name: {prospect_company_name}
+- Company Tagline: {prospect_company_tagline}
+- Company Description: {prospect_company_description}
+- Company Size: {prospect_company_size}
+
+Based on this information, give me a detailed report as to why {prospect_name} and {prospect_company_name} would want to buy {sdr_company_name}'s product.
+
+Ensure you relate each point to {prospect_name} and {prospect_company_name} and be very specific.""".format(
+    sdr_company_name=client.company,
+    sdr_company_tagline=client.tagline,
+    sdr_company_description=client.description,
+    prospect_name=prospect.full_name,
+    prospect_title=prospect.title,
+    prospect_persona_name=archetype.archetype,
+    prospect_bio=prospect.linkedin_bio,
+    prospect_persona_description=archetype.persona_description,
+    prospect_persona_buy_reason=archetype.persona_fit_reason,
+    prospect_company_name=prospect.company,
+    prospect_company_tagline=company_tagline,
+    prospect_company_description=company_description,
+    prospect_company_size=company_size,
+)
+
+    history, completion = wrapped_chat_gpt_completion_with_history(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            },
+        ],
+        max_tokens=512,
+    )
+
+    return history, completion
+
+
+def get_research_bullet_form(prospect_id: int, history: list) -> tuple[list, str]:
+    """Converts a research paragraph into bullet points. Research paragraph needs to be contained in history.
+
+    Args:
+        prospect_id (int): the prospect ID
+        history (list): The history of messages
+
+    Returns:
+        tuple[list, str]: chat history and research bullet points
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return ""
+
+    client: Client = Client.query.get(prospect.client_id)
+    if not client:
+        return ""
+
+    prompt = """Convert this report into a set of 4-6 highly specific research points
+- Each research point needs a 'source' and 'reason'
+- Each research point must explicitly mention {prospect_name} and/or {prospect_company_name}, with high priority given to {prospect_name}.
+- The source is a one to two word phrase that describes where the information may have come from.
+- The reason is a short sentence that synthesizes why {prospect_name} and {prospect_company_name} should buy {sdr_company_name}'s product.
+
+Follow the format:
+- Source: source
+- Reason: reason
+
+Keep the bullet points short and concise while ensuring that they are highly specific to {prospect_name} and {prospect_company_name}.
+    """.format(
+        sdr_company_name=client.company,
+        prospect_name=prospect.full_name,
+        prospect_company_name=prospect.company,
+    )
+
+    history, completion = wrapped_chat_gpt_completion_with_history(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            },
+        ],
+        history=history,
+        max_tokens=512,
+    )
+
+    return history, completion
+
+
+def get_research_json(history: list) -> tuple[list, str]:
+    """Converts a research paragraph into a JSON object. Research paragraph needs to be contained in history.
+
+    Args:
+        history (list): The history of messages
+
+    Returns:
+        tuple[list, str]: chat history and research JSON object
+    """
+
+    prompt: str = """Convert these research points into a JSON object.
+
+    The JSON object should be a list of dictionaries, with each dictionary containing a 'source' and 'reason' key.
+
+    The format should be as following:
+
+    ```
+    [
+        {
+            "source": "source",
+            "reason": "reason"
+        },
+    ]
+    ```
+    """
+
+    history, completion = wrapped_chat_gpt_completion_with_history(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            },
+        ],
+        history=history,
+        max_tokens=512,
+    )
+
+    return history, completion
 
 
 def get_research_generation_prompt(prospect_id: int) -> str:
@@ -139,7 +353,7 @@ Our Product Information:
 - the company tagline: {company_tagline}
 - why this persona would buy this product: {archetype_value_prop}
 
-You are a sales account research assistant. Using the information about the Prospect and Product, explain why the prospect would be a good fit for buying the product. 
+You are a sales account research assistant. Using the information about the Prospect and Product, explain why the prospect would be a good fit for buying the product.
 
 Generate a javascript array of objects. Each object should have two elements: source and reason. In source, label which prospect information you used to gather the data point. Keep reasons short, to 1 sentence maximum.
 

@@ -14,18 +14,12 @@ from src.prospecting.services import (
     add_prospect,
 )
 from src.research.models import IScraperPayloadType
-from src.research.linkedin.services import (
-    research_personal_profile_details,
-    get_iscraper_payload_error,
-    research_corporate_profile_details,
-)
 from src.research.services import create_iscraper_payload_cache
 from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
 from sqlalchemy import bindparam, update
 import json, hashlib
 import math
-from src.prospecting.hunter import find_hunter_email_from_prospect_id
 
 
 def create_raw_csv_entry_from_json_payload(
@@ -282,11 +276,16 @@ def create_prospect_from_linkedin_link(
     Returns:
         bool: True if the prospect was created successfully. Errors otherwise.
     """
+    from src.research.linkedin.services import (
+        research_personal_profile_details,
+        get_iscraper_payload_error,
+        research_corporate_profile_details,
+    )
     try:
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
             return False
-        
+
         client_sdr: ClientSDR = ClientSDR.query.get(prospect_upload.client_sdr_id)
 
         # Mark the prospect upload row as UPLOAD_IN_PROGRESS.
@@ -312,7 +311,7 @@ def create_prospect_from_linkedin_link(
                 raise Exception("Not a valid name found to find email: {}".format(email))
 
             result = search_for_li(email, client_sdr.timezone, str(full_name or first_name + ' ' + last_name).strip(), company)
-            
+
             if result:
                 linkedin_url = result
                 #print("Found LinkedIn URL: {}".format(linkedin_url))
@@ -557,6 +556,7 @@ def calculate_health_check_follower_sigmoid(num_followers: int = 0) -> int:
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def refresh_bio_followers_for_prospect(self, prospect_id: int):
+    from src.research.linkedin.services import research_personal_profile_details
     try:
         p = Prospect.query.get(prospect_id)
         print(p)
