@@ -1,6 +1,6 @@
 from app import db
 import sqlalchemy as sa, enum
-from model_import import GeneratedMessageType
+from model_import import GeneratedMessageType, ResearchPoints
 
 
 class VoiceBuilderOnboarding(db.Model):
@@ -51,5 +51,11 @@ class VoiceBuilderSamples(db.Model):
             "sample_prompt": self.sample_prompt,
             "sample_completion": self.sample_completion,
             "research_point_ids": self.research_point_ids,
+            "research_point_types": [
+                rp.research_point_type.value
+                for rp in ResearchPoints.query.filter(
+                    ResearchPoints.id.in_(self.research_point_ids)
+                ).all()
+            ],
             "cta_id": self.cta_id,
         }
