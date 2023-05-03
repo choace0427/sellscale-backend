@@ -77,12 +77,15 @@ def send_message(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
-    msg = get_request_parameter("message", request, json=True, required=True, parameter_type=str)
+    msg = get_request_parameter(
+        "message", request, json=True, required=True, parameter_type=str
+    )
 
     purgatory = get_request_parameter(
         "purgatory", request, json=True, required=False, parameter_type=bool
     )
-    if purgatory is None: purgatory = False
+    if purgatory is None:
+        purgatory = True
 
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
