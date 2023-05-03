@@ -540,11 +540,16 @@ def trigger_icp_classification_single_prospect(
         tuple(str, str): The fit and reason.
     """
     try:
-        fit, reason = icp_classify(
-            prospect_id=prospect_id,
-            client_sdr_id=client_sdr_id,
-            archetype_id=archetype_id,
-        )
+        fit = -1        # -1 fit means the prospect had an error, and we should try again
+        retries = 3     # Number of times to try to classify the prospect
+        attempts = 0    # Number of attempts to classify the prospect
+        while fit < 0 and attempts < retries:
+            fit, reason = icp_classify(
+                prospect_id=prospect_id,
+                client_sdr_id=client_sdr_id,
+                archetype_id=archetype_id,
+            )
+            attempts += 1
         return fit, reason
     except:
         return "ERROR", "Failed to classify prospect."
