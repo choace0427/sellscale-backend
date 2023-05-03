@@ -174,3 +174,4 @@ duckduckgo_search==2.8.6
 sentry-sdk
 blinker
 lxml
+gpt4free

@@ -101,8 +101,7 @@ def process_inbox(message_payload, client_sdr_id):
 
             prospect.li_conversation_thread_id = thread_url
             try:
-                splitted = thread_url.split("/")
-                prospect.li_conversation_urn_id = splitted[-2]
+                prospect.li_conversation_urn_id = thread_url.split('thread/')[-1].split('/')[0]
             except:
                 continue
             prospect.li_is_last_message_from_sdr = is_last_message_from_me
