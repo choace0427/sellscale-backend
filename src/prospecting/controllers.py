@@ -52,7 +52,7 @@ from src.authentication.decorators import require_user
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
 from src.integrations.vessel import SalesEngagementIntegration
-from src.prospecting.hunter import find_hunter_emails_for_prospects_under_client_sdr
+from src.prospecting.hunter import find_hunter_emails_for_prospects_under_archetype
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -761,10 +761,16 @@ def get_valid_channel_types():
 @PROSPECTING_BLUEPRINT.route("/pull_emails", methods=["POST"])
 @require_user
 def pull_prospect_emails(client_sdr_id: int):
-    success = find_hunter_emails_for_prospects_under_client_sdr.delay(client_sdr_id)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success = find_hunter_emails_for_prospects_under_archetype.apply_async(
+        args=[client_sdr_id, archetype_id]
+    )
     if success:
-        return "OK", 200
-    return "Unable to fetch emails", 400
+        return jsonify({"message": "Success"}), 200
+    return jsonify({"message": "Unable to fetch emails"}), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/get_credits", methods=["GET"])
