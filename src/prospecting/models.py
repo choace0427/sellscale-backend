@@ -433,7 +433,11 @@ class Prospect(db.Model):
         shallow_data: Optional[bool] = False,
         return_convo: Optional[bool] = False,
     ) -> dict:
-        from src.email_outbound.models import ProspectEmail, EmailConversationThread, EmailConversationMessage
+        from src.email_outbound.models import (
+            ProspectEmail,
+            EmailConversationThread,
+            EmailConversationMessage,
+        )
         from src.message_generation.models import GeneratedMessage
         from src.client.models import ClientArchetype
         from src.li_conversation.models import LinkedinConversationEntry
@@ -480,25 +484,43 @@ class Prospect(db.Model):
         # Get last 5 messages of their most recent conversation
         recent_messages = {}
         if return_convo:
-            if self.li_conversation_thread_id and (self.status.value.startswith('ACTIVE_CONVO') or self.status.value == 'RESPONDED'):
-                recent_messages['li_convo'] = [msg.to_dict() for msg in LinkedinConversationEntry.query.filter(
-                    LinkedinConversationEntry.conversation_url.ilike(
-                        "%" + self.li_conversation_thread_id + "%"
+            if self.li_conversation_thread_id and (
+                self.status.value.startswith("ACTIVE_CONVO")
+                or self.status.value == "RESPONDED"
+            ):
+                recent_messages["li_convo"] = [
+                    msg.to_dict()
+                    for msg in LinkedinConversationEntry.query.filter(
+                        LinkedinConversationEntry.conversation_url.ilike(
+                            "%" + self.li_conversation_thread_id + "%"
+                        )
                     )
-                ).order_by(LinkedinConversationEntry.date.desc()).limit(5).all()]
+                    .order_by(LinkedinConversationEntry.date.desc())
+                    .limit(5)
+                    .all()
+                ]
 
-            if p_email_status == 'ACTIVE_CONVO' or p_email_status == 'SCHEDULING':
-                thread = EmailConversationThread.query.filter(
-                    EmailConversationThread.client_sdr_id == self.client_sdr_id,
-                    EmailConversationThread.prospect_id == self.id,
-                ).order_by(EmailConversationThread.updated_at.desc()).first()
+            if p_email_status == "ACTIVE_CONVO" or p_email_status == "SCHEDULING":
+                thread = (
+                    EmailConversationThread.query.filter(
+                        EmailConversationThread.client_sdr_id == self.client_sdr_id,
+                        EmailConversationThread.prospect_id == self.id,
+                    )
+                    .order_by(EmailConversationThread.updated_at.desc())
+                    .first()
+                )
 
                 if thread:
-                    recent_messages['email_thread'] = thread.to_dict()
-                    recent_messages['email_convo'] = [msg.to_dict() for msg in EmailConversationMessage.query.filter(
-                        EmailConversationMessage.email_conversation_thread_id == thread.id
-                    ).limit(5).all()]
-
+                    recent_messages["email_thread"] = thread.to_dict()
+                    recent_messages["email_convo"] = [
+                        msg.to_dict()
+                        for msg in EmailConversationMessage.query.filter(
+                            EmailConversationMessage.email_conversation_thread_id
+                            == thread.id
+                        )
+                        .limit(5)
+                        .all()
+                    ]
 
         return {
             "id": self.id,
@@ -748,7 +770,6 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
-        ProspectStatus.RESPONDED,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_OBJECTION: [
@@ -760,7 +781,6 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
-        ProspectStatus.RESPONDED,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
@@ -772,7 +792,6 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
-        ProspectStatus.RESPONDED,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUESTION: [
@@ -784,7 +803,6 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
-        ProspectStatus.RESPONDED,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
@@ -796,7 +814,6 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
-        ProspectStatus.RESPONDED,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_NEXT_STEPS: [
@@ -808,14 +825,13 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO,
-        ProspectStatus.RESPONDED,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.SCHEDULING: [
         ProspectStatus.DEMO_SET,
         ProspectStatus.NOT_INTERESTED,
         ProspectStatus.NOT_QUALIFIED,
-        ProspectStatus.RESPONDED,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
     ],
     ProspectStatus.DEMO_SET: [
         ProspectStatus.DEMO_WON,

@@ -1,5 +1,12 @@
 from typing import Union
-from model_import import ProspectStatus, ProspectChannels, Prospect, ProspectEmailOutreachStatus, Client, ClientSDR
+from model_import import (
+    ProspectStatus,
+    ProspectChannels,
+    Prospect,
+    ProspectEmailOutreachStatus,
+    Client,
+    ClientSDR,
+)
 from src.utils.slack import send_slack_message
 from src.utils.slack import URL_MAP
 
@@ -11,7 +18,7 @@ def send_status_change_slack_block(
     custom_message: str,
     metadata: dict = None,
 ) -> None:
-    """ Sends a status change message to the appropriate slack channel
+    """Sends a status change message to the appropriate slack channel
 
     Args:
         outreach_type (ProspectChannels): Type of outreach
@@ -64,88 +71,104 @@ def send_status_change_slack_block(
 
     # Craft message
     message_blocks = []
-    message_blocks.append({     # Add header
-        "type": "header",
-        "text": {
-            "type": "plain_text",
-            "text": prospect.full_name
-            + "#"
-            + str(prospect.id)
-            + custom_message,
-            "emoji": True,
-        },
-    })
-    message_blocks.append({     # Add prospect title and (optional) last message
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": "*Title:* {title}\n{last_message}".format(
-                title=prospect.title,
-                last_message=""
-                if not last_message_from_prospect
-                else '*Last Message*: "{}"'.format(
-                    last_message_from_prospect
-                ),
-            ),
-        },
-    })
-    channel_text = "Email" if outreach_type == ProspectChannels.EMAIL else "LinkedIn"
-    message_blocks.append({    # Add SDR information
-        "type": "context",
-        "elements": [
-            {
+    message_blocks.append(
+        {  # Add header
+            "type": "header",
+            "text": {
                 "type": "plain_text",
-                "text": "😎 Contact: {}".format(
-                    client_sdr.name if client_sdr else "NOT FOUND"
-                ),
+                "text": prospect.full_name + "#" + str(prospect.id) + custom_message,
                 "emoji": True,
             },
-            {
-                "type": "plain_text",
-                "text": "🧳 Representing: {}".format(client.company),
-                "emoji": True,
-            },
-            {
-                "type": "plain_text",
-                "text": "📤 Outbound channel: {}".format(channel_text),
-                "emoji": True,
-            },
-        ],
-    })
-
-    if outreach_type == ProspectChannels.LINKEDIN: # Add next steps for Linkedin
-        message_blocks.append({
+        }
+    )
+    message_blocks.append(
+        {  # Add prospect title and (optional) last message
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "Next steps: Respond on Linkedin conversation thread",
+                "text": "*Title:* {title}\n{last_message}".format(
+                    title=prospect.title,
+                    last_message=""
+                    if not last_message_from_prospect
+                    else '*Last Message*: "{}"'.format(last_message_from_prospect),
+                ),
             },
-            "accessory": {
-                "type": "button",
-                "text": {
+        }
+    )
+    channel_text = "Email" if outreach_type == ProspectChannels.EMAIL else "LinkedIn"
+    message_blocks.append(
+        {  # Add SDR information
+            "type": "context",
+            "elements": [
+                {
                     "type": "plain_text",
-                    "text": "Click to see Linkedin Thread",
+                    "text": "😎 Contact: {}".format(
+                        client_sdr.name if client_sdr else "NOT FOUND"
+                    ),
                     "emoji": True,
                 },
-                "value":  metadata.get("threadUrl")
-                or "https://www.linkedin.com",
-                "url": metadata.get("threadUrl")
-                or "https://www.linkedin.com",
-                "action_id": "button-action",
-            },
-        })
-    elif outreach_type == ProspectChannels.EMAIL: # Add next steps for Email
-        message_blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "Next steps: Respond through your email client",
-            },
-        })
+                {
+                    "type": "plain_text",
+                    "text": "🧳 Representing: {}".format(client.company),
+                    "emoji": True,
+                },
+                {
+                    "type": "plain_text",
+                    "text": "📤 Outbound channel: {}".format(channel_text),
+                    "emoji": True,
+                },
+            ],
+        }
+    )
 
-    message_blocks.append({    # Add divider
-        "type": "divider",
-    })
+    if prospect.icp_fit_reason:
+        message_blocks.append(
+            {  # Add ICP fit reason
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*ICP fit reason:* {}".format(prospect.icp_fit_reason),
+                },
+            }
+        )
+
+    if outreach_type == ProspectChannels.LINKEDIN:  # Add next steps for Linkedin
+        message_blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Next steps: Respond on Linkedin conversation thread",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Click to see Linkedin Thread",
+                        "emoji": True,
+                    },
+                    "value": metadata.get("threadUrl") or "https://www.linkedin.com",
+                    "url": metadata.get("threadUrl") or "https://www.linkedin.com",
+                    "action_id": "button-action",
+                },
+            }
+        )
+    elif outreach_type == ProspectChannels.EMAIL:  # Add next steps for Email
+        message_blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Next steps: Respond through your email client",
+                },
+            }
+        )
+
+    message_blocks.append(
+        {  # Add divider
+            "type": "divider",
+        }
+    )
 
     send_slack_message(
         message=prospect.full_name + custom_message,
@@ -154,6 +177,7 @@ def send_status_change_slack_block(
     )
 
     return
+
 
 # Deprecated
 def send_slack_block(
