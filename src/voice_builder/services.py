@@ -99,6 +99,7 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int):
     voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
         voice_builder_onboarding_id
     )
+    archetype_id = voice_builder_onboarding.client_archetype_id
     (
         prompt,
         _,
@@ -110,6 +111,7 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int):
         research_point_types=[x.value for x in ResearchPointType],
         configuration_type="DEFAULT",
         client_id=voice_builder_onboarding.client_id,
+        archetype_id=archetype_id,
     )
     computed_prompt = """
 {instruction}

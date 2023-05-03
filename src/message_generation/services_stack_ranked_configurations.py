@@ -283,22 +283,39 @@ def get_prompts_from_stack_ranked_config(
     }
 
 
-def get_random_prospect(client_id: int):
+def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
     from model_import import Prospect
+
+    if archetype_id:
+        return (
+            Prospect.query.filter_by(client_id=client_id, archetype_id=archetype_id)
+            .order_by(func.random())
+            .first()
+        )
 
     return Prospect.query.filter_by(client_id=client_id).order_by(func.random()).first()
 
 
-def get_random_research_point(client_id: int, research_point_type: str):
+def get_random_research_point(
+    client_id: int, research_point_type: str, archetype_id: Optional[int]
+):
     query = """
     select value, research_point.research_point_type, research_point.id
     from research_point
         join research_payload on research_payload.id = research_point.research_payload_id
         join prospect on prospect.id = research_payload.prospect_id
-    where prospect.client_id = {client_id} and research_point_type = '{research_point_type}'
+    where 
+        prospect.client_id = {client_id} 
+        and research_point_type = '{research_point_type}'
+        and (
+            {archetype_id_not_present} or prospect.archetype_id = {archetype_id}
+        )
     order by random()
     limit 1;""".format(
-        client_id=str(client_id), research_point_type=research_point_type
+        client_id=str(client_id),
+        research_point_type=research_point_type,
+        archetype_id_not_present=not archetype_id,
+        archetype_id=str(archetype_id),
     )
     result = db.engine.execute(query)
     data = result.first()
@@ -327,11 +344,14 @@ def get_sample_prompt_from_config_details(
     research_point_types: list[str],
     configuration_type: str,
     client_id: int,
+    archetype_id: Optional[int] = None,
 ):
     from model_import import Prospect, ResearchPayload, ResearchPoints, ResearchType
     from src.message_generation.services import generate_prompt
 
-    random_prospect = get_random_prospect(client_id=client_id)
+    random_prospect = get_random_prospect(
+        client_id=client_id, archetype_id=archetype_id
+    )
     if not random_prospect:
         return "", None, [], None, {}
     prospect_id = random_prospect.id
@@ -344,7 +364,7 @@ def get_sample_prompt_from_config_details(
 
     for rpt in research_point_types:
         rp, rp_type, id = get_random_research_point(
-            client_id=client_id, research_point_type=rpt
+            client_id=client_id, research_point_type=rpt, archetype_id=archetype_id
         )
         if not rp:
             continue
