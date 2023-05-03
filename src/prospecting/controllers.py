@@ -350,7 +350,7 @@ def get_prospects_endpoint(client_sdr_id: int):
         - offset (int) (optional): The offset to start from
         - ordering (str) (optional): The ordering of the results
         - bumped (str) (optional): The bumped count of the prospect
-        - show_purgatory (bool) (optional): Whether to show prospects in purgatory
+        - show_purgatory (bool | 'ALL') (optional): Whether to show prospects in purgatory
     """
     try:
         channel = (
@@ -407,7 +407,6 @@ def get_prospects_endpoint(client_sdr_id: int):
                 request,
                 json=True,
                 required=False,
-                parameter_type=bool,
             )
             or False
         )

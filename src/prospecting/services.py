@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
 from sqlalchemy import or_
 import requests
@@ -83,7 +83,7 @@ def get_prospects(
     offset: int = 0,
     ordering: list[dict[str, int]] = [],
     bumped: str = "all",
-    show_purgatory: bool = False,
+    show_purgatory: Union[bool, str] = False,
 ) -> dict[int, list[Prospect]]:
     """Gets prospects belonging to the SDR, with optional query and ordering.
 
@@ -204,17 +204,18 @@ def get_prospects(
     if bumped != "all":
         prospects = prospects.filter(Prospect.times_bumped == int(bumped))
 
-    if not show_purgatory:
-        prospects = prospects.filter(
-            or_(
-                Prospect.hidden_until == None,
-                Prospect.hidden_until < datetime.datetime.utcnow(),
+    if show_purgatory != 'ALL':
+        if not show_purgatory:
+            prospects = prospects.filter(
+                or_(
+                    Prospect.hidden_until == None,
+                    Prospect.hidden_until < datetime.datetime.utcnow(),
+                )
             )
-        )
-    else:
-        prospects = prospects.filter(
-            Prospect.hidden_until >= datetime.datetime.utcnow()
-        )
+        else:
+            prospects = prospects.filter(
+                Prospect.hidden_until >= datetime.datetime.utcnow()
+            )
 
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
