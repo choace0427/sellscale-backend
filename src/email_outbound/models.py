@@ -219,6 +219,8 @@ class ProspectEmail(db.Model):
     vessel_sequence_id = db.Column(db.String, nullable=True)
     vessel_sequence_payload_str = db.Column(db.String, nullable=True)
 
+    nylas_thread_id = db.Column(db.String, nullable=True)
+
 
 class ProspectEmailStatusRecords(db.Model):
     """Records the status changes of a prospect_email
