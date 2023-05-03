@@ -635,6 +635,7 @@ def update_prospect_status_email(
     prospect_id: int,
     new_status: ProspectEmailOutreachStatus,
     override_status: bool = False,
+    manually_send_to_purgatory: bool = False,
 ) -> tuple[bool, str]:
     """Updates the prospect email outreach status
 
@@ -661,8 +662,9 @@ def update_prospect_status_email(
     p_email_id = p_email.id
     old_status = p_email.outreach_status or ProspectEmailOutreachStatus.UNKNOWN
 
-    # Make sure the prospect isn't in the main pipeline for 48 hours
-    send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
+    if manually_send_to_purgatory:
+        # Make sure the prospect isn't in the main pipeline for 48 hours
+        send_to_purgatory(prospect_id, 2, ProspectHiddenReason.STATUS_CHANGE)
 
     # Check if we can override the status, regardless of the current status
     if override_status:

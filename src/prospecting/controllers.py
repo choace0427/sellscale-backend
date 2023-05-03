@@ -442,7 +442,7 @@ def get_prospects_endpoint(client_sdr_id: int):
             {
                 "message": "Success",
                 "total_count": total_count,
-                "prospects": [p.to_dict() for p in prospects],
+                "prospects": [p.to_dict(return_convo=True) for p in prospects],
             }
         ),
         200,

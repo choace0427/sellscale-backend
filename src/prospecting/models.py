@@ -431,10 +431,12 @@ class Prospect(db.Model):
         return_messages: Optional[bool] = False,
         return_message_type: Optional[str] = None,
         shallow_data: Optional[bool] = False,
+        return_convo: Optional[bool] = False,
     ) -> dict:
-        from src.email_outbound.models import ProspectEmail
+        from src.email_outbound.models import ProspectEmail, EmailConversationThread, EmailConversationMessage
         from src.message_generation.models import GeneratedMessage
         from src.client.models import ClientArchetype
+        from src.li_conversation.models import LinkedinConversationEntry
 
         # Check if shallow_data is requested
         if shallow_data:
@@ -475,6 +477,28 @@ class Prospect(db.Model):
         archetype: ClientArchetype = ClientArchetype.query.get(self.archetype_id)
         if archetype:
             archetype_name = archetype.archetype
+        # Get last 5 messages of their most recent conversation
+        recent_messages = {}
+        if return_convo:
+            if self.li_conversation_thread_id and (self.status.value.startswith('ACTIVE_CONVO') or self.status.value == 'RESPONDED'):
+                recent_messages['li_convo'] = [msg.to_dict() for msg in LinkedinConversationEntry.query.filter(
+                    LinkedinConversationEntry.conversation_url.ilike(
+                        "%" + self.li_conversation_thread_id + "%"
+                    )
+                ).order_by(LinkedinConversationEntry.date.desc()).limit(5).all()]
+
+            if p_email_status == 'ACTIVE_CONVO' or p_email_status == 'SCHEDULING':
+                thread = EmailConversationThread.query.filter(
+                    EmailConversationThread.client_sdr_id == self.client_sdr_id,
+                    EmailConversationThread.prospect_id == self.id,
+                ).order_by(EmailConversationThread.updated_at.desc()).first()
+
+                if thread:
+                    recent_messages['email_thread'] = thread.to_dict()
+                    recent_messages['email_convo'] = [msg.to_dict() for msg in EmailConversationMessage.query.filter(
+                        EmailConversationMessage.email_conversation_thread_id == thread.id
+                    ).limit(5).all()]
+
 
         return {
             "id": self.id,
@@ -495,6 +519,7 @@ class Prospect(db.Model):
             "twitter_url": self.twitter_url,
             "email": self.email,
             "batch": self.batch,
+            "recent_messages": recent_messages,
             "status": self.status.value,
             "linkedin_status": self.status.value,
             "overall_status": self.overall_status.value

@@ -77,12 +77,18 @@ def send_message(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
-    msg = get_request_parameter("message", request, json=True, required=True)
+    msg = get_request_parameter("message", request, json=True, required=True, parameter_type=str)
+
+    purgatory = get_request_parameter(
+        "purgatory", request, json=True, required=False, parameter_type=bool
+    )
+    if purgatory is None: purgatory = False
 
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
     api.send_message(msg, recipients=[urn_id])
-    send_to_purgatory(prospect_id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
+    if purgatory:
+        send_to_purgatory(prospect_id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
