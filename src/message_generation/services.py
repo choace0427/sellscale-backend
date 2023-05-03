@@ -236,25 +236,11 @@ def research_and_generate_outreaches_for_prospect(
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         # Generate outreaches for the Prospect
-        if prospect.client_id in (
-            1,
-            8,
-            10,
-            15,
-            16,
-            17,
-        ):  # only for SellScale, Brex, Verkada, Ramp, Monday.com for now
-            generate_linkedin_outreaches_with_configurations(
-                prospect_id=prospect_id,
-                cta_id=cta_id,
-                outbound_campaign_id=outbound_campaign_id,
-            )
-        else:
-            generate_linkedin_outreaches(
-                prospect_id=prospect_id,
-                cta_id=cta_id,
-                outbound_campaign_id=outbound_campaign_id,
-            )
+        generate_linkedin_outreaches_with_configurations(
+            prospect_id=prospect_id,
+            cta_id=cta_id,
+            outbound_campaign_id=outbound_campaign_id,
+        )
 
         # Run auto approval
         batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
