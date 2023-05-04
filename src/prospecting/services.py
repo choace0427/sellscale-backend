@@ -223,13 +223,22 @@ def get_prospects(
     return {"total_count": total_count, "prospects": prospects}
 
 
-def nylas_send_email(client_sdr_id: int, prospect: Prospect, subject: str, body: str):
+def nylas_send_email(client_sdr_id: int, prospect_id: int, subject: str, body: str) -> dict:
+    """Sends an email to the Prospect through the ClientSDR's Nylas account.
 
+    Args:
+        client_sdr_id (int): ID of the ClientSDR sending the email
+        prospect_id (int): ID of the Prospect receiving the email
+        subject (str): Subject of the email
+        body (str): Body of the email
+
+    Returns:
+        dict: Response from Nylas API
+    """
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-
-    print(
-        f"Sending email to {prospect.email} with subject {subject} and body {body} from {client_sdr.email}"
-    )
 
     res = requests.post(
         url=f"https://api.nylas.com/send",
@@ -257,21 +266,17 @@ def nylas_send_email(client_sdr_id: int, prospect: Prospect, subject: str, body:
     )
     result = res.json()
 
-    # Add PropsectEmail record
-    prospect_email = ProspectEmail(
-        prospect_id=prospect.id,
-        email_status=ProspectEmailStatus.SENT,
-        date_sent=datetime.datetime.utcnow(),
-        batch_id=result.get("thread_id"),
-        outreach_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
-    )
-    db.session.add(prospect_email)
+    # Add to ProspectEmail record
+    prospect_email.nylas_thread_id = result.get("thread_id")
+
+    # Change ProspectEmail status to "SENT"
+    prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
+    prospect_email.email_status = ProspectEmailStatus.SENT
+
     db.session.commit()
 
-    # Update Prospect
-    prospect.approved_prospect_email_id = prospect_email.id
-    db.session.add(prospect)
-    db.session.commit()
+    # Calculate overall status
+    calculate_prospect_overall_status(prospect_id)
 
     return result
 

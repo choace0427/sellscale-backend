@@ -297,7 +297,7 @@ def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
 
 
 def get_random_research_point(
-    client_id: int, research_point_type: str, archetype_id: Optional[int]
+    client_id: int, research_point_type: str, archetype_id: Optional[int] = None
 ):
     query = """
     select value, research_point.research_point_type, research_point.id
@@ -315,7 +315,7 @@ def get_random_research_point(
         client_id=str(client_id),
         research_point_type=research_point_type,
         archetype_id_not_present=not archetype_id,
-        archetype_id=str(archetype_id),
+        archetype_id=str(archetype_id or -1),
     )
     result = db.engine.execute(query)
     data = result.first()
