@@ -169,8 +169,14 @@ def get_valid_next_statuses_endpoint(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/threads", methods=["GET"])
 @require_user
 def get_email_threads(client_sdr_id: int, prospect_id: int):
-
+    """Gets email threads between SDR and prospect, stored in DB
+    """
     limit = get_request_parameter("limit", request, json=False, required=True)
+    offset = get_request_parameter("offset", request, json=False, required=True)
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr.nylas_active:
+        return jsonify({"message": "Nylas not connected"}), 400
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
     if not prospect:
@@ -179,22 +185,6 @@ def get_email_threads(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
     threads = nylas_get_threads(client_sdr_id, prospect, int(limit))
-
-    """     prospect_email: ProspectEmail = ProspectEmail.query.filter(
-        ProspectEmail.prospect_id == prospect.id
-    ).first()
-    if not prospect_email:
-        return jsonify({"message": "No prospect email data found"}), 404
-
-    try:
-        sei = SalesEngagementIntegration(prospect.client_id)
-
-        emails = sei.get_emails_for_contact(
-            contact_id=prospect.vessel_contact_id,
-            sequence_id=prospect_email.vessel_sequence_id,
-        )
-    except:
-        emails = [] """
 
     return jsonify({"message": "Success", "data": threads}), 200
 

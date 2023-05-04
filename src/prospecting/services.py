@@ -281,7 +281,25 @@ def nylas_send_email(client_sdr_id: int, prospect_id: int, subject: str, body: s
     return result
 
 
-def nylas_get_threads(client_sdr_id: int, prospect: Prospect, limit: int):
+# def nylas_get_threads(client_sdr_id: int, prospect_id: int, limit: int, offset: int) -> list:
+#     """Gets the email threads between the ClientSDR and Prospect.
+
+#     Args:
+#         client_sdr_id (int): ID of the ClientSDR
+#         prospect_id (int): ID of the Prospect
+#         limit (int): Number of threads to return
+#         offset (int): Offset of threads to return
+
+#     Returns:
+#         list: List of email threads
+#     """
+
+
+
+#     pass
+
+def nylas_get_threads(client_sdr_id: int, prospect_id: int, limit: int) -> dict:
+    prospect: Prospect = Prospect.query.get(prospect_id)
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     res = requests.get(
