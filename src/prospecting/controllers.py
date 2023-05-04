@@ -1,6 +1,11 @@
-from src.prospecting.services import nylas_send_email
 from src.prospecting.services import send_to_purgatory
-from src.prospecting.services import nylas_get_threads, nylas_get_messages
+from src.prospecting.nylas.services import (
+    nylas_send_email,
+    nylas_get_threads,
+    nylas_update_threads,
+    nylas_get_messages,
+    nylas_update_messages,
+)
 from app import db
 
 from flask import Blueprint, jsonify, request, Response
@@ -184,7 +189,7 @@ def get_email_threads(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    threads = nylas_get_threads(client_sdr_id, prospect, int(limit))
+    threads = nylas_get_threads(client_sdr_id, prospect_id, int(limit), int(offset))
 
     return jsonify({"message": "Success", "data": threads}), 200
 
@@ -192,13 +197,18 @@ def get_email_threads(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/messages", methods=["GET"])
 @require_user
 def get_email_messages(client_sdr_id: int, prospect_id: int):
-
+    """Gets email messages between SDR and prospect, stored in DB
+    """
     message_ids = get_request_parameter(
         "message_ids", request, json=False, required=False
     )
     thread_id = get_request_parameter("thread_id", request, json=False, required=False)
     if message_ids:
         message_ids = message_ids.split(",")
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr.nylas_active:
+        return jsonify({"message": "Nylas not connected"}), 400
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
     if not prospect:
@@ -207,7 +217,7 @@ def get_email_messages(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
     messages = nylas_get_messages(
-        client_sdr_id, prospect, message_ids=message_ids, thread_id=thread_id
+        client_sdr_id, prospect_id, message_ids=message_ids, thread_id=thread_id
     )
 
     return jsonify({"message": "Success", "data": messages}), 200
