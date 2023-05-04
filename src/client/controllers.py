@@ -59,6 +59,7 @@ from src.client.services_client_pod import (
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.client.models import ClientSDR, Client
+from app import db
 import os
 
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
@@ -238,6 +239,21 @@ def deactivate_sdr_endpoint():
         return "Failed to deactive", 404
 
     return jsonify({"message": "Deactivated SDR"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/timezone", methods=["POST"])
+@require_user
+def set_sdr_timezone(client_sdr_id: int):
+
+    timezone = get_request_parameter(
+        "timezone", request, json=True, required=True, parameter_type=str
+    )
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sdr.timezone = timezone
+    db.session.commit()
+
+    return jsonify({"message": "Success"}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr/activate", methods=["POST"])
