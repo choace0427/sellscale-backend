@@ -214,6 +214,17 @@ def nylas_update_messages(
             nylas_message_id=message.get("id")
         ).first()
 
+         # Get existing thread (one should exist)
+        existing_thread: EmailConversationThread = (
+            EmailConversationThread.query.filter_by(
+                nylas_thread_id=message.get("thread_id")
+            ).first()
+        )
+        if not existing_thread:
+            raise Exception(
+                f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}'
+            )
+
         # Update existing message
         if existing_message:
             # Convert time-since-epoch into datetime objects
@@ -231,9 +242,6 @@ def nylas_update_messages(
             existing_message.message_from = message.get("from", existing_message.message_from)
             existing_message.message_to = message.get("to", existing_message.message_to)
             existing_message.reply_to = message.get("reply_to", existing_message.reply_to)
-            existing_message.email_conversation_thread_id = message.get(
-                "thread_id", existing_message.email_conversation_thread_id
-            )
             existing_message.nylas_message_id = message.get("id", existing_message.nylas_message_id)
             existing_message.nylas_data_raw = message
 
@@ -246,17 +254,6 @@ def nylas_update_messages(
                 message_from_email = message_from.get("email")
                 if message_from_email == client_sdr.email:
                     message_from_sdr = True
-
-            # Get existing thread (one should exist)
-            existing_thread: EmailConversationThread = (
-                EmailConversationThread.query.filter_by(
-                    nylas_thread_id=message.get("thread_id")
-                ).first()
-            )
-            if not existing_thread:
-                raise Exception(
-                    f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}'
-                )
 
             # Convert time-since-epoch into datetime objects
             date_received = None
