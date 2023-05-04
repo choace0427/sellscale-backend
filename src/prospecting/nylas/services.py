@@ -282,6 +282,7 @@ def nylas_update_messages(
                 email_conversation_thread_id = existing_thread.id,
                 nylas_message_id = message.get("id"),
                 nylas_data_raw = message,
+                nylas_thread_id = message.get("thread_id"),
             )
             db.session.add(new_message)
 
