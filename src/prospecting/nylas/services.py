@@ -30,7 +30,7 @@ def nylas_get_threads(client_sdr_id: int, prospect_id: int, limit: int, offset: 
 
     threads: list[EmailConversationThread] = EmailConversationThread.query.filter_by(
         client_sdr_id=client_sdr_id, prospect_id=prospect_id
-    ).limit(limit).offset(offset).order_by(EmailConversationThread.updated_at.desc()).all()
+    ).limit(limit).offset(offset).order_by(EmailConversationThread.last_message_timestamp.desc()).all()
 
     return [thread.to_dict() for thread in threads]
 
@@ -168,7 +168,7 @@ def nylas_get_messages(client_sdr_id: int, prospect_id: int, thread_id: Optional
         messages_raw = messages_raw.filter(EmailConversationMessage.nylas_message_id.in_(message_ids))
 
     # Get messages from the ORM object
-    messages: list[EmailConversationMessage] = messages_raw.order_by(EmailConversationMessage.updated_at.desc()).all()
+    messages: list[EmailConversationMessage] = messages_raw.order_by(EmailConversationMessage.date_received.desc()).all()
 
     return [message.to_dict() for message in messages]
 
