@@ -48,6 +48,8 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
+    print(prospect, client_sdr)
+
     # Get threads from Nylas
     res = requests.get(
         f"https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}",
@@ -99,7 +101,7 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
                 version=thread.get("version"),
                 nylas_thread_id=thread.get("id"),
                 nylas_message_ids=thread.get("message_ids"),
-                nylas_data=thread,
+                nylas_data_raw=thread,
             )
             db.session.add(new_thread)
 
