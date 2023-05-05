@@ -405,6 +405,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.commit()
         return
 
+    first_and_only_message_was_you = (
+        len(latest_convo_entries) == 1
+        and latest_convo_entries[0].connection_degree == "You"
+    )
     last_msg_was_you = (
         len(latest_convo_entries) > 1
         and latest_convo_entries[0].connection_degree == "You"
@@ -420,7 +424,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         and latest_convo_entries[2].connection_degree == "You"
     )
 
-    # If they accepted our connection request and we just sent them a message, they're considered bumped
+    # Edge case: If they accepted our connection request and we just sent them a message, they're considered bumped
     if prospect.status == ProspectStatus.ACCEPTED and last_msg_was_you:
         update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 1
@@ -431,6 +435,21 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         # Make sure the prospect isn't in the main pipeline for 48 hours
         send_to_purgatory(prospect.id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
 
+        return
+
+    # Update the prospect status accordingly
+    if first_and_only_message_was_you:
+        update_prospect_status_linkedin(
+            prospect_id=prospect.id,
+            new_status=ProspectStatus.ACCEPTED,
+        )
+        return
+
+    elif prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED, ProspectStatus.RESPONDED):
+        update_prospect_status_linkedin(
+            prospect_id=prospect.id,
+            new_status=ProspectStatus.ACTIVE_CONVO,
+        )
         return
 
     # Set the bumped status and times bumped
