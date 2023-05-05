@@ -141,7 +141,7 @@ def wrapped_chat_gpt_completion(
 
 
 def wrapped_chat_gpt_completion_with_history(
-     messages: list,
+    messages: list,
     history: Optional[list] = [],
     max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
     temperature: Optional[float] = DEFAULT_TEMPERATURE,
