@@ -316,6 +316,7 @@ def generate_chat_gpt_response_to_conversation_thread(
             {"role": "user", "content": content},
         ],
         max_tokens=200,
+        model="gpt-4-0314",
     )
     return response, content
 
@@ -441,6 +442,7 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
 
 scrape_time_offset = 30 * 60  # 30 minutes in seconds
 
+
 @celery.task
 def scrape_conversations_inbox():
 
@@ -457,11 +459,13 @@ def scrape_conversations_inbox():
         # Scrape every 3 hours instead #
 
         # Sent the next scrape to be 1 day from now (+/- scrape_time_offset)
-        #scrape_datetime = datetime.combine(datetime.utcnow().date(), sdr.scrape_time)
+        # scrape_datetime = datetime.combine(datetime.utcnow().date(), sdr.scrape_time)
 
-        #new_date = datetime.utcnow() + timedelta(days=1)
-        next_time = datetime.utcnow() + timedelta(hours=3) + timedelta(
-            seconds=random.randint(-scrape_time_offset, scrape_time_offset)
+        # new_date = datetime.utcnow() + timedelta(days=1)
+        next_time = (
+            datetime.utcnow()
+            + timedelta(hours=3)
+            + timedelta(seconds=random.randint(-scrape_time_offset, scrape_time_offset))
         )
         next_datetime = datetime(
             next_time.year,

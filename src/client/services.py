@@ -1276,3 +1276,50 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
         return True, "PhantomBuster launch schedule updated"
 
     return False, "PhantomBuster launch schedule failed to update"
+
+
+def update_do_not_contact_filters(
+    client_id: int,
+    do_not_contact_keywords_in_company_names: list[str],
+    do_not_contact_company_names: list[str],
+):
+    """Update the do not contact keywords list for a Client
+
+    Args:
+        client_id (int): ID of the Client
+        do_not_contact_keywords (list[str]): List of do not contact keywords
+
+    Returns:
+        bool: True if successful, None otherwise
+    """
+    client: Client = Client.query.get(client_id)
+    if not client:
+        return None
+
+    client.do_not_contact_keywords_in_company_names = (
+        do_not_contact_keywords_in_company_names
+    )
+    client.do_not_contact_company_names = do_not_contact_company_names
+    db.session.add(client)
+    db.session.commit()
+
+    return True
+
+
+def get_do_not_contact_filters(client_id: int):
+    """Get the do not contact keywords list for a Client
+
+    Args:
+        client_id (int): ID of the Client
+
+    Returns:
+        list[str]: List of do not contact keywords
+    """
+    client: Client = Client.query.get(client_id)
+    if not client:
+        return None
+
+    return {
+        "do_not_contact_keywords_in_company_names": client.do_not_contact_keywords_in_company_names,
+        "do_not_contact_company_names": client.do_not_contact_company_names,
+    }
