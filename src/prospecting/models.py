@@ -578,6 +578,7 @@ class Prospect(db.Model):
             "hidden_reason": self.hidden_reason.value
             if self.hidden_reason is not None
             else None,
+            "demo_date": self.demo_date,
         }
 
 
