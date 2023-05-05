@@ -19,6 +19,12 @@ def process_deltas_message_created(self, deltas: list[dict]) -> tuple[bool, int]
         tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
     """
     # Process deltas
+    if type(deltas) == dict:
+        process_single_message_created.apply_async(
+            args=[deltas]
+        )
+        return True, 1
+
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
