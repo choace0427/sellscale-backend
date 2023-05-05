@@ -58,6 +58,7 @@ from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
 from src.integrations.vessel import SalesEngagementIntegration
 from src.prospecting.hunter import find_hunter_emails_for_prospects_under_archetype
+from src.prospecting.services import update_prospect_demo_date
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -796,3 +797,15 @@ def remove_from_contact_list(client_sdr_id: int):
     if success:
         return "OK", 200
     return "Failed to remove prospect from contact list", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/demo_date", methods=["POST"])
+@require_user
+def post_demo_date(client_sdr_id: int, prospect_id: int):
+    demo_date = get_request_parameter(
+        "demo_date", request, json=True, required=True
+    )
+    success = update_prospect_demo_date(prospect_id=prospect_id, demo_date=demo_date)
+    if success:
+        return "OK", 200
+    return "Failed to update demo date", 400

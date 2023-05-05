@@ -421,6 +421,8 @@ class Prospect(db.Model):
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
+    demo_date = db.Column(db.DateTime, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def get_by_id(prospect_id: int):
