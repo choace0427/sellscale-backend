@@ -805,3 +805,15 @@ def post_demo_date(client_sdr_id: int, prospect_id: int):
     if success:
         return "OK", 200
     return "Failed to update demo date", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/demo_date", methods=["GET"])
+@require_user
+def get_demo_date(client_sdr_id: int, prospect_id: int):
+    prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    return jsonify({"demo_date": prospect.demo_date}), 200
