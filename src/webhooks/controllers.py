@@ -4,9 +4,11 @@ from app import app, db
 
 import hmac
 import hashlib
+import os
 
 WEBHOOKS_BLUEPRINT = Blueprint('webhooks', __name__)
 
+NYLAS_CLIENT_SECRET = os.environ.get("NYLAS_CLIENT_SECRET")
 
 def verify_signature(message, key, signature):
     """
@@ -35,7 +37,7 @@ def nylas_webhook_message_created():
     # The question is, is it genuine or fake? Check the signature to find out.
     is_genuine = verify_signature(
         message=request.data,
-        key=app.config["NYLAS_CLIENT_SECRET"].encode("utf8"),
+        key=NYLAS_CLIENT_SECRET.encode("utf8"),
         signature=request.headers.get("X-Nylas-Signature"),
     )
     if not is_genuine:
