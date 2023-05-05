@@ -146,11 +146,14 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
             db.session.commit()
 
             # Research and generate outreaches for the prospect
-            research_and_generate_outreaches_for_prospect.delay(
-                prospect_id=prospect_id,
-                cta_id=cta_id,
-                outbound_campaign_id=outbound_campaign_id,
-                gm_job_id=gm_job.id,
+            research_and_generate_outreaches_for_prospect.apply_async(
+                [
+                    prospect_id,
+                    outbound_campaign_id,
+                    cta_id,
+                    gm_job.id,
+                ],
+                countdown=i * 3,
             )
     except Exception as e:
         db.session.rollback()
