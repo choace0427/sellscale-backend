@@ -7,7 +7,7 @@ from src.prospecting.nylas.nylas_wrappers import wrapped_nylas_get_single_thread
 
 
 @celery.task(bind=True, max_retries=5)
-def process_deltas_message_created(deltas: list[dict]) -> tuple[bool, int]:
+def process_deltas_message_created(self, deltas: list[dict]) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
     This function processes `message.created` deltas from the `message.created` webhook.
@@ -30,7 +30,7 @@ def process_deltas_message_created(deltas: list[dict]) -> tuple[bool, int]:
 
 
 @celery.task(bind=True, max_retries=5)
-def process_single_message_created(delta: dict) -> tuple[bool, str]:
+def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
     """Process a single `message.created` delta from a Nylas webhook notification.
 
     Args:
