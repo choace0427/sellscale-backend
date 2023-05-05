@@ -111,7 +111,7 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
 
     messages: list[dict] = nylas_get_messages(client_sdr.id, prospect.id, thread.get("id"))
     for message in messages:
-        if message.get("from_sdr") == False:
+        if message.get("from_prospect") == True:
             # Update the Prospect's status to "ACTIVE CONVO"
             updated = update_prospect_email_outreach_status(
                 prospect_email_id=prospect_email_id,

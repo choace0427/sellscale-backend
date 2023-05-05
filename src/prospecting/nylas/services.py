@@ -298,11 +298,14 @@ def nylas_update_messages(
         # Add new message
         if not existing_message:
             # Check if message is from SDR
+            message_from_prospect = False
             message_from_sdr = False
             messages_from: list[dict] = message.get("from")
             for message_from in messages_from:
                 message_from_email = message_from.get("email")
-                if message_from_email == client_sdr.email:
+                if message_from_email == prospect.email:
+                    message_from_prospect = True
+                elif message_from_email == client_sdr.email:
                     message_from_sdr = True
 
             # Convert time-since-epoch into datetime objects
@@ -316,6 +319,7 @@ def nylas_update_messages(
                 prospect_email = prospect.email,
                 sdr_email = client_sdr.email,
                 from_sdr = message_from_sdr,
+                from_prospect = message_from_prospect,
                 subject = message.get("subject"),
                 snippet = message.get("snippet"),
                 body = message.get("body"),
