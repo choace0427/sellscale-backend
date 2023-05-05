@@ -7,8 +7,14 @@ from src.client.models import ClientSDR
 from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.prospecting.models import Prospect
 from src.prospecting.services import calculate_prospect_overall_status
+from src.prospecting.nylas.nylas_wrappers import (
+    wrapped_nylas_get_threads
+)
 
 NYLAS_THREAD_LIMIT = 10
+
+
+
 
 
 def nylas_get_threads(client_sdr_id: int, prospect_id: int, limit: int, offset: int) -> list[dict]:
@@ -49,17 +55,7 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    print(prospect, client_sdr)
-
-    # Get threads from Nylas
-    res = requests.get(
-        f"https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}",
-        headers={"Authorization": f"Bearer {client_sdr.nylas_auth_code}"},
-    )
-    if res.status_code != 200:
-        return False
-
-    result: list[dict] = res.json()
+    result = wrapped_nylas_get_threads(client_sdr.nylas_auth_code, prospect.email, limit)
 
     # Update old / add new threads
     for thread in result:

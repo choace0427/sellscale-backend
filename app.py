@@ -109,6 +109,7 @@ def add_together(a, b):
 
 
 def register_blueprints(app):
+    from src.webhooks.controllers import WEBHOOKS_BLUEPRINT
     from src.echo.controllers import ECHO_BLUEPRINT
     from src.prospecting.controllers import PROSPECTING_BLUEPRINT
     from src.research.controllers import RESEARCH_BLUEPRINT
@@ -134,6 +135,7 @@ def register_blueprints(app):
     from src.personas.controllers import PERSONAS_BLUEPRINT
     from src.voice_builder.controllers import VOICE_BUILDER_BLUEPRINT
 
+    app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
     app.register_blueprint(RESEARCH_BLUEPRINT, url_prefix="/research")
