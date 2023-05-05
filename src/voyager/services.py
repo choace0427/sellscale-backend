@@ -385,6 +385,12 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
     prospect: Prospect = Prospect.query.get(prospect_id)
 
+    # Update convo URN id if needed
+    if not prospect.li_conversation_urn_id and prospect.li_conversation_thread_id:
+        prospect.li_conversation_urn_id = prospect.li_conversation_thread_id.split('thread/')[-1].split('/')[0]
+        db.session.commit()
+    
+
     print("Checking for prospect status updates...")
     latest_convo_entries = (
         LinkedinConversationEntry.query.filter_by(
