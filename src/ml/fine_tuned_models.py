@@ -6,6 +6,7 @@ from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from model_import import ClientArchetype, StackRankedMessageGenerationConfiguration
 from app import db
 from src.ml.openai_wrappers import (
+    wrapped_chat_gpt_completion,
     wrapped_create_completion,
     CURRENT_OPENAI_DAVINCI_MODEL,
 )
@@ -153,12 +154,21 @@ def get_config_completion(
     if not config:
         raise ValueError("No config provided")
     few_shot_prompt: str = config.computed_prompt.format(prompt=prompt)
-    response = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
-        prompt=few_shot_prompt,
+    response = wrapped_chat_gpt_completion(
+        [
+            {"role": "system", "content": few_shot_prompt},
+        ],
         temperature=0.7,
-        max_tokens=256,
+        max_tokens=240,
+        model="gpt-4",
     )
+    # todo(Aakash) delete this
+    # response = wrapped_create_completion(
+    #     model=CURRENT_OPENAI_DAVINCI_MODEL,
+    #     prompt=few_shot_prompt,
+    #     temperature=0.7,
+    #     max_tokens=256,
+    # )
     return (response, few_shot_prompt)
 
 
