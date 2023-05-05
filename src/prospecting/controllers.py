@@ -175,8 +175,7 @@ def get_valid_next_statuses_endpoint(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/threads", methods=["GET"])
 @require_user
 def get_email_threads(client_sdr_id: int, prospect_id: int):
-    """Gets email threads between SDR and prospect, stored in DB
-    """
+    """Gets email threads between SDR and prospect, stored in DB"""
     limit = get_request_parameter("limit", request, json=False, required=True)
     offset = get_request_parameter("offset", request, json=False, required=True)
 
@@ -198,8 +197,7 @@ def get_email_threads(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email/messages", methods=["GET"])
 @require_user
 def get_email_messages(client_sdr_id: int, prospect_id: int):
-    """Gets email messages between SDR and prospect, stored in DB
-    """
+    """Gets email messages between SDR and prospect, stored in DB"""
     message_ids = get_request_parameter(
         "message_ids", request, json=False, required=False
     )
@@ -802,9 +800,7 @@ def remove_from_contact_list(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/demo_date", methods=["POST"])
 @require_user
 def post_demo_date(client_sdr_id: int, prospect_id: int):
-    demo_date = get_request_parameter(
-        "demo_date", request, json=True, required=True
-    )
+    demo_date = get_request_parameter("demo_date", request, json=True, required=True)
     success = update_prospect_demo_date(prospect_id=prospect_id, demo_date=demo_date)
     if success:
         return "OK", 200

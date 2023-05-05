@@ -1619,3 +1619,4 @@ def update_prospect_demo_date(prospect_id: int, demo_date: datetime.datetime):
     prospect.demo_date = demo_date
     db.session.add(prospect)
     db.session.commit()
+    return True
