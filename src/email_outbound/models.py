@@ -435,25 +435,45 @@ class EmailConversationThread(db.Model):
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
-
-    subject = db.Column(db.String, nullable=False)
-    snippet = db.Column(db.String, nullable=False)
     prospect_email = db.Column(db.String, nullable=False)
     sdr_email = db.Column(db.String, nullable=False)
 
+    # Comes from Nylas --->
+    subject = db.Column(db.String, nullable=True)
+    snippet = db.Column(db.String, nullable=True)
+    first_message_timestamp = db.Column(db.DateTime, nullable=True)
+    last_message_received_timestamp = db.Column(db.DateTime, nullable=True)
+    last_message_sent_timestamp = db.Column(db.DateTime, nullable=True)
+    last_message_timestamp = db.Column(db.DateTime, nullable=True)
+    participants = db.Column(db.ARRAY(db.JSON), nullable=True)
+    has_attachments = db.Column(db.Boolean, nullable=True)
+    unread = db.Column(db.Boolean, nullable=True)
+    version = db.Column(db.Integer, nullable=True)
     nylas_thread_id = db.Column(db.String, nullable=False, index=True, unique=True)
-    nylas_data = db.Column(db.JSON, nullable=False)
+    nylas_message_ids = db.Column(db.ARRAY(db.String), nullable=False)
+    nylas_data_raw = db.Column(db.JSON, nullable=False)
+    # <--- Comes from Nylas
 
     def to_dict(self):
         return {
+            "id": self.id,
             "client_sdr_id": self.client_sdr_id,
             "prospect_id": self.prospect_id,
-            "subject": self.subject,
-            "snippet": self.snippet,
             "prospect_email": self.prospect_email,
             "sdr_email": self.sdr_email,
+            "subject": self.subject,
+            "snippet": self.snippet,
+            "first_message_timestamp": self.first_message_timestamp,
+            "last_message_received_timestamp": self.last_message_received_timestamp,
+            "last_message_sent_timestamp": self.last_message_sent_timestamp,
+            "last_message_timestamp": self.last_message_timestamp,
+            "participants": self.participants,
+            "has_attachments": self.has_attachments,
+            "unread": self.unread,
+            "version": self.version,
             "nylas_thread_id": self.nylas_thread_id,
-            "nylas_data": self.nylas_data,
+            "nylas_message_ids": self.nylas_message_ids,
+            "nylas_data_raw": self.nylas_data_raw,
         }
 
 
@@ -466,28 +486,47 @@ class EmailConversationMessage(db.Model):
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
-
-    subject = db.Column(db.String, nullable=False)
-    snippet = db.Column(db.String, nullable=False)
     prospect_email = db.Column(db.String, nullable=False)
     sdr_email = db.Column(db.String, nullable=False)
     from_sdr = db.Column(db.Boolean, nullable=True)
 
+    # Comes from Nylas --->
+    subject = db.Column(db.String, nullable=True)
+    snippet = db.Column(db.String, nullable=True)
+    body = db.Column(db.String, nullable=True)
+    bcc = db.Column(db.ARRAY(db.JSON), nullable=True)
+    cc = db.Column(db.ARRAY(db.JSON), nullable=True)
+    date_received = db.Column(db.DateTime, nullable=True)
+    files = db.Column(db.ARRAY(db.JSON), nullable=True)
+    message_from = db.Column(db.ARRAY(db.JSON), nullable=True)
+    message_to = db.Column(db.ARRAY(db.JSON), nullable=True)
+    reply_to = db.Column(db.ARRAY(db.JSON), nullable=True)
     email_conversation_thread_id = db.Column(db.Integer, db.ForeignKey("email_conversation_thread.id"), nullable=True)
     nylas_thread_id = db.Column(db.String, nullable=False)
     nylas_message_id = db.Column(db.String, nullable=False, index=True, unique=True)
-    nylas_data = db.Column(db.JSON, nullable=False)
+    nylas_data_raw = db.Column(db.JSON, nullable=False)
+    # <--- Comes from Nylas
 
     def to_dict(self):
         return {
+            "id": self.id,
             "client_sdr_id": self.client_sdr_id,
             "prospect_id": self.prospect_id,
-            "subject": self.subject,
-            "snippet": self.snippet,
             "prospect_email": self.prospect_email,
             "sdr_email": self.sdr_email,
             "from_sdr": self.from_sdr,
+            "subject": self.subject,
+            "snippet": self.snippet,
+            "body": self.body,
+            "bcc": self.bcc,
+            "cc": self.cc,
+            "date_received": self.date_received,
+            "files": self.files,
+            "message_from": self.message_from,
+            "message_to": self.message_to,
+            "reply_to": self.reply_to,
             "email_conversation_thread_id": self.email_conversation_thread_id,
             "nylas_thread_id": self.nylas_thread_id,
-            "nylas_data": self.nylas_data,
+            "nylas_message_id": self.nylas_message_id,
+            "nylas_data_raw": self.nylas_data_raw,
         }

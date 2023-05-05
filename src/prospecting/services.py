@@ -204,7 +204,7 @@ def get_prospects(
     if bumped != "all":
         prospects = prospects.filter(Prospect.times_bumped == int(bumped))
 
-    if show_purgatory != 'ALL':
+    if show_purgatory != "ALL":
         if not show_purgatory:
             prospects = prospects.filter(
                 or_(
@@ -223,7 +223,9 @@ def get_prospects(
     return {"total_count": total_count, "prospects": prospects}
 
 
-def nylas_send_email(client_sdr_id: int, prospect_id: int, subject: str, body: str) -> dict:
+def nylas_send_email(
+    client_sdr_id: int, prospect_id: int, subject: str, body: str
+) -> dict:
     """Sends an email to the Prospect through the ClientSDR's Nylas account.
 
     Args:
@@ -237,7 +239,9 @@ def nylas_send_email(client_sdr_id: int, prospect_id: int, subject: str, body: s
     """
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     res = requests.post(
@@ -1417,6 +1421,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "ai_responses_disabled": p.deactivate_ai_engagement,
                 "notes": prospect_notes,
                 "persona": archetype_name,
+                "demo_date": p.demo_date,
             },
             "li": {
                 "li_conversation_url": p.li_conversation_thread_id,
@@ -1608,3 +1613,11 @@ def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason)
     prospect.hidden_reason = reason
     db.session.add(prospect)
     db.session.commit()
+
+
+def update_prospect_demo_date(prospect_id: int, demo_date: datetime.datetime):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.demo_date = demo_date
+    db.session.add(prospect)
+    db.session.commit()
+    return True
