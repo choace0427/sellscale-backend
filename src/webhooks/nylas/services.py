@@ -101,6 +101,8 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
     ).first()
     if not prospect:
         return False, "No prospect found"
+    prospect_email_id = prospect.approved_prospect_email_id
+    prospect_id = prospect.id
 
     # Prospect was found, so we should save the thread and messages.
     result = nylas_update_threads(client_sdr.id, prospect.id, 5)
@@ -110,12 +112,13 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
     messages: list[dict] = nylas_get_messages(client_sdr.id, prospect.id, thread.get("id"))
     for message in messages:
         if message.get("from_sdr") == False:
-
             # Update the Prospect's status to "ACTIVE CONVO"
             updated = update_prospect_email_outreach_status(
-                prospect_email_id=prospect.approved_prospect_email_id,
+                prospect_email_id=prospect_email_id,
                 new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
             )
+
+            prospect: Prospect = Prospect.query.get(prospect_id)
 
             # Send Slack Notification if updated
             if updated:
