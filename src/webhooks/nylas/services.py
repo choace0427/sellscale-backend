@@ -62,7 +62,7 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
         ClientSDR.active == True,
         ClientSDR.nylas_account_id == account_id,
         ClientSDR.nylas_active == True,
-    )
+    ).first()
     if not client_sdr:
         return False, "No client SDR found"
 
