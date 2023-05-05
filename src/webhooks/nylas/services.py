@@ -86,6 +86,7 @@ def process_single_message_created(delta: dict) -> tuple[bool, str]:
 
     prospect: Prospect = Prospect.query.filter(
         Prospect.client_id == client_sdr.client_id,
+        Prospect.client_sdr_id == client_sdr.id,
         Prospect.email.in_(participants),
     ).first()
     if not prospect:
