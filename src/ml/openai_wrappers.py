@@ -11,7 +11,7 @@ OPENAI_KEY = os.environ.get("OPENAI_KEY")
 openai.api_key = OPENAI_KEY
 
 CURRENT_OPENAI_DAVINCI_MODEL = "text-davinci-003"
-CURRENT_OPENAI_CHAT_GPT_MODEL = "gpt-3.5-turbo"
+CURRENT_OPENAI_CHAT_GPT_MODEL = "gpt-4-0314"
 CURRENT_OPENAI_LATEST_GPT_MODEL = "gpt-4"
 DEFAULT_SUFFIX = None
 DEFAULT_MAX_TOKENS = 16
@@ -141,7 +141,7 @@ def wrapped_chat_gpt_completion(
 
 
 def wrapped_chat_gpt_completion_with_history(
-     messages: list,
+    messages: list,
     history: Optional[list] = [],
     max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
     temperature: Optional[float] = DEFAULT_TEMPERATURE,
