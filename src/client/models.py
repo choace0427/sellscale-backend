@@ -43,6 +43,11 @@ class Client(db.Model):
     tagline = db.Column(db.String, nullable=True)
     description = db.Column(db.String, nullable=True)
 
+    do_not_contact_keywords_in_company_names = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+    do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "company": self.company,
@@ -208,7 +213,9 @@ class ClientSDR(db.Model):
     scrape_time = db.Column(db.Time, nullable=True)  # in UTC
     next_scrape = db.Column(db.DateTime, nullable=True)  # in UTC
 
-    timezone = db.Column(db.String, server_default="America/Los_Angeles", nullable=False)
+    timezone = db.Column(
+        db.String, server_default="America/Los_Angeles", nullable=False
+    )
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
