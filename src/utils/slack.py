@@ -16,6 +16,7 @@ URL_MAP = {
     "operations-li-sent-messages": "https://hooks.slack.com/services/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",
     "operations-pulse-change": "https://hooks.slack.com/services/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",
     "operations-linkedin-scraping-with-voyager": "https://hooks.slack.com/services/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",
+    "operations-li-invalid-cookie": "https://hooks.slack.com/services/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",
 }
 
 
