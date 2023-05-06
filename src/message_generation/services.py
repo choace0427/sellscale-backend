@@ -146,11 +146,14 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
             db.session.commit()
 
             # Research and generate outreaches for the prospect
-            research_and_generate_outreaches_for_prospect.delay(
-                prospect_id=prospect_id,
-                cta_id=cta_id,
-                outbound_campaign_id=outbound_campaign_id,
-                gm_job_id=gm_job.id,
+            research_and_generate_outreaches_for_prospect.apply_async(
+                [
+                    prospect_id,
+                    outbound_campaign_id,
+                    cta_id,
+                    gm_job.id,
+                ],
+                countdown=i * 10,
             )
     except Exception as e:
         db.session.rollback()
@@ -753,7 +756,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
     try:
         campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
         prospect_ids = campaign.prospect_ids
-        for prospect_id in prospect_ids:
+        for i, prospect_id in enumerate(prospect_ids):
             # Check if a job already exists for this prospect
             job_exists = GeneratedMessageJobQueue.query.filter(
                 GeneratedMessageJobQueue.prospect_id == prospect_id,
@@ -774,7 +777,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
 
             # Generate the prospect email
             generate_prospect_email.apply_async(
-                args=[prospect_id, campaign_id, gm_job.id]
+                args=[prospect_id, campaign_id, gm_job.id], countdown=i * 10
             )
     except Exception as e:
         db.session.rollback()

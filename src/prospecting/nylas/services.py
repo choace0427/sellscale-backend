@@ -7,8 +7,14 @@ from src.client.models import ClientSDR
 from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.prospecting.models import Prospect
 from src.prospecting.services import calculate_prospect_overall_status
+from src.prospecting.nylas.nylas_wrappers import (
+    wrapped_nylas_get_threads
+)
 
 NYLAS_THREAD_LIMIT = 10
+
+
+
 
 
 def nylas_get_threads(client_sdr_id: int, prospect_id: int, limit: int, offset: int) -> list[dict]:
@@ -49,17 +55,7 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    print(prospect, client_sdr)
-
-    # Get threads from Nylas
-    res = requests.get(
-        f"https://api.nylas.com/threads?limit={limit}&any_email={prospect.email}",
-        headers={"Authorization": f"Bearer {client_sdr.nylas_auth_code}"},
-    )
-    if res.status_code != 200:
-        return False
-
-    result: list[dict] = res.json()
+    result = wrapped_nylas_get_threads(client_sdr.nylas_auth_code, prospect.email, limit)
 
     # Update old / add new threads
     for thread in result:
@@ -135,6 +131,60 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
             db.session.add(new_thread)
 
     db.session.commit()
+
+    return True
+
+
+def nylas_update_single_thread(thread_id: str, thread: Optional[dict] = {}) -> bool:
+    """ Updates a single thread based on the thread_id, or if the thread is supplied, update the thread in DB.
+
+    Args:
+        thread_id (str): ID of the thread from Nylas
+        thread (Optional[dict], optional): The thread, if we have the information and are looking to update. Defaults to {}.
+
+    Returns:
+        bool: Whether the update was successful
+    """
+    if thread:
+        existing_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
+            nylas_thread_id=thread.get("id")
+        ).first()
+
+        if not existing_thread:
+            return False
+
+        # Convert time-since-epoch into datetime objects
+        first_message_timestamp = existing_thread.first_message_timestamp
+        last_message_received_timestamp = existing_thread.last_message_received_timestamp
+        last_message_sent_timestamp = existing_thread.last_message_sent_timestamp
+        last_message_timestamp = existing_thread.last_message_timestamp
+        if thread.get("first_message_timestamp"):
+            first_message_timestamp = datetime.fromtimestamp(thread.get("first_message_timestamp"), tz=timezone.utc)
+        if thread.get("last_message_received_timestamp"):
+            last_message_received_timestamp = datetime.fromtimestamp(thread.get("last_message_received_timestamp"), tz=timezone.utc)
+        if thread.get("last_message_sent_timestamp"):
+            last_message_sent_timestamp = datetime.fromtimestamp(thread.get("last_message_sent_timestamp"), tz=timezone.utc)
+        if thread.get("last_message_timestamp"):
+            last_message_timestamp = datetime.fromtimestamp(thread.get("last_message_timestamp"), tz=timezone.utc)
+
+        existing_thread.subject = thread.get("subject", existing_thread.subject)
+        existing_thread.snippet = thread.get("snippet", existing_thread.snippet)
+        existing_thread.first_message_timestamp = first_message_timestamp
+        existing_thread.last_message_received_timestamp = last_message_received_timestamp
+        existing_thread.last_message_sent_timestamp = last_message_sent_timestamp
+        existing_thread.last_message_timestamp = last_message_timestamp
+        existing_thread.participants = thread.get("participants", existing_thread.participants)
+        existing_thread.has_attachments = thread.get("has_attachments", existing_thread.has_attachments)
+        existing_thread.unread = thread.get("unread", existing_thread.unread)
+        existing_thread.version = thread.get("version", existing_thread.version)
+        existing_thread.nylas_thread_id = thread.get("id", existing_thread.nylas_thread_id)
+        existing_thread.nylas_message_ids = thread.get("message_ids", existing_thread.nylas_message_ids)
+        existing_thread.nylas_data_raw = thread
+
+        db.session.commit()
+        return True
+
+    # TODO, update if we have thread id
 
     return True
 
@@ -248,11 +298,14 @@ def nylas_update_messages(
         # Add new message
         if not existing_message:
             # Check if message is from SDR
+            message_from_prospect = False
             message_from_sdr = False
             messages_from: list[dict] = message.get("from")
             for message_from in messages_from:
                 message_from_email = message_from.get("email")
-                if message_from_email == client_sdr.email:
+                if message_from_email == prospect.email:
+                    message_from_prospect = True
+                elif message_from_email == client_sdr.email:
                     message_from_sdr = True
 
             # Convert time-since-epoch into datetime objects
@@ -266,6 +319,7 @@ def nylas_update_messages(
                 prospect_email = prospect.email,
                 sdr_email = client_sdr.email,
                 from_sdr = message_from_sdr,
+                from_prospect = message_from_prospect,
                 subject = message.get("subject"),
                 snippet = message.get("snippet"),
                 body = message.get("body"),

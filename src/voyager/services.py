@@ -387,9 +387,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
     # Update convo URN id if needed
     if not prospect.li_conversation_urn_id and prospect.li_conversation_thread_id:
-        prospect.li_conversation_urn_id = prospect.li_conversation_thread_id.split('thread/')[-1].split('/')[0]
+        prospect.li_conversation_urn_id = prospect.li_conversation_thread_id.split(
+            "thread/"
+        )[-1].split("/")[0]
         db.session.commit()
-    
 
     print("Checking for prospect status updates...")
     latest_convo_entries = (
@@ -429,9 +430,19 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         and last_2_msg_was_you
         and latest_convo_entries[2].connection_degree == "You"
     )
+    has_prospect_replied = False
+    for entry in latest_convo_entries:
+        if entry.connection_degree != "You":
+            prospect.li_last_message_from_prospect = entry.message
+            db.session.add(prospect)
+            db.session.commit()
+            has_prospect_replied = True
+            break
 
     # Edge case: If they accepted our connection request and we just sent them a message, they're considered bumped
-    if prospect.status == ProspectStatus.ACCEPTED and last_msg_was_you:
+    if (prospect.status == ProspectStatus.ACCEPTED and last_msg_was_you) or (
+        prospect.status == ProspectStatus.SENT_OUTREACH and not has_prospect_replied
+    ):
         update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 1
         prospect.last_reviewed = latest_entry_date
@@ -451,7 +462,15 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         )
         return
 
-    elif prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED, ProspectStatus.RESPONDED):
+    elif (
+        prospect.status
+        in (
+            ProspectStatus.SENT_OUTREACH,
+            ProspectStatus.ACCEPTED,
+            ProspectStatus.RESPONDED,
+        )
+        and has_prospect_replied
+    ):
         update_prospect_status_linkedin(
             prospect_id=prospect.id,
             new_status=ProspectStatus.ACTIVE_CONVO,

@@ -489,6 +489,7 @@ class EmailConversationMessage(db.Model):
     prospect_email = db.Column(db.String, nullable=False)
     sdr_email = db.Column(db.String, nullable=False)
     from_sdr = db.Column(db.Boolean, nullable=True)
+    from_prospect = db.Column(db.Boolean, nullable=True)
 
     # Comes from Nylas --->
     subject = db.Column(db.String, nullable=True)
@@ -515,6 +516,7 @@ class EmailConversationMessage(db.Model):
             "prospect_email": self.prospect_email,
             "sdr_email": self.sdr_email,
             "from_sdr": self.from_sdr,
+            "from_prospect": self.from_prospect,
             "subject": self.subject,
             "snippet": self.snippet,
             "body": self.body,
