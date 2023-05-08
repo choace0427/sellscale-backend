@@ -304,7 +304,10 @@ def update_prospect_status_linkedin(
             custom_message=" accepted your invite! 😀",
             metadata=message,
         )
-    if new_status == ProspectStatus.ACTIVE_CONVO:
+    if (
+        new_status == ProspectStatus.ACTIVE_CONVO
+        and "ACTIVE_CONVO" not in current_status.value
+    ):
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
@@ -319,28 +322,7 @@ def update_prospect_status_linkedin(
             custom_message=" responded to your outreach! 🙌🏽",
             metadata=message,
         )
-        send_slack_message(
-            message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-            webhook_urls=[URL_MAP["csm-convo-sorter"]],
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-                    },
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
-                        },
-                    ],
-                },
-            ],
-        )
+
     if new_status == ProspectStatus.SCHEDULING:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
@@ -389,6 +371,30 @@ def update_prospect_status_linkedin(
                         {
                             "type": "plain_text",
                             "text": "This status has been manually set by an internal SellScale admin.",
+                        },
+                    ],
+                },
+            ],
+        )
+
+    if new_status == ProspectStatus.ACTIVE_CONVO:
+        send_slack_message(
+            message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+            webhook_urls=[URL_MAP["csm-convo-sorter"]],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
                         },
                     ],
                 },
