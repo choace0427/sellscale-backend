@@ -33,5 +33,5 @@ class BumpFramework(db.Model):
             "overall_status": self.overall_status.value if self.overall_status else None,
             "active": self.active,
             "default": self.default,
-            "bump_length": self.bump_length.value,
+            "bump_length": self.bump_length.value if self.bump_length else None,
         }
