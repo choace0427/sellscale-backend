@@ -56,9 +56,9 @@ def post_create_bump_framework(client_sdr_id: int):
     default = get_request_parameter(
         "default", request, json=True, required=False, parameter_type=bool
     ) or False
-    length = get_request_parameter(
+    length: str = get_request_parameter(
         "length", request, json=True, required=False, parameter_type=str
-    ) or BumpLength.MEDIUM
+    ) or BumpLength.MEDIUM.value
 
     # Get the enum value for the overall status
     found_key = False
@@ -73,7 +73,7 @@ def post_create_bump_framework(client_sdr_id: int):
     # Get the enum value for the bump length
     found_key = False
     for key, val in BumpLength.__members__.items():
-        if key == length:
+        if key == length.upper():
             length = val
             found_key = True
             break
@@ -112,9 +112,9 @@ def patch_bump_framework(client_sdr_id: int):
     default = get_request_parameter(
         "default", request, json=True, required=False, parameter_type=bool
     ) or False
-    length = get_request_parameter(
+    length: str = get_request_parameter(
         "length", request, json=True, required=False, parameter_type=str
-    ) or BumpLength.MEDIUM
+    ) or BumpLength.MEDIUM.value
 
     # Get the enum value for the overall status
     found_key = False
@@ -129,7 +129,7 @@ def patch_bump_framework(client_sdr_id: int):
     # Get the enum value for the bump length
     found_key = False
     for key, val in BumpLength.__members__.items():
-        if key == length:
+        if key == length.upper():
             length = val
             found_key = True
             break
