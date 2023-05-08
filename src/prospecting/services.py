@@ -366,7 +366,7 @@ def update_prospect_status_linkedin(
                     "elements": [
                         {
                             "type": "plain_text",
-                            "text": "Autodected using AI from the following conversation:",
+                            "text": "This status has been manually set by an internal SellScale admin.",
                         },
                     ],
                 },
