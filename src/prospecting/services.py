@@ -327,7 +327,7 @@ def update_prospect_status_linkedin(
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"Prospect {p.full_name} is in an unassigned active convo!",
+                        "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
                     },
                 },
                 {
