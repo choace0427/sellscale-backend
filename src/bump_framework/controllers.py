@@ -2,6 +2,7 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import BumpFramework
+from src.bump_framework.models import BumpLength
 from src.bump_framework.services import (
     create_bump_framework,
     modify_bump_framework,
@@ -55,7 +56,11 @@ def post_create_bump_framework(client_sdr_id: int):
     default = get_request_parameter(
         "default", request, json=True, required=False, parameter_type=bool
     ) or False
+    length = get_request_parameter(
+        "length", request, json=True, required=True, parameter_type=str
+    ) or BumpLength.MEDIUM
 
+    # Get the enum value for the overall status
     found_key = False
     for key, val in ProspectOverallStatus.__members__.items():
         if key == overall_status:
@@ -65,10 +70,21 @@ def post_create_bump_framework(client_sdr_id: int):
     if not found_key:
         return jsonify({"error": "Invalid overall status."}), 400
 
+    # Get the enum value for the bump length
+    found_key = False
+    for key, val in BumpLength.__members__.items():
+        if key == length:
+            length = val
+            found_key = True
+            break
+    if not found_key:
+        return jsonify({"error": "Invalid bump length."}), 400
+
     bump_framework_id = create_bump_framework(
         title=title,
         description=description,
         overall_status=overall_status,
+        length=length,
         client_sdr_id=client_sdr_id,
         default=default,
     )
@@ -96,7 +112,11 @@ def patch_bump_framework(client_sdr_id: int):
     default = get_request_parameter(
         "default", request, json=True, required=False, parameter_type=bool
     ) or False
+    length = get_request_parameter(
+        "length", request, json=True, required=True, parameter_type=str
+    ) or BumpLength.MEDIUM
 
+    # Get the enum value for the overall status
     found_key = False
     for key, val in ProspectOverallStatus.__members__.items():
         if key == overall_status:
@@ -105,6 +125,16 @@ def patch_bump_framework(client_sdr_id: int):
             break
     if not found_key:
         return jsonify({"error": "Invalid overall status."}), 400
+
+    # Get the enum value for the bump length
+    found_key = False
+    for key, val in BumpLength.__members__.items():
+        if key == length:
+            length = val
+            found_key = True
+            break
+    if not found_key:
+        return jsonify({"error": "Invalid bump length."}), 400
 
     bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
     if not bump_framework:

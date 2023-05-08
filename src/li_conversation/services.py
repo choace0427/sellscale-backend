@@ -1,4 +1,5 @@
 from typing import List, Union, Optional
+from src.bump_framework.models import BumpLength
 
 from src.voyager.linkedin import LinkedIn
 
@@ -308,6 +309,19 @@ def generate_chat_gpt_response_to_conversation_thread(
         message_content = message_content + (
             "\nUse what you think is relevant from this account research: "
             + account_research_copy
+        )
+
+    if bump_framework.bump_length == BumpLength.SHORT:
+        message_content = message_content + (
+            "\n\nPlease keep this message between 1-3 sentences."
+        )
+    elif bump_framework.bump_length == BumpLength.MEDIUM:
+        message_content = message_content + (
+            "\n\nPlease keep this message between 3-5 sentences."
+        )
+    elif bump_framework.bump_length == BumpLength.LONG:
+        message_content = message_content + (
+            "\n\nPlease keep this message between 5-7 sentences."
         )
 
     response = wrapped_chat_gpt_completion(

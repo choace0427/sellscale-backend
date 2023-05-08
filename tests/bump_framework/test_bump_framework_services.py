@@ -1,4 +1,5 @@
 from app import db, app
+from src.bump_framework.models import BumpLength
 from test_utils import (
     test_app,
     basic_client,
@@ -42,7 +43,7 @@ def test_create_bump_framework():
     sdr = basic_client_sdr(client)
 
     create_bump_framework(
-        sdr.id, "title", "description", ProspectOverallStatus.ACTIVE_CONVO, True, True
+        sdr.id, "title", "description", ProspectOverallStatus.ACTIVE_CONVO, BumpLength.LONG, True, True
     )
     assert BumpFramework.query.count() == 1
     bump_framework: BumpFramework = BumpFramework.query.filter_by(
@@ -51,6 +52,7 @@ def test_create_bump_framework():
     assert bump_framework.title == "title"
     assert bump_framework.description == "description"
     assert bump_framework.overall_status == ProspectOverallStatus.ACTIVE_CONVO
+    assert bump_framework.bump_length.value == "LONG"
     assert bump_framework.active == True
     assert bump_framework.default == True
 
@@ -61,10 +63,12 @@ def test_modify_bump_framework():
     sdr = basic_client_sdr(client)
     bump_framework = basic_bump_framework(sdr, active=True)
 
+    assert bump_framework.bump_length.value == "MEDIUM"
     modify_bump_framework(
         client_sdr_id=sdr.id,
         bump_framework_id=bump_framework.id,
         overall_status=ProspectOverallStatus.PROSPECTED,
+        length=BumpLength.SHORT,
         title="new title",
         description="new description",
         default=True,
@@ -75,6 +79,7 @@ def test_modify_bump_framework():
     assert bump_framework.title == "new title"
     assert bump_framework.description == "new description"
     assert bump_framework.default == True
+    assert bump_framework.bump_length.value == "SHORT"
 
 
 @use_app_context

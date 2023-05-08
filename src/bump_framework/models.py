@@ -4,6 +4,11 @@ import enum
 from src.prospecting.models import ProspectOverallStatus
 
 
+class BumpLength(enum.Enum):
+    SHORT = 'SHORT'
+    MEDIUM = 'MEDIUM'
+    LONG = 'LONG'
+
 class BumpFramework(db.Model):
     __tablename__ = "bump_framework"
 
@@ -18,6 +23,8 @@ class BumpFramework(db.Model):
 
     default = db.Column(db.Boolean, nullable=False, default=False)
 
+    bump_length = db.Column(db.Enum(BumpLength), nullable=True, default=BumpLength.MEDIUM)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -26,4 +33,5 @@ class BumpFramework(db.Model):
             "overall_status": self.overall_status.value if self.overall_status else None,
             "active": self.active,
             "default": self.default,
+            "bump_length": self.bump_length.value,
         }
