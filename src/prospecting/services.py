@@ -374,6 +374,20 @@ def update_prospect_status_linkedin(
                         },
                     ],
                 },
+                {  # Add prospect title and (optional) last message
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Title:* {title}\n{last_message}".format(
+                            title=p.title,
+                            last_message=""
+                            if not p.li_last_message_from_prospect
+                            else '*Last Message*: "{}"'.format(
+                                p.li_last_message_from_prospect
+                            ),
+                        ),
+                    },
+                },
                 {
                     "type": "section",
                     "text": {
@@ -415,6 +429,20 @@ def update_prospect_status_linkedin(
                             "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
                         },
                     ],
+                },
+                {  # Add prospect title and (optional) last message
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Title:* {title}\n{last_message}".format(
+                            title=p.title,
+                            last_message=""
+                            if not p.li_last_message_from_prospect
+                            else '*Last Message*: "{}"'.format(
+                                p.li_last_message_from_prospect
+                            ),
+                        ),
+                    },
                 },
                 {
                     "type": "section",
