@@ -150,13 +150,11 @@ def generate_account_research_points_endpoint(client_sdr_id: int):
             archetype_id=archetype_id, hard_refresh=hard_refresh
         )
     elif prospect_id:
-        prospect: Prospect = Prospect.query.filter_by(
-            id=prospect_id
-        ).first()
+        prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         if prospect.client_sdr_id != client_sdr_id:
             return "Unauthorized", 401
 
-        generate_prospect_research.delay(prospect.id, False, hard_refresh)
+        generate_prospect_research(prospect.id, False, hard_refresh)
         success = True
     else:
         success = False
