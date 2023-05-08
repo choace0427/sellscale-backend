@@ -320,7 +320,7 @@ def update_prospect_status_linkedin(
             metadata=message,
         )
         send_slack_message(
-            message=f"Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+            message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
             webhook_urls=[URL_MAP["csm-convo-sorter"]],
             blocks=[
                 {
