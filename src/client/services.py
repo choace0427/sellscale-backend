@@ -1338,21 +1338,25 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     if not client:
         return None
 
-    prospects = Prospect.query.filter(
-        Prospect.client_sdr_id == client_sdr_id,
-        Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
-        or_(
-            *(
-                [
-                    Prospect.company.ilike(f"%{company}%")
-                    for company in client.do_not_contact_company_names
-                ]
-                + [
-                    Prospect.company.ilike(f"%{keyword}%")
-                    for keyword in client.do_not_contact_keywords_in_company_names
-                ]
-            )
-        ),
-    ).all()
+    prospects = (
+        Prospect.query.filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+            or_(
+                *(
+                    [
+                        Prospect.company.ilike(f"%{company}%")
+                        for company in client.do_not_contact_company_names
+                    ]
+                    + [
+                        Prospect.company.ilike(f"%{keyword}%")
+                        for keyword in client.do_not_contact_keywords_in_company_names
+                    ]
+                )
+            ),
+        )
+        .limit(100)
+        .all()
+    )
 
     return [prospect.to_dict() for prospect in prospects]
