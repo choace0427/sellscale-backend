@@ -392,18 +392,10 @@ def update_prospect_status_linkedin(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Next steps: Engage with the prospect and schedule a meeting!",
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Click to see go to SellScale Sight",
-                            "emoji": True,
-                        },
-                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-                        + client_sdr.auth_token,
-                        "action_id": "button-action",
+                        "text": "*SellScale Sight*: <{link}|Link>".format(
+                            link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                            + client_sdr.auth_token
+                        ),
                     },
                 },
             ],
@@ -448,18 +440,10 @@ def update_prospect_status_linkedin(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Next steps: Assign a substatus to this conversation via SellScale Sight.",
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Click to go to SellScale Sight",
-                            "emoji": True,
-                        },
-                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-                        + client_sdr.auth_token,
-                        "action_id": "button-action",
+                        "text": "*SellScale Sight*: <{link}|Link>".format(
+                            link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                            + client_sdr.auth_token
+                        ),
                     },
                 },
             ],
