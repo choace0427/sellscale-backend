@@ -155,6 +155,7 @@ def generate_account_research_points_endpoint(client_sdr_id: int):
             return "Unauthorized", 401
 
         generate_prospect_research(prospect.id, False, hard_refresh)
+
         success = True
     else:
         success = False
