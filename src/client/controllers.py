@@ -43,6 +43,7 @@ from src.client.services import (
     generate_persona_icp_matching_prompt,
     update_do_not_contact_filters,
     get_do_not_contact_filters,
+    list_prospects_caught_by_client_filters,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -992,3 +993,13 @@ def get_do_not_contact_filters_endpoint(client_sdr_id: int):
         client_id=client_id,
     )
     return jsonify({"data": data}), 200
+
+
+@CLIENT_BLUEPRINT.route("/do_not_contact_filters/caught_prospects", methods=["GET"])
+@require_user
+def get_caught_prospects_endpoint(client_sdr_id: int):
+    """Gets the archetype details"""
+    prospects = list_prospects_caught_by_client_filters(
+        client_sdr_id=client_sdr_id,
+    )
+    return jsonify({"prospects": prospects}), 200

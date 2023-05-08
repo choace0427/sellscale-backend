@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from click import Option
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.automation.models import PhantomBusterAgent
@@ -1323,3 +1324,35 @@ def get_do_not_contact_filters(client_id: int):
         "do_not_contact_keywords_in_company_names": client.do_not_contact_keywords_in_company_names,
         "do_not_contact_company_names": client.do_not_contact_company_names,
     }
+
+
+def list_prospects_caught_by_client_filters(client_sdr_id: int):
+    """Get the prospects caught by the do not contact filters for a Client.
+    Checks if the prospect's company's name is not ilike any of the do not contact companies
+    and checks if the company name is not ilike any of the do not contact keywords.
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    client: Client = Client.query.get(client_id)
+    if not client:
+        return None
+
+    prospects = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+        or_(
+            *(
+                [
+                    Prospect.company.ilike(f"%{company}%")
+                    for company in client.do_not_contact_company_names
+                ]
+                + [
+                    Prospect.company.ilike(f"%{keyword}%")
+                    for keyword in client.do_not_contact_keywords_in_company_names
+                ]
+            )
+        ),
+    ).all()
+
+    return [prospect.to_dict() for prospect in prospects]
