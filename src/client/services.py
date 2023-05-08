@@ -1338,6 +1338,12 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     if not client:
         return None
 
+    if (
+        not client.do_not_contact_company_names
+        and not client.do_not_contact_keywords_in_company_names
+    ):
+        return []
+
     prospects = (
         Prospect.query.filter(
             Prospect.client_sdr_id == client_sdr_id,
