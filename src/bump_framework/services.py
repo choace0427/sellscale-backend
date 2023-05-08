@@ -1,5 +1,6 @@
 from model_import import BumpFramework
 from app import db
+from src.bump_framework.models import BumpLength
 from src.prospecting.models import ProspectOverallStatus
 from typing import Optional
 
@@ -37,6 +38,7 @@ def create_bump_framework(
     title: str,
     description: str,
     overall_status: ProspectOverallStatus,
+    length: BumpLength,
     active: bool = True,
     default: Optional[bool] = False
 ) -> int:
@@ -46,6 +48,7 @@ def create_bump_framework(
         title (str): The title of the bump framework
         description (str): The description of the bump framework
         overall_status (ProspectOverallStatus): The overall status of the bump framework
+        length (BumpLength): The length of the bump framework
         active (bool, optional): Whether the bump framework is active. Defaults to True.
         client_sdr_id (int): The id of the client SDR. Defaults to None.
         default (Optional[bool], optional): Whether the bump framework is the default. Defaults to False.
@@ -59,10 +62,14 @@ def create_bump_framework(
             bump_framework.default = False
             db.session.add(bump_framework)
 
+    if length not in [BumpLength.LONG, BumpLength.SHORT, BumpLength.MEDIUM]:
+        length = BumpLength.MEDIUM
+
     bump_framework = BumpFramework(
         description=description,
         title=title,
         overall_status=overall_status,
+        bump_length=length,
         active=active,
         client_sdr_id=client_sdr_id,
         default=default,
@@ -76,6 +83,7 @@ def modify_bump_framework(
     client_sdr_id: int,
     bump_framework_id: int,
     overall_status: ProspectOverallStatus,
+    length: BumpLength,
     title: Optional[str],
     description: Optional[str],
     default: Optional[bool] = False,
@@ -86,6 +94,7 @@ def modify_bump_framework(
         client_sdr_id (int): The id of the client SDR
         bump_framework_id (int): The id of the bump framework
         overall_status (ProspectOverallStatus): The overall status of the bump framework
+        length (BumpLength): The length of the bump framework
         title (Optional[str]): The title of the bump framework
         description (Optional[str]): The description of the bump framework
         default (Optional[bool]): Whether the bump framework is the default
@@ -102,6 +111,12 @@ def modify_bump_framework(
         bump_framework.title = title
     if description:
         bump_framework.description = description
+
+    if length not in [BumpLength.LONG, BumpLength.SHORT, BumpLength.MEDIUM]:
+        bump_framework.bump_length = BumpLength.MEDIUM
+    else:
+        bump_framework.bump_length = length
+
     if default:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
             BumpFramework.client_sdr_id == client_sdr_id,

@@ -54,6 +54,7 @@ from model_import import (
     PersonaSplitRequestTask,
     PhantomBusterPayload,
 )
+from src.bump_framework.models import BumpLength
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
@@ -614,6 +615,7 @@ def basic_bump_framework(
     client_sdr: ClientSDR,
     title: str = "test-title",
     description: str = "test-description",
+    length: BumpLength = BumpLength.MEDIUM,
     active: bool = True,
     overall_status: ProspectOverallStatus = ProspectOverallStatus.BUMPED,
     default: bool = False,
@@ -624,6 +626,7 @@ def basic_bump_framework(
         client_sdr_id=client_sdr.id,
         title=title,
         description=description,
+        bump_length=length,
         active=active,
         overall_status=overall_status,
         default=default,
