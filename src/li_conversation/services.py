@@ -289,13 +289,6 @@ def generate_chat_gpt_response_to_conversation_thread(
         + details
     )
 
-    if prospect and prospect.status == ProspectStatus.RESPONDED:
-        message_content = (
-            "You are a helpful assistant helping the user write a casual follow up in a message thread, with the goal of getting the prospect on a call. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
-            + sender
-            + ". Mention that you're doing one last follow up."
-        )
-
     bump_framework: BumpFramework = BumpFramework.query.filter_by(
         id=bump_framework_id
     ).first()
