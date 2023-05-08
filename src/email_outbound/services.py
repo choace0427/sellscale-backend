@@ -402,6 +402,32 @@ def update_status_from_ss_data(
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
+def update_prospect_email_outreach_status(prospect_email_id: int, new_status: ProspectEmailOutreachStatus):
+    """Updates the outreach status of a prospect email.
+
+    Args:
+        prospect_email_id (int): ID of the prospect email.
+        new_status (ProspectEmailOutreachStatus): The new outreach status.
+    """
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    if not prospect_email:
+        return False
+
+    old_status = prospect_email.outreach_status
+    if old_status == new_status:
+        return False
+
+    if (
+        old_status
+        in VALID_UPDATE_EMAIL_STATUS_MAP[new_status]
+    ):
+        prospect_email.outreach_status = new_status
+        db.session.add(prospect_email)
+        db.session.commit()
+
+    return True
+
+
 EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS = {
     EmailInteractionState.EMAIL_SENT: ProspectEmailOutreachStatus.SENT_OUTREACH,
     EmailInteractionState.EMAIL_OPENED: ProspectEmailOutreachStatus.EMAIL_OPENED,
@@ -422,14 +448,14 @@ def add_sequence(title: str, client_sdr_id: int, archetype_id: int, data):
     Returns:
         (JSON, HTTP status): JSON response and HTTP status code.
     """
-    
+
     ca: ClientArchetype = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
         ClientArchetype.id == archetype_id,
     ).first()
     if not ca:
         return jsonify({"message": 'Archetype not found for this SDR'}), 404
-    
+
     sequence = Sequence(
         title=title,
         client_sdr_id=client_sdr_id,
@@ -441,7 +467,7 @@ def add_sequence(title: str, client_sdr_id: int, archetype_id: int, data):
     )
     db.session.add(sequence)
     db.session.commit()
-    
+
     return jsonify({"message": 'Created', "data": sequence.to_dict()}), 200
 
 

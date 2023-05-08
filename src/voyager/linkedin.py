@@ -14,6 +14,7 @@ from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
 from app import db
 from sqlalchemy.orm import Session
+from src.utils.slack import send_slack_message, URL_MAP
 
 from requests import TooManyRedirects
 
@@ -116,6 +117,13 @@ class LinkedIn(object):
             print("TooManyRedirects - Invalidating cookies")
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
             if sdr:
+
+                if sdr.li_cookies != "INVALID":
+                    send_slack_message(
+                        message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                        webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+                    )
+
                 sdr.li_cookies = "INVALID"
                 db.session.add(sdr)
                 db.session.commit()
@@ -138,6 +146,13 @@ class LinkedIn(object):
         except TooManyRedirects as e:
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
             if sdr:
+
+                if sdr.li_cookies != "INVALID":
+                    send_slack_message(
+                        message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                        webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+                    )
+
                 sdr.li_cookies = "INVALID"
                 db.session.add(sdr)
                 db.session.commit()
