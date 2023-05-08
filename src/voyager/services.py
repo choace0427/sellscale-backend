@@ -462,7 +462,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         return
 
     # Update the prospect status accordingly
-    if first_and_only_message_was_you:
+    if (
+        first_and_only_message_was_you
+        and prospect.status == ProspectStatus.SENT_OUTREACH
+    ):
         update_prospect_status_linkedin(
             prospect_id=prospect.id,
             new_status=ProspectStatus.ACCEPTED,
