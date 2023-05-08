@@ -449,9 +449,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             has_prospect_replied = True
             break
 
-    # Edge case: If they accepted our connection request and we just sent them a message, they're considered bumped
-    if (prospect.status == ProspectStatus.ACCEPTED and last_msg_was_you) or (
-        prospect.status == ProspectStatus.SENT_OUTREACH and not has_prospect_replied
+    if (
+        prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
+        and not has_prospect_replied
+        and last_msg_was_you
     ):
         update_prospect_status_linkedin(prospect.id, ProspectStatus.RESPONDED)
         prospect.times_bumped = 1

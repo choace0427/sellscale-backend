@@ -26,7 +26,7 @@ from src.prospecting.models import (
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
-from src.utils.slack import send_slack_message
+from src.utils.slack import URL_MAP, send_slack_message
 from src.utils.converters.string_converters import (
     get_last_name_from_full_name,
     get_first_name_from_full_name,
@@ -277,6 +277,7 @@ def update_prospect_status_linkedin(
     from src.daily_notifications.models import EngagementFeedType
 
     p: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
     current_status = p.status
 
     # If the new status isn't an active convo sub status, does not start with ACTIVE_CONVO
@@ -347,6 +348,29 @@ def update_prospect_status_linkedin(
             new_status=ProspectStatus.DEMO_SET,
             custom_message=" set a time to demo!! 🎉🎉🎉",
             metadata={"threadUrl": p.li_conversation_thread_id},
+        )
+    elif new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
+        send_slack_message(
+            message=f"Prospect {p.full_name} is scheduling a meeting with {client_sdr.name}!",
+            webhook_urls=[URL_MAP["autodetect-scheduling"]],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"Prospect {p.full_name} is scheduling a meeting with {client_sdr.name}!",
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "Autodected using AI from the following conversation:",
+                        },
+                    ],
+                },
+            ],
         )
 
     # status jumps
