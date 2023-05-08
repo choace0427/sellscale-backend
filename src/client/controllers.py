@@ -42,6 +42,7 @@ from src.client.services import (
     generate_persona_buy_reason,
     generate_persona_icp_matching_prompt,
     update_do_not_contact_filters,
+    get_do_not_contact_filters,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -978,3 +979,16 @@ def post_do_not_contact_filters(client_sdr_id: int):
         return "Failed to update do not contact filters", 400
 
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/do_not_contact_filters", methods=["GET"])
+@require_user
+def get_do_not_contact_filters_endpoint(client_sdr_id: int):
+    """Gets the archetype details"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    data = get_do_not_contact_filters(
+        client_id=client_id,
+    )
+    return jsonify({"data": data}), 200
