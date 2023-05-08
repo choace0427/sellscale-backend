@@ -374,6 +374,24 @@ def update_prospect_status_linkedin(
                         },
                     ],
                 },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Next steps: Engage with the prospect and schedule a meeting!",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Click to see go to SellScale Sight",
+                            "emoji": True,
+                        },
+                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                        + client_sdr.auth_token,
+                        "action_id": "button-action",
+                    },
+                },
             ],
         )
 
@@ -397,6 +415,24 @@ def update_prospect_status_linkedin(
                             "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
                         },
                     ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Next steps: Assign a substatus to this conversation via SellScale Sight.",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Click to go to SellScale Sight",
+                            "emoji": True,
+                        },
+                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                        + client_sdr.auth_token,
+                        "action_id": "button-action",
+                    },
                 },
             ],
         )
