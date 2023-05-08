@@ -57,7 +57,7 @@ def post_create_bump_framework(client_sdr_id: int):
         "default", request, json=True, required=False, parameter_type=bool
     ) or False
     length = get_request_parameter(
-        "length", request, json=True, required=True, parameter_type=str
+        "length", request, json=True, required=False, parameter_type=str
     ) or BumpLength.MEDIUM
 
     # Get the enum value for the overall status
@@ -113,7 +113,7 @@ def patch_bump_framework(client_sdr_id: int):
         "default", request, json=True, required=False, parameter_type=bool
     ) or False
     length = get_request_parameter(
-        "length", request, json=True, required=True, parameter_type=str
+        "length", request, json=True, required=False, parameter_type=str
     ) or BumpLength.MEDIUM
 
     # Get the enum value for the overall status
