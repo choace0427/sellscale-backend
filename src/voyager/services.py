@@ -2,7 +2,9 @@ import json
 import time
 import datetime as dt
 import random
+import os
 
+from src.automation.models import PhantomBusterAgent
 from src.prospecting.models import ProspectOverallStatus
 
 from src.prospecting.services import send_to_purgatory, update_prospect_status_linkedin
@@ -85,6 +87,11 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
 
     sdr.li_at_token = json.loads(cookies).get("li_at")
     sdr.li_cookies = cookies
+
+    # Update the pb agent
+    if os.environ.get("FLASK_ENV") == "production":
+        pb_agent = PhantomBusterAgent("3365881184675991")
+        pb_agent.update_argument("sessionCookie", sdr.li_at_token)
 
     db.session.add(sdr)
     db.session.commit()
