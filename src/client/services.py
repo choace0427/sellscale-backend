@@ -1355,7 +1355,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
                 )
             ),
         )
-        .limit(100)
+        .limit(500)
         .all()
     )
 
