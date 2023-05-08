@@ -319,6 +319,28 @@ def update_prospect_status_linkedin(
             custom_message=" responded to your outreach! 🙌🏽",
             metadata=message,
         )
+        send_slack_message(
+            message=f"Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+            webhook_urls=[URL_MAP["convo-sorter"]],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"Prospect {p.full_name} is in an unassigned active convo!",
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
+                        },
+                    ],
+                },
+            ],
+        )
     if new_status == ProspectStatus.SCHEDULING:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
