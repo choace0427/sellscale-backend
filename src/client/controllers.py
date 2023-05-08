@@ -41,6 +41,7 @@ from src.client.services import (
     generate_persona_description,
     generate_persona_buy_reason,
     generate_persona_icp_matching_prompt,
+    update_do_not_contact_filters,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -952,3 +953,28 @@ def get_archetype_details(client_sdr_id: int):
     )
 
     return jsonify({"data": data}), 200
+
+
+@CLIENT_BLUEPRINT.route("/do_not_contact_filters", methods=["POST"])
+@require_user
+def post_do_not_contact_filters(client_sdr_id: int):
+    """Gets the archetype details"""
+    do_not_contact_keywords_in_company_names = get_request_parameter(
+        "do_not_contact_keywords_in_company_names", request, json=True, required=False
+    )
+    do_not_contact_company_names = get_request_parameter(
+        "do_not_contact_company_names", request, json=True, required=False
+    )
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    success = update_do_not_contact_filters(
+        client_id=client_id,
+        do_not_contact_keywords_in_company_names=do_not_contact_keywords_in_company_names,
+        do_not_contact_company_names=do_not_contact_company_names,
+    )
+    if not success:
+        return "Failed to update do not contact filters", 400
+
+    return "OK", 200
