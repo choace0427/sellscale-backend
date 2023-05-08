@@ -4,6 +4,8 @@ import datetime as dt
 import random
 import os
 
+from src.automation.services import update_phantom_buster_li_at
+
 from src.automation.models import PhantomBusterAgent
 from src.prospecting.models import ProspectOverallStatus
 
@@ -90,8 +92,9 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
 
     # Update the pb agent
     if os.environ.get("FLASK_ENV") == "production":
-        pb_agent = PhantomBusterAgent("3365881184675991")
-        pb_agent.update_argument("sessionCookie", sdr.li_at_token)
+        response = update_phantom_buster_li_at(
+            client_sdr_id=client_sdr_id, li_at=sdr.li_at_token
+        )
 
     db.session.add(sdr)
     db.session.commit()
