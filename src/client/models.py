@@ -1,5 +1,5 @@
 from app import db
-from src.prospecting.models import ProspectStatus
+from src.prospecting.models import ProspectStatus, Prospect
 from src.research.models import ResearchPointType
 import sqlalchemy as sa
 import json
@@ -257,11 +257,16 @@ class DemoFeedback(db.Model):
     feedback = db.Column(db.String)
 
     def to_dict(self) -> dict:
+        prospect: Prospect = Prospect.query.get(self.prospect_id)
+
         return {
             "id": self.id,
             "client_id": self.client_id,
             "client_sdr_id": self.client_sdr_id,
             "prospect_id": self.prospect_id,
+            "prospect_name": prospect.full_name,
+            "prospect_img_url": prospect.img_url,
+            "demo_date": prospect.demo_date,
             "status": self.status,
             "rating": self.rating,
             "feedback": self.feedback,
