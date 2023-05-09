@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 from flask_csv import send_csv
 from model_import import Prospect, LinkedinConversationEntry
 from datetime import datetime, timedelta
+from src.bump_framework.models import BumpLength
 from src.li_conversation.services import (
     update_linkedin_conversation_entries,
     update_li_conversation_extractor_phantom,
@@ -79,6 +80,20 @@ def get_prospect_li_conversation():
     account_research_copy = get_request_parameter(
         "account_research_copy", request, json=True, required=False
     )
+    bump_length = get_request_parameter(
+        "bump_length", request, json=True, required=False
+    )
+
+    # Get the enum value for the bump length
+    if bump_length is not None:
+        found_key = False
+        for key, val in BumpLength.__members__.items():
+            if key == bump_length.upper():
+                bump_length = val
+                found_key = True
+                break
+        if not found_key:
+            return jsonify({"error": "Invalid bump length."}), 400
 
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
     conversation_url = prospect.li_conversation_thread_id
@@ -89,6 +104,7 @@ def get_prospect_li_conversation():
         conversation_url=conversation_url,
         bump_framework_id=bump_framework_id,
         account_research_copy=account_research_copy,
+        override_bump_length=bump_length,
     )
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200
