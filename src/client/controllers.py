@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+from src.prospecting.models import Prospect
+from src.client.services import submit_demo_feedback, get_all_demo_feedback
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
 from model_import import ClientPod
@@ -958,6 +960,54 @@ def get_archetype_details(client_sdr_id: int):
     return jsonify({"data": data}), 200
 
 
+
+@CLIENT_BLUEPRINT.route("/demo_feedback", methods=["POST"])
+@require_user
+def post_demo_feedback(client_sdr_id: int):
+    """Submits demo feedback"""
+
+    prospect_id = get_request_parameter("prospect_id", request, json=True, required=True, parameter_type=int)
+    status = get_request_parameter("status", request, json=True, required=True, parameter_type=str)
+    rating = get_request_parameter("rating", request, json=True, required=True, parameter_type=str)
+    feedback = get_request_parameter("feedback", request, json=True, required=True, parameter_type=str)
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect not found"}), 400
+
+    result = submit_demo_feedback(
+        client_id=client_sdr.client_id,
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        status=status,
+        rating=rating,
+        feedback=feedback,
+    )
+
+    send_slack_message(
+        message=f"""
+        📝 New feedback from {client_sdr.name}!
+        {client_sdr.name} submitted {rating} feedback about {prospect.full_name}.
+        _You can view it in his sight._
+        """,
+        webhook_urls=[URL_MAP["csm-demo-feedback"]],
+    )
+
+    return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/demo_feedback", methods=["GET"])
+@require_user
+def get_demo_feedback(client_sdr_id: int):
+    """Get demo feedback"""
+
+    all_feedback = get_all_demo_feedback(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": [feedback.to_dict() for feedback in all_feedback]}), 200
+
+
 @CLIENT_BLUEPRINT.route("/do_not_contact_filters", methods=["POST"])
 @require_user
 def post_do_not_contact_filters(client_sdr_id: int):
@@ -1016,3 +1066,4 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
     if not success:
         return "Failed to remove prospects", 400
     return "OK", 200
+

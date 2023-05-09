@@ -241,3 +241,28 @@ class ClientSDR(db.Model):
             "vessel_mailbox": self.vessel_mailbox,
             "timezone": self.timezone,
         }
+
+
+class DemoFeedback(db.Model):
+    __tablename__ = "demo_feedback"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+
+    status = db.Column(db.String)
+    rating = db.Column(db.String)
+    feedback = db.Column(db.String)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_sdr_id": self.client_sdr_id,
+            "prospect_id": self.prospect_id,
+            "status": self.status,
+            "rating": self.rating,
+            "feedback": self.feedback,
+        }

@@ -482,6 +482,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             ProspectStatus.SENT_OUTREACH,
             ProspectStatus.ACCEPTED,
             ProspectStatus.RESPONDED,
+            ProspectStatus.NOT_INTERESTED,
         )
         and has_prospect_replied
     ):

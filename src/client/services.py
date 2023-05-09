@@ -1,5 +1,6 @@
 from sqlalchemy import or_
 from click import Option
+from src.client.models import DemoFeedback
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.automation.models import PhantomBusterAgent
 from app import db
@@ -25,7 +26,7 @@ from src.onboarding.services import create_sight_onboarding
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
 from model_import import StackRankedMessageGenerationConfiguration
-from typing import Optional
+from typing import List, Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
 import os
@@ -1326,6 +1327,52 @@ def get_do_not_contact_filters(client_id: int):
     }
 
 
+
+def submit_demo_feedback(client_sdr_id: int, client_id: int, prospect_id: int, status: str, rating: str, feedback: str):
+    """Submits demo feedback
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+        client_id (int): Client ID
+        prospect_id (int): Prospect ID
+        status (str): Demo status
+        rating (str): Demo rating
+        feedback (str): Actual demo feedback
+
+    Returns:
+        bool: Whether it was successful or not
+    """
+
+    demo_feedback = DemoFeedback(
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        status=status,
+        rating=rating,
+        feedback=feedback,
+    )
+
+    db.session.add(demo_feedback)
+    db.session.commit()
+
+    return True
+
+
+def get_all_demo_feedback(client_sdr_id: int):
+    """Gets all demo feedback for a client SDR
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+
+    Returns:
+        DemoFeedback[]: List of demo feedbacks
+    """
+
+    demo_feedback: List[DemoFeedback] = DemoFeedback.query.filter(DemoFeedback.client_sdr_id == client_sdr_id).all()
+
+    return demo_feedback
+
+  
 def list_prospects_caught_by_client_filters(client_sdr_id: int):
     """Get the prospects caught by the do not contact filters for a Client.
     Checks if the prospect's company's name is not ilike any of the do not contact companies
@@ -1391,3 +1438,4 @@ def remove_prospects_caught_by_client_filters(client_sdr_id: int):
     db.session.commit()
 
     return True
+
