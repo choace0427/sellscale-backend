@@ -304,15 +304,15 @@ def generate_chat_gpt_response_to_conversation_thread(
             + account_research_copy
         )
 
-    if bump_framework.bump_length == BumpLength.SHORT:
+    if bump_framework and bump_framework.bump_length == BumpLength.SHORT:
         message_content = message_content + (
             "\n\nPlease keep this message between 1-3 sentences."
         )
-    elif bump_framework.bump_length == BumpLength.MEDIUM:
+    elif bump_framework and bump_framework.bump_length == BumpLength.MEDIUM:
         message_content = message_content + (
             "\n\nPlease keep this message between 3-5 sentences."
         )
-    elif bump_framework.bump_length == BumpLength.LONG:
+    elif bump_framework and bump_framework.bump_length == BumpLength.LONG:
         message_content = message_content + (
             "\n\nPlease keep this message between 5-7 sentences."
         )
