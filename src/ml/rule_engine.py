@@ -378,7 +378,7 @@ def rule_linkedin_length(
     """
     if message_type == GeneratedMessageType.LINKEDIN and len(completion) > 300:
         problems.append(
-            "The message is over 300 characters long. Please reduce to just under 300 characters."
+            "The message is too long. Please reduce the length by a few words."
         )
 
     return
