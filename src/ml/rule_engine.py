@@ -176,7 +176,16 @@ def run_autocorrect(message_id: int):
 
     before_autocorrect_text = message.completion
     before_autocorrect_problems = message.problems
-    after_autocorrect_text = get_aree_fix_basic(message_id)
+
+    if len(message.problems) > 0:
+        after_autocorrect_text = get_aree_fix_basic(message_id)
+
+        correction_tries = 1
+        while correction_tries < 3 and not after_autocorrect_text:
+            after_autocorrect_text = get_aree_fix_basic(message_id)
+            correction_tries = correction_tries + 1
+    else:
+        after_autocorrect_text = message.completion
 
     message.autocorrect_run_count = (
         message.autocorrect_run_count + 1 if message.autocorrect_run_count else 1
