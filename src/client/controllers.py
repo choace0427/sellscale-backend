@@ -990,7 +990,7 @@ def post_demo_feedback(client_sdr_id: int):
         message=f"""
         📝 New feedback from {client_sdr.name}!
         {client_sdr.name} submitted {rating} feedback about {prospect.full_name}.
-        _You can view it in his sight._
+        _You can view it in their sight._
         """,
         webhook_urls=[URL_MAP["csm-demo-feedback"]],
     )
