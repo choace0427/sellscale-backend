@@ -44,6 +44,7 @@ from src.client.services import (
     update_do_not_contact_filters,
     get_do_not_contact_filters,
     list_prospects_caught_by_client_filters,
+    remove_prospects_caught_by_client_filters,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -1003,3 +1004,15 @@ def get_caught_prospects_endpoint(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
     )
     return jsonify({"prospects": prospects}), 200
+
+
+@CLIENT_BLUEPRINT.route("/do_not_contact_filters/remove_prospects", methods=["POST"])
+@require_user
+def post_remove_prospects_endpoint(client_sdr_id: int):
+    """Removes prospects from the do not contact filters"""
+    success = remove_prospects_caught_by_client_filters(
+        client_sdr_id=client_sdr_id,
+    )
+    if not success:
+        return "Failed to remove prospects", 400
+    return "OK", 200

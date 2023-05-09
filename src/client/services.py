@@ -1366,3 +1366,28 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     )
 
     return [prospect.to_dict() for prospect in prospects]
+
+
+def remove_prospects_caught_by_client_filters(client_sdr_id: int):
+    """Remove the prospects caught by the do not contact filters for a Client.
+    Checks if the prospect's company's name is not ilike any of the do not contact companies
+    and checks if the company name is not ilike any of the do not contact keywords.
+    """
+    prospect_dicts = list_prospects_caught_by_client_filters(client_sdr_id)
+    prospect_ids = (
+        [prospect["id"] for prospect in prospect_dicts] if prospect_dicts else []
+    )
+    prospects = Prospect.query.filter(Prospect.id.in_(prospect_ids)).all()
+
+    bulk_updated_prospects = []
+
+    for prospect in prospects:
+        prospect.overall_status = ProspectOverallStatus.REMOVED
+        prospect.status = ProspectStatus.NOT_QUALIFIED
+
+        bulk_updated_prospects.append(prospect)
+
+    db.session.bulk_save_objects(bulk_updated_prospects)
+    db.session.commit()
+
+    return True
