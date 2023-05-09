@@ -103,6 +103,7 @@ def get_heuristic_research_points(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=False, required=True
     )
+    prospect_id = int(prospect_id)
 
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
     if not prospect:
