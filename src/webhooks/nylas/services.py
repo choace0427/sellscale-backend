@@ -1,3 +1,5 @@
+import json
+from typing import Union
 from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
@@ -11,7 +13,7 @@ from src.prospecting.services import calculate_prospect_overall_status
 
 
 @celery.task(bind=True, max_retries=5)
-def process_deltas_message_created(self, deltas: list[dict]) -> tuple[bool, int]:
+def process_deltas_message_created(self, deltas: Union[list[dict], dict]) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
     This function processes `message.created` deltas from the `message.created` webhook.
@@ -134,3 +136,119 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
             calculate_prospect_overall_status(prospect.id)
 
     return True, "Successfully saved new thread"
+
+
+@celery.task(bind=True, max_retries=5)
+def process_deltas_message_opened(self, deltas: Union[list[dict], dict]) -> tuple[bool, int]:
+    """Process a list of deltas from a Nylas webhook notification.
+
+    This function processes `message.opened` deltas from the `message.opened` webhook.
+
+    Args:
+        deltas (Union[list[dict], dict]): A list of deltas from a Nylas webhook notification.
+
+    Returns:
+        tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
+    """
+     # Process deltas
+    if type(deltas) == dict:
+        process_single_message_created.apply_async(
+            args=[deltas]
+        )
+        return True, 1
+
+    for delta in deltas:
+        # Processing the data might take awhile, so we should split it up into
+        # multiple tasks, so that we don't block the Celery worker.
+        process_single_message_created.apply_async(
+            args=[delta]
+        )
+
+    return True, len(deltas)
+
+
+@celery.task(bind=True, max_retries=5)
+def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
+    """Process a single `message.opened` delta from a Nylas webhook notification.
+
+    Args:
+        delta (dict): A single `message.opened` delta from a Nylas webhook notification.
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating whether the delta was processed successfully, and a string containing the id of the message that was processed, or an error message.
+    """
+    delta_type = delta.get('type')
+    if delta_type != 'message.opened':
+        return False, "Delta type is not 'message.opened'"
+
+    # Get object data
+    object_data: dict = delta.get('object_data')
+    if not object_data:
+        return False, "No object_data in delta"
+
+    # Get the ID of the connected email account and the client SDR
+    account_id: str = object_data.get('account_id')
+    if not account_id:
+        return False, "No account ID in object data"
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.active == True,
+        ClientSDR.nylas_account_id == account_id,
+        ClientSDR.nylas_active == True,
+    ).first()
+    if not client_sdr:
+        return False, "No client SDR found"
+
+    # TODO: DELETE THIS - HARDCODE TO SELLSCALE FOR NOW
+    if client_sdr.client_id != 1:
+        return False, "Client is not SellScale"
+
+    # The metadata should include a payload, which will include Prospect ID and Prospect Email ID
+    metadata: dict = delta.get('metadata')
+    if not metadata:
+        return False, "No metadata in delta"
+
+    payload: dict = metadata.get('payload')
+    if not payload:
+        return False, "No payload in metadata"
+    else:
+        payload = json.loads(payload)
+
+    prospect_id: int = payload.get('prospect_id')
+    prospect_email_id: int = payload.get('prospect_email_id')
+    client_sdr_id: int = payload.get('client_sdr_id')
+
+    # Check that the information is correct:
+    # 1. ClientSDR ID in payload matches ClientSDR ID in delta
+    # 2. Prospect belongs to ClientSDR
+    # 3. Prospect Email belongs to Prospect
+    if client_sdr_id != client_sdr.id:
+        return False, "Client SDR ID in payload does not match Client SDR ID in delta"
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False, "No prospect found"
+    if prospect.client_sdr_id != client_sdr.id:
+        return False, "Prospect does not belong to Client SDR"
+    if prospect.approved_prospect_email_id != prospect_email_id:
+        return False, "Prospect Email does not belong to Prospect"
+
+    # Update the Prospect's status to "OPENED"
+    updated = update_prospect_email_outreach_status(
+        prospect_email_id=prospect_email_id,
+        new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+    )
+
+    # Send Slack Message
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if updated:
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.EMAIL,
+            prospect=prospect,
+            new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+            custom_message=" opened your email! 📧",
+            metadata={}
+        )
+
+    # Calculate prospect overall status
+    calculate_prospect_overall_status(prospect_id)
+
+    return True, "Successfully tracked email open"
