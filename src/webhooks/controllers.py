@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request
-from src.webhooks.nylas.services import process_deltas_message_created
+from src.webhooks.nylas.services import (
+    process_deltas_message_created,
+    process_deltas_message_opened,
+)
 from app import app, db
 
 import hmac
@@ -59,4 +62,29 @@ def nylas_webhook_message_created():
     # Now that all the `process_delta` tasks have been queued, we can
     # return an HTTP response to Nylas, to let them know that we processed
     # the webhook notification successfully.
-    return "Deltas have been queued", 200
+    return "Deltas for `message.created` have been queued", 200
+
+
+@WEBHOOKS_BLUEPRINT.route('/nylas/message_opened', methods=['GET', 'POST'])
+def nylas_webhook_message_opened():
+    """Webhook for Nylas message opened event."""
+
+    if request.method == 'GET' and "challenge" in request.args:
+        return request.args["challenge"]
+
+    is_genuine = verify_signature(
+        message=request.data,
+        key=NYLAS_CLIENT_SECRET.encode("utf8"),
+        signature=request.headers.get("X-Nylas-Signature"),
+    )
+    if not is_genuine:
+        return "Signature verification failed!", 401
+
+    data = request.get_json()
+    deltas = data["deltas"]
+
+    process_deltas_message_opened.apply_async(
+        args=[deltas]
+    )
+
+    return "Deltas for `message.opened` have been queued", 200

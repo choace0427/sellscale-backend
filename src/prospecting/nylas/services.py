@@ -1,3 +1,4 @@
+import json
 import requests
 from typing import Optional
 from datetime import datetime, timezone
@@ -359,6 +360,15 @@ def nylas_send_email(client_sdr_id: int, prospect_id: int, subject: str, body: s
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
+    # Construct the tracking payload
+    tracking_payload = {
+        "prospect_id": prospect.id,
+        "prospect_email_id": prospect_email.id,
+        "client_sdr_id": client_sdr.id,
+    }
+    tracking_payload_json: str = json.dumps(tracking_payload)
+
+    # Send email through Nylas
     res = requests.post(
         url=f"https://api.nylas.com/send",
         headers={
@@ -381,6 +391,10 @@ def nylas_send_email(client_sdr_id: int, prospect_id: int, subject: str, body: s
                     "name": client_sdr.name,
                 }
             ],
+            "tracking": {                   # Track opens
+                "opens": True,
+                "payload": tracking_payload_json
+            }
         },
     )
     if res.status_code != 200:
