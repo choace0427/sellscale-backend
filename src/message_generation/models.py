@@ -84,6 +84,11 @@ class GeneratedMessage(db.Model):
 
     pb_csv_count = db.Column(db.Integer, nullable=True, default=0)
 
+    autocorrect_run_count = db.Column(db.Integer, nullable=True, default=0)
+    before_autocorrect_problems = db.Column(db.ARRAY(db.String), nullable=True)
+    before_autocorrect_text = db.Column(db.String, nullable=True)
+    after_autocorrect_text = db.Column(db.String, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
