@@ -152,7 +152,7 @@ def process_deltas_message_opened(self, deltas: Union[list[dict], dict]) -> tupl
     """
      # Process deltas
     if type(deltas) == dict:
-        process_single_message_created.apply_async(
+        process_single_message_opened.apply_async(
             args=[deltas]
         )
         return True, 1
@@ -160,7 +160,7 @@ def process_deltas_message_opened(self, deltas: Union[list[dict], dict]) -> tupl
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        process_single_message_created.apply_async(
+        process_single_message_opened.apply_async(
             args=[delta]
         )
 
