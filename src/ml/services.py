@@ -219,7 +219,6 @@ def get_aree_fix_basic(message_id: int) -> str:
     prompt += "\ninstruction: Given the message and a list of problems identified in the message, please fix the message. Make as few changes as possible.\n\n"
     prompt += "revised message:"
 
-    print(prompt)
     fixed_completion = wrapped_create_completion(
         model=CURRENT_OPENAI_DAVINCI_MODEL,
         prompt=prompt,
@@ -412,7 +411,9 @@ def get_icp_classification_prompt_by_archetype_id(archetype_id: int) -> str:
 #     )
 
 
-def send_icp_classification_change_message(sdr_name: str, archetype: str, archetype_id: int, new_prompt: str):
+def send_icp_classification_change_message(
+    sdr_name: str, archetype: str, archetype_id: int, new_prompt: str
+):
     from src.automation.slack_notification import send_slack_message, URL_MAP
 
     message_sent = send_slack_message(
@@ -452,7 +453,9 @@ def send_icp_classification_change_message(sdr_name: str, archetype: str, archet
     return True, "Success"
 
 
-def patch_icp_classification_prompt(archetype_id: int, prompt: str, send_slack_message: Optional[bool] = False) -> bool:
+def patch_icp_classification_prompt(
+    archetype_id: int, prompt: str, send_slack_message: Optional[bool] = False
+) -> bool:
     """Modifies the ICP Classification Prompt for a given archetype id.
 
     Args:
@@ -477,7 +480,7 @@ def patch_icp_classification_prompt(archetype_id: int, prompt: str, send_slack_m
             sdr_name=sdr.name,
             archetype=archetype.archetype,
             archetype_id=archetype.id,
-            new_prompt=prompt
+            new_prompt=prompt,
         )
 
     return True, prompt
@@ -499,7 +502,7 @@ def trigger_icp_classification(
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         for index, prospect_id in enumerate(prospect_ids):
-            countdown = float(index/3.0)
+            countdown = float(index / 3.0)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
@@ -516,7 +519,7 @@ def trigger_icp_classification(
         # Run celery job for each prospect
         for index, prospect in enumerate(prospects):
             prospect_id = prospect.id
-            countdown = float(index/3.0)
+            countdown = float(index / 3.0)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
@@ -529,7 +532,7 @@ def trigger_icp_classification(
 def trigger_icp_classification_single_prospect(
     client_sdr_id: int, archetype_id: int, prospect_id: int
 ) -> tuple[str, str]:
-    """ Triggers the ICP Classification Endpoint for a given client SDR id and archetype id.
+    """Triggers the ICP Classification Endpoint for a given client SDR id and archetype id.
 
     Args:
         client_sdr_id (int): The client SDR id.
@@ -540,9 +543,9 @@ def trigger_icp_classification_single_prospect(
         tuple(str, str): The fit and reason.
     """
     try:
-        fit = -1        # -1 fit means the prospect had an error, and we should try again
-        retries = 3     # Number of times to try to classify the prospect
-        attempts = 0    # Number of attempts to classify the prospect
+        fit = -1  # -1 fit means the prospect had an error, and we should try again
+        retries = 3  # Number of times to try to classify the prospect
+        attempts = 0  # Number of attempts to classify the prospect
         while fit < 0 and attempts < retries:
             fit, reason = icp_classify(
                 prospect_id=prospect_id,
@@ -556,8 +559,10 @@ def trigger_icp_classification_single_prospect(
 
 
 @celery.task(bind=True, max_retries=2)
-def mark_queued_and_classify(self, client_sdr_id: int, archetype_id: int, prospect_id: int, countdown: float) -> bool:
-    """ Marks a prospect as QUEUED and then ICP classifies it.
+def mark_queued_and_classify(
+    self, client_sdr_id: int, archetype_id: int, prospect_id: int, countdown: float
+) -> bool:
+    """Marks a prospect as QUEUED and then ICP classifies it.
 
     Args:
         client_sdr_id (int): ID of the client SDR
@@ -595,7 +600,9 @@ def mark_queued_and_classify(self, client_sdr_id: int, archetype_id: int, prospe
 
 
 @celery.task(bind=True, max_retries=3)
-def icp_classify(self, prospect_id: int, client_sdr_id: int, archetype_id: int) -> tuple[int, str]:
+def icp_classify(
+    self, prospect_id: int, client_sdr_id: int, archetype_id: int
+) -> tuple[int, str]:
     """Classifies a prospect as an ICP or not.
 
     Args:
@@ -746,19 +753,21 @@ def generate_email(client_sdr_id: int, prospect: Prospect):
     account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
         AccountResearchPoints.prospect_id == prospect.id
     ).all()
-    research_points: List[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect.id)
+    research_points: List[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect.id)
 
     company_name = client.company or ""
     company_tagline = client.tagline or ""
     company_description = client.description or ""
 
-    account_points = ''
+    account_points = ""
     for point in account_research:
-        account_points += f'- {point.title}: {point.reason}\n'
+        account_points += f"- {point.title}: {point.reason}\n"
 
-    prospect_points = ''
+    prospect_points = ""
     for point in research_points:
-        account_points += f'- {point.value}\n'
+        account_points += f"- {point.value}\n"
 
     prompt = f"""
     I am writing a cold email to a prospect on behalf of `{company_name}`. {company_name} is a company with a tagline that says, "{company_tagline}". This is a description of what they do: "{company_description}"
@@ -800,12 +809,8 @@ def generate_email(client_sdr_id: int, prospect: Prospect):
     )
     response = response if isinstance(response, str) else ""
 
-    lines = response.split('\n')
+    lines = response.split("\n")
     subject = lines[0].strip()
-    body = '\n'.join(lines[1:]).strip()
+    body = "\n".join(lines[1:]).strip()
 
-    return {
-        'subject': subject,
-        'body': body
-    }
-
+    return {"subject": subject, "body": body}

@@ -3,6 +3,7 @@ import json
 import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
+from src.ml.services import get_aree_fix_basic
 from src.utils.string.string_utils import (
     has_consecutive_uppercase_string,
 )
@@ -157,7 +158,37 @@ def run_message_rule_engine(message_id: int):
     db.session.add(message)
     db.session.commit()
 
+    run_autocorrect(message_id)
+
     return problems
+
+
+def run_autocorrect(message_id: int):
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    if message.autocorrect_run_count is not None and message.autocorrect_run_count > 0:
+        return
+    if (
+        message.before_autocorrect_text
+        or message.after_autocorrect_text
+        or message.before_autocorrect_problems
+    ):
+        return
+
+    before_autocorrect_text = message.completion
+    before_autocorrect_problems = message.problems
+    after_autocorrect_text = get_aree_fix_basic(message_id)
+
+    message.autocorrect_run_count = (
+        message.autocorrect_run_count + 1 if message.autocorrect_run_count else 1
+    )
+    message.before_autocorrect_text = before_autocorrect_text
+    message.before_autocorrect_problems = before_autocorrect_problems
+    message.after_autocorrect_text = after_autocorrect_text
+    message.completion = after_autocorrect_text
+    db.session.add(message)
+    db.session.commit()
+
+    run_message_rule_engine(message_id)
 
 
 def rule_no_symbols(completion: str, problems: list, highlighted_words: list):
