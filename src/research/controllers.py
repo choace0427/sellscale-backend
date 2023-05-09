@@ -97,7 +97,7 @@ def get_all_research_point_types_details():
     return jsonify(get_all_research_point_types())
 
 
-@RESEARCH_BLUEPRINT.route("/heuristic_research_points", methods=["GET"])
+@RESEARCH_BLUEPRINT.route("/research_points/heuristic", methods=["GET"])
 @require_user
 def get_heuristic_research_points(client_sdr_id: int):
     prospect_id = get_request_parameter(
