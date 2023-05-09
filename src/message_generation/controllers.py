@@ -28,6 +28,7 @@ from src.message_generation.services_stack_ranked_configurations import (
     get_prompts_from_stack_ranked_config,
     toggle_stack_ranked_message_configuration_active,
     get_sample_prompt_from_config_details,
+    update_stack_ranked_configuration_prompt_and_instruction,
 )
 from src.ml.fine_tuned_models import get_computed_prompt_completion
 from src.message_generation.services_few_shot_generations import (
@@ -623,3 +624,25 @@ def get_generation_status_endpoint(client_sdr_id: int, campaign_id: int):
     generation_statuses = get_generation_statuses(campaign_id)
 
     return jsonify({"generation_statuses": generation_statuses}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/update_instruction_and_prompt", methods=["POST"]
+)
+def post_update_stack_ranked_configuration_tool_instruction_and_prompt():
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    new_instruction = get_request_parameter(
+        "new_instruction", request, json=True, required=True
+    )
+    new_prompt = get_request_parameter("new_prompt", request, json=True, required=True)
+
+    success, message = update_stack_ranked_configuration_prompt_and_instruction(
+        configuration_id=configuration_id,
+        new_instruction=new_instruction,
+        new_prompt=new_prompt,
+    )
+    if success:
+        return "OK", 200
+    return message, 400

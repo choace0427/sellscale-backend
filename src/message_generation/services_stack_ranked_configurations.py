@@ -383,3 +383,20 @@ def get_sample_prompt_from_config_details(
     prompt, bio_data = generate_prompt(prospect_id=prospect_id, notes=notes)
 
     return prompt, selected_research_point_types, research_point_ids, cta_id, bio_data
+
+
+def update_stack_ranked_configuration_prompt_and_instruction(
+    src_id: int,
+    new_instruction: str,
+    new_prompt: str,
+):
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(id=src_id).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    srmgc.instruction = new_instruction
+    srmgc.computed_prompt = new_prompt
+    db.session.add(srmgc)
+    db.session.commit()
+    return True, "OK"
