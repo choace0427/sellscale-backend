@@ -94,7 +94,7 @@ class ResearchPoints(db.Model):
     def get_by_payload_id(payload_id: int) -> list:
         return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()
 
-    def get_research_points_by_prospect_id(prospect_id: int):
+    def get_research_points_by_prospect_id(prospect_id: int) -> list:
         from model_import import ClientArchetype, Prospect
 
         prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
@@ -108,7 +108,7 @@ class ResearchPoints(db.Model):
         research_payloads = ResearchPayload.query.filter_by(
             prospect_id=prospect_id
         ).all()
-        research_points = []
+        research_points: list[ResearchPoints] = []
         for payload in research_payloads:
             research_points.extend(
                 ResearchPoints.query.filter_by(research_payload_id=payload.id).all()

@@ -988,9 +988,18 @@ def post_demo_feedback(client_sdr_id: int):
 
     send_slack_message(
         message=f"""
-        📝 New feedback from {client_sdr.name}!
-        {client_sdr.name} submitted {rating} feedback about {prospect.full_name}.
-        _You can view it in their sight._
+        ✍️ New demo feedback via {client_sdr.name}!
+        _Details_
+        With {prospect.full_name} on {str(prospect.demo_date)}
+        
+        _Did the demo happen?_
+        {status}
+        
+        _How did it go?_
+        {rating}
+        
+        _What did you like / what would you change?_
+        {feedback}
         """,
         webhook_urls=[URL_MAP["csm-demo-feedback"]],
     )

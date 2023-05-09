@@ -6,6 +6,7 @@ from src.research.linkedin.iscraper import (
     get_linkedin_search_results_from_iscraper,
     get_linkedin_link_from_iscraper,
 )
+from src.research.models import ResearchPoints
 
 from src.utils.request_helpers import get_request_parameter
 from src.research.services import flag_research_point, get_all_research_point_types
@@ -94,6 +95,24 @@ def flag_research():
 @RESEARCH_BLUEPRINT.route("/all_research_point_types_details", methods=["GET"])
 def get_all_research_point_types_details():
     return jsonify(get_all_research_point_types())
+
+
+@RESEARCH_BLUEPRINT.route("/research_points/heuristic", methods=["GET"])
+@require_user
+def get_heuristic_research_points(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True
+    )
+
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    if not prospect:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    rps: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+
+    return jsonify(rp.to_dict() for rp in rps)
 
 
 @RESEARCH_BLUEPRINT.route("/account_research_points", methods=["GET"])
