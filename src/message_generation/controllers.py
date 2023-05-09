@@ -633,14 +633,10 @@ def post_update_stack_ranked_configuration_tool_instruction_and_prompt():
     configuration_id = get_request_parameter(
         "configuration_id", request, json=True, required=True
     )
-    new_instruction = get_request_parameter(
-        "new_instruction", request, json=True, required=True
-    )
     new_prompt = get_request_parameter("new_prompt", request, json=True, required=True)
 
     success, message = update_stack_ranked_configuration_prompt_and_instruction(
         configuration_id=configuration_id,
-        new_instruction=new_instruction,
         new_prompt=new_prompt,
     )
     if success:
