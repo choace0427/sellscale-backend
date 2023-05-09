@@ -203,7 +203,7 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
         return False, "Client is not SellScale"
 
     # The metadata should include a payload, which will include Prospect ID and Prospect Email ID
-    metadata: dict = delta.get('metadata')
+    metadata: dict = object_data.get('metadata')
     if not metadata:
         return False, "No metadata in delta"
 
