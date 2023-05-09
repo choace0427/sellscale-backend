@@ -854,6 +854,15 @@ def add_prospect(
     first_name = get_first_name_from_full_name(full_name=full_name)
     last_name = get_last_name_from_full_name(full_name=full_name)
 
+    client: Client = Client.query.get(client_id)
+    if company and (
+        company.lower() in [x.lower() for x in client.do_not_contact_company_names]
+        or company.lower()
+        in [x.lower() for x in client.do_not_contact_keywords_in_company_names]
+    ):
+        status = ProspectStatus.NOT_QUALIFIED
+        overall_status = ProspectOverallStatus.REMOVED
+
     can_create_prospect = not prospect_exists or not allow_duplicates
     if can_create_prospect:
         prospect: Prospect = Prospect(
