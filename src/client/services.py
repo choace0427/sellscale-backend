@@ -1123,20 +1123,26 @@ def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int)
     }
 
 
-def update_persona_description_and_fit_reason(
+def update_persona_brain_details(
     client_sdr_id: int,
     client_archetype_id: int,
+    updated_persona_name: Optional[str],
     updated_persona_description: Optional[str],
     updated_persona_fit_reason: Optional[str],
+    updated_persona_icp_matching_prompt: Optional[str],
 ):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return False
 
+    if updated_persona_name:
+        client_archetype.archetype = updated_persona_name
     if updated_persona_description:
         client_archetype.persona_description = updated_persona_description
     if updated_persona_fit_reason:
         client_archetype.persona_fit_reason = updated_persona_fit_reason
+    if updated_persona_icp_matching_prompt:
+        client_archetype.icp_matching_prompt = updated_persona_icp_matching_prompt
 
     db.session.add(client_archetype)
     db.session.commit()
@@ -1349,8 +1355,14 @@ def get_do_not_contact_filters(client_id: int):
     }
 
 
-
-def submit_demo_feedback(client_sdr_id: int, client_id: int, prospect_id: int, status: str, rating: str, feedback: str):
+def submit_demo_feedback(
+    client_sdr_id: int,
+    client_id: int,
+    prospect_id: int,
+    status: str,
+    rating: str,
+    feedback: str,
+):
     """Submits demo feedback
 
     Args:
@@ -1390,11 +1402,13 @@ def get_all_demo_feedback(client_sdr_id: int):
         DemoFeedback[]: List of demo feedbacks
     """
 
-    demo_feedback: List[DemoFeedback] = DemoFeedback.query.filter(DemoFeedback.client_sdr_id == client_sdr_id).all()
+    demo_feedback: List[DemoFeedback] = DemoFeedback.query.filter(
+        DemoFeedback.client_sdr_id == client_sdr_id
+    ).all()
 
     return demo_feedback
 
-  
+
 def list_prospects_caught_by_client_filters(client_sdr_id: int):
     """Get the prospects caught by the do not contact filters for a Client.
     Checks if the prospect's company's name is not ilike any of the do not contact companies
@@ -1460,8 +1474,6 @@ def remove_prospects_caught_by_client_filters(client_sdr_id: int):
     db.session.commit()
 
     return True
-
-
 
 def get_personas_page_details(client_sdr_id: int):
     """Gets just the details needed for the personas page

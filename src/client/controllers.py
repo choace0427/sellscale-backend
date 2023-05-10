@@ -39,7 +39,7 @@ from src.client.services import (
     toggle_client_sdr_autopilot_enabled,
     nylas_exchange_for_authorization_code,
     get_unused_linkedin_and_email_prospect_for_persona,
-    update_persona_description_and_fit_reason,
+    update_persona_brain_details,
     predict_persona_fit_reason,
     generate_persona_description,
     generate_persona_buy_reason,
@@ -65,7 +65,7 @@ from src.client.services_client_pod import (
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.client.models import ClientSDR, Client
+from src.client.models import ClientArchetype, ClientSDR, Client
 from app import db
 import os
 
@@ -660,6 +660,19 @@ def get_ctas_endpoint():
     return jsonify([cta.to_dict() for cta in ctas]), 200
 
 
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>", methods=["GET"])
+@require_user
+def get_archetype_details_by_archetype_id(client_sdr_id: int, archetype_id: int):
+    """Gets archetype details for an archetype"""
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return "Archetype not found or not owned by client SDR", 404
+
+    result = archetype.to_dict()
+
+    return jsonify(result), 200
+
+
 @CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/get_ctas", methods=["GET"])
 @require_user
 def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
@@ -830,20 +843,28 @@ def get_unused_li_and_email_prospects_count(client_sdr_id: int):
     "/archetype/<archetype_id>/update_description_and_fit", methods=["POST"]
 )
 @require_user
-def post_update_description_and_fit(client_sdr_id: int, archetype_id: int):
+def post_update_persona_details(client_sdr_id: int, archetype_id: int):
     """Updates the description and fit for an archetype"""
+    updated_persona_name = get_request_parameter(
+        "updated_persona_name", request, json=True, required=False
+    )
     updated_persona_description = get_request_parameter(
         "updated_persona_description", request, json=True, required=False
     )
     updated_persona_fit_reason = get_request_parameter(
         "updated_persona_fit_reason", request, json=True, required=False
     )
+    updated_persona_icp_matching_prompt = get_request_parameter(
+        "updated_persona_icp_matching_prompt", request, json=True, required=False
+    )
 
-    success = update_persona_description_and_fit_reason(
+    success = update_persona_brain_details(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
+        updated_persona_name=updated_persona_name,
         updated_persona_description=updated_persona_description,
         updated_persona_fit_reason=updated_persona_fit_reason,
+        updated_persona_icp_matching_prompt=updated_persona_icp_matching_prompt,
     )
 
     if success:
@@ -970,16 +991,23 @@ def get_archetype_details(client_sdr_id: int):
     return jsonify({"data": data}), 200
 
 
-
 @CLIENT_BLUEPRINT.route("/demo_feedback", methods=["POST"])
 @require_user
 def post_demo_feedback(client_sdr_id: int):
     """Submits demo feedback"""
 
-    prospect_id = get_request_parameter("prospect_id", request, json=True, required=True, parameter_type=int)
-    status = get_request_parameter("status", request, json=True, required=True, parameter_type=str)
-    rating = get_request_parameter("rating", request, json=True, required=True, parameter_type=str)
-    feedback = get_request_parameter("feedback", request, json=True, required=True, parameter_type=str)
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    status = get_request_parameter(
+        "status", request, json=True, required=True, parameter_type=str
+    )
+    rating = get_request_parameter(
+        "rating", request, json=True, required=True, parameter_type=str
+    )
+    feedback = get_request_parameter(
+        "feedback", request, json=True, required=True, parameter_type=str
+    )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -1024,7 +1052,15 @@ def get_demo_feedback(client_sdr_id: int):
 
     all_feedback = get_all_demo_feedback(client_sdr_id)
 
-    return jsonify({"message": "Success", "data": [feedback.to_dict() for feedback in all_feedback]}), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": [feedback.to_dict() for feedback in all_feedback],
+            }
+        ),
+        200,
+    )
 
 
 @CLIENT_BLUEPRINT.route("/do_not_contact_filters", methods=["POST"])
@@ -1085,4 +1121,3 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
     if not success:
         return "Failed to remove prospects", 400
     return "OK", 200
-

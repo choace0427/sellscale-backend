@@ -105,6 +105,7 @@ class ClientArchetype(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "persona_description": self.persona_description,
             "persona_fit_reason": self.persona_fit_reason,
+            "icp_matching_prompt": self.icp_matching_prompt,
             "vessel_sequence_id": self.vessel_sequence_id,
             "icp_matching_prompt": self.icp_matching_prompt,
             "is_unassigned_contact_archetype": self.is_unassigned_contact_archetype,
