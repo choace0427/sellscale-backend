@@ -40,3 +40,7 @@ class PersonaSplitRequestTask(db.Model):
     destination_client_archetype_ids = db.Column(db.ARRAY(db.Integer), nullable=False)
     status = db.Column(sa.Enum(PersonaSplitRequestTaskStatus, create_constraint=False))
     tries = db.Column(db.Integer, default=0)
+    prompt = db.Column(db.String)
+    raw_completion = db.Column(db.String)
+    json_completion = db.Column(db.JSON)
+

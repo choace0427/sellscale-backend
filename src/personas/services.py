@@ -6,6 +6,7 @@ from model_import import (
     ClientArchetype,
     Prospect,
 )
+from src.prospecting.services import get_prospect_details
 from app import db, celery
 import json
 
@@ -178,6 +179,8 @@ def process_persona_split_request_task(self, task_id: int):
         archetypes = ClientArchetype.query.filter(
             ClientArchetype.id.in_(destination_client_archetype_ids)
         ).all()
+        prospect_details = get_prospect_details(prospect.client_sdr_id, prospect_id)
+        company_details = prospect_details.get('prospect_info', {}).get('company', {})
 
         persona_options_str = "\n".join(
             [
@@ -188,27 +191,33 @@ def process_persona_split_request_task(self, task_id: int):
             ]
         )
 
+        task.prompt = """
+        I am splitting this Prospect into one of these personas:
+
+        Persona Options:
+        {persona_options_str}
+        - 0: No match
+
+        Here is the prospect information:
+        - Full Name: {prospect_name}
+        - Title: {prospect_title}
+        - Company: {prospect_company}
+        - Company Location: {prospect_company_location}
+        - Company Description: {prospect_company_description}
+        """.format(
+            prospect_name=prospect.full_name,
+            prospect_title=prospect.title,
+            prospect_company=prospect.company,
+            persona_options_str=persona_options_str,
+            prospect_company_location=company_details.get('location', 'Unknown'),
+            prospect_company_description=company_details.get('description', 'Unknown'),
+        )
+
         output = wrapped_chat_gpt_completion(
             messages=[
                 {
                     "role": "system",
-                    "content": """
-I am splitting this Prospect into one of these personas:
-
-Persona Options:
-{persona_options_str}
-- 0: No match
-
-Here is the prospect information:
-- Full Name: {prospect_name}
-- Title: {prospect_title}
-- Company: {prospect_company}
-            """.format(
-                        prospect_name=prospect.full_name,
-                        prospect_title=prospect.title,
-                        prospect_company=prospect.company,
-                        persona_options_str=persona_options_str,
-                    ),
+                    "content": task.prompt,
                 },
                 {
                     "role": "user",
@@ -223,7 +232,11 @@ Output:""",
             max_tokens=100,
         )
 
+        task.raw_completion = output
+
         output_dict = json.loads(output)
+        task.json_completion = output_dict
+
         archetype_id_number = output_dict["persona_id"]
 
         if (
