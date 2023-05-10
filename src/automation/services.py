@@ -1,3 +1,4 @@
+import random
 from sqlalchemy import or_
 from app import db, celery
 from sqlalchemy.sql.expression import func
@@ -209,6 +210,9 @@ def create_auto_connect_agent(client_sdr_id: int, linkedin_session_cookie: str):
         f"{api_url}/automation/phantombuster/auto_connect_webhook/{client_sdr_id}"
     )
 
+    # Get random integer to represent minute, between 0 and 59
+    random_minute = random.randint(0, 59)
+
     payload = json.dumps(
         {
             "org": "phantombuster",
@@ -272,7 +276,7 @@ def create_auto_connect_agent(client_sdr_id: int, linkedin_session_cookie: str):
                     "nov",
                     "dec",
                 ],
-                "minute": [41],
+                "minute": [random_minute],
                 "timezone": "America/Los_Angeles",
                 "simplePreset": "Once per working hour, excluding weekends",
                 "isSimplePresetEnabled": False,
