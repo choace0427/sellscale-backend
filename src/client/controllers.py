@@ -72,11 +72,6 @@ import os
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
 
 
-@CLIENT_BLUEPRINT.route("/")
-def index():
-    return "OK", 200
-
-
 @CLIENT_BLUEPRINT.route("/submit-error", methods=["POST"])
 @require_user
 def post_submit_error(client_sdr_id: int):
