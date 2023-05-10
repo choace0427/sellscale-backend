@@ -149,12 +149,11 @@ def get_client_archetype_performance(
             db.session.query(func.count(Prospect.id))
             .filter(
                 Prospect.client_sdr_id == client_sdr_id,
-                Prospect.archetype_id == client_archetype_id
+                Prospect.archetype_id == client_archetype_id,
             )
             .scalar()
         )
-        return {"total_prospects": total_count, "status_map": { }}
-
+        return {"total_prospects": total_count, "status_map": {}}
 
     # Get Prospects and find total_count and status_count
     archetype_prospects: list[Prospect] = Prospect.query.filter(
@@ -1475,6 +1474,7 @@ def remove_prospects_caught_by_client_filters(client_sdr_id: int):
 
     return True
 
+
 def get_personas_page_details(client_sdr_id: int):
     """Gets just the details needed for the personas page
 
@@ -1489,13 +1489,22 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.icp_matching_prompt,
             ClientArchetype.is_unassigned_contact_archetype,
             func.count(distinct(Prospect.id)).label("num_prospects"),
-            func.count(distinct(Prospect.id)).filter(Prospect.approved_outreach_message_id.is_(None)).label("num_unused_li_prospects"),
-            func.count(distinct(Prospect.id)).filter(Prospect.approved_prospect_email_id.is_(None)).label("num_unused_email_prospects"),
+            func.count(distinct(Prospect.id))
+            .filter(Prospect.approved_outreach_message_id.is_(None))
+            .label("num_unused_li_prospects"),
+            func.count(distinct(Prospect.id))
+            .filter(Prospect.approved_prospect_email_id.is_(None))
+            .label("num_unused_email_prospects"),
         )
         .select_from(ClientArchetype)
         .join(Prospect, Prospect.archetype_id == ClientArchetype.id, isouter=True)
         .filter(ClientArchetype.client_sdr_id == client_sdr_id)
-        .group_by(ClientArchetype.id, ClientArchetype.archetype, ClientArchetype.active, ClientArchetype.is_unassigned_contact_archetype)
+        .group_by(
+            ClientArchetype.id,
+            ClientArchetype.archetype,
+            ClientArchetype.active,
+            ClientArchetype.is_unassigned_contact_archetype,
+        )
         .order_by(ClientArchetype.active.desc(), ClientArchetype.archetype.desc())
     )
 
@@ -1506,6 +1515,3 @@ def get_personas_page_details(client_sdr_id: int):
         json_results.append(row._asdict())
 
     return json_results
-
-
-

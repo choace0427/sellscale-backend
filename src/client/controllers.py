@@ -136,6 +136,15 @@ def create():
     return jsonify(resp)
 
 
+@CLIENT_BLUEPRINT.route("/", methods=["GET"])
+@require_user
+def get_client(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    client_dict = client.to_dict()
+    return jsonify(client_dict), 200
+
+
 @CLIENT_BLUEPRINT.route("/archetype", methods=["POST"])
 @require_user
 def create_archetype(client_sdr_id: int):
