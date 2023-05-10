@@ -50,6 +50,7 @@ from src.client.services import (
     list_prospects_caught_by_client_filters,
     remove_prospects_caught_by_client_filters,
     update_client_details,
+    update_client_sdr_details,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -263,6 +264,21 @@ def get_sdr(client_sdr_id: int):
         sdr_dict = sdr_dict | {"client": client.to_dict()}
 
     return jsonify({"message": "Success", "sdr_info": sdr_dict}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr", methods=["PATCH"])
+@require_user
+def patch_sdr(client_sdr_id: int):
+    name = get_request_parameter("name", request, json=True, required=False)
+    email = get_request_parameter("email", request, json=True, required=False)
+    title = get_request_parameter("title", request, json=True, required=False)
+
+    success = update_client_sdr_details(
+        client_sdr_id=client_sdr_id, name=name, email=email, title=title
+    )
+    if not success:
+        return "Failed to update client SDR", 404
+    return "OK", 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])

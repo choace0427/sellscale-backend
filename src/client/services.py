@@ -108,6 +108,29 @@ def update_client_details(
     return True
 
 
+def update_client_sdr_details(
+    client_sdr_id: int,
+    name: Optional[str] = None,
+    email: Optional[str] = None,
+    title: Optional[str] = None,
+):
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not csdr:
+        return None
+
+    if name:
+        csdr.name = name
+    if email:
+        csdr.email = email
+    if title:
+        csdr.title = title
+
+    db.session.add(csdr)
+    db.session.commit()
+
+    return True
+
+
 def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list:
     """Gets a list of all Client Archetypes, with a search filter on the archetype name
 
