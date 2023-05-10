@@ -1,3 +1,4 @@
+from crypt import methods
 from flask import Blueprint, request, jsonify
 from src.prospecting.models import Prospect
 from src.client.services import submit_demo_feedback, get_all_demo_feedback
@@ -48,6 +49,7 @@ from src.client.services import (
     get_do_not_contact_filters,
     list_prospects_caught_by_client_filters,
     remove_prospects_caught_by_client_filters,
+    update_client_details,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -138,6 +140,37 @@ def get_client(client_sdr_id: int):
     client: Client = Client.query.get(client_sdr.client_id)
     client_dict = client.to_dict()
     return jsonify(client_dict), 200
+
+
+@CLIENT_BLUEPRINT.route("/", methods=["PATCH"])
+@require_user
+def patch_client(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    company = get_request_parameter("company", request, json=True, required=False)
+    tagline = get_request_parameter("tagline", request, json=True, required=False)
+    description = get_request_parameter(
+        "description", request, json=True, required=False
+    )
+    value_prop_key_points = get_request_parameter(
+        "value_prop_key_points", request, json=True, required=False
+    )
+    tone_attributes = get_request_parameter(
+        "tone_attributes", request, json=True, required=False
+    )
+
+    success = update_client_details(
+        client_id=client_id,
+        company=company,
+        tagline=tagline,
+        description=description,
+        value_prop_key_points=value_prop_key_points,
+        tone_attributes=tone_attributes,
+    )
+    if not success:
+        return "Failed to update client", 404
+    return "OK", 200
 
 
 @CLIENT_BLUEPRINT.route("/archetype", methods=["POST"])

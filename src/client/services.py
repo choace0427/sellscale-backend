@@ -79,6 +79,35 @@ def create_client(
     return {"client_id": c.id}
 
 
+def update_client_details(
+    client_id: int,
+    company: Optional[str] = None,
+    tagline: Optional[str] = None,
+    description: Optional[str] = None,
+    value_prop_key_points: Optional[str] = None,
+    tone_attributes: Optional[list[str]] = None,
+):
+    c: Client = Client.query.get(client_id)
+    if not c:
+        return None
+
+    if company:
+        c.company = company
+    if tagline:
+        c.tagline = tagline
+    if description:
+        c.description = description
+    if value_prop_key_points:
+        c.value_prop_key_points = value_prop_key_points
+    if tone_attributes:
+        c.tone_attributes = tone_attributes
+
+    db.session.add(c)
+    db.session.commit()
+
+    return True
+
+
 def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list:
     """Gets a list of all Client Archetypes, with a search filter on the archetype name
 
