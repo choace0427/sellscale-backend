@@ -64,7 +64,7 @@ from src.client.services_client_pod import (
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.client.models import ClientSDR, Client
+from src.client.models import ClientArchetype, ClientSDR, Client
 from app import db
 import os
 
@@ -650,6 +650,19 @@ def get_ctas_endpoint():
     return jsonify([cta.to_dict() for cta in ctas]), 200
 
 
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>", methods=["GET"])
+@require_user
+def get_archetype_details_by_archetype_id(client_sdr_id: int, archetype_id: int):
+    """Gets archetype details for an archetype"""
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return "Archetype not found or not owned by client SDR", 404
+
+    result = archetype.to_dict()
+
+    return jsonify(result), 200
+
+
 @CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/get_ctas", methods=["GET"])
 @require_user
 def get_ctas_by_archetype_endpoint(client_sdr_id: int, archetype_id: int):
@@ -960,16 +973,23 @@ def get_archetype_details(client_sdr_id: int):
     return jsonify({"data": data}), 200
 
 
-
 @CLIENT_BLUEPRINT.route("/demo_feedback", methods=["POST"])
 @require_user
 def post_demo_feedback(client_sdr_id: int):
     """Submits demo feedback"""
 
-    prospect_id = get_request_parameter("prospect_id", request, json=True, required=True, parameter_type=int)
-    status = get_request_parameter("status", request, json=True, required=True, parameter_type=str)
-    rating = get_request_parameter("rating", request, json=True, required=True, parameter_type=str)
-    feedback = get_request_parameter("feedback", request, json=True, required=True, parameter_type=str)
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    status = get_request_parameter(
+        "status", request, json=True, required=True, parameter_type=str
+    )
+    rating = get_request_parameter(
+        "rating", request, json=True, required=True, parameter_type=str
+    )
+    feedback = get_request_parameter(
+        "feedback", request, json=True, required=True, parameter_type=str
+    )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -1014,7 +1034,15 @@ def get_demo_feedback(client_sdr_id: int):
 
     all_feedback = get_all_demo_feedback(client_sdr_id)
 
-    return jsonify({"message": "Success", "data": [feedback.to_dict() for feedback in all_feedback]}), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": [feedback.to_dict() for feedback in all_feedback],
+            }
+        ),
+        200,
+    )
 
 
 @CLIENT_BLUEPRINT.route("/do_not_contact_filters", methods=["POST"])
@@ -1075,4 +1103,3 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
     if not success:
         return "Failed to remove prospects", 400
     return "OK", 200
-
