@@ -85,6 +85,15 @@ def generate_prospect_research(
                 db.session.delete(account_research_point)
             db.session.commit()
 
+        # Check credit usage
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        if client_sdr.ml_credits <= 0:
+            return "", [{
+                "source": "ML Credits",
+                "reason": "Out of ML credits"
+            }]
+
         prompt = get_research_generation_prompt(prospect_id)
         _, research = generate_research(prospect_id, retries=3)
 
@@ -95,6 +104,10 @@ def generate_prospect_research(
                     print("- ", point["source"], ": ", point["reason"])
         except:
             print("Error printing research")
+
+        # Charge credits
+        client_sdr.ml_credits -= 1
+        db.session.commit()
 
         for point in research:
             account_research_point: AccountResearchPoints = AccountResearchPoints(

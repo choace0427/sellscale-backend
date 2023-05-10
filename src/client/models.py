@@ -206,7 +206,7 @@ class ClientSDR(db.Model):
     nylas_active = db.Column(db.Boolean, nullable=True, default=False)
 
     email_fetching_credits = db.Column(db.Integer, nullable=True, default=2000)
-    icp_matching_credits = db.Column(db.Integer, nullable=True, default=4000)
+    ml_credits = db.Column(db.Integer, nullable=True, default=5000)
 
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
@@ -236,7 +236,7 @@ class ClientSDR(db.Model):
             and self.li_cookies != "INVALID",
             "nylas_connected": self.nylas_account_id is not None and self.nylas_active,
             "email_fetching_credits": self.email_fetching_credits,
-            "icp_matching_credits": self.icp_matching_credits,
+            "ml_credits": self.ml_credits,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
             "vessel_mailbox": self.vessel_mailbox,

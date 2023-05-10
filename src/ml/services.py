@@ -31,6 +31,9 @@ import openai
 import json
 
 
+DEFAULT_MONTHLY_ML_FETCHING_CREDITS = 5000
+
+
 def remove_control_characters(str):
     return rx.sub(r"\p{C}", "", str)
 
@@ -625,6 +628,16 @@ def icp_classify(
         if not prospect:
             return False
 
+        # Check for ML credit limit
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if client_sdr.ml_credits <= 0:
+            # Mark Prospect as NO CREDITS
+            prospect.icp_fit_score = -3
+            prospect.icp_fit_reason = "No more account research credits."
+            db.session.add(prospect)
+            db.session.commit()
+            return False, "No more account research credits."
+
         # Checkpoint: Mark Prospect as IN PROGRESS
         prospect.icp_fit_score = -2
         prospect.icp_fit_reason = "ICP Fit Score Calculation in Progress"
@@ -677,7 +690,7 @@ def icp_classify(
 
         # Charge the SDR credits
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        client_sdr.icp_matching_credits -= 1
+        client_sdr.ml_credits -= 1
 
         db.session.add_all([client_sdr, prospect])
         db.session.commit()
@@ -818,3 +831,17 @@ def generate_email(client_sdr_id: int, prospect: Prospect):
     body = "\n".join(lines[1:]).strip()
 
     return {"subject": subject, "body": body}
+
+
+def replenish_all_ml_credits_for_all_sdrs() -> bool:
+    """Replenishes all ML credits for all SDRs."""
+    sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
+        active=True,
+    )
+    for sdr in sdrs:
+        sdr.ml_credits = 5000
+        db.session.add(sdr)
+
+    db.session.commit()
+
+    return True
