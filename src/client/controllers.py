@@ -38,7 +38,7 @@ from src.client.services import (
     toggle_client_sdr_autopilot_enabled,
     nylas_exchange_for_authorization_code,
     get_unused_linkedin_and_email_prospect_for_persona,
-    update_persona_description_and_fit_reason,
+    update_persona_brain_details,
     predict_persona_fit_reason,
     generate_persona_description,
     generate_persona_buy_reason,
@@ -833,20 +833,28 @@ def get_unused_li_and_email_prospects_count(client_sdr_id: int):
     "/archetype/<archetype_id>/update_description_and_fit", methods=["POST"]
 )
 @require_user
-def post_update_description_and_fit(client_sdr_id: int, archetype_id: int):
+def post_update_persona_details(client_sdr_id: int, archetype_id: int):
     """Updates the description and fit for an archetype"""
+    updated_persona_name = get_request_parameter(
+        "updated_persona_name", request, json=True, required=False
+    )
     updated_persona_description = get_request_parameter(
         "updated_persona_description", request, json=True, required=False
     )
     updated_persona_fit_reason = get_request_parameter(
         "updated_persona_fit_reason", request, json=True, required=False
     )
+    updated_persona_icp_matching_prompt = get_request_parameter(
+        "updated_persona_icp_matching_prompt", request, json=True, required=False
+    )
 
-    success = update_persona_description_and_fit_reason(
+    success = update_persona_brain_details(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
+        updated_persona_name=updated_persona_name,
         updated_persona_description=updated_persona_description,
         updated_persona_fit_reason=updated_persona_fit_reason,
+        updated_persona_icp_matching_prompt=updated_persona_icp_matching_prompt,
     )
 
     if success:
