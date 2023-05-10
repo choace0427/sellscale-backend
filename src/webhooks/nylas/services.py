@@ -10,6 +10,7 @@ from src.prospecting.models import Prospect, ProspectChannels
 from src.prospecting.nylas.services import nylas_update_threads, nylas_get_messages
 from src.prospecting.nylas.nylas_wrappers import wrapped_nylas_get_single_thread
 from src.prospecting.services import calculate_prospect_overall_status
+from src.webhooks.nylas.bounce_detection import is_email_bounced
 
 
 @celery.task(bind=True, max_retries=5)
@@ -113,6 +114,22 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
 
     messages: list[dict] = nylas_get_messages(client_sdr.id, prospect.id, thread.get("id"))
     for message in messages:
+        # Check if message is bounced
+        email_from = message.get("message_from", {'email': None}).get('email')
+        bounced = is_email_bounced(email_from, message.get("body"))
+        if bounced:
+            # Update the Prospect's status to "BOUNCED"
+            updated = update_prospect_email_outreach_status(
+                prospect_email_id=prospect_email_id,
+                new_status=ProspectEmailOutreachStatus.BOUNCED,
+            )
+
+            # Calculate prospect overall status
+            calculate_prospect_overall_status(prospect.id)
+
+            return True, "Successfully saved new thread"
+
+        # Check if message is from prospect
         if message.get("from_prospect") == True:
             # Update the Prospect's status to "ACTIVE CONVO"
             updated = update_prospect_email_outreach_status(
