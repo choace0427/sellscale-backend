@@ -5,6 +5,7 @@ from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.automation.models import PhantomBusterAgent
 from app import db
 from flask import jsonify
+import time
 
 from src.ml.openai_wrappers import (
     CURRENT_OPENAI_CHAT_GPT_MODEL,
@@ -31,6 +32,7 @@ from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import send_slack_message
 import os
 import requests
+from sqlalchemy import func, case, distinct
 
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
 STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
@@ -87,18 +89,23 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
     Returns:
         list: The list of Client Archetypes
     """
-    client_archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+    fetch = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
-        ClientArchetype.archetype.ilike(f"%{query}%"),
-    ).all()
+    )
+    if query:
+        fetch = ClientArchetype.query.filter(
+            ClientArchetype.archetype.ilike(f"%{query}%"),
+        )
+
+    client_archetypes: list[ClientArchetype] = fetch.all()
 
     client_archetype_dicts = []
     for ca in client_archetypes:
-        performance = get_client_archetype_performance(client_sdr_id, ca.id)
+        performance = get_client_archetype_performance(client_sdr_id, ca.id, False)
         merged_dicts = {**ca.to_dict(), **{"performance": performance}}
         client_archetype_dicts.append(merged_dicts)
 
-    return client_archetype_dicts
+    return [ca.to_dict() for ca in client_archetypes]
 
 
 def get_client_archetype_prospects(
@@ -124,16 +131,31 @@ def get_client_archetype_prospects(
 
 
 def get_client_archetype_performance(
-    client_sdr_id: int, client_archetype_id: int
+    client_sdr_id: int, client_archetype_id: int, simple: bool = False
 ) -> dict:
     """Gets the performance of a Client Archetype
 
     Args:
         client_archetype_id (int): The ID of the Client Archetype
+        simple (bool): Whether to return a simple dict (just the total) or a full dict
 
     Returns:
         dict: Client Archetype and performance statistics
     """
+
+    if simple:
+        # Optimized query for just the total prospects
+        total_count: int = (
+            db.session.query(func.count(Prospect.id))
+            .filter(
+                Prospect.client_sdr_id == client_sdr_id,
+                Prospect.archetype_id == client_archetype_id
+            )
+            .scalar()
+        )
+        return {"total_prospects": total_count, "status_map": { }}
+
+
     # Get Prospects and find total_count and status_count
     archetype_prospects: list[Prospect] = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
@@ -1438,4 +1460,40 @@ def remove_prospects_caught_by_client_filters(client_sdr_id: int):
     db.session.commit()
 
     return True
+
+
+
+def get_personas_page_details(client_sdr_id: int):
+    """Gets just the details needed for the personas page
+
+    Returns: List of details for each persona
+    """
+
+    query = (
+        db.session.query(
+            ClientArchetype.id,
+            ClientArchetype.archetype.label("name"),
+            ClientArchetype.active,
+            ClientArchetype.icp_matching_prompt,
+            ClientArchetype.is_unassigned_contact_archetype,
+            func.count(distinct(Prospect.id)).label("num_prospects"),
+            func.count(distinct(Prospect.id)).filter(Prospect.approved_outreach_message_id.is_(None)).label("num_unused_li_prospects"),
+            func.count(distinct(Prospect.id)).filter(Prospect.approved_prospect_email_id.is_(None)).label("num_unused_email_prospects"),
+        )
+        .select_from(ClientArchetype)
+        .join(Prospect, Prospect.archetype_id == ClientArchetype.id, isouter=True)
+        .filter(ClientArchetype.client_sdr_id == client_sdr_id)
+        .group_by(ClientArchetype.id, ClientArchetype.archetype, ClientArchetype.active, ClientArchetype.is_unassigned_contact_archetype)
+        .order_by(ClientArchetype.active.desc(), ClientArchetype.archetype.desc())
+    )
+
+    results = query.all()
+
+    json_results = []
+    for row in results:
+        json_results.append(row._asdict())
+
+    return json_results
+
+
 

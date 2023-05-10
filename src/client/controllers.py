@@ -11,6 +11,7 @@ from src.client.services import (
     create_client_sdr,
     get_sdr_available_outbound_channels,
     rename_archetype,
+    get_personas_page_details,
     toggle_archetype_active,
     clear_nylas_tokens,
     update_client_sdr_email,
@@ -202,6 +203,15 @@ def get_archetypes(client_sdr_id: int):
 
     archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
     return jsonify({"message": "Success", "archetypes": archetypes}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/get_archetypes/overview", methods=["GET"])
+@require_user
+def get_archetypes_overview(client_sdr_id: int):
+    """Gets an overview of all the archetypes"""
+
+    overview = get_personas_page_details(client_sdr_id)
+    return jsonify({"message": "Success", "data": overview}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["GET"])
