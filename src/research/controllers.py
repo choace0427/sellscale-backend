@@ -103,6 +103,7 @@ def get_heuristic_research_points(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=False, required=True
     )
+    prospect_id = int(prospect_id)
 
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
     if not prospect:
@@ -111,8 +112,9 @@ def get_heuristic_research_points(client_sdr_id: int):
         return jsonify({"message": "Unauthorized"}), 401
 
     rps: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    rps_parsed = [rp.to_dict() for rp in rps]
 
-    return jsonify(rp.to_dict() for rp in rps)
+    return jsonify({"message": "Success", "research_points": rps_parsed}), 200
 
 
 @RESEARCH_BLUEPRINT.route("/account_research_points", methods=["GET"])
