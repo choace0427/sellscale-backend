@@ -9,6 +9,7 @@ class ProspectHiddenReason(enum.Enum):
     RECENTLY_BUMPED = "RECENTLY_BUMPED"
     STATUS_CHANGE = "STATUS_CHANGE"
     MANUAL = "MANUAL"
+    DEMO_SCHEDULED = "DEMO_SCHEDULED"
 
 
 class ProspectChannels(enum.Enum):

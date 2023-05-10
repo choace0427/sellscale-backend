@@ -15,6 +15,7 @@ from src.prospecting.models import (
     ProspectChannels,
     ProspectHiddenReason,
 )
+from datetime import datetime
 from src.email_outbound.models import ProspectEmail
 from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.prospecting.services import (
@@ -802,6 +803,12 @@ def remove_from_contact_list(client_sdr_id: int):
 def post_demo_date(client_sdr_id: int, prospect_id: int):
     demo_date = get_request_parameter("demo_date", request, json=True, required=True)
     success = update_prospect_demo_date(prospect_id=prospect_id, demo_date=demo_date)
+
+    date = datetime.fromisoformat(demo_date[:-1])
+    hidden_days = (date - datetime.now()).days
+    if hidden_days > 0:
+        send_to_purgatory(prospect_id, hidden_days, ProspectHiddenReason.DEMO_SCHEDULED)
+
     if success:
         return "OK", 200
     return "Failed to update demo date", 400
