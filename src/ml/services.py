@@ -653,8 +653,12 @@ def icp_classify(
 
         # Create Prompt
         prompt += f"""\n\nHere is a potential prospect:
+        Prospect Name: {prospect.full_name}
         Title: {prospect.title}
-        LinkedIn Bio: {prospect.linkedin_bio}\n\n"""
+        LinkedIn Bio: {prospect.linkedin_bio}
+        Prospect Company Name: {prospect.company}
+        Prospect Company Size: {prospect.employee_count}
+        Prospect Company Industry: {prospect.industry}\n\n"""
 
         prompt += HARD_CODE_ICP_PROMPT
 

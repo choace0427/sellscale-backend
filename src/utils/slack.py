@@ -34,3 +34,4 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
         webhook.send(text=message, blocks=blocks)
 
     return True
+ 
