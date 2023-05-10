@@ -48,6 +48,9 @@ class Client(db.Model):
     )
     do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
 
+    value_prop_key_points = db.Column(db.String, nullable=True)
+    tone_attributes = db.Column(db.ARRAY(db.String), nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "company": self.company,
@@ -56,6 +59,10 @@ class Client(db.Model):
             "active": self.active,
             "linkedin_outbound_enabled": self.linkedin_outbound_enabled,
             "email_outbound_enabled": self.email_outbound_enabled,
+            "tagline": self.tagline,
+            "description": self.description,
+            "value_prop_key_points": self.value_prop_key_points,
+            "tone_attributes": self.tone_attributes,
         }
 
 
@@ -172,6 +179,7 @@ class ClientSDR(db.Model):
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     name = db.Column(db.String)
+    title = db.Column(db.String)
     email = db.Column(db.String)
     active = db.Column(db.Boolean, nullable=True, default=True)
 
@@ -225,6 +233,7 @@ class ClientSDR(db.Model):
             "id": self.id,
             "client_name": client.company,
             "sdr_name": self.name,
+            "sdr_title": self.title,
             "sdr_email": self.email,
             "active": self.active,
             "weekly_li_outbound_target": self.weekly_li_outbound_target,
