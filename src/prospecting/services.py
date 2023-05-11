@@ -1327,7 +1327,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
         return {"message": "This prospect does not belong to you", "status_code": 403}
     p_email: ProspectEmail = ProspectEmail.query.get(
         p.approved_prospect_email_id
-    ).first()
+    )
     p_email_status = None
     if p_email and p_email.outreach_status:
         p_email_status = p_email.outreach_status.value
