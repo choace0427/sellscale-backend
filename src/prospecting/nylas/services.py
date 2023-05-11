@@ -458,7 +458,7 @@ def nylas_send_email(
     prospect_email_id = prospect_email.id
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    prospect.approved_prospect_email_id = prospect_email.id
+    prospect.approved_prospect_email_id = prospect_email_id
     db.session.add(prospect)
     db.session.commit()
 
