@@ -61,6 +61,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
 
     UNKNOWN = "UNKNOWN"
     NOT_SENT = "NOT_SENT"
+    BOUNCED = "BOUNCED"
     SENT_OUTREACH = "SENT_OUTREACH"
 
     EMAIL_OPENED = "EMAIL_OPENED"
@@ -77,6 +78,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     def to_dict():
         return {
             "NOT_SENT": "Not Sent",
+            "BOUNCED": "Bounced",
             "SENT_OUTREACH": "Sent email",
             "EMAIL_OPENED": "Opened Email",
             "ACCEPTED": "Accepted",
@@ -92,6 +94,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
         return [
             ProspectEmailOutreachStatus.UNKNOWN,
             ProspectEmailOutreachStatus.NOT_SENT,
+            ProspectEmailOutreachStatus.BOUNCED,
             ProspectEmailOutreachStatus.SENT_OUTREACH,
             ProspectEmailOutreachStatus.EMAIL_OPENED,
             ProspectEmailOutreachStatus.ACCEPTED,
@@ -126,6 +129,12 @@ class ProspectEmailOutreachStatus(enum.Enum):
                 "description": "Email has not been yet sent to this Prospect.",
                 "enum_val": ProspectEmailOutreachStatus.NOT_SENT.value,
                 "sellscale_enum_val": ProspectOverallStatus.PROSPECTED.value,
+            },
+            ProspectEmailOutreachStatus.BOUNCED.value: {
+                "name": "Bounced",
+                "description": "Email has bounced.",
+                "enum_val": ProspectEmailOutreachStatus.BOUNCED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
             ProspectEmailOutreachStatus.SENT_OUTREACH.value: {
                 "name": "Sent Email",
@@ -327,6 +336,9 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
         ProspectEmailOutreachStatus.UNKNOWN,
         ProspectEmailOutreachStatus.NOT_SENT,
     ],
+    ProspectEmailOutreachStatus.BOUNCED: [
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+    ],
     ProspectEmailOutreachStatus.EMAIL_OPENED: [
         ProspectEmailOutreachStatus.SENT_OUTREACH
     ],
@@ -502,7 +514,9 @@ class EmailConversationMessage(db.Model):
     message_from = db.Column(db.ARRAY(db.JSON), nullable=True)
     message_to = db.Column(db.ARRAY(db.JSON), nullable=True)
     reply_to = db.Column(db.ARRAY(db.JSON), nullable=True)
-    email_conversation_thread_id = db.Column(db.Integer, db.ForeignKey("email_conversation_thread.id"), nullable=True)
+    email_conversation_thread_id = db.Column(
+        db.Integer, db.ForeignKey("email_conversation_thread.id"), nullable=True
+    )
     nylas_thread_id = db.Column(db.String, nullable=False)
     nylas_message_id = db.Column(db.String, nullable=False, index=True, unique=True)
     nylas_data_raw = db.Column(db.JSON, nullable=False)

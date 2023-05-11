@@ -18,6 +18,7 @@ from src.ml.services import (
     trigger_icp_classification,
     edit_text,
     generate_email,
+    ai_email_prompt,
     trigger_icp_classification_single_prospect,
 )
 from src.ml.fine_tuned_models import get_config_completion
@@ -222,9 +223,16 @@ def patch_icp_classification_prompt_by_archetype_id_endpoint(
     prompt = get_request_parameter(
         "prompt", request, json=True, required=True, parameter_type=str
     )
-    send_slack_message = get_request_parameter(
-        "send_slack_message", request, json=True, required=False, parameter_type=bool
-    ) or False
+    send_slack_message = (
+        get_request_parameter(
+            "send_slack_message",
+            request,
+            json=True,
+            required=False,
+            parameter_type=bool,
+        )
+        or False
+    )
 
     if prompt == "":
         return jsonify({"message": "Prompt cannot be empty"}), 400
@@ -235,7 +243,9 @@ def patch_icp_classification_prompt_by_archetype_id_endpoint(
     elif archetype.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Archetype does not belong to this user"}), 401
 
-    result, prompt = patch_icp_classification_prompt(archetype_id, prompt, send_slack_message)
+    result, prompt = patch_icp_classification_prompt(
+        archetype_id, prompt, send_slack_message
+    )
     if not result:
         return jsonify({"message": "Error updating prompt"}), 400
 
@@ -268,9 +278,13 @@ def trigger_icp_classification_endpoint(client_sdr_id: int, archetype_id: int):
     )
 
 
-@ML_BLUEPRINT.route("/icp_classification/<int:archetype_id>/prospect/<int:prospect_id>", methods=["GET"])
+@ML_BLUEPRINT.route(
+    "/icp_classification/<int:archetype_id>/prospect/<int:prospect_id>", methods=["GET"]
+)
 @require_user
-def trigger_icp_classification_single_prospect_endpoint(client_sdr_id: int, archetype_id: int, prospect_id: int):
+def trigger_icp_classification_single_prospect_endpoint(
+    client_sdr_id: int, archetype_id: int, prospect_id: int
+):
     """Runs ICP classification on a single prospect in a given archetype"""
 
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -279,15 +293,12 @@ def trigger_icp_classification_single_prospect_endpoint(client_sdr_id: int, arch
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to this archetype"}), 401
 
-    fit, reason = trigger_icp_classification_single_prospect(client_sdr_id, archetype_id, prospect_id)
+    fit, reason = trigger_icp_classification_single_prospect(
+        client_sdr_id, archetype_id, prospect_id
+    )
 
     return (
-        jsonify(
-            {
-                "fit": fit,
-                "reason": reason
-            }
-        ),
+        jsonify({"fit": fit, "reason": reason}),
         200,
     )
 
@@ -316,7 +327,21 @@ def post_generate_email(client_sdr_id: int):
     """
     Generate email given a value proposition and an archetype.
     """
+    prompt = get_request_parameter(
+        "prompt", request, json=True, required=True, parameter_type=str
+    )
 
+    result = generate_email(prompt)
+
+    return jsonify({"message": "Success", "data": result}), 200
+
+
+@ML_BLUEPRINT.route("/get_generate_email_prompt", methods=["POST"])
+@require_user
+def get_generate_email_prompt(client_sdr_id: int):
+    """
+    Gets the prompt for generating an email given a value proposition and an archetype.
+    """
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
@@ -325,6 +350,5 @@ def post_generate_email(client_sdr_id: int):
     if prospect is None or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 404
 
-    result = generate_email(client_sdr_id, prospect)
-
-    return jsonify({"message": "Success", "data": result}), 200
+    prompt = ai_email_prompt(client_sdr_id, prospect_id)
+    return jsonify({"prompt": prompt}), 200

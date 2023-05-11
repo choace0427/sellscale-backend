@@ -7,7 +7,7 @@ import os
 from src.automation.services import update_phantom_buster_li_at
 
 from src.automation.models import PhantomBusterAgent
-from src.prospecting.models import ProspectOverallStatus
+from src.prospecting.models import ProspectOverallStatus, ProspectStatusRecords
 
 from src.prospecting.services import send_to_purgatory, update_prospect_status_linkedin
 
@@ -448,6 +448,13 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             db.session.commit()
             has_prospect_replied = True
             break
+    record_marked_not_interested = (
+        ProspectStatusRecords.query.filter_by(
+            prospect_id=prospect_id, to_status=ProspectStatus.NOT_INTERESTED
+        )
+        .order_by(ProspectStatusRecords.created_at.desc())
+        .first()
+    )
 
     if (
         prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
@@ -482,9 +489,15 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             ProspectStatus.SENT_OUTREACH,
             ProspectStatus.ACCEPTED,
             ProspectStatus.RESPONDED,
-            ProspectStatus.NOT_INTERESTED,
         )
         and has_prospect_replied
+    ) or (
+        prospect.status in [ProspectStatus.NOT_INTERESTED]
+        and not last_msg_was_you
+        and (
+            record_marked_not_interested
+            and record_marked_not_interested.created_at < latest_entry_date
+        )
     ):
         update_prospect_status_linkedin(
             prospect_id=prospect.id,

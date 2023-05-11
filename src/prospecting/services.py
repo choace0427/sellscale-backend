@@ -12,6 +12,7 @@ from src.email_outbound.models import (
     VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.research.linkedin.services import get_research_payload_new
 from src.research.services import create_iscraper_payload_cache
 from src.prospecting.models import (
     Prospect,
@@ -607,9 +608,7 @@ def update_prospect_status_email(
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
         return False, "Prospect not found"
-    p_email: ProspectEmail = ProspectEmail.query.filter_by(
-        prospect_id=prospect_id
-    ).first()
+    p_email: ProspectEmail = ProspectEmail.query.get(p.approved_prospect_email_id)
     if not p_email:
         return False, "Prospect email not found"
     p_email_id = p_email.id
@@ -889,6 +888,8 @@ def add_prospect(
         db.session.commit()
     else:
         return None
+
+    get_research_payload_new(prospect_id=prospect.id, test_mode=False)
 
     return prospect.id
 
@@ -1325,9 +1326,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
         return {"message": "Prospect not found", "status_code": 404}
     if p and p.client_sdr_id != client_sdr_id:
         return {"message": "This prospect does not belong to you", "status_code": 403}
-    p_email: ProspectEmail = ProspectEmail.query.filter_by(
-        prospect_id=prospect_id
-    ).first()
+    p_email: ProspectEmail = ProspectEmail.query.get(p.approved_prospect_email_id)
     p_email_status = None
     if p_email and p_email.outreach_status:
         p_email_status = p_email.outreach_status.value
@@ -1431,6 +1430,7 @@ def map_prospect_email_status_to_prospect_overall_status(
     prospect_email_status_map = {
         ProspectEmailOutreachStatus.UNKNOWN: ProspectOverallStatus.PROSPECTED,
         ProspectEmailOutreachStatus.NOT_SENT: ProspectOverallStatus.PROSPECTED,
+        ProspectEmailOutreachStatus.BOUNCED: ProspectOverallStatus.REMOVED,
         ProspectEmailOutreachStatus.SENT_OUTREACH: ProspectOverallStatus.SENT_OUTREACH,
         ProspectEmailOutreachStatus.EMAIL_OPENED: ProspectOverallStatus.ACCEPTED,
         ProspectEmailOutreachStatus.ACCEPTED: ProspectOverallStatus.ACCEPTED,
@@ -1452,9 +1452,9 @@ def calculate_prospect_overall_status(prospect_id: int):
         return None
 
     prospect_email_overall_status: ProspectOverallStatus | None = None
-    prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
-        prospect_id=prospect_id
-    ).first()
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
     if prospect_email:
         prospect_email_status: ProspectEmailOutreachStatus = (
             prospect_email.outreach_status

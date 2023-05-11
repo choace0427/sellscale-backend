@@ -235,8 +235,6 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect not found"}), 404
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
-    elif prospect.approved_prospect_email_id is None:
-        return jsonify({"message": "Prospect does not have an approved email"}), 400
 
     result = nylas_send_email(client_sdr_id, prospect_id, subject, body)
 
@@ -270,9 +268,7 @@ def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    prospect_email: ProspectEmail = ProspectEmail.query.filter(
-        ProspectEmail.prospect_id == prospect.id
-    ).first()
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
 

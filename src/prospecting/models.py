@@ -77,8 +77,8 @@ class ProspectOverallStatus(enum.Enum):
 
     def get_rank(self):
         ranks = {
-            "REMOVED": 0,
-            "PROSPECTED": 1,
+            "PROSPECTED": 0,
+            "REMOVED": 1,
             "SENT_OUTREACH": 2,
             "ACCEPTED": 3,
             "BUMPED": 4,
