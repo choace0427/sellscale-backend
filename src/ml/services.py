@@ -762,67 +762,106 @@ Edited Text:""".format(
     return response
 
 
-def generate_email(client_sdr_id: int, prospect: Prospect):
-
+def ai_email_prompt(client_sdr_id: int, prospect_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-    account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
         AccountResearchPoints.prospect_id == prospect.id
     ).all()
-    research_points: List[
-        ResearchPoints
-    ] = ResearchPoints.get_research_points_by_prospect_id(prospect.id)
 
-    company_name = client.company or ""
-    company_tagline = client.tagline or ""
-    company_description = client.description or ""
+    client_sdr_name = client_sdr.name
+    client_sdr_title = client_sdr.title
+    company_tagline = client.tagline
+    company_description = client.description
+    company_value_prop_key_points = client.value_prop_key_points
+    company_tone_attributes = (
+        ", ".join(client.tone_attributes) if client.tone_attributes else ""
+    )
+
+    persona_name = client_archetype.archetype
+    persona_buy_reason = client_archetype.persona_fit_reason
+    prospect_name = prospect.full_name
+    prospect_title = prospect.title
+    prospect_bio = prospect.linkedin_bio
+    prospect_company_name = prospect.company
 
     account_points = ""
     for point in account_research:
         account_points += f"- {point.title}: {point.reason}\n"
 
-    prospect_points = ""
-    for point in research_points:
-        account_points += f"- {point.value}\n"
+    prompt = """You are a sales development representative writing on behalf of the SDR.
 
-    prompt = f"""
-    I am writing a cold email to a prospect on behalf of `{company_name}`. {company_name} is a company with a tagline that says, "{company_tagline}". This is a description of what they do: "{company_description}"
+Write a personalized cold email short enough I could read on an iphone easily. Here's the structure
+1. Include Hi {{First Name}}
+2. Include a personalized first line (be direct; don't say "i came across your profile.."
+3. End with Best, (new line) {{My Name}}
 
-    They are reaching out to a category of people called, "{archetype.archetype}"
+Note - you do not need to include all info. 
 
-    This is why the category would buy {company_name}'s product:
+SDR info: 
+SDR Name: {client_sdr_name}
+Title: {client_sdr_title}
 
-    "{archetype.persona_fit_reason}"
+Company info:
+Tagline: {company_tagline}
+Company description: {company_description}
 
-    I am reaching out to a prospect. Here is their information:
+Useful data:
+{value_prop_key_points}
 
-    Full Name: {prospect.full_name}
+Tone: {company_tone}
 
-    Company Name: {prospect.company}
+Persona info:
+Name: {persona_name}
 
-    Job Title: {prospect.title}
+Why they buy:
+{persona_buy_reason}
 
-    Prospect Bio: {prospect.linkedin_bio}
+Prospect info:
+Prospect Name: {prospect_name}
+Prospect Title: {prospect_title}
+Prospect Bio: 
+"{prospect_bio}"
+Prospect Company Name: {prospect_company_name}
 
-    Account Research:
+More research:
+{prospect_research}
 
-    {account_points}
+Final instructions
+- Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed"
+- Add some personality with research points below: recent 1 year anniversary;
 
-    Prospect Research:
+Generate the subject line, one line break, then the email body.
 
-    {prospect_points}
+Output:""".format(
+        client_sdr_name=client_sdr_name,
+        client_sdr_title=client_sdr_title,
+        company_tagline=company_tagline,
+        company_description=company_description,
+        value_prop_key_points=company_value_prop_key_points,
+        company_tone=company_tone_attributes,
+        persona_name=persona_name,
+        persona_buy_reason=persona_buy_reason,
+        prospect_name=prospect_name,
+        prospect_title=prospect_title,
+        prospect_bio=prospect_bio,
+        prospect_company_name=prospect_company_name,
+        prospect_research=account_points,
+    )
 
-    Based on this information, write a brief email for {prospect.full_name} asking if they want to meet and learn more about {company_name}.
+    return prompt
 
-    Email with subject:
-    """
 
-    response = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
-        prompt=prompt,
-        temperature=1,
-        max_tokens=300,
+def generate_email(prompt: str):
+    response = wrapped_chat_gpt_completion(
+        [
+            {"role": "system", "content": prompt},
+        ],
+        temperature=0.7,
+        max_tokens=240,
+        model="gpt-4",
     )
     response = response if isinstance(response, str) else ""
 
