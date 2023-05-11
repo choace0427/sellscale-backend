@@ -809,9 +809,7 @@ def generate_prospect_email(
         archetype_id = prospect.archetype_id
 
         # Check if the prospect already has a prospect_email
-        prospect_email: ProspectEmail = ProspectEmail.query.filter(
-            ProspectEmail.prospect_id == prospect_id,
-        ).first()
+        prospect_email: ProspectEmail = ProspectEmail.query.filter(prospect.approved_prospect_email_id)
         if prospect_email:
             update_generated_message_job_queue_status(
                 gm_job_id,

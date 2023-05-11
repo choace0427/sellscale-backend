@@ -607,9 +607,7 @@ def update_prospect_status_email(
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
         return False, "Prospect not found"
-    p_email: ProspectEmail = ProspectEmail.query.filter_by(
-        prospect_id=prospect_id
-    ).first()
+    p_email: ProspectEmail = ProspectEmail.query.get(p.approved_prospect_email_id)
     if not p_email:
         return False, "Prospect email not found"
     p_email_id = p_email.id
