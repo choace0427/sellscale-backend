@@ -9,6 +9,7 @@ from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache
 from app import db
 from src.utils.math import get_unique_int
+from src.utils.slack import send_slack_message, URL_MAP
 
 
 def company_backfill(c_min: int, c_max: int):
@@ -18,6 +19,12 @@ def company_backfill(c_min: int, c_max: int):
     ).all()
     
     c_max = min(c_max, len(iscraper_cache)-1)
+
+    send_slack_message(
+        message="Backfilling Companies: {c_min}/{c_max}...",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
     print(f'Processing {c_min}/{c_max}...')
 
     c_count = 0

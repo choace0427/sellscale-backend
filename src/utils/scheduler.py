@@ -105,6 +105,18 @@ def run_sync_vessel_mailboxes_and_sequences_job():
         sync_vessel_mailboxes_and_sequences()
 
 
+# TEMP - Backfilling Companies
+tmp_count = 0
+tmp_amt = 400
+def backfill_companies():
+    from src.company.services import company_backfill
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        company_backfill(tmp_count, tmp_count+tmp_amt)
+
 # Using Voyager!
 def scrape_li_inboxes():
     from src.li_conversation.services import scrape_conversations_inbox
@@ -164,6 +176,9 @@ scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 
 scheduler.add_job(func=replenish_sdr_credits, trigger="interval", days=1)
+
+# Temporary
+scheduler.add_job(func=backfill_companies, trigger="interval", minutes=10)
 
 scheduler.start()
 
