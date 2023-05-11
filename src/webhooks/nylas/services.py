@@ -129,7 +129,7 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
                 # Calculate prospect overall status
                 calculate_prospect_overall_status(prospect.id)
 
-                return True, "Successfully saved new thread"
+                return True, "Successfully saved new thread - Email was BOUNCED"
 
         # Check if message is from prospect
         if message.get("from_prospect") == True:
