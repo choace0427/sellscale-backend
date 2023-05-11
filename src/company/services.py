@@ -4,6 +4,8 @@ import json
 import math
 
 from psycopg2 import IntegrityError
+from src.prospecting.models import Prospect
+from sqlalchemy import or_
 
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache
@@ -141,5 +143,45 @@ def add_company_cache_to_db(json_data) -> bool:
                 print(f'- Added company relation: {company_relation.company_id_1} <-> {company_relation.company_id_2}')
 
     return True
+
+
+@celery.task
+def company_backfill_prospects(client_sdr_id: int):
+    
+    prospects = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.company_id == None,
+    ).all()
+    
+    print(f'Processing {len(prospects)} prospects...')
+    
+    c_count = 0
+    for prospect in prospects:
+        success = find_company_for_prospect(prospect.id)
+        if success:
+            c_count += 1
+        
+    return c_count
+
+
+def find_company_for_prospect(prospect_id: int) -> bool:
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.company_id:
+        return False
+
+    company: Company = Company.query.filter(
+        or_(
+            Company.name == prospect.company,
+            Company.websites.any(prospect.company_url),
+        ),
+    ).first()
+
+    if company:
+        prospect.company_id = company.id
+        db.session.commit()
+        return True
+    else:
+        return False
 
 

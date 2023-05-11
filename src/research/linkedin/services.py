@@ -1,4 +1,4 @@
-from src.company.services import add_company_cache_to_db
+from src.company.services import add_company_cache_to_db, find_company_for_prospect
 from app import celery, db
 
 from src.client.models import Client, ClientArchetype
@@ -164,7 +164,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
                 payload=company_info,
                 payload_type=IScraperPayloadType.COMPANY,
             )
-            add_company_cache_to_db(company_info)
+            add_company_cache_to_db(company_info)  
 
     # Construct entire payload
     payload = {"personal": personal_info, "company": company_info}

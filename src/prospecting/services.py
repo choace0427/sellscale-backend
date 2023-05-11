@@ -1,5 +1,7 @@
 from datetime import datetime
 from typing import Optional, Union
+
+from src.company.services import find_company_for_prospect
 from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
 from sqlalchemy import or_
 import requests
@@ -890,6 +892,7 @@ def add_prospect(
         return None
 
     get_research_payload_new(prospect_id=prospect.id, test_mode=False)
+    find_company_for_prospect(prospect.id)
 
     return prospect.id
 
