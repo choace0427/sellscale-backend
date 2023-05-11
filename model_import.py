@@ -84,3 +84,4 @@ from src.personas.models import (
     PersonaSplitRequestTask,
 )
 from src.voice_builder.models import VoiceBuilderOnboarding, VoiceBuilderSamples
+from src.company.models import Company, CompanyRelation
