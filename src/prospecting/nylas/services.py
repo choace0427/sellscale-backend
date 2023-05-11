@@ -510,9 +510,10 @@ def nylas_send_email(
     prospect_email.nylas_thread_id = result.get("thread_id")
 
     # Change ProspectEmail status to "SENT"
+    prospect_email = ProspectEmail.query.get(prospect_email_id)
     prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
     prospect_email.email_status = ProspectEmailStatus.SENT
-
+    db.session.add(prospect_email)
     db.session.commit()
 
     # Calculate overall status
