@@ -23,17 +23,17 @@ def company_backfill(c_min: int, c_max: int):
     c_count = 0
     for index in range(c_min, c_max):
         cache = iscraper_cache[index]
-        processed = add_company_cache_to_db(cache)
+        result = json.loads(cache.payload)
+        processed = add_company_cache_to_db(result)
         if processed:
             c_count += 1
 
     return c_count
 
 
-def add_company_cache_to_db(cache) -> bool:
-    result = json.loads(cache.payload)
+def add_company_cache_to_db(json_data) -> bool:
 
-    details = result.get('details', None)
+    details = json_data.get('details', None)
     if not details:
         print(f'No details for company...')
         return False
@@ -110,7 +110,7 @@ def add_company_cache_to_db(cache) -> bool:
 
     # Add company relations
     if company:
-        relations = result.get('related_companies') or []
+        relations = json_data.get('related_companies') or []
         if len(relations) > 0:
             print(f'Found {len(relations)} company relations...')
         for relation in relations:
