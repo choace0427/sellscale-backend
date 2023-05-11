@@ -7,11 +7,11 @@ from psycopg2 import IntegrityError
 
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache
-from app import db
+from app import db, celery
 from src.utils.math import get_unique_int
 from src.utils.slack import send_slack_message, URL_MAP
 
-
+@celery.task
 def company_backfill(c_min: int, c_max: int):
 
     iscraper_cache = IScraperPayloadCache.query.filter(
