@@ -10,6 +10,7 @@ class Client(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     company = db.Column(db.String)
     contact_name = db.Column(db.String)
     contact_email = db.Column(db.String)
