@@ -115,7 +115,7 @@ def backfill_companies():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        company_backfill(tmp_count, tmp_count+tmp_amt)
+        company_backfill.delay(tmp_count, tmp_count+tmp_amt)
 
 # Using Voyager!
 def scrape_li_inboxes():
