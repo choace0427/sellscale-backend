@@ -91,6 +91,7 @@ def research_corporate_profile_details(company_name: str):
     return json.loads(response.text)
 
 
+@celery.task
 def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     from src.prospecting.services import (
         get_linkedin_slug_from_url,
