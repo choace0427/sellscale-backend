@@ -336,7 +336,7 @@ def post_generate_email(client_sdr_id: int):
     return jsonify({"message": "Success", "data": result}), 200
 
 
-@ML_BLUEPRINT.route("/get_generate_email_prompt", methods=["GET"])
+@ML_BLUEPRINT.route("/get_generate_email_prompt", methods=["POST"])
 @require_user
 def get_generate_email_prompt(client_sdr_id: int):
     """
