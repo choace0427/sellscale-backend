@@ -115,19 +115,21 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
     messages: list[dict] = nylas_get_messages(client_sdr.id, prospect.id, thread.get("id"))
     for message in messages:
         # Check if message is bounced
-        email_from = message.get("message_from", {'email': None}).get('email')
-        bounced = is_email_bounced(email_from, message.get("body"))
-        if bounced:
-            # Update the Prospect's status to "BOUNCED"
-            updated = update_prospect_email_outreach_status(
-                prospect_email_id=prospect_email_id,
-                new_status=ProspectEmailOutreachStatus.BOUNCED,
-            )
+        email_from: list = message.get("message_from", [{'email': None}])
+        if len(email_from) == 1:
+            email_from: str = email_from[0].get('email')
+            bounced = is_email_bounced(email_from, message.get("body"))
+            if bounced:
+                # Update the Prospect's status to "BOUNCED"
+                updated = update_prospect_email_outreach_status(
+                    prospect_email_id=prospect_email_id,
+                    new_status=ProspectEmailOutreachStatus.BOUNCED,
+                )
 
-            # Calculate prospect overall status
-            calculate_prospect_overall_status(prospect.id)
+                # Calculate prospect overall status
+                calculate_prospect_overall_status(prospect.id)
 
-            return True, "Successfully saved new thread"
+                return True, "Successfully saved new thread"
 
         # Check if message is from prospect
         if message.get("from_prospect") == True:
