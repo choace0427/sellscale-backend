@@ -514,7 +514,9 @@ class EmailConversationMessage(db.Model):
     message_from = db.Column(db.ARRAY(db.JSON), nullable=True)
     message_to = db.Column(db.ARRAY(db.JSON), nullable=True)
     reply_to = db.Column(db.ARRAY(db.JSON), nullable=True)
-    email_conversation_thread_id = db.Column(db.Integer, db.ForeignKey("email_conversation_thread.id"), nullable=True)
+    email_conversation_thread_id = db.Column(
+        db.Integer, db.ForeignKey("email_conversation_thread.id"), nullable=True
+    )
     nylas_thread_id = db.Column(db.String, nullable=False)
     nylas_message_id = db.Column(db.String, nullable=False, index=True, unique=True)
     nylas_data_raw = db.Column(db.JSON, nullable=False)
