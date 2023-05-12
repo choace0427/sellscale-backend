@@ -230,6 +230,10 @@ class ProspectEmail(db.Model):
     personalized_first_line = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")
     )
+    personalized_subject_line = db.Column(
+        db.Integer, db.ForeignKey("generated_message.id")
+    )
+    personalized_body = db.Column(db.Integer, db.ForeignKey("generated_message.id"))
 
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
