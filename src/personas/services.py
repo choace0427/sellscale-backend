@@ -1,3 +1,4 @@
+from src.company.models import Company
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from model_import import (
     PersonaSplitRequest,
@@ -179,8 +180,12 @@ def process_persona_split_request_task(self, task_id: int):
         archetypes = ClientArchetype.query.filter(
             ClientArchetype.id.in_(destination_client_archetype_ids)
         ).all()
-        prospect_details = get_prospect_details(prospect.client_sdr_id, prospect_id)
-        company_details = prospect_details.get('prospect_info', {}).get('company', {})
+        company: Company = Company.query.filter_by(id=prospect.company_id).first()
+
+        company_loc_str = ''
+        if len(company.locations) > 0:
+            company_loc = company.locations[0]
+            company_loc_str = f'{company_loc.get("city", "")}, {company_loc.get("geographicArea", "")} {company_loc.get("country", "")}, Postal Code: {company_loc.get("postalCode", "")}'
 
         persona_options_str = "\n".join(
             [
@@ -209,8 +214,8 @@ def process_persona_split_request_task(self, task_id: int):
             prospect_title=prospect.title,
             prospect_company=prospect.company,
             persona_options_str=persona_options_str,
-            prospect_company_location=company_details.get('location', 'Unknown'),
-            prospect_company_description=company_details.get('description', 'Unknown'),
+            prospect_company_location=company_loc_str,
+            prospect_company_description=company.description,
         )
 
         output = wrapped_chat_gpt_completion(
