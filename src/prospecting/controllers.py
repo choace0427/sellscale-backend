@@ -105,9 +105,9 @@ def get_prospect_by_uuids():
 
 @PROSPECTING_BLUEPRINT.route("/unsubscribe", methods=["POST"])
 def post_prospect_unsubscribe():
-    client_uuid = get_request_parameter("client_uuid", request, json=False, required=True)
-    client_sdr_uuid = get_request_parameter("client_sdr_uuid", request, json=False, required=True)
-    prospect_uuid = get_request_parameter("prospect_uuid", request, json=False, required=True)
+    client_uuid = get_request_parameter("client_uuid", request, json=True, required=True)
+    client_sdr_uuid = get_request_parameter("client_sdr_uuid", request, json=True, required=True)
+    prospect_uuid = get_request_parameter("prospect_uuid", request, json=True, required=True)
 
     # Validate parameters
     if not client_uuid or not client_sdr_uuid or not prospect_uuid:
