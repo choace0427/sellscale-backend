@@ -4,6 +4,8 @@ from src.research.models import ResearchPointType
 import sqlalchemy as sa
 import json
 
+from src.utils.hasher import generate_uuid
+
 
 class Client(db.Model):
     __tablename__ = "client"
@@ -51,6 +53,15 @@ class Client(db.Model):
 
     value_prop_key_points = db.Column(db.String, nullable=True)
     tone_attributes = db.Column(db.ARRAY(db.String), nullable=True)
+
+    uuid = db.Column(db.String, nullable=True, unique=True, index=True)
+
+    def regenerate_uuid(self) -> str:
+        uuid_str = generate_uuid(base=self.id, salt=self.company)
+        self.uuid = uuid_str
+        db.session.commit()
+
+        return uuid_str
 
     def to_dict(self) -> dict:
         return {
@@ -226,6 +237,15 @@ class ClientSDR(db.Model):
     timezone = db.Column(
         db.String, server_default="America/Los_Angeles", nullable=False
     )
+
+    uuid = db.Column(db.String, nullable=True, unique=True, index=True)
+
+    def regenerate_uuid(self) -> str:
+        uuid_str = generate_uuid(base=self.id, salt=self.name)
+        self.uuid = uuid_str
+        db.session.commit()
+
+        return uuid_str
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)

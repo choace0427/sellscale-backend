@@ -886,8 +886,11 @@ def add_prospect(
             li_num_followers=linkedin_num_followers,
             overall_status=overall_status,
         )
+        p_id = prospect.id
         db.session.add(prospect)
         db.session.commit()
+        prospect: Prospect = Prospect.query.get(p_id)
+        prospect.regenerate_uuid()
     else:
         return None
 
