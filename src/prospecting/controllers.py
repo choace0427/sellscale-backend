@@ -99,7 +99,7 @@ def get_prospect_by_uuids():
         "status": "Success",
         "data": {
             "email": prospect.email,
-            "status": prospect.overall_status,
+            "status": prospect.overall_status.value,
         }
     }), 200
 
