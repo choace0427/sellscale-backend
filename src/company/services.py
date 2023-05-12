@@ -172,11 +172,11 @@ def company_backfill_prospects(client_sdr_id: int):
 
 
 @celery.task
-def find_company_for_prospect(prospect_id: int) -> bool:
+def find_company_for_prospect(prospect_id: int) -> Company:
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.company_id:
-        return False
+        return Company.query.get(prospect.company_id)
 
     company: Company = Company.query.filter(
         or_(
@@ -188,6 +188,6 @@ def find_company_for_prospect(prospect_id: int) -> bool:
     if company:
         prospect.company_id = company.id
         db.session.commit()
-        return True
+        return company
     else:
-        return False
+        return None

@@ -29,6 +29,7 @@ import re
 import math
 import openai
 import json
+from src.company.services import find_company_for_prospect
 
 
 DEFAULT_MONTHLY_ML_FETCHING_CREDITS = 5000
@@ -664,6 +665,10 @@ def icp_classify(
         prompt = HARD_CODE_ICP_HEADER
         prompt += icp
 
+        # Get Company Description
+        company = find_company_for_prospect(prospect_id)
+        prospect_company_description = company.description if company else ""
+
         # Create Prompt
         prompt += f"""\n\nHere is a potential prospect:
         Prospect Name: {prospect.full_name}
@@ -671,7 +676,10 @@ def icp_classify(
         LinkedIn Bio: {prospect.linkedin_bio}
         Prospect Company Name: {prospect.company}
         Prospect Company Size: {prospect.employee_count}
-        Prospect Company Industry: {prospect.industry}\n\n"""
+        Prospect Company Industry: {prospect.industry}
+        Prospect Company Description: '''
+        {prospect_company_description}
+        '''\n\n"""
 
         prompt += HARD_CODE_ICP_PROMPT
 
