@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone
 
 from app import db, celery
-from src.client.models import ClientSDR
+from src.client.models import ClientSDR, Client
 from src.email_outbound.models import (
     EmailConversationMessage,
     EmailConversationThread,

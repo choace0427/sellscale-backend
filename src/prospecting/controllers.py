@@ -41,6 +41,7 @@ from src.prospecting.services import (
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
+    prospect_email_unsubscribe,
 )
 from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
@@ -62,6 +63,81 @@ from src.prospecting.hunter import find_hunter_emails_for_prospects_under_archet
 from src.prospecting.services import update_prospect_demo_date
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
+
+
+@PROSPECTING_BLUEPRINT.route("/", methods=["GET"])
+def get_prospect_by_uuids():
+    """Get prospect by uuids"""
+    client_uuid = get_request_parameter("client_uuid", request, json=False, required=True)
+    client_sdr_uuid = get_request_parameter("client_sdr_uuid", request, json=False, required=True)
+    prospect_uuid = get_request_parameter("prospect_uuid", request, json=False, required=True)
+
+    # Validate parameters
+    if not client_uuid or not client_sdr_uuid or not prospect_uuid:
+        return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
+    # Get Client
+    client: Client = Client.query.filter(Client.uuid == client_uuid).first()
+    if not client:
+        return jsonify({"status": "error", "message": "Client not found"}), 404
+
+    # Get Client SDR
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.uuid == client_sdr_uuid).first()
+    if not client_sdr:
+        return jsonify({"status": "error", "message": "Client SDR not found"}), 404
+    elif client_sdr.client_id != client.id:
+        return jsonify({"status": "error", "message": "Invalid parameters"}), 403
+
+    # Get Prospect
+    prospect: Prospect = Prospect.query.filter(Prospect.uuid == prospect_uuid).first()
+    if not prospect:
+        return jsonify({"status": "error", "message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr.id:
+        return jsonify({"status": "error", "message": "Invalid parameters"}), 403
+
+    return jsonify({
+        "status": "Success",
+        "data": {
+            "email": prospect.email
+        }
+    }), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/unsubscribe", methods=["POST"])
+def post_prospect_unsubscribe():
+    client_uuid = get_request_parameter("client_uuid", request, json=False, required=True)
+    client_sdr_uuid = get_request_parameter("client_sdr_uuid", request, json=False, required=True)
+    prospect_uuid = get_request_parameter("prospect_uuid", request, json=False, required=True)
+
+    # Validate parameters
+    if not client_uuid or not client_sdr_uuid or not prospect_uuid:
+        return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
+    # Get Client
+    client: Client = Client.query.filter(Client.uuid == client_uuid).first()
+    if not client:
+        return jsonify({"status": "error", "message": "Client not found"}), 404
+
+    # Get Client SDR
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.uuid == client_sdr_uuid).first()
+    if not client_sdr:
+        return jsonify({"status": "error", "message": "Client SDR not found"}), 404
+    elif client_sdr.client_id != client.id:
+        return jsonify({"status": "error", "message": "Invalid parameters"}), 403
+
+    # Get Prospect
+    prospect: Prospect = Prospect.query.filter(Prospect.uuid == prospect_uuid).first()
+    if not prospect:
+        return jsonify({"status": "error", "message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr.id:
+        return jsonify({"status": "error", "message": "Invalid parameters"}), 403
+
+    # Unsubscribe
+    success = prospect_email_unsubscribe(prospect_id=prospect.id)
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to unsubscribe"}), 400
+
+    return jsonify({"status": "success", "data": None}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>", methods=["GET"])

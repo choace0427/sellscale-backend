@@ -70,6 +70,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     SCHEDULING = "SCHEDULING"
 
     NOT_INTERESTED = "NOT_INTERESTED"
+    UNSUBSCRIBED = "UNSUBSCRIBED"
     DEMO_SET = "DEMO_SET"
 
     DEMO_WON = "DEMO_WON"
@@ -85,6 +86,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
             "ACTIVE_CONVO": "Active Convo",
             "SCHEDULING": "Scheduling",
             "NOT_INTERESTED": "Not Interested",
+            "UNSUBSCRIBED": "Unsubscribed",
             "DEMO_SET": "Demo Scheduled",
             "DEMO_WON": "Demo Complete",
             "DEMO_LOST": "Demo Missed",
@@ -101,6 +103,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
             ProspectEmailOutreachStatus.ACTIVE_CONVO,
             ProspectEmailOutreachStatus.SCHEDULING,
             ProspectEmailOutreachStatus.NOT_INTERESTED,
+            ProspectEmailOutreachStatus.UNSUBSCRIBED,
             ProspectEmailOutreachStatus.DEMO_SET,
             ProspectEmailOutreachStatus.DEMO_WON,
             ProspectEmailOutreachStatus.DEMO_LOST,
@@ -170,6 +173,12 @@ class ProspectEmailOutreachStatus(enum.Enum):
                 "name": "Not Interested",
                 "description": "The Prospect is not interested.",
                 "enum_val": ProspectEmailOutreachStatus.NOT_INTERESTED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
+            },
+            ProspectEmailOutreachStatus.UNSUBSCRIBED.value: {
+                "name": "Unsubscribed",
+                "description": "The Prospect has unsubscribed.",
+                "enum_val": ProspectEmailOutreachStatus.UNSUBSCRIBED.value,
                 "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
             ProspectEmailOutreachStatus.DEMO_SET.value: {
