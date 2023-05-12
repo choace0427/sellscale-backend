@@ -430,7 +430,7 @@ class Prospect(db.Model):
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
-        uuid_str = generate_uuid(base=self.id, salt=self.full_name)
+        uuid_str = generate_uuid(base=str(self.id), salt=self.full_name)
         self.uuid = uuid_str
         db.session.commit()
 

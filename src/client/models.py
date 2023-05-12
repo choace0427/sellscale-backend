@@ -57,7 +57,7 @@ class Client(db.Model):
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
 
     def regenerate_uuid(self) -> str:
-        uuid_str = generate_uuid(base=self.id, salt=self.company)
+        uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
         db.session.commit()
 
@@ -241,7 +241,7 @@ class ClientSDR(db.Model):
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
 
     def regenerate_uuid(self) -> str:
-        uuid_str = generate_uuid(base=self.id, salt=self.name)
+        uuid_str = generate_uuid(base=str(self.id), salt=self.name)
         self.uuid = uuid_str
         db.session.commit()
 

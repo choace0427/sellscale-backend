@@ -3,7 +3,7 @@ import uuid
 
 def generate_uuid(base: str = "", salt: str = "") -> str:
     # Convert number to string and salt
-    bites = (base + salt).encode()
+    bites = (str(base) + str(salt)).encode()
 
     # Convert string to bytes and hash using SHA256 algorithm
     hashed_bytes = hashlib.sha256(bites).digest()
