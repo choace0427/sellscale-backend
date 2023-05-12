@@ -153,7 +153,6 @@ def add_company_cache_to_db(json_data) -> bool:
     return True
 
 
-@celery.task
 def company_backfill_prospects(client_sdr_id: int):
 
     prospects = Prospect.query.filter(
@@ -165,13 +164,14 @@ def company_backfill_prospects(client_sdr_id: int):
 
     c_count = 0
     for prospect in prospects:
-        success = find_company_for_prospect(prospect.id)
+        success = find_company_for_prospect.delay(prospect.id)
         if success:
             c_count += 1
 
     return c_count
 
 
+@celery.task
 def find_company_for_prospect(prospect_id: int) -> bool:
 
     prospect: Prospect = Prospect.query.get(prospect_id)
