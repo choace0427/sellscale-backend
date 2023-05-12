@@ -98,7 +98,8 @@ def get_prospect_by_uuids():
     return jsonify({
         "status": "Success",
         "data": {
-            "email": prospect.email
+            "email": prospect.email,
+            "status": prospect.overall_status,
         }
     }), 200
 
