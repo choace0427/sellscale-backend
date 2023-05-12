@@ -485,7 +485,7 @@ def nylas_send_email(
     client_uuid = client.uuid if client.uuid else client.regenerate_uuid()
     sdr_uuid = client_sdr.uuid if client_sdr.uuid else client_sdr.regenerate_uuid()
     prospect_uuid = prospect.uuid if prospect.uuid else prospect.regenerate_uuid()
-    query_params = f"?c={client_uuid}&s=${sdr_uuid}&p=${prospect_uuid}"
+    query_params = f"?c={client_uuid}&s={sdr_uuid}&p={prospect_uuid}"
     link = unsubscribe_url + query_params
 
     body += f"<a href='{link}' target='_blank'>Unsubscribe</a>"
