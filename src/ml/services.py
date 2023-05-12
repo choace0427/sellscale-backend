@@ -841,7 +841,7 @@ Final instructions
 - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed"
 - Add some personality with research points below: recent 1 year anniversary;
 
-Generate the subject line, one line break, then the email body.
+Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
 
 Output:""".format(
         client_sdr_name=client_sdr_name,
@@ -875,6 +875,7 @@ def generate_email(prompt: str):
 
     lines = response.split("\n")
     subject = lines[0].strip()
+    subject = re.sub(r"^Subject:", "", subject, flags=re.IGNORECASE).strip()
     body = "\n".join(lines[1:]).strip()
 
     return {"subject": subject, "body": body}
