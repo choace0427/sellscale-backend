@@ -277,6 +277,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
             {
                 "prospect_id": prospect_id,
                 "full_name": full_name,
+                "ai_approved": personalized_subject_line_ai_approved
+                and personalized_body_ai_approved,
                 "personalized_subject_line_message_id": personalized_subject_line_message_id,
                 "personalized_subject_line_ai_approved": personalized_subject_line_ai_approved,
                 "personalized_subject_line_completion": personalized_subject_line_completion,
