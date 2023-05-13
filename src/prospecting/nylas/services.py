@@ -481,7 +481,7 @@ def nylas_send_email(
 
     # Add an unsubscribe link to the body
     # TODO: This should only send unsubscribe link iff we are below ACTIVE_CONVO
-    unsubscribe_url = UNSUBSCRIBE_WEBSITE_URL + "/unsubscribe"
+    unsubscribe_url = UNSUBSCRIBE_WEBSITE_URL + "/unsubscribe/"
     client_uuid = client.uuid if client.uuid else client.regenerate_uuid()
     sdr_uuid = client_sdr.uuid if client_sdr.uuid else client_sdr.regenerate_uuid()
     prospect_uuid = prospect.uuid if prospect.uuid else prospect.regenerate_uuid()
