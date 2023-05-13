@@ -127,10 +127,16 @@ def update_status_from_csv_payload():
 @EMAIL_GENERATION_BLUEPRINT.route("/add_sequence", methods=["POST"])
 @require_user
 def post_add_sequence(client_sdr_id: int):
-    title = get_request_parameter("title", request, json=True, required=True, parameter_type=str)
-    archetype_id = get_request_parameter("archetype_id", request, json=True, required=True, parameter_type=int)
-    data = get_request_parameter("data", request, json=True, required=True, parameter_type=list)
-    
+    title = get_request_parameter(
+        "title", request, json=True, required=True, parameter_type=str
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    data = get_request_parameter(
+        "data", request, json=True, required=True, parameter_type=list
+    )
+
     result = add_sequence(title, client_sdr_id, archetype_id, data)
 
     client_sdr = ClientSDR.query.get(client_sdr_id)
@@ -139,13 +145,15 @@ def post_add_sequence(client_sdr_id: int):
 
     steps_str = ""
     for i, step in enumerate(data):
-        steps_str += "{num}. {subject} \n {body}\n\n".format(subject=step['subject'], body=step['body'], num=i+1)
+        steps_str += "{num}. {subject} \n {body}\n\n".format(
+            subject=step["subject"], body=step["body"], num=i + 1
+        )
 
     send_slack_message(
         message="*Sequence for Outreach*\nFor {client_sdr_name} from {client_company} :tada:\n\n_Steps:_\n{steps_str}".format(
-          client_sdr_name=client_sdr.name,
-          client_company=client.company,
-          steps_str=steps_str
+            client_sdr_name=client_sdr.name,
+            client_company=client.company,
+            steps_str=steps_str,
         ),
         webhook_urls=[URL_MAP["outreach-send-to"]],
     )
@@ -156,7 +164,8 @@ def post_add_sequence(client_sdr_id: int):
 @EMAIL_GENERATION_BLUEPRINT.route("/all_sequences", methods=["GET"])
 @require_user
 def get_all_sequences(client_sdr_id: int):
-    archetype_id = get_request_parameter("archetype_id", request, json=False, required=True)
-    
-    return get_sequences(client_sdr_id, archetype_id)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True
+    )
 
+    return get_sequences(client_sdr_id, archetype_id)

@@ -244,7 +244,10 @@ def get_outbound_campaign_details_for_edit_tool_email(
             case when prospect_email.personalized_body = body.id 
                 then body.highlighted_words 
                 else null 
-            end "personalized_body_highlighted_words"
+            end "personalized_body_highlighted_words",
+
+        -- general prospect email stuff
+            prospect_email.id "prospect_email_id"
                 
         from outbound_campaign
             join prospect on prospect.id = any(outbound_campaign.prospect_ids)
@@ -273,6 +276,7 @@ def get_outbound_campaign_details_for_edit_tool_email(
         personalized_body_completion = entry[9]
         personalized_body_problems = entry[10]
         personalized_body_highlighted_words = entry[11]
+        prospect_email_id = entry[12]
         prospects.append(
             {
                 "prospect_id": prospect_id,
@@ -287,6 +291,7 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 "completion_2": personalized_body_completion,
                 "problems_2": personalized_body_problems,
                 "highlighted_words_2": personalized_body_highlighted_words,
+                "prospect_email_id": prospect_email_id,
             }
         )
 
