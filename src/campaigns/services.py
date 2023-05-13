@@ -284,12 +284,12 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 "message_id": personalized_subject_line_message_id,
                 "ai_approved": personalized_subject_line_ai_approved,
                 "completion": personalized_subject_line_completion,
-                "problems": personalized_subject_line_problems,
+                "problems": personalized_subject_line_problems
+                + personalized_body_problems,
                 "highlighted_words": personalized_subject_line_highlighted_words,
                 "message_id_2": personalized_body_message_id,
                 "ai_approved_2": personalized_body_ai_approved,
                 "completion_2": personalized_body_completion,
-                "problems_2": personalized_body_problems,
                 "highlighted_words_2": personalized_body_highlighted_words,
                 "prospect_email_id": prospect_email_id,
             }
