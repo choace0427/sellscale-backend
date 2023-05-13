@@ -938,6 +938,7 @@ def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailSt
         if gm_id:
             gm: GeneratedMessage = GeneratedMessage.query.get(gm_id)
             gm.message_status = GeneratedMessageStatus[status.value]
+            gm.ai_approved = True
             db.session.add(gm)
             db.session.commit()
 
@@ -964,6 +965,7 @@ def clear_prospect_approved_email(prospect_id: int):
             if gm_id:
                 gm: GeneratedMessage = GeneratedMessage.query.get(gm_id)
                 gm.message_status = GeneratedMessageStatus.DRAFT
+                gm.ai_approved = False
                 db.session.add(gm)
                 db.session.commit()
 
