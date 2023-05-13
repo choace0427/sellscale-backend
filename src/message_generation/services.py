@@ -961,9 +961,8 @@ def clear_prospect_approved_email(prospect_id: int):
         ]
 
         for gm_id in personalized_message_ids:
-            line = GeneratedMessage.query.get(gm_id)
-            if line:
-                gm: GeneratedMessage = GeneratedMessage.query.get(line)
+            if gm_id:
+                gm: GeneratedMessage = GeneratedMessage.query.get(gm_id)
                 gm.message_status = GeneratedMessageStatus.DRAFT
                 db.session.add(gm)
                 db.session.commit()
