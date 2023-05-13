@@ -349,6 +349,11 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
         ProspectEmailOutreachStatus.UNKNOWN,
         ProspectEmailOutreachStatus.NOT_SENT,
     ],
+    ProspectEmailOutreachStatus.UNSUBSCRIBED: [
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+        ProspectEmailOutreachStatus.ACCEPTED,
+    ],
     ProspectEmailOutreachStatus.BOUNCED: [
         ProspectEmailOutreachStatus.SENT_OUTREACH,
     ],
