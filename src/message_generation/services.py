@@ -922,7 +922,9 @@ def generate_prospect_email(
     return (True, "Success")
 
 
-def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailStatus):
+def change_prospect_email_status(
+    prospect_email_id: int, status: ProspectEmailStatus, ai_approved: Optional[bool]
+):
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect_email.email_status = status
     db.session.add(prospect_email)
@@ -938,7 +940,10 @@ def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailSt
         if gm_id:
             gm: GeneratedMessage = GeneratedMessage.query.get(gm_id)
             gm.message_status = GeneratedMessageStatus[status.value]
-            gm.ai_approved = True
+
+            if ai_approved is not None:
+                gm.ai_approved = ai_approved
+
             db.session.add(gm)
             db.session.commit()
 
@@ -1059,7 +1064,9 @@ def mark_prospect_email_approved(prospect_email_id: int):
     db.session.commit()
 
     success = change_prospect_email_status(
-        prospect_email_id=prospect_email_id, status=ProspectEmailStatus.APPROVED
+        prospect_email_id=prospect_email_id,
+        status=ProspectEmailStatus.APPROVED,
+        ai_approved=True,
     )
 
     run_message_rule_engine(message_id=prospect_email.personalized_subject_line)
