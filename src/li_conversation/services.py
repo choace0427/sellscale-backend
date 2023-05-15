@@ -241,7 +241,32 @@ def run_next_client_sdr_scrape():
 
 
 def generate_chat_gpt_response_to_conversation_thread(
-    conversation_url: str, bump_framework_id: int, account_research_copy: str = "", override_bump_length: BumpLength = None
+    conversation_url: str,
+    bump_framework_id: int,
+    account_research_copy: str = "",
+    override_bump_length: BumpLength = None,
+    max_retries: int = 3,
+):
+    for _ in range(max_retries):
+        try:
+            return generate_chat_gpt_response_to_conversation_thread_helper(
+                conversation_url=conversation_url,
+                bump_framework_id=bump_framework_id,
+                account_research_copy=account_research_copy,
+                override_bump_length=override_bump_length,
+            )
+        except Exception as e:
+            print(e)
+            print("Retrying...")
+            time.sleep(2)
+            continue
+
+
+def generate_chat_gpt_response_to_conversation_thread_helper(
+    conversation_url: str,
+    bump_framework_id: int,
+    account_research_copy: str = "",
+    override_bump_length: BumpLength = None,
 ):
     from model_import import Prospect, ProspectStatus
 
@@ -304,15 +329,21 @@ def generate_chat_gpt_response_to_conversation_thread(
             + account_research_copy
         )
 
-    if override_bump_length == BumpLength.SHORT or (bump_framework and bump_framework.bump_length == BumpLength.SHORT):
+    if override_bump_length == BumpLength.SHORT or (
+        bump_framework and bump_framework.bump_length == BumpLength.SHORT
+    ):
         message_content = message_content + (
             "\n\nPlease keep this message between 1-3 sentences."
         )
-    elif override_bump_length == BumpLength.MEDIUM or (bump_framework and bump_framework.bump_length == BumpLength.MEDIUM):
+    elif override_bump_length == BumpLength.MEDIUM or (
+        bump_framework and bump_framework.bump_length == BumpLength.MEDIUM
+    ):
         message_content = message_content + (
             "\n\nPlease keep this message between 3-5 sentences."
         )
-    elif override_bump_length == BumpLength.LONG or (bump_framework and bump_framework.bump_length == BumpLength.LONG):
+    elif override_bump_length == BumpLength.LONG or (
+        bump_framework and bump_framework.bump_length == BumpLength.LONG
+    ):
         message_content = message_content + (
             "\n\nPlease keep this message between 5-7 sentences."
         )
