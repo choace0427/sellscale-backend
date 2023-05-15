@@ -1,10 +1,11 @@
 import json
 import requests
+import os
 from typing import Optional
 from datetime import datetime, timezone
 
 from app import db, celery
-from src.client.models import ClientSDR
+from src.client.models import ClientSDR, Client
 from src.email_outbound.models import (
     EmailConversationMessage,
     EmailConversationThread,
@@ -15,6 +16,10 @@ from src.email_outbound.models import (
 from src.prospecting.models import Prospect
 from src.prospecting.services import calculate_prospect_overall_status
 from src.prospecting.nylas.nylas_wrappers import wrapped_nylas_get_threads
+
+
+UNSUBSCRIBE_WEBSITE_URL = os.environ.get("UNSUBSCRIBE_WEBSITE_URL")
+
 
 NYLAS_THREAD_LIMIT = 10
 
@@ -471,6 +476,19 @@ def nylas_send_email(
         "client_sdr_id": client_sdr_id,
     }
     tracking_payload_json: str = json.dumps(tracking_payload)
+
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    # Add an unsubscribe link to the body
+    # TODO: This should only send unsubscribe link iff we are below ACTIVE_CONVO
+    unsubscribe_url = UNSUBSCRIBE_WEBSITE_URL + "/unsubscribe/"
+    client_uuid = client.uuid if client.uuid else client.regenerate_uuid()
+    sdr_uuid = client_sdr.uuid if client_sdr.uuid else client_sdr.regenerate_uuid()
+    prospect_uuid = prospect.uuid if prospect.uuid else prospect.regenerate_uuid()
+    query_params = f"?c={client_uuid}&s={sdr_uuid}&p={prospect_uuid}"
+    link = unsubscribe_url + query_params
+
+    body += f"<a href='{link}' target='_blank'>Unsubscribe</a>"
 
     # Send email through Nylas
     res = requests.post(

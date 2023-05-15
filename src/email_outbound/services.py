@@ -1,6 +1,7 @@
 import hashlib
 import json
 import datetime
+from typing import Optional
 from flask import jsonify
 from src.email_outbound.models import Sequence, SequenceStatus
 
@@ -35,24 +36,22 @@ from src.email_outbound.ss_data import SSData
 from src.automation.slack_notification import send_status_change_slack_block
 
 
-
 def create_prospect_email(
     prospect_id: int,
-    personalized_first_line_id: int,
     outbound_campaign_id: int,
+    personalized_first_line_id: Optional[int] = None,
+    personalized_subject_line_id: Optional[int] = None,
+    personalized_body_id: Optional[int] = None,
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
-    personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
-        personalized_first_line_id
-    )
     if not prospect:
         raise Exception("Prospect not found")
-    if not personalized_first_line:
-        raise Exception("Generated message not found")
 
     prospect_email = ProspectEmail(
         prospect_id=prospect_id,
-        personalized_first_line=personalized_first_line_id,
+        # personalized_first_line=personalized_first_line_id,
+        personalized_subject_line=personalized_subject_line_id,
+        personalized_body=personalized_body_id,
         email_status=ProspectEmailStatus.DRAFT,
         outbound_campaign_id=outbound_campaign_id,
     )
@@ -91,6 +90,52 @@ def batch_update_emails(
         db.session.commit()
 
     return True, "OK"
+
+
+def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
+    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not outbound_campaign:
+        return False, "Campaign not found"
+    outbound_campaign.status = OutboundCampaignStatus.COMPLETE
+    db.session.add(outbound_campaign)
+
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(outbound_campaign.prospect_ids)
+    ).all()
+    bulk_updates = []
+    time_index = datetime.datetime.now()
+    for prospect in prospects:
+        prospect_email = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+        prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+
+        # set date_scheduled to a time between 9am and 5pm on a weekday. keep it at a 5 minute interval from previous email
+        time_index = time_index + datetime.timedelta(minutes=5)
+        if time_index.hour > 17:  # nothing after 5p PST
+            time_index = datetime.datetime(
+                time_index.year,
+                time_index.month,
+                time_index.day + 1,
+                9,
+                0,
+                0,
+            )
+        if time_index.isoweekday() > 5:  # skip weekends
+            time_index = datetime.datetime(
+                time_index.year,
+                time_index.month,
+                (time_index.day + 3) % 7 + 1,
+                9,
+                0,
+                0,
+            )
+        prospect_email.date_scheduled_to_send = time_index
+
+        bulk_updates.append(prospect_email)
+
+    db.session.bulk_save_objects(bulk_updates)
+    db.session.commit()
+
+    return True
 
 
 def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) -> bool:
@@ -365,7 +410,9 @@ def update_status_from_ss_data(
                 custom_message=" responded to your email! 🙌🏽",
                 metadata={},
             )
-        elif new_outreach_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
+        elif (
+            new_outreach_status == ProspectEmailOutreachStatus.SCHEDULING
+        ):  # Scheduling
             send_status_change_slack_block(
                 outreach_type=ProspectChannels.EMAIL,
                 prospect=prospect,
@@ -402,7 +449,9 @@ def update_status_from_ss_data(
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-def update_prospect_email_outreach_status(prospect_email_id: int, new_status: ProspectEmailOutreachStatus):
+def update_prospect_email_outreach_status(
+    prospect_email_id: int, new_status: ProspectEmailOutreachStatus
+):
     """Updates the outreach status of a prospect email.
 
     Args:
@@ -417,10 +466,7 @@ def update_prospect_email_outreach_status(prospect_email_id: int, new_status: Pr
     if old_status == new_status:
         return False
 
-    if (
-        old_status
-        in VALID_UPDATE_EMAIL_STATUS_MAP[new_status]
-    ):
+    if old_status in VALID_UPDATE_EMAIL_STATUS_MAP[new_status]:
         prospect_email.outreach_status = new_status
         db.session.add(prospect_email)
         db.session.commit()
@@ -437,7 +483,7 @@ EMAIL_INTERACTION_STATE_TO_OUTREACH_STATUS = {
 
 
 def add_sequence(title: str, client_sdr_id: int, archetype_id: int, data):
-    """ Add a sequence to the database.
+    """Add a sequence to the database.
 
     Args:
         title (str): Title of the sequence.
@@ -454,7 +500,7 @@ def add_sequence(title: str, client_sdr_id: int, archetype_id: int, data):
         ClientArchetype.id == archetype_id,
     ).first()
     if not ca:
-        return jsonify({"message": 'Archetype not found for this SDR'}), 404
+        return jsonify({"message": "Archetype not found for this SDR"}), 404
 
     sequence = Sequence(
         title=title,
@@ -468,7 +514,7 @@ def add_sequence(title: str, client_sdr_id: int, archetype_id: int, data):
     db.session.add(sequence)
     db.session.commit()
 
-    return jsonify({"message": 'Created', "data": sequence.to_dict()}), 200
+    return jsonify({"message": "Created", "data": sequence.to_dict()}), 200
 
 
 def get_sequences(client_sdr_id: int, archetype_id: int):
@@ -485,4 +531,7 @@ def get_sequences(client_sdr_id: int, archetype_id: int):
         Sequence.archetype_id == archetype_id,
         Sequence.client_sdr_id == client_sdr_id,
     ).all()
-    return jsonify({"message": "Success", "data": [s.to_dict() for s in sequences]}), 200
+    return (
+        jsonify({"message": "Success", "data": [s.to_dict() for s in sequences]}),
+        200,
+    )

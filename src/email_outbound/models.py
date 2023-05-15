@@ -49,6 +49,8 @@ class ProspectEmailOutreachStatus(enum.Enum):
     """
     - UNKNOWN: used for null values in the future
     - NOT_SENT: email has not been sent
+    - BOUNCED: email has bounced
+    - QUEUED_FOR_OUTREACH: email has been queued for outreach
     - SENT_OUTREACH: email has been sent
     - EMAIL_OPENED: email has been opened
     - ACCEPTED: email has been accepted (clicked on link)
@@ -62,6 +64,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     UNKNOWN = "UNKNOWN"
     NOT_SENT = "NOT_SENT"
     BOUNCED = "BOUNCED"
+    QUEUED_FOR_OUTREACH = "QUEUED_FOR_OUTREACH"
     SENT_OUTREACH = "SENT_OUTREACH"
 
     EMAIL_OPENED = "EMAIL_OPENED"
@@ -70,6 +73,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     SCHEDULING = "SCHEDULING"
 
     NOT_INTERESTED = "NOT_INTERESTED"
+    UNSUBSCRIBED = "UNSUBSCRIBED"
     DEMO_SET = "DEMO_SET"
 
     DEMO_WON = "DEMO_WON"
@@ -85,6 +89,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
             "ACTIVE_CONVO": "Active Convo",
             "SCHEDULING": "Scheduling",
             "NOT_INTERESTED": "Not Interested",
+            "UNSUBSCRIBED": "Unsubscribed",
             "DEMO_SET": "Demo Scheduled",
             "DEMO_WON": "Demo Complete",
             "DEMO_LOST": "Demo Missed",
@@ -101,6 +106,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
             ProspectEmailOutreachStatus.ACTIVE_CONVO,
             ProspectEmailOutreachStatus.SCHEDULING,
             ProspectEmailOutreachStatus.NOT_INTERESTED,
+            ProspectEmailOutreachStatus.UNSUBSCRIBED,
             ProspectEmailOutreachStatus.DEMO_SET,
             ProspectEmailOutreachStatus.DEMO_WON,
             ProspectEmailOutreachStatus.DEMO_LOST,
@@ -172,6 +178,12 @@ class ProspectEmailOutreachStatus(enum.Enum):
                 "enum_val": ProspectEmailOutreachStatus.NOT_INTERESTED.value,
                 "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
             },
+            ProspectEmailOutreachStatus.UNSUBSCRIBED.value: {
+                "name": "Unsubscribed",
+                "description": "The Prospect has unsubscribed.",
+                "enum_val": ProspectEmailOutreachStatus.UNSUBSCRIBED.value,
+                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
+            },
             ProspectEmailOutreachStatus.DEMO_SET.value: {
                 "name": "Demo Set",
                 "description": "The Prospect has set a time to meet.",
@@ -221,7 +233,12 @@ class ProspectEmail(db.Model):
     personalized_first_line = db.Column(
         db.Integer, db.ForeignKey("generated_message.id")
     )
+    personalized_subject_line = db.Column(
+        db.Integer, db.ForeignKey("generated_message.id")
+    )
+    personalized_body = db.Column(db.Integer, db.ForeignKey("generated_message.id"))
 
+    date_scheduled_to_send = db.Column(db.DateTime, nullable=True)
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
 
@@ -335,6 +352,11 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
     ProspectEmailOutreachStatus.SENT_OUTREACH: [
         ProspectEmailOutreachStatus.UNKNOWN,
         ProspectEmailOutreachStatus.NOT_SENT,
+    ],
+    ProspectEmailOutreachStatus.UNSUBSCRIBED: [
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+        ProspectEmailOutreachStatus.ACCEPTED,
     ],
     ProspectEmailOutreachStatus.BOUNCED: [
         ProspectEmailOutreachStatus.SENT_OUTREACH,

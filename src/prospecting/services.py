@@ -886,8 +886,11 @@ def add_prospect(
             li_num_followers=linkedin_num_followers,
             overall_status=overall_status,
         )
+        p_id = prospect.id
         db.session.add(prospect)
         db.session.commit()
+        prospect: Prospect = Prospect.query.get(p_id)
+        prospect.regenerate_uuid()
     else:
         return None
 
@@ -1439,6 +1442,7 @@ def map_prospect_email_status_to_prospect_overall_status(
         ProspectEmailOutreachStatus.ACCEPTED: ProspectOverallStatus.ACCEPTED,
         ProspectEmailOutreachStatus.ACTIVE_CONVO: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.UNSUBSCRIBED: ProspectOverallStatus.REMOVED,
         ProspectEmailOutreachStatus.DEMO_SET: ProspectOverallStatus.DEMO,
         ProspectEmailOutreachStatus.DEMO_WON: ProspectOverallStatus.DEMO,
         ProspectEmailOutreachStatus.DEMO_LOST: ProspectOverallStatus.DEMO,

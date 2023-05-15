@@ -121,63 +121,27 @@ def get_outbound_campaign_details(
     }
 
 
-def get_outbound_campaign_details_for_edit_tool(
+def get_outbound_campaign_details_for_edit_tool_linkedin(
     client_sdr_id: int, campaign_id: int, approved_filter: Optional[bool] = None
-) -> dict:
-    """Gets the details of an outbound campaign, specific for the editing tool.
-
-    Args:
-        client_sdr_id (int): The ID of the SDR.
-        campaign_id (int): The ID of the campaign to get.
-        approved_filter (bool, optional): Whether to filter by approved or not. Defaults to None. None = no filter (all). False = not approved. True = approved.
-
-    Returns:
-        dict: A dictionary containing campaign details, status code, and message.
-    """
+):
     oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    if not oc:
-        return {"message": "Campaign not found", "status_code": 404}
-    if oc and oc.client_sdr_id != client_sdr_id:
-        return {"message": "This campaign does not belong to you", "status_code": 403}
-
     # Get join of prospect and message
-    if oc.campaign_type.value == "LINKEDIN":
-        joined_prospect_message = (
-            db.session.query(
-                Prospect.id.label("prospect_id"),
-                Prospect.full_name.label("full_name"),
-                GeneratedMessage.id.label("message_id"),
-                GeneratedMessage.ai_approved.label("ai_approved"),
-                GeneratedMessage.completion.label("completion"),
-                GeneratedMessage.problems.label("problems"),
-                GeneratedMessage.highlighted_words.label("highlighted_words"),
-            )
-            .join(
-                GeneratedMessage,
-                Prospect.approved_outreach_message_id == GeneratedMessage.id,
-            )
-            .filter(Prospect.id.in_(oc.prospect_ids))
+    joined_prospect_message = (
+        db.session.query(
+            Prospect.id.label("prospect_id"),
+            Prospect.full_name.label("full_name"),
+            GeneratedMessage.id.label("message_id"),
+            GeneratedMessage.ai_approved.label("ai_approved"),
+            GeneratedMessage.completion.label("completion"),
+            GeneratedMessage.problems.label("problems"),
+            GeneratedMessage.highlighted_words.label("highlighted_words"),
         )
-    if oc.campaign_type.value == "EMAIL":
-        joined_prospect_message = (
-            db.session.query(
-                Prospect.id.label("prospect_id"),
-                Prospect.full_name.label("full_name"),
-                GeneratedMessage.id.label("message_id"),
-                GeneratedMessage.ai_approved.label("ai_approved"),
-                GeneratedMessage.completion.label("completion"),
-                GeneratedMessage.problems.label("problems"),
-                GeneratedMessage.highlighted_words.label("highlighted_words"),
-            )
-            .join(
-                ProspectEmail, Prospect.approved_prospect_email_id == ProspectEmail.id
-            )
-            .join(
-                GeneratedMessage,
-                ProspectEmail.personalized_first_line == GeneratedMessage.id,
-            )
-            .filter(Prospect.id.in_(oc.prospect_ids))
+        .join(
+            GeneratedMessage,
+            Prospect.approved_outreach_message_id == GeneratedMessage.id,
         )
+        .filter(Prospect.id.in_(oc.prospect_ids))
+    )
 
     # Filter by approved messages if filter is set
     if approved_filter is False:
@@ -225,6 +189,158 @@ def get_outbound_campaign_details_for_edit_tool(
         "message": "Success",
         "status_code": 200,
     }
+
+
+def get_outbound_campaign_details_for_edit_tool_email(
+    client_sdr_id: int, campaign_id: int, approved_filter: Optional[bool] = None
+):
+    oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    data = db.session.execute(
+        """
+        select 
+            prospect.id "prospect_id",
+            prospect.full_name "full_name",
+            
+        --	personalized_subject_line
+            case when prospect_email.personalized_subject_line = subject_line.id 
+                then subject_line.id 
+                else null 
+            end "personalized_subject_line_message_id",
+            case when prospect_email.personalized_subject_line = subject_line.id 
+                then subject_line.ai_approved 
+                else null 
+            end "personalized_subject_line_ai_approved",
+            case when prospect_email.personalized_subject_line = subject_line.id 
+                then subject_line.completion 
+                else null 
+            end "personalized_subject_line_completion",
+            case when prospect_email.personalized_subject_line = subject_line.id 
+                then subject_line.problems 
+                else null 
+            end "personalized_subject_line_problems",
+            case when prospect_email.personalized_subject_line = subject_line.id 
+                then subject_line.highlighted_words 
+                else null 
+            end "personalized_subject_line_highlighted_words",
+            
+            
+        -- personalized_body
+            case when prospect_email.personalized_body = body.id 
+                then body.id 
+                else null 
+            end "personalized_body_message_id",
+            case when prospect_email.personalized_body = body.id 
+                then body.ai_approved 
+                else null 
+            end "personalized_body_ai_approved",
+            case when prospect_email.personalized_body = body.id 
+                then body.completion 
+                else null 
+            end "personalized_body_completion",
+            case when prospect_email.personalized_body = body.id 
+                then body.problems 
+                else null 
+            end "personalized_body_problems",
+            case when prospect_email.personalized_body = body.id 
+                then body.highlighted_words 
+                else null 
+            end "personalized_body_highlighted_words",
+
+        -- general prospect email stuff
+            prospect_email.id "prospect_email_id"
+                
+        from outbound_campaign
+            join prospect on prospect.id = any(outbound_campaign.prospect_ids)
+            join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+            join generated_message subject_line
+                on subject_line.id = prospect_email.personalized_subject_line
+            join generated_message body
+                on body.id = prospect_email.personalized_body
+        where outbound_campaign.id = {campaign_id};
+    """.format(
+            campaign_id=campaign_id
+        )
+    ).fetchall()
+
+    prospects = []
+    for entry in data:
+        prospect_id = entry[0]
+        full_name = entry[1]
+        personalized_subject_line_message_id = entry[2]
+        personalized_subject_line_ai_approved = entry[3]
+        personalized_subject_line_completion = entry[4]
+        personalized_subject_line_problems = entry[5]
+        personalized_subject_line_highlighted_words = entry[6]
+        personalized_body_message_id = entry[7]
+        personalized_body_ai_approved = entry[8]
+        personalized_body_completion = entry[9]
+        personalized_body_problems = entry[10]
+        personalized_body_highlighted_words = entry[11]
+        prospect_email_id = entry[12]
+        prospects.append(
+            {
+                "prospect_id": prospect_id,
+                "full_name": full_name,
+                "message_id": personalized_subject_line_message_id,
+                "ai_approved": personalized_subject_line_ai_approved,
+                "completion": personalized_subject_line_completion,
+                "problems": personalized_subject_line_problems
+                + personalized_body_problems,
+                "highlighted_words": personalized_subject_line_highlighted_words,
+                "message_id_2": personalized_body_message_id,
+                "ai_approved_2": personalized_body_ai_approved,
+                "completion_2": personalized_body_completion,
+                "highlighted_words_2": personalized_body_highlighted_words,
+                "prospect_email_id": prospect_email_id,
+            }
+        )
+
+    client_archetype: ClientArchetype = (
+        ClientArchetype.query.get(oc.client_archetype_id)
+        if oc.client_archetype_id
+        else None
+    )
+    client_archetype = client_archetype.to_dict() if client_archetype else None
+
+    return {
+        "campaign_details": {
+            "campaign_raw": oc.to_dict(),
+            "campaign_analytics": get_outbound_campaign_analytics(campaign_id),
+            "prospects": prospects,
+            "client_archetype": client_archetype,
+        },
+        "message": "Success",
+        "status_code": 200,
+    }
+
+
+def get_outbound_campaign_details_for_edit_tool(
+    client_sdr_id: int, campaign_id: int, approved_filter: Optional[bool] = None
+):
+    """Gets the details of an outbound campaign, specific for the editing tool.
+
+    Args:
+        client_sdr_id (int): The ID of the SDR.
+        campaign_id (int): The ID of the campaign to get.
+        approved_filter (bool, optional): Whether to filter by approved or not. Defaults to None. None = no filter (all). False = not approved. True = approved.
+
+    Returns:
+        dict: A dictionary containing campaign details, status code, and message.
+    """
+    oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not oc:
+        return {"message": "Campaign not found", "status_code": 404}
+    if oc and oc.client_sdr_id != client_sdr_id:
+        return {"message": "This campaign does not belong to you", "status_code": 403}
+
+    if oc.campaign_type.value == "LINKEDIN":
+        return get_outbound_campaign_details_for_edit_tool_linkedin(
+            client_sdr_id, campaign_id, approved_filter
+        )
+    if oc.campaign_type.value == "EMAIL":
+        return get_outbound_campaign_details_for_edit_tool_email(
+            client_sdr_id, campaign_id, approved_filter
+        )
 
 
 def get_outbound_campaigns(

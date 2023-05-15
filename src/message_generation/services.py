@@ -22,6 +22,7 @@ from model_import import (
 )
 from typing import Optional
 from src.ml.rule_engine import run_message_rule_engine
+from src.ml.services import ai_email_prompt, generate_email
 from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
@@ -175,6 +176,8 @@ def update_generated_message_job_queue_status(
     Returns:
         bool: True if the job was updated, False otherwise
     """
+    if not gm_job_id:
+        return True
     gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
     if gm_job:
         gm_job.status = status.value
@@ -799,6 +802,7 @@ def generate_prospect_email(
 
         # Check if the prospect exists
         prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr_id = prospect.client_sdr_id
         if not prospect:
             update_generated_message_job_queue_status(
                 gm_job_id,
@@ -806,10 +810,11 @@ def generate_prospect_email(
                 error_message="Prospect does not exist",
             )
             return (False, "Prospect does not exist")
-        archetype_id = prospect.archetype_id
 
         # Check if the prospect already has a prospect_email
-        prospect_email: ProspectEmail = ProspectEmail.query.filter(prospect.approved_prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id
+        )
         if prospect_email:
             update_generated_message_job_queue_status(
                 gm_job_id,
@@ -851,19 +856,51 @@ def generate_prospect_email(
                 )
                 return (False, "No research points")
 
-            personalized_first_line = get_personalized_first_line_from_prompt(
-                archetype_id=archetype_id,
-                model_type=GNLPModelType.EMAIL_FIRST_LINE,
-                prompt=prompt,
-                research_points=research_points,
+            email_generation_prompt = ai_email_prompt(
+                client_sdr_id=client_sdr_id,
+                prospect_id=prospect_id,
+            )
+            email_data = generate_email(prompt=email_generation_prompt)
+            subject = email_data["subject"]
+            personalized_body = email_data["body"]
+
+            personalized_subject_line = GeneratedMessage(
                 prospect_id=prospect_id,
                 outbound_campaign_id=campaign_id,
-                config=TOP_CONFIGURATION,
+                research_points=research_points,
+                prompt=prompt,
+                completion=subject,
+                message_status=GeneratedMessageStatus.DRAFT,
+                message_type=GeneratedMessageType.EMAIL,
             )
+            personalized_body = GeneratedMessage(
+                prospect_id=prospect_id,
+                outbound_campaign_id=campaign_id,
+                research_points=research_points,
+                prompt=prompt,
+                completion=personalized_body,
+                message_status=GeneratedMessageStatus.DRAFT,
+                message_type=GeneratedMessageType.EMAIL,
+            )
+            db.session.add(personalized_subject_line)
+            db.session.add(personalized_body)
+            db.session.commit()
+
+            # personalized_first_line = get_personalized_first_line_from_prompt(
+            #     archetype_id=archetype_id,
+            #     model_type=GNLPModelType.EMAIL_FIRST_LINE,
+            #     prompt=prompt,
+            #     research_points=research_points,
+            #     prospect_id=prospect_id,
+            #     outbound_campaign_id=campaign_id,
+            #     config=TOP_CONFIGURATION,
+            # )
 
             prospect_email: ProspectEmail = create_prospect_email(
                 prospect_id=prospect_id,
-                personalized_first_line_id=personalized_first_line.id,
+                # personalized_first_line_id=personalized_first_line.id,
+                personalized_subject_line_id=personalized_subject_line.id,
+                personalized_body_id=personalized_body.id,
                 outbound_campaign_id=campaign_id,
             )
 
@@ -885,19 +922,32 @@ def generate_prospect_email(
     return (True, "Success")
 
 
-def change_prospect_email_status(prospect_email_id: int, status: ProspectEmailStatus):
+def change_prospect_email_status(
+    prospect_email_id: int,
+    status: ProspectEmailStatus,
+    ai_approved: Optional[bool] = False,
+):
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect_email.email_status = status
     db.session.add(prospect_email)
     db.session.commit()
 
-    personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
-        prospect_email.personalized_first_line
-    )
-    if personalized_first_line:
-        personalized_first_line.message_status = GeneratedMessageStatus[status.value]
-        db.session.add(personalized_first_line)
-        db.session.commit()
+    personalized_message_ids = [
+        prospect_email.personalized_first_line,
+        prospect_email.personalized_subject_line,
+        prospect_email.personalized_body,
+    ]
+
+    for gm_id in personalized_message_ids:
+        if gm_id:
+            gm: GeneratedMessage = GeneratedMessage.query.get(gm_id)
+            gm.message_status = GeneratedMessageStatus[status.value]
+
+            if ai_approved is not None:
+                gm.ai_approved = ai_approved
+
+            db.session.add(gm)
+            db.session.commit()
 
     return True
 
@@ -912,13 +962,19 @@ def clear_prospect_approved_email(prospect_id: int):
         db.session.add(prospect_email)
         db.session.commit()
 
-        personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(
-            prospect_email.personalized_first_line
-        )
-        if personalized_first_line:
-            personalized_first_line.message_status = GeneratedMessageStatus.DRAFT
-            db.session.add(personalized_first_line)
-            db.session.commit()
+        personalized_message_ids = [
+            prospect_email.personalized_first_line,
+            prospect_email.personalized_subject_line,
+            prospect_email.personalized_body,
+        ]
+
+        for gm_id in personalized_message_ids:
+            if gm_id:
+                gm: GeneratedMessage = GeneratedMessage.query.get(gm_id)
+                gm.message_status = GeneratedMessageStatus.DRAFT
+                gm.ai_approved = False
+                db.session.add(gm)
+                db.session.commit()
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.approved_prospect_email_id = None
@@ -1010,10 +1066,13 @@ def mark_prospect_email_approved(prospect_email_id: int):
     db.session.commit()
 
     success = change_prospect_email_status(
-        prospect_email_id=prospect_email_id, status=ProspectEmailStatus.APPROVED
+        prospect_email_id=prospect_email_id,
+        status=ProspectEmailStatus.APPROVED,
+        ai_approved=False,
     )
 
-    run_message_rule_engine(message_id=prospect_email.personalized_first_line)
+    run_message_rule_engine(message_id=prospect_email.personalized_subject_line)
+    run_message_rule_engine(message_id=prospect_email.personalized_body)
 
     return success
 
@@ -1049,7 +1108,9 @@ def mark_prospect_email_sent(prospect_email_id: int):
     db.session.commit()
 
     return change_prospect_email_status(
-        prospect_email_id=prospect_email_id, status=ProspectEmailStatus.SENT
+        prospect_email_id=prospect_email_id,
+        status=ProspectEmailStatus.SENT,
+        ai_approved=True,
     )
 
 

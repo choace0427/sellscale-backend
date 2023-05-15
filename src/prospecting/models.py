@@ -1,9 +1,9 @@
 from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 import enum
-import json
 from typing import Optional
 
+from src.utils.hasher import generate_uuid
 
 class ProspectHiddenReason(enum.Enum):
     RECENTLY_BUMPED = "RECENTLY_BUMPED"
@@ -425,7 +425,19 @@ class Prospect(db.Model):
 
     demo_date = db.Column(db.DateTime, nullable=True)
 
+    uuid = db.Column(db.String, nullable=True, unique=True, index=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
+
+    def regenerate_uuid(self) -> str:
+        uuid_str = generate_uuid(base=str(self.id), salt=self.full_name)
+        self.uuid = uuid_str
+        db.session.commit()
+
+        return uuid_str
+
+    def get_by_uuid(uuid: str):
+        return Prospect.query.filter_by(uuid=uuid).first()
 
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()

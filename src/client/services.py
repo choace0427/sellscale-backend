@@ -24,6 +24,7 @@ from src.message_generation.models import (
     GeneratedMessageStatus,
 )
 from src.onboarding.services import create_sight_onboarding
+from src.utils.hasher import generate_uuid
 from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
 from model_import import StackRankedMessageGenerationConfiguration
@@ -73,8 +74,11 @@ def create_client(
         tagline=tagline,
         description=description,
     )
+    c_id = c.id
     db.session.add(c)
     db.session.commit()
+    c: Client = Client.query.get(c_id)
+    c.regenerate_uuid()
 
     return {"client_id": c.id}
 
@@ -328,8 +332,11 @@ def create_client_sdr(client_id: int, name: str, email: str):
             ProspectStatus.ACCEPTED,
         ],
     )
+    sdr_id = sdr.id
     db.session.add(sdr)
     db.session.commit()
+    sdr: ClientSDR = ClientSDR.query.get(sdr_id)
+    sdr.regenerate_uuid()
 
     create_sight_onboarding(sdr.id)
     create_unassigned_contacts_archetype(sdr.id)
