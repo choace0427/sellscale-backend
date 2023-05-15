@@ -62,6 +62,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     UNKNOWN = "UNKNOWN"
     NOT_SENT = "NOT_SENT"
     BOUNCED = "BOUNCED"
+    QUEUED_FOR_OUTREACH = "QUEUED_FOR_OUTREACH"
     SENT_OUTREACH = "SENT_OUTREACH"
 
     EMAIL_OPENED = "EMAIL_OPENED"
@@ -235,6 +236,7 @@ class ProspectEmail(db.Model):
     )
     personalized_body = db.Column(db.Integer, db.ForeignKey("generated_message.id"))
 
+    date_scheduled_to_send = db.Column(db.DateTime, nullable=True)
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
 
