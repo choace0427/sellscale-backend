@@ -11,7 +11,7 @@ from src.message_generation.services import (
 )
 from src.email_outbound.services import (
     batch_update_emails,
-    batch_mark_prospect_email_sent,
+    batch_mark_prospects_in_email_campaign_queued,
     create_sales_engagement_interaction_raw,
     collect_and_update_status_from_ss_data,
 )
@@ -52,12 +52,11 @@ def batch_mark_sent():
     prospect_ids = [int(prospect_id) for prospect_id in prospect_ids]
     campaign_id = int(campaign_id)
 
-    # TODO: something with this message later
-    broadcasted = batch_mark_prospect_email_sent(
-        prospect_ids=prospect_ids, campaign_id=campaign_id
-    )
+    success = batch_mark_prospects_in_email_campaign_queued(campaign_id=campaign_id)
 
-    return "OK", 200
+    if success:
+        return "OK", 200
+    return "Could not mark prospects as sent.", 400
 
 
 @EMAIL_GENERATION_BLUEPRINT.route("/wipe_prospect_email_and_research", methods=["POST"])

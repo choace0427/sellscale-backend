@@ -92,6 +92,52 @@ def batch_update_emails(
     return True, "OK"
 
 
+def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
+    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not outbound_campaign:
+        return False, "Campaign not found"
+    outbound_campaign.status = OutboundCampaignStatus.COMPLETE
+    db.session.add(outbound_campaign)
+
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(outbound_campaign.prospect_ids)
+    ).all()
+    bulk_updates = []
+    time_index = datetime.datetime.now()
+    for prospect in prospects:
+        prospect_email = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+        prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+
+        # set date_scheduled to a time between 9am and 5pm on a weekday. keep it at a 5 minute interval from previous email
+        time_index = time_index + datetime.timedelta(minutes=5)
+        if time_index.hour > 17:  # nothing after 5p PST
+            time_index = datetime.datetime(
+                time_index.year,
+                time_index.month,
+                time_index.day + 1,
+                9,
+                0,
+                0,
+            )
+        if time_index.isoweekday() > 5:  # skip weekends
+            time_index = datetime.datetime(
+                time_index.year,
+                time_index.month,
+                (time_index.day + 3) % 7 + 1,
+                9,
+                0,
+                0,
+            )
+        prospect_email.date_scheduled_to_send = time_index
+
+        bulk_updates.append(prospect_email)
+
+    db.session.bulk_save_objects(bulk_updates)
+    db.session.commit()
+
+    return True
+
+
 def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) -> bool:
     """Uses the prospect_ids list to broadcast tasks to celery to upload the elevant prospect email statuses
 
