@@ -3,6 +3,7 @@ import json
 import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
+from src.client.models import ClientSDR
 from src.ml.services import get_aree_fix_basic
 from src.utils.string.string_utils import (
     has_consecutive_uppercase_string,
@@ -94,9 +95,11 @@ def run_message_rule_engine(message_id: int):
     prospect: Prospect = Prospect.query.get(message.prospect_id)
     prospect_name = prospect.first_name + " " + prospect.last_name
     client_id = prospect.client_id
+    client_sdr_id = prospect.client_sdr_id
     client: Client = Client.query.get(client_id)
     client_name = client.company
-    whitelisted_names = [client_name]
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    whitelisted_names = [client_name, client_sdr.name]
 
     problems = []
     highlighted_words = []
