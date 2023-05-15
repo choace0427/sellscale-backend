@@ -49,6 +49,8 @@ class ProspectEmailOutreachStatus(enum.Enum):
     """
     - UNKNOWN: used for null values in the future
     - NOT_SENT: email has not been sent
+    - BOUNCED: email has bounced
+    - QUEUED_FOR_OUTREACH: email has been queued for outreach
     - SENT_OUTREACH: email has been sent
     - EMAIL_OPENED: email has been opened
     - ACCEPTED: email has been accepted (clicked on link)
