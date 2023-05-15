@@ -4,6 +4,10 @@ import datetime as dt
 import random
 import os
 
+from src.utils.slack import send_slack_message, URL_MAP
+
+from src.ml.services import chat_ai_classify_active_convo
+
 from src.automation.services import update_phantom_buster_li_at
 
 from src.automation.models import PhantomBusterAgent
@@ -14,7 +18,7 @@ from src.prospecting.services import send_to_purgatory, update_prospect_status_l
 from src.li_conversation.models import LinkedinConversationEntry
 from src.research.models import IScraperPayloadCache
 from src.prospecting.models import Prospect, ProspectStatus, ProspectHiddenReason
-from typing import Union
+from typing import List, Union
 from src.li_conversation.services import create_linkedin_conversation_entry
 from model_import import ClientSDR
 from app import db
@@ -403,7 +407,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.commit()
 
     print("Checking for prospect status updates...")
-    latest_convo_entries = (
+    latest_convo_entries: List[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter_by(
             conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
         )
@@ -456,6 +460,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         .first()
     )
 
+    # Classify conversation
+    if prospect.status.value.startswith('ACTIVE_CONVO'):
+        classify_active_convo(prospect_id, latest_convo_entries)
+
     if (
         prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
         and not has_prospect_replied
@@ -503,6 +511,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             prospect_id=prospect.id,
             new_status=ProspectStatus.ACTIVE_CONVO,
         )
+        classify_active_convo(prospect_id, latest_convo_entries)
         return
 
     # Set the bumped status and times bumped
@@ -524,6 +533,75 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.add(prospect)
         db.session.commit()
         return
+
+
+def classify_active_convo(prospect_id: int, latest_convo_entries: List[LinkedinConversationEntry]):
+
+    options = [
+        'discussing scheduling a time', # ACTIVE_CONVO_SCHEDULING
+        'last message was a short reply and the conversation needs more engagement', # ACTIVE_CONVO_NEXT_STEPS
+        'there is an objection or abrasion about a product or service', # ACTIVE_CONVO_OBJECTION
+        'there is a question', # ACTIVE_CONVO_QUESTION
+        'they might not be a great fit or might not be qualified', # ACTIVE_CONVO_QUAL_NEEDED
+    ]
+
+    classification = chat_ai_classify_active_convo(latest_convo_entries[0:5], options)
+    status = None
+    if classification == 0:
+        status = ProspectStatus.ACTIVE_CONVO_SCHEDULING
+    elif classification == 1:
+        status = ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
+    elif classification == 2:
+        status = ProspectStatus.ACTIVE_CONVO_OBJECTION
+    elif classification == 3:
+        status = ProspectStatus.ACTIVE_CONVO_QUESTION
+    elif classification == 4:
+        status = ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED
+    else:
+        status = ProspectStatus.ACTIVE_CONVO
+
+    update_prospect_status_linkedin(prospect_id, status)
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    send_slack_message(
+        message=f"Prospect {prospect.full_name} was automatically classified as '{status}' because of the state of their conversation with {client_sdr.name}!",
+        webhook_urls=[URL_MAP["csm-convo-sorter"]],
+        blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"Prospect {prospect.full_name} was automatically classified as '{status}' because of the state of their conversation with {client_sdr.name}!",
+                    },
+                },
+                {  # Add prospect title and (optional) last message
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Title:* {title}\n{last_message}".format(
+                            title=prospect.title,
+                            last_message=""
+                            if not len(latest_convo_entries) > 0
+                            else '*Last Message*: "{}"'.format(
+                                latest_convo_entries[0].message
+                            ),
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*SellScale Sight*: <{link}|Link>".format(
+                            link="https://app.sellscale.com/home/all-contacts/" + prospect.id
+                        ),
+                    },
+                },
+        ]
+    )
+
+    
 
 
 def fetch_li_prospects_for_sdr(client_sdr_id: int):

@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import List, Optional
 
+from src.li_conversation.models import LinkedinConversationEntry
+
 from src.research.models import ResearchPoints
 from src.research.models import ResearchPayload
 
@@ -892,3 +894,44 @@ def replenish_all_ml_credits_for_all_sdrs() -> bool:
     db.session.commit()
 
     return True
+
+
+"""Selects one of the following options based on the conversation history.
+Args:
+    messages: The conversation history.
+    output_options: The options to choose from.
+Returns:
+    The index of the selected option.
+"""
+def chat_ai_classify_active_convo(messages: List[LinkedinConversationEntry], output_options: List[str]) -> int:
+
+    history = []
+    for message in messages:
+        history.append({
+            "role": 'user' if message.connection_degree == "You" else 'assistant',
+            "content": message.message
+        })
+
+    options = ''
+    for i, option in enumerate(output_options):
+        options += f'- {i+1}. {option}\n'
+
+    prompt = f"""
+    Based on this conversation, classify the latest state of the conversation as one of the following options. Only respond with the option number.
+    {options}
+    """
+    history.append({"role": "user", "content": prompt})
+
+    response = wrapped_chat_gpt_completion(
+        history,
+        temperature=0.7,
+        max_tokens=240,
+        model="gpt-4",
+    )
+
+    match = re.search(r'\d+', response)
+    if match:
+        return int(match.group()) - 1
+    else:
+        return -1
+
