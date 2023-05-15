@@ -177,6 +177,10 @@ def run_autocorrect(message_id: int):
     ):
         return
 
+    # todo(Aakash) eventually enable this for both Linkedin and Email. For now, only run for Linkedin
+    if message.message_type != GeneratedMessageType.LINKEDIN:
+        return
+
     before_autocorrect_text = message.completion
     before_autocorrect_problems = message.problems
 
