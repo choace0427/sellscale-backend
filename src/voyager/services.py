@@ -470,6 +470,8 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
                 "content": message.message
             })
         classify_active_convo(prospect_id, messages)
+        # Refresh prospect
+        prospect: Prospect = Prospect.query.get(prospect_id)
 
     if (
         prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
