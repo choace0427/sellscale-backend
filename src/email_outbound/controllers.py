@@ -44,14 +44,10 @@ def approve():
 
 @EMAIL_GENERATION_BLUEPRINT.route("/batch/mark_sent", methods=["POST"])
 def batch_mark_sent():
-    prospect_ids = get_request_parameter(
-        "prospect_ids", request, json=True, required=True
-    )
     campaign_id = get_request_parameter(
         "campaign_id", request, json=True, required=True
     )
 
-    prospect_ids = [int(prospect_id) for prospect_id in prospect_ids]
     campaign_id = int(campaign_id)
 
     success = batch_mark_prospects_in_email_campaign_queued(campaign_id=campaign_id)
