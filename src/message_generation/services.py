@@ -1048,7 +1048,7 @@ def mark_random_new_prospect_email(prospect_id: int):
     return True
 
 
-def mark_prospect_email_approved(prospect_email_id: int):
+def mark_prospect_email_approved(prospect_email_id: int, ai_approved: bool = False):
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect_id = prospect_email.prospect_id

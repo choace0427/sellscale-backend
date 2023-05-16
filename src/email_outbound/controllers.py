@@ -34,7 +34,9 @@ def approve():
         "prospect_email_id", request, json=True, required=True
     )
 
-    success = mark_prospect_email_approved(prospect_email_id=prospect_email_id)
+    success = mark_prospect_email_approved(
+        prospect_email_id=prospect_email_id, ai_approved=True
+    )
     if success:
         return "OK", 200
     return "Could not approve email.", 400
