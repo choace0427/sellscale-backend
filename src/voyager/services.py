@@ -590,15 +590,6 @@ def classify_active_convo(prospect_id: int, messages):
                         "text": f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
                     },
                 },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "Test.",
-                        },
-                    ],
-                },
                 {  # Add prospect title and (optional) last message
                     "type": "section",
                     "text": {
