@@ -462,7 +462,14 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
     # Classify conversation
     if prospect.status.value.startswith('ACTIVE_CONVO'):
-        classify_active_convo(prospect_id, latest_convo_entries)
+        print(prospect.status.value)
+        messages = []
+        for message in latest_convo_entries[0:5]:
+            messages.append({
+                "role": 'user' if message.connection_degree == "You" else 'assistant',
+                "content": message.message
+            })
+        classify_active_convo(prospect_id, messages)
 
     if (
         prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
@@ -511,7 +518,14 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             prospect_id=prospect.id,
             new_status=ProspectStatus.ACTIVE_CONVO,
         )
-        classify_active_convo(prospect_id, latest_convo_entries)
+
+        messages = []
+        for message in latest_convo_entries[0:5]:
+            messages.append({
+                "role": 'user' if message.connection_degree == "You" else 'assistant',
+                "content": message.message
+            })
+        classify_active_convo(prospect_id, messages)
         return
 
     # Set the bumped status and times bumped
@@ -535,7 +549,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         return
 
 
-def classify_active_convo(prospect_id: int, latest_convo_entries: List[LinkedinConversationEntry]):
+def classify_active_convo(prospect_id: int, messages):
 
     options = [
         'discussing scheduling a time', # ACTIVE_CONVO_SCHEDULING
@@ -545,7 +559,7 @@ def classify_active_convo(prospect_id: int, latest_convo_entries: List[LinkedinC
         'they might not be a great fit or might not be qualified', # ACTIVE_CONVO_QUAL_NEEDED
     ]
 
-    classification = chat_ai_classify_active_convo(latest_convo_entries[0:5], options)
+    classification = chat_ai_classify_active_convo(messages, options)
     status = None
     if classification == 0:
         status = ProspectStatus.ACTIVE_CONVO_SCHEDULING
@@ -582,9 +596,9 @@ def classify_active_convo(prospect_id: int, latest_convo_entries: List[LinkedinC
                         "text": "*Title:* {title}\n{last_message}".format(
                             title=prospect.title,
                             last_message=""
-                            if not len(latest_convo_entries) > 0
+                            if not len(messages) > 0
                             else '*Last Message*: "{}"'.format(
-                                latest_convo_entries[0].message
+                                messages[0].get('content')
                             ),
                         ),
                     },
@@ -594,14 +608,12 @@ def classify_active_convo(prospect_id: int, latest_convo_entries: List[LinkedinC
                     "text": {
                         "type": "mrkdwn",
                         "text": "*SellScale Sight*: <{link}|Link>".format(
-                            link="https://app.sellscale.com/home/all-contacts/" + prospect.id
+                            link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
                         ),
                     },
                 },
         ]
     )
-
-    
 
 
 def fetch_li_prospects_for_sdr(client_sdr_id: int):

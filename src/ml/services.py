@@ -904,14 +904,7 @@ Args:
 Returns:
     The index of the selected option.
 """
-def chat_ai_classify_active_convo(messages: List[LinkedinConversationEntry], output_options: List[str]) -> int:
-
-    history = []
-    for message in messages:
-        history.append({
-            "role": 'user' if message.connection_degree == "You" else 'assistant',
-            "content": message.message
-        })
+def chat_ai_classify_active_convo(messages, output_options: List[str]) -> int:
 
     options = ''
     for i, option in enumerate(output_options):
@@ -921,10 +914,10 @@ def chat_ai_classify_active_convo(messages: List[LinkedinConversationEntry], out
     Based on this conversation, classify the latest state of the conversation as one of the following options. Only respond with the option number.
     {options}
     """
-    history.append({"role": "user", "content": prompt})
+    messages.append({"role": "user", "content": prompt})
 
     response = wrapped_chat_gpt_completion(
-        history,
+        messages,
         temperature=0.7,
         max_tokens=240,
         model="gpt-4",
