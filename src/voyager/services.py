@@ -580,9 +580,49 @@ def classify_active_convo(prospect_id: int, messages):
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
     send_slack_message(
-        message=f"Prospect {prospect.full_name} was automatically classified as '{status}' because of the state of their conversation with {client_sdr.name}!",
+        message=f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
         webhook_urls=[URL_MAP["csm-convo-sorter"]],
-        
+        blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "Test.",
+                        },
+                    ],
+                },
+                {  # Add prospect title and (optional) last message
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Title:* {title}\n{last_message}".format(
+                            title=prospect.title,
+                            last_message=""
+                            if not len(messages) > 0
+                            else '*Last Message*: "{}"'.format(
+                                messages[0].get('content')
+                            ),
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*SellScale Sight*: <{link}|Link>".format(
+                            link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
+                        ),
+                    },
+                },
+        ]
     )
 
 
