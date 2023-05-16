@@ -1068,7 +1068,7 @@ def mark_prospect_email_approved(prospect_email_id: int, ai_approved: bool = Fal
     success = change_prospect_email_status(
         prospect_email_id=prospect_email_id,
         status=ProspectEmailStatus.APPROVED,
-        ai_approved=False,
+        ai_approved=ai_approved,
     )
 
     run_message_rule_engine(message_id=prospect_email.personalized_subject_line)
