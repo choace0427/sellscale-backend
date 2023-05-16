@@ -572,7 +572,7 @@ def classify_active_convo(prospect_id: int, messages):
 
     options = [
         'discussing scheduling a time', # ACTIVE_CONVO_SCHEDULING
-        'last message was a short reply and the conversation needs more engagement', # ACTIVE_CONVO_NEXT_STEPS
+        'the conversation needs more engagement because the last message was a short, non-question message', # ACTIVE_CONVO_NEXT_STEPS
         'there is an objection or abrasion about a product or service', # ACTIVE_CONVO_OBJECTION
         'there is a question', # ACTIVE_CONVO_QUESTION
         'they might not be a great fit or might not be qualified', # ACTIVE_CONVO_QUAL_NEEDED
