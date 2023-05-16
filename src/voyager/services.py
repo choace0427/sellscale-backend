@@ -392,6 +392,26 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
 
     update_prospect_status(prospect.id, convo_urn_id)
 
+    # Classify conversation
+    if prospect.status.value.startswith('ACTIVE_CONVO'):
+
+        latest_convo_entries: List[LinkedinConversationEntry] = (
+            LinkedinConversationEntry.query.filter_by(
+                conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
+            )
+            .order_by(LinkedinConversationEntry.date.desc())
+            .limit(5)
+            .all()
+        )
+
+        messages = []
+        for message in latest_convo_entries:
+            messages.append({
+                "role": 'user' if message.connection_degree == "You" else 'assistant',
+                "content": message.message
+            })
+        classify_active_convo(prospect.id, messages)
+
     return "OK", 200
 
 
@@ -460,18 +480,6 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         .first()
     )
 
-    # Classify conversation
-    if prospect.status.value.startswith('ACTIVE_CONVO'):
-        messages = []
-        for message in latest_convo_entries[0:5]:
-            messages.append({
-                "role": 'user' if message.connection_degree == "You" else 'assistant',
-                "content": message.message
-            })
-        classify_active_convo(prospect_id, messages)
-        # Refresh prospect
-        prospect: Prospect = Prospect.query.get(prospect_id)
-
     if (
         prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
         and not has_prospect_replied
@@ -519,14 +527,6 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             prospect_id=prospect.id,
             new_status=ProspectStatus.ACTIVE_CONVO,
         )
-
-        messages = []
-        for message in latest_convo_entries[0:5]:
-            messages.append({
-                "role": 'user' if message.connection_degree == "You" else 'assistant',
-                "content": message.message
-            })
-        classify_active_convo(prospect_id, messages)
         return
 
     # Set the bumped status and times bumped
@@ -582,47 +582,7 @@ def classify_active_convo(prospect_id: int, messages):
     send_slack_message(
         message=f"Prospect {prospect.full_name} was automatically classified as '{status}' because of the state of their conversation with {client_sdr.name}!",
         webhook_urls=[URL_MAP["csm-convo-sorter"]],
-        blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"Prospect {prospect.full_name} was automatically classified as '{status}' because of the state of their conversation with {client_sdr.name}!",
-                    },
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "Test.",
-                        },
-                    ],
-                },
-                {  # Add prospect title and (optional) last message
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Title:* {title}\n{last_message}".format(
-                            title=prospect.title,
-                            last_message=""
-                            if not len(messages) > 0
-                            else '*Last Message*: "{}"'.format(
-                                messages[0].get('content')
-                            ),
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*SellScale Sight*: <{link}|Link>".format(
-                            link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
-                        ),
-                    },
-                },
-        ]
+        
     )
 
 
