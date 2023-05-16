@@ -462,7 +462,6 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
     # Classify conversation
     if prospect.status.value.startswith('ACTIVE_CONVO'):
-        print(prospect.status.value)
         messages = []
         for message in latest_convo_entries[0:5]:
             messages.append({
@@ -583,38 +582,6 @@ def classify_active_convo(prospect_id: int, messages):
     send_slack_message(
         message=f"Prospect {prospect.full_name} was automatically classified as '{status}' because of the state of their conversation with {client_sdr.name}!",
         webhook_urls=[URL_MAP["csm-convo-sorter"]],
-        blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"Prospect {prospect.full_name} was automatically classified as '{status}' because of the state of their conversation with {client_sdr.name}!",
-                    },
-                },
-                {  # Add prospect title and (optional) last message
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Title:* {title}\n{last_message}".format(
-                            title=prospect.title,
-                            last_message=""
-                            if not len(messages) > 0
-                            else '*Last Message*: "{}"'.format(
-                                messages[0].get('content')
-                            ),
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*SellScale Sight*: <{link}|Link>".format(
-                            link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
-                        ),
-                    },
-                },
-        ]
     )
 
 
