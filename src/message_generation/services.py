@@ -1,3 +1,4 @@
+from src.message_generation.models import GeneratedMessageQueue
 from sqlalchemy import or_
 from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
@@ -19,8 +20,10 @@ from model_import import (
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
     GeneratedMessageEditRecord,
+    LinkedinConversationEntry,
+    EmailConversationMessage,
 )
-from typing import Optional
+from typing import Optional, Union
 from src.ml.rule_engine import run_message_rule_engine
 from src.ml.services import ai_email_prompt, generate_email
 from src.ml_adversary.services import run_adversary
@@ -39,6 +42,7 @@ from src.email_outbound.services import create_prospect_email
 from src.message_generation.ner_exceptions import ner_exceptions, title_abbreviations
 from ..utils.abstract.attr_utils import deep_get
 import random
+from sqlalchemy import or_
 from app import db, celery
 from tqdm import tqdm
 import openai
@@ -1545,3 +1549,89 @@ def manually_mark_ai_approve(
     except:
         db.session.rollback()
         return False
+
+
+def add_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str, None] = None, nylas_message_id: Union[str, None] = None):
+    """Adds a generated message to the queue
+
+    Args:
+        client_sdr_id (int): The ID of the client SDR
+        li_message_urn_id (Union[str, None], optional): LinkedIn msg urn ID. Defaults to None.
+        nylas_message_id (Union[str, None], optional): Nylas msg ID. Defaults to None.
+
+    Returns:
+        bool: True if added, False if not.
+    """
+    if not li_message_urn_id and not nylas_message_id:
+        return False
+    if li_message_urn_id and nylas_message_id:
+        return False
+
+    msg_queue = GeneratedMessageQueue.query.filter(
+        GeneratedMessageQueue.client_sdr_id == client_sdr_id,
+        GeneratedMessageQueue.li_message_urn_id == li_message_urn_id,
+        GeneratedMessageQueue.nylas_message_id == nylas_message_id
+    ).first()
+    if msg_queue: return False
+
+    msg_queue = GeneratedMessageQueue(
+        client_sdr_id = client_sdr_id,
+        nylas_message_id = nylas_message_id,
+        li_message_urn_id = li_message_urn_id
+    )
+    db.session.add(msg_queue)
+    db.session.commit()
+
+    return True
+
+
+def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str, None] = None, nylas_message_id: Union[str, None] = None):
+    """Sets a li or email message to AI generated or not, then removes itself from the queue
+
+    Args:
+        client_sdr_id (int): The ID of the client SDR
+        li_message_urn_id (Union[str, None], optional): LinkedIn msg urn ID. Defaults to None.
+        nylas_message_id (Union[str, None], optional): Nylas msg ID. Defaults to None.
+
+    Returns:
+        bool: True if removed, False if not.
+    """
+    
+    if not li_message_urn_id and not nylas_message_id:
+        return False
+    if li_message_urn_id and nylas_message_id:
+        return False
+
+    msg_queue: GeneratedMessageQueue = GeneratedMessageQueue.query.filter(
+        GeneratedMessageQueue.client_sdr_id == client_sdr_id,
+        GeneratedMessageQueue.li_message_urn_id == li_message_urn_id,
+        GeneratedMessageQueue.nylas_message_id == nylas_message_id
+    ).first()
+
+    if li_message_urn_id:
+        li_convo_msg: LinkedinConversationEntry = LinkedinConversationEntry.query.filter(
+            LinkedinConversationEntry.urn_id == li_message_urn_id
+        ).first()
+        if not li_convo_msg: return False
+        li_convo_msg.ai_generated = True if msg_queue else False
+        db.session.add(li_convo_msg)
+        db.session.commit()
+    
+    if nylas_message_id:
+        nylas_msg: EmailConversationMessage = EmailConversationMessage.query.filter(
+            EmailConversationMessage.nylas_message_id == nylas_message_id
+        ).first()
+        if not nylas_msg: return False
+        nylas_msg.ai_generated = True if msg_queue else False
+        db.session.add(nylas_msg)
+        db.session.commit()
+
+    if not msg_queue: return False
+
+    db.session.delete(msg_queue)
+    db.session.commit()
+
+    print("Processed generated message queue")
+
+    return True
+    

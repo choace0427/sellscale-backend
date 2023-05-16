@@ -525,6 +525,8 @@ class EmailConversationMessage(db.Model):
     from_sdr = db.Column(db.Boolean, nullable=True)
     from_prospect = db.Column(db.Boolean, nullable=True)
 
+    ai_generated = db.Column(db.Boolean, nullable=True) # is at least partially AI generated
+
     # Comes from Nylas --->
     subject = db.Column(db.String, nullable=True)
     snippet = db.Column(db.String, nullable=True)
@@ -567,4 +569,5 @@ class EmailConversationMessage(db.Model):
             "nylas_thread_id": self.nylas_thread_id,
             "nylas_message_id": self.nylas_message_id,
             "nylas_data_raw": self.nylas_data_raw,
+            "ai_generated": self.ai_generated,
         }

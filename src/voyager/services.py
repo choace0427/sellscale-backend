@@ -4,6 +4,8 @@ import datetime as dt
 import random
 import os
 
+from src.message_generation.services import process_generated_msg_queue
+
 from src.utils.slack import send_slack_message, URL_MAP
 
 from src.ml.services import chat_ai_classify_active_convo
@@ -141,7 +143,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     """
 
     # Utility function for getting db conversation entries to json
-    def get_convo_entries(convo_urn_id: str) -> list[str]:
+    def get_convo_entries(convo_urn_id: str) -> list[dict]:
         return [
             e.to_dict()
             for e in LinkedinConversationEntry.query.filter_by(
@@ -269,7 +271,18 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     else:
         # If we need to update the conversation, we do so
         update_conversation_entries(api, convo_urn_id, prospect)
-        return get_convo_entries(convo_urn_id), "UPDATED"
+        messages = get_convo_entries(convo_urn_id)
+
+        # Process if the messages are AI generated or not 
+        for message in messages:
+            if message.get('ai_generated') is None:
+                process_generated_msg_queue(
+                    client_sdr_id = api.client_sdr_id,
+                    li_message_urn_id = message.get('urn_id'),
+                )
+
+        return messages, "UPDATED"
+
 
 
 def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Prospect):
@@ -445,6 +458,11 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.add(prospect)
         db.session.commit()
         return
+    
+    # We know the first message is AI generated
+    if len(latest_convo_entries) >= 1 and latest_convo_entries[0].ai_generated is None:
+        latest_convo_entries[0].ai_generated = True
+        #db.session.commit()
 
     first_and_only_message_was_you = (
         len(latest_convo_entries) == 1

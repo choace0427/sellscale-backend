@@ -120,6 +120,17 @@ class GeneratedMessage(db.Model):
         }
 
 
+class GeneratedMessageQueue(db.Model):
+    __tablename__ = "generated_message_queue"
+    # A queue of generated messages that have been sent out and need to be processed when we find/scrape the associated msg
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+
+    nylas_message_id = db.Column(db.String, unique=True, index=True, nullable=True)
+    li_message_urn_id = db.Column(db.String, unique=True, index=True, nullable=True)
+
+
 class GeneratedMessageInstruction(db.Model):
     __tablename__ = "generated_message_instruction"
 

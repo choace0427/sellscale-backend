@@ -35,6 +35,8 @@ class LinkedinConversationEntry(db.Model):
     thread_urn_id = db.Column(db.String, nullable=True, index=True)
     urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
+    ai_generated = db.Column(db.Boolean, nullable=True) # is at least partially AI generated
+
     def li_conversation_thread_by_prospect_id(prospect_id: int):
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         li_conversation_thread_id = p.li_conversation_thread_id
@@ -71,4 +73,5 @@ class LinkedinConversationEntry(db.Model):
             "thread_urn_id": self.thread_urn_id,
             "urn_id": self.urn_id,
             "message": self.message,
+            "ai_generated": self.ai_generated,
         }

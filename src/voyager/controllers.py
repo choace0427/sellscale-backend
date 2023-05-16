@@ -14,6 +14,7 @@ from src.utils.request_helpers import get_request_parameter
 from src.voyager.linkedin import LinkedIn
 from app import db
 import time
+from src.message_generation.services import add_generated_msg_queue
 
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 
@@ -80,6 +81,10 @@ def send_message(client_sdr_id: int):
     msg = get_request_parameter(
         "message", request, json=True, required=True, parameter_type=str
     )
+    ai_generated = get_request_parameter(
+        "ai_generated", request, json=True, required=False, parameter_type=bool
+    )
+    if ai_generated is None: ai_generated = False
 
     purgatory = get_request_parameter(
         "purgatory", request, json=True, required=False, parameter_type=bool
@@ -89,7 +94,13 @@ def send_message(client_sdr_id: int):
 
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
-    api.send_message(msg, recipients=[urn_id])
+    msg_urn_id = api.send_message(msg, recipients=[urn_id])
+    if isinstance(msg_urn_id, str) and ai_generated:
+        add_generated_msg_queue(
+            client_sdr_id=client_sdr_id,
+            li_message_urn_id=msg_urn_id
+        )
+
     if purgatory:
         send_to_purgatory(prospect_id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
     if not api.is_valid():

@@ -61,6 +61,7 @@ from src.utils.slack import send_slack_message, URL_MAP
 from src.integrations.vessel import SalesEngagementIntegration
 from src.prospecting.hunter import find_hunter_emails_for_prospects_under_archetype
 from src.prospecting.services import update_prospect_demo_date
+from src.message_generation.services import add_generated_msg_queue
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -306,6 +307,10 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
 
     subject = get_request_parameter("subject", request, json=True, required=True)
     body = get_request_parameter("body", request, json=True, required=True)
+    ai_generated = get_request_parameter(
+        "ai_generated", request, json=True, required=False, parameter_type=bool
+    )
+    if ai_generated is None: ai_generated = False
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
     if not prospect:
@@ -314,6 +319,12 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
     result = nylas_send_email(client_sdr_id, prospect_id, subject, body)
+    nylas_message_id = result.get('id')
+    if isinstance(nylas_message_id, str) and ai_generated:
+        add_generated_msg_queue(
+            client_sdr_id=client_sdr_id,
+            nylas_message_id=nylas_message_id
+        )
 
     return jsonify({"message": "Success", "data": result}), 200
 

@@ -345,6 +345,12 @@ class LinkedIn(object):
                 params=params,
                 data=json.dumps(message_event),
             )
+            if res is not None:
+                response = res.json()
+                msg_urn_id = response.get("value", {}).get("backendEventUrn", '')
+                msg_urn_id = msg_urn_id.replace("urn:li:messagingMessage:", "")
+                if msg_urn_id: return msg_urn_id
+        
         elif recipients and not conversation_urn_id:
             message_event["recipients"] = recipients
             message_event["subtype"] = "MEMBER_TO_MEMBER"
@@ -357,8 +363,13 @@ class LinkedIn(object):
                 params=params,
                 data=json.dumps(payload),
             )
+            if res is not None:
+                response = res.json()
+                msg_urn_id = response.get("value", {}).get("backendEventUrn", '')
+                msg_urn_id = msg_urn_id.replace("urn:li:messagingMessage:", "")
+                if msg_urn_id: return msg_urn_id
 
-        return res and res.status_code != 201  # type: ignore
+        return False
 
     def get_conversation_details(self, profile_urn_id):
         """Fetch conversation (message thread) details for a given LinkedIn profile.

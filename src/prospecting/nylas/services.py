@@ -16,7 +16,7 @@ from src.email_outbound.models import (
 from src.prospecting.models import Prospect
 from src.prospecting.services import calculate_prospect_overall_status
 from src.prospecting.nylas.nylas_wrappers import wrapped_nylas_get_threads
-
+from src.message_generation.services import process_generated_msg_queue
 
 UNSUBSCRIBE_WEBSITE_URL = os.environ.get("UNSUBSCRIBE_WEBSITE_URL")
 
@@ -300,6 +300,14 @@ def nylas_get_messages(
         EmailConversationMessage.date_received.desc()
     ).all()
 
+    # Process if the messages are AI generated or not 
+    for message in messages:
+        if message.ai_generated is None:
+            process_generated_msg_queue(
+                client_sdr_id = client_sdr_id,
+                nylas_message_id = message.nylas_message_id,
+            )
+
     return [message.to_dict() for message in messages]
 
 
@@ -481,7 +489,7 @@ def nylas_send_email(
 
     # Add an unsubscribe link to the body
     # TODO: This should only send unsubscribe link iff we are below ACTIVE_CONVO
-    unsubscribe_url = UNSUBSCRIBE_WEBSITE_URL + "/unsubscribe/"
+    unsubscribe_url = str(UNSUBSCRIBE_WEBSITE_URL) + "/unsubscribe/"
     client_uuid = client.uuid if client.uuid else client.regenerate_uuid()
     sdr_uuid = client_sdr.uuid if client_sdr.uuid else client_sdr.regenerate_uuid()
     prospect_uuid = prospect.uuid if prospect.uuid else prospect.regenerate_uuid()
