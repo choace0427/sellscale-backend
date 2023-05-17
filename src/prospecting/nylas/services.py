@@ -1,7 +1,7 @@
 import json
 import requests
 import os
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime, timezone
 
 from app import db, celery
@@ -447,7 +447,7 @@ def nylas_update_messages(
 
 
 def nylas_send_email(
-    client_sdr_id: int, prospect_id: int, subject: str, body: str
+    client_sdr_id: int, prospect_id: int, subject: str, body: str, reply_to_message_id: Union[str, None] = None
 ) -> dict:
     """Sends an email to the Prospect through the ClientSDR's Nylas account.
 
@@ -456,6 +456,7 @@ def nylas_send_email(
         - prospect_id (int): ID of the Prospect receiving the email
         - subject (str): Subject of the email
         - body (str): Body of the email
+        - reply_to_message_id (str, optional): ID of the message to reply to
 
     Returns:
         - dict: Response from Nylas API
@@ -521,6 +522,7 @@ def nylas_send_email(
                     "name": client_sdr.name,
                 }
             ],
+            "reply_to_message_id": reply_to_message_id,
             "tracking": {  # Track opens
                 "opens": True,
                 "payload": tracking_payload_json,

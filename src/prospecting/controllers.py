@@ -311,6 +311,9 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         "ai_generated", request, json=True, required=False, parameter_type=bool
     )
     if ai_generated is None: ai_generated = False
+    reply_to_message_id = get_request_parameter(
+        "reply_to_message_id", request, json=True, required=False, parameter_type=str
+    )
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
     if not prospect:
@@ -318,7 +321,7 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    result = nylas_send_email(client_sdr_id, prospect_id, subject, body)
+    result = nylas_send_email(client_sdr_id, prospect_id, subject, body, reply_to_message_id)
     nylas_message_id = result.get('id')
     if isinstance(nylas_message_id, str) and ai_generated:
         add_generated_msg_queue(
