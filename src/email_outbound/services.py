@@ -19,7 +19,6 @@ from src.campaigns.models import (
     OutboundCampaign,
     OutboundCampaignStatus,
 )
-from src.prospecting.nylas.services import nylas_send_email
 from src.prospecting.services import calculate_prospect_overall_status
 from src.email_outbound.models import (
     EmailInteractionState,
@@ -146,6 +145,8 @@ def send_prospect_email(prospect_email_id: int):
     Also updates prospect email status to SENT and updates any relevant generated messages to SENT
     as well.
     """
+    from src.prospecting.nylas.services import nylas_send_email
+
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(
         prospect_email.outbound_campaign_id
