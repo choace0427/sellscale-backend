@@ -121,7 +121,8 @@ def send_status_change_slack_block(
         }
     )
 
-    if prospect.icp_fit_reason:
+    # Don't include fit reason, it crowds it too much
+    """     if prospect.icp_fit_reason:
         message_blocks.append(
             {  # Add ICP fit reason
                 "type": "section",
@@ -130,7 +131,7 @@ def send_status_change_slack_block(
                     "text": "*ICP fit reason:* {}".format(prospect.icp_fit_reason),
                 },
             }
-        )
+        ) """
 
     if outreach_type == ProspectChannels.LINKEDIN:  # Add next steps for Linkedin
         message_blocks.append(
