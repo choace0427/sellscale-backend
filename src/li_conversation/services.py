@@ -101,7 +101,6 @@ def create_linkedin_conversation_entry(
     message: str,
     urn_id: Union[str, None] = None,
     img_expire: int = 0,
-    ai_generated: Union[bool, None] = None,
 ):
     """
     Check for duplicates and duplicate does not exist, create a new LinkedinConversationEntry
@@ -139,7 +138,6 @@ def create_linkedin_conversation_entry(
             message=message,
             thread_urn_id=thread_urn_id,
             urn_id=urn_id,
-            ai_generated=ai_generated,
         )
         return new_linkedin_conversation_entry
     else:
