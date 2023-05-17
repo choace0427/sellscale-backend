@@ -55,6 +55,7 @@ from src.research.linkedin.services import (
 from src.message_generation.services_stack_ranked_configurations import (
     get_top_stack_ranked_config_ordering,
 )
+from src.utils.slack import URL_MAP, send_slack_message
 
 
 HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
@@ -1616,6 +1617,45 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
         li_convo_msg.ai_generated = True if msg_queue else False
         db.session.add(li_convo_msg)
         db.session.commit()
+
+        if li_convo_msg.ai_generated:
+        
+            send_slack_message(
+                message="",
+                webhook_urls=[URL_MAP["csm-human-response"]],
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"🤖 New response from Human!",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "_A human has manually responded to the convo below. Please make a bump framework if relevant to answer this for humans in the future._",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Human:* {li_convo_msg.message}",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*SellScale Sight*: <{link}|Link>".format(
+                                link=li_convo_msg.conversation_url
+                            ),
+                        },
+                    },
+                ]
+            )
     
     if nylas_message_id:
         nylas_msg: EmailConversationMessage = EmailConversationMessage.query.filter(
