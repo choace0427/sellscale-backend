@@ -1618,7 +1618,7 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
         db.session.add(li_convo_msg)
         db.session.commit()
 
-        if li_convo_msg.ai_generated:
+        if not li_convo_msg.ai_generated:
         
             send_slack_message(
                 message="",
@@ -1635,7 +1635,7 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "_A human has manually responded to the convo below. Please make a bump framework if relevant to answer this for humans in the future._",
+                            "text": "_A human has manually responded to the convo below. ._",
                         },
                     },
                     {
