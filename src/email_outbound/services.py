@@ -19,6 +19,7 @@ from src.campaigns.models import (
     OutboundCampaign,
     OutboundCampaignStatus,
 )
+from src.prospecting.nylas.services import nylas_send_email
 from src.prospecting.services import calculate_prospect_overall_status
 from src.email_outbound.models import (
     EmailInteractionState,
@@ -107,6 +108,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     for prospect in prospects:
         prospect_email = ProspectEmail.query.get(prospect.approved_prospect_email_id)
         prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+        prospect_email.email_status = ProspectEmailStatus.SENT
 
         # set date_scheduled to a time between 9am and 5pm on a weekday. keep it at a 5 minute interval from previous email
         time_index = time_index + datetime.timedelta(minutes=5)
@@ -136,6 +138,54 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     db.session.commit()
 
     return True
+
+
+def send_prospect_email(prospect_email_id: int):
+    """
+    Sends the prospect email via Nylas and updates the prospect_email status to SENT.
+    Also updates prospect email status to SENT and updates any relevant generated messages to SENT
+    as well.
+    """
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(
+        prospect_email.outbound_campaign_id
+    )
+    client_sdr_id = outbound_campaign.client_sdr_id
+    prospect_id = prospect_email.prospect_id
+
+    prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
+    prospect_email.email_status = ProspectEmailStatus.SENT
+    prospect_email.date_sent = datetime.datetime.now()
+    db.session.add(prospect_email)
+
+    # Updates to generated_message
+    gm_line_ids = [
+        prospect_email.personalized_first_line,
+        prospect_email.personalized_subject_line,
+        prospect_email.personalized_body,
+    ]
+    generated_messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
+        GeneratedMessage.id.in_(gm_line_ids)
+    ).all()
+    for generated_message in generated_messages:
+        generated_message.message_status = GeneratedMessageStatus.SENT
+        db.session.add(generated_message)
+    db.session.commit()
+
+    subject_line_gm = GeneratedMessage.query.get(
+        prospect_email.personalized_subject_line
+    )
+    body_gm = GeneratedMessage.query.get(prospect_email.personalized_body)
+
+    subject = subject_line_gm.completion
+    body = body_gm.completion
+
+    nylas_send_email(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        subject=subject,
+        body=body,
+    )
 
 
 def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) -> bool:
