@@ -1621,7 +1621,7 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
         if not li_convo_msg.ai_generated:
         
             send_slack_message(
-                message="",
+                message="New response from Human!",
                 webhook_urls=[URL_MAP["csm-human-response"]],
                 blocks=[
                     {
@@ -1635,7 +1635,7 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "_A human has manually responded to the convo below. ._",
+                            "text": "_A human has manually responded to the convo below._",
                         },
                     },
                     {
