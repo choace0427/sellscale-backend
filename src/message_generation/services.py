@@ -1635,7 +1635,7 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "_A human has manually responded to the convo below._",
+                            "text": "_A human has manually responded to the convo below. Please make a bump framework if relevant to answer this for humans in the future._",
                         },
                     },
                     {
