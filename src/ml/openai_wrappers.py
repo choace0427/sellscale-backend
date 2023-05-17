@@ -150,6 +150,7 @@ def wrapped_chat_gpt_completion_with_history(
     n: Optional[int] = DEFAULT_N,
     frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
+    model: str = CURRENT_OPENAI_CHAT_GPT_MODEL,
 ) -> tuple[list, str]:
     """
     Generates a completion using the GPT-3.5-turbo model.
@@ -171,7 +172,7 @@ def wrapped_chat_gpt_completion_with_history(
         messages = history + messages
 
     response = openai.ChatCompletion.create(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL,
+        model=model,
         messages=messages,
         max_tokens=max_tokens,
         temperature=temperature,
