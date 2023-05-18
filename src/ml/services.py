@@ -969,3 +969,38 @@ def determine_account_research_from_convo_and_bump_framework(prospect_id: int, c
 
     return numbers
 
+
+def determine_best_bump_framework_from_convo(convo_history: List[Dict[str, str]], bump_frameworks: List[str]):
+    """Determines the best bump framework from the conversation."""
+
+    messages = []
+    for message in convo_history:
+        messages.append({
+            "role": 'user' if message.get('connection_degree') == "You" else 'assistant',
+            "content": message.get('message', '')
+        })
+
+    options = ''
+    for i, option in enumerate(bump_frameworks):
+        options += f'- {i+1}. {option}\n'
+
+    messages.append({"role": "user", "content": f"""
+    Based on our previous conversation history, please select the best response description to continue the conversation. Respond only with the option number.
+
+    ## Response Descriptions
+    {options}
+    """})
+
+    response = wrapped_chat_gpt_completion(
+        messages,
+        temperature=0.7,
+        max_tokens=240,
+        model="gpt-4",
+    )
+
+    match = re.search(r'\d+', response)
+    if match:
+        return int(match.group()) - 1
+    else:
+        return -1
+
