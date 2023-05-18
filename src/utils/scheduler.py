@@ -139,6 +139,16 @@ def replenish_sdr_credits():
         replenish_all_email_credits_for_all_sdrs()
 
 
+def send_prospect_emails():
+    from src.email_outbound.services import send_prospect_emails
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        send_prospect_emails.delay()
+
+
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
@@ -164,6 +174,7 @@ scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 
 scheduler.add_job(func=replenish_sdr_credits, trigger="interval", days=1)
+scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
 
 scheduler.start()
 

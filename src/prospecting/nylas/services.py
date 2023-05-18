@@ -300,12 +300,12 @@ def nylas_get_messages(
         EmailConversationMessage.date_received.desc()
     ).all()
 
-    # Process if the messages are AI generated or not 
+    # Process if the messages are AI generated or not
     for message in messages:
         if message.ai_generated is None:
             process_generated_msg_queue(
-                client_sdr_id = client_sdr_id,
-                nylas_message_id = message.nylas_message_id,
+                client_sdr_id=client_sdr_id,
+                nylas_message_id=message.nylas_message_id,
             )
 
     return [message.to_dict() for message in messages]
@@ -447,7 +447,12 @@ def nylas_update_messages(
 
 
 def nylas_send_email(
-    client_sdr_id: int, prospect_id: int, subject: str, body: str, reply_to_message_id: Union[str, None] = None
+    client_sdr_id: int,
+    prospect_id: int,
+    subject: str,
+    body: str,
+    reply_to_message_id: Union[str, None] = None,
+    prospect_email_id: Optional[int] = None,
 ) -> dict:
     """Sends an email to the Prospect through the ClientSDR's Nylas account.
 
@@ -461,15 +466,18 @@ def nylas_send_email(
     Returns:
         - dict: Response from Nylas API
     """
-
-    prospect_email: ProspectEmail = ProspectEmail(
-        prospect_id=prospect_id,
-        email_status=ProspectEmailStatus.APPROVED,
-        outreach_status=ProspectEmailOutreachStatus.NOT_SENT,
-    )
-    db.session.add(prospect_email)
-    db.session.commit()
-    prospect_email_id = prospect_email.id
+    if not prospect_email_id:
+        prospect_email: ProspectEmail = ProspectEmail(
+            prospect_id=prospect_id,
+            email_status=ProspectEmailStatus.APPROVED,
+            outreach_status=ProspectEmailOutreachStatus.NOT_SENT,
+        )
+        db.session.add(prospect_email)
+        db.session.commit()
+        prospect_email_id = prospect_email.id
+    else:
+        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+        prospect_email_id = prospect_email.id
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.approved_prospect_email_id = prospect_email_id
@@ -498,7 +506,7 @@ def nylas_send_email(
     link = unsubscribe_url + query_params
 
     if not reply_to_message_id:
-        body += f"<a href='{link}' target='_blank'>Unsubscribe</a>"
+        body += f"</br></br><a href='{link}' target='_blank'>Unsubscribe</a>"
 
     # Send email through Nylas
     res = requests.post(
