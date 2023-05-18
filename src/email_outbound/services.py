@@ -139,6 +139,21 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     return True
 
 
+def send_prospect_emails():
+    """
+    Sends all the prospect emails that need to be sent at a given time
+    """
+    prospect_emails: list[ProspectEmail] = ProspectEmail.query.filter(
+        ProspectEmail.outreach_status
+        == ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
+        ProspectEmail.date_scheduled_to_send <= datetime.datetime.now(),
+    ).all()
+    print("Sending {} emails".format(len(prospect_emails)))
+    for prospect_email in prospect_emails:
+        send_prospect_email.apply_async(args=[prospect_email.id], countdown=10)
+
+
+@celery.task
 def send_prospect_email(prospect_email_id: int):
     """
     Sends the prospect email via Nylas and updates the prospect_email status to SENT.
@@ -148,6 +163,14 @@ def send_prospect_email(prospect_email_id: int):
     from src.prospecting.nylas.services import nylas_send_email
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+
+    if (
+        not prospect_email
+        or prospect_email.outreach_status
+        != ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+    ):
+        return False
+
     outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(
         prospect_email.outbound_campaign_id
     )
@@ -186,6 +209,7 @@ def send_prospect_email(prospect_email_id: int):
         prospect_id=prospect_id,
         subject=subject,
         body=body,
+        prospect_email_id=prospect_email_id,
     )
 
 
