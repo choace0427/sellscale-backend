@@ -146,7 +146,7 @@ def send_prospect_emails():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        send_prospect_emails()
+        send_prospect_emails.delay()
 
 
 # Add all jobs to scheduler

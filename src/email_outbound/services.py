@@ -139,6 +139,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     return True
 
 
+@celery.task
 def send_prospect_emails():
     """
     Sends all the prospect emails that need to be sent at a given time
