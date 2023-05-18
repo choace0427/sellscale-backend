@@ -1133,6 +1133,29 @@ def clear_nylas_tokens(client_sdr_id: int):
     return "Cleared tokens", 200
 
 
+def nylas_account_details(client_sdr_id: int):
+    """Wrapper for https://api.nylas.com/account
+
+    Returns:
+        dict: Dict containing the response
+    """
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    response = requests.get(
+        "https://api.nylas.com/account",
+        headers={
+            "Accept": "application/json",
+            "Authorization": "Bearer {secret}".format(secret=client_sdr.nylas_auth_code),
+            "Content-Type": "application/json",
+        },
+    )
+    if response.status_code != 200:
+        return {"message": "Error getting account details", "status_code": 500}
+
+    return response.json()
+
+
 def post_nylas_oauth_token(code: int) -> dict:
     """Wrapper for https://api.nylas.com/oauth/token
 

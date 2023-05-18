@@ -15,6 +15,7 @@ from src.client.services import (
     get_personas_page_details,
     toggle_archetype_active,
     clear_nylas_tokens,
+    nylas_account_details,
     update_client_sdr_email,
     update_client_sdr_scheduling_link,
     update_client_pipeline_notification_webhook,
@@ -877,6 +878,16 @@ def clear_auth_tokens(client_sdr_id: int):
     status_text, status = clear_nylas_tokens(client_sdr_id)
 
     return jsonify({"message": status_text}), status
+
+
+@CLIENT_BLUEPRINT.route("/nylas/account_details", methods=["GET"])
+@require_user
+def get_nylas_account_details(client_sdr_id: int):
+    """Gets Nylas account details for an SDR"""
+
+    data = nylas_account_details(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": data }), 200
 
 
 @CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])
