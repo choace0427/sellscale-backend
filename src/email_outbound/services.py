@@ -204,6 +204,8 @@ def send_prospect_email(prospect_email_id: int):
 
     subject = subject_line_gm.completion
     body = body_gm.completion
+    # replace all "\n" with </br> for html formatting
+    body = body.replace("\n", "</br>")
 
     nylas_send_email(
         client_sdr_id=client_sdr_id,
