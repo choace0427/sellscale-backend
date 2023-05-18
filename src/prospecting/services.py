@@ -404,7 +404,10 @@ def update_prospect_status_linkedin(
             ],
         )
 
-    if new_status == ProspectStatus.ACTIVE_CONVO:
+    if (
+        new_status == ProspectStatus.ACTIVE_CONVO
+        and ProspectStatus.ACTIVE_CONVO in VALID_NEXT_LINKEDIN_STATUSES[current_status]
+    ):
         send_slack_message(
             message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
             webhook_urls=[URL_MAP["csm-convo-sorter"]],
