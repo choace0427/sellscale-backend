@@ -121,8 +121,8 @@ def send_status_change_slack_block(
         }
     )
 
-    # Don't include fit reason, it crowds it too much
-    """     if prospect.icp_fit_reason:
+    # if icp fit reason exists and next status is SCHEDULING
+    if prospect.icp_fit_reason and new_status == ProspectStatus.SCHEDULING:
         message_blocks.append(
             {  # Add ICP fit reason
                 "type": "section",
@@ -131,7 +131,7 @@ def send_status_change_slack_block(
                     "text": "*ICP fit reason:* {}".format(prospect.icp_fit_reason),
                 },
             }
-        ) """
+        )
 
     if outreach_type == ProspectChannels.LINKEDIN:  # Add next steps for Linkedin
         message_blocks.append(
