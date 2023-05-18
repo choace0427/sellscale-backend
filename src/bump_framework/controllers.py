@@ -12,6 +12,7 @@ from src.bump_framework.services import (
 )
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
+from src.ml.services import determine_account_research_from_convo_and_bump_framework
 
 from model_import import ProspectOverallStatus
 
@@ -189,3 +190,28 @@ def post_activate_bump_framework(client_sdr_id: int):
 
     activate_bump_framework(client_sdr_id, bump_framework_id)
     return jsonify({"message": "Bump framework activated."}), 200
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/autofill_research", methods=["POST"])
+@require_user
+def post_autofill_research_bump_framework(client_sdr_id: int):
+    """Autofill account research based on a bump framework and convo history"""
+
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    convo_history = get_request_parameter(
+        "convo_history", request, json=True, required=True
+    )
+    bump_framework_desc = get_request_parameter(
+        "bump_framework_desc", request, json=True, required=True
+    )
+    account_research = get_request_parameter(
+        "account_research", request, json=True, required=True
+    )
+
+    research_indexes = determine_account_research_from_convo_and_bump_framework(
+        prospect_id, convo_history, bump_framework_desc, account_research)
+
+    return jsonify({"message": "Determined best account research points", "data": research_indexes}), 200
+

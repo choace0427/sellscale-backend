@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from src.li_conversation.models import LinkedinConversationEntry
 
@@ -928,4 +928,44 @@ def chat_ai_classify_active_convo(messages, output_options: List[str]) -> int:
         return int(match.group()) - 1
     else:
         return -1
+
+
+def determine_account_research_from_convo_and_bump_framework(prospect_id: int, convo_history: List[Dict[str, str]], bump_framework_desc: str, account_research: List[str]):
+    """Determines the account research points from the conversation and bumps the framework."""
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    messages = [{"role": "system", "content": f"You are a helpful assistant named {prospect.full_name}."}]
+    for message in convo_history:
+        messages.append({
+            "role": 'user' if message.get('connection_degree') == "You" else 'assistant',
+            "content": message.get('message', '')
+        })
+
+    options = ''
+    for i, option in enumerate(account_research):
+        options += f'- {i+1}. {option}\n'
+
+    messages.append({"role": "user", "content": f"""
+    Based on the following topic and our previous conversation history, please select 0 to 3 pieces of research that are the most relevant and fitting for a follow-up message of the given topic's premise. Respond only with an number array of the selected research points. If no pieces of research seem fitting, feel free to return an empty array.
+
+    ## Topic
+    {bump_framework_desc}
+
+    ## Research
+    {options}
+    """})
+
+    response = wrapped_chat_gpt_completion(
+        messages,
+        temperature=0.7,
+        max_tokens=240,
+        model="gpt-4",
+    )
+
+    # Extract the numbers from the response & convert to index
+    numbers = re.findall(r'\d+', response)
+    numbers = [int(number) - 1 for number in numbers]
+
+    return numbers
 
