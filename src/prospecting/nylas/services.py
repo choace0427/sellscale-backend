@@ -497,7 +497,8 @@ def nylas_send_email(
     query_params = f"?c={client_uuid}&s={sdr_uuid}&p={prospect_uuid}"
     link = unsubscribe_url + query_params
 
-    body += f"<a href='{link}' target='_blank'>Unsubscribe</a>"
+    if not reply_to_message_id:
+        body += f"<a href='{link}' target='_blank'>Unsubscribe</a>"
 
     # Send email through Nylas
     res = requests.post(
