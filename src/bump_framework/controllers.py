@@ -27,6 +27,9 @@ def get_bump_frameworks(client_sdr_id: int):
     overall_status = get_request_parameter(
         "overall_status", request, json=False, required=True
     )
+    client_archetype_ids = get_request_parameter(
+        "personas", request, json=False, required=False, parameter_type=list
+    ) or []
 
     found_key = False
     for key, val in ProspectOverallStatus.__members__.items():
@@ -37,7 +40,11 @@ def get_bump_frameworks(client_sdr_id: int):
     if not found_key:
         return jsonify({"error": "Invalid overall status."}), 400
 
-    bump_frameworks = get_bump_frameworks_for_sdr(client_sdr_id, overall_status)
+    bump_frameworks = get_bump_frameworks_for_sdr(
+        client_sdr_id=client_sdr_id,
+        overall_status=overall_status,
+        client_archetype_ids=client_archetype_ids
+    )
     return jsonify({"bump_frameworks": bump_frameworks}), 200
 
 
