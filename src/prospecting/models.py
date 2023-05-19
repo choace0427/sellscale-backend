@@ -593,6 +593,7 @@ class Prospect(db.Model):
             if self.hidden_reason is not None
             else None,
             "demo_date": self.demo_date,
+            "email_data": p_email.to_dict() if p_email else {},
         }
 
 

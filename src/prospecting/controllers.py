@@ -430,7 +430,6 @@ def get_prospects_endpoint(client_sdr_id: int):
     Returns 20 prospects by default.
 
     Parameters:
-        - client_sdr_id (int): The client sdr id
         - query (str) (optional): A filter query
         - channel (str) (optional): The channel to filter by (ProspectChannels)
         - status (str) (optional): The status of the prospect (ProspectStatus)
