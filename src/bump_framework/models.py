@@ -1,5 +1,6 @@
 from app import db
 import enum
+from src.client.models import ClientArchetype
 
 from src.prospecting.models import ProspectOverallStatus
 
@@ -25,7 +26,11 @@ class BumpFramework(db.Model):
 
     bump_length = db.Column(db.Enum(BumpLength), nullable=True, default=BumpLength.MEDIUM)
 
-    def to_dict(self):
+    def to_dict(self, include_archetypes: bool = False):
+        archetypes_details = []
+        if include_archetypes:
+            archetypes_details = self.get_archetype_details()
+
         return {
             "id": self.id,
             "title": self.title,
@@ -34,7 +39,22 @@ class BumpFramework(db.Model):
             "active": self.active,
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
+            "archetypes": archetypes_details
         }
+
+    def get_archetype_details(self) -> list[dict]:
+        junctions: list[JunctionBumpFrameworkClientArchetype] = JunctionBumpFrameworkClientArchetype.query.filter(
+            JunctionBumpFrameworkClientArchetype.bump_framework_id == self.id
+        ).all()
+        junction_archetype_ids = [j.client_archetype_id for j in junctions]
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+            ClientArchetype.id.in_(junction_archetype_ids)
+        ).all()
+
+        return [
+            {"archetype_id": archetype.id, "archetype_name": archetype.archetype}
+            for archetype in archetypes
+        ]
 
 
 class JunctionBumpFrameworkClientArchetype(db.Model):

@@ -50,7 +50,7 @@ def get_bump_frameworks_for_sdr(
 
     bf_list: list[BumpFramework] = bf_list.all()
 
-    return [bf.to_dict() for bf in bf_list]
+    return [bf.to_dict(include_archetypes=True) for bf in bf_list]
 
 
 def create_bump_framework(

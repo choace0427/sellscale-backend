@@ -23,8 +23,29 @@ from model_import import ProspectOverallStatus, BumpFramework
 def test_get_bump_frameworks_for_sdr():
     client = basic_client()
     sdr = basic_client_sdr(client)
-    bump_framework = basic_bump_framework(sdr, active=True)
-    bump_framework2 = basic_bump_framework(sdr, active=False)
+    archetype = basic_archetype(client, sdr)
+    bump_id = create_bump_framework(
+        client_sdr_id=sdr.id,
+        title="title",
+        description="description",
+        overall_status=ProspectOverallStatus.ACTIVE_CONVO,
+        length=BumpLength.LONG,
+        client_archetype_ids=[archetype.id],
+        active=True,
+        default=True
+    )
+    bump2_id = create_bump_framework(
+        client_sdr_id=sdr.id,
+        title="title",
+        description="description",
+        overall_status=ProspectOverallStatus.ACTIVE_CONVO,
+        length=BumpLength.LONG,
+        client_archetype_ids=[archetype.id],
+        active=False,
+        default=True
+    )
+    bump_framework = BumpFramework.query.get(bump_id)
+    bump_framework2 = BumpFramework.query.get(bump2_id)
 
     bumps = get_bump_frameworks_for_sdr(sdr.id, bump_framework.overall_status)
     assert len(bumps) == 1
