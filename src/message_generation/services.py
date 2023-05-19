@@ -877,6 +877,7 @@ def generate_prospect_email(
                 completion=subject,
                 message_status=GeneratedMessageStatus.DRAFT,
                 message_type=GeneratedMessageType.EMAIL,
+                few_shot_prompt=email_generation_prompt,
             )
             personalized_body = GeneratedMessage(
                 prospect_id=prospect_id,
@@ -886,6 +887,7 @@ def generate_prospect_email(
                 completion=personalized_body,
                 message_status=GeneratedMessageStatus.DRAFT,
                 message_type=GeneratedMessageType.EMAIL,
+                few_shot_prompt=email_generation_prompt,
             )
             db.session.add(personalized_subject_line)
             db.session.add(personalized_body)
@@ -1552,7 +1554,11 @@ def manually_mark_ai_approve(
         return False
 
 
-def add_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str, None] = None, nylas_message_id: Union[str, None] = None):
+def add_generated_msg_queue(
+    client_sdr_id: int,
+    li_message_urn_id: Union[str, None] = None,
+    nylas_message_id: Union[str, None] = None,
+):
     """Adds a generated message to the queue
 
     Args:
@@ -1571,14 +1577,15 @@ def add_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str, No
     msg_queue = GeneratedMessageQueue.query.filter(
         GeneratedMessageQueue.client_sdr_id == client_sdr_id,
         GeneratedMessageQueue.li_message_urn_id == li_message_urn_id,
-        GeneratedMessageQueue.nylas_message_id == nylas_message_id
+        GeneratedMessageQueue.nylas_message_id == nylas_message_id,
     ).first()
-    if msg_queue: return False
+    if msg_queue:
+        return False
 
     msg_queue = GeneratedMessageQueue(
-        client_sdr_id = client_sdr_id,
-        nylas_message_id = nylas_message_id,
-        li_message_urn_id = li_message_urn_id
+        client_sdr_id=client_sdr_id,
+        nylas_message_id=nylas_message_id,
+        li_message_urn_id=li_message_urn_id,
     )
     db.session.add(msg_queue)
     db.session.commit()
@@ -1586,7 +1593,11 @@ def add_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str, No
     return True
 
 
-def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str, None] = None, nylas_message_id: Union[str, None] = None):
+def process_generated_msg_queue(
+    client_sdr_id: int,
+    li_message_urn_id: Union[str, None] = None,
+    nylas_message_id: Union[str, None] = None,
+):
     """Sets a li or email message to AI generated or not, then removes itself from the queue
 
     Args:
@@ -1597,7 +1608,7 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
     Returns:
         bool: True if removed, False if not.
     """
-    
+
     if not li_message_urn_id and not nylas_message_id:
         return False
     if li_message_urn_id and nylas_message_id:
@@ -1606,20 +1617,23 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
     msg_queue: GeneratedMessageQueue = GeneratedMessageQueue.query.filter(
         GeneratedMessageQueue.client_sdr_id == client_sdr_id,
         GeneratedMessageQueue.li_message_urn_id == li_message_urn_id,
-        GeneratedMessageQueue.nylas_message_id == nylas_message_id
+        GeneratedMessageQueue.nylas_message_id == nylas_message_id,
     ).first()
 
     if li_message_urn_id:
-        li_convo_msg: LinkedinConversationEntry = LinkedinConversationEntry.query.filter(
-            LinkedinConversationEntry.urn_id == li_message_urn_id
-        ).first()
-        if not li_convo_msg: return False
+        li_convo_msg: LinkedinConversationEntry = (
+            LinkedinConversationEntry.query.filter(
+                LinkedinConversationEntry.urn_id == li_message_urn_id
+            ).first()
+        )
+        if not li_convo_msg:
+            return False
         li_convo_msg.ai_generated = True if msg_queue else False
         db.session.add(li_convo_msg)
         db.session.commit()
 
         if not li_convo_msg.ai_generated:
-        
+
             send_slack_message(
                 message="New response from Human!",
                 webhook_urls=[URL_MAP["csm-human-response"]],
@@ -1654,19 +1668,21 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
                             ),
                         },
                     },
-                ]
+                ],
             )
-    
+
     if nylas_message_id:
         nylas_msg: EmailConversationMessage = EmailConversationMessage.query.filter(
             EmailConversationMessage.nylas_message_id == nylas_message_id
         ).first()
-        if not nylas_msg: return False
+        if not nylas_msg:
+            return False
         nylas_msg.ai_generated = True if msg_queue else False
         db.session.add(nylas_msg)
         db.session.commit()
 
-    if not msg_queue: return False
+    if not msg_queue:
+        return False
 
     db.session.delete(msg_queue)
     db.session.commit()
@@ -1674,4 +1690,3 @@ def process_generated_msg_queue(client_sdr_id: int, li_message_urn_id: Union[str
     print("Processed generated message queue")
 
     return True
-    
