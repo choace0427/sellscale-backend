@@ -1,6 +1,7 @@
 from model_import import BumpFramework
 from app import db
-from src.bump_framework.models import BumpLength
+from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
+from src.client.models import ClientArchetype
 from src.prospecting.models import ProspectOverallStatus
 from typing import Optional
 
@@ -8,6 +9,7 @@ from typing import Optional
 def get_bump_frameworks_for_sdr(
     client_sdr_id: int,
     overall_status: ProspectOverallStatus,
+    client_archetype_ids: Optional[list[int]] = [],
     activeOnly: Optional[bool] = True,
 ) -> list[dict]:
     """Get all bump frameworks for a given SDR and overall status
@@ -15,14 +17,32 @@ def get_bump_frameworks_for_sdr(
     Args:
         client_sdr_id (int): The id of the SDR
         overall_status (ProspectOverallStatus): The overall status of the bump framework
+        client_archetype_ids (Optional[list[int]], optional): The ids of the client archetypes. Defaults to [] which is ALL archetypes.
         activeOnly (Optional[bool], optional): Whether to only return active bump frameworks. Defaults to True.
 
     Returns:
         list[dict]: A list of bump frameworks
     """
-    bf_list = BumpFramework.query.filter(
+    # If client_archetype_ids is not specified, grab all client archetypes
+    if len(client_archetype_ids) == 0:
+        client_archetype_ids = [ca.id for ca in ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()]
+
+    # Joined
+    joined_query = db.session.query(
+        BumpFramework.id.label("bump_framework_id")
+    ).join(
+        JunctionBumpFrameworkClientArchetype, BumpFramework.id == JunctionBumpFrameworkClientArchetype.bump_framework_id
+    ).join(
+        ClientArchetype, JunctionBumpFrameworkClientArchetype.client_archetype_id == ClientArchetype.id
+    ).filter(
+        ClientArchetype.id.in_(client_archetype_ids),
         BumpFramework.client_sdr_id == client_sdr_id,
         BumpFramework.overall_status == overall_status,
+    ).all()
+
+    # Get all bump frameworks that match the joined query
+    bf_list = BumpFramework.query.filter(
+        BumpFramework.id.in_([bf.bump_framework_id for bf in joined_query])
     )
 
     if activeOnly:
@@ -39,6 +59,7 @@ def create_bump_framework(
     description: str,
     overall_status: ProspectOverallStatus,
     length: BumpLength,
+    client_archetype_ids: list[int] = [],
     active: bool = True,
     default: Optional[bool] = False
 ) -> int:
@@ -51,6 +72,7 @@ def create_bump_framework(
         length (BumpLength): The length of the bump framework
         active (bool, optional): Whether the bump framework is active. Defaults to True.
         client_sdr_id (int): The id of the client SDR. Defaults to None.
+        client_archetype_ids (list[int], optional): The ids of the client archetypes. Defaults to [] which is ALL archetypes.
         default (Optional[bool], optional): Whether the bump framework is the default. Defaults to False.
 
     Returns:
@@ -65,6 +87,7 @@ def create_bump_framework(
     if length not in [BumpLength.LONG, BumpLength.SHORT, BumpLength.MEDIUM]:
         length = BumpLength.MEDIUM
 
+    # Create the Bump Framework
     bump_framework = BumpFramework(
         description=description,
         title=title,
@@ -76,6 +99,21 @@ def create_bump_framework(
     )
     db.session.add(bump_framework)
     db.session.commit()
+    bump_framework_id = bump_framework.id
+
+    # If client_archetype_ids is not specified, grab all client archetypes
+    if len(client_archetype_ids) == 0:
+        client_archetype_ids = [ca.id for ca in ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()]
+
+    # Create the BumpFramework + ClientArchetype junction table
+    for client_archetype_id in client_archetype_ids:
+        junction = JunctionBumpFrameworkClientArchetype(
+            bump_framework_id=bump_framework_id,
+            client_archetype_id=client_archetype_id,
+        )
+        db.session.add(junction)
+    db.session.commit()
+
     return bump_framework.id
 
 
