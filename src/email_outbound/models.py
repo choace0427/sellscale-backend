@@ -248,15 +248,32 @@ class ProspectEmail(db.Model):
     nylas_thread_id = db.Column(db.String, nullable=True)
 
     def to_dict(self):
+        from src.message_generation.models import GeneratedMessage
+
+        if self.personalized_first_line:
+            personalized_first_line = GeneratedMessage.query.get(self.personalized_first_line).to_dict()
+        else:
+            personalized_first_line = None
+
+        if self.personalized_subject_line:
+            personalized_subject_line = GeneratedMessage.query.get(self.personalized_subject_line).to_dict()
+        else:
+            personalized_subject_line = None
+
+        if self.personalized_body:
+            personalized_body = GeneratedMessage.query.get(self.personalized_body).to_dict()
+        else:
+            personalized_body = None
+
         return {
             "id": self.id,
             "prospect_id": self.prospect_id,
             "outbound_campaign_id": self.outbound_campaign_id,
             "email_status": self.email_status.value if self.email_status else None,
             "outreach_status": self.outreach_status.value if self.outreach_status else None,
-            "personalized_first_line": self.personalized_first_line,
-            "personalized_subject_line": self.personalized_subject_line,
-            "personalized_body": self.personalized_body,
+            "personalized_first_line": personalized_first_line,
+            "personalized_subject_line": personalized_subject_line,
+            "personalized_body": personalized_body,
             "date_scheduled_to_send": self.date_scheduled_to_send,
             "date_sent": self.date_sent,
             "batch_id": self.batch_id,
