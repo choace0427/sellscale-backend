@@ -368,15 +368,6 @@ def update_prospect_status_linkedin(
                         "text": f"Prospect {p.full_name} is scheduling a meeting with {client_sdr.name}!",
                     },
                 },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "This status has been manually set by an internal SellScale admin.",
-                        },
-                    ],
-                },
                 {  # Add prospect title and (optional) last message
                     "type": "section",
                     "text": {
