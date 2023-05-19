@@ -23,6 +23,8 @@ def get_request_parameter(
             return None
 
     value = values.get(key)
+    if parameter_type == list:
+        value = values.getlist(key)
     if parameter_type != None and type(value) != parameter_type:
         message = "Invalid request. Parameter `{}` must be of type `{}` but was `{}`.".format(
             key, parameter_type, type(value)
