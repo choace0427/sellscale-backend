@@ -67,8 +67,8 @@ def post_create_bump_framework(client_sdr_id: int):
     length: str = get_request_parameter(
         "length", request, json=True, required=False, parameter_type=str
     ) or BumpLength.MEDIUM.value
-    client_archetype_ids = get_request_parameter(
-        "client_archetype_ids", request, json=True, required=False, parameter_type=list
+    archetype_ids = get_request_parameter(
+        "archetype_ids", request, json=True, required=False, parameter_type=list
     ) or []
 
     # Get the enum value for the overall status
@@ -97,7 +97,7 @@ def post_create_bump_framework(client_sdr_id: int):
         overall_status=overall_status,
         length=length,
         client_sdr_id=client_sdr_id,
-        client_archetype_ids=client_archetype_ids,
+        client_archetype_ids=archetype_ids,
         default=default,
     )
     if bump_framework_id:
