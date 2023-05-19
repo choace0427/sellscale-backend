@@ -54,7 +54,7 @@ from model_import import (
     PersonaSplitRequestTask,
     PhantomBusterPayload,
 )
-from src.bump_framework.models import BumpLength
+from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
@@ -76,6 +76,7 @@ def test_app():
         )
 
     with app.app_context():
+        clear_all_entities(JunctionBumpFrameworkClientArchetype)
         clear_all_entities(EngagementFeedItem)
         clear_all_entities(BumpFramework)
         clear_all_entities(Echo)

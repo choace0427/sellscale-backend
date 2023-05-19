@@ -35,3 +35,11 @@ class BumpFramework(db.Model):
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
         }
+
+
+class JunctionBumpFrameworkClientArchetype(db.Model):
+    __tablename__ = "junction_bump_framework_client_archetype"
+
+    id = db.Column(db.Integer, primary_key=True)
+    bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"), nullable=False)
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"), nullable=False)
