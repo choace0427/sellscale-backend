@@ -275,9 +275,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
         # Process if the messages are AI generated or not 
         for message in messages:
-            print('got here', message.get('ai_generated'))
             if message.get('ai_generated') is None:
-                print('got here')
                 process_generated_msg_queue(
                     client_sdr_id = api.client_sdr_id,
                     li_message_urn_id = message.get('urn_id'),
