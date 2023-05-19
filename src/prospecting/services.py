@@ -1372,6 +1372,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "ai_responses_disabled": p.deactivate_ai_engagement,
                 "notes": prospect_notes,
                 "persona": archetype_name,
+                "persona_id": p.archetype_id,
                 "demo_date": p.demo_date,
             },
             "li": {
