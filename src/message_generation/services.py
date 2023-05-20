@@ -1,3 +1,4 @@
+from src.research.account_research import generate_prospect_research
 from src.message_generation.models import GeneratedMessageQueue
 from sqlalchemy import or_
 from src.ml.rule_engine import get_adversarial_ai_approval
@@ -22,6 +23,7 @@ from model_import import (
     GeneratedMessageEditRecord,
     LinkedinConversationEntry,
     EmailConversationMessage,
+    AccountResearchPoints,
 )
 from typing import Optional, Union
 from src.ml.rule_engine import run_message_rule_engine
@@ -827,6 +829,10 @@ def generate_prospect_email(
                 error_message="Prospect already has a prospect_email entry",
             )
             return (False, "Prospect already has a prospect_email entry")
+
+
+        # Perform account research (if needed)
+        generate_prospect_research(prospect.id, False, False)
 
         # Create research points and payload for the prospect
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
