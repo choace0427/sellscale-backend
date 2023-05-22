@@ -347,10 +347,11 @@ class LinkedIn(object):
             )
             if res is not None:
                 response = res.json()
-                msg_urn_id = response.get("value", {}).get("backendEventUrn", '')
+                msg_urn_id = response.get("value", {}).get("backendEventUrn", "")
                 msg_urn_id = msg_urn_id.replace("urn:li:messagingMessage:", "")
-                if msg_urn_id: return msg_urn_id
-        
+                if msg_urn_id:
+                    return msg_urn_id
+
         elif recipients and not conversation_urn_id:
             message_event["recipients"] = recipients
             message_event["subtype"] = "MEMBER_TO_MEMBER"
@@ -365,9 +366,10 @@ class LinkedIn(object):
             )
             if res is not None:
                 response = res.json()
-                msg_urn_id = response.get("value", {}).get("backendEventUrn", '')
+                msg_urn_id = response.get("value", {}).get("backendEventUrn", "")
                 msg_urn_id = msg_urn_id.replace("urn:li:messagingMessage:", "")
-                if msg_urn_id: return msg_urn_id
+                if msg_urn_id:
+                    return msg_urn_id
 
         return False
 
@@ -411,47 +413,67 @@ class LinkedIn(object):
 
         if limit == 20:
             res = self._fetch(f"/messaging/conversations", params=params)
-            if res is None or res.status_code == 403: return None
+            if res is None or res.status_code == 403:
+                return None
             return res.json()
         else:
             conversations = []
             for i in range(math.ceil(limit / 20)):
-                q_param = '' if len(conversations) == 0 else f'?createdBefore={conversations[-1].get("events")[0].get("createdAt")}'
+                q_param = (
+                    ""
+                    if len(conversations) == 0
+                    else f'?createdBefore={conversations[-1].get("events")[0].get("createdAt")}'
+                )
                 res = self._fetch(f"/messaging/conversations{q_param}", params=params)
-                result = res.json()['elements'] if res and res.status_code != 403 else []
+                result = (
+                    res.json()["elements"] if res and res.status_code != 403 else []
+                )
                 if isinstance(result, list):
                     conversations += result
             return conversations[:limit]
 
-    def get_conversation(self, conversation_urn_id, limit=20):
+    def get_conversation(self, conversation_urn_id, limit=20, retries=3):
+        try:
+            return self.get_conversation_helper(conversation_urn_id, limit)
+        except:
+            if retries > 0:
+                sleep(2)
+                return self.get_conversation(conversation_urn_id, limit, retries - 1)
+            else:
+                return []
+
+    def get_conversation_helper(self, conversation_urn_id, limit=20):
         """Fetch data about a given conversation.
         :param conversation_urn_id: LinkedIn URN ID for a conversation
         :type conversation_urn_id: str
         :return: Conversation data
         :rtype: dict
         """
-
         if limit == 20:
             res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
-            if res is None or res.status_code == 403: return None
+            if res is None or res.status_code == 403:
+                return None
             try:
-                return res.json()['elements']
+                return res.json()["elements"]
             except:
-                print('Failed to get request JSON: ', res)
+                print("Failed to get request JSON: ", res)
                 return None
         else:
             messages = []
             for i in range(math.ceil(limit / 20)):
-                q_param = '' if len(messages) == 0 else f'?start={i*20}'
-                res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events{q_param}")
+                q_param = "" if len(messages) == 0 else f"?start={i*20}"
+                res = self._fetch(
+                    f"/messaging/conversations/{conversation_urn_id}/events{q_param}"
+                )
                 try:
-                    result = res.json()['elements'] if res and res.status_code != 403 else []
+                    result = (
+                        res.json()["elements"] if res and res.status_code != 403 else []
+                    )
                 except:
                     result = []
                 if isinstance(result, list):
                     messages += result
             return messages[:limit]
-
 
     def get_mail_box(self, profile_urn_id):
         # TODO: This is still in progress!
