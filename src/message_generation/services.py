@@ -80,6 +80,8 @@ def get_messages_queued_for_outreach(
         db.session.query(
             Prospect.id.label("prospect_id"),
             Prospect.full_name.label("full_name"),
+            Prospect.icp_fit_score.label("icp_fit_score"),
+            Prospect.icp_fit_reason.label("icp_fit_reason"),
             Prospect.title.label("title"),
             Prospect.company.label("company"),
             Prospect.img_url.label("img_url"),
@@ -121,6 +123,8 @@ def get_messages_queued_for_outreach(
                 "img_url": row.img_url,
                 "message_id": row.message_id,
                 "completion": row.completion,
+                "icp_fit_score": row.icp_fit_score,
+                "icp_fit_reason": row.icp_fit_reason,
             }
         )
 
