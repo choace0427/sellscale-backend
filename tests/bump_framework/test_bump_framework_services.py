@@ -106,14 +106,34 @@ def test_create_bump_framework():
 def test_modify_bump_framework():
     client = basic_client()
     sdr = basic_client_sdr(client)
-    bump_framework = basic_bump_framework(sdr, active=True)
+    archetype = basic_archetype(client, sdr)
+    archetype2 = basic_archetype(client, sdr)
+    archetype3 = basic_archetype(client, sdr)
+    archetype_id = archetype.id
+    archetype2_id = archetype2.id
+    archetype3_id = archetype3.id
 
-    assert bump_framework.bump_length.value == "MEDIUM"
+    bump_id = create_bump_framework(
+        client_sdr_id=sdr.id,
+        title="new title",
+        description="new description",
+        overall_status=ProspectOverallStatus.ACTIVE_CONVO,
+        length=BumpLength.LONG,
+        client_archetype_ids=[archetype_id],
+        active=True,
+        default=False
+    )
+    junctions = JunctionBumpFrameworkClientArchetype.query.count()
+    assert junctions == 1
+    bump_framework = BumpFramework.query.get(bump_id)
+
+    assert bump_framework.bump_length.value == "LONG"
     modify_bump_framework(
         client_sdr_id=sdr.id,
-        bump_framework_id=bump_framework.id,
+        bump_framework_id=bump_id,
         overall_status=ProspectOverallStatus.PROSPECTED,
         length=BumpLength.SHORT,
+        client_archetype_ids=[archetype_id, archetype2_id],
         title="new title",
         description="new description",
         default=True,
@@ -125,6 +145,36 @@ def test_modify_bump_framework():
     assert bump_framework.description == "new description"
     assert bump_framework.default == True
     assert bump_framework.bump_length.value == "SHORT"
+    junctions = JunctionBumpFrameworkClientArchetype.query.count()
+    assert junctions == 2
+
+    # Test duplicate removal on client_archetype_ids
+    modify_bump_framework(
+        client_sdr_id=sdr.id,
+        bump_framework_id=bump_id,
+        overall_status=ProspectOverallStatus.PROSPECTED,
+        length=BumpLength.SHORT,
+        client_archetype_ids=[archetype3_id, archetype3_id],
+        title="new title",
+        description="new description",
+        default=True,
+    )
+    junctions = JunctionBumpFrameworkClientArchetype.query.count()
+    assert junctions == 1
+
+    # Test delete all junctions
+    modify_bump_framework(
+        client_sdr_id=sdr.id,
+        bump_framework_id=bump_framework.id,
+        overall_status=ProspectOverallStatus.PROSPECTED,
+        length=BumpLength.SHORT,
+        client_archetype_ids=[],
+        title="new title",
+        description="new description",
+        default=True,
+    )
+    junctions = JunctionBumpFrameworkClientArchetype.query.count()
+    assert junctions == 0
 
 
 @use_app_context

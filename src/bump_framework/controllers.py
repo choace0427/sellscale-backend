@@ -127,6 +127,9 @@ def patch_bump_framework(client_sdr_id: int):
     length: str = get_request_parameter(
         "length", request, json=True, required=False, parameter_type=str
     ) or BumpLength.MEDIUM.value
+    archetype_ids = get_request_parameter(
+        "archetype_ids", request, json=True, required=False, parameter_type=list
+    ) or []
 
     # Get the enum value for the overall status
     found_key = False
@@ -160,6 +163,7 @@ def patch_bump_framework(client_sdr_id: int):
         overall_status=overall_status,
         title=title,
         length=length,
+        client_archetype_ids=archetype_ids,
         description=description,
         default=default,
     )
@@ -239,7 +243,7 @@ def post_autoselect_bump_framework(client_sdr_id: int):
         "bump_frameworks", request, json=True, required=True
     )
 
-    framework_index = determine_best_bump_framework_from_convo(convo_history, bump_frameworks)
+    framework_index = determine_best_bump_framework_from_convo(
+        convo_history, bump_frameworks)
 
     return jsonify({"message": "Determined index of best bump framework", "data": framework_index}), 200
-
