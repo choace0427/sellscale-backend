@@ -28,7 +28,7 @@ def get_bump_frameworks(client_sdr_id: int):
         "overall_statuses", request, json=False, required=True, parameter_type=list
     ) or []
     client_archetype_ids = get_request_parameter(
-        "personas", request, json=False, required=False, parameter_type=list
+        "archetype_ids", request, json=False, required=False, parameter_type=list
     ) or []
 
     overall_statuses_enumed = []
