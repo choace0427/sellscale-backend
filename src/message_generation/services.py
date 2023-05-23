@@ -1633,7 +1633,8 @@ def process_generated_msg_queue(
     if li_message_urn_id:
         li_convo_msg: LinkedinConversationEntry = (
             LinkedinConversationEntry.query.filter(
-                LinkedinConversationEntry.urn_id == li_message_urn_id
+                LinkedinConversationEntry.urn_id == li_message_urn_id,
+                LinkedinConversationEntry.connection_degree == 'You'
             ).first()
         )
         if not li_convo_msg:
@@ -1683,7 +1684,8 @@ def process_generated_msg_queue(
 
     if nylas_message_id:
         nylas_msg: EmailConversationMessage = EmailConversationMessage.query.filter(
-            EmailConversationMessage.nylas_message_id == nylas_message_id
+            EmailConversationMessage.nylas_message_id == nylas_message_id,
+            EmailConversationMessage.from_sdr == True,
         ).first()
         if not nylas_msg:
             return False
