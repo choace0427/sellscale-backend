@@ -275,6 +275,7 @@ class ClientSDR(db.Model):
             "vessel_mailbox": self.vessel_mailbox,
             "timezone": self.timezone,
             "onboarded": self.onboarded,
+            "calendly_connected": self.calendly_access_token is not None,
         }
 
 
