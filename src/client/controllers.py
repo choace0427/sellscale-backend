@@ -14,6 +14,7 @@ from src.client.services import (
     rename_archetype,
     get_personas_page_details,
     toggle_archetype_active,
+    complete_client_sdr_onboarding,
     clear_nylas_tokens,
     nylas_account_details,
     update_client_sdr_email,
@@ -278,9 +279,16 @@ def patch_sdr(client_sdr_id: int):
         client_sdr_id=client_sdr_id, name=name, email=email, title=title
     )
     if not success:
-        return "Failed to update client SDR", 404
-    return "OK", 200
+        return jsonify({"message": "Failed to update client SDR"}), 404
+    return jsonify({"message": "Success"}), 200
 
+@CLIENT_BLUEPRINT.route("/sdr/complete-onboarding", methods=["POST"])
+@require_user
+def post_sdr_complete_onboarding(client_sdr_id: int):
+
+    complete_client_sdr_onboarding(client_sdr_id)
+
+    return jsonify({"message": "Success"}), 200
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])
 def create_sdr():

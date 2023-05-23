@@ -239,6 +239,7 @@ class ClientSDR(db.Model):
     )
 
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
+    onboarded = db.Column(db.Boolean, nullable=True, default=False)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
@@ -271,6 +272,7 @@ class ClientSDR(db.Model):
             "img_expire": self.img_expire,
             "vessel_mailbox": self.vessel_mailbox,
             "timezone": self.timezone,
+            "onboarded": self.onboarded,
         }
 
 

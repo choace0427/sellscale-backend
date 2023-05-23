@@ -134,6 +134,20 @@ def update_client_sdr_details(
 
     return True
 
+def complete_client_sdr_onboarding(
+    client_sdr_id: int,
+):
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not csdr:
+        return None
+    
+    csdr.onboarded = True
+
+    db.session.add(csdr)
+    db.session.commit()
+
+    return True
+
 
 def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list:
     """Gets a list of all Client Archetypes, with a search filter on the archetype name
