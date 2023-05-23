@@ -135,6 +135,7 @@ def register_blueprints(app):
     from src.personas.controllers import PERSONAS_BLUEPRINT
     from src.voice_builder.controllers import VOICE_BUILDER_BLUEPRINT
     from src.company.controllers import COMPANY_BLUEPRINT
+    from src.calendly.controllers import CALENDLY_BLUEPRINT
 
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -166,6 +167,7 @@ def register_blueprints(app):
     app.register_blueprint(PERSONAS_BLUEPRINT, url_prefix="/personas")
     app.register_blueprint(VOICE_BUILDER_BLUEPRINT, url_prefix="/voice_builder")
     app.register_blueprint(COMPANY_BLUEPRINT, url_prefix="/company")
+    app.register_blueprint(CALENDLY_BLUEPRINT, url_prefix="/calendly")
 
     db.init_app(app)
 

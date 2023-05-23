@@ -240,6 +240,8 @@ class ClientSDR(db.Model):
 
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
     onboarded = db.Column(db.Boolean, nullable=True, default=False)
+    calendly_access_token = db.Column(db.String, nullable=True)
+    calendly_refresh_token = db.Column(db.String, nullable=True)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
