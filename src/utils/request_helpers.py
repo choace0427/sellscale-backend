@@ -22,9 +22,9 @@ def get_request_parameter(
         else:
             return None
 
-    value = values.get(key)
     if parameter_type == list and not json:
-        value = values.getlist(key)
+        values = values.getlist(key)
+        value = values[0].split(',')
         return value
     if parameter_type != None and type(value) != parameter_type:
         message = "Invalid request. Parameter `{}` must be of type `{}` but was `{}`.".format(
