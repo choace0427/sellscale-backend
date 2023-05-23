@@ -90,6 +90,8 @@ def update_client_details(
     description: Optional[str] = None,
     value_prop_key_points: Optional[str] = None,
     tone_attributes: Optional[list[str]] = None,
+    mission: Optional[str] = None,
+    case_study: Optional[str] = None,
 ):
     c: Client = Client.query.get(client_id)
     if not c:
@@ -105,6 +107,10 @@ def update_client_details(
         c.value_prop_key_points = value_prop_key_points
     if tone_attributes:
         c.tone_attributes = tone_attributes
+    if mission:
+        c.mission = mission
+    if case_study:
+        c.case_study = case_study
 
     db.session.add(c)
     db.session.commit()

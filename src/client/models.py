@@ -56,6 +56,9 @@ class Client(db.Model):
 
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
 
+    mission = db.Column(db.String, nullable=True)
+    case_study = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -75,6 +78,8 @@ class Client(db.Model):
             "description": self.description,
             "value_prop_key_points": self.value_prop_key_points,
             "tone_attributes": self.tone_attributes,
+            "mission": self.mission,
+            "case_study": self.case_study,
         }
 
 
