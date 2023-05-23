@@ -36,6 +36,11 @@ def get_bump_frameworks(client_sdr_id: int):
         if key in overall_statuses:
             overall_statuses_enumed.append(val)
 
+    # Convert client_archetype_ids to list of integers
+    if type(client_archetype_ids) == str:
+        client_archetype_ids = [client_archetype_ids]
+    client_archetype_ids = [int(ca_id) for ca_id in client_archetype_ids]
+
     bump_frameworks = get_bump_frameworks_for_sdr(
         client_sdr_id=client_sdr_id,
         overall_statuses=overall_statuses_enumed,
