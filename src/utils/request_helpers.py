@@ -22,6 +22,7 @@ def get_request_parameter(
         else:
             return None
 
+    value = values.get(key)
     if parameter_type == list and not json:
         value = values.getlist(key)
         if value[0] == '':
