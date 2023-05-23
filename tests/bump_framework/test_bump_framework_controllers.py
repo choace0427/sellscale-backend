@@ -20,9 +20,7 @@ def test_get_bump_frameworks():
     bump_framework = basic_bump_framework(client_sdr)
 
     response = app.test_client().get(
-        "/bump_framework/bump?overall_status=ACCEPTED".format(
-            client_sdr_id
-        ),
+        "/bump_framework/bump?overall_statuses=ACCEPTED,ACTIVE_CONVO&archetype_ids=",
         headers={
             "Authorization": "Bearer {token}".format(token=LOGIN_TOKEN)
         },
@@ -32,7 +30,7 @@ def test_get_bump_frameworks():
     assert len(response_json.get('bump_frameworks')) == 0
 
     response = app.test_client().get(
-        "/bump_framework/bump?overall_status=BUMPED".format(
+        "/bump_framework/bump?overall_statuses=BUMPED&archetype_ids=".format(
             client_sdr_id
         ),
         headers={
