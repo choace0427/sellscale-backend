@@ -8,7 +8,7 @@ from typing import Optional
 
 def get_bump_frameworks_for_sdr(
     client_sdr_id: int,
-    overall_status: ProspectOverallStatus,
+    overall_statuses: Optional[list[ProspectOverallStatus]] = [],
     client_archetype_ids: Optional[list[int]] = [],
     activeOnly: Optional[bool] = True,
 ) -> list[dict]:
@@ -16,13 +16,17 @@ def get_bump_frameworks_for_sdr(
 
     Args:
         client_sdr_id (int): The id of the SDR
-        overall_status (ProspectOverallStatus): The overall status of the bump framework
+        overall_statuses (Optional[list[ProspectOverallStatus]], optional): The overall statuses of the bump frameworks. Defaults to [] which is ALL statuses.
         client_archetype_ids (Optional[list[int]], optional): The ids of the client archetypes. Defaults to [] which is ALL archetypes.
         activeOnly (Optional[bool], optional): Whether to only return active bump frameworks. Defaults to True.
 
     Returns:
         list[dict]: A list of bump frameworks
     """
+    # If overall_statuses is not specified, grab all overall statuses
+    if len(overall_statuses) == 0:
+        overall_statuses = [pos for pos in ProspectOverallStatus]
+
     # If client_archetype_ids is not specified, grab all client archetypes
     if len(client_archetype_ids) == 0:
         client_archetype_ids = [ca.id for ca in ClientArchetype.query.filter_by(
@@ -38,12 +42,12 @@ def get_bump_frameworks_for_sdr(
     ).filter(
         ClientArchetype.id.in_(client_archetype_ids),
         BumpFramework.client_sdr_id == client_sdr_id,
-        BumpFramework.overall_status == overall_status,
     ).all()
 
     # Get all bump frameworks that match the joined query
     bf_list = BumpFramework.query.filter(
-        BumpFramework.id.in_([bf.bump_framework_id for bf in joined_query])
+        BumpFramework.id.in_([bf.bump_framework_id for bf in joined_query]),
+        BumpFramework.overall_status.in_(overall_statuses)
     )
 
     if activeOnly:

@@ -47,12 +47,12 @@ def test_get_bump_frameworks_for_sdr():
     bump_framework = BumpFramework.query.get(bump_id)
     bump_framework2 = BumpFramework.query.get(bump2_id)
 
-    bumps = get_bump_frameworks_for_sdr(sdr.id, bump_framework.overall_status)
+    bumps = get_bump_frameworks_for_sdr(sdr.id, [bump_framework.overall_status])
     assert len(bumps) == 1
     assert bumps[0]["id"] == bump_framework.id
 
     bumps = get_bump_frameworks_for_sdr(
-        sdr.id, bump_framework.overall_status, activeOnly=False
+        sdr.id, [bump_framework.overall_status], activeOnly=False
     )
     assert len(bumps) == 2
     assert bumps[0]["id"] == bump_framework.id
