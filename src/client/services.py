@@ -1,3 +1,4 @@
+from src.client.models import ClientProduct
 from sqlalchemy import or_
 from click import Option
 from src.client.models import DemoFeedback
@@ -1617,3 +1618,60 @@ def get_personas_page_details(client_sdr_id: int):
         json_results.append(row._asdict())
 
     return json_results
+
+
+def add_client_product(
+        client_sdr_id: int,
+        name: str,
+        description: str,
+        how_it_works: Optional[str],
+        use_cases: Optional[str],
+        product_url: Optional[str]):
+    """Adds a client product
+    """
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_product = ClientProduct(
+        client_id=client_sdr.client_id,
+        name=name,
+        description=description,
+        how_it_works=how_it_works,
+        use_cases=use_cases,
+        product_url=product_url,
+    )
+    db.session.add(client_product)
+    db.session.commit()
+
+    return True
+
+
+def remove_client_product(client_sdr_id: int, client_product_id: int):
+    """Removes a client product
+    """
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_product = ClientProduct.query.get(client_product_id)
+    if not client_product or client_product.client_id != client_sdr.client_id:
+        return False
+
+    db.session.delete(client_product)
+    db.session.commit()
+
+    return True
+
+
+def get_client_products(client_sdr_id: int):
+    """Gets all client products
+    """
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_products = ClientProduct.query.filter(
+        ClientProduct.client_id == client_sdr.client_id
+    ).all()
+
+    return [client_product.to_dict() for client_product in client_products]
+
+

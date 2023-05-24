@@ -136,6 +136,30 @@ class ClientArchetype(db.Model):
         }
 
 
+class ClientProduct(db.Model):
+    __tablename__ = "client_product"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+    how_it_works = db.Column(db.String, nullable=True)
+    use_cases = db.Column(db.String, nullable=True)
+    product_url = db.Column(db.String, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "name": self.name,
+            "description": self.description,
+            "how_it_works": self.how_it_works,
+            "use_cases": self.use_cases,
+            "product_url": self.product_url,
+        }
+
+
 class ClientPod(db.Model):
     __tablename__ = "client_pod"
 

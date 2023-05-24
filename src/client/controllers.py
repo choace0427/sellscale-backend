@@ -53,6 +53,9 @@ from src.client.services import (
     remove_prospects_caught_by_client_filters,
     update_client_details,
     update_client_sdr_details,
+    add_client_product,
+    remove_client_product,
+    get_client_products,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -1197,3 +1200,62 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
     if not success:
         return "Failed to remove prospects", 400
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/product", methods=["POST"])
+@require_user
+def post_client_product(client_sdr_id: int):
+    
+    name = get_request_parameter(
+        "name", request, json=True, required=True, default_value=''
+    )
+    description = get_request_parameter(
+        "description", request, json=True, required=True, default_value=''
+    )
+    how_it_works = get_request_parameter(
+        "how_it_works", request, json=True, required=False, default_value=None
+    )
+    use_cases = get_request_parameter(
+        "use_cases", request, json=True, required=False, default_value=None
+    )
+    product_url = get_request_parameter(
+        "product_url", request, json=True, required=False, default_value=None
+    )
+
+    success = add_client_product(
+        client_sdr_id=client_sdr_id,
+        name=name,
+        description=description,
+        how_it_works=how_it_works,
+        use_cases=use_cases,
+        product_url=product_url,
+    )
+    if not success:
+        return jsonify({"message": "Failed to add new product"}), 500
+
+    return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/product", methods=["DELETE"])
+@require_user
+def delete_client_product(client_sdr_id: int):
+
+    product_id = get_request_parameter(
+        "product_id", request, json=True, required=True
+    )
+
+    success = remove_client_product(client_sdr_id=client_sdr_id, client_product_id=product_id)
+    if not success:
+        return jsonify({"message": "Failed to remove product"}), 500
+
+    return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/product", methods=["GET"])
+@require_user
+def get_client_product(client_sdr_id: int):
+
+    products = get_client_products(client_sdr_id=client_sdr_id)
+
+    return jsonify({ "message": "Success", "data": products }), 200
+
