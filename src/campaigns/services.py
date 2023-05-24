@@ -279,12 +279,14 @@ def get_outbound_campaign_details_for_edit_tool_email(
         personalized_subject_line_completion = entry[4]
         personalized_subject_line_problems = entry[5]
         personalized_subject_line_highlighted_words = entry[6]
-        personalized_body_message_id = entry[7]
-        personalized_body_ai_approved = entry[8]
-        personalized_body_completion = entry[9]
-        personalized_body_problems = entry[10]
-        personalized_body_highlighted_words = entry[11]
-        prospect_email_id = entry[12]
+        personalized_subject_line_prompt = entry[7]
+        personalized_subject_line_few_shot_prompt = entry[8]
+        personalized_body_message_id = entry[9]
+        personalized_body_ai_approved = entry[10]
+        personalized_body_completion = entry[11]
+        personalized_body_problems = entry[12]
+        personalized_body_highlighted_words = entry[13]
+        prospect_email_id = entry[14]
         prospects.append(
             {
                 "prospect_id": prospect_id,
@@ -295,6 +297,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 "problems": personalized_subject_line_problems
                 + personalized_body_problems,
                 "highlighted_words": personalized_subject_line_highlighted_words,
+                "prompt": personalized_subject_line_prompt,
+                "few_shot_prompt": personalized_subject_line_few_shot_prompt,
                 "message_id_2": personalized_body_message_id,
                 "ai_approved_2": personalized_body_ai_approved,
                 "completion_2": personalized_body_completion,
