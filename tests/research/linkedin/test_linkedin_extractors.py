@@ -8,7 +8,7 @@ from src.research.linkedin.extractors.experience import (
     get_years_of_experience,
     get_linkedin_bio_summary
 )
-from src.ml.openai_wrappers import CURRENT_OPENAI_DAVINCI_MODEL
+from src.ml.openai_wrappers import OPENAI_COMPLETION_DAVINCI_3_MODEL
 import mock
 
 @use_app_context
@@ -127,7 +127,7 @@ def test_get_linkedin_bio_summary(mock_wrapped_create_completion):
     assert response["response"] == "test"
     assert mock_wrapped_create_completion.call_count == 1
     assert mock_wrapped_create_completion.called_with(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
         prompt="individual: test-first-name test-last-name\nbio: test-summary\n\ninstruction: Summarize the individual's bio in 30 words or less.\n\nsummary:",
         max_tokens=30,
     )

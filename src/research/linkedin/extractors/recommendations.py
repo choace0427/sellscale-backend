@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
-    CURRENT_OPENAI_DAVINCI_MODEL,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
 )
 
 from src.utils.abstract.attr_utils import deep_get
@@ -36,7 +36,7 @@ def get_recent_recommendation_summary(data):
         return {}
     else:
         response = wrapped_create_completion(
-          model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=50
+          model=OPENAI_COMPLETION_DAVINCI_3_MODEL, prompt=prompt, max_tokens=50
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}

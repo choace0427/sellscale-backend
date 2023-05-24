@@ -1,6 +1,6 @@
 from sqlalchemy import func
 from src.ml.openai_wrappers import (
-    CURRENT_OPENAI_DAVINCI_MODEL,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
     wrapped_create_completion,
 )
 from src.prospecting.models import Prospect
@@ -55,7 +55,7 @@ def predict_persona_buckets_from_client_archetype(client_archetype_id: int):
     concatenated_list_of_prospect_titles = "\n".join(list_of_prospect_titles)
 
     raw_open_ai_categorization = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
         max_tokens=500,
         prompt="""
 You are a sales researcher. Given a list of prospect titles, create 3-5 personas that I should bucket these prospects into. I would like a list of personas with the following information for each persona:
@@ -73,7 +73,7 @@ Output:""".format(
     )
 
     json_open_ai_categorization = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
         max_tokens=600,
         prompt="""
 Given a list of persona names, descriptions, and titles, return a JSON array of objects. Each object should have the following properties:

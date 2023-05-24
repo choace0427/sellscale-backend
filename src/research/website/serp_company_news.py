@@ -2,7 +2,7 @@ import os
 import openai
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
-    CURRENT_OPENAI_DAVINCI_MODEL,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
 )
 
 
@@ -59,7 +59,7 @@ def analyze_serp_article_sentiment(article_title: str, article_snippet: str):
     instruction = "Is this article 'positive' or 'negative' sentiment based on the title and snippet?"
     prompt = f"title: {article_title}\nsnippet: {article_snippet}\ninstruction: {instruction}\nsentiment:"
     response = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=1
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL, prompt=prompt, max_tokens=1
     )
 
     return response.lower()

@@ -9,7 +9,8 @@ from flask import jsonify
 import time
 
 from src.ml.openai_wrappers import (
-    CURRENT_OPENAI_CHAT_GPT_MODEL,
+    OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+    OPENAI_CHAT_GPT_4_MODEL,
     wrapped_create_completion,
 )
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
@@ -147,7 +148,7 @@ def complete_client_sdr_onboarding(
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
         return None
-    
+
     csdr.onboarded = True
 
     db.session.add(csdr)
@@ -1160,7 +1161,7 @@ def nylas_account_details(client_sdr_id: int):
     Returns:
         dict: Dict containing the response
     """
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     response = requests.get(
@@ -1281,7 +1282,7 @@ def predict_persona_fit_reason(
     # create prompt
     prompt = f"Based on the company's name, archetype's name, company's tagline, and company's description, predict the reason why the archetype would purchase the product from the company.\n\nCompany Name: {company_name}\nArchetype Name: {archetype_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nWhy would they buy the product?:"
     response = wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, prompt=prompt, max_tokens=200
     )
     if response == False:
         return False, "Error generating prediction"
@@ -1309,7 +1310,7 @@ def generate_persona_description(client_sdr_id: int, persona_name: str):
 
     prompt = f"You are a sales researcher for {company_name}. You are tasked with understanding a new persona target which is called '{persona_name}'. Given the company's name, company's tagline, and company's description, generate a persona description for the persona.\n\nCompany Name: {company_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nPersona Description:"
     return wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, prompt=prompt, max_tokens=200
     )
 
 
@@ -1333,7 +1334,7 @@ def generate_persona_buy_reason(client_sdr_id: int, persona_name: str):
 
     prompt = f"You are a sales researcher for {company_name}. You are tasked with understanding a new persona target which is called '{persona_name}'. Given the company's name, company's tagline, and company's description, generate a reason why this persona would buy your company's product or offering.\n\nCompany Name: {company_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nPersona Buy Reason:"
     return wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, prompt=prompt, max_tokens=200
     )
 
 
@@ -1388,7 +1389,7 @@ ICP Scoring Prompt:
         persona_fit_reason=persona_buy_reason,
     )
     return wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=400
+        model=OPENAI_CHAT_GPT_4_MODEL, prompt=prompt, max_tokens=400
     )
 
 
@@ -1629,7 +1630,7 @@ def add_client_product(
         product_url: Optional[str]):
     """Adds a client product
     """
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     client_product = ClientProduct(
@@ -1649,7 +1650,7 @@ def add_client_product(
 def remove_client_product(client_sdr_id: int, client_product_id: int):
     """Removes a client product
     """
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     client_product = ClientProduct.query.get(client_product_id)
@@ -1665,7 +1666,7 @@ def remove_client_product(client_sdr_id: int, client_product_id: int):
 def get_client_products(client_sdr_id: int):
     """Gets all client products
     """
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     client_products = ClientProduct.query.filter(

@@ -23,8 +23,9 @@ from src.ml.models import (
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
     wrapped_chat_gpt_completion,
-    CURRENT_OPENAI_DAVINCI_MODEL,
-    CURRENT_OPENAI_CHAT_GPT_MODEL,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
+    OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+    OPENAI_CHAT_GPT_4_MODEL,
 )
 import regex as rx
 import re
@@ -226,7 +227,7 @@ def get_aree_fix_basic(message_id: int) -> str:
     prompt += "revised message:"
 
     fixed_completion = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
         prompt=prompt,
         temperature=0,
         max_tokens=len(completion) + 10,
@@ -249,7 +250,7 @@ def get_sequence_value_props(
     )
 
     fixed_completion = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
         prompt=prompt,
         temperature=1,
         max_tokens=20 + 30 * num,
@@ -334,7 +335,7 @@ def get_sequence_draft(
     # Generate Completion
     emails = wrapped_create_completion(
         # TODO: Use CURRENT_OPENAI_LATEST_GPT_MODEL when we gain access.
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL,
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
         prompt=prompt,
         temperature=0.7,
         frequency_penalty=1.15,
@@ -808,9 +809,9 @@ Write a personalized cold email short enough I could read on an iphone easily. H
 2. Include a personalized first line (be direct; don't say "i came across your profile.."
 3. End with Best, (new line) {{My Name}}
 
-Note - you do not need to include all info. 
+Note - you do not need to include all info.
 
-SDR info: 
+SDR info:
 SDR Name: {client_sdr_name}
 Title: {client_sdr_title}
 
@@ -832,7 +833,7 @@ Why they buy:
 Prospect info:
 Prospect Name: {prospect_name}
 Prospect Title: {prospect_title}
-Prospect Bio: 
+Prospect Bio:
 "{prospect_bio}"
 Prospect Company Name: {prospect_company_name}
 
@@ -871,7 +872,7 @@ def generate_email(prompt: str):
         ],
         temperature=0.7,
         max_tokens=240,
-        model="gpt-4",
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
     response = response if isinstance(response, str) else ""
 
@@ -922,7 +923,7 @@ def chat_ai_classify_active_convo(messages, output_options: List[str]) -> int:
         messages,
         temperature=0.7,
         max_tokens=240,
-        model="gpt-4",
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
 
     match = re.search(r"\d+", response)
@@ -1027,7 +1028,7 @@ def determine_best_bump_framework_from_convo(
         messages,
         temperature=0.7,
         max_tokens=240,
-        model="gpt-4",
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
 
     match = re.search(r"\d+", response)
