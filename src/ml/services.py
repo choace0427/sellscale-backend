@@ -798,6 +798,13 @@ def ai_email_prompt(client_sdr_id: int, prospect_id: int):
     prospect_bio = prospect.linkedin_bio
     prospect_company_name = prospect.company
 
+    prospect_research: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    research_points = ""
+    for point in prospect_research:
+        research_points += f"- {point.value}\n"
+
     account_points = ""
     for point in account_research:
         account_points += f"- {point.title}: {point.reason}\n"
@@ -839,10 +846,11 @@ Prospect Company Name: {prospect_company_name}
 
 More research:
 {prospect_research}
+{research_points}
 
 Final instructions
 - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed"
-- Add some personality with research points below: recent 1 year anniversary;
+
 
 Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
 
@@ -860,6 +868,7 @@ Output:""".format(
         prospect_bio=prospect_bio,
         prospect_company_name=prospect_company_name,
         prospect_research=account_points,
+        research_points=research_points,
     )
 
     return prompt
