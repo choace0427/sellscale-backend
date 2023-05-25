@@ -24,6 +24,7 @@ from src.ml.services import (
 from src.ml.fine_tuned_models import get_config_completion
 
 from src.message_generation.models import GeneratedMessage
+from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.utils.request_helpers import get_request_parameter
 
 ML_BLUEPRINT = Blueprint("ml", __name__)
@@ -349,6 +350,8 @@ def get_generate_email_prompt(client_sdr_id: int):
 
     if prospect is None or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 404
+
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
     prompt = ai_email_prompt(client_sdr_id, prospect_id)
     return jsonify({"prompt": prompt}), 200
