@@ -92,16 +92,41 @@ def send_status_change_slack_block(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Title:* {title}\n-{last_message}".format(
+                "text": "*Title:* {title}".format(
                     title=prospect.title,
-                    last_message="" if not has_messages
-                    else '*Last Messages*:\n{messages}'.format(
-                        messages="\n-".join([c.message for c in convo])
-                    ),
                 ),
             },
         }
     )
+
+    # If we have messages, send them
+    if has_messages:
+        for c in convo:
+            if c.connection_degree == "You":
+                message_blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "{sender}: {message}".format(
+                                sender=c.author, message=c.message
+                            ),
+                        },
+                    }
+                )
+            else:
+                message_blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*{sender}:* {message}".format(
+                                sender=c.author, degree=c.connection_degree, message=c.message
+                            ),
+                        },
+                    }
+                )
+
     channel_text = "Email" if outreach_type == ProspectChannels.EMAIL else "LinkedIn"
     message_blocks.append(
         {  # Add SDR information
