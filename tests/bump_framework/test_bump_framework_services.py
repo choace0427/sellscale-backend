@@ -58,6 +58,28 @@ def test_get_bump_frameworks_for_sdr():
     assert bumps[0]["id"] == bump_framework.id
     assert bumps[1]["id"] == bump_framework2.id
 
+    bump3_id = create_bump_framework(
+        client_sdr_id=sdr.id,
+        title="title",
+        description="description",
+        overall_status=ProspectOverallStatus.ACTIVE_CONVO,
+        length=BumpLength.LONG,
+        client_archetype_ids=[archetype.id],
+        active=True,
+        substatus="ACTIVE_CONVO_OBJECTION",
+        default=True
+    )
+    bump_framework3 = BumpFramework.query.get(bump3_id)
+    bumps = get_bump_frameworks_for_sdr(
+        sdr.id,
+        [bump_framework.overall_status],
+        ["ACTIVE_CONVO_OBJECTION"],
+        activeOnly=False
+    )
+    assert len(bumps) == 1
+    assert bumps[0]["id"] == bump_framework3.id
+
+
 
 @use_app_context
 def test_create_bump_framework():

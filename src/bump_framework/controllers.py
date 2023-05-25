@@ -30,6 +30,9 @@ def get_bump_frameworks(client_sdr_id: int):
     client_archetype_ids = get_request_parameter(
         "archetype_ids", request, json=False, required=False, parameter_type=list
     ) or []
+    substatuses = get_request_parameter(
+        "substatuses", request, json=False, required=False, parameter_type=list
+    ) or []
 
     overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
@@ -44,6 +47,7 @@ def get_bump_frameworks(client_sdr_id: int):
     bump_frameworks = get_bump_frameworks_for_sdr(
         client_sdr_id=client_sdr_id,
         overall_statuses=overall_statuses_enumed,
+        substatuses=substatuses,
         client_archetype_ids=client_archetype_ids
     )
     return jsonify({"bump_frameworks": bump_frameworks}), 200
@@ -71,6 +75,9 @@ def post_create_bump_framework(client_sdr_id: int):
     archetype_ids = get_request_parameter(
         "archetype_ids", request, json=True, required=False, parameter_type=list
     ) or []
+    substatus = get_request_parameter(
+        "substatus", request, json=True, required=False, parameter_type=str
+    ) or None
 
     # Get the enum value for the overall status
     found_key = False
@@ -99,6 +106,7 @@ def post_create_bump_framework(client_sdr_id: int):
         length=length,
         client_sdr_id=client_sdr_id,
         client_archetype_ids=archetype_ids,
+        substatus=substatus,
         default=default,
     )
     if bump_framework_id:

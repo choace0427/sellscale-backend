@@ -9,6 +9,7 @@ from typing import Optional
 def get_bump_frameworks_for_sdr(
     client_sdr_id: int,
     overall_statuses: Optional[list[ProspectOverallStatus]] = [],
+    substatuses: Optional[list[str]] = [],
     client_archetype_ids: Optional[list[int]] = [],
     activeOnly: Optional[bool] = True,
 ) -> list[dict]:
@@ -17,6 +18,7 @@ def get_bump_frameworks_for_sdr(
     Args:
         client_sdr_id (int): The id of the SDR
         overall_statuses (Optional[list[ProspectOverallStatus]], optional): The overall statuses of the bump frameworks. Defaults to [] which is ALL statuses.
+        substatuses (Optional[list[str]], optional): The substatuses of the bump frameworks. Defaults to [] which is ALL substatuses.
         client_archetype_ids (Optional[list[int]], optional): The ids of the client archetypes. Defaults to [] which is ALL archetypes.
         activeOnly (Optional[bool], optional): Whether to only return active bump frameworks. Defaults to True.
 
@@ -50,6 +52,10 @@ def get_bump_frameworks_for_sdr(
         BumpFramework.overall_status.in_(overall_statuses)
     )
 
+    # If substatuses is specified, filter by substatuses
+    if len(substatuses) > 0:
+        bf_list = bf_list.filter(BumpFramework.substatus.in_(substatuses))
+
     if activeOnly:
         bf_list = bf_list.filter(BumpFramework.active == True)
 
@@ -66,6 +72,7 @@ def create_bump_framework(
     length: BumpLength,
     client_archetype_ids: list[int] = [],
     active: bool = True,
+    substatus: Optional[str] = None,
     default: Optional[bool] = False
 ) -> int:
     """Create a new bump framework, if default is True, set all other bump frameworks to False
@@ -78,6 +85,7 @@ def create_bump_framework(
         active (bool, optional): Whether the bump framework is active. Defaults to True.
         client_sdr_id (int): The id of the client SDR. Defaults to None.
         client_archetype_ids (list[int], optional): The ids of the client archetypes. Defaults to [] which is ALL archetypes.
+        substatus (Optional[str], optional): The substatus of the bump framework. Defaults to None.
         default (Optional[bool], optional): Whether the bump framework is the default. Defaults to False.
 
     Returns:
@@ -98,6 +106,7 @@ def create_bump_framework(
         description=description,
         title=title,
         overall_status=overall_status,
+        substatus=substatus,
         bump_length=length,
         active=active,
         client_sdr_id=client_sdr_id,
