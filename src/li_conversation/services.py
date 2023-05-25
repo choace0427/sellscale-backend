@@ -1,6 +1,5 @@
 from typing import List, Union, Optional
 
-from src.message_generation.services import generate_prospect_bump
 from src.bump_framework.models import BumpLength
 
 from src.voyager.linkedin import LinkedIn
@@ -595,6 +594,7 @@ def scrape_conversations_inbox():
 def scrape_conversation_queue():
 
     from src.voyager.services import update_conversation_entries
+    from src.message_generation.services import generate_prospect_bump
 
     scrape_queue: List[
         LinkedinConversationScrapeQueue
