@@ -614,43 +614,64 @@ def classify_active_convo(prospect_id: int, messages):
 
     update_prospect_status_linkedin(prospect_id, status)
 
+
+    # Send slack message
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Title:* {prospect.title}"
+            },
+        },
+    ]
+
+    for i, message in enumerate(messages):
+        if i >= 5: break
+        length = 140
+        text = message.get('content', '')
+        truncated_text = (text[:length]+'...') if len(text) > length else text
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{truncated_text}"
+            },
+        })
+    
+    blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "*{name}'s Direct Login*: <{link}|Link>".format(
+                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + str(client_sdr.auth_token),
+                name=client_sdr.name,
+            ),
+        },
+    })
+    blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "*SellScale Sight*: <{link}|Contact Link>".format(
+                link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
+            ),
+        },
+    })
+
     send_slack_message(
         message=f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
         webhook_urls=[URL_MAP["csm-convo-sorter"]],
-        blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
-                    },
-                },
-                {  # Add prospect title and (optional) last message
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Title:* {title}\n{last_message}".format(
-                            title=prospect.title,
-                            last_message=""
-                            if not len(messages) > 0
-                            else '*Last Message*: "{}"'.format(
-                                messages[0].get('content')
-                            ),
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*SellScale Sight*: <{link}|Link>".format(
-                            link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
-                        ),
-                    },
-                },
-        ]
+        blocks=blocks,
     )
 
 
