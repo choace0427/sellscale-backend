@@ -1,4 +1,6 @@
 from typing import List, Union, Optional
+
+from src.message_generation.services import generate_prospect_bump
 from src.bump_framework.models import BumpLength
 
 from src.voyager.linkedin import LinkedIn
@@ -617,6 +619,9 @@ def scrape_conversation_queue():
                 message=f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
                 webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
+
+            # Generate a bump msg for the prospect
+            generate_prospect_bump(prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id)
 
         except Exception as e:
             continue

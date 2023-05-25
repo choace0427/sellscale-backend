@@ -1,3 +1,4 @@
+from src.message_generation.services import delete_prospect_bump, get_prospect_bump
 from app import db
 
 from flask import Blueprint, request, jsonify
@@ -642,3 +643,48 @@ def post_update_stack_ranked_configuration_tool_instruction_and_prompt():
     if success:
         return "OK", 200
     return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/auto_bump", methods=["GET"]
+)
+@require_user
+def get_auto_bump_message(client_sdr_id: int):
+    """
+    Get an auto bump message
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True
+    )
+    
+    result = get_prospect_bump(
+        client_sdr_id=client_sdr_id,
+        prospect_id=int(prospect_id),
+    )
+    if not result:
+        return jsonify({"message": "Failed to fetch"}), 400
+    
+    return jsonify({"message": "Success", "data": result.to_dict()}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/auto_bump", methods=["DELETE"]
+)
+@require_user
+def delete_auto_bump_message(client_sdr_id: int):
+    """
+    Deletes an auto bump message
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    
+    success = delete_prospect_bump(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+    )
+    if not success:
+        return jsonify({"message": "Failed to delete"}), 400
+    
+    return jsonify({"message": "Success"}), 200
+

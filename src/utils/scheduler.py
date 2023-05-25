@@ -149,6 +149,16 @@ def send_prospect_emails():
         send_prospect_emails.delay()
 
 
+def generate_message_bumps():
+    from src.message_generation.services import generate_message_bumps
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        generate_message_bumps.delay()
+
+
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
@@ -175,6 +185,8 @@ scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 
 scheduler.add_job(func=replenish_sdr_credits, trigger="interval", days=1)
 scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
+
+scheduler.add_job(func=generate_message_bumps, trigger="interval", days=1)
 
 scheduler.start()
 

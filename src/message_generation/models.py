@@ -131,6 +131,26 @@ class GeneratedMessageQueue(db.Model):
     li_message_urn_id = db.Column(db.String, unique=True, index=True, nullable=True)
 
 
+class GeneratedMessageAutoBump(db.Model):
+    __tablename__ = "generated_message_auto_bump"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    latest_li_message_id = db.Column(db.Integer, db.ForeignKey("linkedin_conversation_entry.id"), unique=True, index=True, nullable=True)
+    message = db.Column(db.String, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "client_sdr_id": self.client_sdr_id,
+            "latest_li_message_id": self.latest_li_message_id,
+            "message": self.message,
+        }
+
+
 class GeneratedMessageInstruction(db.Model):
     __tablename__ = "generated_message_instruction"
 

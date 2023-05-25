@@ -272,6 +272,8 @@ class ClientSDR(db.Model):
     calendly_access_token = db.Column(db.String, nullable=True)
     calendly_refresh_token = db.Column(db.String, nullable=True)
 
+    auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
         self.uuid = uuid_str
@@ -305,6 +307,7 @@ class ClientSDR(db.Model):
             "timezone": self.timezone,
             "onboarded": self.onboarded,
             "calendly_connected": self.calendly_access_token is not None,
+            "auto_generate_messages": self.auto_generate_messages,
         }
 
 
