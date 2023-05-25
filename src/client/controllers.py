@@ -56,6 +56,7 @@ from src.client.services import (
     add_client_product,
     remove_client_product,
     get_client_products,
+    update_client_product,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -1235,6 +1236,44 @@ def post_client_product(client_sdr_id: int):
 
     return jsonify({"message": "Success"}), 200
 
+
+@CLIENT_BLUEPRINT.route("/product", methods=["PUT"])
+@require_user
+def put_client_product(client_sdr_id: int):
+    
+    product_id = get_request_parameter(
+        "product_id", request, json=True, required=True, parameter_type=int
+    )
+
+    name = get_request_parameter(
+        "name", request, json=True, required=False, default_value=None
+    )
+    description = get_request_parameter(
+        "description", request, json=True, required=False, default_value=None
+    )
+    how_it_works = get_request_parameter(
+        "how_it_works", request, json=True, required=False, default_value=None
+    )
+    use_cases = get_request_parameter(
+        "use_cases", request, json=True, required=False, default_value=None
+    )
+    product_url = get_request_parameter(
+        "product_url", request, json=True, required=False, default_value=None
+    )
+
+    success = update_client_product(
+        client_sdr_id=client_sdr_id,
+        client_product_id=product_id,
+        name=name,
+        description=description,
+        how_it_works=how_it_works,
+        use_cases=use_cases,
+        product_url=product_url,
+    )
+    if not success:
+        return jsonify({"message": "Failed to update product"}), 500
+
+    return jsonify({"message": "Success"}), 200
 
 @CLIENT_BLUEPRINT.route("/product", methods=["DELETE"])
 @require_user

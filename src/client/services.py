@@ -1646,6 +1646,35 @@ def add_client_product(
     return True
 
 
+def update_client_product(
+        client_sdr_id: int,
+        client_product_id: int,
+        name: Optional[str],
+        description: Optional[str],
+        how_it_works: Optional[str],
+        use_cases: Optional[str],
+        product_url: Optional[str]):
+    """Updates a client product
+    """
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_product = ClientProduct.query.get(client_product_id)
+    if not client_product or client_product.client_id != client_sdr.client_id:
+        return False
+    
+    if name: client_product.name = name
+    if description: client_product.description = description
+    if how_it_works: client_product.how_it_works = how_it_works
+    if use_cases: client_product.use_cases = use_cases
+    if product_url: client_product.product_url = product_url
+
+    db.session.add(client_product)
+    db.session.commit()
+
+    return True
+
+
 def remove_client_product(client_sdr_id: int, client_product_id: int):
     """Removes a client product
     """
