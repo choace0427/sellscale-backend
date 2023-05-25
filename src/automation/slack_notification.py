@@ -64,7 +64,6 @@ def send_status_change_slack_block(
         if client and client.pipeline_notifications_webhook_url:
             webhook_urls.append(client.pipeline_notifications_webhook_url)
 
-    print("Sending slack notification to: ", webhook_urls)
     # Get last messages using URN ID
     has_messages = False
     convo: list[LinkedinConversationEntry] = []
@@ -75,8 +74,6 @@ def send_status_change_slack_block(
         ).order_by(LinkedinConversationEntry.created_at.desc()).limit(5).all()
         if len(convo) > 0:
             has_messages = True
-    print("Has messages: ", has_messages)
-    print("Convo: ", convo)
 
     # Craft message
     message_blocks = []
