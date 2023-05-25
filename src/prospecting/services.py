@@ -1454,9 +1454,14 @@ def calculate_prospect_overall_status(prospect_id: int):
         return None
 
     prospect_email_overall_status: ProspectOverallStatus | None = None
-    prospect_email: ProspectEmail = ProspectEmail.query.get(
-        prospect.approved_prospect_email_id
-    )
+    
+    if prospect.approved_prospect_email_id:
+        prospect_email: Optional[ProspectEmail] = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id
+        )
+    else:
+        prospect_email = None
+
     if prospect_email:
         prospect_email_status: ProspectEmailOutreachStatus = (
             prospect_email.outreach_status

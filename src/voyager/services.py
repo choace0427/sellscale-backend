@@ -448,11 +448,6 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         .all()
     )
 
-    # Set last msg to to be the latest message in prospect
-    if latest_convo_entries and latest_convo_entries[0]:
-        prospect.li_last_message_from_prospect = latest_convo_entries[0].message
-        db.session.commit()
-    
 
     latest_entry_date = (
         latest_convo_entries[0].date if latest_convo_entries else dt.datetime.now()

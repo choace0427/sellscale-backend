@@ -103,6 +103,8 @@ def create_linkedin_conversation_entry(
     urn_id: Union[str, None] = None,
     img_expire: int = 0,
 ):
+    if message.strip() == "": return None
+
     """
     Check for duplicates and duplicate does not exist, create a new LinkedinConversationEntry
     """

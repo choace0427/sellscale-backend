@@ -1,5 +1,4 @@
 from src.message_generation.models import GeneratedMessageAutoBump
-from src.li_conversation.services import generate_chat_gpt_response_to_conversation_thread
 from src.ml.services import determine_account_research_from_convo_and_bump_framework
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
@@ -1806,6 +1805,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         research_str += f"- {account_research[i].reason}\n"
 
     # Generate response
+    from src.li_conversation.services import generate_chat_gpt_response_to_conversation_thread
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
         conversation_url=f'https://www.linkedin.com/messaging/thread/{convo_urn_id}/',
         bump_framework_id=best_framework.id,
