@@ -614,7 +614,7 @@ def scrape_conversation_queue():
             if prospect is None:
                 continue
             status, msg = update_conversation_entries(
-                api, scrape.conversation_urn_id, prospect
+                api, scrape.conversation_urn_id, prospect.id
             )
 
             send_slack_message(

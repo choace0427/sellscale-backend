@@ -270,7 +270,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
         return get_convo_entries(convo_urn_id), "NO_UPDATE"
     else:
         # If we need to update the conversation, we do so
-        update_conversation_entries(api, convo_urn_id, prospect)
+        update_conversation_entries(api, convo_urn_id, prospect.id)
         messages = get_convo_entries(convo_urn_id)
 
         # Process if the messages are AI generated or not 
@@ -285,7 +285,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
 
 
-def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Prospect):
+def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: int):
     """Updates LinkedinConversationEntry table with new entries
 
     Args:
@@ -295,6 +295,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect: Pros
     Returns:
         status_code (int), message (str): HTTP status code
     """
+    prospect: Prospect = Prospect.query.get(prospect_id)
 
     convo = api.get_conversation(convo_urn_id, limit=60)
 
