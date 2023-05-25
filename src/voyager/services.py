@@ -635,18 +635,21 @@ def classify_active_convo(prospect_id: int, messages):
         },
     ]
 
+    block_messages = []
     for i, message in enumerate(messages):
         if i >= 5: break
         length = 130
         text = message.get('content', '')
         truncated_text = (text[:length]+'...') if len(text) > length else text
-        blocks.append({
+        block_messages.append({
             "type": "section",
             "text": {
                 "type": "mrkdwn",
                 "text": f"*{'SDR' if message.get('role') == 'user' else 'Prospect'}*: {truncated_text}"
             },
         })
+    block_messages.reverse()
+    blocks += block_messages
     
     blocks.append({
         "type": "section",
