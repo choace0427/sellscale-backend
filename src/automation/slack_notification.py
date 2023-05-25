@@ -101,7 +101,7 @@ def send_status_change_slack_block(
 
     # If we have messages, send them
     if has_messages:
-        for c in convo:
+        for c in reversed(convo):
             if c.connection_degree == "You":
                 message_blocks.append(
                     {
