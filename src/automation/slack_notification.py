@@ -7,6 +7,7 @@ from model_import import (
     Client,
     ClientSDR,
 )
+from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.slack import send_slack_message
 from src.utils.slack import URL_MAP
 
@@ -63,11 +64,19 @@ def send_status_change_slack_block(
         if client and client.pipeline_notifications_webhook_url:
             webhook_urls.append(client.pipeline_notifications_webhook_url)
 
-    # Get last message
+    print("Sending slack notification to: ", webhook_urls)
+    # Get last messages using URN ID
+    has_messages = False
+    convo: list[LinkedinConversationEntry] = []
     if outreach_type == ProspectChannels.LINKEDIN:
-        last_message_from_prospect = prospect.li_last_message_from_prospect
-    else:
-        last_message_from_prospect = None
+        urn_id = prospect.li_conversation_urn_id
+        convo: list[LinkedinConversationEntry] = LinkedinConversationEntry.query.filter_by(
+            conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
+        ).order_by(LinkedinConversationEntry.created_at.desc()).limit(5).all()
+        if len(convo) > 0:
+            has_messages = True
+    print("Has messages: ", has_messages)
+    print("Convo: ", convo)
 
     # Craft message
     message_blocks = []
@@ -86,11 +95,12 @@ def send_status_change_slack_block(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Title:* {title}\n{last_message}".format(
+                "text": "*Title:* {title}\n-{last_message}".format(
                     title=prospect.title,
-                    last_message=""
-                    if not last_message_from_prospect
-                    else '*Last Message*: "{}"'.format(last_message_from_prospect),
+                    last_message="" if not has_messages
+                    else '*Last Messages*:\n{messages}'.format(
+                        messages="\n-".join([c.message for c in convo])
+                    ),
                 ),
             },
         }
@@ -148,8 +158,8 @@ def send_status_change_slack_block(
                         "text": "Click to see Linkedin Thread",
                         "emoji": True,
                     },
-                    "value": metadata.get("threadUrl") or "https://www.linkedin.com",
-                    "url": metadata.get("threadUrl") or "https://www.linkedin.com",
+                    "value": (metadata and metadata.get("threadUrl")) or "https://www.linkedin.com",
+                    "url": (metadata and metadata.get("threadUrl")) or "https://www.linkedin.com",
                     "action_id": "button-action",
                 },
             }
