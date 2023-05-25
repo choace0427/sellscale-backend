@@ -2,7 +2,7 @@ from ....ml.fine_tuned_models import get_completion
 from src.utils.converters.string_converters import sanitize_string
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
-    CURRENT_OPENAI_DAVINCI_MODEL,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
 )
 
 
@@ -24,7 +24,7 @@ def get_current_company_description(data):
         company_description = company_description.strip().replace('"', "'")
         prompt = f"company: {company_name}\n\nbio: {company_description}\n\ninstruction: Summarize what the company does in a short one-liner under 20 words in length.\n\ncompletion:"
         response = wrapped_create_completion(
-            model=CURRENT_OPENAI_DAVINCI_MODEL,
+            model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
             prompt=prompt,
             temperature=0.7,
             max_tokens=30,
@@ -53,7 +53,7 @@ def get_current_company_specialties(data):
         response = ""
     else:
         response = wrapped_create_completion(
-            model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=35
+            model=OPENAI_COMPLETION_DAVINCI_3_MODEL, prompt=prompt, max_tokens=35
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}

@@ -1,3 +1,4 @@
+from src.client.models import ClientProduct
 from sqlalchemy import or_
 from click import Option
 from src.client.models import DemoFeedback
@@ -8,7 +9,8 @@ from flask import jsonify
 import time
 
 from src.ml.openai_wrappers import (
-    CURRENT_OPENAI_CHAT_GPT_MODEL,
+    OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+    OPENAI_CHAT_GPT_4_MODEL,
     wrapped_create_completion,
 )
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
@@ -90,6 +92,8 @@ def update_client_details(
     description: Optional[str] = None,
     value_prop_key_points: Optional[str] = None,
     tone_attributes: Optional[list[str]] = None,
+    mission: Optional[str] = None,
+    case_study: Optional[str] = None,
 ):
     c: Client = Client.query.get(client_id)
     if not c:
@@ -105,6 +109,10 @@ def update_client_details(
         c.value_prop_key_points = value_prop_key_points
     if tone_attributes:
         c.tone_attributes = tone_attributes
+    if mission:
+        c.mission = mission
+    if case_study:
+        c.case_study = case_study
 
     db.session.add(c)
     db.session.commit()
@@ -128,6 +136,20 @@ def update_client_sdr_details(
         csdr.email = email
     if title:
         csdr.title = title
+
+    db.session.add(csdr)
+    db.session.commit()
+
+    return True
+
+def complete_client_sdr_onboarding(
+    client_sdr_id: int,
+):
+    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not csdr:
+        return None
+
+    csdr.onboarded = True
 
     db.session.add(csdr)
     db.session.commit()
@@ -1139,7 +1161,7 @@ def nylas_account_details(client_sdr_id: int):
     Returns:
         dict: Dict containing the response
     """
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     response = requests.get(
@@ -1260,7 +1282,7 @@ def predict_persona_fit_reason(
     # create prompt
     prompt = f"Based on the company's name, archetype's name, company's tagline, and company's description, predict the reason why the archetype would purchase the product from the company.\n\nCompany Name: {company_name}\nArchetype Name: {archetype_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nWhy would they buy the product?:"
     response = wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, prompt=prompt, max_tokens=200
     )
     if response == False:
         return False, "Error generating prediction"
@@ -1288,7 +1310,7 @@ def generate_persona_description(client_sdr_id: int, persona_name: str):
 
     prompt = f"You are a sales researcher for {company_name}. You are tasked with understanding a new persona target which is called '{persona_name}'. Given the company's name, company's tagline, and company's description, generate a persona description for the persona.\n\nCompany Name: {company_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nPersona Description:"
     return wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, prompt=prompt, max_tokens=200
     )
 
 
@@ -1312,7 +1334,7 @@ def generate_persona_buy_reason(client_sdr_id: int, persona_name: str):
 
     prompt = f"You are a sales researcher for {company_name}. You are tasked with understanding a new persona target which is called '{persona_name}'. Given the company's name, company's tagline, and company's description, generate a reason why this persona would buy your company's product or offering.\n\nCompany Name: {company_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nPersona Buy Reason:"
     return wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=200
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, prompt=prompt, max_tokens=200
     )
 
 
@@ -1367,7 +1389,7 @@ ICP Scoring Prompt:
         persona_fit_reason=persona_buy_reason,
     )
     return wrapped_create_completion(
-        model=CURRENT_OPENAI_CHAT_GPT_MODEL, prompt=prompt, max_tokens=400
+        model=OPENAI_CHAT_GPT_4_MODEL, prompt=prompt, max_tokens=400
     )
 
 
@@ -1597,3 +1619,89 @@ def get_personas_page_details(client_sdr_id: int):
         json_results.append(row._asdict())
 
     return json_results
+
+
+def add_client_product(
+        client_sdr_id: int,
+        name: str,
+        description: str,
+        how_it_works: Optional[str],
+        use_cases: Optional[str],
+        product_url: Optional[str]):
+    """Adds a client product
+    """
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_product = ClientProduct(
+        client_id=client_sdr.client_id,
+        name=name,
+        description=description,
+        how_it_works=how_it_works,
+        use_cases=use_cases,
+        product_url=product_url,
+    )
+    db.session.add(client_product)
+    db.session.commit()
+
+    return True
+
+
+def update_client_product(
+        client_sdr_id: int,
+        client_product_id: int,
+        name: Optional[str],
+        description: Optional[str],
+        how_it_works: Optional[str],
+        use_cases: Optional[str],
+        product_url: Optional[str]):
+    """Updates a client product
+    """
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_product = ClientProduct.query.get(client_product_id)
+    if not client_product or client_product.client_id != client_sdr.client_id:
+        return False
+    
+    if name: client_product.name = name
+    if description: client_product.description = description
+    if how_it_works: client_product.how_it_works = how_it_works
+    if use_cases: client_product.use_cases = use_cases
+    if product_url: client_product.product_url = product_url
+
+    db.session.add(client_product)
+    db.session.commit()
+
+    return True
+
+
+def remove_client_product(client_sdr_id: int, client_product_id: int):
+    """Removes a client product
+    """
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_product = ClientProduct.query.get(client_product_id)
+    if not client_product or client_product.client_id != client_sdr.client_id:
+        return False
+
+    db.session.delete(client_product)
+    db.session.commit()
+
+    return True
+
+
+def get_client_products(client_sdr_id: int):
+    """Gets all client products
+    """
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client_products = ClientProduct.query.filter(
+        ClientProduct.client_id == client_sdr.client_id
+    ).all()
+
+    return [client_product.to_dict() for client_product in client_products]
+
+

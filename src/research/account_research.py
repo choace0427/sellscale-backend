@@ -3,7 +3,7 @@ from model_import import Prospect, Client, ClientArchetype, ClientSDR
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
     wrapped_chat_gpt_completion_with_history,
-    CURRENT_OPENAI_CHAT_GPT_MODEL,
+    OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
 )
 import json
 from model_import import AccountResearchType, AccountResearchPoints
@@ -52,7 +52,7 @@ def generate_generic_research(prompt: str, retries: int):
     while attempts < retries:
         try:
             json_str = wrapped_create_completion(
-                prompt=prompt, model=CURRENT_OPENAI_CHAT_GPT_MODEL, max_tokens=1000
+                prompt=prompt, model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, max_tokens=1000
             )
             research = json.loads(json_str)
             if research:
@@ -242,7 +242,7 @@ Ensure you relate each point to {prospect_name} and {prospect_company_name} and 
         ],
         max_tokens=512,
         temperature=0.75,
-        #model="gpt-4",
+        #model=OPENAI_CHAT_GPT_4_MODEL,
     )
 
     return history, completion
@@ -293,7 +293,7 @@ Keep the bullet points short and concise while ensuring that they are highly spe
         history=history,
         max_tokens=512,
         temperature=0.75,
-        #model="gpt-4",
+        #model=OPENAI_CHAT_GPT_4_MODEL,
     )
 
     return history, completion
@@ -333,7 +333,7 @@ def get_research_json(history: list) -> tuple[list, str]:
         history=history,
         max_tokens=512,
         temperature=0.75,
-        #model="gpt-4",
+        #model=OPENAI_CHAT_GPT_4_MODEL,
     )
 
     return history, completion

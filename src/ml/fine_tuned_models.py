@@ -8,7 +8,8 @@ from app import db
 from src.ml.openai_wrappers import (
     wrapped_chat_gpt_completion,
     wrapped_create_completion,
-    CURRENT_OPENAI_DAVINCI_MODEL,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
+    OPENAI_CHAT_GPT_4_MODEL,
 )
 from typing import Optional
 import openai
@@ -160,11 +161,11 @@ def get_config_completion(
         ],
         temperature=0.7,
         max_tokens=240,
-        model="gpt-4",
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
     # todo(Aakash) delete this
     # response = wrapped_create_completion(
-    #     model=CURRENT_OPENAI_DAVINCI_MODEL,
+    #     model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
     #     prompt=few_shot_prompt,
     #     temperature=0.7,
     #     max_tokens=256,
@@ -178,7 +179,7 @@ def get_computed_prompt_completion(
 ):
     few_shot_prompt: str = computed_prompt.format(prompt=prompt)
     response = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL,
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
         prompt=few_shot_prompt,
         temperature=0.7,
         max_tokens=256,

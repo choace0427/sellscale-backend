@@ -7,6 +7,7 @@ from model_import import (
     Client,
     ClientSDR,
 )
+from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.slack import send_slack_message
 from src.utils.slack import URL_MAP
 
@@ -63,11 +64,16 @@ def send_status_change_slack_block(
         if client and client.pipeline_notifications_webhook_url:
             webhook_urls.append(client.pipeline_notifications_webhook_url)
 
-    # Get last message
+    # Get last messages using URN ID
+    has_messages = False
+    convo: list[LinkedinConversationEntry] = []
     if outreach_type == ProspectChannels.LINKEDIN:
-        last_message_from_prospect = prospect.li_last_message_from_prospect
-    else:
-        last_message_from_prospect = None
+        urn_id = prospect.li_conversation_urn_id
+        convo: list[LinkedinConversationEntry] = LinkedinConversationEntry.query.filter_by(
+            conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
+        ).order_by(LinkedinConversationEntry.created_at.desc()).limit(5).all()
+        if len(convo) > 0:
+            has_messages = True
 
     # Craft message
     message_blocks = []
@@ -86,15 +92,41 @@ def send_status_change_slack_block(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Title:* {title}\n{last_message}".format(
+                "text": "*Title:* {title}".format(
                     title=prospect.title,
-                    last_message=""
-                    if not last_message_from_prospect
-                    else '*Last Message*: "{}"'.format(last_message_from_prospect),
                 ),
             },
         }
     )
+
+    # If we have messages, send them
+    if has_messages:
+        for c in reversed(convo):
+            if c.connection_degree == "You":
+                message_blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "{sender}: {message}".format(
+                                sender=c.author, message=c.message
+                            ),
+                        },
+                    }
+                )
+            else:
+                message_blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*{sender}:* {message}".format(
+                                sender=c.author, degree=c.connection_degree, message=c.message
+                            ),
+                        },
+                    }
+                )
+
     channel_text = "Email" if outreach_type == ProspectChannels.EMAIL else "LinkedIn"
     message_blocks.append(
         {  # Add SDR information
@@ -148,8 +180,8 @@ def send_status_change_slack_block(
                         "text": "Click to see Linkedin Thread",
                         "emoji": True,
                     },
-                    "value": metadata.get("threadUrl") or "https://www.linkedin.com",
-                    "url": metadata.get("threadUrl") or "https://www.linkedin.com",
+                    "value": (metadata and metadata.get("threadUrl")) or "https://www.linkedin.com",
+                    "url": (metadata and metadata.get("threadUrl")) or "https://www.linkedin.com",
                     "action_id": "button-action",
                 },
             }

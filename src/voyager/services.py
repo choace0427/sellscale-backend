@@ -498,6 +498,25 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         .first()
     )
 
+
+    # Flag as urgent if last message mentions something urgent
+    if not last_msg_was_you:
+        if "tomorrow" in latest_convo_entries[0].message.lower() or "today" in latest_convo_entries[0].message.lower():
+            sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+            send_slack_message(
+                message=f"""
+                {latest_convo_entries[0].author} wrote to {sdr.name} with the message:
+                ```
+                {latest_convo_entries[0].message}
+                ```
+                Time-sensitive keyword was detected.
+
+                Take appropriate action then mark this message as ✅
+                """,
+                webhook_urls=[URL_MAP['csm-urgent-alerts']]
+            )
+
+
     if (
         prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
         and not has_prospect_replied
@@ -595,43 +614,67 @@ def classify_active_convo(prospect_id: int, messages):
 
     update_prospect_status_linkedin(prospect_id, status)
 
+
+    # Send slack message
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Title:* {prospect.title}"
+            },
+        },
+    ]
+
+    block_messages = []
+    for i, message in enumerate(messages):
+        if i >= 5: break
+        length = 130
+        text = message.get('content', '')
+        truncated_text = (text[:length]+'...') if len(text) > length else text
+        block_messages.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*{'SDR' if message.get('role') == 'user' else 'Prospect'}*: {truncated_text}"
+            },
+        })
+    block_messages.reverse()
+    blocks += block_messages
+    
+    blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "*{name}'s Direct Login*: <{link}|Link>".format(
+                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + str(client_sdr.auth_token),
+                name=client_sdr.name,
+            ),
+        },
+    })
+    blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "*SellScale Sight*: <{link}|Contact Link>".format(
+                link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
+            ),
+        },
+    })
+
     send_slack_message(
         message=f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
         webhook_urls=[URL_MAP["csm-convo-sorter"]],
-        blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",
-                    },
-                },
-                {  # Add prospect title and (optional) last message
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Title:* {title}\n{last_message}".format(
-                            title=prospect.title,
-                            last_message=""
-                            if not len(messages) > 0
-                            else '*Last Message*: "{}"'.format(
-                                messages[0].get('content')
-                            ),
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*SellScale Sight*: <{link}|Link>".format(
-                            link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
-                        ),
-                    },
-                },
-        ]
+        blocks=blocks,
     )
 
 

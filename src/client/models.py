@@ -56,6 +56,9 @@ class Client(db.Model):
 
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
 
+    mission = db.Column(db.String, nullable=True)
+    case_study = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -75,6 +78,8 @@ class Client(db.Model):
             "description": self.description,
             "value_prop_key_points": self.value_prop_key_points,
             "tone_attributes": self.tone_attributes,
+            "mission": self.mission,
+            "case_study": self.case_study,
         }
 
 
@@ -128,6 +133,30 @@ class ClientArchetype(db.Model):
             "vessel_sequence_id": self.vessel_sequence_id,
             "icp_matching_prompt": self.icp_matching_prompt,
             "is_unassigned_contact_archetype": self.is_unassigned_contact_archetype,
+        }
+
+
+class ClientProduct(db.Model):
+    __tablename__ = "client_product"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+    how_it_works = db.Column(db.String, nullable=True)
+    use_cases = db.Column(db.String, nullable=True)
+    product_url = db.Column(db.String, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "name": self.name,
+            "description": self.description,
+            "how_it_works": self.how_it_works,
+            "use_cases": self.use_cases,
+            "product_url": self.product_url,
         }
 
 
@@ -239,6 +268,11 @@ class ClientSDR(db.Model):
     )
 
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
+    onboarded = db.Column(db.Boolean, nullable=True, default=False)
+    calendly_access_token = db.Column(db.String, nullable=True)
+    calendly_refresh_token = db.Column(db.String, nullable=True)
+
+    auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
@@ -271,6 +305,9 @@ class ClientSDR(db.Model):
             "img_expire": self.img_expire,
             "vessel_mailbox": self.vessel_mailbox,
             "timezone": self.timezone,
+            "onboarded": self.onboarded,
+            "calendly_connected": self.calendly_access_token is not None,
+            "auto_generate_messages": self.auto_generate_messages,
         }
 
 

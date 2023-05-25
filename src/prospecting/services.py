@@ -395,56 +395,56 @@ def update_prospect_status_linkedin(
             ],
         )
 
-    if (
-        new_status == ProspectStatus.ACTIVE_CONVO
-        and ProspectStatus.ACTIVE_CONVO in VALID_NEXT_LINKEDIN_STATUSES[current_status]
-    ):
-        send_slack_message(
-            message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-            webhook_urls=[URL_MAP["csm-convo-sorter"]],
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-                    },
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
-                        },
-                    ],
-                },
-                {  # Add prospect title and (optional) last message
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Title:* {title}\n{last_message}".format(
-                            title=p.title,
-                            last_message=""
-                            if not p.li_last_message_from_prospect
-                            else '*Last Message*: "{}"'.format(
-                                p.li_last_message_from_prospect
-                            ),
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*SellScale Sight*: <{link}|Link>".format(
-                            link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-                            + client_sdr.auth_token
-                        ),
-                    },
-                },
-            ],
-        )
+    # if (
+    #     new_status == ProspectStatus.ACTIVE_CONVO
+    #     and ProspectStatus.ACTIVE_CONVO in VALID_NEXT_LINKEDIN_STATUSES[current_status]
+    # ):
+        # send_slack_message(
+        #     message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+        #     webhook_urls=[URL_MAP["csm-convo-sorter"]],
+        #     blocks=[
+        #         {
+        #             "type": "header",
+        #             "text": {
+        #                 "type": "plain_text",
+        #                 "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+        #             },
+        #         },
+        #         {
+        #             "type": "context",
+        #             "elements": [
+        #                 {
+        #                     "type": "plain_text",
+        #                     "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
+        #                 },
+        #             ],
+        #         },
+        #         {  # Add prospect title and (optional) last message
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*Title:* {title}\n{last_message}".format(
+        #                     title=p.title,
+        #                     last_message=""
+        #                     if not p.li_last_message_from_prospect
+        #                     else '*Last Message*: "{}"'.format(
+        #                         p.li_last_message_from_prospect
+        #                     ),
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*SellScale Sight*: <{link}|Link>".format(
+        #                     link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+        #                     + client_sdr.auth_token
+        #                 ),
+        #             },
+        #         },
+        #     ],
+        # )
 
     # status jumps
     if (

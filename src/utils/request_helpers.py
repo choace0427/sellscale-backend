@@ -9,6 +9,7 @@ def get_request_parameter(
     json: bool = False,
     required: bool = False,
     parameter_type: Optional[type] = None,
+    default_value: Optional[any] = None,
 ) -> any:
     if json:
         values = req.get_json()
@@ -20,18 +21,22 @@ def get_request_parameter(
             message = "Invalid request. Required parameter `{}` missing.".format(key)
             raise InvalidOperation(message)
         else:
-            return None
+            return default_value
 
     value = values.get(key)
     if parameter_type == list and not json:
         value = values.getlist(key)
+        if value[0] == '':
+            return default_value
+        value = value[0].split(',')
+        return value
     if parameter_type != None and type(value) != parameter_type:
         message = "Invalid request. Parameter `{}` must be of type `{}` but was `{}`.".format(
             key, parameter_type, type(value)
         )
         raise InvalidOperation(message)
 
-    return values.get(key)
+    return values.get(key, default_value)
 
 
 def get_auth_token(request: Request) -> str:

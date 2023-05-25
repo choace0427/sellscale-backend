@@ -24,25 +24,30 @@ BUMP_FRAMEWORK_BLUEPRINT = Blueprint("bump_framework", __name__)
 @require_user
 def get_bump_frameworks(client_sdr_id: int):
     """Gets all bump frameworks for a given client SDR and overall status"""
-    overall_status = get_request_parameter(
-        "overall_status", request, json=False, required=True
-    )
+    overall_statuses = get_request_parameter(
+        "overall_statuses", request, json=False, required=True, parameter_type=list
+    ) or []
     client_archetype_ids = get_request_parameter(
-        "personas", request, json=False, required=False, parameter_type=list
+        "archetype_ids", request, json=False, required=False, parameter_type=list
+    ) or []
+    substatuses = get_request_parameter(
+        "substatuses", request, json=False, required=False, parameter_type=list
     ) or []
 
-    found_key = False
+    overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
-        if key == overall_status:
-            overall_status = val
-            found_key = True
-            break
-    if not found_key:
-        return jsonify({"error": "Invalid overall status."}), 400
+        if key in overall_statuses:
+            overall_statuses_enumed.append(val)
+
+    # Convert client_archetype_ids to list of integers
+    if type(client_archetype_ids) == str:
+        client_archetype_ids = [client_archetype_ids]
+    client_archetype_ids = [int(ca_id) for ca_id in client_archetype_ids]
 
     bump_frameworks = get_bump_frameworks_for_sdr(
         client_sdr_id=client_sdr_id,
-        overall_status=overall_status,
+        overall_statuses=overall_statuses_enumed,
+        substatuses=substatuses,
         client_archetype_ids=client_archetype_ids
     )
     return jsonify({"bump_frameworks": bump_frameworks}), 200
@@ -70,6 +75,9 @@ def post_create_bump_framework(client_sdr_id: int):
     archetype_ids = get_request_parameter(
         "archetype_ids", request, json=True, required=False, parameter_type=list
     ) or []
+    substatus = get_request_parameter(
+        "substatus", request, json=True, required=False, parameter_type=str
+    ) or None
 
     # Get the enum value for the overall status
     found_key = False
@@ -98,6 +106,7 @@ def post_create_bump_framework(client_sdr_id: int):
         length=length,
         client_sdr_id=client_sdr_id,
         client_archetype_ids=archetype_ids,
+        substatus=substatus,
         default=default,
     )
     if bump_framework_id:
