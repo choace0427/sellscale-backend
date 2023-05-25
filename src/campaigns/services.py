@@ -197,58 +197,66 @@ def get_outbound_campaign_details_for_edit_tool_email(
     oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     data = db.session.execute(
         """
-        select 
+        select
             prospect.id "prospect_id",
             prospect.full_name "full_name",
-            
+
         --	personalized_subject_line
-            case when prospect_email.personalized_subject_line = subject_line.id 
-                then subject_line.id 
-                else null 
+            case when prospect_email.personalized_subject_line = subject_line.id
+                then subject_line.id
+                else null
             end "personalized_subject_line_message_id",
-            case when prospect_email.personalized_subject_line = subject_line.id 
-                then subject_line.ai_approved 
-                else null 
+            case when prospect_email.personalized_subject_line = subject_line.id
+                then subject_line.ai_approved
+                else null
             end "personalized_subject_line_ai_approved",
-            case when prospect_email.personalized_subject_line = subject_line.id 
-                then subject_line.completion 
-                else null 
+            case when prospect_email.personalized_subject_line = subject_line.id
+                then subject_line.completion
+                else null
             end "personalized_subject_line_completion",
-            case when prospect_email.personalized_subject_line = subject_line.id 
-                then subject_line.problems 
-                else null 
+            case when prospect_email.personalized_subject_line = subject_line.id
+                then subject_line.problems
+                else null
             end "personalized_subject_line_problems",
-            case when prospect_email.personalized_subject_line = subject_line.id 
-                then subject_line.highlighted_words 
-                else null 
+            case when prospect_email.personalized_subject_line = subject_line.id
+                then subject_line.highlighted_words
+                else null
             end "personalized_subject_line_highlighted_words",
-            
-            
+            case when prospect_email.personalized_subject_line = subject_line.id
+            	then subject_line.prompt
+            	else null
+            end "personalized_subject_line_prompt",
+            case when prospect_email.personalized_subject_line = subject_line.id
+            	then subject_line.few_shot_prompt
+            	else null
+            end "personalized_subject_line_few_shot_prompt",
+
+
         -- personalized_body
-            case when prospect_email.personalized_body = body.id 
-                then body.id 
-                else null 
+            case when prospect_email.personalized_body = body.id
+                then body.id
+                else null
             end "personalized_body_message_id",
-            case when prospect_email.personalized_body = body.id 
-                then body.ai_approved 
-                else null 
+            case when prospect_email.personalized_body = body.id
+                then body.ai_approved
+                else null
             end "personalized_body_ai_approved",
-            case when prospect_email.personalized_body = body.id 
-                then body.completion 
-                else null 
+            case when prospect_email.personalized_body = body.id
+                then body.completion
+                else null
             end "personalized_body_completion",
-            case when prospect_email.personalized_body = body.id 
-                then body.problems 
-                else null 
+            case when prospect_email.personalized_body = body.id
+                then body.problems
+                else null
             end "personalized_body_problems",
-            case when prospect_email.personalized_body = body.id 
-                then body.highlighted_words 
-                else null 
+            case when prospect_email.personalized_body = body.id
+                then body.highlighted_words
+                else null
             end "personalized_body_highlighted_words",
 
         -- general prospect email stuff
             prospect_email.id "prospect_email_id"
-                
+
         from outbound_campaign
             join prospect on prospect.id = any(outbound_campaign.prospect_ids)
             join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
@@ -271,12 +279,14 @@ def get_outbound_campaign_details_for_edit_tool_email(
         personalized_subject_line_completion = entry[4]
         personalized_subject_line_problems = entry[5]
         personalized_subject_line_highlighted_words = entry[6]
-        personalized_body_message_id = entry[7]
-        personalized_body_ai_approved = entry[8]
-        personalized_body_completion = entry[9]
-        personalized_body_problems = entry[10]
-        personalized_body_highlighted_words = entry[11]
-        prospect_email_id = entry[12]
+        personalized_subject_line_prompt = entry[7]
+        personalized_subject_line_few_shot_prompt = entry[8]
+        personalized_body_message_id = entry[9]
+        personalized_body_ai_approved = entry[10]
+        personalized_body_completion = entry[11]
+        personalized_body_problems = entry[12]
+        personalized_body_highlighted_words = entry[13]
+        prospect_email_id = entry[14]
         prospects.append(
             {
                 "prospect_id": prospect_id,
@@ -287,6 +297,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 "problems": personalized_subject_line_problems
                 + personalized_body_problems,
                 "highlighted_words": personalized_subject_line_highlighted_words,
+                "prompt": personalized_subject_line_prompt,
+                "few_shot_prompt": personalized_subject_line_few_shot_prompt,
                 "message_id_2": personalized_body_message_id,
                 "ai_approved_2": personalized_body_ai_approved,
                 "completion_2": personalized_body_completion,

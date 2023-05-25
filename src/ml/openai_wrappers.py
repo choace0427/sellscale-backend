@@ -10,9 +10,16 @@ from typing import Optional, Union
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
 openai.api_key = OPENAI_KEY
 
-CURRENT_OPENAI_DAVINCI_MODEL = "text-davinci-003"
-CURRENT_OPENAI_CHAT_GPT_MODEL = "gpt-3.5-turbo"
-CURRENT_OPENAI_LATEST_GPT_MODEL = "gpt-4"
+
+OPENAI_COMPLETION_DAVINCI_3_MODEL = "text-davinci-003"
+NEWEST_COMPLETION_MODEL = OPENAI_COMPLETION_DAVINCI_3_MODEL
+COMPLETION_MODELS = [OPENAI_COMPLETION_DAVINCI_3_MODEL]
+
+OPENAI_CHAT_GPT_4_MODEL = "gpt-4"
+OPENAI_CHAT_GPT_3_5_TURBO_MODEL = "gpt-3.5-turbo"
+NEWEST_CHAT_GP_MODEL = OPENAI_CHAT_GPT_4_MODEL
+CHAT_GPT_MODELS = [OPENAI_CHAT_GPT_4_MODEL, OPENAI_CHAT_GPT_3_5_TURBO_MODEL]
+
 DEFAULT_SUFFIX = None
 DEFAULT_MAX_TOKENS = 16
 DEFAULT_TEMPERATURE = 1
@@ -58,7 +65,7 @@ def wrapped_create_completion(
     DEFAULT_STOP: None
     """
     try:
-        if model == CURRENT_OPENAI_CHAT_GPT_MODEL:
+        if model in CHAT_GPT_MODELS:
             return wrapped_chat_gpt_completion(
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
@@ -104,7 +111,7 @@ def wrapped_chat_gpt_completion(
     n: Optional[int] = DEFAULT_N,
     frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
-    model: str = CURRENT_OPENAI_CHAT_GPT_MODEL,
+    model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
 ) -> str:
     """
     Generates a completion using the GPT-3.5-turbo model.
@@ -150,7 +157,7 @@ def wrapped_chat_gpt_completion_with_history(
     n: Optional[int] = DEFAULT_N,
     frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
-    model: str = CURRENT_OPENAI_CHAT_GPT_MODEL,
+    model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
 ) -> tuple[list, str]:
     """
     Generates a completion using the GPT-3.5-turbo model.

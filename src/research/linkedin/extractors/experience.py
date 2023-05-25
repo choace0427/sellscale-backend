@@ -5,7 +5,7 @@ from src.utils.abstract.attr_utils import deep_get
 from src.ml.fine_tuned_models import get_completion
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
-    CURRENT_OPENAI_DAVINCI_MODEL,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
 )
 from src.utils.converters.string_converters import sanitize_string, clean_company_name
 from src.utils.datetime.dateutils import get_current_month, get_current_year
@@ -45,7 +45,7 @@ def get_current_experience_description(data):
         response = ""
     else:
         response = wrapped_create_completion(
-          model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=50
+          model=OPENAI_COMPLETION_DAVINCI_3_MODEL, prompt=prompt, max_tokens=50
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
@@ -273,7 +273,7 @@ def get_linkedin_bio_summary(data):
         f"individual: {name}\nbio: {summary}\n\ninstruction: {instruction}\n\nsummary:"
     )
     response = wrapped_create_completion(
-        model=CURRENT_OPENAI_DAVINCI_MODEL, prompt=prompt, max_tokens=35
+        model=OPENAI_COMPLETION_DAVINCI_3_MODEL, prompt=prompt, max_tokens=35
     )
 
     return {"response": response.strip()}
