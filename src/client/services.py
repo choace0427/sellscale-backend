@@ -269,6 +269,7 @@ def create_client_archetype(
     persona_description: str = "",
     persona_fit_reason: str = "",
     icp_matching_prompt: str = "",
+    persona_contact_objective: str = "",
     is_unassigned_contact_archetype: bool = False,
     active: bool = True,
 ):
@@ -285,6 +286,7 @@ def create_client_archetype(
         persona_description=persona_description,
         persona_fit_reason=persona_fit_reason,
         icp_matching_prompt=icp_matching_prompt,
+        persona_contact_objective=persona_contact_objective,
         is_unassigned_contact_archetype=is_unassigned_contact_archetype,
         active=active,
     )
@@ -1233,6 +1235,7 @@ def update_persona_brain_details(
     updated_persona_description: Optional[str],
     updated_persona_fit_reason: Optional[str],
     updated_persona_icp_matching_prompt: Optional[str],
+    updated_persona_contact_objective: Optional[str],
 ):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
@@ -1246,6 +1249,8 @@ def update_persona_brain_details(
         client_archetype.persona_fit_reason = updated_persona_fit_reason
     if updated_persona_icp_matching_prompt:
         client_archetype.icp_matching_prompt = updated_persona_icp_matching_prompt
+    if updated_persona_contact_objective:
+        client_archetype.persona_contact_objective = updated_persona_contact_objective
 
     db.session.add(client_archetype)
     db.session.commit()
@@ -1663,7 +1668,7 @@ def update_client_product(
     client_product = ClientProduct.query.get(client_product_id)
     if not client_product or client_product.client_id != client_sdr.client_id:
         return False
-    
+
     if name: client_product.name = name
     if description: client_product.description = description
     if how_it_works: client_product.how_it_works = how_it_works

@@ -851,8 +851,9 @@ More research:
 Final instructions
 - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed"
 
-
 Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
+
+I want to write this email with the following objective: {client_archetype.persona_contact_objective}
 
 Output:""".format(
         client_sdr_name=client_sdr_name,
