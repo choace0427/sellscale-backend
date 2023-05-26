@@ -1717,6 +1717,11 @@ def generate_message_bumps():
         ClientSDR.auto_generate_messages == True
     ).all()
 
+    send_slack_message(
+        message=f"Temp message to test bump generation",
+        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+    )
+
     for sdr in sdrs:
         prospects: List[Prospect] = Prospect.query.filter(
             Prospect.client_sdr_id == sdr.id,
