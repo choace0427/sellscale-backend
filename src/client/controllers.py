@@ -204,6 +204,9 @@ def create_archetype(client_sdr_id: int):
     icp_matching_prompt = get_request_parameter(
         "icp_matching_prompt", request, json=True, required=False
     )
+    persona_contact_objective = get_request_parameter(
+        "contact_objective", request, json=True, required=False
+    )
 
     # Get client ID from client SDR ID.
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
@@ -220,6 +223,7 @@ def create_archetype(client_sdr_id: int):
         persona_description=persona_description,
         persona_fit_reason=persona_fit_reason,
         icp_matching_prompt=icp_matching_prompt,
+        persona_contact_objective=persona_contact_objective,
     )
     if not ca:
         return "Client not found", 404
@@ -937,6 +941,9 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
     updated_persona_icp_matching_prompt = get_request_parameter(
         "updated_persona_icp_matching_prompt", request, json=True, required=False
     )
+    updated_persona_contact_objective = get_request_parameter(
+        "updated_persona_contact_objective", request, json=True, required=False
+    )
 
     success = update_persona_brain_details(
         client_sdr_id=client_sdr_id,
@@ -945,6 +952,7 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
         updated_persona_description=updated_persona_description,
         updated_persona_fit_reason=updated_persona_fit_reason,
         updated_persona_icp_matching_prompt=updated_persona_icp_matching_prompt,
+        updated_persona_contact_objective=updated_persona_contact_objective,
     )
 
     if success:
@@ -1109,13 +1117,13 @@ def post_demo_feedback(client_sdr_id: int):
         ✍️ New demo feedback via {client_sdr.name}!
         _Details_
         With {prospect.full_name} on {str(prospect.demo_date)}
-        
+
         _Did the demo happen?_
         {status}
-        
+
         _How did it go?_
         {rating}
-        
+
         _What did you like / what would you change?_
         {feedback}
         """,
@@ -1206,7 +1214,7 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/product", methods=["POST"])
 @require_user
 def post_client_product(client_sdr_id: int):
-    
+
     name = get_request_parameter(
         "name", request, json=True, required=True, default_value=''
     )
@@ -1240,7 +1248,7 @@ def post_client_product(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/product", methods=["PUT"])
 @require_user
 def put_client_product(client_sdr_id: int):
-    
+
     product_id = get_request_parameter(
         "product_id", request, json=True, required=True, parameter_type=int
     )
