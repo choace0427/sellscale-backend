@@ -793,6 +793,7 @@ def ai_email_prompt(client_sdr_id: int, prospect_id: int):
 
     persona_name = client_archetype.archetype
     persona_buy_reason = client_archetype.persona_fit_reason
+    prospect_contact_objective = client_archetype.persona_contact_objective
     prospect_name = prospect.full_name
     prospect_title = prospect.title
     prospect_bio = prospect.linkedin_bio
@@ -853,7 +854,7 @@ Final instructions
 
 Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
 
-I want to write this email with the following objective: {client_archetype.persona_contact_objective}
+I want to write this email with the following objective: {persona_contact_objective}
 
 Output:""".format(
         client_sdr_name=client_sdr_name,
@@ -870,6 +871,7 @@ Output:""".format(
         prospect_company_name=prospect_company_name,
         prospect_research=account_points,
         research_points=research_points,
+        persona_contact_objective=prospect_contact_objective,
     )
 
     return prompt
