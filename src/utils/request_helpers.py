@@ -31,10 +31,13 @@ def get_request_parameter(
         value = value[0].split(',')
         return value
     if parameter_type != None and type(value) != parameter_type:
-        message = "Invalid request. Parameter `{}` must be of type `{}` but was `{}`.".format(
-            key, parameter_type, type(value)
-        )
-        raise InvalidOperation(message)
+        try:
+            return parameter_type(value)
+        except Exception as e:
+            message = "Invalid request. Parameter `{}` must be of type `{}` but was `{}`.".format(
+                key, parameter_type, type(value)
+            )
+            raise InvalidOperation(message)
 
     return values.get(key, default_value)
 

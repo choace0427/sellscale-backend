@@ -375,6 +375,9 @@ class Prospect(db.Model):
     email = db.Column(db.String, nullable=True)
     hunter_email_score = db.Column(db.Float, nullable=True)
 
+    email_additional = db.Column(db.ARRAY(db.JSON), nullable=True) # Extra emails
+    # {"email": string, "comment": string}[]
+
     batch = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
@@ -556,6 +559,7 @@ class Prospect(db.Model):
             "last_position": self.last_position,
             "twitter_url": self.twitter_url,
             "email": self.email,
+            "email_additional": self.email_additional,
             "batch": self.batch,
             "recent_messages": recent_messages,
             "status": self.status.value,

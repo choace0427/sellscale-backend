@@ -78,6 +78,9 @@ def get_details():
     voice_builder_onboarding = VoiceBuilderOnboarding.query.get(
         voice_builder_onboarding_id
     )
+    if not voice_builder_onboarding:
+        return "Voice builder onboarding not found.", 400
+    
     voice_builder_onboarding_info = voice_builder_onboarding.to_dict()
     sample_info = get_voice_builder_samples(
         voice_builder_onboarding_id=voice_builder_onboarding_id

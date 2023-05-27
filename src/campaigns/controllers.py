@@ -458,9 +458,9 @@ def get_campaign_analytics() -> tuple[dict, int]:
         tuple[dict, int]: A tuple containing a dictionary of campaign analytics and a status code
     """
     campaign_id = get_request_parameter(
-        "campaign_id", request, json=False, required=True
+        "campaign_id", request, json=False, required=True, parameter_type=int
     )
-    campaign_analytics = get_outbound_campaign_analytics(int(campaign_id))
+    campaign_analytics = get_outbound_campaign_analytics(campaign_id)
 
     return campaign_analytics, 200
 

@@ -7,6 +7,7 @@ from src.automation.models import PhantomBusterAgent
 from app import db
 from flask import jsonify
 import time
+import json
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -1207,6 +1208,52 @@ def post_nylas_oauth_token(code: int) -> dict:
         return {"message": "Error exchanging for access token", "status_code": 500}
 
     return response.json()
+
+
+def get_nylas_all_events(client_sdr_id: int):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    response = requests.get(
+        "https://api.nylas.com/events",
+        headers={
+            "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+    if response.status_code != 200:
+        return {"message": "Error getting events"}, 500
+
+    result = response.json()
+
+    return {"message": "Success", "data": result }, 200
+
+
+def find_prospect_demo(client_sdr_id: int, prospect_id: int):
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return None
+
+    result, status_code = get_nylas_all_events(client_sdr_id)
+    if status_code != 200:
+        return None
+    
+    events = result.get("data", [])
+    for event in events:
+        event_str = json.dumps(event)
+
+        # Check primary email
+        if prospect.email.strip().lower() in event_str.lower():
+            return [event]
+        
+        # Check extra emails as well
+        if prospect.email_additional:
+            for extra_email in prospect.email_additional:
+                if extra_email.get('email', '').strip().lower() in event_str.lower():
+                    return [event]
+        
+    return []
 
 
 def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int):

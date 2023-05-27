@@ -179,8 +179,10 @@ def scrape_inbox(client_sdr_id: int):
         return False
 
     agent = get_phantom_buster_agent(config=pb_config)
-    s3Folder = agent["s3Folder"]
-    orgS3Folder = agent["orgS3Folder"]
+    if not agent:
+        return False
+    s3Folder = agent.get("s3Folder")
+    orgS3Folder = agent.get("orgS3Folder")
 
     data_payload = get_phantom_buster_payload(
         s3Folder=s3Folder, orgS3Folder=orgS3Folder

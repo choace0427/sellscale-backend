@@ -156,7 +156,7 @@ class PhantomBusterAgent:
         headers = {"X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ"}
         response = requests.request("GET", url, headers=headers, data={})
 
-        return json.loads(response.text)
+        return response.json()
 
 
     #

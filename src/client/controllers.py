@@ -21,6 +21,8 @@ from src.client.services import (
     update_client_sdr_scheduling_link,
     update_client_pipeline_notification_webhook,
     update_client_sdr_pipeline_notification_webhook,
+    get_nylas_all_events,
+    find_prospect_demo,
     test_client_pipeline_notification_webhook,
     test_client_sdr_pipeline_notification_webhook,
     send_stytch_magic_link,
@@ -908,6 +910,30 @@ def get_nylas_account_details(client_sdr_id: int):
     data = nylas_account_details(client_sdr_id)
 
     return jsonify({"message": "Success", "data": data }), 200
+
+
+@CLIENT_BLUEPRINT.route("/nylas/events", methods=["GET"])
+@require_user
+def get_nylas_events(client_sdr_id: int):
+    """Gets all calendar events for an SDR"""
+
+    return get_nylas_all_events(client_sdr_id)
+
+
+@CLIENT_BLUEPRINT.route("/sdr/find_event", methods=["GET"])
+@require_user
+def get_prospect_event(client_sdr_id: int):
+    """Finds a calendar event for a prospect"""
+
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True, parameter_type=int
+    )
+    
+    events = find_prospect_demo(client_sdr_id, prospect_id)
+    if events is None:
+        return jsonify({"message": "Failed to find event"}), 404
+
+    return jsonify({"message": "Success", "data": events}), 200
 
 
 @CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])
