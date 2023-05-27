@@ -24,6 +24,13 @@ def get_request_parameter(
             return default_value
 
     value = values.get(key)
+    if value is None:
+        if required:
+            message = "Invalid request. Required parameter `{}` missing.".format(key)
+            raise InvalidOperation(message)
+        else:
+            return default_value
+
     if parameter_type == list and not json:
         value = values.getlist(key)
         if value[0] == '':

@@ -178,7 +178,14 @@ class LinkedIn(object):
         # TODO: this still works for now, but will probably eventually have to be converted to
         # https://www.linkedin.com/voyager/api/identity/profiles/ACoAAAKT9JQBsH7LwKaE9Myay9WcX8OVGuDq9Uw
         res = self._fetch(f"/identity/profiles/{public_id or urn_id}/profileView")
-        if res is None or res.status_code == 403:
+        if res.status_code == 403:
+            sdr = self.client_sdr
+            send_slack_message(
+                message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+            )
+            return None
+        if res is None:
             return None
 
         data = res.json()
@@ -297,7 +304,14 @@ class LinkedIn(object):
         me_profile = self.client.metadata.get("me")
         if not self.client.metadata.get("me") or not use_cache:
             res = self._fetch(f"/me")
-            if res is None or res.status_code == 403:
+            if res.status_code == 403:
+                sdr = self.client_sdr
+                send_slack_message(
+                    message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                    webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+                )
+                return None
+            if res is None:
                 return None
             me_profile = res.json()
             # cache profile
@@ -386,7 +400,14 @@ class LinkedIn(object):
             f"/messaging/conversations?\
             keyVersion=LEGACY_INBOX&q=participants&recipients=List({profile_urn_id})"
         )
-        if res is None or res.status_code == 403:
+        if res.status_code == 403:
+            sdr = self.client_sdr
+            send_slack_message(
+                message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+            )
+            return None
+        if res is None:
             return None
 
         try:
@@ -413,7 +434,14 @@ class LinkedIn(object):
 
         if limit == 20:
             res = self._fetch(f"/messaging/conversations", params=params)
-            if res is None or res.status_code == 403:
+            if res.status_code == 403:
+                sdr = self.client_sdr
+                send_slack_message(
+                    message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                    webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+                )
+                return None
+            if res is None:
                 return None
             return res.json()
         else:
@@ -451,7 +479,14 @@ class LinkedIn(object):
         """
         if limit == 20:
             res = self._fetch(f"/messaging/conversations/{conversation_urn_id}/events")
-            if res is None or res.status_code == 403:
+            if res.status_code == 403:
+                sdr = self.client_sdr
+                send_slack_message(
+                    message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                    webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+                )
+                return None
+            if res is None:
                 return None
             try:
                 return res.json()["elements"]
@@ -488,7 +523,14 @@ class LinkedIn(object):
         res = self._fetch(
             f"/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.2782734f1f251808c1959921bd56a2e4&variables=(mailboxUrn:{encode_str})"
         )
-        if res is None or res.status_code == 403:
+        if res.status_code == 403:
+            sdr = self.client_sdr
+            send_slack_message(
+                message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+            )
+            return None
+        if res is None:
             return None
 
         return res.json()

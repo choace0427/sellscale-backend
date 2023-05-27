@@ -7,6 +7,10 @@ from src.message_generation.models import GeneratedMessageQueue
 from sqlalchemy import or_
 from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
+from src.ml.openai_wrappers import (
+    wrapped_create_completion,
+    OPENAI_COMPLETION_DAVINCI_3_MODEL
+)
 from model_import import (
     ClientArchetype,
     GeneratedMessageType,
@@ -1339,19 +1343,20 @@ def get_named_entities(string: str):
 
     prompt = fewshot_1 + "\n\n--\n\n" + fewshot_2 + "\n\n--\n\n" + target
 
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=prompt,
-        max_tokens=max_tokens_length,
-        temperature=0,
-    )
-    if response is None or response["choices"] is None or len(response["choices"]) == 0:
-        return []
-
-    choices = response["choices"]
-    top_choice = choices[0]
-    entities_dirty = top_choice["text"].strip()
-    entities_clean = entities_dirty.replace("\n", "").split(" // ")
+    max_attempts = 3
+    count = 0
+    while count < max_attempts:
+        try:
+            response = openai.Completion.create(
+                model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
+                prompt=prompt,
+                max_tokens=max_tokens_length,
+                temperature=0,
+            )
+            break
+        except:
+            count += 1
+    entities_clean = response.replace("\n", "").split(" // ")
 
     # OpenAI returns "NONE" if there are no entities
     if len(entities_clean) == 1 and entities_clean[0] == "NONE":
@@ -1837,12 +1842,12 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     )
     db.session.add(bump_msg)
     db.session.commit()
-    
+
     return True
 
 
 def get_prospect_bump(client_sdr_id: int, prospect_id: int):
-    
+
     bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
         GeneratedMessageAutoBump.prospect_id == prospect_id,

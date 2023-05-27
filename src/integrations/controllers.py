@@ -19,6 +19,11 @@ def get_mailbox_by_email():
     email = get_request_parameter("email", request, json=False, required=True)
     client_id = get_request_parameter("client_id", request, json=False, required=True)
 
+    if client_id:
+        client_id = int(client_id)
+    else:
+        return jsonify({"message": "No client id"}), 400
+
     integration = SalesEngagementIntegration(
         client_id=int(client_id),
     )
