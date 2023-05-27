@@ -1,3 +1,4 @@
+from src.prospecting.models import ProspectEvent
 from src.client.models import ClientProduct
 from sqlalchemy import or_
 from click import Option
@@ -8,6 +9,7 @@ from app import db
 from flask import jsonify
 import time
 import json
+from datetime import datetime
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -1229,7 +1231,7 @@ def get_nylas_all_events(client_sdr_id: int):
     return {"message": "Success", "data": result }, 200
 
 
-def find_prospect_demo(client_sdr_id: int, prospect_id: int):
+def find_prospect_events(client_sdr_id: int, prospect_id: int):
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
@@ -1240,20 +1242,52 @@ def find_prospect_demo(client_sdr_id: int, prospect_id: int):
         return None
     
     events = result.get("data", [])
+
+    results = []
     for event in events:
         event_str = json.dumps(event)
 
         # Check primary email
         if prospect.email.strip().lower() in event_str.lower():
-            return [event]
+            results.append(event)
+            continue
         
         # Check extra emails as well
         if prospect.email_additional:
             for extra_email in prospect.email_additional:
                 if extra_email.get('email', '').strip().lower() in event_str.lower():
-                    return [event]
+                    results.append(event)
+                    continue
         
-    return []
+    return results
+
+
+def populate_prospect_events(client_sdr_id: int, prospect_id: int):
+
+    prospect_events: List[ProspectEvent] = ProspectEvent.query.filter_by(prospect_id=prospect_id).all()
+    
+    count = 0
+    calendar_events = find_prospect_events(client_sdr_id, prospect_id) or []
+    for event in calendar_events:
+        if event.get("id") in [x.nylas_event_id for x in prospect_events]: continue
+
+        prospect_event = ProspectEvent(
+            prospect_id=prospect_id,
+            nylas_event_id=event.get("id"),
+            nylas_calendar_id=event.get("calendar_id"),
+            title=event.get("title", "No Title"),
+            start_time=datetime.fromtimestamp(event.get("when", {}).get("start_time", 0)),
+            end_time=datetime.fromtimestamp(event.get("when", {}).get("end_time", 0)),
+            status=event.get("status", ""),
+            meeting_info=event.get("conferencing", {}),
+            nylas_data_raw=event,
+        )
+        db.session.add(prospect_event)
+        db.session.commit()
+        count += 1
+
+    return count
+
 
 
 def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int):

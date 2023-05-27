@@ -601,6 +601,37 @@ class Prospect(db.Model):
         }
 
 
+class ProspectEvent(db.Model):
+    __tablename__ = "prospect_event"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+
+    nylas_event_id = db.Column(db.String, nullable=False, unique=True, index=True)
+    nylas_calendar_id = db.Column(db.String, nullable=False)
+
+    title = db.Column(db.String, nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String, nullable=False)
+
+    meeting_info = db.Column(db.JSON, nullable=False)
+    nylas_data_raw = db.Column(db.JSON, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "nylas_event_id": self.nylas_event_id,
+            "nylas_calendar_id": self.nylas_calendar_id,
+            "title": self.title,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "status": self.status,
+            "meeting_info": self.meeting_info,
+            "nylas_data_raw": self.nylas_data_raw,
+        }
+
 class ProspectUploadBatch(db.Model):
     __tablename__ = "prospect_upload_batch"
 
