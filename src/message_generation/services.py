@@ -1345,6 +1345,7 @@ def get_named_entities(string: str):
     max_attempts = 3
     count = 0
     response = {}
+    entities_clean = ["NONE"]
     while count < max_attempts:
         try:
             response = openai.Completion.create(
@@ -1353,13 +1354,12 @@ def get_named_entities(string: str):
                 max_tokens=max_tokens_length,
                 temperature=0,
             )
+            entities_clean = (
+                response["choices"][0]["text"].strip().replace("\n", "").split(" // ")
+            )
             break
         except:
             count += 1
-
-    entities_clean = (
-        response["choices"][0]["text"].strip().replace("\n", "").split(" // ")
-    )
 
     # OpenAI returns "NONE" if there are no entities
     if len(entities_clean) == 1 and entities_clean[0] == "NONE":
