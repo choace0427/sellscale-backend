@@ -1691,6 +1691,11 @@ def process_generated_msg_queue(
                     },
                 ],
             )
+        else:
+            send_slack_message(
+                message="Temp message to test human-response, not human!",
+                webhook_urls=[URL_MAP["csm-human-response"]],
+            )
 
     if nylas_message_id:
         nylas_msg: EmailConversationMessage = EmailConversationMessage.query.filter(
