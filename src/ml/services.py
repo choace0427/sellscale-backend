@@ -927,6 +927,7 @@ def chat_ai_classify_active_convo(messages, output_options: List[str]) -> int:
 
     prompt = f"""
     Based on this conversation, classify the latest state of the conversation as one of the following options. Only respond with the option number.
+
     {options}
     """
     messages.append({"role": "user", "content": prompt})

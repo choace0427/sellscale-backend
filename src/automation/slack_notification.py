@@ -156,7 +156,7 @@ def send_status_change_slack_block(
     )
 
     # if icp fit reason exists and next status is not accepted
-    if prospect.icp_fit_reason and new_status != ProspectStatus.ACCEPTED:
+    if prospect.icp_fit_reason and new_status == ProspectStatus.DEMO_SET:
         message_blocks.append(
             {  # Add ICP fit reason
                 "type": "section",

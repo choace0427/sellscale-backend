@@ -1643,6 +1643,8 @@ def process_generated_msg_queue(
         GeneratedMessageQueue.nylas_message_id == nylas_message_id,
     ).first()
 
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
     if li_message_urn_id:
         li_convo_msg: LinkedinConversationEntry = (
             LinkedinConversationEntry.query.filter(
@@ -1666,7 +1668,7 @@ def process_generated_msg_queue(
                         "type": "header",
                         "text": {
                             "type": "plain_text",
-                            "text": f"🤖 New response from Human!",
+                            "text": f"🤖 New Human response from {client_sdr.name} [LINKEDIN]",
                         },
                     },
                     {
@@ -1688,7 +1690,7 @@ def process_generated_msg_queue(
                         "text": {
                             "type": "mrkdwn",
                             "text": "*SellScale Sight*: <{link}|Link>".format(
-                                link=li_convo_msg.conversation_url
+                                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + client_sdr.auth_token
                             ),
                         },
                     },
