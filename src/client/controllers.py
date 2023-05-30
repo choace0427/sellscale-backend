@@ -881,14 +881,14 @@ def post_nylas_exchange_for_authorization_code(client_sdr_id: int):
     code: str = get_request_parameter(
         "nylas_code", request, json=True, required=True, parameter_type=str
     )
-    success, authorization_code = nylas_exchange_for_authorization_code(
+    success, response = nylas_exchange_for_authorization_code(
         client_sdr_id=client_sdr_id,
         code=code,
     )
     if not success:
         return (
-            jsonify({"message": "Failed to perform Nylas exchange. Please try again."}),
-            400,
+            jsonify(response),
+            int(response.get("status_code") or 400),
         )
     return jsonify({"message": "Success"}), 200
 

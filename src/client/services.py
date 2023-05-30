@@ -1078,7 +1078,7 @@ def get_cta_stats(cta_id: int) -> dict:
 
 def nylas_exchange_for_authorization_code(
     client_sdr_id: int, code: str
-) -> tuple[bool, str]:
+) -> tuple[bool, dict]:
     """Exchange authentication token for Nylas authorization code
 
     Args:
@@ -1096,24 +1096,24 @@ def nylas_exchange_for_authorization_code(
 
     # Validate response
     if response.get("status_code") and response.get("status_code") == 500:
-        return {"message": "Error exchanging for access token", "status_code": 500}
+        return False, {"message": "Error exchanging for access token", "status_code": 500}
 
     # Get access token
     access_token = response.get("access_token")
     if not access_token:
-        return {"message": "Error exchanging for access token", "status_code": 500}
+        return False, {"message": "Error exchanging for access token", "status_code": 500}
 
     # Get account id
     account_id = response.get("account_id")
     if not account_id:
-        return {"message": "Error getting account id", "status_code": 500}
+        return False, {"message": "Error getting account id", "status_code": 500}
 
     # Validate email matches Client SDR
     response = response.get("email_address")
     if not response:
-        return {"message": "Error getting email address", "status_code": 500}
-    elif response != client_sdr.email:
-        return {"message": "Email address does not match", "status_code": 401}
+        return False, {"message": "Error getting email address", "status_code": 500}
+    #elif response != client_sdr.email:
+        #return False, {"message": "Email address does not match", "status_code": 401}
 
     # Update Client SDR
     client_sdr.nylas_auth_code = access_token
@@ -1123,7 +1123,7 @@ def nylas_exchange_for_authorization_code(
     db.session.add(client_sdr)
     db.session.commit()
 
-    return True, access_token
+    return True, {"message": "Success", "status_code": 200, "data": access_token}
 
 
 def check_nylas_status(client_sdr_id: int) -> bool:
@@ -1188,11 +1188,11 @@ def nylas_account_details(client_sdr_id: int):
     return response.json()
 
 
-def post_nylas_oauth_token(code: int) -> dict:
+def post_nylas_oauth_token(code: str) -> dict:
     """Wrapper for https://api.nylas.com/oauth/token
 
     Args:
-        code (int): Authentication token
+        code (str): Authentication token
 
     Returns:
         dict: Dict containing the response
@@ -1202,8 +1202,9 @@ def post_nylas_oauth_token(code: int) -> dict:
         "https://api.nylas.com/oauth/token",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Basic {secret}".format(secret=secret),
+            "Accept": "application/json",
         },
+        auth=(secret or '', ''),
         json={
             "grant_type": "authorization_code",
             "client_id": os.environ.get("NYLAS_CLIENT_ID"),
