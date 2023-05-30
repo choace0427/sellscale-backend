@@ -78,6 +78,8 @@ def create_client(
         email_outbound_enabled=email_outbound_enabled,
         tagline=tagline,
         description=description,
+        do_not_contact_keywords_in_company_names=[],
+        do_not_contact_company_names=[],
     )
     c_id = c.id
     db.session.add(c)
@@ -144,6 +146,7 @@ def update_client_sdr_details(
     db.session.commit()
 
     return True
+
 
 def complete_client_sdr_onboarding(
     client_sdr_id: int,
@@ -1173,7 +1176,9 @@ def nylas_account_details(client_sdr_id: int):
         "https://api.nylas.com/account",
         headers={
             "Accept": "application/json",
-            "Authorization": "Bearer {secret}".format(secret=client_sdr.nylas_auth_code),
+            "Authorization": "Bearer {secret}".format(
+                secret=client_sdr.nylas_auth_code
+            ),
             "Content-Type": "application/json",
         },
     )
@@ -1228,7 +1233,7 @@ def get_nylas_all_events(client_sdr_id: int):
 
     result = response.json()
 
-    return {"message": "Success", "data": result }, 200
+    return {"message": "Success", "data": result}, 200
 
 
 def find_prospect_events(client_sdr_id: int, prospect_id: int):
@@ -1240,7 +1245,7 @@ def find_prospect_events(client_sdr_id: int, prospect_id: int):
     result, status_code = get_nylas_all_events(client_sdr_id)
     if status_code != 200:
         return None
-    
+
     events = result.get("data", [])
 
     results = []
@@ -1251,32 +1256,37 @@ def find_prospect_events(client_sdr_id: int, prospect_id: int):
         if prospect.email.strip().lower() in event_str.lower():
             results.append(event)
             continue
-        
+
         # Check extra emails as well
         if prospect.email_additional:
             for extra_email in prospect.email_additional:
-                if extra_email.get('email', '').strip().lower() in event_str.lower():
+                if extra_email.get("email", "").strip().lower() in event_str.lower():
                     results.append(event)
                     continue
-        
+
     return results
 
 
 def populate_prospect_events(client_sdr_id: int, prospect_id: int):
 
-    prospect_events: List[ProspectEvent] = ProspectEvent.query.filter_by(prospect_id=prospect_id).all()
-    
+    prospect_events: List[ProspectEvent] = ProspectEvent.query.filter_by(
+        prospect_id=prospect_id
+    ).all()
+
     count = 0
     calendar_events = find_prospect_events(client_sdr_id, prospect_id) or []
     for event in calendar_events:
-        if event.get("id") in [x.nylas_event_id for x in prospect_events]: continue
+        if event.get("id") in [x.nylas_event_id for x in prospect_events]:
+            continue
 
         prospect_event = ProspectEvent(
             prospect_id=prospect_id,
             nylas_event_id=event.get("id"),
             nylas_calendar_id=event.get("calendar_id"),
             title=event.get("title", "No Title"),
-            start_time=datetime.fromtimestamp(event.get("when", {}).get("start_time", 0)),
+            start_time=datetime.fromtimestamp(
+                event.get("when", {}).get("start_time", 0)
+            ),
             end_time=datetime.fromtimestamp(event.get("when", {}).get("end_time", 0)),
             status=event.get("status", ""),
             meeting_info=event.get("conferencing", {}),
@@ -1287,7 +1297,6 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
         count += 1
 
     return count
-
 
 
 def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int):
@@ -1708,14 +1717,14 @@ def get_personas_page_details(client_sdr_id: int):
 
 
 def add_client_product(
-        client_sdr_id: int,
-        name: str,
-        description: str,
-        how_it_works: Optional[str],
-        use_cases: Optional[str],
-        product_url: Optional[str]):
-    """Adds a client product
-    """
+    client_sdr_id: int,
+    name: str,
+    description: str,
+    how_it_works: Optional[str],
+    use_cases: Optional[str],
+    product_url: Optional[str],
+):
+    """Adds a client product"""
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1734,15 +1743,15 @@ def add_client_product(
 
 
 def update_client_product(
-        client_sdr_id: int,
-        client_product_id: int,
-        name: Optional[str],
-        description: Optional[str],
-        how_it_works: Optional[str],
-        use_cases: Optional[str],
-        product_url: Optional[str]):
-    """Updates a client product
-    """
+    client_sdr_id: int,
+    client_product_id: int,
+    name: Optional[str],
+    description: Optional[str],
+    how_it_works: Optional[str],
+    use_cases: Optional[str],
+    product_url: Optional[str],
+):
+    """Updates a client product"""
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1750,11 +1759,16 @@ def update_client_product(
     if not client_product or client_product.client_id != client_sdr.client_id:
         return False
 
-    if name: client_product.name = name
-    if description: client_product.description = description
-    if how_it_works: client_product.how_it_works = how_it_works
-    if use_cases: client_product.use_cases = use_cases
-    if product_url: client_product.product_url = product_url
+    if name:
+        client_product.name = name
+    if description:
+        client_product.description = description
+    if how_it_works:
+        client_product.how_it_works = how_it_works
+    if use_cases:
+        client_product.use_cases = use_cases
+    if product_url:
+        client_product.product_url = product_url
 
     db.session.add(client_product)
     db.session.commit()
@@ -1763,8 +1777,7 @@ def update_client_product(
 
 
 def remove_client_product(client_sdr_id: int, client_product_id: int):
-    """Removes a client product
-    """
+    """Removes a client product"""
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1779,8 +1792,7 @@ def remove_client_product(client_sdr_id: int, client_product_id: int):
 
 
 def get_client_products(client_sdr_id: int):
-    """Gets all client products
-    """
+    """Gets all client products"""
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1789,5 +1801,3 @@ def get_client_products(client_sdr_id: int):
     ).all()
 
     return [client_product.to_dict() for client_product in client_products]
-
-

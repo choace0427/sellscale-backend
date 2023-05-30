@@ -2,8 +2,12 @@ import random
 from sqlalchemy import or_
 from app import db, celery
 from sqlalchemy.sql.expression import func
-from src.automation.models import PhantomBusterConfig, PhantomBusterType, PhantomBusterPayload
-from model_import import Client, ClientSDR, ProspectStatus
+from src.automation.models import (
+    PhantomBusterConfig,
+    PhantomBusterType,
+    PhantomBusterPayload,
+)
+from model_import import Client, ClientSDR, ProspectStatus, GeneratedMessageType
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
 from src.prospecting.services import update_prospect_status_linkedin
@@ -493,7 +497,6 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
                     argument: dict = json.loads(argument)
                     csv_limit = argument.get("numberOfAddsPerLaunch", csv_limit)
 
-
     # Grab two random  messages that belong to the ClientSDR
     joined_prospect_message = (
         db.session.query(
@@ -508,7 +511,11 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
             Prospect.approved_outreach_message_id != None,
             GeneratedMessage.message_status
             == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
-            or_(GeneratedMessage.pb_csv_count <= 2, GeneratedMessage.pb_csv_count == None)                 # Only grab messages that have not been sent twice
+            GeneratedMessage.message_type == GeneratedMessageType.LINKEDIN,
+            or_(
+                GeneratedMessage.pb_csv_count <= 2,
+                GeneratedMessage.pb_csv_count == None,
+            ),  # Only grab messages that have not been sent twice
         )
         .order_by(GeneratedMessage.created_at.desc())
         .limit(csv_limit)

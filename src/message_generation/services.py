@@ -9,7 +9,7 @@ from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
-    OPENAI_COMPLETION_DAVINCI_3_MODEL
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
 )
 from model_import import (
     ClientArchetype,
@@ -843,7 +843,6 @@ def generate_prospect_email(
             )
             return (False, "Prospect already has a prospect_email entry")
 
-
         # Perform account research (if needed)
         generate_prospect_research(prospect.id, False, False)
 
@@ -1345,6 +1344,8 @@ def get_named_entities(string: str):
 
     max_attempts = 3
     count = 0
+    response = {}
+    entities_clean = ["NONE"]
     while count < max_attempts:
         try:
             response = openai.Completion.create(
@@ -1353,10 +1354,12 @@ def get_named_entities(string: str):
                 max_tokens=max_tokens_length,
                 temperature=0,
             )
+            entities_clean = (
+                response["choices"][0]["text"].strip().replace("\n", "").split(" // ")
+            )
             break
         except:
             count += 1
-    entities_clean = response.replace("\n", "").split(" // ")
 
     # OpenAI returns "NONE" if there are no entities
     if len(entities_clean) == 1 and entities_clean[0] == "NONE":
@@ -1644,7 +1647,7 @@ def process_generated_msg_queue(
         li_convo_msg: LinkedinConversationEntry = (
             LinkedinConversationEntry.query.filter(
                 LinkedinConversationEntry.urn_id == li_message_urn_id,
-                LinkedinConversationEntry.connection_degree == 'You'
+                LinkedinConversationEntry.connection_degree == "You",
             ).first()
         )
         if not li_convo_msg:
@@ -1735,25 +1738,27 @@ def generate_message_bumps():
     for sdr in sdrs:
         prospects: List[Prospect] = Prospect.query.filter(
             Prospect.client_sdr_id == sdr.id,
-            Prospect.status.in_([
-                'ACCEPTED',
-                'RESPONDED',
-                'ACTIVE_CONVO',
-                'ACTIVE_CONVO_QUESTION',
-                'ACTIVE_CONVO_QUAL_NEEDED',
-                'ACTIVE_CONVO_OBJECTION',
-                'ACTIVE_CONVO_SCHEDULING',
-                'ACTIVE_CONVO_NEXT_STEPS',
-            ]),
-            Prospect.hidden_until <= datetime.datetime.utcnow()
+            Prospect.status.in_(
+                [
+                    "ACCEPTED",
+                    "RESPONDED",
+                    "ACTIVE_CONVO",
+                    "ACTIVE_CONVO_QUESTION",
+                    "ACTIVE_CONVO_QUAL_NEEDED",
+                    "ACTIVE_CONVO_OBJECTION",
+                    "ACTIVE_CONVO_SCHEDULING",
+                    "ACTIVE_CONVO_NEXT_STEPS",
+                ]
+            ),
+            Prospect.hidden_until <= datetime.datetime.utcnow(),
         ).all()
 
-        #print(f"Generating bumps for {len(prospects)} prospects...")
+        # print(f"Generating bumps for {len(prospects)} prospects...")
 
         for prospect in prospects:
-            generate_prospect_bump(prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id)
-
-
+            generate_prospect_bump(
+                prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
+            )
 
 
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: str):
@@ -1781,10 +1786,10 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     ).first()
     if prev_bump_msg:
         if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
-            #print("Already generated a bump for this message")
+            # print("Already generated a bump for this message")
             return False
         else:
-            #print("Old bump message, deleting")
+            # print("Old bump message, deleting")
             db.session.delete(prev_bump_msg)
             db.session.commit()
 
@@ -1796,12 +1801,15 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
 
     # Determine the best bump framework
     framework_index = determine_best_bump_framework_from_convo(
-        convo_history=[{ "connection_degree": msg.connection_degree, "message": msg.message } for msg in latest_convo_entries],
+        convo_history=[
+            {"connection_degree": msg.connection_degree, "message": msg.message}
+            for msg in latest_convo_entries
+        ],
         bump_frameworks=[bf.description for bf in bump_frameworks],
     )
     best_framework = bump_frameworks[framework_index]
 
-    #print(f"Using bump framework: {best_framework.title}")
+    # print(f"Using bump framework: {best_framework.title}")
 
     # Get account research
     account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
@@ -1811,32 +1819,38 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     # Determine the best account research
     research_indexes = determine_account_research_from_convo_and_bump_framework(
         prospect_id=prospect_id,
-        convo_history=[{ "connection_degree": msg.connection_degree, "message": msg.message } for msg in latest_convo_entries],
+        convo_history=[
+            {"connection_degree": msg.connection_degree, "message": msg.message}
+            for msg in latest_convo_entries
+        ],
         bump_framework_desc=best_framework.description,
         account_research=[research.reason for research in account_research],
     )
-    research_str = ''
+    research_str = ""
     for i in research_indexes:
-        print('research index', i)
+        print("research index", i)
         if account_research[i]:
             research_str += f"- {account_research[i].reason}\n"
 
     # Generate response
-    from src.li_conversation.services import generate_chat_gpt_response_to_conversation_thread
+    from src.li_conversation.services import (
+        generate_chat_gpt_response_to_conversation_thread,
+    )
+
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
-        conversation_url=f'https://www.linkedin.com/messaging/thread/{convo_urn_id}/',
+        conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
         bump_framework_id=best_framework.id,
         account_research_copy=research_str,
-    ) # type: ignore
+    )  # type: ignore
 
-    #print(f"Response: {response}")
+    # print(f"Response: {response}")
 
     # Save response
     dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
     ).first()
     if dupe_bump_msg:
-        #print("Already generated a bump for this message")
+        # print("Already generated a bump for this message")
         return False
 
     bump_msg = GeneratedMessageAutoBump(
@@ -1876,4 +1890,3 @@ def delete_prospect_bump(client_sdr_id: int, prospect_id: int):
     db.session.commit()
 
     return True
-
