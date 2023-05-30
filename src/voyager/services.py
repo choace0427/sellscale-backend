@@ -396,6 +396,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
                 li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
                 message=msg,
                 urn_id=msg_urn_id,
+                client_sdr_id=prospect.client_sdr_id,
             )
         )
     print("saving objects ...")
@@ -498,24 +499,6 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         .order_by(ProspectStatusRecords.created_at.desc())
         .first()
     )
-
-
-    # Flag as urgent if last message mentions something urgent
-    if not last_msg_was_you:
-        if "tomorrow" in latest_convo_entries[0].message.lower() or "today" in latest_convo_entries[0].message.lower():
-            sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-            send_slack_message(
-                message=f"""
-                {latest_convo_entries[0].author} wrote to {sdr.name} with the message:
-                ```
-                {latest_convo_entries[0].message}
-                ```
-                Time-sensitive keyword was detected.
-
-                Take appropriate action then mark this message as ✅
-                """,
-                webhook_urls=[URL_MAP['csm-urgent-alerts']]
-            )
 
 
     if (

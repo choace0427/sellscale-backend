@@ -102,6 +102,7 @@ def create_linkedin_conversation_entry(
     message: str,
     urn_id: Union[str, None] = None,
     img_expire: int = 0,
+    client_sdr_id: int = -1,
 ):
     if message.strip() == "": return None
 
@@ -114,6 +115,23 @@ def create_linkedin_conversation_entry(
         message=message,
         urn_id=urn_id,
     )
+
+    # Flag as urgent if message is new and mentions something urgent
+    if not duplicate_exists and client_sdr_id != -1:
+        if "tomorrow" in message.lower() or "today" in message.lower():
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            send_slack_message(
+                message=f"""
+                {author} wrote to {sdr.name} with the message:
+                ```
+                {message}
+                ```
+                Time-sensitive keyword was detected.
+
+                Take appropriate action then mark this message as ✅
+                """,
+                webhook_urls=[URL_MAP['csm-urgent-alerts']]
+            )
 
     # Get the Thread URN ID from the conversation URL
     try:
