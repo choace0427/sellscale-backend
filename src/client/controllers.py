@@ -946,9 +946,12 @@ def post_populate_prospect_events(client_sdr_id: int):
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
     
-    count = populate_prospect_events(client_sdr_id, prospect_id)
+    added_count, updated_count = populate_prospect_events(client_sdr_id, prospect_id)
 
-    return jsonify({"message": "Success", "data": count}), 201
+    return jsonify({"message": "Success", "data": {
+        "added": added_count,
+        "updated": updated_count,
+    }}), 200
 
 
 @CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])
