@@ -951,13 +951,21 @@ def post_populate_prospect_events(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
-    
+
     added_count, updated_count = populate_prospect_events(client_sdr_id, prospect_id)
 
-    return jsonify({"message": "Success", "data": {
-        "added": added_count,
-        "updated": updated_count,
-    }}), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {
+                    "added": added_count,
+                    "updated": updated_count,
+                },
+            }
+        ),
+        200,
+    )
 
 
 @CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])
@@ -1358,7 +1366,7 @@ def get_client_product(client_sdr_id: int):
     return jsonify({"message": "Success", "data": products}), 200
 
 
-@CLIENT_BLUEPRINT.route("/demo_feedback", methods=["GET"])
+@CLIENT_BLUEPRINT.route("/demo_feedback_feed", methods=["GET"])
 @require_user
 def get_demo_feedback_endpoint(client_sdr_id: int):
     """Get demo feedback"""
