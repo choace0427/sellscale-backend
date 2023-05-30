@@ -148,7 +148,8 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
                     prospect=prospect,
                     new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
                     custom_message=" responded to your email! 🙌🏽",
-                    metadata={}
+                    metadata={},
+                    last_email_message=message.get("snippet")
                 )
 
             # Calculate prospect overall status
