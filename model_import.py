@@ -1,5 +1,11 @@
 from src.echo.models import Echo
-from src.client.models import Client, ClientArchetype, ClientSDR, ClientPod
+from src.client.models import (
+    Client,
+    ClientArchetype,
+    ClientSDR,
+    ClientPod,
+    DemoFeedback,
+)
 from src.prospecting.models import (
     Prospect,
     ProspectStatus,

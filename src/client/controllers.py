@@ -1,7 +1,11 @@
 from crypt import methods
 from flask import Blueprint, request, jsonify
 from src.prospecting.models import Prospect
-from src.client.services import submit_demo_feedback, get_all_demo_feedback
+from src.client.services import (
+    submit_demo_feedback,
+    get_all_demo_feedback,
+    get_demo_feedback_for_client,
+)
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
 from model_import import ClientPod
@@ -297,6 +301,7 @@ def patch_sdr(client_sdr_id: int):
         return jsonify({"message": "Failed to update client SDR"}), 404
     return jsonify({"message": "Success"}), 200
 
+
 @CLIENT_BLUEPRINT.route("/sdr/complete-onboarding", methods=["POST"])
 @require_user
 def post_sdr_complete_onboarding(client_sdr_id: int):
@@ -304,6 +309,7 @@ def post_sdr_complete_onboarding(client_sdr_id: int):
     complete_client_sdr_onboarding(client_sdr_id)
 
     return jsonify({"message": "Success"}), 200
+
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])
 def create_sdr():
@@ -910,7 +916,7 @@ def get_nylas_account_details(client_sdr_id: int):
 
     data = nylas_account_details(client_sdr_id)
 
-    return jsonify({"message": "Success", "data": data }), 200
+    return jsonify({"message": "Success", "data": data}), 200
 
 
 @CLIENT_BLUEPRINT.route("/nylas/events", methods=["GET"])
@@ -929,7 +935,7 @@ def get_prospect_event(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=False, required=True, parameter_type=int
     )
-    
+
     events = find_prospect_events(client_sdr_id, prospect_id)
     if events is None:
         return jsonify({"message": "Failed to find event"}), 404
@@ -945,7 +951,7 @@ def post_populate_prospect_events(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
-    
+
     count = populate_prospect_events(client_sdr_id, prospect_id)
 
     return jsonify({"message": "Success", "data": count}), 201
@@ -1257,10 +1263,10 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
 def post_client_product(client_sdr_id: int):
 
     name = get_request_parameter(
-        "name", request, json=True, required=True, default_value=''
+        "name", request, json=True, required=True, default_value=""
     )
     description = get_request_parameter(
-        "description", request, json=True, required=True, default_value=''
+        "description", request, json=True, required=True, default_value=""
     )
     how_it_works = get_request_parameter(
         "how_it_works", request, json=True, required=False, default_value=None
@@ -1324,15 +1330,16 @@ def put_client_product(client_sdr_id: int):
 
     return jsonify({"message": "Success"}), 200
 
+
 @CLIENT_BLUEPRINT.route("/product", methods=["DELETE"])
 @require_user
 def delete_client_product(client_sdr_id: int):
 
-    product_id = get_request_parameter(
-        "product_id", request, json=True, required=True
-    )
+    product_id = get_request_parameter("product_id", request, json=True, required=True)
 
-    success = remove_client_product(client_sdr_id=client_sdr_id, client_product_id=product_id)
+    success = remove_client_product(
+        client_sdr_id=client_sdr_id, client_product_id=product_id
+    )
     if not success:
         return jsonify({"message": "Failed to remove product"}), 500
 
@@ -1345,5 +1352,23 @@ def get_client_product(client_sdr_id: int):
 
     products = get_client_products(client_sdr_id=client_sdr_id)
 
-    return jsonify({ "message": "Success", "data": products }), 200
+    return jsonify({"message": "Success", "data": products}), 200
 
+
+@CLIENT_BLUEPRINT.route("/demo_feedback", methods=["GET"])
+@require_user
+def get_demo_feedback_endpoint(client_sdr_id: int):
+    """Get demo feedback"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    all_feedback = get_demo_feedback_for_client(client_id)
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": all_feedback,
+            }
+        ),
+        200,
+    )
