@@ -877,18 +877,18 @@ def add_prospect(
             li_num_followers=linkedin_num_followers,
             overall_status=overall_status,
         )
-        p_id = prospect.id
         db.session.add(prospect)
         db.session.commit()
+        p_id = prospect.id
         prospect: Prospect = Prospect.query.get(p_id)
         prospect.regenerate_uuid()
     else:
         return None
 
-    get_research_payload_new(prospect_id=prospect.id, test_mode=False)
-    find_company_for_prospect(prospect.id)
+    get_research_payload_new(prospect_id=p_id, test_mode=False)
+    find_company_for_prospect(p_id)
 
-    return prospect.id
+    return p_id
 
 
 def get_linkedin_slug_from_url(url: str):
