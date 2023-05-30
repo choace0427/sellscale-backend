@@ -1,4 +1,8 @@
 from src.prospecting.models import ProspectEvent
+
+from model_import import DemoFeedback
+from sqlalchemy import func
+from sqlalchemy.orm import aliased
 from src.client.models import ClientProduct
 from sqlalchemy import or_
 from click import Option
@@ -1096,12 +1100,18 @@ def nylas_exchange_for_authorization_code(
 
     # Validate response
     if response.get("status_code") and response.get("status_code") == 500:
-        return False, {"message": "Error exchanging for access token", "status_code": 500}
+        return False, {
+            "message": "Error exchanging for access token",
+            "status_code": 500,
+        }
 
     # Get access token
     access_token = response.get("access_token")
     if not access_token:
-        return False, {"message": "Error exchanging for access token", "status_code": 500}
+        return False, {
+            "message": "Error exchanging for access token",
+            "status_code": 500,
+        }
 
     # Get account id
     account_id = response.get("account_id")
@@ -1112,8 +1122,8 @@ def nylas_exchange_for_authorization_code(
     response = response.get("email_address")
     if not response:
         return False, {"message": "Error getting email address", "status_code": 500}
-    #elif response != client_sdr.email:
-        #return False, {"message": "Email address does not match", "status_code": 401}
+    # elif response != client_sdr.email:
+    # return False, {"message": "Email address does not match", "status_code": 401}
 
     # Update Client SDR
     client_sdr.nylas_auth_code = access_token
@@ -1204,7 +1214,7 @@ def post_nylas_oauth_token(code: str) -> dict:
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
-        auth=(secret or '', ''),
+        auth=(secret or "", ""),
         json={
             "grant_type": "authorization_code",
             "client_id": os.environ.get("NYLAS_CLIENT_ID"),
@@ -1823,3 +1833,62 @@ def get_client_products(client_sdr_id: int):
     ).all()
 
     return [client_product.to_dict() for client_product in client_products]
+
+
+def get_demo_feedback_for_client(client_id: int):
+    """
+    Given a client_id, get all demo feedback for that client
+    """
+    client_sdr_ids = [
+        client_sdr.id for client_sdr in ClientSDR.query.filter_by(client_id=client_id)
+    ]
+    return get_demo_feedback_for_client_sdrs(client_sdr_ids)
+
+
+def get_demo_feedback_for_client_sdrs(client_sdr_ids: list[int]):
+    """
+    Given a list of client_sdr_ids, get all demo feedback for those client_sdr_ids
+
+    The demo feedback is given in the following format:
+        [
+            {
+                prospect_id: int,
+                full_name: str,
+                demo_date: str,
+                demo_rating: str,
+                demo_feedback: str,
+            }
+        ]
+    """
+    cf = aliased(ClientSDR)
+
+    query = (
+        db.session.query(
+            Prospect.id,
+            Prospect.full_name,
+            Prospect.demo_date,
+            func.max(DemoFeedback.rating).label("demo_rating"),
+            func.max(DemoFeedback.feedback).label("demo_feedback"),
+        )
+        .join(cf, cf.id == Prospect.client_sdr_id)
+        .outerjoin(DemoFeedback, DemoFeedback.prospect_id == Prospect.id)
+        .filter(Prospect.client_sdr_id.in_(client_sdr_ids))
+        .filter(Prospect.overall_status == ProspectOverallStatus.DEMO)
+        .group_by(Prospect.id, Prospect.full_name, Prospect.demo_date)
+    )
+
+    result = query.all()
+
+    data = []
+    for entry in result:
+        data.append(
+            {
+                "prospect_id": entry[0],
+                "full_name": entry[1],
+                "demo_date": entry[2],
+                "demo_rating": entry[3],
+                "demo_feedback": entry[4],
+            }
+        )
+
+    return data
