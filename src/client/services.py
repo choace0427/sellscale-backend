@@ -1284,30 +1284,51 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
         prospect_id=prospect_id
     ).all()
 
-    count = 0
+    updated_count = 0
+    added_count = 0
     calendar_events = find_prospect_events(client_sdr_id, prospect_id) or []
     for event in calendar_events:
         if event.get("id") in [x.nylas_event_id for x in prospect_events]:
-            continue
+            
+            # Update existing event
+            existing_event = next((e for e in prospect_events if e.nylas_event_id == event.get("id")), None)
+            if existing_event:
+                if existing_event.nylas_data_raw == event: continue
+                
+                existing_event.title = event.get("title", "No Title")
+                existing_event.start_time = datetime.fromtimestamp(
+                    event.get("when", {}).get("start_time", 0)
+                )
+                existing_event.end_time = datetime.fromtimestamp(
+                    event.get("when", {}).get("start_time", 0)
+                )
+                existing_event.status = event.get("status", "")
+                existing_event.meeting_info = event.get("conferencing", {})
+                existing_event.nylas_data_raw = event
 
-        prospect_event = ProspectEvent(
-            prospect_id=prospect_id,
-            nylas_event_id=event.get("id"),
-            nylas_calendar_id=event.get("calendar_id"),
-            title=event.get("title", "No Title"),
-            start_time=datetime.fromtimestamp(
-                event.get("when", {}).get("start_time", 0)
-            ),
-            end_time=datetime.fromtimestamp(event.get("when", {}).get("end_time", 0)),
-            status=event.get("status", ""),
-            meeting_info=event.get("conferencing", {}),
-            nylas_data_raw=event,
-        )
-        db.session.add(prospect_event)
-        db.session.commit()
-        count += 1
+                db.session.add(existing_event)
+                db.session.commit()
+                updated_count += 1
 
-    return count
+        else:
+            prospect_event = ProspectEvent(
+                prospect_id=prospect_id,
+                nylas_event_id=event.get("id"),
+                nylas_calendar_id=event.get("calendar_id"),
+                title=event.get("title", "No Title"),
+                start_time=datetime.fromtimestamp(
+                    event.get("when", {}).get("start_time", 0)
+                ),
+                end_time=datetime.fromtimestamp(event.get("when", {}).get("end_time", 0)),
+                status=event.get("status", ""),
+                meeting_info=event.get("conferencing", {}),
+                nylas_data_raw=event,
+            )
+            db.session.add(prospect_event)
+            db.session.commit()
+            added_count += 1
+
+    return added_count, updated_count
 
 
 def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int):
