@@ -177,6 +177,15 @@ def get_all_campaigns(client_sdr_id: int):
             )
             or []
         )
+        include_analytics = (
+            get_request_parameter(
+                "include_analytics",
+                request,
+                json=True,
+                required=False,
+                parameter_type=bool,
+            )
+        ) or False
     except Exception as e:
         return e.args[0], 400
 
@@ -204,12 +213,21 @@ def get_all_campaigns(client_sdr_id: int):
         "outbound_campaigns"
     )
 
+    campaigns = []
+    if include_analytics:
+        for outbound_campaign in outbound_campaigns:
+            info: dict = outbound_campaign.to_dict()
+            info["analytics"] = get_outbound_campaign_analytics(outbound_campaign.id)
+            campaigns.append(info)
+    else:
+        campaigns = [oc.to_dict() for oc in outbound_campaigns]
+
     return (
         jsonify(
             {
                 "message": "Success",
                 "total_count": total_count,
-                "outbound_campaigns": [oc.to_dict() for oc in outbound_campaigns],
+                "outbound_campaigns": campaigns,
             }
         ),
         200,
