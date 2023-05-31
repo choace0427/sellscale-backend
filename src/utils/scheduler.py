@@ -161,16 +161,16 @@ def generate_message_bumps():
 
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
-#scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
+# scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
 scheduler.add_job(
     func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
 )
-scheduler.add_job(
-    func=run_next_client_sdr_li_conversation_scraper_job,
-    trigger="cron",
-    hour="9-17",
-    minute="*/10",
-)
+# scheduler.add_job( # todo(Aakash): delete this after June 15, 2023 and related code if not needed
+#     func=run_next_client_sdr_li_conversation_scraper_job,
+#     trigger="cron",
+#     hour="9-17",
+#     minute="*/10",
+# )
 # scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
 scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
 scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
