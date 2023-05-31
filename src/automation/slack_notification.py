@@ -18,6 +18,7 @@ def send_status_change_slack_block(
     new_status: Union[ProspectStatus, ProspectEmailOutreachStatus],
     custom_message: str,
     metadata: dict = None,
+    last_email_message: str = None,
 ) -> None:
     """Sends a status change message to the appropriate slack channel
 
@@ -92,8 +93,9 @@ def send_status_change_slack_block(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Title:* {title}".format(
+                "text": "*Title:* {title}{last_message}".format(
                     title=prospect.title,
+                    last_message="\n*Last message:* {}...".format(last_email_message) if last_email_message else "",
                 ),
             },
         }
@@ -154,7 +156,7 @@ def send_status_change_slack_block(
     )
 
     # if icp fit reason exists and next status is not accepted
-    if prospect.icp_fit_reason and new_status != ProspectStatus.ACCEPTED:
+    if prospect.icp_fit_reason and new_status == ProspectStatus.DEMO_SET:
         message_blocks.append(
             {  # Add ICP fit reason
                 "type": "section",

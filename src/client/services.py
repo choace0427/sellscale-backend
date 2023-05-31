@@ -1895,6 +1895,7 @@ def get_demo_feedback_for_client_sdrs(client_sdr_ids: list[int]):
             Prospect.id,
             Prospect.full_name,
             Prospect.demo_date,
+            Prospect.company,
             func.max(DemoFeedback.rating).label("demo_rating"),
             func.max(DemoFeedback.feedback).label("demo_feedback"),
         )
@@ -1902,20 +1903,27 @@ def get_demo_feedback_for_client_sdrs(client_sdr_ids: list[int]):
         .outerjoin(DemoFeedback, DemoFeedback.prospect_id == Prospect.id)
         .filter(Prospect.client_sdr_id.in_(client_sdr_ids))
         .filter(Prospect.overall_status == ProspectOverallStatus.DEMO)
+        .filter(DemoFeedback.rating.isnot(None))
+        .filter(Prospect.demo_date.isnot(None))
         .group_by(Prospect.id, Prospect.full_name, Prospect.demo_date)
+        .order_by(Prospect.demo_date.desc())
     )
 
     result = query.all()
 
     data = []
+    total_demo_count = 0
     for entry in result:
+        total_demo_count += 1
         data.append(
             {
                 "prospect_id": entry[0],
                 "full_name": entry[1],
                 "demo_date": entry[2],
-                "demo_rating": entry[3],
-                "demo_feedback": entry[4],
+                "company": entry[3],
+                "demo_rating": entry[4],
+                "demo_feedback": entry[5],
+                "total_demo_count": total_demo_count,
             }
         )
 

@@ -322,7 +322,7 @@ def update_prospect_status_linkedin(
             outreach_type=ProspectChannels.LINKEDIN,
             prospect=p,
             new_status=ProspectStatus.ACTIVE_CONVO,
-            custom_message=" responded to your outreach! 🙌",
+            custom_message=" responded to your LinkedIn Invite! 🙌",
             metadata=message,
         )
 

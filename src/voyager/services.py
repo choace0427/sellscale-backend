@@ -273,7 +273,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
         update_conversation_entries(api, convo_urn_id, prospect.id)
         messages = get_convo_entries(convo_urn_id)
 
-        # Process if the messages are AI generated or not 
+        # Process if the messages are AI generated or not
         for message in messages:
             if message.get('ai_generated') is None:
                 process_generated_msg_queue(
@@ -460,7 +460,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         prospect.times_bumped = -1
         db.session.commit()
         return
-    
+
     # We know the first message is AI generated
     if len(latest_convo_entries) >= 1 and latest_convo_entries[-1].ai_generated is None:
         latest_convo_entries[-1].ai_generated = True
@@ -574,11 +574,11 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 def classify_active_convo(prospect_id: int, messages):
 
     options = [
-        'discussing scheduling a time', # ACTIVE_CONVO_SCHEDULING
-        'the conversation needs more engagement because the last message was a short, non-question message', # ACTIVE_CONVO_NEXT_STEPS
-        'there is an objection or abrasion about a product or service', # ACTIVE_CONVO_OBJECTION
-        'there is a question', # ACTIVE_CONVO_QUESTION
-        'they might not be a great fit or might not be qualified', # ACTIVE_CONVO_QUAL_NEEDED
+        'Trying to schedule a time', # ACTIVE_CONVO_SCHEDULING
+        'The conversation needs more engagement', # ACTIVE_CONVO_NEXT_STEPS
+        'There is an objection or abrasion about a product or service', # ACTIVE_CONVO_OBJECTION
+        'There is a question', # ACTIVE_CONVO_QUESTION
+        'They might not be a great fit or might not be qualified', # ACTIVE_CONVO_QUAL_NEEDED
     ]
 
     classification = chat_ai_classify_active_convo(messages, options)
@@ -634,7 +634,7 @@ def classify_active_convo(prospect_id: int, messages):
         })
     block_messages.reverse()
     blocks += block_messages
-    
+
     blocks.append({
         "type": "section",
         "text": {
