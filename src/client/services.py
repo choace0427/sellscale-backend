@@ -1291,7 +1291,20 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
     updated_count = 0
     added_count = 0
     calendar_events = find_prospect_events(client_sdr_id, prospect_id) or []
+    soonest_event = None
     for event in calendar_events:
+
+        # Find soonest event
+        if soonest_event:
+            s_start_time = soonest_event.get("when", {}).get("start_time", 0)
+            e_start_time = event.get("when", {}).get("start_time", 0)
+            current_time = int(time.time())
+            if s_start_time != 0 and e_start_time != 0 and s_start_time > e_start_time and s_start_time > current_time:
+                soonest_event = event
+        else:
+            soonest_event = event
+
+        # Check if event already exists
         if event.get("id") in [x.nylas_event_id for x in prospect_events]:
             
             # Update existing event
@@ -1304,7 +1317,7 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
                     event.get("when", {}).get("start_time", 0)
                 )
                 existing_event.end_time = datetime.fromtimestamp(
-                    event.get("when", {}).get("start_time", 0)
+                    event.get("when", {}).get("end_time", 0)
                 )
                 existing_event.status = event.get("status", "")
                 existing_event.meeting_info = event.get("conferencing", {})
@@ -1332,6 +1345,15 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
             db.session.add(prospect_event)
             db.session.commit()
             added_count += 1
+
+    # Update prospect's demo date with soonest event date
+    if soonest_event:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        prospect.demo_date = datetime.fromtimestamp(
+            soonest_event.get("when", {}).get("start_time", 0)
+        )
+        db.session.add(prospect)
+        db.session.commit()
 
     return added_count, updated_count
 
