@@ -10,6 +10,7 @@ from model_import import (
 from src.prospecting.services import get_prospect_details
 from app import db, celery
 import json
+from sqlalchemy import func
 
 
 def verify_client_sdr_can_access_archetype(client_sdr_id: int, archetype_id: int):
@@ -74,14 +75,78 @@ def get_recent_split_requests(client_sdr_id: int, source_archetype_id: int):
     """
     Given a client sdr id, return a list of recent split requests
     """
-    split_requests: list[PersonaSplitRequest] = (
-        PersonaSplitRequest.query.filter_by(
-            client_sdr_id=client_sdr_id, source_client_archetype_id=source_archetype_id
+    query = (
+        db.session.query(
+            PersonaSplitRequest.created_at,
+            PersonaSplitRequest.updated_at,
+            PersonaSplitRequest.id,
+            PersonaSplitRequest.client_sdr_id,
+            PersonaSplitRequest.source_client_archetype_id,
+            PersonaSplitRequest.destination_client_archetype_ids,
+            func.count()
+            .filter(PersonaSplitRequestTask.status == "QUEUED")
+            .label("queued"),
+            func.count()
+            .filter(PersonaSplitRequestTask.status == "IN_PROGRESS")
+            .label("in_progress"),
+            func.count()
+            .filter(PersonaSplitRequestTask.status == "COMPLETED")
+            .label("completed"),
+            func.count()
+            .filter(PersonaSplitRequestTask.status == "FAILED")
+            .label("failed"),
+        )
+        .join(
+            PersonaSplitRequestTask,
+            PersonaSplitRequestTask.persona_split_request_id == PersonaSplitRequest.id,
+        )
+        .filter(
+            PersonaSplitRequest.client_sdr_id == client_sdr_id,
+            PersonaSplitRequest.source_client_archetype_id == source_archetype_id,
+        )
+        .group_by(
+            PersonaSplitRequest.created_at,
+            PersonaSplitRequest.updated_at,
+            PersonaSplitRequest.id,
+            PersonaSplitRequest.client_sdr_id,
+            PersonaSplitRequest.source_client_archetype_id,
+            PersonaSplitRequest.destination_client_archetype_ids,
         )
         .order_by(PersonaSplitRequest.created_at.desc())
-        .all()
+        .limit(5)
     )
-    return [sr.to_dict() for sr in split_requests]
+
+    # Execute the query and fetch the results
+    results = query.all()
+
+    parsed_results = []
+    for result in results:
+        (
+            created_at,
+            updated_at,
+            id,
+            client_sdr_id,
+            source_client_archetype_id,
+            destination_client_archetype_ids,
+            queued,
+            in_progress,
+            completed,
+            failed,
+        ) = result
+        parsed_result = {
+            "id": id,
+            "created_at": created_at,
+            "client_sdr_id": client_sdr_id,
+            "source_client_archetype_id": source_client_archetype_id,
+            "destination_client_archetype_ids": destination_client_archetype_ids,
+            "num_queued": queued,
+            "num_in_progress": in_progress,
+            "num_completed": completed,
+            "num_failed": failed,
+        }
+        parsed_results.append(parsed_result)
+
+    return parsed_results
 
 
 def get_split_request_details(split_request_id: int):
@@ -182,7 +247,7 @@ def process_persona_split_request_task(self, task_id: int):
         ).all()
         company: Company = Company.query.filter_by(id=prospect.company_id).first()
 
-        company_loc_str = ''
+        company_loc_str = ""
         if len(company.locations) > 0:
             company_loc = company.locations[0]
             company_loc_str = f'{company_loc.get("city", "")}, {company_loc.get("geographicArea", "")} {company_loc.get("country", "")}, Postal Code: {company_loc.get("postalCode", "")}'
@@ -260,4 +325,4 @@ Output:""",
     except Exception as e:
         db.session.rollback()
 
-        raise self.retry(exc=e, countdown=2**self.request.retries)
+        raise self.retry(exc=e, countdown=20**self.request.retries)

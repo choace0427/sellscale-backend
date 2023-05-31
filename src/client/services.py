@@ -1331,19 +1331,28 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
             e_start_time, e_end_time = convert_nylas_date(event)
 
             current_time = int(time.time())
-            if s_start_time != 0 and e_start_time != 0 and s_start_time > e_start_time and s_start_time > current_time:
+            if (
+                s_start_time != 0
+                and e_start_time != 0
+                and s_start_time > e_start_time
+                and s_start_time > current_time
+            ):
                 soonest_event = event
         else:
             soonest_event = event
 
         # Check if event already exists
         if event.get("id") in [x.nylas_event_id for x in prospect_events]:
-            
+
             # Update existing event
-            existing_event = next((e for e in prospect_events if e.nylas_event_id == event.get("id")), None)
+            existing_event = next(
+                (e for e in prospect_events if e.nylas_event_id == event.get("id")),
+                None,
+            )
             if existing_event:
-                if existing_event.nylas_data_raw == event: continue
-                
+                if existing_event.nylas_data_raw == event:
+                    continue
+
                 existing_event.title = event.get("title", "No Title")
 
                 start_time, end_time = convert_nylas_date(event)
@@ -1522,7 +1531,7 @@ def predict_persona_fit_reason(
     return True, response
 
 
-def generate_persona_description(client_sdr_id: int, persona_name: str):
+def generate_persona_description_helper(client_sdr_id: int, persona_name: str):
     """
     Generate a persona description for a persona
 
@@ -1546,7 +1555,33 @@ def generate_persona_description(client_sdr_id: int, persona_name: str):
     )
 
 
-def generate_persona_buy_reason(client_sdr_id: int, persona_name: str):
+def generate_persona_description(
+    client_sdr_id: int, persona_name: str, retries: int = 3
+):
+    """
+    Generate a persona description for a persona
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        persona_name (str): Name of the persona
+        retries (int): Number of retries to attempt
+
+    Returns:
+        str: Generated persona description
+    """
+    for _ in range(retries):
+        try:
+            description = generate_persona_description_helper(
+                client_sdr_id, persona_name
+            )
+            if description:
+                return description
+        except:
+            pass
+    return ""
+
+
+def generate_persona_buy_reason_helper(client_sdr_id: int, persona_name: str):
     """
     Generate a persona buy reason for a persona
 
@@ -1570,7 +1605,31 @@ def generate_persona_buy_reason(client_sdr_id: int, persona_name: str):
     )
 
 
-def generate_persona_icp_matching_prompt(
+def generate_persona_buy_reason(
+    client_sdr_id: int, persona_name: str, retries: int = 3
+):
+    """
+    Generate a persona buy reason for a persona
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        persona_name (str): Name of the persona
+        retries (int): Number of retries to attempt
+
+    Returns:
+        str: Generated persona buy reason
+    """
+    for _ in range(retries):
+        try:
+            buy_reason = generate_persona_buy_reason_helper(client_sdr_id, persona_name)
+            if buy_reason:
+                return buy_reason
+        except:
+            pass
+    return ""
+
+
+def generate_persona_icp_matching_prompt_helper(
     client_sdr_id: int,
     persona_name: str,
     persona_description: str = "",
@@ -1623,6 +1682,38 @@ ICP Scoring Prompt:
     return wrapped_create_completion(
         model=OPENAI_CHAT_GPT_4_MODEL, prompt=prompt, max_tokens=400
     )
+
+
+def generate_persona_icp_matching_prompt(
+    client_sdr_id: int,
+    persona_name: str,
+    persona_description: str = "",
+    persona_buy_reason: str = "",
+    retries: int = 3,
+):
+    """
+    Generate a persona ICP matching prompt for a persona
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        persona_name (str): Name of the persona
+        persona_description (str): Description of the persona
+        persona_buy_reason (str): Buy reason of the persona
+        retries (int): Number of retries to attempt
+
+    Returns:
+        str: Generated persona buy reason
+    """
+    for _ in range(retries):
+        try:
+            icp_matching_prompt = generate_persona_icp_matching_prompt_helper(
+                client_sdr_id, persona_name, persona_description, persona_buy_reason
+            )
+            if icp_matching_prompt:
+                return icp_matching_prompt
+        except:
+            pass
+    return ""
 
 
 def update_phantom_buster_launch_schedule(client_sdr_id: int):
@@ -2005,3 +2096,19 @@ def get_demo_feedback_for_client_sdrs(client_sdr_ids: list[int]):
         )
 
     return data
+
+
+def update_client_sdr_supersight_link(client_id: int, super_sight_link: str):
+    """
+    Updates the supersight link for a client
+    """
+    client: Client = Client.query.get(client_id)
+    if not client:
+        return False
+
+    client.super_sight_link = super_sight_link
+
+    db.session.add(client)
+    db.session.commit()
+
+    return True
