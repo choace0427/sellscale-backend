@@ -1306,12 +1306,16 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
 
         # Check if event already exists
         if event.get("id") in [x.nylas_event_id for x in prospect_events]:
-            
+
             # Update existing event
-            existing_event = next((e for e in prospect_events if e.nylas_event_id == event.get("id")), None)
+            existing_event = next(
+                (e for e in prospect_events if e.nylas_event_id == event.get("id")),
+                None,
+            )
             if existing_event:
-                if existing_event.nylas_data_raw == event: continue
-                
+                if existing_event.nylas_data_raw == event:
+                    continue
+
                 existing_event.title = event.get("title", "No Title")
                 existing_event.start_time = datetime.fromtimestamp(
                     event.get("when", {}).get("start_time", 0)
@@ -1337,7 +1341,9 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
                 start_time=datetime.fromtimestamp(
                     event.get("when", {}).get("start_time", 0)
                 ),
-                end_time=datetime.fromtimestamp(event.get("when", {}).get("end_time", 0)),
+                end_time=datetime.fromtimestamp(
+                    event.get("when", {}).get("end_time", 0)
+                ),
                 status=event.get("status", ""),
                 meeting_info=event.get("conferencing", {}),
                 nylas_data_raw=event,
@@ -1950,3 +1956,19 @@ def get_demo_feedback_for_client_sdrs(client_sdr_ids: list[int]):
         )
 
     return data
+
+
+def update_client_sdr_supersight_link(client_id: int, super_sight_link: str):
+    """
+    Updates the supersight link for a client
+    """
+    client: Client = Client.query.get(client_id)
+    if not client:
+        return False
+
+    client.super_sight_link = super_sight_link
+
+    db.session.add(client)
+    db.session.commit()
+
+    return True

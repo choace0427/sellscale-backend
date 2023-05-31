@@ -11,6 +11,7 @@ from src.client.services import check_nylas_status, get_client_archetype_prospec
 from model_import import ClientPod
 from src.message_generation.models import GeneratedMessageCTA
 from src.client.services import (
+    update_client_sdr_supersight_link,
     create_client,
     create_client_archetype,
     create_client_sdr,
@@ -1403,3 +1404,19 @@ def get_demo_feedback_endpoint(client_sdr_id: int):
         ),
         200,
     )
+
+
+@CLIENT_BLUEPRINT.route("/update_super_sight_link", methods=["POST"])
+def post_update_supersight_link():
+    client_id: int = get_request_parameter(
+        "client_id", request, json=True, required=True
+    )
+    super_sight_link: str = get_request_parameter(
+        "super_sight_link", request, json=True, required=True
+    )
+    success = update_client_sdr_supersight_link(
+        client_id=client_id, super_sight_link=super_sight_link
+    )
+    if not success:
+        return "Failed to update supersight link", 404
+    return "OK", 200
