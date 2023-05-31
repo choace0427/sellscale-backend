@@ -1727,11 +1727,6 @@ def generate_message_bumps():
         ClientSDR.auto_generate_messages == True
     ).all()
 
-    send_slack_message(
-        message=f"Temp message to test bump generation",
-        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
-    )
-
     for sdr in sdrs:
         prospects: List[Prospect] = Prospect.query.filter(
             Prospect.client_sdr_id == sdr.id,
@@ -1789,6 +1784,11 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
             # print("Old bump message, deleting")
             db.session.delete(prev_bump_msg)
             db.session.commit()
+
+    send_slack_message(
+        message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
+        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+    )
 
     # Get bump frameworks
     bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
