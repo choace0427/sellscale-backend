@@ -606,6 +606,7 @@ class ProspectEvent(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
 
     nylas_event_id = db.Column(db.String, nullable=False, unique=True, index=True)
     nylas_calendar_id = db.Column(db.String, nullable=False)
@@ -622,6 +623,7 @@ class ProspectEvent(db.Model):
         return {
             "id": self.id,
             "prospect_id": self.prospect_id,
+            "client_sdr_id": self.client_sdr_id,
             "nylas_event_id": self.nylas_event_id,
             "nylas_calendar_id": self.nylas_calendar_id,
             "title": self.title,

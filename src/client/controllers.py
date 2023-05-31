@@ -15,6 +15,7 @@ from src.client.services import (
     create_client_archetype,
     create_client_sdr,
     get_sdr_available_outbound_channels,
+    get_sdr_calendar_availability,
     rename_archetype,
     get_personas_page_details,
     toggle_archetype_active,
@@ -40,6 +41,7 @@ from src.client.services import (
     get_client_archetypes,
     get_cta_by_archetype_id,
     get_client_sdr,
+    find_sdr_events,
     deactivate_client_sdr,
     activate_client_sdr,
     get_prospect_upload_stats_by_upload_id,
@@ -927,16 +929,20 @@ def get_nylas_events(client_sdr_id: int):
     return get_nylas_all_events(client_sdr_id)
 
 
-@CLIENT_BLUEPRINT.route("/sdr/find_event", methods=["GET"])
+@CLIENT_BLUEPRINT.route("/sdr/find_events", methods=["GET"])
 @require_user
 def get_prospect_event(client_sdr_id: int):
     """Finds a calendar event for a prospect"""
 
     prospect_id = get_request_parameter(
-        "prospect_id", request, json=False, required=True, parameter_type=int
+        "prospect_id", request, json=False, required=False, parameter_type=int
     )
 
-    events = find_prospect_events(client_sdr_id, prospect_id)
+    if prospect_id:
+        events = find_prospect_events(client_sdr_id, prospect_id)
+    else:
+        events = [e.to_dict() for e in find_sdr_events(client_sdr_id)]
+
     if events is None:
         return jsonify({"message": "Failed to find event"}), 404
 
@@ -959,6 +965,20 @@ def post_populate_prospect_events(client_sdr_id: int):
         "updated": updated_count,
     }}), 200
 
+
+@CLIENT_BLUEPRINT.route("/sdr/calendar_availability", methods=["GET"])
+@require_user
+def get_calendar_availability(client_sdr_id: int):
+    """Gets the calendar availability for an SDR"""
+
+    start_time = get_request_parameter(
+        "start_time", request, json=False, required=True, parameter_type=int
+    )
+    end_time = get_request_parameter(
+        "end_time", request, json=False, required=True, parameter_type=int
+    )
+    
+    return get_sdr_calendar_availability(client_sdr_id, start_time, end_time)
 
 @CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])
 @require_user

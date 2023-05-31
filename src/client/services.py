@@ -1247,6 +1247,10 @@ def get_nylas_all_events(client_sdr_id: int):
     return {"message": "Success", "data": result}, 200
 
 
+def find_sdr_events(client_sdr_id: int) -> List[ProspectEvent]:
+    return ProspectEvent.query.filter_by(client_sdr_id=client_sdr_id).all()
+
+
 def find_prospect_events(client_sdr_id: int, prospect_id: int):
 
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -1313,6 +1317,7 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
         else:
             prospect_event = ProspectEvent(
                 prospect_id=prospect_id,
+                client_sdr_id=client_sdr_id,
                 nylas_event_id=event.get("id"),
                 nylas_calendar_id=event.get("calendar_id"),
                 title=event.get("title", "No Title"),
@@ -1329,6 +1334,29 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
             added_count += 1
 
     return added_count, updated_count
+
+
+def get_sdr_calendar_availability(client_sdr_id: int, start_time: int, end_time: int):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    response = requests.post(
+        "https://api.nylas.com/calendars/free-busy",
+        headers={
+            "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "start_time": str(start_time),
+            "end_time": str(end_time),
+            "emails": [client_sdr.email],
+        },
+    )
+    if response.status_code != 200:
+        return {"message": "Error getting calendar availability"}, 500
+
+    result = response.json()
+
+    return {"message": "Success", "data": result}, 200
 
 
 def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int):
