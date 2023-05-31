@@ -615,6 +615,7 @@ def scrape_conversation_queue():
 
     from src.voyager.services import update_conversation_entries
     from src.message_generation.services import generate_prospect_bump
+    from src.client.services import populate_prospect_events
 
     scrape_queue: List[
         LinkedinConversationScrapeQueue
@@ -642,6 +643,9 @@ def scrape_conversation_queue():
 
             # Generate a bump msg for the prospect
             #generate_prospect_bump(prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id)
+
+            # Update calendar events
+            populate_prospect_events(prospect.client_sdr_id, prospect.id)
 
         except Exception as e:
             continue
