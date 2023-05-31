@@ -1232,7 +1232,8 @@ def get_nylas_all_events(client_sdr_id: int):
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     response = requests.get(
-        "https://api.nylas.com/events",
+        # Only events in the next 70 days
+        f"https://api.nylas.com/events?starts_after={int(time.time())}&starts_before={int(time.time()+6048000)}&limit=200",
         headers={
             "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
             "Content-Type": "application/json",
@@ -1245,6 +1246,36 @@ def get_nylas_all_events(client_sdr_id: int):
     result = response.json()
 
     return {"message": "Success", "data": result}, 200
+
+
+
+def invite_firefly_to_event(prospect_event_id: int):
+
+    event: ProspectEvent = ProspectEvent.query.get(prospect_event_id)
+    if not event: return {"message": "Failed to find event"}, 400
+    sdr: ClientSDR = ClientSDR.query.get(event.client_sdr_id)
+
+    response = requests.put(
+        f"https://{sdr.nylas_auth_code}:@api.nylas.com/events/{event.nylas_event_id}?notify_participants=false",
+        json={
+            "where": event.title,
+            "participants": [
+                {
+                    "comment": "null",
+                    "email": "fred@fireflies.ai",
+                    "name": "Firefly",
+                }
+            ],
+            "description": "Invite"
+        }
+    )
+    if response.status_code != 200:
+        return {"message": "Error sending invite"}, 500
+
+    result = response.json()
+
+    return {"message": "Success", "data": result}, 200
+
 
 
 def find_sdr_events(client_sdr_id: int) -> List[ProspectEvent]:
@@ -1296,8 +1327,9 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
 
         # Find soonest event
         if soonest_event:
-            s_start_time = soonest_event.get("when", {}).get("start_time", 0)
-            e_start_time = event.get("when", {}).get("start_time", 0)
+            s_start_time, s_end_time = convert_nylas_date(soonest_event)
+            e_start_time, e_end_time = convert_nylas_date(event)
+
             current_time = int(time.time())
             if s_start_time != 0 and e_start_time != 0 and s_start_time > e_start_time and s_start_time > current_time:
                 soonest_event = event
@@ -1313,12 +1345,11 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
                 if existing_event.nylas_data_raw == event: continue
                 
                 existing_event.title = event.get("title", "No Title")
-                existing_event.start_time = datetime.fromtimestamp(
-                    event.get("when", {}).get("start_time", 0)
-                )
-                existing_event.end_time = datetime.fromtimestamp(
-                    event.get("when", {}).get("end_time", 0)
-                )
+
+                start_time, end_time = convert_nylas_date(event)
+                existing_event.start_time = datetime.fromtimestamp(start_time)
+                existing_event.end_time = datetime.fromtimestamp(end_time)
+
                 existing_event.status = event.get("status", "")
                 existing_event.meeting_info = event.get("conferencing", {})
                 existing_event.nylas_data_raw = event
@@ -1328,16 +1359,17 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
                 updated_count += 1
 
         else:
+
+            start_time, end_time = convert_nylas_date(event)
+
             prospect_event = ProspectEvent(
                 prospect_id=prospect_id,
                 client_sdr_id=client_sdr_id,
                 nylas_event_id=event.get("id"),
                 nylas_calendar_id=event.get("calendar_id"),
                 title=event.get("title", "No Title"),
-                start_time=datetime.fromtimestamp(
-                    event.get("when", {}).get("start_time", 0)
-                ),
-                end_time=datetime.fromtimestamp(event.get("when", {}).get("end_time", 0)),
+                start_time=datetime.fromtimestamp(start_time),
+                end_time=datetime.fromtimestamp(end_time),
                 status=event.get("status", ""),
                 meeting_info=event.get("conferencing", {}),
                 nylas_data_raw=event,
@@ -1345,6 +1377,10 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
             db.session.add(prospect_event)
             db.session.commit()
             added_count += 1
+
+            # Make sure a firefly is invited
+            response, code = invite_firefly_to_event(prospect_event.id)
+            print(response, code)
 
     # Update prospect's demo date with soonest event date
     if soonest_event:
@@ -1356,6 +1392,25 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
         db.session.commit()
 
     return added_count, updated_count
+
+
+def convert_nylas_date(event):
+
+    start_time = event.get("when", {}).get("start_time", 0)
+    end_time = event.get("when", {}).get("end_time", 0)
+    if event.get("when", {}).get("date"):
+        date_object = datetime.strptime(event.get("when", {}).get("date"), "%Y-%m-%d")
+        start_time = int(date_object.timestamp())
+        end_time = start_time
+
+    if event.get("when", {}).get("start_date") and event.get("when", {}).get("end_date"):
+        date_object_start = datetime.strptime(event.get("when", {}).get("start_date"), "%Y-%m-%d")
+        start_time = int(date_object_start.timestamp())
+        
+        date_object_end = datetime.strptime(event.get("when", {}).get("end_date"), "%Y-%m-%d")
+        end_time = int(date_object_end.timestamp())
+
+    return start_time, end_time
 
 
 def get_sdr_calendar_availability(client_sdr_id: int, start_time: int, end_time: int):
