@@ -7,6 +7,7 @@ class PersonaSplitRequestTaskStatus(enum.Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    NO_MATCH = "NO_MATCH"
 
 
 class PersonaSplitRequest(db.Model):
@@ -43,4 +44,3 @@ class PersonaSplitRequestTask(db.Model):
     prompt = db.Column(db.String)
     raw_completion = db.Column(db.String)
     json_completion = db.Column(db.JSON)
-

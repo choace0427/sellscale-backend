@@ -309,10 +309,13 @@ Output:""",
 
         archetype_id_number = output_dict["persona_id"]
 
-        if (
-            archetype_id_number == 0
-            or archetype_id_number not in destination_client_archetype_ids
-        ):
+        if archetype_id_number == 0:
+            task.status = PersonaSplitRequestTaskStatus.NO_MATCH
+            db.session.add(task)
+            db.session.commit()
+            raise Exception("No match")
+
+        if archetype_id_number not in destination_client_archetype_ids:
             raise Exception("Invalid archetype id")
 
         task.status = PersonaSplitRequestTaskStatus.COMPLETED
@@ -325,4 +328,4 @@ Output:""",
     except Exception as e:
         db.session.rollback()
 
-        raise self.retry(exc=e, countdown=20**self.request.retries)
+        raise self.retry(exc=e, countdown=10**self.request.retries)
