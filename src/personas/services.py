@@ -228,6 +228,9 @@ def process_persona_split_request_task(self, task_id: int):
         ]:
             return
 
+        if task.status in [PersonaSplitRequestTaskStatus.NO_MATCH] and task.tries > 3:
+            return
+
         task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
         task.tries += 1
         db.session.add(task)
