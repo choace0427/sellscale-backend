@@ -22,6 +22,7 @@ from src.client.services import (
     toggle_archetype_active,
     complete_client_sdr_onboarding,
     clear_nylas_tokens,
+    populate_single_prospect_event,
     nylas_account_details,
     update_client_sdr_email,
     update_client_sdr_scheduling_link,
@@ -932,8 +933,8 @@ def get_nylas_events(client_sdr_id: int):
 
 @CLIENT_BLUEPRINT.route("/sdr/find_events", methods=["GET"])
 @require_user
-def get_prospect_event(client_sdr_id: int):
-    """Finds a calendar event for a prospect"""
+def get_prospect_events(client_sdr_id: int):
+    """Finds all calendar events for a prospect"""
 
     prospect_id = get_request_parameter(
         "prospect_id", request, json=False, required=False, parameter_type=int
@@ -948,6 +949,24 @@ def get_prospect_event(client_sdr_id: int):
         return jsonify({"message": "Failed to find event"}), 404
 
     return jsonify({"message": "Success", "data": events}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/find_event", methods=["GET"])
+@require_user
+def get_prospect_event(client_sdr_id: int):
+    """Finds a calendar event"""
+
+    event_id = get_request_parameter(
+        "event_id", request, json=False, required=True, parameter_type=str
+    )
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    success = populate_single_prospect_event(sdr.nylas_account_id, event_id)
+
+    if not success:
+        return jsonify({"message": "Failed to find event"}), 404
+
+    return jsonify({"message": "Success"}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr/populate_events", methods=["POST"])

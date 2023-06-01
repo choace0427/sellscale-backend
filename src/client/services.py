@@ -1248,6 +1248,25 @@ def get_nylas_all_events(client_sdr_id: int):
     return {"message": "Success", "data": result}, 200
 
 
+def get_nylas_single_event(client_sdr_id: int, nylas_event_id: str):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    response = requests.get(
+        # Only events in the next 70 days
+        f"https://api.nylas.com/events?event_id={nylas_event_id}",
+        headers={
+            "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+    if response.status_code != 200:
+        return {"message": "Error getting event"}, 500
+
+    result = response.json()
+
+    return {"message": "Success", "data": result}, 200
+
 
 def invite_firefly_to_event(prospect_event_id: int):
 
@@ -1311,6 +1330,69 @@ def find_prospect_events(client_sdr_id: int, prospect_id: int):
                     continue
 
     return results
+
+
+def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
+
+    sdr: ClientSDR = ClientSDR.query.filter_by(nylas_account_id=nylas_account_id).first()
+    if not sdr: return False
+
+    existing_event: ProspectEvent = ProspectEvent.query.filter_by(nylas_event_id=nylas_event_id).first()
+    print(existing_event)
+
+    result, status_code = get_nylas_single_event(sdr.id, nylas_event_id)
+
+    print(result)
+    if status_code != 200: return False
+
+    if len(result.get("data", [])) == 0: return False
+    event = result.get("data", [])[0]
+    if isinstance(event, str): return False
+
+    # Update existing event
+    if existing_event:
+        if existing_event.nylas_data_raw == event: return False
+
+        existing_event.title = event.get("title", "No Title")
+
+        start_time, end_time = convert_nylas_date(event)
+        existing_event.start_time = datetime.fromtimestamp(start_time)
+        existing_event.end_time = datetime.fromtimestamp(end_time)
+
+        existing_event.status = event.get("status", "")
+        existing_event.meeting_info = event.get("conferencing", {})
+        existing_event.nylas_data_raw = event
+
+        db.session.add(existing_event)
+        db.session.commit()
+
+    else:
+
+        start_time, end_time = convert_nylas_date(event)
+
+        prospect_event = ProspectEvent(
+            prospect_id=72183,
+            client_sdr_id=sdr.id,
+            nylas_event_id=event.get("id"),
+            nylas_calendar_id=event.get("calendar_id"),
+            title=event.get("title", "No Title"),
+            start_time=datetime.fromtimestamp(start_time),
+            end_time=datetime.fromtimestamp(end_time),
+            status=event.get("status", ""),
+            meeting_info=event.get("conferencing", {}),
+            nylas_data_raw=event,
+        )
+        db.session.add(prospect_event)
+        db.session.commit()
+
+        # Make sure a firefly is invited
+        response, code = invite_firefly_to_event(prospect_event.id)
+        print(response, code)
+
+    #TODO: Update the demo date for the prospect
+
+    return True
+
 
 
 def populate_prospect_events(client_sdr_id: int, prospect_id: int):

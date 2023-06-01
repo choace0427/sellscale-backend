@@ -1,5 +1,7 @@
 import json
 from typing import Union
+
+from src.client.services import populate_single_prospect_event
 from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
@@ -279,8 +281,6 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
 def process_deltas_event_update(self, deltas: Union[list[dict], dict]) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
-    This function processes `message.opened` deltas from the `message.opened` webhook.
-
     Args:
         deltas (Union[list[dict], dict]): A list of deltas from a Nylas webhook notification.
 
@@ -308,6 +308,13 @@ def process_deltas_event_update(self, deltas: Union[list[dict], dict]) -> tuple[
 @celery.task(bind=True, max_retries=5)
 def process_single_event_update(self, delta: dict) -> tuple[bool, str]:
 
-    print(delta)
+    account_id = delta.get('object_data', {}).get('account_id')
+    event_id = delta.get('object_data', {}).get('id')
+    if not account_id or not event_id:
+        return False, "No account ID or event ID in delta"
 
-    return False, "Not implemented yet"
+    success = populate_single_prospect_event(account_id, event_id)
+    if success:
+        return True, "Successfully populated prospect event"
+    else:
+        return False, "Failed to populate prospect event"
