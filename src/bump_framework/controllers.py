@@ -14,7 +14,7 @@ from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.ml.services import determine_account_research_from_convo_and_bump_framework, determine_best_bump_framework_from_convo
 
-from model_import import ProspectOverallStatus
+from model_import import ProspectOverallStatus, ProspectStatus
 
 
 BUMP_FRAMEWORK_BLUEPRINT = Blueprint("bump_framework", __name__)
@@ -44,13 +44,33 @@ def get_bump_frameworks(client_sdr_id: int):
         client_archetype_ids = [client_archetype_ids]
     client_archetype_ids = [int(ca_id) for ca_id in client_archetype_ids]
 
-    bump_frameworks = get_bump_frameworks_for_sdr(
+    bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
         client_sdr_id=client_sdr_id,
         overall_statuses=overall_statuses_enumed,
         substatuses=substatuses,
         client_archetype_ids=client_archetype_ids
     )
-    return jsonify({"bump_frameworks": bump_frameworks}), 200
+
+    counts = {
+        "total": len(bump_frameworks),
+        ProspectOverallStatus.ACCEPTED.value: 0,
+        ProspectOverallStatus.BUMPED.value: 0,
+        ProspectStatus.ACTIVE_CONVO_QUESTION.value: 0,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED.value: 0,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION.value: 0,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value: 0,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING.value: 0,
+    }
+    for bump_framework in bump_frameworks:
+        if bump_framework.get("overall_status") in counts:
+            counts[bump_framework.get("overall_status")] += 1
+        if bump_framework.get("substatus") in counts:
+            counts[bump_framework.get("substatus")] += 1
+
+    return jsonify({
+        "bump_frameworks": bump_frameworks,
+        "counts": counts
+    }), 200
 
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump", methods=["POST"])
