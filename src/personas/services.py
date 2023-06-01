@@ -95,6 +95,9 @@ def get_recent_split_requests(client_sdr_id: int, source_archetype_id: int):
             func.count()
             .filter(PersonaSplitRequestTask.status == "FAILED")
             .label("failed"),
+            func.count()
+            .filter(PersonaSplitRequestTask.status == "NO_MATCH")
+            .label("no_match"),
         )
         .join(
             PersonaSplitRequestTask,
@@ -132,6 +135,7 @@ def get_recent_split_requests(client_sdr_id: int, source_archetype_id: int):
             in_progress,
             completed,
             failed,
+            no_match,
         ) = result
         parsed_result = {
             "id": id,
@@ -143,6 +147,7 @@ def get_recent_split_requests(client_sdr_id: int, source_archetype_id: int):
             "num_in_progress": in_progress,
             "num_completed": completed,
             "num_failed": failed,
+            "num_no_match": no_match,
         }
         parsed_results.append(parsed_result)
 
@@ -220,6 +225,8 @@ def process_persona_split_request_task(self, task_id: int):
         task: PersonaSplitRequestTask = PersonaSplitRequestTask.query.filter_by(
             id=task_id
         ).first()
+        task.tries += 1
+
         if task is None:
             return
         if task.status in [
@@ -228,16 +235,18 @@ def process_persona_split_request_task(self, task_id: int):
         ]:
             return
 
-        task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
-        task.tries += 1
-        db.session.add(task)
-        db.session.commit()
+        if task.status in [PersonaSplitRequestTaskStatus.NO_MATCH] and task.tries > 3:
+            return
 
         if task.tries > 3:
             task.status = PersonaSplitRequestTaskStatus.FAILED
             db.session.add(task)
             db.session.commit()
             return
+
+        task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
+        db.session.add(task)
+        db.session.commit()
 
         prospect_id = task.prospect_id
         prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
@@ -254,8 +263,10 @@ def process_persona_split_request_task(self, task_id: int):
 
         persona_options_str = "\n".join(
             [
-                "- {archetype_id}: {archetype}".format(
-                    archetype_id=archetype.id, archetype=archetype.archetype
+                "- {archetype_id}: {archetype} (description: {archetype_description})".format(
+                    archetype_id=archetype.id,
+                    archetype=archetype.archetype,
+                    archetype_description=archetype.persona_description,
                 )
                 for archetype in archetypes
             ]
@@ -309,10 +320,13 @@ Output:""",
 
         archetype_id_number = output_dict["persona_id"]
 
-        if (
-            archetype_id_number == 0
-            or archetype_id_number not in destination_client_archetype_ids
-        ):
+        if archetype_id_number == 0:
+            task.status = PersonaSplitRequestTaskStatus.NO_MATCH
+            db.session.add(task)
+            db.session.commit()
+            raise Exception("No match")
+
+        if archetype_id_number not in destination_client_archetype_ids:
             raise Exception("Invalid archetype id")
 
         task.status = PersonaSplitRequestTaskStatus.COMPLETED
@@ -325,4 +339,4 @@ Output:""",
     except Exception as e:
         db.session.rollback()
 
-        raise self.retry(exc=e, countdown=20**self.request.retries)
+        raise self.retry(exc=e, countdown=10**self.request.retries)
