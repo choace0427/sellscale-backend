@@ -1338,11 +1338,11 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
     if not sdr: return False
 
     existing_event: ProspectEvent = ProspectEvent.query.filter_by(nylas_event_id=nylas_event_id).first()
-    print(existing_event)
+    #print(existing_event)
 
     result, status_code = get_nylas_single_event(sdr.id, nylas_event_id)
 
-    print(result)
+    #print(result)
     if status_code != 200: return False
 
     if len(result.get("data", [])) == 0: return False
@@ -1368,10 +1368,13 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
 
     else:
 
+        prospect_id = get_prospect_id_from_nylas_event(sdr.id, event)
+        if not prospect_id: return False
+
         start_time, end_time = convert_nylas_date(event)
 
         prospect_event = ProspectEvent(
-            prospect_id=72183,
+            prospect_id=prospect_id,
             client_sdr_id=sdr.id,
             nylas_event_id=event.get("id"),
             nylas_calendar_id=event.get("calendar_id"),
@@ -1387,11 +1390,31 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
 
         # Make sure a firefly is invited
         response, code = invite_firefly_to_event(prospect_event.id)
-        print(response, code)
+        #print(response, code)
 
     #TODO: Update the demo date for the prospect
 
     return True
+
+
+def get_prospect_id_from_nylas_event(client_sdr_id, nylas_event):
+
+    event_str = json.dumps(nylas_event)
+    prospects: List[Prospect] = Prospect.query.filter_by(client_sdr_id=client_sdr_id).all()
+
+    for prospect in prospects:
+
+        # Check primary email
+        if prospect.email.strip().lower() in event_str.lower():
+            return prospect.id
+
+        # Check extra emails as well
+        if prospect.email_additional:
+            for extra_email in prospect.email_additional:
+                if extra_email.get("email", "").strip().lower() in event_str.lower():
+                    return prospect.id
+                
+    return None
 
 
 
