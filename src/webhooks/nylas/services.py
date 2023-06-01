@@ -272,3 +272,42 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
     calculate_prospect_overall_status(prospect_id)
 
     return True, "Successfully tracked email open"
+
+
+
+@celery.task(bind=True, max_retries=5)
+def process_deltas_event_update(self, deltas: Union[list[dict], dict]) -> tuple[bool, int]:
+    """Process a list of deltas from a Nylas webhook notification.
+
+    This function processes `message.opened` deltas from the `message.opened` webhook.
+
+    Args:
+        deltas (Union[list[dict], dict]): A list of deltas from a Nylas webhook notification.
+
+    Returns:
+        tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
+    """
+     # Process deltas
+    if type(deltas) == dict:
+        process_single_event_update.apply_async(
+            args=[deltas]
+        )
+        return True, 1
+
+    for delta in deltas:
+        # Processing the data might take awhile, so we should split it up into
+        # multiple tasks, so that we don't block the Celery worker.
+        process_single_event_update.apply_async(
+            args=[delta]
+        )
+
+    return True, len(deltas)
+
+
+
+@celery.task(bind=True, max_retries=5)
+def process_single_event_update(self, delta: dict) -> tuple[bool, str]:
+
+    print(delta)
+
+    return False, "Not implemented yet"

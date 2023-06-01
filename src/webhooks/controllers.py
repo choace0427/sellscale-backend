@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from src.webhooks.nylas.services import (
     process_deltas_message_created,
     process_deltas_message_opened,
+    process_deltas_event_update,
 )
 from app import app, db
 
@@ -88,3 +89,28 @@ def nylas_webhook_message_opened():
     )
 
     return "Deltas for `message.opened` have been queued", 200
+
+
+@WEBHOOKS_BLUEPRINT.route('/nylas/event_update', methods=['GET', 'POST'])
+def nylas_webhook_event_update():
+    """Webhook for Nylas event update."""
+
+    if request.method == 'GET' and "challenge" in request.args:
+        return request.args["challenge"]
+
+    is_genuine = verify_signature(
+        message=request.data,
+        key=NYLAS_CLIENT_SECRET.encode("utf8"),
+        signature=request.headers.get("X-Nylas-Signature"),
+    )
+    if not is_genuine:
+        return "Signature verification failed!", 401
+
+    data = request.get_json()
+    deltas = data["deltas"]
+
+    process_deltas_event_update.apply_async(
+        args=[deltas]
+    )
+
+    return "Deltas for `event.created` or `event.updated` have been queued", 200

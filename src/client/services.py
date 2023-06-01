@@ -1262,8 +1262,8 @@ def invite_firefly_to_event(prospect_event_id: int):
             "participants": [
                 {
                     "comment": "null",
-                    "email": "fred@fireflies.ai",
-                    "name": "Firefly",
+                    "email": "fireflywoz@outlook.com",
+                    "name": "Firefly WoZ",
                 }
             ],
             "description": "Invite"
