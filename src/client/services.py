@@ -1305,7 +1305,7 @@ def find_sdr_events(client_sdr_id: int) -> List[ProspectEvent]:
 def find_prospect_events(client_sdr_id: int, prospect_id: int):
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect or prospect.client_sdr_id != client_sdr_id:
+    if not prospect or prospect.client_sdr_id != client_sdr_id or not prospect.email:
         return None
 
     result, status_code = get_nylas_all_events(client_sdr_id)
@@ -1336,7 +1336,7 @@ def find_prospect_events(client_sdr_id: int, prospect_id: int):
 def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
 
     sdr: ClientSDR = ClientSDR.query.filter_by(nylas_account_id=nylas_account_id).first()
-    if not sdr: return False
+    if not sdr or not sdr.auto_calendar_sync: return False
 
     existing_event: ProspectEvent = ProspectEvent.query.filter_by(nylas_event_id=nylas_event_id).first()
     #print(existing_event)
@@ -1404,6 +1404,7 @@ def get_prospect_id_from_nylas_event(client_sdr_id, nylas_event):
     prospects: List[Prospect] = Prospect.query.filter_by(client_sdr_id=client_sdr_id).all()
 
     for prospect in prospects:
+        if not prospect.email: continue
 
         # Check primary email
         if prospect.email.strip().lower() in event_str.lower():
@@ -1420,6 +1421,9 @@ def get_prospect_id_from_nylas_event(client_sdr_id, nylas_event):
 
 
 def populate_prospect_events(client_sdr_id: int, prospect_id: int):
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr.auto_calendar_sync: return 0, 0
 
     prospect_events: List[ProspectEvent] = ProspectEvent.query.filter_by(
         prospect_id=prospect_id
