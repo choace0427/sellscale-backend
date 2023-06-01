@@ -257,8 +257,10 @@ def process_persona_split_request_task(self, task_id: int):
 
         persona_options_str = "\n".join(
             [
-                "- {archetype_id}: {archetype}".format(
-                    archetype_id=archetype.id, archetype=archetype.archetype
+                "- {archetype_id}: {archetype} (description: {archetype_description})".format(
+                    archetype_id=archetype.id,
+                    archetype=archetype.archetype,
+                    archetype_description=archetype.persona_description,
                 )
                 for archetype in archetypes
             ]
