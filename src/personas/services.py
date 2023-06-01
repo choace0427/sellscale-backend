@@ -95,6 +95,9 @@ def get_recent_split_requests(client_sdr_id: int, source_archetype_id: int):
             func.count()
             .filter(PersonaSplitRequestTask.status == "FAILED")
             .label("failed"),
+            func.count()
+            .filter(PersonaSplitRequestTask.status == "NO_MATCH")
+            .label("no_match"),
         )
         .join(
             PersonaSplitRequestTask,
@@ -132,6 +135,7 @@ def get_recent_split_requests(client_sdr_id: int, source_archetype_id: int):
             in_progress,
             completed,
             failed,
+            no_match,
         ) = result
         parsed_result = {
             "id": id,
@@ -143,6 +147,7 @@ def get_recent_split_requests(client_sdr_id: int, source_archetype_id: int):
             "num_in_progress": in_progress,
             "num_completed": completed,
             "num_failed": failed,
+            "num_no_match": no_match,
         }
         parsed_results.append(parsed_result)
 
@@ -220,6 +225,8 @@ def process_persona_split_request_task(self, task_id: int):
         task: PersonaSplitRequestTask = PersonaSplitRequestTask.query.filter_by(
             id=task_id
         ).first()
+        task.tries += 1
+
         if task is None:
             return
         if task.status in [
@@ -227,11 +234,6 @@ def process_persona_split_request_task(self, task_id: int):
             PersonaSplitRequestTaskStatus.FAILED,
         ]:
             return
-
-        task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
-        task.tries += 1
-        db.session.add(task)
-        db.session.commit()
 
         if task.status in [PersonaSplitRequestTaskStatus.NO_MATCH] and task.tries > 3:
             return
@@ -241,6 +243,10 @@ def process_persona_split_request_task(self, task_id: int):
             db.session.add(task)
             db.session.commit()
             return
+
+        task.status = PersonaSplitRequestTaskStatus.IN_PROGRESS
+        db.session.add(task)
+        db.session.commit()
 
         prospect_id = task.prospect_id
         prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
