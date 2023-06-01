@@ -1780,10 +1780,10 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
             # print("Already generated a bump for this message")
             return False
-        else:
+        #else:
             # print("Old bump message, deleting")
-            db.session.delete(prev_bump_msg)
-            db.session.commit()
+            #db.session.delete(prev_bump_msg)
+            #db.session.commit()
 
     send_slack_message(
         message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
