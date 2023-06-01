@@ -1270,7 +1270,8 @@ def get_nylas_single_event(client_sdr_id: int, nylas_event_id: str):
 
 def invite_firefly_to_event(prospect_event_id: int):
 
-    event: ProspectEvent = ProspectEvent.query.get(prospect_event_id)
+
+    """     event: ProspectEvent = ProspectEvent.query.get(prospect_event_id)
     if not event: return {"message": "Failed to find event"}, 400
     sdr: ClientSDR = ClientSDR.query.get(event.client_sdr_id)
 
@@ -1291,9 +1292,9 @@ def invite_firefly_to_event(prospect_event_id: int):
     if response.status_code != 200:
         return {"message": "Error sending invite"}, 500
 
-    result = response.json()
+    result = response.json() """
 
-    return {"message": "Success", "data": result}, 200
+    return {"message": "Success", "data": ''}, 200#result
 
 
 
