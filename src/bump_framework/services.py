@@ -2,7 +2,7 @@ from model_import import BumpFramework
 from app import db
 from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
 from src.client.models import ClientArchetype
-from src.prospecting.models import ProspectOverallStatus
+from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from typing import Optional
 
 
@@ -62,6 +62,34 @@ def get_bump_frameworks_for_sdr(
     bf_list: list[BumpFramework] = bf_list.all()
 
     return [bf.to_dict(include_archetypes=True) for bf in bf_list]
+
+
+def get_bump_framework_count_for_sdr(client_sdr_id: int, client_archetype_ids: Optional[list[int]] = []) -> dict:
+    """Gets the counts for bump frameworks that belong to a Client SDR in a given archetype.
+
+    Args:
+        client_sdr_id (int): _description_
+        client_archetype_ids (Optional[list[int]], optional): Which archetypes to retrieve the bump frameworks. Defaults to all archetypes.
+    """
+    bump_frameworks=get_bump_frameworks_for_sdr(client_sdr_id, client_archetype_ids=client_archetype_ids)
+
+    counts = {
+        "total": len(bump_frameworks),
+        ProspectOverallStatus.ACCEPTED.value: 0,
+        ProspectOverallStatus.BUMPED.value: 0,
+        ProspectStatus.ACTIVE_CONVO_QUESTION.value: 0,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED.value: 0,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION.value: 0,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value: 0,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING.value: 0,
+    }
+    for bump_framework in bump_frameworks:
+        if bump_framework.get("overall_status") in counts:
+            counts[bump_framework.get("overall_status")] += 1
+        if bump_framework.get("substatus") in counts:
+            counts[bump_framework.get("substatus")] += 1
+
+    return counts
 
 
 def create_bump_framework(
