@@ -642,7 +642,7 @@ def scrape_conversation_queue():
             )
 
             # Generate a bump msg for the prospect
-            #generate_prospect_bump(prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id)
+            generate_prospect_bump(prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id)
 
             # Update calendar events
             populate_prospect_events(prospect.client_sdr_id, prospect.id)
