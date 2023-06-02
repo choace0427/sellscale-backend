@@ -186,7 +186,7 @@ scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(func=replenish_sdr_credits, trigger="interval", days=1)
 scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
 
-scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=3)
+scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)
 
 scheduler.start()
 

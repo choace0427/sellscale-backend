@@ -1754,7 +1754,7 @@ def generate_message_bumps():
             success = generate_prospect_bump(
                 prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
             )
-            #if success == True: return
+            if success == True: return
 
 
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: str):
@@ -1820,6 +1820,11 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         best_framework = bump_frameworks[framework_index]
     except:
         return False
+    
+    send_slack_message(
+        message=f" - Selected Framework: {best_framework.title} ({best_framework.id})",
+        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+    )
 
     # Get account research
     account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
@@ -1837,11 +1842,18 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         account_research=[research.reason for research in account_research],
     )
     research_str = ""
+    send_slack_message(
+        message=f" - Account Research ({len(research_indexes)}):",
+        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+    )
     for i in research_indexes:
-        print("research index", i)
         try:
             if account_research[i]:
                 research_str += f"- {account_research[i].reason}\n"
+                send_slack_message(
+                    message=f" > {account_research[i].reason}",
+                    webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                )
         except:
             pass
 
@@ -1856,14 +1868,12 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         account_research_copy=research_str,
     )  # type: ignore
 
-    # print(f"Response: {response}")
-
     # Save response
     dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
     ).first()
     if dupe_bump_msg:
-        # print("Already generated a bump for this message")
+        # Already generated a bump for this message
         return False
 
     bump_msg = GeneratedMessageAutoBump(
@@ -1874,6 +1884,11 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     )
     db.session.add(bump_msg)
     db.session.commit()
+
+    send_slack_message(
+        message=f" - Complete!",
+        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+    )
 
     return True
 
