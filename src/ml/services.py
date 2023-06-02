@@ -813,9 +813,12 @@ def ai_email_prompt(client_sdr_id: int, prospect_id: int):
     prompt = """You are a sales development representative writing on behalf of the SDR.
 
 Write a personalized cold email short enough I could read on an iphone easily. Here's the structure
-1. Include Hi {{First Name}}
-2. Include a personalized first line (be direct; don't say "i came across your profile.."
-3. End with Best, (new line) {{My Name}}
+1. Personalize the title to their company and or the prospect 
+2. Include a greeting with Hi, Hello, or Hey with their first name
+3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
+4. Mention what we do and offer and how it can help them based on their background, company, and key details.
+5. Use the objective for a call to action
+6. End with Best, (new line) (My Name) (new line) (Title)
 
 Note - you do not need to include all info.
 
