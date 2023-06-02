@@ -317,6 +317,12 @@ class LinkedIn(object):
             # cache profile
             self.client.metadata["me"] = me_profile
 
+        client_sdr = ClientSDR.query.get(self.client_sdr_id)
+        if client_sdr.title == None or len(client_sdr.title) < 2:
+            client_sdr.title = me_profile["miniProfile"]["occupation"]
+            db.session.add(client_sdr)
+            db.session.commit()
+
         return me_profile
 
     def send_message(self, message_body, conversation_urn_id=None, recipients=None):
