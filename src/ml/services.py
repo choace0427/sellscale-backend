@@ -818,7 +818,7 @@ Write a personalized cold email short enough I could read on an iphone easily. H
 3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Tie it into my company.
 4. Mention what we do and offer and how it can help them
 5. Use the objective for a call to action
-6. End with Best, (new line) {My Name} {Title}
+6. End with Best, (new line) (My Name) (new line) (Title)
 
 Note - you do not need to include all info.
 
