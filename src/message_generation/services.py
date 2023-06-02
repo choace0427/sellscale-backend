@@ -1742,13 +1742,16 @@ def generate_message_bumps():
                     "ACTIVE_CONVO_NEXT_STEPS",
                 ]
             ),
-            Prospect.hidden_until <= datetime.datetime.utcnow(),
+            or_(
+                Prospect.hidden_until == None,
+                Prospect.hidden_until <= datetime.datetime.utcnow(),
+            )
         ).all()
 
         # print(f"Generating bumps for {len(prospects)} prospects...")
 
         for prospect in prospects:
-            generate_prospect_bump(
+            success = generate_prospect_bump(
                 prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
             )
 
@@ -1762,6 +1765,8 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         convo_urn_id (str): The SDR and prospect li convo URN ID
     """
 
+    print(f"Generating bump for prospect #{prospect_id}...")
+
     # Fetch the last 5 messages of their convo
     latest_convo_entries: List[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter_by(
@@ -1771,14 +1776,17 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         .limit(5)
         .all()
     )
+    if len(latest_convo_entries) == 0:
+        return False
 
     # Check if we've already generated a bump for this convo
     prev_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.prospect_id == prospect_id,
-    ).first()
+    ).order_by(GeneratedMessageAutoBump.created_at.desc()).first()
+
     if prev_bump_msg:
         if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
-            # print("Already generated a bump for this message")
+            #print("Already generated a bump for this message")
             return False
         #else:
             # print("Old bump message, deleting")

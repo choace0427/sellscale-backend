@@ -3,6 +3,8 @@
 Eventual migration to these wrappers will aid in uniform testing and debugging.
 """
 
+import random
+import time
 import openai
 import os
 from typing import Optional, Union
@@ -112,6 +114,7 @@ def wrapped_chat_gpt_completion(
     frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
     model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+    max_attempts: int = 3,
 ) -> str:
     """
     Generates a completion using the GPT-3.5-turbo model.
@@ -129,8 +132,7 @@ def wrapped_chat_gpt_completion(
         ...
     ]
     """
-    response = openai.ChatCompletion.create(
-        model=model,
+    response = attempt_chat_completion(
         messages=messages,
         max_tokens=max_tokens,
         temperature=temperature,
@@ -138,6 +140,8 @@ def wrapped_chat_gpt_completion(
         n=n,
         frequency_penalty=frequency_penalty,
         stop=stop,
+        model=model,
+        max_attempts=max_attempts,
     )
     if response is None or response["choices"] is None or len(response["choices"]) == 0:
         return ""
@@ -158,6 +162,7 @@ def wrapped_chat_gpt_completion_with_history(
     frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
     model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+    max_attempts: int = 3,
 ) -> tuple[list, str]:
     """
     Generates a completion using the GPT-3.5-turbo model.
@@ -178,8 +183,7 @@ def wrapped_chat_gpt_completion_with_history(
     if history:
         messages = history + messages
 
-    response = openai.ChatCompletion.create(
-        model=model,
+    response = attempt_chat_completion(
         messages=messages,
         max_tokens=max_tokens,
         temperature=temperature,
@@ -187,6 +191,8 @@ def wrapped_chat_gpt_completion_with_history(
         n=n,
         frequency_penalty=frequency_penalty,
         stop=stop,
+        model=model,
+        max_attempts=max_attempts,
     )
     if response is None or response["choices"] is None or len(response["choices"]) == 0:
         return ""
@@ -197,3 +203,36 @@ def wrapped_chat_gpt_completion_with_history(
 
     messages = messages + [{"role": "assistant", "content": preview}]
     return messages, preview
+
+
+def attempt_chat_completion(
+    messages: list,
+    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    temperature: Optional[float] = DEFAULT_TEMPERATURE,
+    top_p: Optional[float] = DEFAULT_TOP_P,
+    n: Optional[int] = DEFAULT_N,
+    frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
+    stop: Optional[Union[str, list]] = DEFAULT_STOP,
+    model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+    max_attempts: int = 3,
+):
+    attempts = 0
+    while attempts < max_attempts:
+        try:
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                n=n,
+                frequency_penalty=frequency_penalty,
+                stop=stop,
+            )
+            return response
+        except Exception as e:
+            attempts += 1
+            # Add a random delay before the next attempt
+            time.sleep(random.uniform(0.5, 1.5))
+    print(f"OpenAI chat completion exceeded maximum attempts ({max_attempts})!")
+    return None

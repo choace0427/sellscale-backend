@@ -311,8 +311,8 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         conversation_url=conversation_url
     )
     data = db.session.execute(query).fetchall()
-    transcript = data[0][0]
-    sender = data[0][1]
+    transcript = data[0][0] or ''
+    sender = data[0][1] or ''
     content = transcript + "\n\n" + sender + ":"
 
     prospect: Prospect = Prospect.query.filter(
