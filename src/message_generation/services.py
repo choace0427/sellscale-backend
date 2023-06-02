@@ -1801,7 +1801,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
 
     send_slack_message(
         message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
-        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
 
     # Determine the best bump framework
@@ -1814,7 +1814,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     )
     send_slack_message(
         message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
-        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
     try:
         best_framework = bump_frameworks[framework_index]
@@ -1823,7 +1823,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     
     send_slack_message(
         message=f" - Selected Framework: {best_framework.title} ({best_framework.id})",
-        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
 
     # Get account research
@@ -1844,7 +1844,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     research_str = ""
     send_slack_message(
         message=f" - Account Research ({len(research_indexes)}):",
-        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
     for i in research_indexes:
         try:
@@ -1852,7 +1852,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
                 research_str += f"- {account_research[i].reason}\n"
                 send_slack_message(
                     message=f" > {account_research[i].reason}",
-                    webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                    webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
                 )
         except:
             pass
@@ -1887,7 +1887,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
 
     send_slack_message(
         message=f" - Complete!",
-        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
 
     return True
