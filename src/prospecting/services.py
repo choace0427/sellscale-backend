@@ -183,7 +183,9 @@ def get_prospects(
         channel == ProspectChannels.EMAIL.value
     ):  # Join to ProspectEmail if filtering by email
         prospects = prospects.join(
-            ProspectEmail, Prospect.id == ProspectEmail.prospect_id, isouter=True
+            ProspectEmail,
+            Prospect.approved_prospect_email_id == ProspectEmail.id,
+            isouter=True,
         )
 
     # Apply filters
@@ -399,52 +401,52 @@ def update_prospect_status_linkedin(
     #     new_status == ProspectStatus.ACTIVE_CONVO
     #     and ProspectStatus.ACTIVE_CONVO in VALID_NEXT_LINKEDIN_STATUSES[current_status]
     # ):
-        # send_slack_message(
-        #     message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-        #     webhook_urls=[URL_MAP["csm-convo-sorter"]],
-        #     blocks=[
-        #         {
-        #             "type": "header",
-        #             "text": {
-        #                 "type": "plain_text",
-        #                 "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-        #             },
-        #         },
-        #         {
-        #             "type": "context",
-        #             "elements": [
-        #                 {
-        #                     "type": "plain_text",
-        #                     "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
-        #                 },
-        #             ],
-        #         },
-        #         {  # Add prospect title and (optional) last message
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": "*Title:* {title}\n{last_message}".format(
-        #                     title=p.title,
-        #                     last_message=""
-        #                     if not p.li_last_message_from_prospect
-        #                     else '*Last Message*: "{}"'.format(
-        #                         p.li_last_message_from_prospect
-        #                     ),
-        #                 ),
-        #             },
-        #         },
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": "*SellScale Sight*: <{link}|Link>".format(
-        #                     link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-        #                     + client_sdr.auth_token
-        #                 ),
-        #             },
-        #         },
-        #     ],
-        # )
+    # send_slack_message(
+    #     message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+    #     webhook_urls=[URL_MAP["csm-convo-sorter"]],
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
+    #             },
+    #         },
+    #         {
+    #             "type": "context",
+    #             "elements": [
+    #                 {
+    #                     "type": "plain_text",
+    #                     "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
+    #                 },
+    #             ],
+    #         },
+    #         {  # Add prospect title and (optional) last message
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Title:* {title}\n{last_message}".format(
+    #                     title=p.title,
+    #                     last_message=""
+    #                     if not p.li_last_message_from_prospect
+    #                     else '*Last Message*: "{}"'.format(
+    #                         p.li_last_message_from_prospect
+    #                     ),
+    #                 ),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*SellScale Sight*: <{link}|Link>".format(
+    #                     link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+    #                     + client_sdr.auth_token
+    #                 ),
+    #             },
+    #         },
+    #     ],
+    # )
 
     # status jumps
     if (
@@ -851,7 +853,15 @@ def add_prospect(
 
     client: Client = Client.query.get(client_id)
     if company:
-        if (client.do_not_contact_company_names and company.lower() in [x.lower() for x in client.do_not_contact_company_names]) or (client.do_not_contact_keywords_in_company_names and company.lower() in [x.lower() for x in client.do_not_contact_keywords_in_company_names]):
+        if (
+            client.do_not_contact_company_names
+            and company.lower()
+            in [x.lower() for x in client.do_not_contact_company_names]
+        ) or (
+            client.do_not_contact_keywords_in_company_names
+            and company.lower()
+            in [x.lower() for x in client.do_not_contact_keywords_in_company_names]
+        ):
             status = ProspectStatus.NOT_QUALIFIED
             overall_status = ProspectOverallStatus.REMOVED
 
