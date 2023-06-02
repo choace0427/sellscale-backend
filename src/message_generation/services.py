@@ -1765,8 +1765,6 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         convo_urn_id (str): The SDR and prospect li convo URN ID
     """
 
-    print(f"Generating bump for prospect #{prospect_id}...")
-
     # Fetch the last 5 messages of their convo
     latest_convo_entries: List[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter_by(
