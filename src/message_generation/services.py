@@ -1793,16 +1793,18 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
             #db.session.delete(prev_bump_msg)
             #db.session.commit()
 
-    send_slack_message(
-        message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
-        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
-    )
-
     # Get bump frameworks
     bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
         BumpFramework.client_sdr_id == client_sdr_id,
         BumpFramework.active == True,
     ).all()
+    if len(bump_frameworks) == 0:
+        return False
+
+    send_slack_message(
+        message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
+        webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+    )
 
     # Determine the best bump framework
     framework_index = determine_best_bump_framework_from_convo(
