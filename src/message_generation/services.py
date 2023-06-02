@@ -1754,6 +1754,8 @@ def generate_message_bumps():
             success = generate_prospect_bump(
                 prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
             )
+            if success == True:
+                return
 
 
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: str):
