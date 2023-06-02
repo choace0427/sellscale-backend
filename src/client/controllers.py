@@ -18,6 +18,7 @@ from src.client.services import (
     get_sdr_available_outbound_channels,
     get_sdr_calendar_availability,
     rename_archetype,
+    onboarding_setup_completion_report,
     get_personas_page_details,
     toggle_archetype_active,
     complete_client_sdr_onboarding,
@@ -1439,3 +1440,13 @@ def post_update_supersight_link():
     if not success:
         return "Failed to update supersight link", 404
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/onboarding_completion_report", methods=["GET"])
+@require_user
+def get_onboarding_completion_report(client_sdr_id: int):
+    """Gets the onboarding completion report for an SDR"""
+    
+    report = onboarding_setup_completion_report(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": report}), 200

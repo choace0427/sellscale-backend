@@ -1,6 +1,6 @@
 from src.prospecting.models import ProspectEvent
 
-from model_import import DemoFeedback
+from model_import import DemoFeedback, BumpFramework
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 from src.client.models import ClientProduct
@@ -189,7 +189,8 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
 
     client_archetype_dicts = []
     for ca in client_archetypes:
-        performance = get_client_archetype_performance(client_sdr_id, ca.id, False)
+        performance = get_client_archetype_performance(
+            client_sdr_id, ca.id, False)
         merged_dicts = {**ca.to_dict(), **{"performance": performance}}
         client_archetype_dicts.append(merged_dicts)
 
@@ -259,7 +260,8 @@ def get_client_archetype_performance(
             status_map[p.overall_status.value] = 1
     total_prospects = len(archetype_prospects)
 
-    performance = {"total_prospects": total_prospects, "status_map": status_map}
+    performance = {"total_prospects": total_prospects,
+                   "status_map": status_map}
 
     return performance
 
@@ -305,7 +307,8 @@ def create_client_archetype(
     archetype_id = client_archetype.id
 
     if base_archetype_id:
-        _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
+        _, model_id = get_latest_custom_model(
+            base_archetype_id, GNLPModelType.OUTREACH)
         base_model: GNLPModel = GNLPModel.query.get(model_id)
         model = GNLPModel(
             model_provider=base_model.model_provider,
@@ -701,10 +704,12 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
     if not email_found:
         return jsonify({"message": "Email not found in Stytch response"}), 400
 
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(
+        email=client_sdr_email).first()
     reset_client_sdr_sight_auth_token(client_sdr.id)
 
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(
+        email=client_sdr_email).first()
     token = client_sdr.auth_token
 
     return jsonify({"message": "Success", "token": token}), 200
@@ -712,7 +717,8 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
 
 def verify_client_sdr_auth_token(auth_token: str):
     """Verify a Client SDR auth token"""
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(auth_token=auth_token).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(
+        auth_token=auth_token).first()
     if not client_sdr:
         return None
 
@@ -797,7 +803,8 @@ def get_ctas(client_archetype_id: int):
     Returns:
         list: List of CTAs
     """
-    ctas = GeneratedMessageCTA.query.filter_by(archetype_id=client_archetype_id).all()
+    ctas = GeneratedMessageCTA.query.filter_by(
+        archetype_id=client_archetype_id).all()
     return ctas
 
 
@@ -958,7 +965,8 @@ def get_transformers_by_archetype_id(
 
     # Convert and format output
     transformer_stats = [
-        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        {column_map.get(i, "unknown"): value for i,
+         value in enumerate(tuple(row))}
         for row in transformer_stats
     ]
 
@@ -1269,8 +1277,7 @@ def get_nylas_single_event(client_sdr_id: int, nylas_event_id: str):
 
 
 def invite_firefly_to_event(prospect_event_id: int):
-
-    event: ProspectEvent = ProspectEvent.query.get(prospect_event_id)
+    """     event: ProspectEvent = ProspectEvent.query.get(prospect_event_id)
     if not event: return {"message": "Failed to find event"}, 400
     sdr: ClientSDR = ClientSDR.query.get(event.client_sdr_id)
 
@@ -1291,10 +1298,9 @@ def invite_firefly_to_event(prospect_event_id: int):
     if response.status_code != 200:
         return {"message": "Error sending invite"}, 500
 
-    result = response.json()
+    result = response.json() """
 
-    return {"message": "Success", "data": result}, 200
-
+    return {"message": "Success", "data": ''}, 200  # result
 
 
 def find_sdr_events(client_sdr_id: int) -> List[ProspectEvent]:
@@ -1304,7 +1310,7 @@ def find_sdr_events(client_sdr_id: int) -> List[ProspectEvent]:
 def find_prospect_events(client_sdr_id: int, prospect_id: int):
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect or prospect.client_sdr_id != client_sdr_id:
+    if not prospect or prospect.client_sdr_id != client_sdr_id or not prospect.email:
         return None
 
     result, status_code = get_nylas_all_events(client_sdr_id)
@@ -1334,24 +1340,31 @@ def find_prospect_events(client_sdr_id: int, prospect_id: int):
 
 def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
 
-    sdr: ClientSDR = ClientSDR.query.filter_by(nylas_account_id=nylas_account_id).first()
-    if not sdr: return False
+    sdr: ClientSDR = ClientSDR.query.filter_by(
+        nylas_account_id=nylas_account_id).first()
+    if not sdr or not sdr.auto_calendar_sync:
+        return False
 
-    existing_event: ProspectEvent = ProspectEvent.query.filter_by(nylas_event_id=nylas_event_id).first()
-    #print(existing_event)
+    existing_event: ProspectEvent = ProspectEvent.query.filter_by(
+        nylas_event_id=nylas_event_id).first()
+    # print(existing_event)
 
     result, status_code = get_nylas_single_event(sdr.id, nylas_event_id)
 
-    #print(result)
-    if status_code != 200: return False
+    # print(result)
+    if status_code != 200:
+        return False
 
-    if len(result.get("data", [])) == 0: return False
+    if len(result.get("data", [])) == 0:
+        return False
     event = result.get("data", [])[0]
-    if isinstance(event, str): return False
+    if isinstance(event, str):
+        return False
 
     # Update existing event
     if existing_event:
-        if existing_event.nylas_data_raw == event: return False
+        if existing_event.nylas_data_raw == event:
+            return False
 
         existing_event.title = event.get("title", "No Title")
 
@@ -1369,7 +1382,8 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
     else:
 
         prospect_id = get_prospect_id_from_nylas_event(sdr.id, event)
-        if not prospect_id: return False
+        if not prospect_id:
+            return False
 
         start_time, end_time = convert_nylas_date(event)
 
@@ -1392,7 +1406,7 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
         response, code = invite_firefly_to_event(prospect_event.id)
         #print(response, code)
 
-    #TODO: Update the demo date for the prospect
+    # TODO: Update the demo date for the prospect
 
     return True
 
@@ -1400,9 +1414,12 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
 def get_prospect_id_from_nylas_event(client_sdr_id, nylas_event):
 
     event_str = json.dumps(nylas_event)
-    prospects: List[Prospect] = Prospect.query.filter_by(client_sdr_id=client_sdr_id).all()
+    prospects: List[Prospect] = Prospect.query.filter_by(
+        client_sdr_id=client_sdr_id).all()
 
     for prospect in prospects:
+        if not prospect.email:
+            continue
 
         # Check primary email
         if prospect.email.strip().lower() in event_str.lower():
@@ -1413,12 +1430,15 @@ def get_prospect_id_from_nylas_event(client_sdr_id, nylas_event):
             for extra_email in prospect.email_additional:
                 if extra_email.get("email", "").strip().lower() in event_str.lower():
                     return prospect.id
-                
+
     return None
 
 
-
 def populate_prospect_events(client_sdr_id: int, prospect_id: int):
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr.auto_calendar_sync:
+        return 0, 0
 
     prospect_events: List[ProspectEvent] = ProspectEvent.query.filter_by(
         prospect_id=prospect_id
@@ -1513,15 +1533,18 @@ def convert_nylas_date(event):
     start_time = event.get("when", {}).get("start_time", 0)
     end_time = event.get("when", {}).get("end_time", 0)
     if event.get("when", {}).get("date"):
-        date_object = datetime.strptime(event.get("when", {}).get("date"), "%Y-%m-%d")
+        date_object = datetime.strptime(
+            event.get("when", {}).get("date"), "%Y-%m-%d")
         start_time = int(date_object.timestamp())
         end_time = start_time
 
     if event.get("when", {}).get("start_date") and event.get("when", {}).get("end_date"):
-        date_object_start = datetime.strptime(event.get("when", {}).get("start_date"), "%Y-%m-%d")
+        date_object_start = datetime.strptime(
+            event.get("when", {}).get("start_date"), "%Y-%m-%d")
         start_time = int(date_object_start.timestamp())
-        
-        date_object_end = datetime.strptime(event.get("when", {}).get("end_date"), "%Y-%m-%d")
+
+        date_object_end = datetime.strptime(
+            event.get("when", {}).get("end_date"), "%Y-%m-%d")
         end_time = int(date_object_end.timestamp())
 
     return start_time, end_time
@@ -1578,7 +1601,8 @@ def update_persona_brain_details(
     updated_persona_icp_matching_prompt: Optional[str],
     updated_persona_contact_objective: Optional[str],
 ):
-    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(
+        client_archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return False
 
@@ -1610,7 +1634,8 @@ def predict_persona_fit_reason(
         (success: bool, message: str)
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(
+        client_archetype_id)
     client: Client = Client.query.get(client_sdr.client_id)
     if (
         not client_sdr
@@ -1726,7 +1751,8 @@ def generate_persona_buy_reason(
     """
     for _ in range(retries):
         try:
-            buy_reason = generate_persona_buy_reason_helper(client_sdr_id, persona_name)
+            buy_reason = generate_persona_buy_reason_helper(
+                client_sdr_id, persona_name)
             if buy_reason:
                 return buy_reason
         except:
@@ -2217,3 +2243,59 @@ def update_client_sdr_supersight_link(client_id: int, super_sight_link: str):
     db.session.commit()
 
     return True
+
+
+def onboarding_setup_completion_report(client_sdr_id: int):
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(sdr.client_id)
+    
+    archetypes: List[ClientArchetype] = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id
+    ).all()
+
+    ctas: List[GeneratedMessageCTA] = db.session.query(GeneratedMessageCTA).join(
+        ClientArchetype, GeneratedMessageCTA.archetype_id == ClientArchetype.id
+    ).filter(ClientArchetype.client_sdr_id == client_sdr_id).all()
+
+    bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
+        BumpFramework.client_sdr_id == client_sdr_id
+    ).all()
+
+    company_info = bool(client.company and client.tagline and client.description and client.mission and client.case_study and client.value_prop_key_points and client.tone_attributes)
+    sdr_info = bool(sdr.name and sdr.title)
+    scheduling_info = bool(sdr.scheduling_link or sdr.calendly_access_token)
+    email_integration = bool(sdr.nylas_account_id is not None and sdr.nylas_active)
+    linkedin_integration = bool(sdr.li_cookies is not None and sdr.li_cookies != 'INVALID')
+
+    create_personas = len(archetypes) > 0
+    linkedin_filters = False
+    do_not_contact_filters = bool(client.do_not_contact_keywords_in_company_names is not None and client.do_not_contact_company_names is not None)
+
+    create_linkedin_ctas = len(ctas) > 0
+    create_email_style = False
+    voice_builder = False
+    bump_framework_linkedin = len(bump_frameworks) > 0
+    bump_framework_email = False
+
+    return {
+        "general": {
+            "company_info": company_info,
+            "sdr_info": sdr_info,
+            "scheduling_info": scheduling_info,
+            "email_integration": email_integration,
+            "linkedin_integration": linkedin_integration,
+        },
+        "persona": {
+            "create_personas": create_personas,
+            "linkedin_filters": linkedin_filters,
+            "do_not_contact_filters": do_not_contact_filters,
+        },
+        "msg_gen": {
+            "create_linkedin_ctas": create_linkedin_ctas,
+            "create_email_style": create_email_style,
+            "voice_builder": voice_builder,
+            "bump_framework_linkedin": bump_framework_linkedin,
+            "bump_framework_email": bump_framework_email,
+        },
+    }

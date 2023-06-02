@@ -105,6 +105,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
             ProspectEmailOutreachStatus.ACCEPTED,
             ProspectEmailOutreachStatus.ACTIVE_CONVO,
             ProspectEmailOutreachStatus.SCHEDULING,
+            ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
             ProspectEmailOutreachStatus.NOT_INTERESTED,
             ProspectEmailOutreachStatus.UNSUBSCRIBED,
             ProspectEmailOutreachStatus.DEMO_SET,
@@ -251,17 +252,23 @@ class ProspectEmail(db.Model):
         from src.message_generation.models import GeneratedMessage
 
         if self.personalized_first_line:
-            personalized_first_line = GeneratedMessage.query.get(self.personalized_first_line).to_dict()
+            personalized_first_line = GeneratedMessage.query.get(
+                self.personalized_first_line
+            ).to_dict()
         else:
             personalized_first_line = None
 
         if self.personalized_subject_line:
-            personalized_subject_line = GeneratedMessage.query.get(self.personalized_subject_line).to_dict()
+            personalized_subject_line = GeneratedMessage.query.get(
+                self.personalized_subject_line
+            ).to_dict()
         else:
             personalized_subject_line = None
 
         if self.personalized_body:
-            personalized_body = GeneratedMessage.query.get(self.personalized_body).to_dict()
+            personalized_body = GeneratedMessage.query.get(
+                self.personalized_body
+            ).to_dict()
         else:
             personalized_body = None
 
@@ -270,7 +277,9 @@ class ProspectEmail(db.Model):
             "prospect_id": self.prospect_id,
             "outbound_campaign_id": self.outbound_campaign_id,
             "email_status": self.email_status.value if self.email_status else None,
-            "outreach_status": self.outreach_status.value if self.outreach_status else None,
+            "outreach_status": self.outreach_status.value
+            if self.outreach_status
+            else None,
             "personalized_first_line": personalized_first_line,
             "personalized_subject_line": personalized_subject_line,
             "personalized_body": personalized_body,
@@ -560,7 +569,9 @@ class EmailConversationMessage(db.Model):
     from_sdr = db.Column(db.Boolean, nullable=True)
     from_prospect = db.Column(db.Boolean, nullable=True)
 
-    ai_generated = db.Column(db.Boolean, nullable=True) # is at least partially AI generated
+    ai_generated = db.Column(
+        db.Boolean, nullable=True
+    )  # is at least partially AI generated
 
     # Comes from Nylas --->
     subject = db.Column(db.String, nullable=True)

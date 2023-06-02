@@ -5,6 +5,7 @@ from model_import import BumpFramework
 from src.bump_framework.models import BumpLength
 from src.bump_framework.services import (
     create_bump_framework,
+    get_bump_framework_count_for_sdr,
     modify_bump_framework,
     deactivate_bump_framework,
     activate_bump_framework,
@@ -51,21 +52,10 @@ def get_bump_frameworks(client_sdr_id: int):
         client_archetype_ids=client_archetype_ids
     )
 
-    counts = {
-        "total": len(bump_frameworks),
-        ProspectOverallStatus.ACCEPTED.value: 0,
-        ProspectOverallStatus.BUMPED.value: 0,
-        ProspectStatus.ACTIVE_CONVO_QUESTION.value: 0,
-        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED.value: 0,
-        ProspectStatus.ACTIVE_CONVO_OBJECTION.value: 0,
-        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value: 0,
-        ProspectStatus.ACTIVE_CONVO_SCHEDULING.value: 0,
-    }
-    for bump_framework in bump_frameworks:
-        if bump_framework.get("overall_status") in counts:
-            counts[bump_framework.get("overall_status")] += 1
-        if bump_framework.get("substatus") in counts:
-            counts[bump_framework.get("substatus")] += 1
+    counts = get_bump_framework_count_for_sdr(
+        client_sdr_id=client_sdr_id,
+        client_archetype_ids=client_archetype_ids,
+    )
 
     return jsonify({
         "bump_frameworks": bump_frameworks,
