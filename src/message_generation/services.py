@@ -1826,8 +1826,11 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     research_str = ""
     for i in research_indexes:
         print("research index", i)
-        if account_research[i]:
-            research_str += f"- {account_research[i].reason}\n"
+        try:
+            if account_research[i]:
+                research_str += f"- {account_research[i].reason}\n"
+        except:
+            pass
 
     # Generate response
     from src.li_conversation.services import (

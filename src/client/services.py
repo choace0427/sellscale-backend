@@ -2270,7 +2270,7 @@ def onboarding_setup_completion_report(client_sdr_id: int):
 
     create_personas = len(archetypes) > 0
     linkedin_filters = False
-    do_not_contact_filters = bool(client.do_not_contact_keywords_in_company_names and client.do_not_contact_company_names)
+    do_not_contact_filters = bool(client.do_not_contact_keywords_in_company_names is not None and client.do_not_contact_company_names is not None)
 
     create_linkedin_ctas = len(ctas) > 0
     create_email_style = False
