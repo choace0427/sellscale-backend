@@ -69,9 +69,15 @@ PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 @PROSPECTING_BLUEPRINT.route("/", methods=["GET"])
 def get_prospect_by_uuids():
     """Get prospect by uuids"""
-    client_uuid = get_request_parameter("client_uuid", request, json=False, required=True)
-    client_sdr_uuid = get_request_parameter("client_sdr_uuid", request, json=False, required=True)
-    prospect_uuid = get_request_parameter("prospect_uuid", request, json=False, required=True)
+    client_uuid = get_request_parameter(
+        "client_uuid", request, json=False, required=True
+    )
+    client_sdr_uuid = get_request_parameter(
+        "client_sdr_uuid", request, json=False, required=True
+    )
+    prospect_uuid = get_request_parameter(
+        "prospect_uuid", request, json=False, required=True
+    )
 
     # Validate parameters
     if not client_uuid or not client_sdr_uuid or not prospect_uuid:
@@ -83,7 +89,9 @@ def get_prospect_by_uuids():
         return jsonify({"status": "error", "message": "Client not found"}), 404
 
     # Get Client SDR
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.uuid == client_sdr_uuid).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.uuid == client_sdr_uuid
+    ).first()
     if not client_sdr:
         return jsonify({"status": "error", "message": "Client SDR not found"}), 404
     elif client_sdr.client_id != client.id:
@@ -96,20 +104,31 @@ def get_prospect_by_uuids():
     elif prospect.client_sdr_id != client_sdr.id:
         return jsonify({"status": "error", "message": "Invalid parameters"}), 403
 
-    return jsonify({
-        "status": "Success",
-        "data": {
-            "email": prospect.email,
-            "status": prospect.overall_status.value,
-        }
-    }), 200
+    return (
+        jsonify(
+            {
+                "status": "Success",
+                "data": {
+                    "email": prospect.email,
+                    "status": prospect.overall_status.value,
+                },
+            }
+        ),
+        200,
+    )
 
 
 @PROSPECTING_BLUEPRINT.route("/unsubscribe", methods=["POST"])
 def post_prospect_unsubscribe():
-    client_uuid = get_request_parameter("client_uuid", request, json=True, required=True)
-    client_sdr_uuid = get_request_parameter("client_sdr_uuid", request, json=True, required=True)
-    prospect_uuid = get_request_parameter("prospect_uuid", request, json=True, required=True)
+    client_uuid = get_request_parameter(
+        "client_uuid", request, json=True, required=True
+    )
+    client_sdr_uuid = get_request_parameter(
+        "client_sdr_uuid", request, json=True, required=True
+    )
+    prospect_uuid = get_request_parameter(
+        "prospect_uuid", request, json=True, required=True
+    )
 
     # Validate parameters
     if not client_uuid or not client_sdr_uuid or not prospect_uuid:
@@ -121,7 +140,9 @@ def post_prospect_unsubscribe():
         return jsonify({"status": "error", "message": "Client not found"}), 404
 
     # Get Client SDR
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.uuid == client_sdr_uuid).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.uuid == client_sdr_uuid
+    ).first()
     if not client_sdr:
         return jsonify({"status": "error", "message": "Client SDR not found"}), 404
     elif client_sdr.client_id != client.id:
@@ -310,7 +331,8 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
     ai_generated = get_request_parameter(
         "ai_generated", request, json=True, required=False, parameter_type=bool
     )
-    if ai_generated is None: ai_generated = False
+    if ai_generated is None:
+        ai_generated = False
     reply_to_message_id = get_request_parameter(
         "reply_to_message_id", request, json=True, required=False, parameter_type=str
     )
@@ -321,12 +343,13 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    result = nylas_send_email(client_sdr_id, prospect_id, subject, body, reply_to_message_id)
-    nylas_message_id = result.get('id')
+    result = nylas_send_email(
+        client_sdr_id, prospect_id, subject, body, reply_to_message_id
+    )
+    nylas_message_id = result.get("id")
     if isinstance(nylas_message_id, str) and ai_generated:
         add_generated_msg_queue(
-            client_sdr_id=client_sdr_id,
-            nylas_message_id=nylas_message_id
+            client_sdr_id=client_sdr_id, nylas_message_id=nylas_message_id
         )
 
     return jsonify({"message": "Success", "data": result}), 200
@@ -359,7 +382,9 @@ def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
     if not prospect_email:
         return jsonify({"message": "No prospect email data found"}), 404
 
