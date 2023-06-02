@@ -1802,7 +1802,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
         BumpFramework.client_sdr_id == client_sdr_id,
         BumpFramework.active == True,
-    )
+    ).all()
 
     # Determine the best bump framework
     framework_index = determine_best_bump_framework_from_convo(
