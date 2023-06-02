@@ -353,7 +353,7 @@ def get_generate_email_prompt(client_sdr_id: int):
         return jsonify({"message": "Prospect not found"}), 404
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    generate_prospect_research(prospect.id, False, False)
+    # generate_prospect_research(prospect.id, False, False)
 
     prompt = ai_email_prompt(client_sdr_id, prospect_id)
     return jsonify({"prompt": prompt}), 200
