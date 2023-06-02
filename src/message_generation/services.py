@@ -1754,8 +1754,7 @@ def generate_message_bumps():
             success = generate_prospect_bump(
                 prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
             )
-            if success == True:
-                return
+            #if success == True: return
 
 
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: str):
@@ -1786,10 +1785,9 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
 
     if prev_bump_msg:
         if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
-            #print("Already generated a bump for this message")
+            # Already generated a bump for this message
             return False
         #else:
-            # print("Old bump message, deleting")
             #db.session.delete(prev_bump_msg)
             #db.session.commit()
 
@@ -1815,15 +1813,13 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         bump_frameworks=[bf.description for bf in bump_frameworks],
     )
     send_slack_message(
-        message=f"Found best framework index {framework_index} of {len(bump_frameworks)}",
+        message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
         webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
     )
     try:
         best_framework = bump_frameworks[framework_index]
     except:
         return False
-
-    # print(f"Using bump framework: {best_framework.title}")
 
     # Get account research
     account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
