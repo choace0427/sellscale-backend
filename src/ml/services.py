@@ -725,7 +725,7 @@ def icp_classify(
         db.session.add(prospect)
         db.session.commit()
 
-        raise self.retry(exc=e, countdown=30)
+        raise self.retry(exc=e, countdown=15**self.request.retries)
 
 
 HARD_CODE_ICP_HEADER = "I am a sales researcher. This is the Ideal Customer Profile for my target customer:\n\n"
