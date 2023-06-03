@@ -704,6 +704,18 @@ def create_cta(archetype_id: int, text_value: str):
     return cta
 
 
+def update_cta(cta_id: int, text_value: str):
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+    if not cta: return False
+
+    cta.text_value = text_value
+
+    db.session.add(cta)
+    db.session.commit()
+
+    return True
+
+
 def delete_cta(cta_id: int):
     from model_import import GeneratedMessageCTA
 

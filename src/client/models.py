@@ -116,6 +116,10 @@ class ClientArchetype(db.Model):
     )  # if true, this archetype will be used for unassigned contacts
 
     def to_dict(self) -> dict:
+
+        from src.message_generation.models import GeneratedMessageCTA
+        ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+
         return {
             "id": self.id,
             "client_id": self.client_id,
@@ -134,6 +138,7 @@ class ClientArchetype(db.Model):
             "vessel_sequence_id": self.vessel_sequence_id,
             "icp_matching_prompt": self.icp_matching_prompt,
             "is_unassigned_contact_archetype": self.is_unassigned_contact_archetype,
+            "ctas": [cta.to_dict() for cta in ctas],
         }
 
 

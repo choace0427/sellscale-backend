@@ -228,6 +228,37 @@ def post_create_cta():
     return jsonify({"cta_id": cta.id})
 
 
+@MESSAGE_GENERATION_BLUEPRINT.route("/cta", methods=["PUT"])
+def put_update_cta():
+    from src.message_generation.services import update_cta
+
+    cta_id = get_request_parameter(
+        "cta_id", request, json=True, required=True
+    )
+    text_value = get_request_parameter("text_value", request, json=True, required=True)
+
+    success = update_cta(cta_id=cta_id, text_value=text_value)
+    if success:
+        return jsonify({"message": "Success"}), 200
+    else:
+        return jsonify({"message": "Failed to update"}), 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/cta", methods=["DELETE"])
+def delete_msg_cta():
+    from src.message_generation.services import delete_cta
+
+    cta_id = get_request_parameter(
+        "cta_id", request, json=True, required=True
+    )
+
+    success = delete_cta(cta_id=cta_id)
+    if success:
+        return jsonify({"message": "Success"}), 200
+    else:
+        return jsonify({"message": "Failed to delete"}), 400
+
+
 @MESSAGE_GENERATION_BLUEPRINT.route("/delete_cta", methods=["DELETE"])
 def delete_cta_request():
     from src.message_generation.services import delete_cta
