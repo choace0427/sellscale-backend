@@ -696,9 +696,6 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     csv_payload = get_request_parameter(
         "csv_payload", request, json=True, required=True, parameter_type=list
     )
-    email_enabled = get_request_parameter(
-        "email_enabled", request, json=True, required=False, parameter_type=bool
-    )
     allow_duplicates = get_request_parameter(
         "allow_duplicates", request, json=True, required=False, parameter_type=bool
     )
@@ -708,7 +705,7 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
         return "Too many rows in CSV", 400
 
     validated, reason = validate_prospect_json_payload(
-        payload=csv_payload, email_enabled=email_enabled
+        payload=csv_payload
     )
     if not validated:
         return reason, 400

@@ -1146,7 +1146,7 @@ def mark_prospect_reengagement(prospect_id: int):
     return True
 
 
-def validate_prospect_json_payload(payload: dict, email_enabled: bool = False):
+def validate_prospect_json_payload(payload: dict):
     """Validate the CSV payload sent by the SDR through Retool.
     This is in respect to validating a prospect.
 
@@ -1183,12 +1183,6 @@ def validate_prospect_json_payload(payload: dict, email_enabled: bool = False):
             return (
                 False,
                 "Could not find the required 'linkedin_url' or 'email' field. Please check your CSV, or make sure each Prospect has a linkedin_url or email field.",
-            )
-
-        if email_enabled and not email:
-            return (
-                False,
-                "Since you are uploading an email list, make sure that every row has an email! Please verify your CSV.",
             )
 
     return True, "No Error"

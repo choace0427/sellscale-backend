@@ -1834,7 +1834,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         return False
     
     send_slack_message(
-        message=f" - Selected Framework: {best_framework.title} ({best_framework.id})",
+        message=f" - Selected Framework: {best_framework.title} (#{best_framework.id})",
         webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
 
@@ -1855,7 +1855,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     )
     research_str = ""
     send_slack_message(
-        message=f" - Account Research ({len(research_indexes)}, {str(research_indexes)}):",
+        message=f" - Account Research ({str(research_indexes)}, {len(account_research)}):",
         webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
     for i in research_indexes:
