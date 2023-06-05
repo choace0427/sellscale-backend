@@ -9,7 +9,6 @@ from test_utils import (
 )
 from decorators import use_app_context
 from src.bump_framework.services import (
-    create_default_bump_frameworks,
     get_bump_frameworks_for_sdr,
     create_bump_framework,
     modify_bump_framework,
@@ -224,13 +223,3 @@ def test_activate_bump_framework():
         client_sdr_id=sdr.id
     ).first()
     assert bump_framework.active == True
-
-@use_app_context
-def test_create_default_bump_frameworks():
-    client = basic_client()
-    sdr = basic_client_sdr(client)
-
-    count = create_default_bump_frameworks(sdr.id)
-    assert count == 6
-    assert BumpFramework.query.count() == 6
-    assert JunctionBumpFrameworkClientArchetype.query.count() == 0 # No archetypes, so no junctions.

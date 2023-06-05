@@ -1,4 +1,4 @@
-from src.bump_framework.services import create_default_bump_frameworks
+from src.bump_framework.default_frameworks.services import add_archetype_to_default_bump_frameworks, create_default_bump_frameworks
 from src.prospecting.models import ProspectEvent
 
 from model_import import DemoFeedback, BumpFramework
@@ -330,6 +330,9 @@ def create_client_archetype(
         )
         db.session.add(model)
         db.session.commit()
+
+    # Add archetype to SS default bump frameworks
+    add_archetype_to_default_bump_frameworks(client_sdr_id, archetype_id)
 
     return {"client_archetype_id": client_archetype.id}
 
