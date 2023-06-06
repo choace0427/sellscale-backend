@@ -178,11 +178,13 @@ def get_computed_prompt_completion(
     prompt: str,
 ):
     few_shot_prompt: str = computed_prompt.format(prompt=prompt)
-    response = wrapped_create_completion(
-        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
-        prompt=few_shot_prompt,
+    response = wrapped_chat_gpt_completion(
+        [
+            {"role": "system", "content": few_shot_prompt},
+        ],
         temperature=0.7,
-        max_tokens=256,
+        max_tokens=240,
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
     return (response, few_shot_prompt)
 

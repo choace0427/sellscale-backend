@@ -38,6 +38,7 @@ class VoiceBuilderSamples(db.Model):
 
     sample_readable_data = db.Column(db.String, nullable=True)
     sample_prompt = db.Column(db.String, nullable=True)
+    sample_final_prompt = db.Column(db.String, nullable=True)
     sample_completion = db.Column(db.String, nullable=True)
 
     research_point_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
@@ -49,6 +50,7 @@ class VoiceBuilderSamples(db.Model):
             "voice_builder_onboarding_id": self.voice_builder_onboarding_id,
             "sample_readable_data": self.sample_readable_data,
             "sample_prompt": self.sample_prompt,
+            "sample_final_prompt": self.sample_final_prompt,
             "sample_completion": self.sample_completion,
             "research_point_ids": self.research_point_ids,
             "research_point_types": [

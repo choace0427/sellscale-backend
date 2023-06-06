@@ -22,6 +22,7 @@ from src.message_generation.services import (
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
     edit_stack_ranked_configuration_instruction,
+    get_stack_ranked_configurations,
     edit_stack_ranked_configuration_research_point_types,
     edit_stack_ranked_configuration_name,
     delete_stack_ranked_configuration,
@@ -538,6 +539,16 @@ def get_stack_ranked_configuration_priority_endpoint():
         ),
         200,
     )
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/stack_ranked_configurations", methods=["GET"])
+@require_user
+def get_all_stack_ranked_configurations(client_sdr_id: int):
+    """ Get all stack ranked configurations for a given client_sdr_id """
+    
+    configs = get_stack_ranked_configurations(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": [c.to_dict() for c in configs]}), 200
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

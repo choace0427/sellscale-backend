@@ -88,14 +88,23 @@ def create_voice_builder_samples(
     voice_builder_onboarding_id: int,
     n: int,
 ):
+    
+    # Using existing samples to reinforce the new sample generation
+    computed_prompt = generate_computed_prompt(
+        voice_builder_onboarding_id=voice_builder_onboarding_id
+    )
+
+    samples = []
     for _ in range(n):
-        create_voice_builder_sample(
-            voice_builder_onboarding_id=voice_builder_onboarding_id
+        success, sample = create_voice_builder_sample(
+            voice_builder_onboarding_id=voice_builder_onboarding_id,
+            computed_prompt=computed_prompt,
         )
-    return True
+        if success: samples.append(sample)
+    return samples
 
 
-def create_voice_builder_sample(voice_builder_onboarding_id: int):
+def create_voice_builder_sample(voice_builder_onboarding_id: int, computed_prompt: str):
     voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
         voice_builder_onboarding_id
     )
@@ -113,15 +122,8 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int):
         client_id=voice_builder_onboarding.client_id,
         archetype_id=archetype_id,
     )
-    computed_prompt = """
-{instruction}
 
-data: {prompt}
-completion:""".format(
-        instruction=voice_builder_onboarding.instruction, prompt=prompt
-    )
-
-    completion, _ = get_computed_prompt_completion(
+    completion, final_prompt = get_computed_prompt_completion(
         computed_prompt=computed_prompt,
         prompt=prompt,
     )
@@ -130,6 +132,7 @@ completion:""".format(
         voice_builder_onboarding_id=voice_builder_onboarding_id,
         sample_readable_data=json.dumps(bio_data),
         sample_prompt=prompt,
+        sample_final_prompt=final_prompt,
         sample_completion=completion,
         research_point_ids=research_point_ids,
         cta_id=cta_id,
@@ -137,7 +140,7 @@ completion:""".format(
     db.session.add(voice_builder_sample)
     db.session.commit()
 
-    return prompt, computed_prompt, completion
+    return True, voice_builder_sample.to_dict()
 
 
 def edit_voice_builder_sample(
@@ -168,26 +171,35 @@ def generate_computed_prompt(voice_builder_onboarding_id: int):
         voice_builder_onboarding_id=voice_builder_onboarding_id
     ).all()
 
-    instruction = voice_builder_onboarding.instruction
-    sample_str = "".join(
-        [
-            "--\n\nprompt: {prompt}\ncompletion: {completion}\n\n".format(
-                prompt=sample.sample_prompt,
-                completion=sample.sample_completion,
-            )
-            for sample in samples
-        ]
-    )
+    if len(samples) == 0:
+        # Use default example, if no samples exist
+        sample_str = "--\n\nprompt: {prompt}\ncompletion: {completion}\n\n".format(
+            prompt="name: Kumar Dharajan<>industry: Hospital & Health Care<>company: Clover Health<>title: Chief Clinician, Clover Health Partners Direct Contracting Entity (DCE)<>notes: -They are an experienced healthcare executive and health services researcher with regulatory experience and passion for creating technology-forward models of care to improve health outcomes for the Medicare population.\n-6-year anniversary at Clover Health is coming up.\n-Would love to talk about what issues you're seeing in executive staffing in New England.<>response:",
+            completion="Hi Kumar! First off, happy almost 6-year anniversary at Clover Health! I admire your passion for creating technology-forward models of care to improve health outcomes for the Medicare population. I'd love to talk about any issues you're seeing in executive staffing in New England. Open to connect?",
+        )
+    else:
+        sample_str = "".join(
+            [
+                "--\n\nprompt: {prompt}\ncompletion: {completion}\n\n".format(
+                    prompt=sample.sample_prompt,
+                    completion=sample.sample_completion,
+                )
+                for sample in samples
+            ]
+        )
+
+
     suffix = "\nprompt: {prompt}\ncompletion:"
 
     computed_prompt = """
 {instruction}
 
+## Here are a couple examples
 {sample_str}
 --
 {suffix}
     """.format(
-        instruction=instruction,
+        instruction=voice_builder_onboarding.instruction,
         sample_str=sample_str,
         suffix=suffix,
     )

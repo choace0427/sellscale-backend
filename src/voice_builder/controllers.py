@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from src.client.models import ClientArchetype
 
 from model_import import ClientSDR
 from src.utils.request_helpers import get_request_parameter
@@ -34,7 +35,7 @@ def get_account_research_points():
 
 @VOICE_BUILDER_BLUEPRINT.route("/create_onboarding", methods=["POST"])
 def create_onboarding():
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
+    client_id = get_request_parameter("client_id", request, json=True, required=False, parameter_type=int)
     generated_message_type = get_request_parameter(
         "generated_message_type", request, json=True, required=True
     )
@@ -42,8 +43,14 @@ def create_onboarding():
         "instruction", request, json=True, required=True
     )
     client_archetype_id = get_request_parameter(
-        "client_archetype_id", request, json=True, required=False
+        "client_archetype_id", request, json=True, required=False, parameter_type=int
     )
+
+    if client_archetype_id and not client_id:
+        archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+        if not archetype:
+            return "Failed to find client archetype.", 400
+        client_id = archetype.client_id
 
     onboarding: VoiceBuilderOnboarding = create_voice_builder_onboarding(
         client_id=client_id,
@@ -62,18 +69,18 @@ def create_samples():
         "voice_builder_onboarding_id", request, json=True, required=True
     )
     n: int = get_request_parameter("n", request, json=True, required=True)
-    success = create_voice_builder_samples(
+    samples = create_voice_builder_samples(
         voice_builder_onboarding_id=voice_builder_onboarding_id, n=n
     )
-    if success:
-        return "Success", 200
-    return "Failed to create voice builder samples.", 400
+    return jsonify({"message": "Success", "data": samples}), 200
 
 
 @VOICE_BUILDER_BLUEPRINT.route("/get_details", methods=["GET"])
 def get_details():
     voice_builder_onboarding_id: int = get_request_parameter(
-        "voice_builder_onboarding_id", request, json=True, required=True
+        "voice_builder_onboarding_id", request, json=False, required=False
+    ) or get_request_parameter(
+        "voice_builder_onboarding_id", request, json=True, required=False
     )
     voice_builder_onboarding = VoiceBuilderOnboarding.query.get(
         voice_builder_onboarding_id

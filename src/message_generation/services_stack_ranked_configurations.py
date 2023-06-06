@@ -283,6 +283,18 @@ def get_prompts_from_stack_ranked_config(
     }
 
 
+def get_stack_ranked_configurations(client_sdr_id: int):
+
+    from model_import import StackRankedMessageGenerationConfiguration, ClientSDR
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    configs: list[StackRankedMessageGenerationConfiguration] = StackRankedMessageGenerationConfiguration.query.filter_by(
+        client_id=sdr.client_id
+    ).all()
+
+    return configs
+
+
 def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
     from model_import import Prospect
 
