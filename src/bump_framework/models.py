@@ -27,6 +27,8 @@ class BumpFramework(db.Model):
 
     bump_length = db.Column(db.Enum(BumpLength), nullable=True, default=BumpLength.MEDIUM)
 
+    sellscale_default_generated = db.Column(db.Boolean, nullable=True, default=False)
+
     def to_dict(self, include_archetypes: bool = False):
         archetypes_details = []
         if include_archetypes:
@@ -41,6 +43,7 @@ class BumpFramework(db.Model):
             "active": self.active,
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
+            "sellscale_default_generated": self.sellscale_default_generated,
             "archetypes": archetypes_details
         }
 

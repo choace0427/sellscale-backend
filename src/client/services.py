@@ -1,3 +1,4 @@
+from src.bump_framework.default_frameworks.services import add_archetype_to_default_bump_frameworks, create_default_bump_frameworks
 from src.prospecting.models import ProspectEvent
 
 from model_import import DemoFeedback, BumpFramework
@@ -330,6 +331,9 @@ def create_client_archetype(
         db.session.add(model)
         db.session.commit()
 
+    # Add archetype to SS default bump frameworks
+    add_archetype_to_default_bump_frameworks(client_sdr_id, archetype_id)
+
     return {"client_archetype_id": client_archetype.id}
 
 
@@ -377,6 +381,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
 
     create_sight_onboarding(sdr.id)
     create_unassigned_contacts_archetype(sdr.id)
+    create_default_bump_frameworks(sdr.id)
 
     return {"client_sdr_id": sdr.id}
 
@@ -2249,7 +2254,7 @@ def onboarding_setup_completion_report(client_sdr_id: int):
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(sdr.client_id)
-    
+
     archetypes: List[ClientArchetype] = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id
     ).all()

@@ -139,6 +139,7 @@ def create_bump_framework(
         active=active,
         client_sdr_id=client_sdr_id,
         default=default,
+        sellscale_default_generated=False,
     )
     db.session.add(bump_framework)
     db.session.commit()
@@ -270,6 +271,11 @@ def deactivate_bump_framework(client_sdr_id: int, bump_framework_id: int) -> Non
         BumpFramework.id == bump_framework_id,
         BumpFramework.client_sdr_id == client_sdr_id,
     ).first()
+
+    # Can't deactive the sellscale generated default frameworks
+    if bump_framework.sellscale_default_generated:
+        return
+
     bump_framework.active = False
     db.session.add(bump_framework)
     db.session.commit()
