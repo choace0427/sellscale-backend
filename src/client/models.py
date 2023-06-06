@@ -115,6 +115,8 @@ class ClientArchetype(db.Model):
         db.Boolean, nullable=True, default=False
     )  # if true, this archetype will be used for unassigned contacts
 
+    prospect_filters = db.Column(db.JSON, nullable=True)
+
     def to_dict(self) -> dict:
 
         from src.message_generation.models import GeneratedMessageCTA
@@ -138,6 +140,7 @@ class ClientArchetype(db.Model):
             "vessel_sequence_id": self.vessel_sequence_id,
             "icp_matching_prompt": self.icp_matching_prompt,
             "is_unassigned_contact_archetype": self.is_unassigned_contact_archetype,
+            "prospect_filters": self.prospect_filters,
             "ctas": [cta.to_dict() for cta in ctas],
         }
 
