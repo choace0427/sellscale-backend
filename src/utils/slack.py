@@ -18,6 +18,7 @@ URL_MAP = {
     "operations-linkedin-scraping-with-voyager": "https://hooks.slack.com/services/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",
     "operations-li-invalid-cookie": "https://hooks.slack.com/services/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",
     "operations-auto-bump-msg-gen": "https://hooks.slack.com/services/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",
+    "operations-persona-filters": "https://hooks.slack.com/services/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",
     "csm-demo-feedback": "https://hooks.slack.com/services/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",
     "csm-convo-sorter": "https://hooks.slack.com/services/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",
     "csm-human-response": "https://hooks.slack.com/services/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",
@@ -37,4 +38,3 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
         webhook.send(text=message, blocks=blocks)
 
     return True
- 
