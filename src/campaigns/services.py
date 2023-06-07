@@ -264,7 +264,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 on subject_line.id = prospect_email.personalized_subject_line
             join generated_message body
                 on body.id = prospect_email.personalized_body
-        where outbound_campaign.id = {campaign_id};
+        where outbound_campaign.id = {campaign_id}
+            and prospect.overall_status = 'PROSPECTED';
     """.format(
             campaign_id=campaign_id
         )
@@ -1714,5 +1715,29 @@ def send_email_campaign_from_sales_engagement(
                 mailbox_id=sdr.vessel_mailbox,
                 sequence_id=sequence_id,
             )
+
+    return True
+
+
+def remove_prospect_from_campaign(campaign_id: int, prospect_id: int):
+    """
+    Removes a prospect from a campaign
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+
+    if not campaign:
+        raise Exception("Campaign not found")
+
+    if prospect_id not in campaign.prospect_ids:
+        raise Exception("Prospect not found in campaign")
+
+    new_prospects = []
+    for p_id in campaign.prospect_ids:
+        if p_id != prospect_id:
+            new_prospects.append(p_id)
+    campaign.prospect_ids = new_prospects
+
+    db.session.add(campaign)
+    db.session.commit()
 
     return True
