@@ -1494,7 +1494,7 @@ def get_outbound_campaign_analytics(campaign_id: int) -> dict:
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
         return get_email_campaign_analytics(campaign_id)
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
-        return get_linkedin_campaign_analytics()
+        return get_linkedin_campaign_analytics(campaign_id)
 
 
 def get_email_campaign_analytics(campaign_id: int) -> dict:
@@ -1594,8 +1594,55 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
     }
 
 
-def get_linkedin_campaign_analytics():
-    return "Not yet implemented"
+def get_linkedin_campaign_analytics(campaign_id: int):
+    """
+    Gets analytics for a LinkedIn campaign
+
+    This endpoint returns the following metrics, with the prospect ids for each:
+    - Campaign ID
+    - Campaign type
+    - Campaign name
+    - Campaign start date
+    - Campaign end date
+    - All prospects sent campaign
+    - All prospects who accepted the invite
+    - All prospects who replied to the invite
+    - All prospects who scheduled a demo
+    """
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    if not campaign:
+        raise Exception("Campaign not found")
+    elif campaign.campaign_type != GeneratedMessageType.LINKEDIN:
+        raise Exception("Campaign is not a LinkedIn campaign")
+
+    data = db.session.execute(
+        f"""select 
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "# of Sent Outreach",
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') "# of Acceptances",
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') "# of Active Convos",
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET') "# of Demo Sets",
+        array_agg(distinct prospect.company) filter (where prospect_status_records.to_status = 'DEMO_SET') "Distinct Companies"
+    from outbound_campaign
+        join prospect on prospect.id = any(outbound_campaign.prospect_ids)
+        join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+    where outbound_campaign.id = {campaign_id}
+    group by outbound_campaign.id"""
+    ).fetchone()
+
+    analytics = {
+        "Campaign ID": campaign_id,
+        "Campaign Type": campaign.campaign_type,
+        "Campaign Name": campaign.name,
+        "Campaign Start date": campaign.campaign_start_date,
+        "Campaign End date": campaign.campaign_end_date,
+        "# Sent": data[0],
+        "# Acceptances": data[1],
+        "# Replies": data[2],
+        "# Demos": data[3],
+        "Companies Demos": data[4],
+    }
+
+    return analytics
 
 
 @celery.task
