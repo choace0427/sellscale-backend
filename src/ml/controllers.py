@@ -374,7 +374,7 @@ def get_generate_followup_email_prompt(client_sdr_id: int):
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
     thread_id = get_request_parameter(
-        "thread_id", request, json=True, required=False, parameter_type=int
+        "thread_id", request, json=True, required=False, parameter_type=str
     )
     objective = get_request_parameter(
         "objective", request, json=True, required=False, parameter_type=str

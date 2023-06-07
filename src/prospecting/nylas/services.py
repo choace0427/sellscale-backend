@@ -559,7 +559,7 @@ def nylas_send_email(
     return result
 
 
-def get_email_messages_with_prospect(client_sdr_id: int, prospect_id: int, thread_id: int, x: Optional[int] = None) -> list:
+def get_email_messages_with_prospect(client_sdr_id: int, prospect_id: int, thread_id: str, x: Optional[int] = None) -> list:
     """ Gets the messages between a ClientSDR and a Prospect. Optionally, can limit the number of messages returned.
 
     Args:
