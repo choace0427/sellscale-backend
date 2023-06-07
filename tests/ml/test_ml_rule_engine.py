@@ -248,6 +248,18 @@ def test_rule_address_doctor():
     assert problems == []
     assert highlighted_words == []
 
+    problems = []
+    highlighted_words = []
+    rule_address_doctor(
+        "name: Darshan Kamdar, <>title: Physician Recruiter",
+        "Hey Darshan, something",
+        problems,
+        highlighted_words,
+        "Darshan Kamdar",
+    )
+    assert problems == []
+    assert highlighted_words == []
+
 
 @use_app_context
 def test_no_i_have():

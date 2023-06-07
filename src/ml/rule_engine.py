@@ -249,12 +249,22 @@ def rule_address_doctor(
     # Check if the title and name section contains a doctor title or 'MD'.
     with open(dr_positions_path, newline="") as f:
         reader = csv.reader(f)
-        dr_positions = set([row[0] for row in reader])
+        dr_positions = set()
+        dr_assistant_positions = set()
+        for row in reader:
+            dr_positions.add(row[0])
+            if len(row) > 1:
+                dr_assistant_positions.add(row[1].strip())
+
+        print(dr_positions, dr_assistant_positions)
 
         title_splitted = title_section.split(" ")
         name_splitted = name_section.split(" ")
-        for title in title_splitted:
+        for position, title in enumerate(title_splitted):
             if title in dr_positions and "dr." not in completion:
+                if position + 1 < len(title_splitted):
+                    if title_splitted[position + 1] in dr_assistant_positions:
+                        continue
                 problems.append(
                     f"The subject should be addressed as a Doctor. The subject's name is: {prospect_name}"
                 )
