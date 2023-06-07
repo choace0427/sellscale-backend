@@ -271,13 +271,16 @@ def modify_archetype_prospect_filters(
 
     send_slack_message(
         message=f"SDR {sdr.name} has modified the prospect filters for archetype {ca.archetype}!",
-        webhook_urls=[URL_MAP["operations-persona-filters"]],
+        webhook_urls=[URL_MAP.get("operations-persona-filters")],
         blocks=[
             {
-                "type": "header",
+                "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"SDR **{sdr.name}** has modified the prospect filters for archetype **{ca.archetype}**!",
+                    "text": "SDR *{sdr_name}* has modified the prospect filters for archetype *{archetype_name}*!".format(
+                        sdr_name=sdr.name,
+                        archetype_name=ca.archetype
+                    ),
                 },
             },
             {
