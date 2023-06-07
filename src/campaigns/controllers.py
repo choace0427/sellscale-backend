@@ -551,7 +551,7 @@ def generate_all_autopilot_campaigns_endpoint():
     return "OK", 200
 
 
-@CAMPAIGN_BLUEPRINT.route("/remove_prospect/<prospect_id>", methods=["DELETE"])
+@CAMPAIGN_BLUEPRINT.route("/remove_prospect/<int:prospect_id>", methods=["DELETE"])
 def delete_prospect_from_campaign(prospect_id: int):
     """Remove a prospect from a campaign."""
     from src.campaigns.services import remove_prospect_from_campaign
