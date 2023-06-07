@@ -1635,11 +1635,11 @@ def get_linkedin_campaign_analytics(campaign_id: int):
         "Campaign Name": campaign.name,
         "Campaign Start date": campaign.campaign_start_date,
         "Campaign End date": campaign.campaign_end_date,
-        "# Sent": data[0],
-        "# Acceptances": data[1],
-        "# Replies": data[2],
-        "# Demos": data[3],
-        "Companies Demos": data[4],
+        "# Sent": data and data[0],
+        "# Acceptances": data and data[1],
+        "# Replies": data and data[2],
+        "# Demos": data and data[3],
+        "Companies Demos": data and data[4],
     }
 
     return analytics
