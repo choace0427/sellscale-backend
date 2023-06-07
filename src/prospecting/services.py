@@ -1596,7 +1596,7 @@ def auto_mark_uninterested_bumped_prospects():
             join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
             join client_sdr on client_sdr.id = prospect.client_sdr_id
         where prospect.overall_status = 'BUMPED'
-        group by 1,2
+        group by 1,2,3
         having count(*) > 3;
     """
     )
