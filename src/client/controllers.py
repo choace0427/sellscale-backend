@@ -807,10 +807,10 @@ def get_all_uploads(client_sdr_id: int, archetype_id: int):
     return jsonify(result), result.get("status_code")
 
 
-@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/prospect_filters", methods=["POST"])
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/persona_filters", methods=["PATCH"])
 @require_user
-def post_prospect_filters(client_sdr_id: int, archetype_id: int):
-    """Modify prospect filters for an archetype"""
+def patch_persona_filters(client_sdr_id: int, archetype_id: int):
+    """Modify persona filters for an archetype"""
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return "Client SDR not found", 404
