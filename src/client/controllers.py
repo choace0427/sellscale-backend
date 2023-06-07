@@ -840,79 +840,79 @@ def patch_prospect_filter(client_sdr_id: int, archetype_id: int):
 
     current_company_names_inclusion = get_request_parameter(
         "current_company_names_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     current_company_names_exclusion = get_request_parameter(
         "current_company_names_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     past_company_names_inclusion = get_request_parameter(
         "past_company_names_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     past_company_names_exclusion = get_request_parameter(
         "past_company_names_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     current_job_title_inclusion = get_request_parameter(
         "current_job_title_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     current_job_title_exclusion = get_request_parameter(
         "current_job_title_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     past_job_title_inclusion = get_request_parameter(
         "past_job_title_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     past_job_title_exclusion = get_request_parameter(
         "past_job_title_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     current_job_function_inclusion = get_request_parameter(
         "current_job_function_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     current_job_function_exclusion = get_request_parameter(
         "current_job_function_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     seniority_inclusion = get_request_parameter(
         "seniority_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     seniority_exclusion = get_request_parameter(
         "seniority_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     years_in_current_company = get_request_parameter(
         "years_in_current_company", request, json=True, required=False
-    ) or None
+    ) or []
     years_in_current_position = get_request_parameter(
         "years_in_current_position", request, json=True, required=False
-    ) or None
+    ) or []
     geography_inclusion = get_request_parameter(
         "geography_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     geography_exclusion = get_request_parameter(
         "geography_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     industry_inclusion = get_request_parameter(
         "industry_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     industry_exclusion = get_request_parameter(
         "industry_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     years_of_experience = get_request_parameter(
         "years_of_experience", request, json=True, required=False
-    ) or None
+    ) or []
     annual_revenue = get_request_parameter(
         "annual_revenue", request, json=True, required=False
-    ) or None
+    ) or []
     headcount = get_request_parameter(
         "headcount", request, json=True, required=False
-    ) or None
+    ) or []
     headquarter_location_inclusion = get_request_parameter(
         "headquarter_location_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     headquarter_location_exclusion = get_request_parameter(
         "headquarter_location_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
     account_industry_inclusion = get_request_parameter(
         "account_industry_inclusion", request, json=True, required=False
-    ) or None
+    ) or []
     account_industry_exclusion = get_request_parameter(
         "account_industry_exclusion", request, json=True, required=False
-    ) or None
+    ) or []
 
     result = modify_archetype_prospect_filters(
         client_sdr_id=client_sdr_id,
