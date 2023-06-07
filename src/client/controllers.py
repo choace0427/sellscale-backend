@@ -74,6 +74,7 @@ from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
 )
 from src.client.services_client_archetype import (
+    modify_archetype_prospect_filters,
     update_transformer_blocklist,
     replicate_transformer_blocklist,
     get_archetype_details_for_sdr,
@@ -806,6 +807,130 @@ def get_all_uploads(client_sdr_id: int, archetype_id: int):
     return jsonify(result), result.get("status_code")
 
 
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/prospect_filters", methods=["POST"])
+@require_user
+def post_prospect_filters(client_sdr_id: int, archetype_id: int):
+    """Modify prospect filters for an archetype"""
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return "Client SDR not found", 404
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return "Archetype not found or not owned by client SDR", 404
+
+    current_company_names_inclusion = get_request_parameter(
+        "current_company_names_inclusion", request, json=True, required=False
+    ) or None
+    current_company_names_exclusion = get_request_parameter(
+        "current_company_names_exclusion", request, json=True, required=False
+    ) or None
+    past_company_names_inclusion = get_request_parameter(
+        "past_company_names_inclusion", request, json=True, required=False
+    ) or None
+    past_company_names_exclusion = get_request_parameter(
+        "past_company_names_exclusion", request, json=True, required=False
+    ) or None
+    current_job_title_inclusion = get_request_parameter(
+        "current_job_title_inclusion", request, json=True, required=False
+    ) or None
+    current_job_title_exclusion = get_request_parameter(
+        "current_job_title_exclusion", request, json=True, required=False
+    ) or None
+    past_job_title_inclusion = get_request_parameter(
+        "past_job_title_inclusion", request, json=True, required=False
+    ) or None
+    past_job_title_exclusion = get_request_parameter(
+        "past_job_title_exclusion", request, json=True, required=False
+    ) or None
+    current_job_function_inclusion = get_request_parameter(
+        "current_job_function_inclusion", request, json=True, required=False
+    ) or None
+    current_job_function_exclusion = get_request_parameter(
+        "current_job_function_exclusion", request, json=True, required=False
+    ) or None
+    seniority_inclusion = get_request_parameter(
+        "seniority_inclusion", request, json=True, required=False
+    ) or None
+    seniority_exclusion = get_request_parameter(
+        "seniority_exclusion", request, json=True, required=False
+    ) or None
+    years_in_current_company = get_request_parameter(
+        "years_in_current_company", request, json=True, required=False
+    ) or None
+    years_in_current_position = get_request_parameter(
+        "years_in_current_position", request, json=True, required=False
+    ) or None
+    geography_inclusion = get_request_parameter(
+        "geography_inclusion", request, json=True, required=False
+    ) or None
+    geography_exclusion = get_request_parameter(
+        "geography_exclusion", request, json=True, required=False
+    ) or None
+    industry_inclusion = get_request_parameter(
+        "industry_inclusion", request, json=True, required=False
+    ) or None
+    industry_exclusion = get_request_parameter(
+        "industry_exclusion", request, json=True, required=False
+    ) or None
+    years_of_experience = get_request_parameter(
+        "years_of_experience", request, json=True, required=False
+    ) or None
+    annual_revenue = get_request_parameter(
+        "annual_revenue", request, json=True, required=False
+    ) or None
+    headcount = get_request_parameter(
+        "headcount", request, json=True, required=False
+    ) or None
+    headquarter_location_inclusion = get_request_parameter(
+        "headquarter_location_inclusion", request, json=True, required=False
+    ) or None
+    headquarter_location_exclusion = get_request_parameter(
+        "headquarter_location_exclusion", request, json=True, required=False
+    ) or None
+    account_industry_inclusion = get_request_parameter(
+        "account_industry_inclusion", request, json=True, required=False
+    ) or None
+    account_industry_exclusion = get_request_parameter(
+        "account_industry_exclusion", request, json=True, required=False
+    ) or None
+
+    result = modify_archetype_prospect_filters(
+        client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
+        current_company_names_inclusion=current_company_names_inclusion,
+        current_company_names_exclusion=current_company_names_exclusion,
+        past_company_names_inclusion=past_company_names_inclusion,
+        past_company_names_exclusion=past_company_names_exclusion,
+        current_job_title_inclusion=current_job_title_inclusion,
+        current_job_title_exclusion=current_job_title_exclusion,
+        past_job_title_inclusion=past_job_title_inclusion,
+        past_job_title_exclusion=past_job_title_exclusion,
+        current_job_function_inclusion=current_job_function_inclusion,
+        current_job_function_exclusion=current_job_function_exclusion,
+        seniority_inclusion=seniority_inclusion,
+        seniority_exclusion=seniority_exclusion,
+        years_in_current_company=years_in_current_company,
+        years_in_current_position=years_in_current_position,
+        geography_inclusion=geography_inclusion,
+        geography_exclusion=geography_exclusion,
+        industry_inclusion=industry_inclusion,
+        industry_exclusion=industry_exclusion,
+        years_of_experience=years_of_experience,
+        annual_revenue=annual_revenue,
+        headcount=headcount,
+        headquarter_location_inclusion=headquarter_location_inclusion,
+        headquarter_location_exclusion=headquarter_location_exclusion,
+        account_industry_inclusion=account_industry_inclusion,
+        account_industry_exclusion=account_industry_exclusion,
+    )
+
+    if not result:
+        return jsonify({"status": "Error", "message": "Failed to apply new prospect filters"}), 400
+
+    return jsonify({"status": "Success", "message": "Successfully applied new prospect filters"}), 200
+
+
 @CLIENT_BLUEPRINT.route("/sdr/toggle_autopilot_enabled", methods=["POST"])
 def post_toggle_client_sdr_autopilot_enabled():
     """Toggles autopilot enabled for a client SDR"""
@@ -1006,7 +1131,7 @@ def get_calendar_availability(client_sdr_id: int):
     end_time = get_request_parameter(
         "end_time", request, json=False, required=True, parameter_type=int
     )
-    
+
     return get_sdr_calendar_availability(client_sdr_id, start_time, end_time)
 
 @CLIENT_BLUEPRINT.route("/unused_li_and_email_prospects_count", methods=["GET"])
@@ -1446,7 +1571,7 @@ def post_update_supersight_link():
 @require_user
 def get_onboarding_completion_report(client_sdr_id: int):
     """Gets the onboarding completion report for an SDR"""
-    
+
     report = onboarding_setup_completion_report(client_sdr_id)
 
     return jsonify({"message": "Success", "data": report}), 200

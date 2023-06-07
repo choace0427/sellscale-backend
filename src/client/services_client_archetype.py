@@ -1,6 +1,6 @@
 from app import db
 from model_import import ResearchPointType, ClientArchetype
-from typing import Union
+from typing import Union, Optional
 
 
 def update_transformer_blocklist(client_archetype_id: int, new_blocklist: list) -> any:
@@ -41,7 +41,8 @@ def replicate_transformer_blocklist(
     Returns:
         tuple[bool, str]: success & message
     """
-    source_ca: ClientArchetype = ClientArchetype.query.get(source_client_archetype_id)
+    source_ca: ClientArchetype = ClientArchetype.query.get(
+        source_client_archetype_id)
     if not source_ca:
         return False, "Source client archetype not found"
     destination_ca: ClientArchetype = ClientArchetype.query.get(
@@ -78,7 +79,7 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
     """
 
     query = """
-        select 
+        select
             client_archetype.id,
             client_archetype.archetype "name",
             client_archetype.active,
@@ -113,3 +114,158 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
         )
 
     return list_of_archetypes
+
+
+def create_empty_archetype_prospect_filters(client_sdr_id: int, archetype_id: int) -> bool:
+    """Creates an empty archetype prospect filter for the given archetype id
+
+    Args:
+        client_sdr_id (int): ID of client sdr
+        archetype_id (int): ID of archetype
+
+    Returns:
+        bool: True if successful, False if not
+    """
+    ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not ca:
+        return False
+
+    empty_filter: dict = {
+        "lead": {
+            "company": {
+                "current_company_names_inclusion": [],
+                "current_company_names_exclusion": [],
+                "past_company_names_inclusion": [],
+                "past_company_names_exclusion": [],
+            },
+            "role": {
+                "current_job_title_inclusion": [],
+                "current_job_title_exclusion": [],
+                "past_job_title_inclusion": [],
+                "past_job_title_exclusion": [],
+                "current_job_function_inclusion": [],
+                "current_job_function_exclusion": [],
+                "seniority_inclusion": [],
+                "seniority_exclusion": [],
+                "years_in_current_company": [],
+                "years_in_current_position": [],
+            },
+            "personal": {
+                "geography_inclusion": [],
+                "geography_exclusion": [],
+                "industry_inclusion": [],
+                "industry_exclusion": [],
+                "years_of_experience": [],
+            },
+        },
+        "account": {
+            "annual_revenue": [],
+            "headcount": [],
+            "headquarter_location_inclusion": [],
+            "headquarter_location_exclusion": [],
+            "account_industry_inclusion": [],
+            "account_industry_exclusion": [],
+        }
+    }
+
+    ca.prospect_filters = empty_filter
+    db.session.add(ca)
+    db.session.commit()
+
+    return True
+
+
+def modify_archetype_prospect_filters(
+    client_sdr_id: int,
+    archetype_id: int,
+    current_company_names_inclusion: Optional[list] = [],
+    current_company_names_exclusion: Optional[list] = [],
+    past_company_names_inclusion: Optional[list] = [],
+    past_company_names_exclusion: Optional[list] = [],
+    current_job_title_inclusion: Optional[list] = [],
+    current_job_title_exclusion: Optional[list] = [],
+    past_job_title_inclusion: Optional[list] = [],
+    past_job_title_exclusion: Optional[list] = [],
+    current_job_function_inclusion: Optional[list] = [],
+    current_job_function_exclusion: Optional[list] = [],
+    seniority_inclusion: Optional[list] = [],
+    seniority_exclusion: Optional[list] = [],
+    years_in_current_company: Optional[list] = [],
+    years_in_current_position: Optional[list] = [],
+    geography_inclusion: Optional[list] = [],
+    geography_exclusion: Optional[list] = [],
+    industry_inclusion: Optional[list] = [],
+    industry_exclusion: Optional[list] = [],
+    years_of_experience: Optional[list] = [],
+    annual_revenue: Optional[list] = [],
+    headcount: Optional[list] = [],
+    headquarter_location_inclusion: Optional[list] = [],
+    headquarter_location_exclusion: Optional[list] = [],
+    account_industry_inclusion: Optional[list] = [],
+    account_industry_exclusion: Optional[list] = [],
+
+) -> bool:
+    """
+    Modify the prospect filters for a given archetype
+
+    Args:
+        client_sdr_id (int): client sdr id
+        archetype_id (int): archetype id
+        ...
+
+    Returns:
+        bool: success
+    """
+    ca: ClientArchetype = ClientArchetype.query.filter_by(
+        client_sdr_id=client_sdr_id, id=archetype_id
+    ).first()
+    if not ca:
+        return False
+
+    original_filters: dict = ca.prospect_filters
+    if not original_filters:
+        create_empty_archetype_prospect_filters(client_sdr_id, archetype_id)
+
+    new_filters: dict = {
+        "lead": {
+            "company": {
+                "current_company_names_inclusion": current_company_names_inclusion or original_filters["lead"]["company"]["current_company_names_inclusion"],
+                "current_company_names_exclusion": current_company_names_exclusion or original_filters["lead"]["company"]["current_company_names_exclusion"],
+                "past_company_names_inclusion": past_company_names_inclusion or original_filters["lead"]["company"]["past_company_names_inclusion"],
+                "past_company_names_exclusion": past_company_names_exclusion or original_filters["lead"]["company"]["past_company_names_exclusion"],
+            },
+            "role": {
+                "current_job_title_inclusion": current_job_title_inclusion or original_filters["lead"]["role"]["current_job_title_inclusion"],
+                "current_job_title_exclusion": current_job_title_exclusion or original_filters["lead"]["role"]["current_job_title_exclusion"],
+                "past_job_title_inclusion": past_job_title_inclusion or original_filters["lead"]["role"]["past_job_title_inclusion"],
+                "past_job_title_exclusion": past_job_title_exclusion or original_filters["lead"]["role"]["past_job_title_exclusion"],
+                "current_job_function_inclusion": current_job_function_inclusion or original_filters["lead"]["role"]["current_job_function_inclusion"],
+                "current_job_function_exclusion": current_job_function_exclusion or original_filters["lead"]["role"]["current_job_function_exclusion"],
+                "seniority_inclusion": seniority_inclusion or original_filters["lead"]["role"]["seniority_inclusion"],
+                "seniority_exclusion": seniority_exclusion or original_filters["lead"]["role"]["seniority_exclusion"],
+                "years_in_current_company": years_in_current_company or original_filters["lead"]["role"]["years_in_current_company"],
+                "years_in_current_position": years_in_current_position or original_filters["lead"]["role"]["years_in_current_position"],
+            },
+            "personal": {
+                "geography_inclusion": geography_inclusion or original_filters["lead"]["personal"]["geography_inclusion"],
+                "geography_exclusion": geography_exclusion or original_filters["lead"]["personal"]["geography_exclusion"],
+                "industry_inclusion": industry_inclusion or original_filters["lead"]["personal"]["industry_inclusion"],
+                "industry_exclusion": industry_exclusion or original_filters["lead"]["personal"]["industry_exclusion"],
+                "years_of_experience": years_of_experience or original_filters["lead"]["personal"]["years_of_experience"],
+            }
+        },
+        "account": {
+            "annual_revenue": annual_revenue or original_filters["account"]["annual_revenue"],
+            "headcount": headcount or original_filters["account"]["headcount"],
+            "headquarter_location_inclusion": headquarter_location_inclusion or original_filters["account"]["headquarter_location_inclusion"],
+            "headquarter_location_exclusion": headquarter_location_exclusion or original_filters["account"]["headquarter_location_exclusion"],
+            "account_industry_inclusion": account_industry_inclusion or original_filters["account"]["account_industry_inclusion"],
+            "account_industry_exclusion": account_industry_exclusion or original_filters["account"]["account_industry_exclusion"],
+        }
+    }
+
+    ca.prospect_filters = new_filters
+    db.session.add(ca)
+    db.session.commit()
+
+    return True
