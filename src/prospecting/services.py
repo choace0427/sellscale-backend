@@ -1581,3 +1581,35 @@ def update_prospect_demo_date(prospect_id: int, demo_date: datetime.datetime):
     db.session.add(prospect)
     db.session.commit()
     return True
+
+
+@celery.task
+def auto_mark_uninterested_bumped_prospects():
+    prospects = db.session.execute(
+        """
+        select  
+            prospect.id,
+            prospect.full_name,
+            client_sdr.name,
+            count(*)
+        from prospect
+            join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
+            join client_sdr on client_sdr.id = prospect.client_sdr_id
+        where prospect.overall_status = 'BUMPED'
+        group by 1,2
+        having count(*) > 3;
+    """
+    )
+    for prospect in prospects:
+        prospect_id = prospect[0]
+        prospect_name = prospect[1]
+        client_sdr_name = prospect[2]
+        prospect_count = prospect[3]
+        message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `not interested`."
+        send_slack_message(message=message, webhook_urls=[URL_MAP["csm-convo-sorter"]])
+
+        update_prospect_status_linkedin(
+            prospect_id=prospect_id,
+            new_status=ProspectStatus.NOT_INTERESTED,
+            note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
+        )
