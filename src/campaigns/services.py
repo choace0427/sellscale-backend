@@ -1608,6 +1608,8 @@ def get_linkedin_campaign_analytics(campaign_id: int):
     - All prospects who accepted the invite
     - All prospects who replied to the invite
     - All prospects who scheduled a demo
+
+    In a json.
     """
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     if not campaign:
