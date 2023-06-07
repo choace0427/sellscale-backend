@@ -807,10 +807,24 @@ def get_all_uploads(client_sdr_id: int, archetype_id: int):
     return jsonify(result), result.get("status_code")
 
 
-@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/persona_filters", methods=["PATCH"])
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/prospect_filter", methods=["GET"])
 @require_user
-def patch_persona_filters(client_sdr_id: int, archetype_id: int):
-    """Modify persona filters for an archetype"""
+def get_prospect_filter(client_sdr_id: int, archetype_id: int):
+    """Gets prospect filter for an archetype"""
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return "Archetype not found or not owned by client SDR", 404
+
+    filters = archetype.prospect_filters
+
+    return jsonify({"message": "success", "data": filters}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<archetype_id>/prospect_filter", methods=["PATCH"])
+@require_user
+def patch_prospect_filter(client_sdr_id: int, archetype_id: int):
+    """Modify prospect filter for an archetype"""
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return "Client SDR not found", 404
