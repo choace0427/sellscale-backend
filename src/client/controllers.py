@@ -74,6 +74,7 @@ from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
 )
 from src.client.services_client_archetype import (
+    create_empty_archetype_prospect_filters,
     modify_archetype_prospect_filters,
     update_transformer_blocklist,
     replicate_transformer_blocklist,
@@ -817,6 +818,10 @@ def get_prospect_filter(client_sdr_id: int, archetype_id: int):
         return "Archetype not found or not owned by client SDR", 404
 
     filters = archetype.prospect_filters
+    if filters is None:
+        create_empty_archetype_prospect_filters(client_sdr_id, archetype_id)
+        archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+        filters = archetype.prospect_filters
 
     return jsonify({"message": "success", "data": filters}), 200
 
