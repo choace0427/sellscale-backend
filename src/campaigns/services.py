@@ -1631,7 +1631,7 @@ def get_linkedin_campaign_analytics(campaign_id: int):
 
     analytics = {
         "Campaign ID": campaign_id,
-        "Campaign Type": campaign.campaign_type,
+        "Campaign Type": campaign.campaign_type.value,
         "Campaign Name": campaign.name,
         "Campaign Start date": campaign.campaign_start_date,
         "Campaign End date": campaign.campaign_end_date,
