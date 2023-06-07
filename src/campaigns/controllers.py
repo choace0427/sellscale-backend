@@ -556,7 +556,13 @@ def delete_prospect_from_campaign(prospect_id: int):
     """Remove a prospect from a campaign."""
     from src.campaigns.services import remove_prospect_from_campaign
 
-    success = remove_prospect_from_campaign(prospect_id=prospect_id)
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+
+    success = remove_prospect_from_campaign(
+        campaign_id=campaign_id, prospect_id=prospect_id
+    )
     if success:
         return "OK", 200
     return "Failed to remove prospect from campaign", 400
