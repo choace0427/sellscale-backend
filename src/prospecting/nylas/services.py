@@ -557,3 +557,27 @@ def nylas_send_email(
     calculate_prospect_overall_status(prospect_id)
 
     return result
+
+
+def get_email_messages_with_prospect(client_sdr_id: int, prospect_id: int, thread_id: int, x: Optional[int] = None) -> list:
+    """ Gets the messages between a ClientSDR and a Prospect. Optionally, can limit the number of messages returned.
+
+    Args:
+        - client_sdr_id (int): ID of the ClientSDR
+        - prospect_id (int): ID of the Prospect
+        - thread_id (int): ID of the EmailConversationThread
+        - x (int, optional): Number of messages to return
+
+    Returns:
+    """
+    messages: EmailConversationMessage = EmailConversationMessage.query.filter(
+        EmailConversationMessage.client_sdr_id == client_sdr_id,
+        EmailConversationMessage.prospect_id == prospect_id,
+        EmailConversationMessage.nylas_thread_id == thread_id,
+    ).order_by(EmailConversationMessage.date_received.desc())
+
+    if x:
+        messages = messages.limit(x)
+    messages = messages.all()
+
+    return [message.to_dict() for message in messages]

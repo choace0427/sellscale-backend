@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from src.li_conversation.models import LinkedinConversationEntry
+from bs4 import BeautifulSoup
 
 from src.research.models import ResearchPoints
 from src.research.models import ResearchPayload
@@ -880,7 +880,15 @@ Output:""".format(
     return prompt
 
 
-def generate_email(prompt: str):
+def generate_email(prompt: str) -> dict[str, str]:
+    """Generate an email for a prospect.
+
+    Args:
+        prompt (str): The prompt to generate the email with
+
+    Returns:
+        dict[str, str]: The subject and body of the email
+    """
     response = wrapped_chat_gpt_completion(
         [
             {"role": "system", "content": prompt},
@@ -890,13 +898,92 @@ def generate_email(prompt: str):
         model=OPENAI_CHAT_GPT_4_MODEL,
     )
     response = response if isinstance(response, str) else ""
-
     lines = response.split("\n")
     subject = lines[0].strip()
     subject = re.sub(r"^Subject:", "", subject, flags=re.IGNORECASE).strip()
     body = "\n".join(lines[1:]).strip()
-
     return {"subject": subject, "body": body}
+
+
+def generate_followup_email_with_objective_prompt(client_sdr_id: int, prospect_id: int, thread_id: str, objective: Optional[str] = "") -> str:
+    """Generate an email for a prospect.
+
+    Args:
+        client_sdr_id (int): The id of the client sdr
+        prospect_id (int): The id of the prospect
+        thread_id (str): The id of the thread
+        objective (Optional[str]): The objective of the email. Defaults to None.
+
+    Returns:
+        string: The prompt for the email
+    """
+    from src.prospecting.nylas.services import get_email_messages_with_prospect
+    from src.research.account_research import get_account_research_points_by_prospect_id
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        prospect.archetype_id
+    )
+
+    research_points: ResearchPoints = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    research_points = [point.value for point in research_points]
+    account_research = get_account_research_points_by_prospect_id(prospect_id)
+    account_research = [point.get('title') + ": " + point.get('reason') for point in account_research]
+    objective = objective or archetype.persona_contact_objective
+
+    # Convert past messages to text. Append '>' to each line to make it a quote
+    past_messages = []
+    past_messages_raw = get_email_messages_with_prospect(client_sdr_id, prospect_id, thread_id)
+    if past_messages_raw:
+        for thread in past_messages_raw:
+            body: str = thread.get("body")
+            bs = BeautifulSoup(body, "html.parser")
+            body: str = bs.get_text()
+            body: str = re.sub(r'\n+', '\n', body)
+            body: str = "> " + body
+            body: str = body.strip().replace("\n", "\n> ")
+            past_messages.append(body)
+
+    prompt = """Instructions: Write a follow up email to the previous email. The followup email is from the original sender. The followup email is trying to get the recipient's attention. The followup email should use information about the recipient in a highly personalized manner.
+
+Email Tone: Casual and colloquial
+Email Length: Medium (3-5 sentences)
+
+Sender company information:
+Name: {company_name}
+Tagline: {company_tagline}
+Description: {company_description}
+
+Recipient research points:
+-{research_points}
+
+Recipient account research points:
+-{account_research}
+
+Outreach objective: {objective}
+
+Past thread:
+{past_threads}
+
+Final instructions
+- Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed"
+
+Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
+
+Generated reply:""".format(
+        company_name=client.company,
+        company_tagline=client.tagline,
+        company_description=client.description,
+        research_points="\n-".join(research_points),
+        account_research="\n-".join(account_research),
+        objective=objective,
+        past_threads="\n\n".join(past_messages),
+)
+
+    return prompt
 
 
 def replenish_all_ml_credits_for_all_sdrs() -> bool:
