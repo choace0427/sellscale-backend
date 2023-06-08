@@ -8,6 +8,7 @@ from src.ml.models import GNLPModelType
 from model_import import ClientArchetype
 from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
+    generate_followup_email_with_objective_prompt,
     get_fine_tune_timeline,
     initiate_fine_tune_job,
     get_aree_fix_basic,
@@ -333,7 +334,9 @@ def post_generate_email(client_sdr_id: int):
         "prompt", request, json=True, required=True, parameter_type=str
     )
 
-    result = generate_email(prompt)
+    result = generate_email(
+        prompt=prompt,
+    )
 
     return jsonify({"message": "Success", "data": result}), 200
 
@@ -357,3 +360,33 @@ def get_generate_email_prompt(client_sdr_id: int):
 
     prompt = ai_email_prompt(client_sdr_id, prospect_id)
     return jsonify({"prompt": prompt}), 200
+
+
+@ML_BLUEPRINT.route("/get_generate_followup_email_prompt", methods=["POST"])
+@require_user
+def get_generate_followup_email_prompt(client_sdr_id: int):
+    """Gets the prompt for generating a followup email given a value proposition and an archetype
+
+    Args:
+        client_sdr_id (int): The client SDR ID
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    thread_id = get_request_parameter(
+        "thread_id", request, json=True, required=False, parameter_type=str
+    )
+    objective = get_request_parameter(
+        "objective", request, json=True, required=False, parameter_type=str
+    )
+
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+
+    followup_email_prompt = generate_followup_email_with_objective_prompt(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        thread_id=thread_id,
+        objective=objective
+    )
+
+    return jsonify({"message": "success", "data": followup_email_prompt}), 200

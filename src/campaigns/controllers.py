@@ -30,10 +30,10 @@ from src.campaigns.services import (
     wipe_campaign_generations,
     email_analytics,
 )
-from src.campaigns.autopilot.services import collect_and_generate_all_autopilot_campaigns
-from src.message_generation.services import (
-    wipe_message_generation_job_queue
+from src.campaigns.autopilot.services import (
+    collect_and_generate_all_autopilot_campaigns,
 )
+from src.message_generation.services import wipe_message_generation_job_queue
 from src.authentication.decorators import require_user
 
 CAMPAIGN_BLUEPRINT = Blueprint("campaigns", __name__)
@@ -67,7 +67,12 @@ def get_campaign_details(client_sdr_id: int, campaign_id: int):
     else:
         shallow_details = False
 
-    oc_details = get_outbound_campaign_details(client_sdr_id, campaign_id=campaign_id, get_messages=get_messages, shallow_details=shallow_details)
+    oc_details = get_outbound_campaign_details(
+        client_sdr_id,
+        campaign_id=campaign_id,
+        get_messages=get_messages,
+        shallow_details=shallow_details,
+    )
     status_code = oc_details.get("status_code")
     if status_code != 200:
         return jsonify({"message": oc_details.get("message")}), status_code
@@ -92,7 +97,9 @@ def get_campaign_details_by_uuid(campaign_uuid: str):
     if not campaign:
         return jsonify({"message": "Campaign not found."}), 404
 
-    approved_filter = get_request_parameter("approved_filter", request, json=False, required=False, parameter_type=str)
+    approved_filter = get_request_parameter(
+        "approved_filter", request, json=False, required=False, parameter_type=str
+    )
     if approved_filter and approved_filter.lower() == "true":
         approved_filter = True
     elif approved_filter and approved_filter.lower() == "false":
@@ -100,7 +107,11 @@ def get_campaign_details_by_uuid(campaign_uuid: str):
     else:
         approved_filter = None
 
-    oc_details = get_outbound_campaign_details_for_edit_tool(client_sdr_id=campaign.client_sdr_id, campaign_id=campaign.id, approved_filter=approved_filter)
+    oc_details = get_outbound_campaign_details_for_edit_tool(
+        client_sdr_id=campaign.client_sdr_id,
+        campaign_id=campaign.id,
+        approved_filter=approved_filter,
+    )
     status_code = oc_details.get("status_code")
     if status_code != 200:
         return jsonify({"message": oc_details.get("message")}), status_code
@@ -238,6 +249,7 @@ def get_all_campaigns(client_sdr_id: int):
 @require_user
 def create_new_campaign(client_sdr_id: int):
     from model_import import GeneratedMessageType
+
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True, parameter_type=list
     )
@@ -317,7 +329,12 @@ def post_generate_campaigns(client_sdr_id: int, campaign_id: int):
     if not campaign:
         return jsonify({"error": "Campaign not found"}), 404
     if campaign.client_sdr_id != client_sdr_id:
-        return jsonify({"error": "Unauthorized: this campaign does not belong to this user."}), 401
+        return (
+            jsonify(
+                {"error": "Unauthorized: this campaign does not belong to this user."}
+            ),
+            401,
+        )
 
     generate_campaign(campaign_id=campaign_id)
     return "OK", 200
@@ -504,21 +521,15 @@ def post_reset_campaign(client_sdr_id: int, campaign_id: int):
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     if not campaign:
-        return jsonify({"message": 'Campaign not found'}), 404
+        return jsonify({"message": "Campaign not found"}), 404
     if campaign.client_sdr_id != client_sdr_id:
-        return jsonify({"message": 'Unauthorized'}), 401
+        return jsonify({"message": "Unauthorized"}), 401
 
-    wipe_campaign_generations.apply_async(
-        args=[campaign_id],
-        priority=2
-    )
+    wipe_campaign_generations.apply_async(args=[campaign_id], priority=2)
 
-    wipe_message_generation_job_queue.apply_async(
-        args=[campaign_id],
-        priority=2
-    )
+    wipe_message_generation_job_queue.apply_async(args=[campaign_id], priority=2)
 
-    return jsonify({"message": 'Starting campaign reset'}), 200
+    return jsonify({"message": "Starting campaign reset"}), 200
 
 
 @CAMPAIGN_BLUEPRINT.route("/email_analytics", methods=["GET"])
@@ -531,10 +542,27 @@ def get_email_analytics(client_sdr_id: int):
     """
     result = email_analytics(client_sdr_id)
 
-    return jsonify(result), result.get('status_code')
+    return jsonify(result), result.get("status_code")
 
 
 @CAMPAIGN_BLUEPRINT.route("/autopilot/generate_all_campaigns", methods=["POST"])
 def generate_all_autopilot_campaigns_endpoint():
     collect_and_generate_all_autopilot_campaigns()
     return "OK", 200
+
+
+@CAMPAIGN_BLUEPRINT.route("/remove_prospect/<int:prospect_id>", methods=["DELETE"])
+def delete_prospect_from_campaign(prospect_id: int):
+    """Remove a prospect from a campaign."""
+    from src.campaigns.services import remove_prospect_from_campaign
+
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+
+    success = remove_prospect_from_campaign(
+        campaign_id=campaign_id, prospect_id=prospect_id
+    )
+    if success:
+        return "OK", 200
+    return "Failed to remove prospect from campaign", 400
