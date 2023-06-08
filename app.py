@@ -77,10 +77,10 @@ def make_celery(app):
     celery.conf.task_default_priority = 5  # 0 is the highest
     celery.conf.task_annotations = {
         f'{app.import_name}.research_and_generate_outreaches_for_prospect': {
-            "rate_limit": "75/m",
+            "rate_limit": "2/s",
         },
         f'{app.import_name}.generate_prospect_email': {
-            "rate_limit": "75/m",
+            "rate_limit": "2/s",
         }
     }
 
