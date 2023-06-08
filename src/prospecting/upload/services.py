@@ -13,6 +13,7 @@ from src.prospecting.services import (
     get_navigator_slug_from_url,
     add_prospect,
 )
+from src.research.account_research import generate_prospect_research
 from src.research.models import IScraperPayloadType
 from src.research.services import create_iscraper_payload_cache
 from src.utils.abstract.attr_utils import deep_get
@@ -404,6 +405,12 @@ def create_prospect_from_linkedin_link(
             db.session.commit()
             run_and_assign_health_score.apply_async(
                 args=[None, new_prospect_id],
+                queue="prospecting",
+                routing_key="prospecting",
+                priority=5,
+            )
+            generate_prospect_research.apply_async(
+                args=[new_prospect_id, False, False],
                 queue="prospecting",
                 routing_key="prospecting",
                 priority=5,
