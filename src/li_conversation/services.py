@@ -117,7 +117,7 @@ def create_linkedin_conversation_entry(
     )
 
     # Flag as urgent if message is new and mentions something urgent
-    if not duplicate_exists and client_sdr_id != -1:
+    if not duplicate_exists and client_sdr_id != -1 and connection_degree != 'You':
         if "tomorrow" in message.lower() or "today" in message.lower():
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             send_slack_message(
