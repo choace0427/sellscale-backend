@@ -636,6 +636,7 @@ def scrape_conversation_queue():
                 api, scrape.conversation_urn_id, prospect.id
             )
 
+            #print(f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}")
             send_slack_message(
                 message=f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
                 webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],

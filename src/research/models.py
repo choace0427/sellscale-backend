@@ -36,6 +36,8 @@ class ResearchPointType(enum.Enum):
         "SERP_NEWS_SUMMARY_NEGATIVE"  # Negative summary of recent news
     )
 
+    CUSTOM = "CUSTOM"
+
     # EXPERIENCE = "EXPERIENCE"
     # CURRENT_JOB = "CURRENT_JOB"
     # PROJECT = "PROJECT"
