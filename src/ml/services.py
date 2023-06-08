@@ -818,8 +818,9 @@ def ai_email_prompt(client_sdr_id: int, prospect_id: int):
     5. Use the objective for a call to action
     6. End with Best, (new line) (My Name) (new line) (Title)
 """
+
     block_structure = default_sellscale_structure
-    if client_archetype.email_blocks_configuration is not None and client_archetype.email_blocks_configuration.length > 0:
+    if client_archetype.email_blocks_configuration is not None and len(client_archetype.email_blocks_configuration) > 0:
         block_structure = ""
         for index, block in enumerate(client_archetype.email_blocks_configuration):
             block_structure += f"{index + 1}. {block}\n"
