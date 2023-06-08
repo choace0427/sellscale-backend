@@ -311,6 +311,32 @@ def modify_archetype_prospect_filters(
     return True
 
 
+def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int) -> list:
+    """Get the email blocks configuration for a given archetype
+
+    Args:
+        client_sdr_id (int): client sdr id
+        client_archetype_id (int): client archetype id
+
+    Returns:
+        list: email blocks configuration
+    """
+    sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    if not sdr:
+        return []
+
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    if not archetype:
+        return []
+    if archetype.client_sdr_id != sdr.id:
+        return []
+
+    if archetype.email_blocks_configuration is None:
+        create_empty_archetype_email_blocks_configuration(client_sdr_id, client_archetype_id)
+
+    return archetype.email_blocks_configuration
+
+
 def create_empty_archetype_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int) -> bool:
     """Create an empty email blocks configuration for a given archetype
 

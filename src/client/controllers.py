@@ -75,7 +75,9 @@ from src.client.services_unassigned_contacts_archetype import (
 )
 from src.client.services_client_archetype import (
     create_empty_archetype_prospect_filters,
+    get_email_blocks_configuration,
     modify_archetype_prospect_filters,
+    patch_archetype_email_blocks_configuration,
     update_transformer_blocklist,
     replicate_transformer_blocklist,
     get_archetype_details_for_sdr,
@@ -1164,6 +1166,62 @@ def get_unused_li_and_email_prospects_count(client_sdr_id: int):
         client_archetype_id=client_archetype_id
     )
     return jsonify(data)
+
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<archetype_id>/email_blocks", methods=["GET"]
+)
+@require_user
+def get_email_blocks(client_sdr_id: int, archetype_id: int):
+    """Gets email blocks for an archetype"""
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not sdr or not archetype:
+        return jsonify({"status": "error", "message": "SDR or Archetype not found"}), 404
+    if archetype.client_sdr_id != sdr.id:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "SDR does not have access to this archetype",
+                }
+            ),
+            403,
+        )
+
+    email_blocks = get_email_blocks_configuration(archetype_id)
+
+    return jsonify({"status": "success", "data": email_blocks}), 200
+
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<archetype_id>/email_blocks", methods=["PATCH"]
+)
+@require_user
+def patch_email_blocks(client_sdr_id: int, archetype_id: int):
+    """Updates email blocks for an archetype"""
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not sdr or not archetype:
+        return jsonify({"status": "error", "message": "SDR or Archetype not found"}), 404
+    if archetype.client_sdr_id != sdr.id:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "SDR does not have access to this archetype",
+                }
+            ),
+            403,
+        )
+
+    email_blocks = get_request_parameter(
+        "email_blocks", request, json=True, required=True
+    ) or []
+
+    patch_archetype_email_blocks_configuration(archetype_id, email_blocks)
+
+    return jsonify({"status": "success"}), 200
 
 
 @CLIENT_BLUEPRINT.route(
