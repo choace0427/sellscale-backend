@@ -116,6 +116,7 @@ class ClientArchetype(db.Model):
     )  # if true, this archetype will be used for unassigned contacts
 
     prospect_filters = db.Column(db.JSON, nullable=True)
+    email_blocks_configuration = db.Column(db.ARRAY(db.String), nullable=True)
 
     def to_dict(self) -> dict:
 
