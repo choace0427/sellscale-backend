@@ -177,7 +177,7 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
                 countdown=i * 10,
                 queue="message_generation",
                 routing_key="message_generation",
-                priority=1,
+                priority=10,
             )
     except Exception as e:
         db.session.rollback()
@@ -819,7 +819,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
                 countdown=i * 10,
                 queue="message_generation",
                 routing_key="message_generation",
-                priority=1,
+                priority=10,
             )
     except Exception as e:
         db.session.rollback()
