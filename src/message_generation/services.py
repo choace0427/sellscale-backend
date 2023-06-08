@@ -175,6 +175,9 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
                     gm_job.id,
                 ],
                 countdown=i * 10,
+                queue="message_generation",
+                routing_key="message_generation",
+                priority=1,
             )
     except Exception as e:
         db.session.rollback()
@@ -230,7 +233,7 @@ def increment_generated_message_job_queue_attempts(gm_job_id: int) -> bool:
 
 
 @celery.task(bind=True, max_retries=3)
-def research_and_generate_outreaches_for_prospect(
+def research_and_generate_outreaches_for_prospect( # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
     self,
     prospect_id: int,
     outbound_campaign_id: int,
@@ -812,7 +815,11 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
 
             # Generate the prospect email
             generate_prospect_email.apply_async(
-                args=[prospect_id, campaign_id, gm_job.id], countdown=i * 10
+                args=[prospect_id, campaign_id, gm_job.id],
+                countdown=i * 10,
+                queue="message_generation",
+                routing_key="message_generation",
+                priority=1,
             )
     except Exception as e:
         db.session.rollback()
@@ -820,7 +827,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
 
 
 @celery.task(bind=True, max_retries=3)
-def generate_prospect_email(
+def generate_prospect_email( # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
     self, prospect_id: int, campaign_id: int, gm_job_id: int
 ) -> tuple[bool, str]:
     try:
@@ -1832,7 +1839,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         best_framework = bump_frameworks[framework_index]
     except:
         return False
-    
+
     send_slack_message(
         message=f" - Selected Framework: {best_framework.title} (#{best_framework.id})",
         webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],

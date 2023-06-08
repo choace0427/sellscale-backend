@@ -56,6 +56,7 @@ def make_celery(app):
     ml_prospect_classification_exchange = Exchange(
         "ml_prospect_classification", type="direct"
     )
+    message_generation_exchange = Exchange("message_generation", type="direct")
     celery.conf.task_queues = (
         Queue("default", default_exchange, routing_key="default"),
         Queue("prospecting", prospecting_exchange, routing_key="prospecting"),
@@ -64,11 +65,24 @@ def make_celery(app):
             ml_prospect_classification_exchange,
             routing_key="ml_prospect_classification",
         ),
+        Queue(
+            "message_generation",
+            message_generation_exchange,
+            routing_key="message_generation",
+        )
     )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"
     celery.conf.task_default_routing_key = "default"
     celery.conf.task_default_priority = 5  # 0 is the highest
+    celery.conf.task_annotations = {
+        f'{app.import_name}.research_and_generate_outreaches_for_prospect': {
+            "rate_limit": "75/m",
+        },
+        f'{app.import_name}.generate_prospect_email': {
+            "rate_limit": "75/m",
+        }
+    }
 
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):
