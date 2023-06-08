@@ -309,3 +309,56 @@ def modify_archetype_prospect_filters(
     db.session.commit()
 
     return True
+
+
+def create_empty_archetype_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int) -> bool:
+    """Create an empty email blocks configuration for a given archetype
+
+    Args:
+        client_sdr_id (int): client sdr id
+        client_archetype_id (int): client archetype id
+
+    Returns:
+        bool: success
+    """
+    sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    if not sdr:
+        return False
+
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    if not archetype:
+        return False
+    if archetype.client_sdr_id != sdr.id:
+        return False
+
+    archetype.email_blocks_configuration = []
+    db.session.add(archetype)
+    db.session.commit()
+
+    return True
+
+
+def patch_archetype_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int, blocks: list[str]) -> tuple[bool, str]:
+    """Patch the email blocks configuration for a given archetype
+
+    Args:
+        blocks (list[str]): list of blocks
+
+    Returns:
+        tuple[bool, str]: success, message
+    """
+    sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    if not sdr:
+        return False, "Client SDR not found"
+
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    if not archetype:
+        return False, "Client archetype not found"
+    if archetype.client_sdr_id != sdr.id:
+        return False, "Client SDR does not own this archetype"
+
+    archetype.email_blocks_configuration = blocks
+    db.session.add(archetype)
+    db.session.commit()
+
+    return True

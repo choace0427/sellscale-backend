@@ -810,15 +810,25 @@ def ai_email_prompt(client_sdr_id: int, prospect_id: int):
     for point in account_research:
         account_points += f"- {point.title}: {point.reason}\n"
 
+    default_sellscale_structure = """
+    1. Personalize the title to their company and or the prospect
+    2. Include a greeting with Hi, Hello, or Hey with their first name
+    3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
+    4. Mention what we do and offer and how it can help them based on their background, company, and key details.
+    5. Use the objective for a call to action
+    6. End with Best, (new line) (My Name) (new line) (Title)
+"""
+    block_structure = default_sellscale_structure
+    if client_archetype.email_blocks_configuration is not None and client_archetype.email_blocks_configuration.length > 0:
+        block_structure = ""
+        for index, block in enumerate(client_archetype.email_blocks_configuration):
+            block_structure += f"{index + 1}. {block}\n"
+
+
     prompt = """You are a sales development representative writing on behalf of the SDR.
 
 Write a personalized cold email short enough I could read on an iphone easily. Here's the structure
-1. Personalize the title to their company and or the prospect 
-2. Include a greeting with Hi, Hello, or Hey with their first name
-3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
-4. Mention what we do and offer and how it can help them based on their background, company, and key details.
-5. Use the objective for a call to action
-6. End with Best, (new line) (My Name) (new line) (Title)
+{structure}
 
 Note - you do not need to include all info.
 
@@ -860,6 +870,7 @@ Generate the subject line, one line break, then the email body. Do not include t
 I want to write this email with the following objective: {persona_contact_objective}
 
 Output:""".format(
+        structure=block_structure,
         client_sdr_name=client_sdr_name,
         client_sdr_title=client_sdr_title,
         company_tagline=company_tagline,
