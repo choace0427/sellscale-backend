@@ -233,7 +233,7 @@ def increment_generated_message_job_queue_attempts(gm_job_id: int) -> bool:
 
 
 @celery.task(bind=True, max_retries=3)
-def research_and_generate_outreaches_for_prospect( # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
+def research_and_generate_outreaches_for_prospect(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
     self,
     prospect_id: int,
     outbound_campaign_id: int,
@@ -283,7 +283,7 @@ def research_and_generate_outreaches_for_prospect( # THIS IS A PROTECTED TASK. D
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.FAILED, error_message=str(e)
         )
-        raise self.retry(exc=e, countdown=2**self.request.retries)
+        raise self.retry(exc=e, countdown=10**self.request.retries)
 
 
 def generate_prompt(prospect_id: int, notes: str = ""):
@@ -709,7 +709,8 @@ def create_cta(archetype_id: int, text_value: str):
 
 def update_cta(cta_id: int, text_value: str):
     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
-    if not cta: return False
+    if not cta:
+        return False
 
     cta.text_value = text_value
 
@@ -827,7 +828,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
 
 
 @celery.task(bind=True, max_retries=3)
-def generate_prospect_email( # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
+def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
     self, prospect_id: int, campaign_id: int, gm_job_id: int
 ) -> tuple[bool, str]:
     try:
@@ -1709,7 +1710,8 @@ def process_generated_msg_queue(
                         "text": {
                             "type": "mrkdwn",
                             "text": "*SellScale Sight*: <{link}|Link>".format(
-                                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + client_sdr.auth_token
+                                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                                + client_sdr.auth_token
                             ),
                         },
                     },
@@ -1764,7 +1766,7 @@ def generate_message_bumps():
             or_(
                 Prospect.hidden_until == None,
                 Prospect.hidden_until <= datetime.datetime.utcnow(),
-            )
+            ),
         ).all()
 
         # print(f"Generating bumps for {len(prospects)} prospects...")
@@ -1773,7 +1775,8 @@ def generate_message_bumps():
             success = generate_prospect_bump(
                 prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
             )
-            if success == True: return
+            if success == True:
+                return
 
 
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: str):
@@ -1798,17 +1801,21 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         return False
 
     # Check if we've already generated a bump for this convo
-    prev_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-        GeneratedMessageAutoBump.prospect_id == prospect_id,
-    ).order_by(GeneratedMessageAutoBump.created_at.desc()).first()
+    prev_bump_msg: GeneratedMessageAutoBump = (
+        GeneratedMessageAutoBump.query.filter(
+            GeneratedMessageAutoBump.prospect_id == prospect_id,
+        )
+        .order_by(GeneratedMessageAutoBump.created_at.desc())
+        .first()
+    )
 
     if prev_bump_msg:
         if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
             # Already generated a bump for this message
             return False
-        #else:
-            #db.session.delete(prev_bump_msg)
-            #db.session.commit()
+        # else:
+        # db.session.delete(prev_bump_msg)
+        # db.session.commit()
 
     # Get bump frameworks
     bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
