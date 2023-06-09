@@ -9,7 +9,7 @@ from src.research.linkedin.iscraper import (
 from src.research.models import ResearchPoints
 
 from src.utils.request_helpers import get_request_parameter
-from src.research.services import flag_research_point, get_all_research_point_types
+from src.research.services import flag_research_point, get_all_research_point_types, run_create_custom_research_entries
 
 from .linkedin.services import (
     get_research_and_bullet_points_new,
@@ -184,3 +184,23 @@ def generate_account_research_points_endpoint(client_sdr_id: int):
     if success:
         return "OK", 200
     return "Failed to generate research points", 500
+
+
+@RESEARCH_BLUEPRINT.route("/custom_research_point/upload", methods=["POST"])
+@require_user
+def post_create_custom_research_points(client_sdr_id: int):
+
+    label = get_request_parameter("label", request, json=True, required=True, parameter_type=str)
+    entries = get_request_parameter("entries", request, json=True, required=True, parameter_type=list)
+
+    run_create_custom_research_entries.apply_async(
+        args=[client_sdr_id, label, entries],
+        queue="prospecting",
+        routing_key="prospecting",
+        priority=1,
+    )
+
+    return (
+        jsonify({"message": "Upload jobs successfully scheduled."}),
+        200,
+    )

@@ -1613,3 +1613,26 @@ def auto_mark_uninterested_bumped_prospects():
             new_status=ProspectStatus.NOT_INTERESTED,
             note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
         )
+
+
+def find_prospect_id_from_li_or_email(client_sdr_id: int, li_url: Optional[str], email: Optional[str]) -> Optional[int]:
+    if li_url:
+        li_public_id = li_url.split("/in/")[1].split("/")[0]
+        prospect = Prospect.query.filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            or_(
+                Prospect.linkedin_url.ilike(f"%/in/{li_public_id}"),
+                Prospect.linkedin_url.ilike(f"%/in/{li_public_id}/%")
+            ),
+        ).first()
+        if prospect:
+            return prospect.id
+
+    if email:
+        prospect = Prospect.query.filter_by(email=email).first()
+        if prospect:
+            return prospect.id
+
+    return None
+
+

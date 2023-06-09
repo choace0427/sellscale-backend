@@ -1,4 +1,5 @@
 from app import db
+from app import db, celery
 from model_import import ResearchPayload, ResearchPoints, ResearchType
 from src.research.models import ResearchPointType, IScraperPayloadCache, IScraperPayloadType
 
@@ -49,6 +50,62 @@ def create_research_point(
     )
     db.session.add(research_point)
     db.session.commit()
+
+    return research_point.id
+
+
+
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
+def run_create_custom_research_entries(
+    self,
+    client_sdr_id: int,
+    label: str,
+    entries: list[dict],
+) -> bool:
+    from src.prospecting.services import find_prospect_id_from_li_or_email
+
+    try:
+        for entry in entries:
+            value = entry.get("value")
+            if not value:
+                print(f"Value not found for {entry}")
+                continue
+
+            li_url = entry.get("li_url")
+            email = entry.get("email")
+            prospect_id = find_prospect_id_from_li_or_email(client_sdr_id, li_url, email)
+            if not prospect_id:
+                print(f"Could not find prospect for {li_url} or {email}")
+                continue
+
+            research_point_id = create_custom_research_point(
+                prospect_id=prospect_id, label=label, value=value
+            )
+
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def create_custom_research_point(prospect_id: int, label: str, value: str):
+    """Creates a custom research point"""
+
+    latest_payload: ResearchPayload = ResearchPayload.query.filter(
+        ResearchPayload.prospect_id == prospect_id,
+    ).order_by(ResearchPayload.created_at.desc()).first()
+    if not latest_payload: return None
+
+    research_point = ResearchPoints(
+        research_payload_id=latest_payload.id,
+        research_point_type=ResearchPointType.CUSTOM,
+        value=json.dumps({
+            "label": label,
+            "value": value
+        }),
+    )
+    db.session.add(research_point)
 
     return research_point.id
 
