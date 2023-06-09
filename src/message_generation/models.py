@@ -159,7 +159,7 @@ class GeneratedMessageAutoBump(db.Model):
             "bump_framework": {
                 "title": self.bump_framework_title,
                 "description": self.bump_framework_description,
-                "length": self.bump_framework_length.value,
+                "length": self.bump_framework_length.value if self.bump_framework_length else None,
             },
             "account_research_points": self.account_research_points,
         }
