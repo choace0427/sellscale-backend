@@ -1,3 +1,4 @@
+from src.bump_framework.models import BumpLength
 from app import db
 import enum
 import sqlalchemy as sa
@@ -140,6 +141,13 @@ class GeneratedMessageAutoBump(db.Model):
 
     latest_li_message_id = db.Column(db.Integer, db.ForeignKey("linkedin_conversation_entry.id"), unique=True, index=True, nullable=True)
     message = db.Column(db.String, nullable=False)
+    
+    bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"), nullable=True)
+    bump_framework_title = db.Column(db.String, nullable=True)
+    bump_framework_description = db.Column(db.String, nullable=True)
+    bump_framework_length = db.Column(db.Enum(BumpLength), nullable=True)
+
+    account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -148,6 +156,12 @@ class GeneratedMessageAutoBump(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "latest_li_message_id": self.latest_li_message_id,
             "message": self.message,
+            "bump_framework": {
+                "title": self.bump_framework_title,
+                "description": self.bump_framework_description,
+                "length": self.bump_framework_length.value,
+            },
+            "account_research_points": self.account_research_points,
         }
 
 

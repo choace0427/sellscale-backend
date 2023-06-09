@@ -152,11 +152,8 @@ def send_prospect_emails():
 def generate_message_bumps():
     from src.message_generation.services import generate_message_bumps
 
-    if (
-        os.environ.get("FLASK_ENV") == "production"
-        and os.environ.get("SCHEDULING_INSTANCE") == "true"
-    ):
-        generate_message_bumps.delay()
+
+    generate_message_bumps.delay()
 
 
 def auto_mark_uninterested_bumped_prospects_job():

@@ -1872,10 +1872,12 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         message=f" - Account Research ({str(research_indexes)}, {len(account_research)}):",
         webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
+    account_research_points = []
     for i in research_indexes:
         try:
             if account_research[i]:
                 research_str += f"- {account_research[i].reason}\n"
+                account_research_points.append(account_research[i].reason)
                 send_slack_message(
                     message=f" > {account_research[i].reason}",
                     webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
@@ -1907,6 +1909,11 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         prospect_id=prospect_id,
         latest_li_message_id=latest_convo_entries[0].id,
         message=response,
+        bump_framework_id=best_framework.id,
+        bump_framework_title=best_framework.title,
+        bump_framework_description=best_framework.description,
+        bump_framework_length=best_framework.bump_length,
+        account_research_points=account_research_points,
     )
     db.session.add(bump_msg)
     db.session.commit()
