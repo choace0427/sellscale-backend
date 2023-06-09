@@ -235,4 +235,4 @@ def attempt_chat_completion(
             # Add a random delay before the next attempt
             time.sleep(random.uniform(0.5, 1.5))
     print(f"OpenAI chat completion exceeded maximum attempts ({max_attempts})!")
-    return None
+    raise Exception("OpenAI chat completion exceeded maximum attempts!" + str(e))

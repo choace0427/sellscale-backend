@@ -672,6 +672,13 @@ def icp_classify(
         company = find_company_for_prospect(prospect_id)
         prospect_company_description = company.description if company else ""
 
+        state = "Location unknown."
+        if company:
+            location = company.locations
+            state = location[0]["geographicArea"] if location and location[0] else ""
+
+        print(state)
+
         # Create Prompt
         prompt += f"""\n\nHere is a potential prospect:
         Prospect Name: {prospect.full_name}
@@ -680,6 +687,7 @@ def icp_classify(
         Prospect Company Name: {prospect.company}
         Prospect Company Size: {prospect.employee_count}
         Prospect Company Industry: {prospect.industry}
+        Prospect Company Location: {state}
         Prospect Company Description: '''
         {prospect_company_description}
         '''\n\n"""
@@ -905,7 +913,9 @@ def generate_email(prompt: str) -> dict[str, str]:
     return {"subject": subject, "body": body}
 
 
-def generate_followup_email_with_objective_prompt(client_sdr_id: int, prospect_id: int, thread_id: str, objective: Optional[str] = "") -> str:
+def generate_followup_email_with_objective_prompt(
+    client_sdr_id: int, prospect_id: int, thread_id: str, objective: Optional[str] = ""
+) -> str:
     """Generate an email for a prospect.
 
     Args:
@@ -924,25 +934,29 @@ def generate_followup_email_with_objective_prompt(client_sdr_id: int, prospect_i
     client: Client = Client.query.get(client_sdr.client_id)
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id
-    )
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
-    research_points: ResearchPoints = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    research_points: ResearchPoints = ResearchPoints.get_research_points_by_prospect_id(
+        prospect_id
+    )
     research_points = [point.value for point in research_points]
     account_research = get_account_research_points_by_prospect_id(prospect_id)
-    account_research = [point.get('title') + ": " + point.get('reason') for point in account_research]
+    account_research = [
+        point.get("title") + ": " + point.get("reason") for point in account_research
+    ]
     objective = objective or archetype.persona_contact_objective
 
     # Convert past messages to text. Append '>' to each line to make it a quote
     past_messages = []
-    past_messages_raw = get_email_messages_with_prospect(client_sdr_id, prospect_id, thread_id)
+    past_messages_raw = get_email_messages_with_prospect(
+        client_sdr_id, prospect_id, thread_id
+    )
     if past_messages_raw:
         for thread in past_messages_raw:
             body: str = thread.get("body")
             bs = BeautifulSoup(body, "html.parser")
             body: str = bs.get_text()
-            body: str = re.sub(r'\n+', '\n', body)
+            body: str = re.sub(r"\n+", "\n", body)
             body: str = "> " + body
             body: str = body.strip().replace("\n", "\n> ")
             past_messages.append(body)
@@ -981,7 +995,7 @@ Generated reply:""".format(
         account_research="\n-".join(account_research),
         objective=objective,
         past_threads="\n\n".join(past_messages),
-)
+    )
 
     return prompt
 
