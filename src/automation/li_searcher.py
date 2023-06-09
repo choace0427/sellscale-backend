@@ -31,9 +31,6 @@ def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
         query += f"{company}, "
     query += "site:linkedin.com/in"
 
-    import pdb
-
-    pdb.set_trace()
     # print(f'Searching for "{query}"...')
 
     # Before each run, wait so we don't get rate limited
