@@ -1931,7 +1931,7 @@ def get_prospect_bump(client_sdr_id: int, prospect_id: int):
     bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
         GeneratedMessageAutoBump.prospect_id == prospect_id,
-    ).first()
+    ).order_by(GeneratedMessageAutoBump.created_at.desc()).first()
     if not bump_msg:
         return None
 
@@ -1940,14 +1940,15 @@ def get_prospect_bump(client_sdr_id: int, prospect_id: int):
 
 def delete_prospect_bump(client_sdr_id: int, prospect_id: int):
 
-    bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+    bump_msgs: List[GeneratedMessageAutoBump] = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
         GeneratedMessageAutoBump.prospect_id == prospect_id,
-    ).first()
-    if not bump_msg:
+    ).all()
+    if not bump_msgs:
         return False
 
-    db.session.delete(bump_msg)
+    for bump_msg in bump_msgs:
+        db.session.delete(bump_msg)
     db.session.commit()
 
     return True
