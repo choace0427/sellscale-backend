@@ -1189,7 +1189,7 @@ def get_email_blocks(client_sdr_id: int, archetype_id: int):
             403,
         )
 
-    email_blocks = get_email_blocks_configuration(archetype_id)
+    email_blocks = get_email_blocks_configuration(client_sdr_id, archetype_id)
 
     return jsonify({"status": "success", "data": email_blocks}), 200
 
