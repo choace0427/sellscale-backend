@@ -1221,7 +1221,7 @@ def patch_email_blocks(client_sdr_id: int, archetype_id: int):
 
     patch_archetype_email_blocks_configuration(
         client_sdr_id=client_sdr_id,
-        archetype_id= archetype_id,
+        client_archetype_id= archetype_id,
         blocks=email_blocks)
 
     return jsonify({"status": "success"}), 200
