@@ -678,11 +678,6 @@ def icp_classify(
             state = (
                 str(location[0]) if location and location[0] else "Location unknown."
             )
-
-        import pdb
-
-        pdb.set_trace()
-
         # Create Prompt
         prompt += f"""\n\nHere is the prospect's information:
         Prospect Name: {prospect.full_name}
