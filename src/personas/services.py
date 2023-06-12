@@ -263,7 +263,7 @@ def process_persona_split_request_task(self, task_id: int, countdown: int = 0):
         company: Company = Company.query.filter_by(id=prospect.company_id).first()
 
         company_loc_str = ""
-        if len(company.locations) > 0:
+        if company.locations and len(company.locations) > 0:
             company_loc = company.locations[0]
             company_loc_str = f'{company_loc.get("city", "")}, {company_loc.get("geographicArea", "")} {company_loc.get("country", "")}, Postal Code: {company_loc.get("postalCode", "")}'
 
