@@ -2267,7 +2267,7 @@ def onboarding_setup_completion_report(client_sdr_id: int):
         BumpFramework.client_sdr_id == client_sdr_id
     ).all()
 
-    company_info = bool(client.company and client.tagline and client.description and client.mission and client.case_study and client.value_prop_key_points and client.tone_attributes)
+    company_info = bool(client.company and client.tagline and client.description and client.mission and client.value_prop_key_points and client.tone_attributes)
     sdr_info = bool(sdr.name and sdr.title)
     scheduling_info = bool(sdr.scheduling_link or sdr.calendly_access_token)
     email_integration = bool(sdr.nylas_account_id is not None and sdr.nylas_active)
