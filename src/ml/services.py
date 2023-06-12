@@ -676,13 +676,15 @@ def icp_classify(
         if company:
             location = company.locations
             state = (
-                location[0]["geographicArea"]
-                if location and location[0] and "geographicArea" in location[0]
-                else "Location unknown."
+                str(location[0]) if location and location[0] else "Location unknown."
             )
 
+        import pdb
+
+        pdb.set_trace()
+
         # Create Prompt
-        prompt += f"""\n\nHere is a potential prospect:
+        prompt += f"""\n\nHere is the prospect's information:
         Prospect Name: {prospect.full_name}
         Title: {prospect.title}
         LinkedIn Bio: {prospect.linkedin_bio}
