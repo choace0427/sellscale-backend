@@ -104,7 +104,8 @@ def create_linkedin_conversation_entry(
     img_expire: int = 0,
     client_sdr_id: int = -1,
 ):
-    if message.strip() == "": return None
+    if message.strip() == "":
+        return None
 
     """
     Check for duplicates and duplicate does not exist, create a new LinkedinConversationEntry
@@ -117,7 +118,7 @@ def create_linkedin_conversation_entry(
     )
 
     # Flag as urgent if message is new and mentions something urgent
-    if not duplicate_exists and client_sdr_id != -1 and connection_degree != 'You':
+    if not duplicate_exists and client_sdr_id != -1 and connection_degree != "You":
         if "tomorrow" in message.lower() or "today" in message.lower():
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             send_slack_message(
@@ -130,7 +131,7 @@ def create_linkedin_conversation_entry(
 
                 Take appropriate action then mark this message as ✅
                 """,
-                webhook_urls=[URL_MAP['csm-urgent-alerts']]
+                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
 
     # Get the Thread URN ID from the conversation URL
@@ -311,8 +312,8 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         conversation_url=conversation_url
     )
     data = db.session.execute(query).fetchall()
-    transcript = data[0][0] or ''
-    sender = data[0][1] or ''
+    transcript = data[0][0] or ""
+    sender = data[0][1] or ""
     content = transcript + "\n\n" + sender + ":"
 
     prospect: Prospect = Prospect.query.filter(
@@ -325,6 +326,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             title=prospect.title,
             company=prospect.company,
         )
+
+    client_sdr_id = prospect.client_sdr_id
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
 
     message_content = (
         "You are a helpful assistant helping the user write their next reply in a message thread, with the goal of getting the prospect on a call. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
@@ -377,6 +381,20 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         max_tokens=200,
         model="gpt-4-0314",
     )
+
+    if client_sdr.message_generation_captivate_mode:
+        response = wrapped_chat_gpt_completion(
+            [
+                {
+                    "role": "user",
+                    "content": "Please re-write the following message in a way that adds more humor and human touch. Keep the length approximately the same. Ensure it's a complete sentence.",
+                },
+                {"role": "user", "content": response},
+            ],
+            max_tokens=200,
+            model="gpt-4-0314",
+        )
+
     return response, content
 
 
@@ -636,14 +654,16 @@ def scrape_conversation_queue():
                 api, scrape.conversation_urn_id, prospect.id
             )
 
-            #print(f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}")
+            # print(f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}")
             send_slack_message(
                 message=f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
                 webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
 
             # Generate a bump msg for the prospect
-            generate_prospect_bump(prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id)
+            generate_prospect_bump(
+                prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
+            )
 
             # Update calendar events
             populate_prospect_events(prospect.client_sdr_id, prospect.id)
