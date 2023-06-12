@@ -1280,9 +1280,11 @@ def delete_prospect_by_id(prospect_id: int):
     return True
 
 
-def toggle_ai_engagement(prospect_id: int):
+def toggle_ai_engagement(client_sdr_id: int, prospect_id: int):
     """Toggle AI engagement on/off for a prospect.a"""
-    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect: Prospect = Prospect.query.filter_by(
+        client_sdr_id=client_sdr_id, id=prospect_id
+    ).first()
     prospect.deactivate_ai_engagement = not prospect.deactivate_ai_engagement
     db.session.add(prospect)
     db.session.commit()
@@ -1587,7 +1589,7 @@ def update_prospect_demo_date(prospect_id: int, demo_date: datetime.datetime):
 def auto_mark_uninterested_bumped_prospects():
     prospects = db.session.execute(
         """
-        select  
+        select
             prospect.id,
             prospect.full_name,
             client_sdr.name,
