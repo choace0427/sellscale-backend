@@ -675,9 +675,11 @@ def icp_classify(
         state = "Location unknown."
         if company:
             location = company.locations
-            state = location[0]["geographicArea"] if location and location[0] else ""
-
-        print(state)
+            state = (
+                location[0]["geographicArea"]
+                if location and location[0] and "geographicArea" in location[0]
+                else "Location unknown."
+            )
 
         # Create Prompt
         prompt += f"""\n\nHere is a potential prospect:
@@ -828,11 +830,13 @@ def ai_email_prompt(client_sdr_id: int, prospect_id: int):
 """
 
     block_structure = default_sellscale_structure
-    if client_archetype.email_blocks_configuration is not None and len(client_archetype.email_blocks_configuration) > 0:
+    if (
+        client_archetype.email_blocks_configuration is not None
+        and len(client_archetype.email_blocks_configuration) > 0
+    ):
         block_structure = ""
         for index, block in enumerate(client_archetype.email_blocks_configuration):
             block_structure += f"{index + 1}. {block}\n"
-
 
     prompt = """You are a sales development representative writing on behalf of the SDR.
 
