@@ -260,12 +260,13 @@ def process_persona_split_request_task(self, task_id: int, countdown: int = 0):
         archetypes = ClientArchetype.query.filter(
             ClientArchetype.id.in_(destination_client_archetype_ids)
         ).all()
-        company: Company = Company.query.filter_by(id=prospect.company_id).first()
 
+        company: Company = Company.query.filter_by(id=prospect.company_id).first()
         company_loc_str = ""
-        if company.locations and len(company.locations) > 0:
-            company_loc = company.locations[0]
-            company_loc_str = f'{company_loc.get("city", "")}, {company_loc.get("geographicArea", "")} {company_loc.get("country", "")}, Postal Code: {company_loc.get("postalCode", "")}'
+        if company:
+            if company.locations and len(company.locations) > 0:
+                company_loc = company.locations[0]
+                company_loc_str = f'{company_loc.get("city", "")}, {company_loc.get("geographicArea", "")} {company_loc.get("country", "")}, Postal Code: {company_loc.get("postalCode", "")}'
 
         persona_options_str = "\n".join(
             [
