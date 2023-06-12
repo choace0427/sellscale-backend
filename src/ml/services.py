@@ -710,6 +710,7 @@ def icp_classify(
         # Update Prospect
         prospect.icp_fit_score = fit
         prospect.icp_fit_reason = reason
+        prospect.icp_fit_prompt_data = prompt
 
         # Charge the SDR credits
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
