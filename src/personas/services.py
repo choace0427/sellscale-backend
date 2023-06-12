@@ -298,7 +298,7 @@ def process_persona_split_request_task(self, task_id: int, countdown: int = 0):
             prospect_company=prospect.company,
             persona_options_str=persona_options_str,
             prospect_company_location=company_loc_str,
-            prospect_company_description=company.description,
+            prospect_company_description=company.description if company else "",
         )
 
         output = wrapped_chat_gpt_completion(
