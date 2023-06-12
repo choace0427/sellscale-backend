@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 
 from bs4 import BeautifulSoup
 
-from src.research.models import ResearchPoints
+from src.research.models import IScraperPayloadCache, ResearchPoints
 from src.research.models import ResearchPayload
 
 from src.research.models import AccountResearchPoints
@@ -678,11 +678,25 @@ def icp_classify(
             state = (
                 str(location[0]) if location and location[0] else "Location unknown."
             )
+
+        iscraper_cache: IScraperPayloadCache = (
+            IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
+                linkedin_url=prospect.linkedin_url
+            )
+        )
+
+        prospect_location = "Prospect location unknown."
+        cache = json.loads(iscraper_cache.payload)
+        if cache and cache.get("location"):
+            prospect_location = cache.get("location")
+
         # Create Prompt
         prompt += f"""\n\nHere is the prospect's information:
         Prospect Name: {prospect.full_name}
-        Title: {prospect.title}
-        LinkedIn Bio: {prospect.linkedin_bio}
+        Prospect Title: {prospect.title}
+        Prospect LinkedIn Bio: {prospect.linkedin_bio}
+        Prospect Location: {prospect_location}
+
         Prospect Company Name: {prospect.company}
         Prospect Company Size: {prospect.employee_count}
         Prospect Company Industry: {prospect.industry}
