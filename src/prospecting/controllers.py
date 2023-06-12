@@ -816,12 +816,9 @@ def delete_prospect():
     return "Failed to delete prospect", 400
 
 
-@PROSPECTING_BLUEPRINT.route("/toggle_ai_engagement", methods=["POST"])
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/ai_engagement", methods=["PATCH"])
 @require_user
-def post_toggle_ai_engagement(client_sdr_id: int):
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True
-    )
+def patch_toggle_ai_engagement(client_sdr_id: int, prospect_id: int):
     success = toggle_ai_engagement(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id
