@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from bs4 import BeautifulSoup
+from src.bump_framework.models import BumpFramework
 
 from src.research.models import IScraperPayloadCache, ResearchPoints
 from src.research.models import ResearchPayload
@@ -607,7 +608,7 @@ def mark_queued_and_classify(
 
 
 @celery.task(bind=True, max_retries=3)
-def icp_classify(   # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY BY CELERY
+def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY BY CELERY
     self, prospect_id: int, client_sdr_id: int, archetype_id: int
 ) -> tuple[int, str]:
     """Classifies a prospect as an ICP or not.
@@ -1138,9 +1139,31 @@ def determine_account_research_from_convo_and_bump_framework(
 
 
 def determine_best_bump_framework_from_convo(
-    convo_history: List[Dict[str, str]], bump_frameworks: List[str]
+    convo_history: List[Dict[str, str]], bump_framework_ids: List[str]
 ):
     """Determines the best bump framework from the conversation."""
+
+    bump_frameworks = []
+    for bump_framework_id in bump_framework_ids:
+        bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+        if bump_framework:
+            bump_frameworks.append(
+                {
+                    "description": bump_framework.description,
+                    "default": bump_framework.default,
+                }
+            )
+
+    default_indexes = []
+    for i, bump_framework in enumerate(bump_frameworks):
+        if bump_framework.get("default"):
+            default_indexes.append(i)
+
+    if len(default_indexes) >= len(convo_history) - 1 and len(default_indexes) > 0:
+        return default_indexes[len(convo_history) - 2]
+
+    if len(default_indexes) > 0:
+        return default_indexes[0]
 
     messages = []
     for message in convo_history:
@@ -1155,7 +1178,7 @@ def determine_best_bump_framework_from_convo(
 
     options = ""
     for i, option in enumerate(bump_frameworks):
-        options += f"- {i+1}. {option}\n"
+        options += f"- {i+1}. {option['description']}\n"
 
     messages.append(
         {

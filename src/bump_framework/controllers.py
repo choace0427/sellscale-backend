@@ -13,7 +13,10 @@ from src.bump_framework.services import (
 )
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
-from src.ml.services import determine_account_research_from_convo_and_bump_framework, determine_best_bump_framework_from_convo
+from src.ml.services import (
+    determine_account_research_from_convo_and_bump_framework,
+    determine_best_bump_framework_from_convo,
+)
 
 from model_import import ProspectOverallStatus, ProspectStatus
 
@@ -25,15 +28,24 @@ BUMP_FRAMEWORK_BLUEPRINT = Blueprint("bump_framework", __name__)
 @require_user
 def get_bump_frameworks(client_sdr_id: int):
     """Gets all bump frameworks for a given client SDR and overall status"""
-    overall_statuses = get_request_parameter(
-        "overall_statuses", request, json=False, required=True, parameter_type=list
-    ) or []
-    client_archetype_ids = get_request_parameter(
-        "archetype_ids", request, json=False, required=False, parameter_type=list
-    ) or []
-    substatuses = get_request_parameter(
-        "substatuses", request, json=False, required=False, parameter_type=list
-    ) or []
+    overall_statuses = (
+        get_request_parameter(
+            "overall_statuses", request, json=False, required=True, parameter_type=list
+        )
+        or []
+    )
+    client_archetype_ids = (
+        get_request_parameter(
+            "archetype_ids", request, json=False, required=False, parameter_type=list
+        )
+        or []
+    )
+    substatuses = (
+        get_request_parameter(
+            "substatuses", request, json=False, required=False, parameter_type=list
+        )
+        or []
+    )
 
     overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
@@ -49,7 +61,7 @@ def get_bump_frameworks(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         overall_statuses=overall_statuses_enumed,
         substatuses=substatuses,
-        client_archetype_ids=client_archetype_ids
+        client_archetype_ids=client_archetype_ids,
     )
 
     counts = get_bump_framework_count_for_sdr(
@@ -57,10 +69,7 @@ def get_bump_frameworks(client_sdr_id: int):
         client_archetype_ids=client_archetype_ids,
     )
 
-    return jsonify({
-        "bump_frameworks": bump_frameworks,
-        "counts": counts
-    }), 200
+    return jsonify({"bump_frameworks": bump_frameworks, "counts": counts}), 200
 
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump", methods=["POST"])
@@ -76,18 +85,30 @@ def post_create_bump_framework(client_sdr_id: int):
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True, parameter_type=str
     )
-    default = get_request_parameter(
-        "default", request, json=True, required=False, parameter_type=bool
-    ) or False
-    length: str = get_request_parameter(
-        "length", request, json=True, required=False, parameter_type=str
-    ) or BumpLength.MEDIUM.value
-    archetype_ids = get_request_parameter(
-        "archetype_ids", request, json=True, required=False, parameter_type=list
-    ) or []
-    substatus = get_request_parameter(
-        "substatus", request, json=True, required=False, parameter_type=str
-    ) or None
+    default = (
+        get_request_parameter(
+            "default", request, json=True, required=False, parameter_type=bool
+        )
+        or False
+    )
+    length: str = (
+        get_request_parameter(
+            "length", request, json=True, required=False, parameter_type=str
+        )
+        or BumpLength.MEDIUM.value
+    )
+    archetype_ids = (
+        get_request_parameter(
+            "archetype_ids", request, json=True, required=False, parameter_type=list
+        )
+        or []
+    )
+    substatus = (
+        get_request_parameter(
+            "substatus", request, json=True, required=False, parameter_type=str
+        )
+        or None
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -120,7 +141,15 @@ def post_create_bump_framework(client_sdr_id: int):
         default=default,
     )
     if bump_framework_id:
-        return jsonify({"message": "Successfully created bump framework", "bump_framework_id": bump_framework_id}), 200
+        return (
+            jsonify(
+                {
+                    "message": "Successfully created bump framework",
+                    "bump_framework_id": bump_framework_id,
+                }
+            ),
+            200,
+        )
     return jsonify({"error": "Could not create bump framework."}), 400
 
 
@@ -134,21 +163,36 @@ def patch_bump_framework(client_sdr_id: int):
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True, parameter_type=str
     )
-    description = get_request_parameter(
-        "description", request, json=True, required=False, parameter_type=str
-    ) or None
-    title = get_request_parameter(
-        "title", request, json=True, required=False, parameter_type=str
-    ) or None
-    default = get_request_parameter(
-        "default", request, json=True, required=False, parameter_type=bool
-    ) or False
-    length: str = get_request_parameter(
-        "length", request, json=True, required=False, parameter_type=str
-    ) or BumpLength.MEDIUM.value
-    archetype_ids = get_request_parameter(
-        "archetype_ids", request, json=True, required=False, parameter_type=list
-    ) or []
+    description = (
+        get_request_parameter(
+            "description", request, json=True, required=False, parameter_type=str
+        )
+        or None
+    )
+    title = (
+        get_request_parameter(
+            "title", request, json=True, required=False, parameter_type=str
+        )
+        or None
+    )
+    default = (
+        get_request_parameter(
+            "default", request, json=True, required=False, parameter_type=bool
+        )
+        or False
+    )
+    length: str = (
+        get_request_parameter(
+            "length", request, json=True, required=False, parameter_type=str
+        )
+        or BumpLength.MEDIUM.value
+    )
+    archetype_ids = (
+        get_request_parameter(
+            "archetype_ids", request, json=True, required=False, parameter_type=list
+        )
+        or []
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -245,9 +289,18 @@ def post_autofill_research_bump_framework(client_sdr_id: int):
     )
 
     research_indexes = determine_account_research_from_convo_and_bump_framework(
-        prospect_id, convo_history, bump_framework_desc, account_research)
+        prospect_id, convo_history, bump_framework_desc, account_research
+    )
 
-    return jsonify({"message": "Determined best account research points", "data": research_indexes}), 200
+    return (
+        jsonify(
+            {
+                "message": "Determined best account research points",
+                "data": research_indexes,
+            }
+        ),
+        200,
+    )
 
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/autoselect_framework", methods=["POST"])
@@ -258,11 +311,20 @@ def post_autoselect_bump_framework(client_sdr_id: int):
     convo_history = get_request_parameter(
         "convo_history", request, json=True, required=True
     )
-    bump_frameworks = get_request_parameter(
-        "bump_frameworks", request, json=True, required=True
+    bump_framework_ids = get_request_parameter(
+        "bump_framework_ids", request, json=True, required=True
     )
 
     framework_index = determine_best_bump_framework_from_convo(
-        convo_history, bump_frameworks)
+        convo_history, bump_framework_ids
+    )
 
-    return jsonify({"message": "Determined index of best bump framework", "data": framework_index}), 200
+    return (
+        jsonify(
+            {
+                "message": "Determined index of best bump framework",
+                "data": framework_index,
+            }
+        ),
+        200,
+    )

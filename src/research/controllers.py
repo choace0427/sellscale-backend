@@ -1,3 +1,4 @@
+import random
 import re
 from flask import Blueprint, jsonify, request
 from model_import import ClientArchetype
@@ -9,7 +10,11 @@ from src.research.linkedin.iscraper import (
 from src.research.models import ResearchPoints
 
 from src.utils.request_helpers import get_request_parameter
-from src.research.services import flag_research_point, get_all_research_point_types, run_create_custom_research_entries
+from src.research.services import (
+    flag_research_point,
+    get_all_research_point_types,
+    run_create_custom_research_entries,
+)
 
 from .linkedin.services import (
     get_research_and_bullet_points_new,
@@ -111,24 +116,33 @@ def get_heuristic_research_points(client_sdr_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Unauthorized"}), 401
 
-    rps: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    rps: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(
+        prospect_id
+    )
     rps_parsed = [rp.to_dict() for rp in rps]
 
     return jsonify({"message": "Success", "research_points": rps_parsed}), 200
 
 
-@RESEARCH_BLUEPRINT.route("/account_research_points", methods=["GET"])
+@RESEARCH_BLUEPRINT.route("/personal_research_points", methods=["GET"])
 @require_user
-def get_account_research_points(client_sdr_id: int):
+def get_personal_research_points(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=False, required=True
     )
 
-    prospect = Prospect.query.filter_by(id=prospect_id).first()
-    if prospect.client_sdr_id != client_sdr_id:
-        return "Unauthorized", 401
+    points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    random_sample_points = random.sample(points, min(len(points), 3))
+    data = []
+    for point in random_sample_points:
+        data.append(
+            {
+                "id": point.id,
+                "reason": point.value,
+            }
+        )
 
-    return jsonify(get_account_research_points_by_prospect_id(prospect_id=prospect_id))
+    return jsonify(data)
 
 
 @RESEARCH_BLUEPRINT.route("/account_research_points/inputs", methods=["GET"])
@@ -190,8 +204,12 @@ def generate_account_research_points_endpoint(client_sdr_id: int):
 @require_user
 def post_create_custom_research_points(client_sdr_id: int):
 
-    label = get_request_parameter("label", request, json=True, required=True, parameter_type=str)
-    entries = get_request_parameter("entries", request, json=True, required=True, parameter_type=list)
+    label = get_request_parameter(
+        "label", request, json=True, required=True, parameter_type=str
+    )
+    entries = get_request_parameter(
+        "entries", request, json=True, required=True, parameter_type=list
+    )
 
     run_create_custom_research_entries.apply_async(
         args=[client_sdr_id, label, entries],
