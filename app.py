@@ -82,7 +82,7 @@ def make_celery(app):
         f'{app.import_name}.generate_prospect_email': {
             "rate_limit": "2/s",
         },
-        f'{app.import_name}.icp_classify': {
+        f'src.ml.services.icp_classify': {
             "rate_limit": "2/s",
         }
     }
