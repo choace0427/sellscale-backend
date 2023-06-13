@@ -607,7 +607,7 @@ def mark_queued_and_classify(
 
 
 @celery.task(bind=True, max_retries=3)
-def icp_classify(
+def icp_classify(   # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY BY CELERY
     self, prospect_id: int, client_sdr_id: int, archetype_id: int
 ) -> tuple[int, str]:
     """Classifies a prospect as an ICP or not.
