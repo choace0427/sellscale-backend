@@ -4,6 +4,7 @@ import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
 from src.client.models import ClientSDR
+from src.message_generation.models import GeneratedMessageCTA
 from src.ml.services import get_aree_fix_basic
 from src.utils.string.string_utils import (
     has_consecutive_uppercase_string,
@@ -58,15 +59,18 @@ def format_entities(
     problems: list,
     highlighted_words: list,
     whitelisted_names: list = [],
+    cta: str = '',
 ):
     """Formats the unknown entities for the problem message.
 
     Each unknown entity will appear on its own line.
     """
     lower_whitelisted_names = [name.lower() for name in whitelisted_names]
+    cta_lowered = cta.lower()
     if len(unknown_entities) > 0:
         for entity in unknown_entities:
-            if entity.lower() not in lower_whitelisted_names:
+            entity_lowered = entity.lower()
+            if entity_lowered not in lower_whitelisted_names and entity_lowered not in cta_lowered:
                 problems.append("Potential wrong name: '{}'".format(entity))
                 highlighted_words.append(entity)
     return
@@ -88,6 +92,7 @@ def run_message_rule_engine(message_id: int):
     wipe_problems(message_id)
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(message.message_cta)
     prompt = message.prompt
     case_preserved_completion = message.completion
     completion = message.completion.lower()
@@ -107,7 +112,7 @@ def run_message_rule_engine(message_id: int):
     # NER AI
     run_check_message_has_bad_entities(message_id)
     format_entities(
-        message.unknown_named_entities, problems, highlighted_words, whitelisted_names
+        message.unknown_named_entities, problems, highlighted_words, whitelisted_names, cta.text_value
     )
 
     # Strict Rules
