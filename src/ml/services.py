@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from bs4 import BeautifulSoup
+from src.bump_framework.models import BumpFramework
 
-from src.research.models import ResearchPoints
+from src.research.models import IScraperPayloadCache, ResearchPoints
 from src.research.models import ResearchPayload
 
 from src.research.models import AccountResearchPoints
@@ -509,7 +510,7 @@ def trigger_icp_classification(
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         for index, prospect_id in enumerate(prospect_ids):
-            countdown = float(index / 3.0)
+            countdown = float(index / 2.0)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
@@ -526,7 +527,7 @@ def trigger_icp_classification(
         # Run celery job for each prospect
         for index, prospect in enumerate(prospects):
             prospect_id = prospect.id
-            countdown = float(index / 3.0)
+            countdown = float(index / 2.0)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
@@ -607,7 +608,7 @@ def mark_queued_and_classify(
 
 
 @celery.task(bind=True, max_retries=3)
-def icp_classify(
+def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY BY CELERY
     self, prospect_id: int, client_sdr_id: int, archetype_id: int
 ) -> tuple[int, str]:
     """Classifies a prospect as an ICP or not.
@@ -675,15 +676,28 @@ def icp_classify(
         state = "Location unknown."
         if company:
             location = company.locations
-            state = location[0]["geographicArea"] if location and location[0] else ""
+            state = (
+                str(location[0]) if location and location[0] else "Location unknown."
+            )
 
-        print(state)
+        iscraper_cache: IScraperPayloadCache = (
+            IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
+                linkedin_url=prospect.linkedin_url
+            )
+        )
+
+        prospect_location = "Prospect location unknown."
+        cache = json.loads(iscraper_cache.payload)
+        if cache and cache.get("location"):
+            prospect_location = cache.get("location")
 
         # Create Prompt
-        prompt += f"""\n\nHere is a potential prospect:
+        prompt += f"""\n\nHere is the prospect's information:
         Prospect Name: {prospect.full_name}
-        Title: {prospect.title}
-        LinkedIn Bio: {prospect.linkedin_bio}
+        Prospect Title: {prospect.title}
+        Prospect LinkedIn Bio: {prospect.linkedin_bio}
+        Prospect Location: {prospect_location}
+
         Prospect Company Name: {prospect.company}
         Prospect Company Size: {prospect.employee_count}
         Prospect Company Industry: {prospect.industry}
@@ -706,6 +720,7 @@ def icp_classify(
         # Update Prospect
         prospect.icp_fit_score = fit
         prospect.icp_fit_reason = reason
+        prospect.icp_fit_prompt_data = prompt
 
         # Charge the SDR credits
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -828,11 +843,13 @@ def ai_email_prompt(client_sdr_id: int, prospect_id: int):
 """
 
     block_structure = default_sellscale_structure
-    if client_archetype.email_blocks_configuration is not None and len(client_archetype.email_blocks_configuration) > 0:
+    if (
+        client_archetype.email_blocks_configuration is not None
+        and len(client_archetype.email_blocks_configuration) > 0
+    ):
         block_structure = ""
         for index, block in enumerate(client_archetype.email_blocks_configuration):
             block_structure += f"{index + 1}. {block}\n"
-
 
     prompt = """You are a sales development representative writing on behalf of the SDR.
 
@@ -1122,9 +1139,31 @@ def determine_account_research_from_convo_and_bump_framework(
 
 
 def determine_best_bump_framework_from_convo(
-    convo_history: List[Dict[str, str]], bump_frameworks: List[str]
+    convo_history: List[Dict[str, str]], bump_framework_ids: List[str]
 ):
     """Determines the best bump framework from the conversation."""
+
+    bump_frameworks = []
+    for bump_framework_id in bump_framework_ids:
+        bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+        if bump_framework:
+            bump_frameworks.append(
+                {
+                    "description": bump_framework.description,
+                    "default": bump_framework.default,
+                }
+            )
+
+    default_indexes = []
+    for i, bump_framework in enumerate(bump_frameworks):
+        if bump_framework.get("default"):
+            default_indexes.append(i)
+
+    if len(default_indexes) >= len(convo_history) - 1 and len(default_indexes) > 0:
+        return default_indexes[len(convo_history) - 2]
+
+    if len(default_indexes) > 0:
+        return default_indexes[0]
 
     messages = []
     for message in convo_history:
@@ -1139,7 +1178,7 @@ def determine_best_bump_framework_from_convo(
 
     options = ""
     for i, option in enumerate(bump_frameworks):
-        options += f"- {i+1}. {option}\n"
+        options += f"- {i+1}. {option['description']}\n"
 
     messages.append(
         {
@@ -1165,3 +1204,12 @@ def determine_best_bump_framework_from_convo(
         return int(match.group()) - 1
     else:
         return -1
+
+@celery.task(bind=True, max_retries=3)
+def test_rate_limiter(self, rate: str):
+    from src.utils.slack import send_slack_message, URL_MAP
+
+    send_slack_message(
+        message=f"Testing rate_limiter at a rate of {rate}. Time:" + str(datetime.utcnow()),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )

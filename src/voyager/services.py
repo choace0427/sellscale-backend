@@ -275,14 +275,13 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
         # Process if the messages are AI generated or not
         for message in messages:
-            if message.get('ai_generated') is None:
+            if message.get("ai_generated") is None:
                 process_generated_msg_queue(
-                    client_sdr_id = api.client_sdr_id,
-                    li_message_urn_id = message.get('urn_id'),
+                    client_sdr_id=api.client_sdr_id,
+                    li_message_urn_id=message.get("urn_id"),
                 )
 
         return messages, "UPDATED"
-
 
 
 def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: int):
@@ -408,7 +407,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
     update_prospect_status(prospect.id, convo_urn_id)
 
     # Classify conversation
-    if prospect.status.value.startswith('ACTIVE_CONVO'):
+    if prospect.status.value.startswith("ACTIVE_CONVO"):
 
         latest_convo_entries: List[LinkedinConversationEntry] = (
             LinkedinConversationEntry.query.filter_by(
@@ -421,10 +420,14 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 
         messages = []
         for message in latest_convo_entries:
-            messages.append({
-                "role": 'user' if message.connection_degree == "You" else 'assistant',
-                "content": message.message
-            })
+            messages.append(
+                {
+                    "role": "user"
+                    if message.connection_degree == "You"
+                    else "assistant",
+                    "content": message.message,
+                }
+            )
         classify_active_convo(prospect.id, messages)
 
     return "OK", 200
@@ -441,6 +444,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         )[-1].split("/")[0]
         db.session.commit()
 
+    if not prospect.li_conversation_urn_id and convo_urn_id:
+        prospect.li_conversation_urn_id = convo_urn_id
+        db.session.commit()
+
     print("Checking for prospect status updates...")
     latest_convo_entries: List[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter_by(
@@ -449,7 +456,6 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         .order_by(LinkedinConversationEntry.date.desc())
         .all()
     )
-
 
     latest_entry_date = (
         latest_convo_entries[0].date if latest_convo_entries else dt.datetime.now()
@@ -464,7 +470,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
     # We know the first message is AI generated
     if len(latest_convo_entries) >= 1 and latest_convo_entries[-1].ai_generated is None:
         latest_convo_entries[-1].ai_generated = True
-        #db.session.commit()
+        # db.session.commit()
 
     first_and_only_message_was_you = (
         len(latest_convo_entries) == 1
@@ -499,7 +505,6 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         .order_by(ProspectStatusRecords.created_at.desc())
         .first()
     )
-
 
     if (
         prospect.status in (ProspectStatus.SENT_OUTREACH, ProspectStatus.ACCEPTED)
@@ -574,11 +579,11 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 def classify_active_convo(prospect_id: int, messages):
 
     options = [
-        'Trying to schedule a time', # ACTIVE_CONVO_SCHEDULING
-        'The conversation needs more engagement', # ACTIVE_CONVO_NEXT_STEPS
-        'There is an objection or abrasion about a product or service', # ACTIVE_CONVO_OBJECTION
-        'There is a question', # ACTIVE_CONVO_QUESTION
-        'They might not be a great fit or might not be qualified', # ACTIVE_CONVO_QUAL_NEEDED
+        "Trying to schedule a time",  # ACTIVE_CONVO_SCHEDULING
+        "The conversation needs more engagement",  # ACTIVE_CONVO_NEXT_STEPS
+        "There is an objection or abrasion about a product or service",  # ACTIVE_CONVO_OBJECTION
+        "There is a question",  # ACTIVE_CONVO_QUESTION
+        "They might not be a great fit or might not be qualified",  # ACTIVE_CONVO_QUAL_NEEDED
     ]
 
     classification = chat_ai_classify_active_convo(messages, options)
@@ -598,7 +603,6 @@ def classify_active_convo(prospect_id: int, messages):
 
     update_prospect_status_linkedin(prospect_id, status)
 
-
     # Send slack message
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
@@ -612,48 +616,54 @@ def classify_active_convo(prospect_id: int, messages):
         },
         {
             "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*Title:* {prospect.title}"
-            },
+            "text": {"type": "mrkdwn", "text": f"*Title:* {prospect.title}"},
         },
     ]
 
     block_messages = []
     for i, message in enumerate(messages):
-        if i >= 5: break
+        if i >= 5:
+            break
         length = 130
-        text = message.get('content', '')
-        truncated_text = (text[:length]+'...') if len(text) > length else text
-        block_messages.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*{'SDR' if message.get('role') == 'user' else 'Prospect'}*: {truncated_text}"
-            },
-        })
+        text = message.get("content", "")
+        truncated_text = (text[:length] + "...") if len(text) > length else text
+        block_messages.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*{'SDR' if message.get('role') == 'user' else 'Prospect'}*: {truncated_text}",
+                },
+            }
+        )
     block_messages.reverse()
     blocks += block_messages
 
-    blocks.append({
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": "*{name}'s Direct Login*: <{link}|Link>".format(
-                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + str(client_sdr.auth_token),
-                name=client_sdr.name,
-            ),
-        },
-    })
-    blocks.append({
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": "*SellScale Sight*: <{link}|Contact Link>".format(
-                link="https://app.sellscale.com/home/all-contacts/" + str(prospect.id)
-            ),
-        },
-    })
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*{name}'s Direct Login*: <{link}|Link>".format(
+                    link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                    + str(client_sdr.auth_token),
+                    name=client_sdr.name,
+                ),
+            },
+        }
+    )
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*SellScale Sight*: <{link}|Contact Link>".format(
+                    link="https://app.sellscale.com/home/all-contacts/"
+                    + str(prospect.id)
+                ),
+            },
+        }
+    )
 
     send_slack_message(
         message=f"Prospect {prospect.full_name} was automatically classified as '{status.value}' because of the state of their convo with {client_sdr.name}!",

@@ -121,7 +121,10 @@ class ClientArchetype(db.Model):
     def to_dict(self) -> dict:
 
         from src.message_generation.models import GeneratedMessageCTA
-        ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+
+        ctas: list[
+            GeneratedMessageCTA
+        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
 
         return {
             "id": self.id,
@@ -284,6 +287,10 @@ class ClientSDR(db.Model):
 
     auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_calendar_sync = db.Column(db.Boolean, nullable=True, default=False)
+
+    message_generation_captivate_mode = db.Column(
+        db.Boolean, nullable=True, default=False
+    )
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)

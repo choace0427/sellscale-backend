@@ -76,12 +76,21 @@ def make_celery(app):
     celery.conf.task_default_routing_key = "default"
     celery.conf.task_default_priority = 5  # 0 is the highest
     celery.conf.task_annotations = {
-        f'{app.import_name}.research_and_generate_outreaches_for_prospect': {
+        f'src.message_generation.services.research_and_generate_outreaches_for_prospect': {
             "rate_limit": "2/s",
         },
-        f'{app.import_name}.generate_prospect_email': {
+        f'src.message_generation.services.generate_prospect_email': {
             "rate_limit": "2/s",
-        }
+        },
+        f'src.ml.services.icp_classify': {
+            "rate_limit": "2/s",
+        },
+        f'app.add_together': {
+            "rate_limit": "1/s",
+        },
+        f'src.ml.services.test_rate_limiter': {
+            "rate_limit": "2/s",
+        },
     }
 
     class ContextTask(celery.Task):
@@ -116,7 +125,7 @@ def add_together(a, b):
     from datetime import datetime
 
     send_slack_message(
-        message="Testing from slack!" + str(datetime.utcnow()),
+        message="Testing from slack! Time:" + str(datetime.utcnow()),
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
     return a + b

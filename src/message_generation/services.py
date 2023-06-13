@@ -94,12 +94,17 @@ def get_messages_queued_for_outreach(
             Prospect.title.label("title"),
             Prospect.company.label("company"),
             Prospect.img_url.label("img_url"),
+            ClientArchetype.archetype.label("archetype"),
             GeneratedMessage.id.label("message_id"),
             GeneratedMessage.completion.label("completion"),
         )
         .join(
             GeneratedMessage,
             Prospect.approved_outreach_message_id == GeneratedMessage.id,
+        )
+        .join(
+            ClientArchetype,
+            ClientArchetype.id == Prospect.archetype_id,
         )
         .filter(
             Prospect.client_sdr_id == client_sdr_id,
@@ -134,6 +139,7 @@ def get_messages_queued_for_outreach(
                 "completion": row.completion,
                 "icp_fit_score": row.icp_fit_score,
                 "icp_fit_reason": row.icp_fit_reason,
+                "archetype": row.archetype,
             }
         )
 
@@ -1836,7 +1842,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
             {"connection_degree": msg.connection_degree, "message": msg.message}
             for msg in latest_convo_entries
         ],
-        bump_frameworks=[bf.description for bf in bump_frameworks],
+        bump_framework_ids=[bf.id for bf in bump_frameworks],
     )
     send_slack_message(
         message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
@@ -1928,10 +1934,14 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
 
 def get_prospect_bump(client_sdr_id: int, prospect_id: int):
 
-    bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-        GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
-        GeneratedMessageAutoBump.prospect_id == prospect_id,
-    ).order_by(GeneratedMessageAutoBump.created_at.desc()).first()
+    bump_msg: GeneratedMessageAutoBump = (
+        GeneratedMessageAutoBump.query.filter(
+            GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
+            GeneratedMessageAutoBump.prospect_id == prospect_id,
+        )
+        .order_by(GeneratedMessageAutoBump.created_at.desc())
+        .first()
+    )
     if not bump_msg:
         return None
 

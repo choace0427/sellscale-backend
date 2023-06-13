@@ -31,25 +31,34 @@ def get_bump_frameworks_for_sdr(
 
     # If client_archetype_ids is not specified, grab all client archetypes
     if len(client_archetype_ids) == 0:
-        client_archetype_ids = [ca.id for ca in ClientArchetype.query.filter_by(
-            client_sdr_id=client_sdr_id).all()]
+        client_archetype_ids = [
+            ca.id
+            for ca in ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
+        ]
 
     # Joined
-    joined_query = db.session.query(
-        BumpFramework.id.label("bump_framework_id")
-    ).join(
-        JunctionBumpFrameworkClientArchetype, BumpFramework.id == JunctionBumpFrameworkClientArchetype.bump_framework_id
-    ).join(
-        ClientArchetype, JunctionBumpFrameworkClientArchetype.client_archetype_id == ClientArchetype.id
-    ).filter(
-        ClientArchetype.id.in_(client_archetype_ids),
-        BumpFramework.client_sdr_id == client_sdr_id,
-    ).all()
+    joined_query = (
+        db.session.query(BumpFramework.id.label("bump_framework_id"))
+        .join(
+            JunctionBumpFrameworkClientArchetype,
+            BumpFramework.id == JunctionBumpFrameworkClientArchetype.bump_framework_id,
+        )
+        .join(
+            ClientArchetype,
+            JunctionBumpFrameworkClientArchetype.client_archetype_id
+            == ClientArchetype.id,
+        )
+        .filter(
+            ClientArchetype.id.in_(client_archetype_ids),
+            BumpFramework.client_sdr_id == client_sdr_id,
+        )
+        .all()
+    )
 
     # Get all bump frameworks that match the joined query
     bf_list = BumpFramework.query.filter(
         BumpFramework.id.in_([bf.bump_framework_id for bf in joined_query]),
-        BumpFramework.overall_status.in_(overall_statuses)
+        BumpFramework.overall_status.in_(overall_statuses),
     )
 
     # If substatuses is specified, filter by substatuses
@@ -64,14 +73,18 @@ def get_bump_frameworks_for_sdr(
     return [bf.to_dict(include_archetypes=True) for bf in bf_list]
 
 
-def get_bump_framework_count_for_sdr(client_sdr_id: int, client_archetype_ids: Optional[list[int]] = []) -> dict:
+def get_bump_framework_count_for_sdr(
+    client_sdr_id: int, client_archetype_ids: Optional[list[int]] = []
+) -> dict:
     """Gets the counts for bump frameworks that belong to a Client SDR in a given archetype.
 
     Args:
         client_sdr_id (int): _description_
         client_archetype_ids (Optional[list[int]], optional): Which archetypes to retrieve the bump frameworks. Defaults to all archetypes.
     """
-    bump_frameworks=get_bump_frameworks_for_sdr(client_sdr_id, client_archetype_ids=client_archetype_ids)
+    bump_frameworks = get_bump_frameworks_for_sdr(
+        client_sdr_id, client_archetype_ids=client_archetype_ids
+    )
 
     counts = {
         "total": len(bump_frameworks),
@@ -101,7 +114,7 @@ def create_bump_framework(
     client_archetype_ids: list[int] = [],
     active: bool = True,
     substatus: Optional[str] = None,
-    default: Optional[bool] = False
+    default: Optional[bool] = False,
 ) -> int:
     """Create a new bump framework, if default is True, set all other bump frameworks to False
 
@@ -121,7 +134,8 @@ def create_bump_framework(
     """
     if default:
         all_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-            client_sdr_id=client_sdr_id).all()
+            client_sdr_id=client_sdr_id
+        ).all()
         for bump_framework in all_bump_frameworks:
             bump_framework.default = False
             db.session.add(bump_framework)
@@ -147,8 +161,10 @@ def create_bump_framework(
 
     # If client_archetype_ids is not specified, grab all client archetypes
     if len(client_archetype_ids) == 0:
-        client_archetype_ids = [ca.id for ca in ClientArchetype.query.filter_by(
-            client_sdr_id=client_sdr_id).all()]
+        client_archetype_ids = [
+            ca.id
+            for ca in ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
+        ]
 
     # Remove duplicates from client_archetype_ids
     client_archetype_ids = list(set(client_archetype_ids))
@@ -192,7 +208,7 @@ def modify_bump_framework(
     """
     bump_framework: BumpFramework = BumpFramework.query.filter(
         BumpFramework.client_sdr_id == client_sdr_id,
-        BumpFramework.id == bump_framework_id
+        BumpFramework.id == bump_framework_id,
     ).first()
 
     if title:
@@ -205,15 +221,15 @@ def modify_bump_framework(
     else:
         bump_framework.bump_length = length
 
-    if default:
-        default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
-            BumpFramework.client_sdr_id == client_sdr_id,
-            BumpFramework.overall_status == overall_status,
-            BumpFramework.default == True
-        ).all()
-        for default_bump_framework in default_bump_frameworks:
-            default_bump_framework.default = False
-            db.session.add(default_bump_framework)
+    # if default:
+    #     default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
+    #         BumpFramework.client_sdr_id == client_sdr_id,
+    #         BumpFramework.overall_status == overall_status,
+    #         BumpFramework.default == True
+    #     ).all()
+    #     for default_bump_framework in default_bump_frameworks:
+    #         default_bump_framework.default = False
+    #         db.session.add(default_bump_framework)
     bump_framework.default = default
 
     # Remove duplicates from client_archetype_ids
@@ -221,7 +237,9 @@ def modify_bump_framework(
 
     # If client_archetype_ids is [], then we want to delete all junctions
     if len(client_archetype_ids) == 0:
-        junctions: list[JunctionBumpFrameworkClientArchetype] = JunctionBumpFrameworkClientArchetype.query.filter(
+        junctions: list[
+            JunctionBumpFrameworkClientArchetype
+        ] = JunctionBumpFrameworkClientArchetype.query.filter(
             JunctionBumpFrameworkClientArchetype.bump_framework_id == bump_framework_id
         ).all()
         for junction in junctions:
@@ -231,7 +249,9 @@ def modify_bump_framework(
         # 1. If the junction does not exist, create it
         # 2. If the junction does exist, do nothing
         # 3. If the junction exists, but the client_archetype_id is not in client_archetype_ids, delete it
-        junctions: list[JunctionBumpFrameworkClientArchetype] = JunctionBumpFrameworkClientArchetype.query.filter(
+        junctions: list[
+            JunctionBumpFrameworkClientArchetype
+        ] = JunctionBumpFrameworkClientArchetype.query.filter(
             JunctionBumpFrameworkClientArchetype.bump_framework_id == bump_framework_id,
         ).all()
         junction_archetype_ids = [j.client_archetype_id for j in junctions]

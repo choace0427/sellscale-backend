@@ -7,10 +7,13 @@ from model_import import (
     ClientArchetype,
     Prospect,
 )
+from src.ml.services import mark_queued_and_classify
 from src.prospecting.services import get_prospect_details
 from app import db, celery
 import json
 from sqlalchemy import func
+
+from src.research.account_research import generate_prospect_research
 
 
 def verify_client_sdr_can_access_archetype(client_sdr_id: int, archetype_id: int):
@@ -65,8 +68,11 @@ def create_persona_split_request(
     tasks = PersonaSplitRequestTask.query.filter_by(
         persona_split_request_id=persona_split_request_id
     ).all()
-    for task in tasks:
-        process_persona_split_request_task.delay(task.id)
+    for index, task in enumerate(tasks):
+        process_persona_split_request_task.apply_async(
+            args=[task.id, index],
+            countdown=index
+        )
 
     return True, "OK"
 
@@ -216,7 +222,7 @@ def get_split_request_details(split_request_id: int):
 
 
 @celery.task(bind=True, max_retries=3)
-def process_persona_split_request_task(self, task_id: int):
+def process_persona_split_request_task(self, task_id: int, countdown: int = 0):
     """
     Given a task id, process the task
     """
@@ -254,12 +260,13 @@ def process_persona_split_request_task(self, task_id: int):
         archetypes = ClientArchetype.query.filter(
             ClientArchetype.id.in_(destination_client_archetype_ids)
         ).all()
-        company: Company = Company.query.filter_by(id=prospect.company_id).first()
 
+        company: Company = Company.query.filter_by(id=prospect.company_id).first()
         company_loc_str = ""
-        if len(company.locations) > 0:
-            company_loc = company.locations[0]
-            company_loc_str = f'{company_loc.get("city", "")}, {company_loc.get("geographicArea", "")} {company_loc.get("country", "")}, Postal Code: {company_loc.get("postalCode", "")}'
+        if company:
+            if company.locations and len(company.locations) > 0:
+                company_loc = company.locations[0]
+                company_loc_str = f'{company_loc.get("city", "")}, {company_loc.get("geographicArea", "")} {company_loc.get("country", "")}, Postal Code: {company_loc.get("postalCode", "")}'
 
         persona_options_str = "\n".join(
             [
@@ -291,7 +298,7 @@ def process_persona_split_request_task(self, task_id: int):
             prospect_company=prospect.company,
             persona_options_str=persona_options_str,
             prospect_company_location=company_loc_str,
-            prospect_company_description=company.description,
+            prospect_company_description=company.description if company else "",
         )
 
         output = wrapped_chat_gpt_completion(
@@ -330,10 +337,24 @@ Output:""",
             raise Exception("Invalid archetype id")
 
         task.status = PersonaSplitRequestTaskStatus.COMPLETED
+        old_archetype_id = prospect.archetype_id
         prospect.archetype_id = archetype_id_number
+        client_sdr_id = prospect.client_sdr_id
+        prospect_id = prospect.id
         db.session.add(task)
         db.session.add(prospect)
         db.session.commit()
+
+        # If the new archetype is different from the old archetype, clear and rerun the
+        # prospect's ICP fit and account research
+        if old_archetype_id != archetype_id_number:
+            mark_queued_and_classify(
+                client_sdr_id=client_sdr_id,
+                archetype_id=archetype_id_number,
+                prospect_id=prospect_id,
+                countdown=countdown
+            )
+            generate_prospect_research(prospect_id, False, True)
 
         return persona_options_str
     except Exception as e:

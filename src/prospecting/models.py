@@ -5,6 +5,7 @@ from typing import Optional
 
 from src.utils.hasher import generate_uuid
 
+
 class ProspectHiddenReason(enum.Enum):
     RECENTLY_BUMPED = "RECENTLY_BUMPED"
     STATUS_CHANGE = "STATUS_CHANGE"
@@ -375,7 +376,7 @@ class Prospect(db.Model):
     email = db.Column(db.String, nullable=True)
     hunter_email_score = db.Column(db.Float, nullable=True)
 
-    email_additional = db.Column(db.ARRAY(db.JSON), nullable=True) # Extra emails
+    email_additional = db.Column(db.ARRAY(db.JSON), nullable=True)  # Extra emails
     # {"email": string, "comment": string}[]
 
     batch = db.Column(db.String, nullable=True)
@@ -420,6 +421,7 @@ class Prospect(db.Model):
 
     icp_fit_score = db.Column(db.Integer, nullable=True)
     icp_fit_reason = db.Column(db.String, nullable=True)
+    icp_fit_prompt_data = db.Column(db.String, nullable=True)
     icp_fit_error = db.Column(db.String, nullable=True)
     # account_research_description = db.Column(db.String, nullable=True)
 
@@ -633,6 +635,7 @@ class ProspectEvent(db.Model):
             "meeting_info": self.meeting_info,
             "nylas_data_raw": self.nylas_data_raw,
         }
+
 
 class ProspectUploadBatch(db.Model):
     __tablename__ = "prospect_upload_batch"
