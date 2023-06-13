@@ -1864,32 +1864,15 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     ).all()
 
     # Determine the best account research
-    research_indexes = determine_account_research_from_convo_and_bump_framework(
-        prospect_id=prospect_id,
-        convo_history=[
-            {"connection_degree": msg.connection_degree, "message": msg.message}
-            for msg in latest_convo_entries
-        ],
-        bump_framework_desc=best_framework.description,
-        account_research=[research.reason for research in account_research],
-    )
-    research_str = ""
-    send_slack_message(
-        message=f" - Account Research ({str(research_indexes)}, {len(account_research)}):",
-        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-    )
+    points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    random_sample_points = random.sample(points, min(len(points), 3))
     account_research_points = []
-    for i in research_indexes:
-        try:
-            if account_research[i]:
-                research_str += f"- {account_research[i].reason}\n"
-                account_research_points.append(account_research[i].reason)
-                send_slack_message(
-                    message=f" > {account_research[i].reason}",
-                    webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-                )
-        except:
-            pass
+    research_str = ""
+    for point in random_sample_points:
+        account_research_points.append(
+            point.value,
+        )
+        research_str += f"{point.value}\n"
 
     # Generate response
     from src.li_conversation.services import (
