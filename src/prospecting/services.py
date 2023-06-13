@@ -568,15 +568,6 @@ def update_prospect_status_linkedin_helper(
 
     p.status = new_status
 
-    # Ensures that Active Conversation individuals no longer receive AI responses.
-    # Given that the SDR has set this Prospect's Archetype to disable AI after prospect engagement.
-    ca: ClientArchetype = ClientArchetype.query.get(p.archetype_id)
-    if (
-        new_status == ProspectStatus.ACTIVE_CONVO
-        and ca.disable_ai_after_prospect_engaged
-    ):
-        p.deactivate_ai_engagement = True
-
     db.session.add(p)
     db.session.commit()
 
@@ -774,10 +765,6 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
         ],
         webhook_urls=c_csdr_webhook_urls,
     )
-    if sent:
-        p.deactivate_ai_engagement = True
-        db.session.add(p)
-        db.session.commit()
 
     return True
 
@@ -1617,14 +1604,16 @@ def auto_mark_uninterested_bumped_prospects():
         )
 
 
-def find_prospect_id_from_li_or_email(client_sdr_id: int, li_url: Optional[str], email: Optional[str]) -> Optional[int]:
+def find_prospect_id_from_li_or_email(
+    client_sdr_id: int, li_url: Optional[str], email: Optional[str]
+) -> Optional[int]:
     if li_url:
         li_public_id = li_url.split("/in/")[1].split("/")[0]
         prospect = Prospect.query.filter(
             Prospect.client_sdr_id == client_sdr_id,
             or_(
                 Prospect.linkedin_url.ilike(f"%/in/{li_public_id}"),
-                Prospect.linkedin_url.ilike(f"%/in/{li_public_id}/%")
+                Prospect.linkedin_url.ilike(f"%/in/{li_public_id}/%"),
             ),
         ).first()
         if prospect:
@@ -1636,5 +1625,3 @@ def find_prospect_id_from_li_or_email(client_sdr_id: int, li_url: Optional[str],
             return prospect.id
 
     return None
-
-
