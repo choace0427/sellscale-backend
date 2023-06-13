@@ -88,7 +88,7 @@ def make_celery(app):
         f'{app.import_name}.add_together': {
             "rate_limit": "1/s",
         },
-        f'{app.import_name}.test_rate_limiter': {
+        f'src.ml.services.test_rate_limiter': {
             "rate_limit": "1/s",
         },
     }
