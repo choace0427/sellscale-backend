@@ -509,7 +509,7 @@ def trigger_icp_classification(
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         for index, prospect_id in enumerate(prospect_ids):
-            countdown = float(index / 3.0)
+            countdown = float(index / 2.0)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
@@ -526,7 +526,7 @@ def trigger_icp_classification(
         # Run celery job for each prospect
         for index, prospect in enumerate(prospects):
             prospect_id = prospect.id
-            countdown = float(index / 3.0)
+            countdown = float(index / 2.0)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
                 queue="ml_prospect_classification",
