@@ -1181,3 +1181,12 @@ def determine_best_bump_framework_from_convo(
         return int(match.group()) - 1
     else:
         return -1
+
+@celery.task(bind=True, max_retries=3)
+def test_rate_limiter(rate: str):
+    from src.utils.slack import send_slack_message, URL_MAP
+
+    send_slack_message(
+        message=f"Testing rate_limiter at a rate of {rate}. Time:" + str(datetime.utcnow()),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
