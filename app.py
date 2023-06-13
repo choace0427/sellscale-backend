@@ -84,7 +84,10 @@ def make_celery(app):
         },
         f'src.ml.services.icp_classify': {
             "rate_limit": "2/s",
-        }
+        },
+        f'{app.import_name}.add_together': {
+            "rate_limit": "1/s",
+        },
     }
 
     class ContextTask(celery.Task):
@@ -119,7 +122,7 @@ def add_together(a, b):
     from datetime import datetime
 
     send_slack_message(
-        message="Testing from slack!" + str(datetime.utcnow()),
+        message="Testing from slack! Time:" + str(datetime.utcnow()),
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
     return a + b
