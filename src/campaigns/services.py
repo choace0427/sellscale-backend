@@ -265,7 +265,7 @@ def get_outbound_campaign_details_for_edit_tool_email(
             join generated_message body
                 on body.id = prospect_email.personalized_body
         where outbound_campaign.id = {campaign_id}
-            and prospect.overall_status = 'PROSPECTED';
+            and prospect.overall_status in ('PROSPECTED', 'SENT_OUTREACH');
     """.format(
             campaign_id=campaign_id
         )
