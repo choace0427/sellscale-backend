@@ -1842,7 +1842,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
             {"connection_degree": msg.connection_degree, "message": msg.message}
             for msg in latest_convo_entries
         ],
-        bump_frameworks=[bf.description for bf in bump_frameworks],
+        bump_frameworks=[bf.id for bf in bump_frameworks],
     )
     send_slack_message(
         message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
