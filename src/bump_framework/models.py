@@ -10,6 +10,7 @@ class BumpLength(enum.Enum):
     MEDIUM = 'MEDIUM'
     LONG = 'LONG'
 
+
 class BumpFramework(db.Model):
     __tablename__ = "bump_framework"
 
@@ -18,16 +19,22 @@ class BumpFramework(db.Model):
     description = db.Column(db.String(4000), nullable=True)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True)
 
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
     substatus = db.Column(db.String(255), nullable=True)
 
     default = db.Column(db.Boolean, nullable=False, default=False)
 
-    bump_length = db.Column(db.Enum(BumpLength), nullable=True, default=BumpLength.MEDIUM)
+    bump_length = db.Column(db.Enum(BumpLength),
+                            nullable=True, default=BumpLength.MEDIUM)
+    bumped_count = db.Column(db.Integer, nullable=True, default=0)
 
-    sellscale_default_generated = db.Column(db.Boolean, nullable=True, default=False)
+    sellscale_default_generated = db.Column(
+        db.Boolean, nullable=True, default=False)
 
     def to_dict(self, include_archetypes: bool = False):
         archetypes_details = []
@@ -38,11 +45,14 @@ class BumpFramework(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
+            "active": self.active,
+            "client_sdr_id": self.client_sdr_id,
+            "client_archetype_id": self.client_archetype_id,
             "overall_status": self.overall_status.value if self.overall_status else None,
             "substatus": self.substatus,
-            "active": self.active,
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
+            "bumped_count": self.bumped_count,
             "sellscale_default_generated": self.sellscale_default_generated,
             "archetypes": archetypes_details
         }
@@ -66,5 +76,7 @@ class JunctionBumpFrameworkClientArchetype(db.Model):
     __tablename__ = "junction_bump_framework_client_archetype"
 
     id = db.Column(db.Integer, primary_key=True)
-    bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"), nullable=False)
-    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"), nullable=False)
+    bump_framework_id = db.Column(db.Integer, db.ForeignKey(
+        "bump_framework.id"), nullable=False)
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey(
+        "client_archetype.id"), nullable=False)
