@@ -531,7 +531,6 @@ def test_post_update_description_and_fit():
     client_archetype_id = client_archetype.id
 
     # check old description
-    assert client_archetype.persona_description == None
     assert client_archetype.persona_fit_reason == None
 
     # update description
@@ -545,7 +544,6 @@ def test_post_update_description_and_fit():
         },
         data=json.dumps(
             {
-                "updated_persona_description": "test description",
                 "updated_persona_fit_reason": "test fit reason",
             }
         ),
@@ -554,5 +552,4 @@ def test_post_update_description_and_fit():
 
     # check new description
     client_archetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
-    assert client_archetype.persona_description == "test description"
     assert client_archetype.persona_fit_reason == "test fit reason"

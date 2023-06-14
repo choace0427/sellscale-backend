@@ -208,7 +208,6 @@ I am selling to a prospect named '{prospect_name}' who works at a company called
 - Prospect Title: {prospect_title}
 - Prospect Persona: {prospect_persona_name}
 - Prospect Bio: {prospect_bio}
-- Persona Description: {prospect_persona_description}
 - Persona Buy Reason: {prospect_persona_buy_reason}
 - Company Name: {prospect_company_name}
 - Company Tagline: {prospect_company_tagline}
@@ -225,7 +224,6 @@ Ensure you relate each point to {prospect_name} and {prospect_company_name} and 
     prospect_title=prospect.title,
     prospect_persona_name=archetype.archetype,
     prospect_bio=prospect.linkedin_bio,
-    prospect_persona_description=archetype.persona_description,
     prospect_persona_buy_reason=archetype.persona_fit_reason,
     prospect_company_name=prospect.company,
     prospect_company_tagline=company_tagline,

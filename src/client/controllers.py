@@ -56,7 +56,6 @@ from src.client.services import (
     get_unused_linkedin_and_email_prospect_for_persona,
     update_persona_brain_details,
     predict_persona_fit_reason,
-    generate_persona_description,
     generate_persona_buy_reason,
     generate_persona_icp_matching_prompt,
     update_do_not_contact_filters,
@@ -211,9 +210,6 @@ def create_archetype(client_sdr_id: int):
     base_archetype_id = get_request_parameter(
         "base_archetype_id", request, json=True, required=False
     )
-    persona_description = get_request_parameter(
-        "description", request, json=True, required=False
-    )
     persona_fit_reason = get_request_parameter(
         "fit_reason", request, json=True, required=False
     )
@@ -236,7 +232,6 @@ def create_archetype(client_sdr_id: int):
         filters=filters,
         base_archetype_id=base_archetype_id,
         disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
-        persona_description=persona_description,
         persona_fit_reason=persona_fit_reason,
         icp_matching_prompt=icp_matching_prompt,
         persona_contact_objective=persona_contact_objective,
@@ -1236,9 +1231,6 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
     updated_persona_name = get_request_parameter(
         "updated_persona_name", request, json=True, required=False
     )
-    updated_persona_description = get_request_parameter(
-        "updated_persona_description", request, json=True, required=False
-    )
     updated_persona_fit_reason = get_request_parameter(
         "updated_persona_fit_reason", request, json=True, required=False
     )
@@ -1253,7 +1245,6 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
         updated_persona_name=updated_persona_name,
-        updated_persona_description=updated_persona_description,
         updated_persona_fit_reason=updated_persona_fit_reason,
         updated_persona_icp_matching_prompt=updated_persona_icp_matching_prompt,
         updated_persona_contact_objective=updated_persona_contact_objective,
@@ -1280,24 +1271,6 @@ def get_predict_persona_fit_reason(client_sdr_id: int, archetype_id: int):
         return message, 400
 
     return jsonify({"reason": message}), 200
-
-
-@CLIENT_BLUEPRINT.route("/archetype/generate_persona_description", methods=["POST"])
-@require_user
-def post_generate_persona_description(client_sdr_id: int):
-    """Generates a persona description"""
-    persona_name = get_request_parameter(
-        "persona_name", request, json=True, required=True
-    )
-    message = generate_persona_description(
-        client_sdr_id=client_sdr_id,
-        persona_name=persona_name,
-    )
-
-    if not message:
-        return "Failed to generate", 400
-
-    return jsonify({"description": message})
 
 
 @CLIENT_BLUEPRINT.route("/archetype/generate_persona_buy_reason", methods=["POST"])
@@ -1327,16 +1300,12 @@ def post_generate_persona_icp_matching_prompt(client_sdr_id: int):
     persona_name = get_request_parameter(
         "persona_name", request, json=True, required=True
     )
-    persona_description = get_request_parameter(
-        "persona_description", request, json=True, required=False
-    )
     persona_buy_reason = get_request_parameter(
         "persona_buy_reason", request, json=True, required=False
     )
     message = generate_persona_icp_matching_prompt(
         client_sdr_id=client_sdr_id,
         persona_name=persona_name,
-        persona_description=persona_description,
         persona_buy_reason=persona_buy_reason,
     )
 

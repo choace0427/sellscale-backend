@@ -288,7 +288,7 @@ def get_sequence_draft(
     # Prompt Engineering - Persona
     prompt += f"\nPersona:\n"
     prompt += f"- Name: {archetype.archetype}\n"
-    prompt += f"- Description: {archetype.persona_description}\n"
+    prompt += f"- Description: {archetype.icp_matching_prompt}\n"
     prompt += f"- Fit Reason: {archetype.persona_fit_reason}\n"
 
     # Prompt Engineering - SDR

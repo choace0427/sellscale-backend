@@ -279,7 +279,6 @@ def create_client_archetype(
     filters: any,
     base_archetype_id: Optional[int] = None,
     disable_ai_after_prospect_engaged: bool = False,
-    persona_description: str = "",
     persona_fit_reason: str = "",
     icp_matching_prompt: str = "",
     persona_contact_objective: str = "",
@@ -296,7 +295,6 @@ def create_client_archetype(
         archetype=archetype,
         filters=filters,
         disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
-        persona_description=persona_description,
         persona_fit_reason=persona_fit_reason,
         icp_matching_prompt=icp_matching_prompt,
         persona_contact_objective=persona_contact_objective,
@@ -1601,7 +1599,6 @@ def update_persona_brain_details(
     client_sdr_id: int,
     client_archetype_id: int,
     updated_persona_name: Optional[str],
-    updated_persona_description: Optional[str],
     updated_persona_fit_reason: Optional[str],
     updated_persona_icp_matching_prompt: Optional[str],
     updated_persona_contact_objective: Optional[str],
@@ -1613,8 +1610,6 @@ def update_persona_brain_details(
 
     if updated_persona_name:
         client_archetype.archetype = updated_persona_name
-    if updated_persona_description:
-        client_archetype.persona_description = updated_persona_description
     if updated_persona_fit_reason:
         client_archetype.persona_fit_reason = updated_persona_fit_reason
     if updated_persona_icp_matching_prompt:
@@ -1664,56 +1659,6 @@ def predict_persona_fit_reason(
         return False, "Error generating prediction"
 
     return True, response
-
-
-def generate_persona_description_helper(client_sdr_id: int, persona_name: str):
-    """
-    Generate a persona description for a persona
-
-    Args:
-        client_sdr_id (int): ID of the client SDR
-        persona_name (str): Name of the persona
-
-    Returns:
-        str: Generated persona description
-    """
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
-
-    company_name = client.company
-    company_tagline = client.tagline
-    company_description = client.description
-
-    prompt = f"You are a sales researcher for {company_name}. You are tasked with understanding a new persona target which is called '{persona_name}'. Given the company's name, company's tagline, and company's description, generate a persona description for the persona.\n\nCompany Name: {company_name}\nCompany Tagline: {company_tagline}\nCompany Description: {company_description}\n\nPersona Description:"
-    return wrapped_create_completion(
-        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, prompt=prompt, max_tokens=200
-    )
-
-
-def generate_persona_description(
-    client_sdr_id: int, persona_name: str, retries: int = 3
-):
-    """
-    Generate a persona description for a persona
-
-    Args:
-        client_sdr_id (int): ID of the client SDR
-        persona_name (str): Name of the persona
-        retries (int): Number of retries to attempt
-
-    Returns:
-        str: Generated persona description
-    """
-    for _ in range(retries):
-        try:
-            description = generate_persona_description_helper(
-                client_sdr_id, persona_name
-            )
-            if description:
-                return description
-        except:
-            pass
-    return ""
 
 
 def generate_persona_buy_reason_helper(client_sdr_id: int, persona_name: str):
@@ -1768,7 +1713,6 @@ def generate_persona_buy_reason(
 def generate_persona_icp_matching_prompt_helper(
     client_sdr_id: int,
     persona_name: str,
-    persona_description: str = "",
     persona_buy_reason: str = "",
 ):
     """
@@ -1777,7 +1721,6 @@ def generate_persona_icp_matching_prompt_helper(
     Args:
         client_sdr_id (int): ID of the client SDR
         persona_name (str): Name of the persona
-        persona_description (str): Description of the persona
         persona_buy_reason (str): Buy reason of the persona
 
     Returns:
@@ -1803,7 +1746,6 @@ Tier List: bullet point list of Tiers and what would need to match to fit in tha
 
 Here is the information about the persona we want to create an ICP Scoring Prompt for:
 Persona: {persona_name}
-Persona Description: {persona_description}
 Persona Fit Reason: {persona_fit_reason}
 
 ICP Scoring Prompt:
@@ -1812,7 +1754,6 @@ ICP Scoring Prompt:
         company_tagline=company_tagline,
         company_description=company_description,
         persona_name=persona_name,
-        persona_description=persona_description,
         persona_fit_reason=persona_buy_reason,
     )
     return wrapped_create_completion(
@@ -1823,7 +1764,6 @@ ICP Scoring Prompt:
 def generate_persona_icp_matching_prompt(
     client_sdr_id: int,
     persona_name: str,
-    persona_description: str = "",
     persona_buy_reason: str = "",
     retries: int = 3,
 ):
@@ -1833,7 +1773,6 @@ def generate_persona_icp_matching_prompt(
     Args:
         client_sdr_id (int): ID of the client SDR
         persona_name (str): Name of the persona
-        persona_description (str): Description of the persona
         persona_buy_reason (str): Buy reason of the persona
         retries (int): Number of retries to attempt
 
@@ -1843,7 +1782,7 @@ def generate_persona_icp_matching_prompt(
     for _ in range(retries):
         try:
             icp_matching_prompt = generate_persona_icp_matching_prompt_helper(
-                client_sdr_id, persona_name, persona_description, persona_buy_reason
+                client_sdr_id, persona_name, persona_buy_reason
             )
             if icp_matching_prompt:
                 return icp_matching_prompt
