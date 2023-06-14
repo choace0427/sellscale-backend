@@ -383,16 +383,22 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     )
 
     if client_sdr.message_generation_captivate_mode:
+        instruction = "Please re-write the following message in a way that adds more humor and human touch. Keep the length approximately the same. Ensure it's a complete sentence."
+        if client_sdr.client_id == 17:  # monday.com
+            instruction = """Make slight adjustments to edit this message:
+- add more humor and human touch
+- use influences of British English (but not too much)
+            """
         response = wrapped_chat_gpt_completion(
             [
                 {
                     "role": "user",
-                    "content": "Please re-write the following message in a way that adds more humor and human touch. Keep the length approximately the same. Ensure it's a complete sentence.",
+                    "content": instruction,
                 },
                 {"role": "user", "content": response},
             ],
             max_tokens=200,
-            model="gpt-4-0314",
+            model="gpt-3.5-turbo",
         )
 
     return response, content
