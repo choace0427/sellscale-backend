@@ -59,7 +59,7 @@ def format_entities(
     problems: list,
     highlighted_words: list,
     whitelisted_names: list = [],
-    cta: str = '',
+    cta: str = "",
 ):
     """Formats the unknown entities for the problem message.
 
@@ -70,7 +70,10 @@ def format_entities(
     if len(unknown_entities) > 0:
         for entity in unknown_entities:
             entity_lowered = entity.lower()
-            if entity_lowered not in lower_whitelisted_names and entity_lowered not in cta_lowered:
+            if (
+                entity_lowered not in lower_whitelisted_names
+                and entity_lowered not in cta_lowered
+            ):
                 problems.append("Potential wrong name: '{}'".format(entity))
                 highlighted_words.append(entity)
     return
@@ -112,7 +115,11 @@ def run_message_rule_engine(message_id: int):
     # NER AI
     run_check_message_has_bad_entities(message_id)
     format_entities(
-        message.unknown_named_entities, problems, highlighted_words, whitelisted_names, cta.text_value
+        message.unknown_named_entities,
+        problems,
+        highlighted_words,
+        whitelisted_names,
+        cta.text_value if cta else "",
     )
 
     # Strict Rules
