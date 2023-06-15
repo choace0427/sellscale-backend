@@ -126,7 +126,9 @@ class GeneratedMessageQueue(db.Model):
     # A queue of generated messages that have been sent out and need to be processed when we find/scrape the associated msg
 
     id = db.Column(db.Integer, primary_key=True)
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
 
     nylas_message_id = db.Column(db.String, unique=True, index=True, nullable=True)
     li_message_urn_id = db.Column(db.String, unique=True, index=True, nullable=True)
@@ -139,10 +141,18 @@ class GeneratedMessageAutoBump(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
 
-    latest_li_message_id = db.Column(db.Integer, db.ForeignKey("linkedin_conversation_entry.id"), unique=True, index=True, nullable=True)
+    latest_li_message_id = db.Column(
+        db.Integer,
+        db.ForeignKey("linkedin_conversation_entry.id"),
+        unique=True,
+        index=True,
+        nullable=True,
+    )
     message = db.Column(db.String, nullable=False)
-    
-    bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"), nullable=True)
+
+    bump_framework_id = db.Column(
+        db.Integer, db.ForeignKey("bump_framework.id"), nullable=True
+    )
     bump_framework_title = db.Column(db.String, nullable=True)
     bump_framework_description = db.Column(db.String, nullable=True)
     bump_framework_length = db.Column(db.Enum(BumpLength), nullable=True)
@@ -159,7 +169,9 @@ class GeneratedMessageAutoBump(db.Model):
             "bump_framework": {
                 "title": self.bump_framework_title,
                 "description": self.bump_framework_description,
-                "length": self.bump_framework_length.value if self.bump_framework_length else None,
+                "length": self.bump_framework_length.value
+                if self.bump_framework_length
+                else None,
             },
             "account_research_points": self.account_research_points,
         }
