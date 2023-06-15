@@ -1879,14 +1879,15 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
 
-    # Get account research
-    account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
-        AccountResearchPoints.prospect_id == prospect_id
-    ).all()
-
     # Determine the best account research
     points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
     random_sample_points = random.sample(points, min(len(points), 3))
+
+    send_slack_message(
+        message=f" - Account Research (selected {len(random_sample_points)}/{len(points)} points)",
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+    )
+
     account_research_points = []
     research_str = ""
     for point in random_sample_points:
@@ -1907,6 +1908,11 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     )  # type: ignore
 
     ### Message generation complete ###
+
+    send_slack_message(
+        message=f" - Made response, finalizing bump message...",
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+    )
 
     # Update bump message
     bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
