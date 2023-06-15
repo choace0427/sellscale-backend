@@ -472,6 +472,7 @@ class Prospect(db.Model):
                 "title": self.title,
                 "icp_fit_score": self.icp_fit_score,
                 "icp_fit_reason": self.icp_fit_reason,
+                "li_public_id": self.linkedin_url.split("/in/")[1].split("/")[0] if self.linkedin_url else None,
             }
 
         # Get prospect email status if it exists
