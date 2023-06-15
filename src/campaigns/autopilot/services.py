@@ -41,12 +41,10 @@ def collect_and_generate_all_autopilot_campaigns():
         sdrs.extend(client_sdrs)
 
     # Generate campaigns for SDRs, using another function
-    sdrs: sdrs[0: 2]
     for i, sdr in enumerate(sdrs):
         sdr_id = sdr.id
-        collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id])
-    # collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[11])
-    # collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[32])
+        ten_minutes = 60 * 10
+        collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id], countdown=i * ten_minutes)
 
 
 @celery.task(bind=True, max_retries=1)
