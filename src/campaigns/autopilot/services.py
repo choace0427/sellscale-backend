@@ -26,7 +26,10 @@ SLACK_CHANNEL = URL_MAP["operations-campaign-generation"]
 def collect_and_generate_all_autopilot_campaigns():
 
     # Get all active clients
-    active_clients = Client.query.filter_by(active=True).all()
+    active_clients = Client.query.filter_by(
+        active=True,
+        id=17,
+    ).all()
 
     # Get all SDRs for each client that has autopilot_enabled
     sdrs: list[ClientSDR] = []
