@@ -1,5 +1,5 @@
 from app import db, app
-from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
+from src.bump_framework.models import BumpLength
 from test_utils import (
     test_app,
     basic_client,
@@ -26,28 +26,29 @@ def test_get_bump_frameworks_for_sdr():
     archetype = basic_archetype(client, sdr)
     bump_id = create_bump_framework(
         client_sdr_id=sdr.id,
+        client_archetype_id=archetype.id,
         title="title",
         description="description",
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
-        client_archetype_ids=[archetype.id],
         active=True,
         default=True
     )
     bump2_id = create_bump_framework(
         client_sdr_id=sdr.id,
+        client_archetype_id=archetype.id,
         title="title",
         description="description",
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
-        client_archetype_ids=[archetype.id],
         active=False,
         default=True
     )
     bump_framework = BumpFramework.query.get(bump_id)
     bump_framework2 = BumpFramework.query.get(bump2_id)
 
-    bumps = get_bump_frameworks_for_sdr(sdr.id, [bump_framework.overall_status])
+    bumps = get_bump_frameworks_for_sdr(
+        sdr.id, [bump_framework.overall_status])
     assert len(bumps) == 1
     assert bumps[0]["id"] == bump_framework.id
 
@@ -60,11 +61,11 @@ def test_get_bump_frameworks_for_sdr():
 
     bump3_id = create_bump_framework(
         client_sdr_id=sdr.id,
+        client_archetype_id=archetype.id,
         title="title",
         description="description",
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
-        client_archetype_ids=[archetype.id],
         active=True,
         substatus="ACTIVE_CONVO_OBJECTION",
         default=True
@@ -80,7 +81,6 @@ def test_get_bump_frameworks_for_sdr():
     assert bumps[0]["id"] == bump_framework3.id
 
 
-
 @use_app_context
 def test_create_bump_framework():
     client = basic_client()
@@ -90,11 +90,11 @@ def test_create_bump_framework():
 
     create_bump_framework(
         client_sdr_id=sdr.id,
+        client_archetype_id=archetype.id,
         title="title",
         description="description",
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
-        client_archetype_ids=[],
         active=True,
         default=True
     )
@@ -108,20 +108,18 @@ def test_create_bump_framework():
     assert bump_framework.bump_length.value == "LONG"
     assert bump_framework.active == True
     assert bump_framework.default == True
-    assert JunctionBumpFrameworkClientArchetype.query.count() == 2
 
     create_bump_framework(
         client_sdr_id=sdr.id,
+        client_archetype_id=archetype.id,
         title="title 2",
         description="description 2",
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
-        client_archetype_ids=[archetype.id],
         active=True,
         default=False
     )
     assert BumpFramework.query.count() == 2
-    assert JunctionBumpFrameworkClientArchetype.query.count() == 3
 
 
 @use_app_context
@@ -137,16 +135,14 @@ def test_modify_bump_framework():
 
     bump_id = create_bump_framework(
         client_sdr_id=sdr.id,
+        client_archetype_id=archetype_id,
         title="new title",
         description="new description",
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
-        client_archetype_ids=[archetype_id],
         active=True,
         default=False
     )
-    junctions = JunctionBumpFrameworkClientArchetype.query.count()
-    assert junctions == 1
     bump_framework = BumpFramework.query.get(bump_id)
 
     assert bump_framework.bump_length.value == "LONG"
@@ -155,7 +151,6 @@ def test_modify_bump_framework():
         bump_framework_id=bump_id,
         overall_status=ProspectOverallStatus.PROSPECTED,
         length=BumpLength.SHORT,
-        client_archetype_ids=[archetype_id, archetype2_id],
         title="new title",
         description="new description",
         default=True,
@@ -167,36 +162,6 @@ def test_modify_bump_framework():
     assert bump_framework.description == "new description"
     assert bump_framework.default == True
     assert bump_framework.bump_length.value == "SHORT"
-    junctions = JunctionBumpFrameworkClientArchetype.query.count()
-    assert junctions == 2
-
-    # Test duplicate removal on client_archetype_ids
-    modify_bump_framework(
-        client_sdr_id=sdr.id,
-        bump_framework_id=bump_id,
-        overall_status=ProspectOverallStatus.PROSPECTED,
-        length=BumpLength.SHORT,
-        client_archetype_ids=[archetype3_id, archetype3_id],
-        title="new title",
-        description="new description",
-        default=True,
-    )
-    junctions = JunctionBumpFrameworkClientArchetype.query.count()
-    assert junctions == 1
-
-    # Test delete all junctions
-    modify_bump_framework(
-        client_sdr_id=sdr.id,
-        bump_framework_id=bump_framework.id,
-        overall_status=ProspectOverallStatus.PROSPECTED,
-        length=BumpLength.SHORT,
-        client_archetype_ids=[],
-        title="new title",
-        description="new description",
-        default=True,
-    )
-    junctions = JunctionBumpFrameworkClientArchetype.query.count()
-    assert junctions == 0
 
 
 @use_app_context

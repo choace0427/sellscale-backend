@@ -85,6 +85,11 @@ def post_create_bump_framework(client_sdr_id: int):
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True, parameter_type=str
     )
+    archetype_id = (
+        get_request_parameter(
+            "archetype_id", request, json=True, required=True, parameter_type=int
+        )
+    )
     default = (
         get_request_parameter(
             "default", request, json=True, required=False, parameter_type=bool
@@ -97,12 +102,8 @@ def post_create_bump_framework(client_sdr_id: int):
         )
         or BumpLength.MEDIUM.value
     )
-    archetype_ids = (
-        get_request_parameter(
-            "archetype_ids", request, json=True, required=False, parameter_type=list
-        )
-        or []
-    )
+    bumped_count = get_request_parameter(
+        "bumped_count", request, json=True, required=False, parameter_type=int) or None
     substatus = (
         get_request_parameter(
             "substatus", request, json=True, required=False, parameter_type=str
@@ -131,12 +132,13 @@ def post_create_bump_framework(client_sdr_id: int):
         return jsonify({"error": "Invalid bump length."}), 400
 
     bump_framework_id = create_bump_framework(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=archetype_id,
         title=title,
         description=description,
         overall_status=overall_status,
         length=length,
-        client_sdr_id=client_sdr_id,
-        client_archetype_ids=archetype_ids,
+        bumped_count=bumped_count,
         substatus=substatus,
         default=default,
     )
@@ -187,12 +189,8 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or BumpLength.MEDIUM.value
     )
-    archetype_ids = (
-        get_request_parameter(
-            "archetype_ids", request, json=True, required=False, parameter_type=list
-        )
-        or []
-    )
+    bumped_count = get_request_parameter(
+        "bumped_count", request, json=True, required=False, parameter_type=int) or None
 
     # Get the enum value for the overall status
     found_key = False
@@ -226,8 +224,8 @@ def patch_bump_framework(client_sdr_id: int):
         overall_status=overall_status,
         title=title,
         length=length,
-        client_archetype_ids=archetype_ids,
         description=description,
+        bumped_count=bumped_count,
         default=default,
     )
 
