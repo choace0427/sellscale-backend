@@ -1819,9 +1819,6 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
             # Already generated a bump for this message
             return False
-        # else:
-        # db.session.delete(prev_bump_msg)
-        # db.session.commit()
 
     # Get bump frameworks
     bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
@@ -1830,6 +1827,30 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     ).all()
     if len(bump_frameworks) == 0:
         return False
+
+    # Create a new bump message first, then update later
+    dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+        GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
+    ).first()
+    if dupe_bump_msg:
+        # Already generated a bump for this message
+        return False
+
+    bump_msg = GeneratedMessageAutoBump(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        latest_li_message_id=latest_convo_entries[0].id,
+        message='GENERATING...',
+        bump_framework_id=None,
+        bump_framework_title=None,
+        bump_framework_description=None,
+        bump_framework_length=None,
+        account_research_points=None,
+    )
+    db.session.add(bump_msg)
+    db.session.commit()
+
+    ### Starting message generation... ###
 
     send_slack_message(
         message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
@@ -1885,25 +1906,22 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         account_research_copy=research_str,
     )  # type: ignore
 
-    # Save response
-    dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+    ### Message generation complete ###
+
+    # Update bump message
+    bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
     ).first()
-    if dupe_bump_msg:
-        # Already generated a bump for this message
+    if not bump_msg:
         return False
 
-    bump_msg = GeneratedMessageAutoBump(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        latest_li_message_id=latest_convo_entries[0].id,
-        message=response,
-        bump_framework_id=best_framework.id,
-        bump_framework_title=best_framework.title,
-        bump_framework_description=best_framework.description,
-        bump_framework_length=best_framework.bump_length,
-        account_research_points=account_research_points,
-    )
+    bump_msg.message = response
+    bump_msg.bump_framework_id = best_framework.id
+    bump_msg.bump_framework_title = best_framework.title
+    bump_msg.bump_framework_description = best_framework.description
+    bump_msg.bump_framework_length = best_framework.bump_length
+    bump_msg.account_research_points = account_research_points
+    
     db.session.add(bump_msg)
     db.session.commit()
 
