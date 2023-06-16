@@ -15,6 +15,8 @@ import random
 from sqlalchemy.sql.expression import func
 from sqlalchemy.dialects.postgresql import ARRAY
 
+from src.research.linkedin.services import get_research_and_bullet_points_new
+
 
 def compute_prompt(stack_ranked_configuration_id: int):
     """Compute the prompt for a stack ranked message generation configuration"""
@@ -288,7 +290,9 @@ def get_stack_ranked_configurations(client_sdr_id: int):
     from model_import import StackRankedMessageGenerationConfiguration, ClientSDR
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    configs: list[StackRankedMessageGenerationConfiguration] = StackRankedMessageGenerationConfiguration.query.filter_by(
+    configs: list[
+        StackRankedMessageGenerationConfiguration
+    ] = StackRankedMessageGenerationConfiguration.query.filter_by(
         client_id=sdr.client_id
     ).all()
 
@@ -367,6 +371,7 @@ def get_sample_prompt_from_config_details(
     if not random_prospect:
         return "", None, [], None, {}
     prospect_id = random_prospect.id
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
     research_points = []
     research_point_ids = []
