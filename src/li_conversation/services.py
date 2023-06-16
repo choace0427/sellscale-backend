@@ -297,7 +297,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             select
                 *
             from linkedin_conversation_entry
-            where thread_urn_id = {convo_urn_id}
+            where thread_urn_id = '{convo_urn_id}'
             order by date desc
             limit 10
         )
