@@ -1853,7 +1853,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     ### Starting message generation... ###
 
     send_slack_message(
-        message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
+        message=f"*Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...*",
         webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
 
