@@ -14,7 +14,10 @@ from src.email_outbound.models import (
     VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.research.linkedin.services import get_research_payload_new
+from src.research.linkedin.services import (
+    get_research_and_bullet_points_new,
+    get_research_payload_new,
+)
 from src.research.services import create_iscraper_payload_cache
 from src.prospecting.models import (
     Prospect,
@@ -879,6 +882,8 @@ def add_prospect(
         p_id = prospect.id
         prospect: Prospect = Prospect.query.get(p_id)
         prospect.regenerate_uuid()
+
+        get_research_and_bullet_points_new.delay(prospect_id=p_id, test_mode=False)
     else:
         return None
 

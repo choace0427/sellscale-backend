@@ -15,6 +15,8 @@ import random
 from sqlalchemy.sql.expression import func
 from sqlalchemy.dialects.postgresql import ARRAY
 
+from src.research.linkedin.services import get_research_and_bullet_points_new
+
 
 def compute_prompt(stack_ranked_configuration_id: int):
     """Compute the prompt for a stack ranked message generation configuration"""
@@ -288,7 +290,9 @@ def get_stack_ranked_configurations(client_sdr_id: int):
     from model_import import StackRankedMessageGenerationConfiguration, ClientSDR
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    configs: list[StackRankedMessageGenerationConfiguration] = StackRankedMessageGenerationConfiguration.query.filter_by(
+    configs: list[
+        StackRankedMessageGenerationConfiguration
+    ] = StackRankedMessageGenerationConfiguration.query.filter_by(
         client_id=sdr.client_id
     ).all()
 
@@ -309,7 +313,10 @@ def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
 
 
 def get_random_research_point(
-    client_id: int, research_point_type: str, archetype_id: Optional[int] = None
+    client_id: int,
+    research_point_type: str,
+    archetype_id: Optional[int] = None,
+    prospect_id: Optional[int] = None,
 ):
     query = """
     select value, research_point.research_point_type, research_point.id
@@ -321,6 +328,8 @@ def get_random_research_point(
         and research_point_type = '{research_point_type}'
         and (
             {archetype_id_not_present} or prospect.archetype_id = {archetype_id}
+        ) and (
+            {prospect_id_not_present} or prospect.id = {prospect_id}
         )
     order by random()
     limit 1;""".format(
@@ -328,6 +337,8 @@ def get_random_research_point(
         research_point_type=research_point_type,
         archetype_id_not_present=not archetype_id,
         archetype_id=str(archetype_id or -1),
+        prospect_id_not_present=not prospect_id,
+        prospect_id=str(prospect_id or -1),
     )
     result = db.engine.execute(query)
     data = result.first()
@@ -376,7 +387,10 @@ def get_sample_prompt_from_config_details(
 
     for rpt in research_point_types:
         rp, rp_type, id = get_random_research_point(
-            client_id=client_id, research_point_type=rpt, archetype_id=archetype_id
+            client_id=client_id,
+            research_point_type=rpt,
+            archetype_id=archetype_id,
+            prospect_id=prospect_id,
         )
         if not rp:
             continue
@@ -394,7 +408,14 @@ def get_sample_prompt_from_config_details(
     notes = "\n-".join(research_points)
     prompt, bio_data = generate_prompt(prospect_id=prospect_id, notes=notes)
 
-    return prompt, selected_research_point_types, research_point_ids, cta_id, bio_data, prospect_id
+    return (
+        prompt,
+        selected_research_point_types,
+        research_point_ids,
+        cta_id,
+        bio_data,
+        prospect_id,
+    )
 
 
 def update_stack_ranked_configuration_prompt_and_instruction(

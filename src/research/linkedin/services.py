@@ -164,7 +164,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
                 payload=company_info,
                 payload_type=IScraperPayloadType.COMPANY,
             )
-            add_company_cache_to_db(company_info)  
+            add_company_cache_to_db(company_info)
 
     # Construct entire payload
     payload = {"personal": personal_info, "company": company_info}
@@ -237,6 +237,7 @@ def get_iscraper_payload_error(payload: dict) -> str:
     return "iScraper error not provided"
 
 
+@celery.task
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     try:
         info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
