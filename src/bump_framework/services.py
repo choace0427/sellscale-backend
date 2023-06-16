@@ -159,6 +159,7 @@ def create_bump_framework(
 
 def modify_bump_framework(
     client_sdr_id: int,
+    client_archetype_id: int,
     bump_framework_id: int,
     overall_status: ProspectOverallStatus,
     length: BumpLength,
@@ -171,6 +172,7 @@ def modify_bump_framework(
 
     Args:
         client_sdr_id (int): The id of the client SDR
+        client_archetype_id(int): The id of the client Archetype
         bump_framework_id (int): The id of the bump framework
         overall_status (ProspectOverallStatus): The overall status of the bump framework
         length (BumpLength): The length of the bump framework
@@ -203,9 +205,15 @@ def modify_bump_framework(
     if default:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
             BumpFramework.client_sdr_id == client_sdr_id,
+            BumpFramework.client_archetype_id == client_archetype_id,
             BumpFramework.overall_status == overall_status,
             BumpFramework.default == True
-        ).all()
+        )
+        if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
+            default_bump_frameworks = default_bump_frameworks.filter(
+                BumpFramework.bumped_count == bumped_count
+            )
+        default_bump_frameworks = default_bump_frameworks.all()
         for default_bump_framework in default_bump_frameworks:
             default_bump_framework.default = False
             db.session.add(default_bump_framework)
