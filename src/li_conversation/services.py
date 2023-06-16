@@ -263,7 +263,7 @@ def run_next_client_sdr_scrape():
 
 
 def generate_chat_gpt_response_to_conversation_thread(
-    conversation_url: str,
+    convo_urn_id: str,
     bump_framework_id: int,
     account_research_copy: str = "",
     override_bump_length: BumpLength = None,
@@ -272,7 +272,7 @@ def generate_chat_gpt_response_to_conversation_thread(
     for _ in range(max_retries):
         try:
             return generate_chat_gpt_response_to_conversation_thread_helper(
-                conversation_url=conversation_url,
+                convo_urn_id=convo_urn_id,
                 bump_framework_id=bump_framework_id,
                 account_research_copy=account_research_copy,
                 override_bump_length=override_bump_length,
@@ -285,7 +285,7 @@ def generate_chat_gpt_response_to_conversation_thread(
 
 
 def generate_chat_gpt_response_to_conversation_thread_helper(
-    conversation_url: str,
+    convo_urn_id: str,
     bump_framework_id: int,
     account_research_copy: str = "",
     override_bump_length: BumpLength = None,
@@ -297,7 +297,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             select
                 *
             from linkedin_conversation_entry
-            where conversation_url ilike concat('%','{conversation_url}','%')
+            where thread_urn_id = {convo_urn_id}
             order by date desc
             limit 10
         )
@@ -309,7 +309,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             max(author) filter (where connection_degree = 'You') sender
         from d;
     """.format(
-        conversation_url=conversation_url
+        convo_urn_id=convo_urn_id
     )
     data = db.session.execute(query).fetchall()
     transcript = data[0][0] or ""
@@ -317,10 +317,13 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     content = transcript + "\n\n" + sender + ":"
 
     prospect: Prospect = Prospect.query.filter(
-        Prospect.li_conversation_thread_id == conversation_url
+        Prospect.li_conversation_urn_id == convo_urn_id
     ).first()
+    if not prospect:
+        raise Exception("No prospect found for convo_urn_id: " + convo_urn_id)
+
     details = ""
-    if prospect and random.random() < 0.5:
+    if random.random() < 0.5:
         details = "For some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
             first_name=prospect.first_name,
             title=prospect.title,

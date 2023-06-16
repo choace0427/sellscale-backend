@@ -1794,149 +1794,167 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         convo_urn_id (str): The SDR and prospect li convo URN ID
     """
 
-    # Fetch the last 5 messages of their convo
-    latest_convo_entries: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.query.filter_by(
-            conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
-        )
-        .order_by(LinkedinConversationEntry.date.desc())
-        .limit(5)
-        .all()
-    )
-    if len(latest_convo_entries) == 0:
-        return False
+    try:
 
-    # Check if we've already generated a bump for this convo
-    prev_bump_msg: GeneratedMessageAutoBump = (
-        GeneratedMessageAutoBump.query.filter(
-            GeneratedMessageAutoBump.prospect_id == prospect_id,
+        # Fetch the last 5 messages of their convo
+        latest_convo_entries: List[LinkedinConversationEntry] = (
+            LinkedinConversationEntry.query.filter_by(
+                conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
+            )
+            .order_by(LinkedinConversationEntry.date.desc())
+            .limit(5)
+            .all()
         )
-        .order_by(GeneratedMessageAutoBump.created_at.desc())
-        .first()
-    )
+        if len(latest_convo_entries) == 0:
+            return False
 
-    if prev_bump_msg:
-        if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
+        # Check if we've already generated a bump for this convo
+        prev_bump_msg: GeneratedMessageAutoBump = (
+            GeneratedMessageAutoBump.query.filter(
+                GeneratedMessageAutoBump.prospect_id == prospect_id,
+            )
+            .order_by(GeneratedMessageAutoBump.created_at.desc())
+            .first()
+        )
+
+        if prev_bump_msg:
+            if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
+                # Already generated a bump for this message
+                return False
+
+        # Get bump frameworks
+        bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
+            BumpFramework.client_sdr_id == client_sdr_id,
+            BumpFramework.active == True,
+        ).all()
+        if len(bump_frameworks) == 0:
+            return False
+
+        # Create a new bump message first, then update later
+        dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
+        ).first()
+        if dupe_bump_msg:
             # Already generated a bump for this message
             return False
 
-    # Get bump frameworks
-    bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
-        BumpFramework.client_sdr_id == client_sdr_id,
-        BumpFramework.active == True,
-    ).all()
-    if len(bump_frameworks) == 0:
-        return False
-
-    # Create a new bump message first, then update later
-    dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-        GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
-    ).first()
-    if dupe_bump_msg:
-        # Already generated a bump for this message
-        return False
-
-    bump_msg = GeneratedMessageAutoBump(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        latest_li_message_id=latest_convo_entries[0].id,
-        message='GENERATING...',
-        bump_framework_id=None,
-        bump_framework_title=None,
-        bump_framework_description=None,
-        bump_framework_length=None,
-        account_research_points=None,
-    )
-    db.session.add(bump_msg)
-    db.session.commit()
-
-    ### Starting message generation... ###
-
-    send_slack_message(
-        message=f"*Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...*",
-        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-    )
-
-    # Determine the best bump framework
-    framework_index = determine_best_bump_framework_from_convo(
-        convo_history=[
-            {"connection_degree": msg.connection_degree, "message": msg.message}
-            for msg in latest_convo_entries
-        ],
-        bump_framework_ids=[bf.id for bf in bump_frameworks],
-    )
-    send_slack_message(
-        message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
-        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-    )
-    try:
-        best_framework = bump_frameworks[framework_index]
-    except:
-        return False
-
-    send_slack_message(
-        message=f" - Selected Framework: {best_framework.title} (#{best_framework.id})",
-        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-    )
-
-    # Determine the best account research
-    points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    random_sample_points = random.sample(points, min(len(points), 3))
-
-    send_slack_message(
-        message=f" - Account Research (selected {len(random_sample_points)}/{len(points)} points)",
-        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-    )
-
-    account_research_points = []
-    research_str = ""
-    for point in random_sample_points:
-        account_research_points.append(
-            point.value,
+        bump_msg = GeneratedMessageAutoBump(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            latest_li_message_id=latest_convo_entries[0].id,
+            message='.',
+            bump_framework_id=None,
+            bump_framework_title=None,
+            bump_framework_description=None,
+            bump_framework_length=None,
+            account_research_points=None,
         )
-        research_str += f"{point.value}\n"
+        db.session.add(bump_msg)
+        db.session.commit()
 
-    # Generate response
-    from src.li_conversation.services import (
-        generate_chat_gpt_response_to_conversation_thread,
-    )
+        ### Starting message generation... ###
 
-    response, prompt = generate_chat_gpt_response_to_conversation_thread(
-        conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
-        bump_framework_id=best_framework.id,
-        account_research_copy=research_str,
-    )  # type: ignore
+        send_slack_message(
+            message=f"*Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...*",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
 
-    ### Message generation complete ###
+        # Determine the best bump framework
+        framework_index = determine_best_bump_framework_from_convo(
+            convo_history=[
+                {"connection_degree": msg.connection_degree, "message": msg.message}
+                for msg in latest_convo_entries
+            ],
+            bump_framework_ids=[bf.id for bf in bump_frameworks],
+        )
+        send_slack_message(
+            message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+        
+        best_framework = bump_frameworks[framework_index]
+        if not best_framework:
+            raise Exception(
+                f"Could not find best bump framework, index {framework_index} / {len(bump_frameworks)}"
+            )
 
-    send_slack_message(
-        message=f" - Made response, finalizing bump message...",
-        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-    )
+        send_slack_message(
+            message=f" - Selected Framework: {best_framework.title} (#{best_framework.id})",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
 
-    # Update bump message
-    bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-        GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
-    ).first()
-    if not bump_msg:
+        # Determine the best account research
+        points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+        random_sample_points = random.sample(points, min(len(points), 3))
+
+        send_slack_message(
+            message=f" - Account Research (selected {len(random_sample_points)}/{len(points)} points)",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+
+        account_research_points = []
+        research_str = ""
+        for point in random_sample_points:
+            account_research_points.append(
+                point.value,
+            )
+            research_str += f"{point.value}\n"
+
+        # Generate response
+        from src.li_conversation.services import (
+            generate_chat_gpt_response_to_conversation_thread,
+        )
+
+        if not convo_urn_id:
+            raise Exception("No convo URN ID")
+
+        response, prompt = generate_chat_gpt_response_to_conversation_thread(
+            convo_urn_id=convo_urn_id,
+            bump_framework_id=best_framework.id,
+            account_research_copy=research_str,
+        )  # type: ignore
+
+        ### Message generation complete ###
+
+        send_slack_message(
+            message=f" - Made response, finalizing bump message...",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+
+        # Update bump message
+        bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
+        ).first()
+        if not bump_msg:
+            raise Exception(
+                f"Could not find bump message with li_message_id {latest_convo_entries[0].id}"
+            )
+
+        bump_msg.message = response
+        bump_msg.bump_framework_id = best_framework.id
+        bump_msg.bump_framework_title = best_framework.title
+        bump_msg.bump_framework_description = best_framework.description
+        bump_msg.bump_framework_length = best_framework.bump_length
+        bump_msg.account_research_points = account_research_points
+        
+        db.session.add(bump_msg)
+        db.session.commit()
+
+        send_slack_message(
+            message=f" - Complete!",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+        
+        return True
+
+    except Exception as e:
+
+        send_slack_message(
+            message=f"🛑 *Error occurred, broken generation:* {e}""",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+
         return False
-
-    bump_msg.message = response
-    bump_msg.bump_framework_id = best_framework.id
-    bump_msg.bump_framework_title = best_framework.title
-    bump_msg.bump_framework_description = best_framework.description
-    bump_msg.bump_framework_length = best_framework.bump_length
-    bump_msg.account_research_points = account_research_points
-    
-    db.session.add(bump_msg)
-    db.session.commit()
-
-    send_slack_message(
-        message=f" - Complete!",
-        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-    )
-
-    return True
 
 
 def get_prospect_bump(client_sdr_id: int, prospect_id: int):

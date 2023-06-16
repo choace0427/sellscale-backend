@@ -96,12 +96,12 @@ def get_prospect_li_conversation():
             return jsonify({"error": "Invalid bump length."}), 400
 
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
-    conversation_url = prospect.li_conversation_thread_id
-    if not conversation_url:
+    convo_urn_id = prospect.li_conversation_urn_id
+    if not convo_urn_id:
         return "No conversation thread found.", 404
 
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
-        conversation_url=conversation_url,
+        convo_urn_id=convo_urn_id,
         bump_framework_id=bump_framework_id,
         account_research_copy=account_research_copy,
         override_bump_length=bump_length,
