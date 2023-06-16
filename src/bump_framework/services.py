@@ -120,8 +120,15 @@ def create_bump_framework(
     """
     if default:
         all_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-            client_sdr_id=client_sdr_id
-        ).all()
+            client_sdr_id=client_sdr_id,
+            client_archetype_id=client_archetype_id,
+            overall_status=overall_status,
+        )
+        if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
+            all_bump_frameworks = all_bump_frameworks.filter_by(
+                bumped_count=bumped_count
+            )
+        all_bump_frameworks = all_bump_frameworks.all()
         for bump_framework in all_bump_frameworks:
             bump_framework.default = False
             db.session.add(bump_framework)
