@@ -36,10 +36,10 @@ class BumpFramework(db.Model):
     sellscale_default_generated = db.Column(
         db.Boolean, nullable=True, default=False)
 
-    def to_dict(self, include_archetypes: bool = False):
-        archetypes_details = []
-        if include_archetypes:
-            archetypes_details = self.get_archetype_details()
+    def to_dict(self):
+        archetype: ClientArchetype = ClientArchetype.query.get(
+            self.client_archetype_id
+        )
 
         return {
             "id": self.id,
@@ -48,28 +48,29 @@ class BumpFramework(db.Model):
             "active": self.active,
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
+            "client_archetype_archetype": archetype.archetype if archetype else None,
             "overall_status": self.overall_status.value if self.overall_status else None,
             "substatus": self.substatus,
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
             "bumped_count": self.bumped_count,
             "sellscale_default_generated": self.sellscale_default_generated,
-            "archetypes": archetypes_details
         }
 
-    def get_archetype_details(self) -> list[dict]:
-        junctions: list[JunctionBumpFrameworkClientArchetype] = JunctionBumpFrameworkClientArchetype.query.filter(
-            JunctionBumpFrameworkClientArchetype.bump_framework_id == self.id
-        ).all()
-        junction_archetype_ids = [j.client_archetype_id for j in junctions]
-        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-            ClientArchetype.id.in_(junction_archetype_ids)
-        ).all()
+    # @deprecated # used for 1-many relationship
+    # def get_archetype_details(self) -> list[dict]:
+    #     junctions: list[JunctionBumpFrameworkClientArchetype] = JunctionBumpFrameworkClientArchetype.query.filter(
+    #         JunctionBumpFrameworkClientArchetype.bump_framework_id == self.id
+    #     ).all()
+    #     junction_archetype_ids = [j.client_archetype_id for j in junctions]
+    #     archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+    #         ClientArchetype.id.in_(junction_archetype_ids)
+    #     ).all()
 
-        return [
-            {"archetype_id": archetype.id, "archetype_name": archetype.archetype}
-            for archetype in archetypes
-        ]
+    #     return [
+    #         {"archetype_id": archetype.id, "archetype_name": archetype.archetype}
+    #         for archetype in archetypes
+    #     ]
 
 
 class JunctionBumpFrameworkClientArchetype(db.Model):

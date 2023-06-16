@@ -369,7 +369,7 @@ def get_sample_prompt_from_config_details(
         client_id=client_id, archetype_id=archetype_id
     )
     if not random_prospect:
-        return "", None, [], None, {}
+        return "", None, [], None, {}, None
     prospect_id = random_prospect.id
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
@@ -399,7 +399,7 @@ def get_sample_prompt_from_config_details(
     notes = "\n-".join(research_points)
     prompt, bio_data = generate_prompt(prospect_id=prospect_id, notes=notes)
 
-    return prompt, selected_research_point_types, research_point_ids, cta_id, bio_data
+    return prompt, selected_research_point_types, research_point_ids, cta_id, bio_data, prospect_id
 
 
 def update_stack_ranked_configuration_prompt_and_instruction(

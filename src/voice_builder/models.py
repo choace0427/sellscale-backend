@@ -43,8 +43,16 @@ class VoiceBuilderSamples(db.Model):
 
     research_point_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
     cta_id = db.Column(db.Integer, nullable=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=True)
 
     def to_dict(self):
+
+        from src.prospecting.models import Prospect
+        if self.prospect_id:
+            prospect = Prospect.query.get(self.prospect_id)
+        else:
+            prospect = None
+
         return {
             "id": self.id,
             "voice_builder_onboarding_id": self.voice_builder_onboarding_id,
@@ -60,4 +68,5 @@ class VoiceBuilderSamples(db.Model):
                 ).all()
             ],
             "cta_id": self.cta_id,
+            "prospect": prospect.to_dict() if prospect else None,
         }

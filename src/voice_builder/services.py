@@ -115,6 +115,7 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int, computed_promp
         research_point_ids,
         cta_id,
         bio_data,
+        prospect_id,
     ) = get_sample_prompt_from_config_details(
         generated_message_type=voice_builder_onboarding.generated_message_type.value,
         research_point_types=[x.value for x in ResearchPointType],
@@ -136,6 +137,7 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int, computed_promp
         sample_completion=completion,
         research_point_ids=research_point_ids,
         cta_id=cta_id,
+        prospect_id=prospect_id,
     )
     db.session.add(voice_builder_sample)
     db.session.commit()
@@ -158,8 +160,9 @@ def delete_voice_builder_sample(
     voice_builder_sample_id: int,
 ):
     voice_builder_sample = VoiceBuilderSamples.query.get(voice_builder_sample_id)
-    db.session.delete(voice_builder_sample)
-    db.session.commit()
+    if voice_builder_sample:
+        db.session.delete(voice_builder_sample)
+        db.session.commit()
     return True
 
 

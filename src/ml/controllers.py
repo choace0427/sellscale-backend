@@ -327,9 +327,7 @@ def post_edit_text(client_sdr_id: int):
 @ML_BLUEPRINT.route("/generate_email", methods=["POST"])
 @require_user
 def post_generate_email(client_sdr_id: int):
-    """
-    Generate email given a value proposition and an archetype.
-    """
+    
     prompt = get_request_parameter(
         "prompt", request, json=True, required=True, parameter_type=str
     )
@@ -339,6 +337,24 @@ def post_generate_email(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success", "data": result}), 200
+
+
+@ML_BLUEPRINT.route("/generate_email_automatic", methods=["POST"])
+@require_user
+def post_generate_email_automatic(client_sdr_id: int):
+
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    
+    email_generation_prompt = ai_email_prompt(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+    )
+
+    email_data = generate_email(prompt=email_generation_prompt)
+
+    return jsonify({"message": "success", "data": email_data}), 200
 
 
 @ML_BLUEPRINT.route("/get_generate_email_prompt", methods=["POST"])

@@ -1819,9 +1819,6 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
             # Already generated a bump for this message
             return False
-        # else:
-        # db.session.delete(prev_bump_msg)
-        # db.session.commit()
 
     # Get bump frameworks
     bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
@@ -1830,6 +1827,30 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
     ).all()
     if len(bump_frameworks) == 0:
         return False
+
+    # Create a new bump message first, then update later
+    dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+        GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
+    ).first()
+    if dupe_bump_msg:
+        # Already generated a bump for this message
+        return False
+
+    bump_msg = GeneratedMessageAutoBump(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        latest_li_message_id=latest_convo_entries[0].id,
+        message='GENERATING...',
+        bump_framework_id=None,
+        bump_framework_title=None,
+        bump_framework_description=None,
+        bump_framework_length=None,
+        account_research_points=None,
+    )
+    db.session.add(bump_msg)
+    db.session.commit()
+
+    ### Starting message generation... ###
 
     send_slack_message(
         message=f"Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...",
@@ -1858,14 +1879,15 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
     )
 
-    # Get account research
-    account_research: List[AccountResearchPoints] = AccountResearchPoints.query.filter(
-        AccountResearchPoints.prospect_id == prospect_id
-    ).all()
-
     # Determine the best account research
     points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
     random_sample_points = random.sample(points, min(len(points), 3))
+
+    send_slack_message(
+        message=f" - Account Research (selected {len(random_sample_points)}/{len(points)} points)",
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+    )
+
     account_research_points = []
     research_str = ""
     for point in random_sample_points:
@@ -1885,25 +1907,27 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         account_research_copy=research_str,
     )  # type: ignore
 
-    # Save response
-    dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+    ### Message generation complete ###
+
+    send_slack_message(
+        message=f" - Made response, finalizing bump message...",
+        webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+    )
+
+    # Update bump message
+    bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
     ).first()
-    if dupe_bump_msg:
-        # Already generated a bump for this message
+    if not bump_msg:
         return False
 
-    bump_msg = GeneratedMessageAutoBump(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        latest_li_message_id=latest_convo_entries[0].id,
-        message=response,
-        bump_framework_id=best_framework.id,
-        bump_framework_title=best_framework.title,
-        bump_framework_description=best_framework.description,
-        bump_framework_length=best_framework.bump_length,
-        account_research_points=account_research_points,
-    )
+    bump_msg.message = response
+    bump_msg.bump_framework_id = best_framework.id
+    bump_msg.bump_framework_title = best_framework.title
+    bump_msg.bump_framework_description = best_framework.description
+    bump_msg.bump_framework_length = best_framework.bump_length
+    bump_msg.account_research_points = account_research_points
+    
     db.session.add(bump_msg)
     db.session.commit()
 
