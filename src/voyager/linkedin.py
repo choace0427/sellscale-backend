@@ -144,6 +144,7 @@ class LinkedIn(object):
 
             return res
         except TooManyRedirects as e:
+            print("TooManyRedirects - Invalidating cookies")
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
             if sdr:
 
@@ -181,7 +182,7 @@ class LinkedIn(object):
         if res.status_code == 403:
             sdr = self.client_sdr
             send_slack_message(
-                message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
             return None
@@ -307,7 +308,7 @@ class LinkedIn(object):
             if res.status_code == 403:
                 sdr = self.client_sdr
                 send_slack_message(
-                    message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                    message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
                     webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
                 )
                 return None
@@ -409,7 +410,7 @@ class LinkedIn(object):
         if res.status_code == 403:
             sdr = self.client_sdr
             send_slack_message(
-                message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
             return None
@@ -443,7 +444,7 @@ class LinkedIn(object):
             if res.status_code == 403:
                 sdr = self.client_sdr
                 send_slack_message(
-                    message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                    message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
                     webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
                 )
                 return None
@@ -488,7 +489,7 @@ class LinkedIn(object):
             if res.status_code == 403:
                 sdr = self.client_sdr
                 send_slack_message(
-                    message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                    message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
                     webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
                 )
                 return None
@@ -532,7 +533,7 @@ class LinkedIn(object):
         if res.status_code == 403:
             sdr = self.client_sdr
             send_slack_message(
-                message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
             return None
