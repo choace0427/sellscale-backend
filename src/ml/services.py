@@ -1129,7 +1129,7 @@ def determine_account_research_from_convo_and_bump_framework(
         messages,
         temperature=0.7,
         max_tokens=240,
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo-16k",
     )
 
     # Extract the numbers from the response & convert to index
@@ -1197,7 +1197,7 @@ def determine_best_bump_framework_from_convo(
         messages,
         temperature=0.7,
         max_tokens=240,
-        model=OPENAI_CHAT_GPT_4_MODEL,
+        model="gpt-3.5-turbo-16k",
     )
 
     match = re.search(r"\d+", response)
@@ -1206,11 +1206,13 @@ def determine_best_bump_framework_from_convo(
     else:
         return -1
 
+
 @celery.task(bind=True, max_retries=3)
 def test_rate_limiter(self, rate: str):
     from src.utils.slack import send_slack_message, URL_MAP
 
     send_slack_message(
-        message=f"Testing rate_limiter at a rate of {rate}. Time:" + str(datetime.utcnow()),
+        message=f"Testing rate_limiter at a rate of {rate}. Time:"
+        + str(datetime.utcnow()),
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )

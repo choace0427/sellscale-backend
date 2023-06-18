@@ -85,10 +85,8 @@ def post_create_bump_framework(client_sdr_id: int):
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True, parameter_type=str
     )
-    archetype_id = (
-        get_request_parameter(
-            "archetype_id", request, json=True, required=True, parameter_type=int
-        )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
     )
     default = (
         get_request_parameter(
@@ -102,8 +100,12 @@ def post_create_bump_framework(client_sdr_id: int):
         )
         or BumpLength.MEDIUM.value
     )
-    bumped_count = get_request_parameter(
-        "bumped_count", request, json=True, required=False, parameter_type=int) or None
+    bumped_count = (
+        get_request_parameter(
+            "bumped_count", request, json=True, required=False, parameter_type=int
+        )
+        or None
+    )
     substatus = (
         get_request_parameter(
             "substatus", request, json=True, required=False, parameter_type=str
@@ -189,8 +191,12 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or BumpLength.MEDIUM.value
     )
-    bumped_count = get_request_parameter(
-        "bumped_count", request, json=True, required=False, parameter_type=int) or None
+    bumped_count = (
+        get_request_parameter(
+            "bumped_count", request, json=True, required=False, parameter_type=int
+        )
+        or None
+    )
 
     # Get the enum value for the overall status
     found_key = False
