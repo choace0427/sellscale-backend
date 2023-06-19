@@ -34,6 +34,7 @@ import math
 import openai
 import json
 from src.company.services import find_company_for_prospect
+from src.utils.abstract.attr_utils import deep_get
 
 
 DEFAULT_MONTHLY_ML_FETCHING_CREDITS = 5000
@@ -672,6 +673,7 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
         # Get Company Description
         company = find_company_for_prospect(prospect_id)
         prospect_company_description = company.description if company else ""
+        prospect_company_specialities = company.specialities if company else ""
 
         state = "Location unknown."
         if company:
@@ -687,9 +689,17 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
         )
 
         prospect_location = "Prospect location unknown."
+        prospect_education = "Prospect school and degree unknown."
         cache = json.loads(iscraper_cache.payload)
         if cache and cache.get("location"):
             prospect_location = cache.get("location")
+        if cache and cache.get("education") and len(cache.get("education")) > 0:
+            school = cache.get("education")[0].get("school")
+            school_name = deep_get(cache, "education.0.school.name")
+            field_of_study = deep_get(cache, "education.0.field_of_study")
+            prospect_education = "Studied {field_of_study} at {school_name}".format(
+                field_of_study=field_of_study, school_name=school_name
+            )
 
         # Create Prompt
         prompt += f"""\n\nHere is the prospect's information:
@@ -697,11 +707,14 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
         Prospect Title: {prospect.title}
         Prospect LinkedIn Bio: {prospect.linkedin_bio}
         Prospect Location: {prospect_location}
+        Prospect Education: {prospect_education}
 
+        Here is the prospect's company information:
         Prospect Company Name: {prospect.company}
         Prospect Company Size: {prospect.employee_count}
         Prospect Company Industry: {prospect.industry}
         Prospect Company Location: {state}
+        Prospect Company Tagline: {prospect_company_specialities}
         Prospect Company Description: '''
         {prospect_company_description}
         '''\n\n"""
