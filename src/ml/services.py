@@ -945,7 +945,7 @@ def generate_email(prompt: str) -> dict[str, str]:
             {"role": "system", "content": prompt},
         ],
         temperature=0.7,
-        max_tokens=240,
+        max_tokens=400,
         model=OPENAI_CHAT_GPT_4_MODEL,
     )
     response = response if isinstance(response, str) else ""
