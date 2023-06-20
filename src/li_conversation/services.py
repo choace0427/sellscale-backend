@@ -400,6 +400,8 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     7. Instead of "Have you heard of," use "Are you familiar with."
     8. Instead of "Y'all," use "You all" or "You folks."
     9. Use words like 'cheers', 'brilliant', 'lovely', 'spot on', 'brilliant', 'splendid', 'jolly good'
+
+Ensure the length is similar.
             """
         response = wrapped_chat_gpt_completion(
             [
@@ -410,7 +412,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
                 {"role": "user", "content": response},
             ],
             max_tokens=200,
-            model="gpt-3.5-turbo",
+            model="gpt-4",
         )
 
     return response, content
