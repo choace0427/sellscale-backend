@@ -388,9 +388,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     if client_sdr.message_generation_captivate_mode:
         instruction = "Please re-write the following message in a way that adds more humor and human touch. Keep the length approximately the same. Ensure it's a complete sentence."
         if client_sdr.client_id == 17:  # monday.com
-            instruction = """Make slight adjustments to edit this message:
-- add more humor and human touch
-- Use slight influences of British English. For example:
+            instruction = """Make slight adjustments to edit this message. Use this list of adjustments only to make it slightly more british.
     1. Instead of "Saw you've," use "Noticed you've."
     2. Instead of "No harm in benchmarking against," use "No harm in comparing with."
     3. Instead of "I'd love to show you," use "I'd be delighted to demonstrate."
