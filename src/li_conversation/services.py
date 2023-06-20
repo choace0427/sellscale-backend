@@ -390,7 +390,16 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         if client_sdr.client_id == 17:  # monday.com
             instruction = """Make slight adjustments to edit this message:
 - add more humor and human touch
-- use influences of British English (but not too much)
+- Use slight influences of British English. For example:
+    1. Instead of "Saw you've," use "Noticed you've."
+    2. Instead of "No harm in benchmarking against," use "No harm in comparing with."
+    3. Instead of "I'd love to show you," use "I'd be delighted to demonstrate."
+    4. Instead of "Qualities that I’m sure have served you well," use "Qualities that I'm certain have stood you in good stead."
+    5. Instead of "Seeing as you're," use "Considering you're."
+    6. Instead of "That's big," use "That's quite an achievement."
+    7. Instead of "Have you heard of," use "Are you familiar with."
+    8. Instead of "Y'all," use "You all" or "You folks."
+    9. Use words like 'cheers', 'brilliant', 'lovely', 'spot on', 'brilliant', 'splendid', 'jolly good'
             """
         response = wrapped_chat_gpt_completion(
             [
@@ -400,7 +409,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
                 },
                 {"role": "user", "content": response},
             ],
-            max_tokens=200,
+            max_tokens=int(len(response) / 4 + 20),
             model="gpt-3.5-turbo",
         )
 
