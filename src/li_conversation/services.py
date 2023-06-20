@@ -388,9 +388,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     if client_sdr.message_generation_captivate_mode:
         instruction = "Please re-write the following message in a way that adds more humor and human touch. Keep the length approximately the same. Ensure it's a complete sentence."
         if client_sdr.client_id == 17:  # monday.com
-            instruction = """Make slight adjustments to edit this message:
-- add more humor and human touch
-- Use slight influences of British English. For example:
+            instruction = """Make slight adjustments to edit this message. Use this list of adjustments only to make it slightly more british.
     1. Instead of "Saw you've," use "Noticed you've."
     2. Instead of "No harm in benchmarking against," use "No harm in comparing with."
     3. Instead of "I'd love to show you," use "I'd be delighted to demonstrate."
@@ -400,6 +398,8 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     7. Instead of "Have you heard of," use "Are you familiar with."
     8. Instead of "Y'all," use "You all" or "You folks."
     9. Use words like 'cheers', 'brilliant', 'lovely', 'spot on', 'brilliant', 'splendid', 'jolly good'
+
+Ensure the length is similar.
             """
         response = wrapped_chat_gpt_completion(
             [
@@ -409,8 +409,8 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
                 },
                 {"role": "user", "content": response},
             ],
-            max_tokens=int(len(response) / 4 + 20),
-            model="gpt-3.5-turbo",
+            max_tokens=200,
+            model="gpt-4",
         )
 
     return response, content
