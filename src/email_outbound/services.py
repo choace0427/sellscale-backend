@@ -103,7 +103,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         Prospect.id.in_(outbound_campaign.prospect_ids)
     ).all()
     bulk_updates = []
-    time_index = datetime.datetime.now()
+    time_index = datetime.datetime.utcnow()
     for prospect in prospects:
         prospect_email = ProspectEmail.query.get(prospect.approved_prospect_email_id)
         prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
@@ -147,7 +147,7 @@ def send_prospect_emails():
     prospect_emails: list[ProspectEmail] = ProspectEmail.query.filter(
         ProspectEmail.outreach_status
         == ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
-        ProspectEmail.date_scheduled_to_send <= datetime.datetime.now(),
+        ProspectEmail.date_scheduled_to_send <= datetime.datetime.utcnow(),
     ).all()
     print("Sending {} emails".format(len(prospect_emails)))
     for prospect_email in prospect_emails:
