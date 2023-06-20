@@ -233,9 +233,7 @@ def post_create_cta():
 def put_update_cta():
     from src.message_generation.services import update_cta
 
-    cta_id = get_request_parameter(
-        "cta_id", request, json=True, required=True
-    )
+    cta_id = get_request_parameter("cta_id", request, json=True, required=True)
     text_value = get_request_parameter("text_value", request, json=True, required=True)
 
     success = update_cta(cta_id=cta_id, text_value=text_value)
@@ -249,9 +247,7 @@ def put_update_cta():
 def delete_msg_cta():
     from src.message_generation.services import delete_cta
 
-    cta_id = get_request_parameter(
-        "cta_id", request, json=True, required=True
-    )
+    cta_id = get_request_parameter("cta_id", request, json=True, required=True)
 
     success = delete_cta(cta_id=cta_id)
     if success:
@@ -544,8 +540,8 @@ def get_stack_ranked_configuration_priority_endpoint():
 @MESSAGE_GENERATION_BLUEPRINT.route("/stack_ranked_configurations", methods=["GET"])
 @require_user
 def get_all_stack_ranked_configurations(client_sdr_id: int):
-    """ Get all stack ranked configurations for a given client_sdr_id """
-    
+    """Get all stack ranked configurations for a given client_sdr_id"""
+
     configs = get_stack_ranked_configurations(client_sdr_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in configs]}), 200
@@ -613,6 +609,7 @@ def generate_stack_ranked_configuration_tool_sample_prompt():
     (
         prompt,
         selected_research_point_types,
+        _,
         _,
         _,
         _,
@@ -687,9 +684,7 @@ def post_update_stack_ranked_configuration_tool_instruction_and_prompt():
     return message, 400
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route(
-    "/auto_bump", methods=["GET"]
-)
+@MESSAGE_GENERATION_BLUEPRINT.route("/auto_bump", methods=["GET"])
 @require_user
 def get_auto_bump_message(client_sdr_id: int):
     """
@@ -698,20 +693,18 @@ def get_auto_bump_message(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=False, required=True
     )
-    
+
     result = get_prospect_bump(
         client_sdr_id=client_sdr_id,
         prospect_id=int(prospect_id),
     )
     if not result:
         return jsonify({"message": "Failed to fetch"}), 400
-    
+
     return jsonify({"message": "Success", "data": result.to_dict()}), 200
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route(
-    "/auto_bump", methods=["DELETE"]
-)
+@MESSAGE_GENERATION_BLUEPRINT.route("/auto_bump", methods=["DELETE"])
 @require_user
 def delete_auto_bump_message(client_sdr_id: int):
     """
@@ -720,13 +713,12 @@ def delete_auto_bump_message(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True
     )
-    
+
     success = delete_prospect_bump(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
     )
     if not success:
         return jsonify({"message": "Failed to delete"}), 400
-    
-    return jsonify({"message": "Success"}), 200
 
+    return jsonify({"message": "Success"}), 200
