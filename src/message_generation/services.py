@@ -1838,6 +1838,10 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         if prospect.overall_status.value == 'ACTIVE_CONVO':
             bump_frameworks = [x for x in bump_frameworks if x.substatus == prospect.status.value]
 
+        # Filter by bumped count
+        if prospect.overall_status.value == 'BUMPED':
+            bump_frameworks = [x for x in bump_frameworks if x.bumped_count == prospect.times_bumped]
+
         # Create a new bump message first, then update later
         dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
             GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
