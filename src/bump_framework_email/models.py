@@ -5,18 +5,19 @@ from src.client.models import ClientArchetype
 from src.prospecting.models import ProspectOverallStatus
 
 
-class BumpLength(enum.Enum):
+class EmailLength(enum.Enum):
     SHORT = 'SHORT'
     MEDIUM = 'MEDIUM'
     LONG = 'LONG'
 
 
-class BumpFramework(db.Model):
-    __tablename__ = "bump_framework"
+class BumpFrameworkEmail(db.Model):
+    __tablename__ = "bump_framework_email"
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.String(4000), nullable=True)
+    objective = db.Column(db.String(255), nullable=True)
+    email_blocks = db.Column(db.ARRAY(db.String), nullable=True)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
     client_sdr_id = db.Column(
@@ -29,8 +30,8 @@ class BumpFramework(db.Model):
 
     default = db.Column(db.Boolean, nullable=False, default=False)
 
-    bump_length = db.Column(db.Enum(BumpLength),
-                            nullable=True, default=BumpLength.MEDIUM)
+    email_length = db.Column(db.Enum(EmailLength),
+                            nullable=True, default=EmailLength.MEDIUM)
     bumped_count = db.Column(db.Integer, nullable=True, default=0)
 
     sellscale_default_generated = db.Column(
@@ -44,7 +45,8 @@ class BumpFramework(db.Model):
         return {
             "id": self.id,
             "title": self.title,
-            "description": self.description,
+            "objective": self.description,
+            "email_blocks": self.email_blocks,
             "active": self.active,
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
@@ -56,13 +58,3 @@ class BumpFramework(db.Model):
             "bumped_count": self.bumped_count,
             "sellscale_default_generated": self.sellscale_default_generated,
         }
-
-
-class JunctionBumpFrameworkClientArchetype(db.Model):
-    __tablename__ = "junction_bump_framework_client_archetype"
-
-    id = db.Column(db.Integer, primary_key=True)
-    bump_framework_id = db.Column(db.Integer, db.ForeignKey(
-        "bump_framework.id"), nullable=False)
-    client_archetype_id = db.Column(db.Integer, db.ForeignKey(
-        "client_archetype.id"), nullable=False)

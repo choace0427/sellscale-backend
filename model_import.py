@@ -84,6 +84,7 @@ from src.integrations.models import (
 )
 from src.integrations.vessel_analytics_job import get_emails_for_contact_async
 from src.bump_framework.models import BumpFramework
+from src.bump_framework_email.models import BumpFrameworkEmail
 from src.personas.models import (
     PersonaSplitRequestTaskStatus,
     PersonaSplitRequest,
