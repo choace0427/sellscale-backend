@@ -1823,12 +1823,20 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
                 return False
 
         # Get bump frameworks
+        prospect: Prospect = Prospect.query.get(prospect_id)
+
         bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
-            BumpFramework.client_sdr_id == client_sdr_id,
             BumpFramework.active == True,
+            BumpFramework.client_sdr_id == client_sdr_id,
+            BumpFramework.overall_status == prospect.overall_status,
+            BumpFramework.client_archetype_id == prospect.archetype_id,
         ).all()
         if len(bump_frameworks) == 0:
             return False
+        
+        # Filter by active convo substatus
+        if prospect.overall_status.value == 'ACTIVE_CONVO':
+            bump_frameworks = [x for x in bump_frameworks if x.substatus == prospect.status.value]
 
         # Create a new bump message first, then update later
         dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
