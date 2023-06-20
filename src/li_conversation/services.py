@@ -409,7 +409,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
                 },
                 {"role": "user", "content": response},
             ],
-            max_tokens=int(len(response) / 4 + 20),
+            max_tokens=200,
             model="gpt-3.5-turbo",
         )
 
