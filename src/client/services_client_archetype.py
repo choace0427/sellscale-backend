@@ -311,28 +311,42 @@ def modify_archetype_prospect_filters(
     return True
 
 
-def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int) -> list:
-    """Get the email blocks configuration for a given archetype
+def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int, email_bump_framework_id: Optional[int] = None) -> list:
+    """Get the email blocks configuration for a given archetype and/or bump_framework ID
 
     Args:
         client_sdr_id (int): client sdr id
         client_archetype_id (int): client archetype id
+        email_bump_framework_id (int, optional): email bump framework id. Defaults to None.
 
     Returns:
         list: email blocks configuration
     """
+    from src.bump_framework_email.models import BumpFrameworkEmail
+
     sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     if not sdr:
         return []
 
-    archetype: ClientArchetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id).first()
     if not archetype:
         return []
     if archetype.client_sdr_id != sdr.id:
         return []
 
     if archetype.email_blocks_configuration is None:
-        create_empty_archetype_email_blocks_configuration(client_sdr_id, client_archetype_id)
+        create_empty_archetype_email_blocks_configuration(
+            client_sdr_id, client_archetype_id)
+
+    if email_bump_framework_id:
+        bf_email: BumpFrameworkEmail = BumpFrameworkEmail.query.get(
+            email_bump_framework_id)
+        if not bf_email:
+            return []
+        if bf_email.client_archetype_id != archetype.id:
+            return []
+        return bf_email.email_blocks
 
     return archetype.email_blocks_configuration
 
@@ -351,7 +365,8 @@ def create_empty_archetype_email_blocks_configuration(client_sdr_id: int, client
     if not sdr:
         return False
 
-    archetype: ClientArchetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id).first()
     if not archetype:
         return False
     if archetype.client_sdr_id != sdr.id:
@@ -377,7 +392,8 @@ def patch_archetype_email_blocks_configuration(client_sdr_id: int, client_archet
     if not sdr:
         return False, "Client SDR not found"
 
-    archetype: ClientArchetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
+    archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id).first()
     if not archetype:
         return False, "Client archetype not found"
     if archetype.client_sdr_id != sdr.id:

@@ -1164,10 +1164,10 @@ def get_unused_li_and_email_prospects_count(client_sdr_id: int):
 
 
 @CLIENT_BLUEPRINT.route(
-    "/archetype/<archetype_id>/email_blocks", methods=["GET"]
+    "/archetype/<archetype_id>/email_blocks/<email_bump_framework_id>", methods=["GET"]
 )
 @require_user
-def get_email_blocks(client_sdr_id: int, archetype_id: int):
+def get_email_blocks(client_sdr_id: int, archetype_id: int, email_bump_framework_id: int):
     """Gets email blocks for an archetype"""
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
@@ -1184,7 +1184,7 @@ def get_email_blocks(client_sdr_id: int, archetype_id: int):
             403,
         )
 
-    email_blocks = get_email_blocks_configuration(client_sdr_id, archetype_id)
+    email_blocks = get_email_blocks_configuration(client_sdr_id, archetype_id, email_bump_framework_id)
 
     return jsonify({"status": "success", "data": email_blocks}), 200
 
