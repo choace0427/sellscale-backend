@@ -1,6 +1,5 @@
 from model_import import BumpFrameworkEmail
 from app import db
-from src.bump_framework_email.models import EmailLength
 from src.client.models import ClientArchetype
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from typing import Optional
@@ -91,10 +90,8 @@ def create_bump_framework_email(
     client_sdr_id: int,
     client_archetype_id: int,
     title: str,
-    objective: str,
     email_blocks: list[str],
     overall_status: ProspectOverallStatus,
-    length: EmailLength,
     bumped_count: int = None,
     active: bool = True,
     substatus: Optional[str] = None,
@@ -107,10 +104,8 @@ def create_bump_framework_email(
         client_sdr_id (int): The id of the SDR
         client_archetype_id (int): The id of the client archetype
         title (str): The title of the bump framework
-        objective (str): The objective of the bump framework
         email_blocks (list[str]): The email blocks of the bump framework
         overall_status (ProspectOverallStatus): The overall status of the bump framework
-        length (EmailLength): The length of the bump framework
         bumped_count (int, optional): The number which corresponds to which bump in the sequence this BF appears. Defaults to None.
         active (bool, optional): Whether the bump framework is active. Defaults to True.
         substatus (Optional[str], optional): The substatus of the bump framework. Defaults to None.
@@ -135,19 +130,14 @@ def create_bump_framework_email(
             bump_framework.default = False
             db.session.add(bump_framework)
 
-    if length not in [EmailLength.LONG, EmailLength.SHORT, EmailLength.MEDIUM]:
-        length = EmailLength.MEDIUM
-
     # Create the Bump Framework
     bump_framework_email = BumpFrameworkEmail(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         title=title,
-        objective=objective,
         email_blocks=email_blocks,
         overall_status=overall_status,
         substatus=substatus,
-        email_length=length,
         bumped_count=bumped_count,
         active=active,
         default=default,
@@ -165,9 +155,7 @@ def modify_bump_framework_email(
     client_archetype_id: int,
     bump_framework_email_id: int,
     overall_status: ProspectOverallStatus,
-    length: EmailLength,
     title: Optional[str],
-    objective: Optional[str],
     email_blocks: Optional[list[str]],
     bumped_count: Optional[int] = None,
     default: Optional[bool] = False,
@@ -179,9 +167,7 @@ def modify_bump_framework_email(
         client_archetype_id(int): The id of the client Archetype
         bump_framework_id (int): The id of the bump framework
         overall_status (ProspectOverallStatus): The overall status of the bump framework
-        length (BumpLength): The length of the bump framework
         title (Optional[str]): The title of the bump framework
-        objective (Optional[str]): The objective of the bump framework
         email_blocks (Optional[list[str]]): The email blocks of the bump framework
         bumped_count (Optional[int], optional): The number which corresponds to which bump in the sequence this BF appears. Defaults to None.
         default (Optional[bool]): Whether the bump framework is the default
@@ -196,15 +182,8 @@ def modify_bump_framework_email(
 
     if title:
         bump_framework.title = title
-    if objective:
-        bump_framework.objective = objective
     if email_blocks:
         bump_framework.email_blocks = email_blocks
-
-    if length not in [EmailLength.LONG, EmailLength.SHORT, EmailLength.MEDIUM]:
-        bump_framework.email_length = EmailLength.MEDIUM
-    else:
-        bump_framework.email_length = length
 
     if bumped_count:
         bump_framework.bumped_count = bumped_count

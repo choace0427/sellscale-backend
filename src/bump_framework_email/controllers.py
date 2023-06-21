@@ -2,7 +2,6 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import BumpFrameworkEmail
-from src.bump_framework_email.models import EmailLength
 from src.bump_framework_email.services import (
     activate_bump_framework_email,
     create_bump_framework_email,
@@ -79,9 +78,6 @@ def post_create_bump_framework(client_sdr_id: int):
     title = get_request_parameter(
         "title", request, json=True, required=True, parameter_type=str
     )
-    objective = get_request_parameter(
-        "objective", request, json=True, required=True, parameter_type=str
-    )
     email_blocks = get_request_parameter(
         "email_blocks", request, json=True, required=True, parameter_type=list
     )
@@ -96,12 +92,6 @@ def post_create_bump_framework(client_sdr_id: int):
             "default", request, json=True, required=False, parameter_type=bool
         )
         or False
-    )
-    length: str = (
-        get_request_parameter(
-            "length", request, json=True, required=False, parameter_type=str
-        )
-        or EmailLength.MEDIUM.value
     )
     bumped_count = (
         get_request_parameter(
@@ -126,24 +116,12 @@ def post_create_bump_framework(client_sdr_id: int):
     if not found_key:
         return jsonify({"error": "Invalid overall status."}), 400
 
-    # Get the enum value for the bump length
-    found_key = False
-    for key, val in EmailLength.__members__.items():
-        if key == length.upper():
-            length = val
-            found_key = True
-            break
-    if not found_key:
-        return jsonify({"error": "Invalid bump length."}), 400
-
     bump_framework_id = create_bump_framework_email(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
         title=title,
-        objective=objective,
         email_blocks=email_blocks,
         overall_status=overall_status,
-        length=length,
         bumped_count=bumped_count,
         substatus=substatus,
         default=default,
@@ -177,12 +155,6 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or None
     )
-    objective = (
-        get_request_parameter(
-            "objective", request, json=True, required=False, parameter_type=str
-        )
-        or None
-    )
     email_blocks = (
         get_request_parameter(
             "email_blocks", request, json=True, required=False, parameter_type=list
@@ -194,12 +166,6 @@ def patch_bump_framework(client_sdr_id: int):
             "default", request, json=True, required=False, parameter_type=bool
         )
         or False
-    )
-    length: str = (
-        get_request_parameter(
-            "length", request, json=True, required=False, parameter_type=str
-        )
-        or EmailLength.MEDIUM.value
     )
     bumped_count = (
         get_request_parameter(
@@ -218,16 +184,6 @@ def patch_bump_framework(client_sdr_id: int):
     if not found_key:
         return jsonify({"error": "Invalid overall status."}), 400
 
-    # Get the enum value for the bump length
-    found_key = False
-    for key, val in EmailLength.__members__.items():
-        if key == length.upper():
-            length = val
-            found_key = True
-            break
-    if not found_key:
-        return jsonify({"error": "Invalid bump length."}), 400
-
     bump_framework: BumpFrameworkEmail = BumpFrameworkEmail.query.get(bump_framework_id)
     if not bump_framework:
         return jsonify({"error": "Bump framework not found."}), 404
@@ -240,8 +196,6 @@ def patch_bump_framework(client_sdr_id: int):
         bump_framework_id=bump_framework_id,
         overall_status=overall_status,
         title=title,
-        length=length,
-        objective=objective,
         email_blocks=email_blocks,
         bumped_count=bumped_count,
         default=default,
