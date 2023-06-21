@@ -143,7 +143,7 @@ def create_bump_framework_email(
         default=default,
         sellscale_default_generated=sellscale_default_generated,
     )
-    db.session.add(bump_framework)
+    db.session.add(bump_framework_email)
     db.session.commit()
     bump_framework_email_id = bump_framework_email.id
 
