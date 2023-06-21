@@ -193,7 +193,7 @@ def patch_bump_framework(client_sdr_id: int):
     modified = modify_bump_framework_email(
         client_sdr_id=client_sdr_id,
         client_archetype_id=bump_framework.client_archetype_id,
-        bump_framework_id=bump_framework_id,
+        bump_framework_email_id=bump_framework_id,
         overall_status=overall_status,
         title=title,
         email_blocks=email_blocks,
