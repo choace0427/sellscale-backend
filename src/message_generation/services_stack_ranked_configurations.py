@@ -14,6 +14,9 @@ from app import db
 import random
 from sqlalchemy.sql.expression import func
 from sqlalchemy.dialects.postgresql import ARRAY
+from src.client.models import ClientSDR
+from src.ml.fine_tuned_models import get_computed_prompt_completion
+from src.prospecting.models import Prospect
 
 from src.research.linkedin.services import get_research_and_bullet_points_new
 
@@ -312,6 +315,19 @@ def get_stack_ranked_configurations(client_sdr_id: int):
     return configs
 
 
+def get_stack_ranked_configuration_details(client_sdr_id: int, config_id: int):
+    config: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=config_id,
+        ).first()
+    )
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if config.client_id != client_sdr.client_id:
+        return None, "Configuration does not belong to this client"
+
+    return config.to_dict(), "OK"
+
+
 def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
     from model_import import Prospect
 
@@ -381,16 +397,20 @@ def get_sample_prompt_from_config_details(
     configuration_type: str,
     client_id: int,
     archetype_id: Optional[int] = None,
+    override_prospect_id: Optional[int] = None,
 ):
     from model_import import Prospect, ResearchPayload, ResearchPoints, ResearchType
     from src.message_generation.services import generate_prompt
 
-    random_prospect = get_random_prospect(
-        client_id=client_id, archetype_id=archetype_id
-    )
-    if not random_prospect:
-        return "", None, [], None, {}, None
-    prospect_id = random_prospect.id
+    if not override_prospect_id:
+        random_prospect = get_random_prospect(
+            client_id=client_id, archetype_id=archetype_id
+        )
+        if not random_prospect:
+            return "", None, [], None, {}, None
+        prospect_id = random_prospect.id
+    else:
+        prospect_id = override_prospect_id
 
     research_points = []
     research_point_ids = []
@@ -431,10 +451,38 @@ def get_sample_prompt_from_config_details(
     )
 
 
-def update_stack_ranked_configuration_prompt_and_instruction(
-    configuration_id: int,
-    new_prompt: str,
+def generate_completion_for_prospect(
+    client_sdr_id: int, prospect_id: int, computed_prompt: str
 ):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_id != client_sdr.client_id:
+        return None, "Prospect does not exist or does not belong to this client"
+
+    prompt, _, _, _, _, _ = get_sample_prompt_from_config_details(
+        generated_message_type="LINKEDIN",
+        research_point_types=[x.value for x in ResearchPointType],
+        configuration_type="DEFAULT",
+        client_id=client_sdr.client_id,
+        archetype_id=prospect.archetype_id,
+        override_prospect_id=prospect_id,
+    )
+    if not prompt:
+        return None, "Could not generate prompt"
+
+    completion, _ = get_computed_prompt_completion(
+        computed_prompt=computed_prompt,
+        prompt=prompt,
+    )
+
+    return completion, "OK"
+
+
+def update_stack_ranked_configuration_prompt_and_instruction(
+    configuration_id: int, new_prompt: str, client_sdr_id: Optional[int] = None
+):
+    """Update the prompt and instruction of a stack ranked message generation configuration"""
+
     srmgc: StackRankedMessageGenerationConfiguration = (
         StackRankedMessageGenerationConfiguration.query.filter_by(
             id=configuration_id
@@ -442,6 +490,15 @@ def update_stack_ranked_configuration_prompt_and_instruction(
     )
     if not srmgc:
         return False, "Stack ranked message generation configuration does not exist"
+
+    if client_sdr_id:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if client_sdr.client_id != srmgc.client_id:
+            return (
+                False,
+                "Stack ranked message generation configuration does not belong to this client",
+            )
+
     srmgc.computed_prompt = new_prompt
     db.session.add(srmgc)
     db.session.commit()

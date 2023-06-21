@@ -1,3 +1,4 @@
+from src.client.models import ClientSDR
 from src.message_generation.services import delete_prospect_bump, get_prospect_bump
 from app import db
 
@@ -22,6 +23,8 @@ from src.message_generation.services import (
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
     edit_stack_ranked_configuration_instruction,
+    generate_completion_for_prospect,
+    get_stack_ranked_configuration_details,
     get_stack_ranked_configurations,
     edit_stack_ranked_configuration_research_point_types,
     edit_stack_ranked_configuration_name,
@@ -548,6 +551,50 @@ def get_all_stack_ranked_configurations(client_sdr_id: int):
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configurations/<int:config_id>", methods=["GET"]
+)
+@require_user
+def post_stack_ranked_configuration_tool(client_sdr_id: int, config_id: int):
+    """Get all stack ranked configurations for a given client_sdr_id"""
+
+    config, message = get_stack_ranked_configuration_details(
+        client_sdr_id=client_sdr_id, config_id=config_id
+    )
+
+    if not config:
+        return jsonify({"message": message}), 400
+
+    return jsonify({"message": "Success", "data": config}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration/generate_completion_for_prospect", methods=["POST"]
+)
+@require_user
+def post_stack_ranked_configuration_tool_generate_completion_for_prospect(
+    client_sdr_id: int,
+):
+    """Get all stack ranked configurations for a given client_sdr_id"""
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    computed_prompt = get_request_parameter(
+        "computed_prompt", request, json=True, required=True
+    )
+
+    message, error_message = generate_completion_for_prospect(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        computed_prompt=computed_prompt,
+    )
+
+    if not message:
+        return jsonify({"message": error_message}), 400
+
+    return jsonify({"message": "Success", "completion": message}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
     "/stack_ranked_configuration_tool/get_prompts", methods=["POST"]
 )
 def get_stack_ranked_configuration_tool_prompts():
@@ -678,6 +725,28 @@ def post_update_stack_ranked_configuration_tool_instruction_and_prompt():
     success, message = update_stack_ranked_configuration_prompt_and_instruction(
         configuration_id=configuration_id,
         new_prompt=new_prompt,
+    )
+    if success:
+        return "OK", 200
+    return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/update_computed_prompt", methods=["POST"]
+)
+@require_user
+def post_update_stack_ranked_configuration_tool_instruction_and_prompt_secure(
+    client_sdr_id: int,
+):
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    new_prompt = get_request_parameter("new_prompt", request, json=True, required=True)
+
+    success, message = update_stack_ranked_configuration_prompt_and_instruction(
+        configuration_id=configuration_id,
+        new_prompt=new_prompt,
+        client_sdr_id=client_sdr_id,
     )
     if success:
         return "OK", 200
