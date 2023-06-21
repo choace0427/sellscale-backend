@@ -313,4 +313,5 @@ class StackRankedMessageGenerationConfiguration(db.Model):
             "archetype_id": self.archetype_id,
             "priority": self.priority,
             "active": self.active,
+            "always_enable": self.always_enable,
         }
