@@ -290,11 +290,24 @@ def get_stack_ranked_configurations(client_sdr_id: int):
     from model_import import StackRankedMessageGenerationConfiguration, ClientSDR
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    configs: list[
-        StackRankedMessageGenerationConfiguration
-    ] = StackRankedMessageGenerationConfiguration.query.filter_by(
-        client_id=sdr.client_id
+    archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
+        client_sdr_id=sdr.id
     ).all()
+    archetype_ids = [archetype.id for archetype in archetypes]
+    configs: list[StackRankedMessageGenerationConfiguration] = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            client_id=sdr.client_id,
+        )
+        .filter(
+            or_(
+                StackRankedMessageGenerationConfiguration.archetype_id.in_(
+                    archetype_ids
+                ),
+                StackRankedMessageGenerationConfiguration.archetype_id == None,
+            )
+        )
+        .all()
+    )
 
     return configs
 
