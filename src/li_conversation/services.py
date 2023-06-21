@@ -125,6 +125,13 @@ def create_linkedin_conversation_entry(
             or "@" in message.lower()
             or "week" in message.lower()
             or "month" in message.lower()
+            or "monday" in message.lower()
+            or "tuesday" in message.lower()
+            or "wednesday" in message.lower()
+            or "thursday" in message.lower()
+            or "friday" in message.lower()
+            or "saturday" in message.lower()
+            or "sunday" in message.lower()
         ):
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             send_slack_message(
