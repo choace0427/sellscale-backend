@@ -1165,6 +1165,9 @@ def get_unused_li_and_email_prospects_count(client_sdr_id: int):
 
 
 @CLIENT_BLUEPRINT.route(
+    "/archetype/<archetype_id>/email_blocks", defaults={'email_bump_framework_id': None}, methods=["GET"]
+)
+@CLIENT_BLUEPRINT.route(
     "/archetype/<archetype_id>/email_blocks/<email_bump_framework_id>", methods=["GET"]
 )
 @require_user
