@@ -367,13 +367,13 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         bump_framework and bump_framework.bump_length == BumpLength.MEDIUM
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 3-5 sentences."
+            "\n\nPlease keep this message between 3-5 sentences. Separate into paragraphs with line breaks when needed."
         )
     elif override_bump_length == BumpLength.LONG or (
         bump_framework and bump_framework.bump_length == BumpLength.LONG
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 5-7 sentences."
+            "\n\nPlease keep this message between 5-7 sentences. Separate into paragraphs with line breaks when needed."
         )
 
     response = wrapped_chat_gpt_completion(
