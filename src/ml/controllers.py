@@ -327,7 +327,7 @@ def post_edit_text(client_sdr_id: int):
 @ML_BLUEPRINT.route("/generate_email", methods=["POST"])
 @require_user
 def post_generate_email(client_sdr_id: int):
-    
+
     prompt = get_request_parameter(
         "prompt", request, json=True, required=True, parameter_type=str
     )
@@ -346,10 +346,14 @@ def post_generate_email_automatic(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
-    
+    overriden_blocks = get_request_parameter(
+        "email_blocks", request, json=True, required=False, parameter_type=list
+    )
+
     email_generation_prompt = ai_email_prompt(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
+        overriden_blocks=overriden_blocks,
     )
 
     email_data = generate_email(prompt=email_generation_prompt)
