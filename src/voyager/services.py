@@ -10,7 +10,11 @@ from src.utils.slack import send_slack_message, URL_MAP
 
 from src.ml.services import chat_ai_classify_active_convo
 
-from src.automation.services import update_phantom_buster_li_at
+from src.automation.services import (
+    create_new_auto_connect_phantom,
+    has_phantom_buster_config,
+    update_phantom_buster_li_at,
+)
 
 from src.automation.models import PhantomBusterAgent
 from src.prospecting.models import ProspectOverallStatus, ProspectStatusRecords
@@ -93,7 +97,8 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
     if not sdr:
         return "No client sdr found with this id", 400
 
-    sdr.li_at_token = json.loads(cookies).get("li_at")
+    li_at_token = json.loads(cookies).get("li_at")
+    sdr.li_at_token = li_at_token
     sdr.li_cookies = cookies
 
     # Update the pb agent
@@ -104,6 +109,17 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
 
     db.session.add(sdr)
     db.session.commit()
+
+    try:
+        if not has_phantom_buster_config(client_sdr_id=client_sdr_id):
+            create_new_auto_connect_phantom(
+                client_sdr_id=client_sdr_id, linkedin_session_cookie=li_at_token
+            )
+    except:
+        send_slack_message(
+            message=f"🚨 URGENT ALERT 🚨: Failed to create phantom buster agent for client sdr id #{str(client_sdr_id)}",
+            webhook_urls=[URL_MAP["user-errors"]],
+        )
 
     return "Updated cookies", 200
 

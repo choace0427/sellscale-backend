@@ -351,6 +351,13 @@ def save_agent_groups(agent_groups: list):
     return response.json()
 
 
+def has_phantom_buster_config(client_sdr_id: int):
+    pb_config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+        PhantomBusterConfig.client_sdr_id == client_sdr_id
+    ).first()
+    return pb_config is not None
+
+
 def create_new_auto_connect_phantom(client_sdr_id: int, linkedin_session_cookie: str):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
