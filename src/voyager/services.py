@@ -610,29 +610,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
 def classify_active_convo(prospect_id: int, messages):
 
-    options = [
-        "Trying to schedule a time",  # ACTIVE_CONVO_SCHEDULING
-        "The conversation needs more engagement",  # ACTIVE_CONVO_NEXT_STEPS
-        "There is an objection or abrasion about a product or service",  # ACTIVE_CONVO_OBJECTION
-        "There is a question",  # ACTIVE_CONVO_QUESTION
-        "They might not be a great fit or might not be qualified",  # ACTIVE_CONVO_QUAL_NEEDED
-    ]
-
-    classification = chat_ai_classify_active_convo(messages, options)
-    status = None
-    if classification == 0:
-        status = ProspectStatus.ACTIVE_CONVO_SCHEDULING
-    elif classification == 1:
-        status = ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
-    elif classification == 2:
-        status = ProspectStatus.ACTIVE_CONVO_OBJECTION
-    elif classification == 3:
-        status = ProspectStatus.ACTIVE_CONVO_QUESTION
-    elif classification == 4:
-        status = ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED
-    else:
-        status = ProspectStatus.ACTIVE_CONVO
-
+    status = get_prospect_status_from_convo(messages)
     update_prospect_status_linkedin(prospect_id, status)
 
     # Send slack message
@@ -702,6 +680,34 @@ def classify_active_convo(prospect_id: int, messages):
         webhook_urls=[URL_MAP["csm-convo-sorter"]],
         blocks=blocks,
     )
+
+
+def get_prospect_status_from_convo(messages) -> ProspectStatus:
+
+    options = [
+        "Trying to schedule a time",  # ACTIVE_CONVO_SCHEDULING
+        "The conversation needs more engagement",  # ACTIVE_CONVO_NEXT_STEPS
+        "There is an objection or abrasion about a product or service",  # ACTIVE_CONVO_OBJECTION
+        "There is a question",  # ACTIVE_CONVO_QUESTION
+        "They might not be a great fit or might not be qualified",  # ACTIVE_CONVO_QUAL_NEEDED
+    ]
+
+    classification = chat_ai_classify_active_convo(messages, options)
+    status = None
+    if classification == 0:
+        status = ProspectStatus.ACTIVE_CONVO_SCHEDULING
+    elif classification == 1:
+        status = ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
+    elif classification == 2:
+        status = ProspectStatus.ACTIVE_CONVO_OBJECTION
+    elif classification == 3:
+        status = ProspectStatus.ACTIVE_CONVO_QUESTION
+    elif classification == 4:
+        status = ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED
+    else:
+        status = ProspectStatus.ACTIVE_CONVO
+
+    return status
 
 
 def fetch_li_prospects_for_sdr(client_sdr_id: int):

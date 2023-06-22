@@ -387,7 +387,7 @@ def random_cta_for_prospect(prospect_id: int):
         .first()
     )
     if not ctas:
-        return ""
+        return "", -1
     return ctas.text_value, ctas.id
 
 

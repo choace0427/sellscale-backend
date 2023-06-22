@@ -93,3 +93,4 @@ from src.personas.models import (
 from src.voice_builder.models import VoiceBuilderOnboarding, VoiceBuilderSamples
 from src.company.models import Company, CompanyRelation
 from src.email_outbound.models import EmailConversationMessage
+from src.simulation.models import Simulation

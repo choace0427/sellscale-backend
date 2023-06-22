@@ -1,5 +1,6 @@
 from typing import List, Union, Optional
 
+from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpLength
 
 from src.voyager.linkedin import LinkedIn
@@ -276,16 +277,18 @@ def run_next_client_sdr_scrape():
 
 
 def generate_chat_gpt_response_to_conversation_thread(
-    convo_urn_id: str,
+    prospect_id: int,
+    convo_history: List[LinkedInConvoMessage],
     bump_framework_id: int,
     account_research_copy: str = "",
-    override_bump_length: BumpLength = None,
+    override_bump_length: Optional[BumpLength] = None,
     max_retries: int = 3,
 ):
     for _ in range(max_retries):
         try:
             return generate_chat_gpt_response_to_conversation_thread_helper(
-                convo_urn_id=convo_urn_id,
+                prospect_id=prospect_id,
+                convo_history=convo_history,
                 bump_framework_id=bump_framework_id,
                 account_research_copy=account_research_copy,
                 override_bump_length=override_bump_length,
@@ -298,42 +301,25 @@ def generate_chat_gpt_response_to_conversation_thread(
 
 
 def generate_chat_gpt_response_to_conversation_thread_helper(
-    convo_urn_id: str,
+    prospect_id: int,
+    convo_history: List[LinkedInConvoMessage],
     bump_framework_id: int,
     account_research_copy: str = "",
-    override_bump_length: BumpLength = None,
+    override_bump_length: Optional[BumpLength] = None,
 ):
-    from model_import import Prospect, ProspectStatus
+    from model_import import Prospect
 
-    query = """
-        with d as (
-            select
-                *
-            from linkedin_conversation_entry
-            where thread_urn_id = '{convo_urn_id}'
-            order by date desc
-            limit 10
-        )
-        select string_agg(
-                concat(author, ': ', trim(message))
-                ,'\n\n'
-                order by date
-            ),
-            max(author) filter (where connection_degree = 'You') sender
-        from d;
-    """.format(
-        convo_urn_id=convo_urn_id
-    )
-    data = db.session.execute(query).fetchall()
-    transcript = data[0][0] or ""
-    sender = data[0][1] or ""
+    # First the first message from the SDR
+    msg = next(filter(lambda x: x.connection_degree == 'You', convo_history), None)
+    if not msg:
+        raise Exception("No message from SDR found in convo_history")
+
+    transcript = msg.message
+    sender = msg.author
     content = transcript + "\n\n" + sender + ":"
 
-    prospect: Prospect = Prospect.query.filter(
-        Prospect.li_conversation_urn_id == convo_urn_id
-    ).first()
-    if not prospect:
-        raise Exception("No prospect found for convo_urn_id: " + convo_urn_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     details = ""
     if random.random() < 0.5:
@@ -342,9 +328,6 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             title=prospect.title,
             company=prospect.company,
         )
-
-    client_sdr_id = prospect.client_sdr_id
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
 
     message_content = (
         "You are a helpful assistant helping the user write their next reply in a message thread, with the goal of getting the prospect on a call. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
@@ -355,9 +338,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         + details
     )
 
-    bump_framework: BumpFramework = BumpFramework.query.filter_by(
-        id=bump_framework_id
-    ).first()
+    bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
     if bump_framework:
         message_content = message_content + (
             "\nHere are other relevant details you can use to make the message better: "
@@ -663,7 +644,6 @@ def scrape_conversations_inbox():
 def scrape_conversation_queue():
 
     from src.voyager.services import update_conversation_entries
-    from src.message_generation.services import generate_prospect_bump
     from src.client.services import populate_prospect_events
 
     scrape_queue: List[

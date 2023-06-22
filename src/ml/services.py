@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from bs4 import BeautifulSoup
+from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
 from src.bump_framework_email.models import BumpFrameworkEmail
 
@@ -1196,7 +1197,7 @@ def determine_account_research_from_convo_and_bump_framework(
 
 
 def determine_best_bump_framework_from_convo(
-    convo_history: List[Dict[str, str]], bump_framework_ids: List[str]
+    convo_history: List[LinkedInConvoMessage], bump_framework_ids: List[str]
 ):
     """Determines the best bump framework from the conversation."""
 
@@ -1224,13 +1225,13 @@ def determine_best_bump_framework_from_convo(
         return default_indexes[0]
 
     messages = []
-    for message in convo_history:
+    for message in convo_history[::-1]:
         messages.append(
             {
                 "role": "user"
-                if message.get("connection_degree") == "You"
+                if message.connection_degree == "You"
                 else "assistant",
-                "content": message.get("message", ""),
+                "content": message.message,
             }
         )
 

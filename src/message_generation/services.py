@@ -1,3 +1,4 @@
+from src.li_conversation.models import LinkedInConvoMessage
 from src.message_generation.models import GeneratedMessageAutoBump
 from src.ml.services import determine_account_research_from_convo_and_bump_framework
 from src.ml.services import determine_best_bump_framework_from_convo
@@ -42,7 +43,7 @@ from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from src.research.linkedin.services import get_research_and_bullet_points_new
-from model_import import Prospect
+from model_import import Prospect, ProspectOverallStatus
 from ..ml.fine_tuned_models import (
     get_custom_completion_for_client,
     get_personalized_first_line_for_client,
@@ -1779,32 +1780,24 @@ def generate_message_bumps():
 
         for prospect in prospects:
             success = generate_prospect_bump(
-                prospect.client_sdr_id, prospect.id, prospect.li_conversation_urn_id
+                client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect.id,
             )
             if success == True:
                 return
 
 
-def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: str):
+def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
     """Generates a follow up message for a prospect, using their convo history and bump frameworks
 
     Args:
         client_sdr_id (int): Client SDR ID
         prospect_id (int): Prospect ID
-        convo_urn_id (str): The SDR and prospect li convo URN ID
     """
 
     try:
 
-        # Fetch the last 5 messages of their convo
-        latest_convo_entries: List[LinkedinConversationEntry] = (
-            LinkedinConversationEntry.query.filter_by(
-                conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
-            )
-            .order_by(LinkedinConversationEntry.date.desc())
-            .limit(5)
-            .all()
-        )
+        latest_convo_entries = get_li_convo_history(prospect_id)
         if len(latest_convo_entries) == 0:
             return False
 
@@ -1818,34 +1811,13 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         )
 
         if prev_bump_msg:
-            if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].id:
+            if prev_bump_msg.latest_li_message_id == latest_convo_entries[0].li_id:
                 # Already generated a bump for this message
                 return False
 
-        # Get bump frameworks
-        prospect: Prospect = Prospect.query.get(prospect_id)
-
-        bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
-            BumpFramework.active == True,
-            BumpFramework.client_sdr_id == client_sdr_id,
-            BumpFramework.overall_status == prospect.overall_status,
-            BumpFramework.client_archetype_id == prospect.archetype_id,
-        ).all()
-        
-        # Filter by active convo substatus
-        if prospect.overall_status.value == 'ACTIVE_CONVO':
-            bump_frameworks = [x for x in bump_frameworks if x.substatus == prospect.status.value]
-
-        # Filter by bumped count
-        if prospect.overall_status.value == 'BUMPED':
-            bump_frameworks = [x for x in bump_frameworks if x.bumped_count == prospect.times_bumped]
-
-        if len(bump_frameworks) == 0:
-            return False
-
         # Create a new bump message first, then update later
         dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
+            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].li_id,
         ).first()
         if dupe_bump_msg:
             # Already generated a bump for this message
@@ -1854,7 +1826,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
         bump_msg = GeneratedMessageAutoBump(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
-            latest_li_message_id=latest_convo_entries[0].id,
+            latest_li_message_id=latest_convo_entries[0].li_id,
             message='.',
             bump_framework_id=None,
             bump_framework_title=None,
@@ -1867,19 +1839,108 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
 
         ### Starting message generation... ###
 
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        data = generate_followup_response(
+            client_sdr_id=client_sdr_id, 
+            prospect_id=prospect_id, 
+            overall_status=prospect.overall_status,
+            li_status=prospect.status,
+            bump_count=prospect.times_bumped,
+            convo_history=latest_convo_entries,
+        )
+        if not data:
+            return False
+
+        ### Message generation complete ###
+
+        send_slack_message(
+            message=f" - Made response, finalizing bump message...",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+
+        # Update bump message
+        bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
+            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].li_id,
+        ).first()
+        if not bump_msg:
+            raise Exception(
+                f"Could not find bump message with li_message_id {latest_convo_entries[0].li_id}"
+            )
+
+        bump_msg.message = data.get("response")
+        bump_msg.bump_framework_id = data.get("bump_framework_id")
+        bump_msg.bump_framework_title = data.get("bump_framework_title")
+        bump_msg.bump_framework_description = data.get("bump_framework_description")
+        bump_msg.bump_framework_length = data.get("bump_framework_length")
+        bump_msg.account_research_points = data.get("account_research_points")
+        
+        db.session.add(bump_msg)
+        db.session.commit()
+
+        send_slack_message(
+            message=f" - Complete!",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+        
+        return True
+
+    except Exception as e:
+
+        send_slack_message(
+            message=f"🛑 *Error occurred, broken generation:* '{e}'""",
+            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+        )
+
+        return False
+
+
+def generate_followup_response(
+    client_sdr_id: int, 
+    prospect_id: int, 
+    overall_status: ProspectOverallStatus,
+    li_status: ProspectStatus,
+    bump_count: int,
+    convo_history: List[LinkedInConvoMessage],
+):
+    try:
+
+        # Get bump frameworks
+        prospect: Prospect = Prospect.query.get(prospect_id)
+
+        bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
+            BumpFramework.active == True,
+            BumpFramework.client_sdr_id == client_sdr_id,
+            BumpFramework.overall_status == overall_status,
+            BumpFramework.client_archetype_id == prospect.archetype_id,
+        ).all()
+        
+        # Filter by active convo substatus
+        if overall_status.value == 'ACTIVE_CONVO':
+            bump_frameworks = [x for x in bump_frameworks if x.substatus == li_status.value]
+
+        # Filter by bumped count
+        if overall_status.value == 'BUMPED':
+            bump_frameworks = [x for x in bump_frameworks if x.bumped_count == bump_count]
+
+        if len(bump_frameworks) == 0:
+            return None
+        
+        ### Starting message generation... ###
+
         send_slack_message(
             message=f"*Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...*",
             webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
         )
 
         # Determine the best bump framework
-        framework_index = determine_best_bump_framework_from_convo(
-            convo_history=[
-                {"connection_degree": msg.connection_degree, "message": msg.message}
-                for msg in latest_convo_entries
-            ],
-            bump_framework_ids=[bf.id for bf in bump_frameworks],
-        )
+        if len(bump_frameworks) == 1:
+            framework_index = 0
+        else:
+            framework_index = determine_best_bump_framework_from_convo(
+                convo_history=convo_history,
+                bump_framework_ids=[bf.id for bf in bump_frameworks],
+            )
+        
         send_slack_message(
             message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
             webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
@@ -1918,56 +1979,57 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int, convo_urn_id: s
             generate_chat_gpt_response_to_conversation_thread,
         )
 
-        if not convo_urn_id:
-            raise Exception("No convo URN ID")
-
         response, prompt = generate_chat_gpt_response_to_conversation_thread(
-            convo_urn_id=convo_urn_id,
+            prospect_id=prospect_id,
+            convo_history=convo_history,
             bump_framework_id=best_framework.id,
             account_research_copy=research_str,
         )  # type: ignore
 
-        ### Message generation complete ###
-
         send_slack_message(
-            message=f" - Made response, finalizing bump message...",
+            message=f" - Generated message!",
             webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
         )
 
-        # Update bump message
-        bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].id,
-        ).first()
-        if not bump_msg:
-            raise Exception(
-                f"Could not find bump message with li_message_id {latest_convo_entries[0].id}"
-            )
-
-        bump_msg.message = response
-        bump_msg.bump_framework_id = best_framework.id
-        bump_msg.bump_framework_title = best_framework.title
-        bump_msg.bump_framework_description = best_framework.description
-        bump_msg.bump_framework_length = best_framework.bump_length
-        bump_msg.account_research_points = account_research_points
-        
-        db.session.add(bump_msg)
-        db.session.commit()
-
-        send_slack_message(
-            message=f" - Complete!",
-            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-        )
-        
-        return True
+        return {
+            "response": response,
+            "prompt": prompt,
+            "bump_framework_id": best_framework.id,
+            "bump_framework_title": best_framework.title,
+            "bump_framework_description": best_framework.description,
+            "bump_framework_length": best_framework.bump_length.value,
+            "account_research_points": account_research_points,
+        }
 
     except Exception as e:
+        raise e
 
-        send_slack_message(
-            message=f"🛑 *Error occurred, broken generation:* '{e}'""",
-            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+
+
+def get_li_convo_history(prospect_id: int) -> List[LinkedInConvoMessage]:
+    '''
+    Fetches the last 5 messages of a prospect's LinkedIn conversation
+    '''
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    # Fetch the last 5 messages of their convo
+    latest_convo_entries: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.query.filter_by(
+            conversation_url=f"https://www.linkedin.com/messaging/thread/{prospect.li_conversation_urn_id}/"
         )
+        .order_by(LinkedinConversationEntry.date.desc())
+        .limit(5)
+        .all()
+    )
 
-        return False
+    return [LinkedInConvoMessage(
+        message=convo_entry.message,
+        connection_degree=convo_entry.connection_degree,
+        author=convo_entry.author,
+        li_id=convo_entry.id,
+        date=convo_entry.date,
+    ) for convo_entry in latest_convo_entries]
 
 
 def get_prospect_bump(client_sdr_id: int, prospect_id: int):

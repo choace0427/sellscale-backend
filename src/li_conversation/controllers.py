@@ -1,4 +1,6 @@
 import json
+
+from src.message_generation.services import get_li_convo_history
 from app import db
 from flask import Blueprint, request, jsonify
 from flask_csv import send_csv
@@ -95,17 +97,15 @@ def get_prospect_li_conversation():
         if not found_key:
             return jsonify({"error": "Invalid bump length."}), 400
 
-    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
-    convo_urn_id = prospect.li_conversation_urn_id
-    if not convo_urn_id:
-        return "No conversation thread found.", 404
+    prospect: Prospect = Prospect.query.get(prospect_id)
 
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
-        convo_urn_id=convo_urn_id,
+        prospect_id=prospect.id,
+        convo_history=get_li_convo_history(prospect.id),
         bump_framework_id=bump_framework_id,
         account_research_copy=account_research_copy,
         override_bump_length=bump_length,
-    )
+    ) # type: ignore
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200
     else:

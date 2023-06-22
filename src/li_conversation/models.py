@@ -1,3 +1,5 @@
+from datetime import datetime
+from typing import Optional
 from app import db
 from src.prospecting.models import Prospect
 
@@ -74,4 +76,25 @@ class LinkedinConversationEntry(db.Model):
             "urn_id": self.urn_id,
             "message": self.message,
             "ai_generated": self.ai_generated,
+        }
+
+
+class LinkedInConvoMessage():
+
+    def __init__(self, author: str, message: str, connection_degree: str, li_id: Optional[int] = None, meta_data: Optional[dict] = None, date: Optional[datetime] = None):
+        self.author = author
+        self.message = message
+        self.connection_degree = connection_degree
+        self.li_id = li_id
+        self.meta_data = meta_data
+        self.date = date
+
+    def to_dict(self):
+        return {
+            "author": self.author,
+            "message": self.message,
+            "connection_degree": self.connection_degree,
+            "li_id": self.li_id,
+            "meta_data": self.meta_data,
+            "date": self.date,
         }
