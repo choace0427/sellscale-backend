@@ -310,7 +310,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     from model_import import Prospect
 
     # First the first message from the SDR
-    msg = next(filter(lambda x: x.connection_degree == 'You', convo_history), None)
+    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
         raise Exception("No message from SDR found in convo_history")
 
@@ -339,7 +339,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     )
 
     if bump_framework_id:
-        bump_framework: Optional[BumpFramework] = BumpFramework.query.get(bump_framework_id)
+        bump_framework: Optional[BumpFramework] = BumpFramework.query.get(
+            bump_framework_id
+        )
         if bump_framework:
             message_content = message_content + (
                 "\nHere are other relevant details you can use to make the message better: "
@@ -358,19 +360,19 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         bump_framework and bump_framework.bump_length == BumpLength.SHORT
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 1-3 sentences."
+            "\n\nPlease keep this message between 1-2 sentences or half a paragraph. No salutations needed."
         )
     elif override_bump_length == BumpLength.MEDIUM or (
         bump_framework and bump_framework.bump_length == BumpLength.MEDIUM
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 3-5 sentences. Separate into paragraphs with line breaks when needed."
+            "\n\nPlease keep this message between 2-4 sentences or around 1 paragraph. Separate into paragraphs with line breaks when needed. No salutations needed."
         )
     elif override_bump_length == BumpLength.LONG or (
         bump_framework and bump_framework.bump_length == BumpLength.LONG
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 5-7 sentences. Separate into paragraphs with line breaks when needed."
+            "\n\nPlease keep this message between 4-6 sentences or around 1-2 paragraphs. Separate into paragraphs with line breaks when needed. No salutations needed unless explicitly mentioned to use one."
         )
 
     response = wrapped_chat_gpt_completion(
@@ -379,7 +381,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             {"role": "user", "content": content},
         ],
         max_tokens=200,
-        model="gpt-4-0314",
+        model="gpt-4",
     )
 
     if client_sdr.message_generation_captivate_mode:
