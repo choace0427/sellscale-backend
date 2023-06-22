@@ -133,6 +133,13 @@ def generate_sim_li_convo_init_msg(simulation_id: int):
         get_research_and_bullet_points_new(
             prospect_id=simulation.prospect_id, test_mode=False
         )
+
+        TOP_CONFIGURATION: Optional[
+            StackRankedMessageGenerationConfiguration
+        ] = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
+            prospect_id=simulation.prospect_id,
+        )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=simulation.prospect_id, config=TOP_CONFIGURATION, n=1
         )
