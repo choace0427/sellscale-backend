@@ -143,6 +143,7 @@ class ClientArchetype(db.Model):
             "is_unassigned_contact_archetype": self.is_unassigned_contact_archetype,
             "prospect_filters": self.prospect_filters,
             "ctas": [cta.to_dict() for cta in ctas],
+            "email_blocks_configuration": self.email_blocks_configuration,
         }
 
 
