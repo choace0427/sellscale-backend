@@ -26,6 +26,7 @@ def get_bump_frameworks_for_sdr(
         list[dict]: A list of bump frameworks
     """
     # If overall_statuses is not specified, grab all overall statuses
+
     if len(overall_statuses) == 0:
         overall_statuses = [pos for pos in ProspectOverallStatus]
 
@@ -207,7 +208,7 @@ def modify_bump_framework(
             BumpFramework.client_sdr_id == client_sdr_id,
             BumpFramework.client_archetype_id == client_archetype_id,
             BumpFramework.overall_status == overall_status,
-            BumpFramework.default == True
+            BumpFramework.default == True,
         )
         if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
             default_bump_frameworks = default_bump_frameworks.filter(

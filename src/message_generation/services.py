@@ -1817,7 +1817,8 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
 
         # Create a new bump message first, then update later
         dupe_bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].li_id,
+            GeneratedMessageAutoBump.latest_li_message_id
+            == latest_convo_entries[0].li_id,
         ).first()
         if dupe_bump_msg:
             # Already generated a bump for this message
@@ -1827,7 +1828,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             latest_li_message_id=latest_convo_entries[0].li_id,
-            message='.',
+            message=".",
             bump_framework_id=None,
             bump_framework_title=None,
             bump_framework_description=None,
@@ -1841,8 +1842,8 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
 
         prospect: Prospect = Prospect.query.get(prospect_id)
         data = generate_followup_response(
-            client_sdr_id=client_sdr_id, 
-            prospect_id=prospect_id, 
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
             overall_status=prospect.overall_status,
             li_status=prospect.status,
             bump_count=prospect.times_bumped,
@@ -1860,7 +1861,8 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
 
         # Update bump message
         bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
-            GeneratedMessageAutoBump.latest_li_message_id == latest_convo_entries[0].li_id,
+            GeneratedMessageAutoBump.latest_li_message_id
+            == latest_convo_entries[0].li_id,
         ).first()
         if not bump_msg:
             raise Exception(
@@ -1873,7 +1875,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         bump_msg.bump_framework_description = data.get("bump_framework_description")
         bump_msg.bump_framework_length = data.get("bump_framework_length")
         bump_msg.account_research_points = data.get("account_research_points")
-        
+
         db.session.add(bump_msg)
         db.session.commit()
 
@@ -1881,13 +1883,13 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
             message=f" - Complete!",
             webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
         )
-        
+
         return True
 
     except Exception as e:
 
         send_slack_message(
-            message=f"🛑 *Error occurred, broken generation:* '{e}'""",
+            message=f"🛑 *Error occurred, broken generation:* '{e}'" "",
             webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
         )
 
@@ -1895,8 +1897,8 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
 
 
 def generate_followup_response(
-    client_sdr_id: int, 
-    prospect_id: int, 
+    client_sdr_id: int,
+    prospect_id: int,
     overall_status: ProspectOverallStatus,
     li_status: ProspectStatus,
     bump_count: int,
@@ -1912,18 +1914,22 @@ def generate_followup_response(
         bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
             client_sdr_id=client_sdr_id,
             overall_statuses=[overall_status],
-            substatuses=[li_status.value],
+            substatuses=[li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
             client_archetype_ids=[prospect.archetype_id],
         )
-        
+
         # Filter by active convo substatus
-        if overall_status.value == 'ACTIVE_CONVO':
-            bump_frameworks = [x for x in bump_frameworks if x.get('substatus') == li_status.value]
+        if overall_status.value == "ACTIVE_CONVO":
+            bump_frameworks = [
+                x for x in bump_frameworks if x.get("substatus") == li_status.value
+            ]
 
         # Filter by bumped count
-        if overall_status.value == 'BUMPED':
-            bump_frameworks = [x for x in bump_frameworks if x.get('bumped_count') == bump_count]
-        
+        if overall_status.value == "BUMPED":
+            bump_frameworks = [
+                x for x in bump_frameworks if x.get("bumped_count") == bump_count
+            ]
+
         ### Starting message generation... ###
 
         send_slack_message(
@@ -1939,14 +1945,14 @@ def generate_followup_response(
             else:
                 framework_index = determine_best_bump_framework_from_convo(
                     convo_history=convo_history,
-                    bump_framework_ids=[bf.get('id', -1) for bf in bump_frameworks],
+                    bump_framework_ids=[bf.get("id", -1) for bf in bump_frameworks],
                 )
-        
+
             send_slack_message(
                 message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
                 webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
             )
-            
+
             best_framework = bump_frameworks[framework_index]
 
             send_slack_message(
@@ -1981,7 +1987,7 @@ def generate_followup_response(
         response, prompt = generate_chat_gpt_response_to_conversation_thread(
             prospect_id=prospect_id,
             convo_history=convo_history,
-            bump_framework_id=best_framework.get('id') if best_framework else None,
+            bump_framework_id=best_framework.get("id") if best_framework else None,
             account_research_copy=research_str,
         )  # type: ignore
 
@@ -1993,10 +1999,16 @@ def generate_followup_response(
         return {
             "response": response,
             "prompt": prompt,
-            "bump_framework_id": best_framework.get('id') if best_framework else None,
-            "bump_framework_title": best_framework.get('title') if best_framework else None,
-            "bump_framework_description": best_framework.get('description') if best_framework else None,
-            "bump_framework_length": best_framework.get('bump_length') if best_framework else None,
+            "bump_framework_id": best_framework.get("id") if best_framework else None,
+            "bump_framework_title": best_framework.get("title")
+            if best_framework
+            else None,
+            "bump_framework_description": best_framework.get("description")
+            if best_framework
+            else None,
+            "bump_framework_length": best_framework.get("bump_length")
+            if best_framework
+            else None,
             "account_research_points": account_research_points,
         }
 
@@ -2004,11 +2016,10 @@ def generate_followup_response(
         raise e
 
 
-
 def get_li_convo_history(prospect_id: int) -> List[LinkedInConvoMessage]:
-    '''
+    """
     Fetches the last 5 messages of a prospect's LinkedIn conversation
-    '''
+    """
 
     prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -2022,13 +2033,16 @@ def get_li_convo_history(prospect_id: int) -> List[LinkedInConvoMessage]:
         .all()
     )
 
-    return [LinkedInConvoMessage(
-        message=convo_entry.message,
-        connection_degree=convo_entry.connection_degree,
-        author=convo_entry.author,
-        li_id=convo_entry.id,
-        date=convo_entry.date,
-    ) for convo_entry in latest_convo_entries]
+    return [
+        LinkedInConvoMessage(
+            message=convo_entry.message,
+            connection_degree=convo_entry.connection_degree,
+            author=convo_entry.author,
+            li_id=convo_entry.id,
+            date=convo_entry.date,
+        )
+        for convo_entry in latest_convo_entries
+    ]
 
 
 def get_prospect_bump(client_sdr_id: int, prospect_id: int):
