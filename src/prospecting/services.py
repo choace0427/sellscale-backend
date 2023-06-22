@@ -279,7 +279,7 @@ def update_prospect_status_linkedin(
     message: any = {},
     note: Optional[str] = None,
     manually_send_to_purgatory: bool = False,
-):
+) -> tuple[bool, str]:
     from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
     from src.daily_notifications.services import create_engagement_feed_item
     from src.daily_notifications.models import EngagementFeedType
