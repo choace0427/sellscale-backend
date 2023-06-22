@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 from app import db, celery
 from src.li_conversation.models import LinkedInConvoMessage
+from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.simulation.models import (
     Simulation,
     SimulationType,
@@ -129,7 +130,14 @@ def generate_sim_li_convo_init_msg(simulation_id: int):
     )
 
     if not perms or len(perms) == 0:
-        raise ValueError("No research point permutations")
+        get_research_and_bullet_points_new(
+            prospect_id=simulation.prospect_id, test_mode=False
+        )
+        perms = generate_batch_of_research_points_from_config(
+            prospect_id=simulation.prospect_id, config=TOP_CONFIGURATION, n=1
+        )
+        if not perms or len(perms) == 0:
+            raise ValueError("No research point permutations")
     perm = perms[0]
 
     cta, cta_id = random_cta_for_prospect(prospect_id=simulation.prospect_id)
