@@ -372,8 +372,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         bump_framework and bump_framework.bump_length == BumpLength.LONG
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 4-6 sentences or around 1-2 paragraphs. Separate into paragraphs with line breaks when needed. No salutations needed unless explicitly mentioned to use one."
+            "\n\nPlease keep this message between 4-6 sentences or around 1-2 paragraphs. Separate into paragraphs with line breaks when needed. Include a salutation."
         )
+
+    message_content = message_content + (
+        "\n\nNote that this is part of a chat conversation, so please keep the tone conversational and friendly."
+    )
 
     response = wrapped_chat_gpt_completion(
         [
