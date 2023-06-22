@@ -1903,6 +1903,7 @@ def generate_followup_response(
     li_status: ProspectStatus,
     bump_count: int,
     convo_history: List[LinkedInConvoMessage],
+    show_slack_messages: bool = True,
 ):
     try:
 
@@ -1932,10 +1933,11 @@ def generate_followup_response(
 
         ### Starting message generation... ###
 
-        send_slack_message(
-            message=f"*Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...*",
-            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-        )
+        if show_slack_messages:
+            send_slack_message(
+                message=f"*Generating a bump for SDR #{client_sdr_id} and prospect #{prospect_id}...*",
+                webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+            )
 
         if len(bump_frameworks) > 0:
 
@@ -1948,17 +1950,19 @@ def generate_followup_response(
                     bump_framework_ids=[bf.get("id", -1) for bf in bump_frameworks],
                 )
 
-            send_slack_message(
-                message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
-                webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-            )
+            if show_slack_messages:
+                send_slack_message(
+                    message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
+                    webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+                )
 
             best_framework = bump_frameworks[framework_index]
 
-            send_slack_message(
-                message=f" - Selected Framework: {best_framework.get('title')} (#{best_framework.get('id')})",
-                webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-            )
+            if show_slack_messages:
+                send_slack_message(
+                    message=f" - Selected Framework: {best_framework.get('title')} (#{best_framework.get('id')})",
+                    webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+                )
         else:
             best_framework = None
 
@@ -1966,10 +1970,11 @@ def generate_followup_response(
         points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
         random_sample_points = random.sample(points, min(len(points), 3))
 
-        send_slack_message(
-            message=f" - Account Research (selected {len(random_sample_points)}/{len(points)} points)",
-            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-        )
+        if show_slack_messages:
+            send_slack_message(
+                message=f" - Account Research (selected {len(random_sample_points)}/{len(points)} points)",
+                webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+            )
 
         account_research_points = []
         research_str = ""
@@ -1991,10 +1996,11 @@ def generate_followup_response(
             account_research_copy=research_str,
         )  # type: ignore
 
-        send_slack_message(
-            message=f" - Generated message!",
-            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-        )
+        if show_slack_messages:
+            send_slack_message(
+                message=f" - Generated message!",
+                webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+            )
 
         return {
             "response": response,

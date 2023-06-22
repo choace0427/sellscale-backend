@@ -200,11 +200,6 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
     if len(convo_history) == 0:
         return False, "No conversation history."
 
-    print("\n-----\n")
-    for msg in convo_history:
-        print(msg.message)
-    print("\n-----\n")
-
     overall_status = simulation.meta_data.get("overall_status", None)
     li_status = simulation.meta_data.get("li_status", None)
     bump_count = simulation.meta_data.get("bump_count", None)
@@ -220,6 +215,7 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
             li_status=ProspectStatus[li_status],
             bump_count=bump_count,
             convo_history=convo_history,
+            show_slack_messages=False,
         )
 
         if data is None:
