@@ -2029,9 +2029,12 @@ def get_li_convo_history(prospect_id: int) -> List[LinkedInConvoMessage]:
             conversation_url=f"https://www.linkedin.com/messaging/thread/{prospect.li_conversation_urn_id}/"
         )
         .order_by(LinkedinConversationEntry.date.desc())
-        .limit(5)
+        .limit(10)
         .all()
     )
+
+    # sort in reverse order of date
+    latest_convo_entries.sort(key=lambda x: x.date)
 
     return [
         LinkedInConvoMessage(

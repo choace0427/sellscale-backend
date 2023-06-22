@@ -313,9 +313,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
         raise Exception("No message from SDR found in convo_history")
-
-    transcript = msg.message
     sender = msg.author
+
+    transcript = "\n\n".join([x.author + ": " + x.message for x in convo_history])
     content = transcript + "\n\n" + sender + ":"
 
     prospect: Prospect = Prospect.query.get(prospect_id)
