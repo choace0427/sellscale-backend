@@ -1,4 +1,5 @@
 from typing import List, Union, Optional
+from src.client.models import ClientArchetype
 
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpLength
@@ -320,6 +321,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     details = ""
     if random.random() < 0.5:
@@ -378,6 +380,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     message_content = message_content + (
         "\n\nNote that this is part of a chat conversation, so please keep the tone conversational and friendly."
     )
+
+    if archetype and archetype.persona_contact_objective:
+        message_content = (
+            message_content
+            + f"\n\nThe goal of this conversation of chatting with this person is the following: `{archetype.persona_contact_objective}`"
+        )
 
     response = wrapped_chat_gpt_completion(
         [

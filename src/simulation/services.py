@@ -55,7 +55,7 @@ def send_li_convo_message(
 
 
 def get_sim_li_convo_history(
-    simulation_id: int, fetchAll: bool = False
+    simulation_id: int, fetchAll: bool = False, inverted_order=False
 ) -> List[LinkedInConvoMessage]:
     """
     Fetches the last 5 messages of a simulation's conversation
@@ -70,7 +70,7 @@ def get_sim_li_convo_history(
 
     simulation_msgs: List[SimulationRecord] = query.all()
 
-    return [
+    retval = [
         LinkedInConvoMessage(
             message=sim_msg.data.get("message", ""),
             connection_degree=sim_msg.data.get("connection_degree", "You"),
@@ -81,6 +81,11 @@ def get_sim_li_convo_history(
         )
         for sim_msg in simulation_msgs
     ]
+
+    if inverted_order:
+        retval = retval[::-1]
+
+    return retval
 
 
 def generate_sim_li_convo_init_msg(simulation_id: int):
@@ -176,9 +181,14 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
     if simulation.meta_data is None:
         return False, "Missing meta data."
 
-    convo_history = get_sim_li_convo_history(simulation_id)
+    convo_history = get_sim_li_convo_history(simulation_id, inverted_order=True)
     if len(convo_history) == 0:
         return False, "No conversation history."
+
+    print("\n-----\n")
+    for msg in convo_history:
+        print(msg.message)
+    print("\n-----\n")
 
     overall_status = simulation.meta_data.get("overall_status", None)
     li_status = simulation.meta_data.get("li_status", None)
@@ -335,7 +345,10 @@ def update_sim_li_convo(simulation_id: int):
         print("4, continuing...")
 
     # Set the bumped status and bumped count
-    if last_3_msg_was_you:
+    if last_3_msg_was_you and simulation.meta_data.get("li_status") in (
+        "ACCEPTED",
+        "RESPONDED",
+    ):
         simulation: Simulation = Simulation.query.get(simulation_id)
         simulation.meta_data = {
             "overall_status": "BUMPED",
@@ -346,7 +359,10 @@ def update_sim_li_convo(simulation_id: int):
         print("5")
         return True
 
-    if last_2_msg_was_you:
+    if last_2_msg_was_you and simulation.meta_data.get("li_status") in (
+        "ACCEPTED",
+        "RESPONDED",
+    ):
         simulation: Simulation = Simulation.query.get(simulation_id)
         simulation.meta_data = {
             "overall_status": "BUMPED",
@@ -357,7 +373,10 @@ def update_sim_li_convo(simulation_id: int):
         print("6")
         return True
 
-    if last_msg_was_you:
+    if last_msg_was_you and simulation.meta_data.get("li_status") in (
+        "ACCEPTED",
+        "RESPONDED",
+    ):
         simulation: Simulation = Simulation.query.get(simulation_id)
         simulation.meta_data = {
             "overall_status": "BUMPED",
