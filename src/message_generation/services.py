@@ -1907,20 +1907,22 @@ def generate_followup_response(
         # Get bump frameworks
         prospect: Prospect = Prospect.query.get(prospect_id)
 
-        bump_frameworks: List[BumpFramework] = BumpFramework.query.filter(
-            BumpFramework.active == True,
-            BumpFramework.client_sdr_id == client_sdr_id,
-            BumpFramework.overall_status == overall_status,
-            BumpFramework.client_archetype_id == prospect.archetype_id,
-        ).all()
+        from src.bump_framework.services import get_bump_frameworks_for_sdr
+
+        bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
+            client_sdr_id=client_sdr_id,
+            overall_statuses=[overall_status],
+            substatuses=[li_status.value],
+            client_archetype_ids=[prospect.archetype_id],
+        )
         
         # Filter by active convo substatus
         if overall_status.value == 'ACTIVE_CONVO':
-            bump_frameworks = [x for x in bump_frameworks if x.substatus == li_status.value]
+            bump_frameworks = [x for x in bump_frameworks if x.get('substatus') == li_status.value]
 
         # Filter by bumped count
         if overall_status.value == 'BUMPED':
-            bump_frameworks = [x for x in bump_frameworks if x.bumped_count == bump_count]
+            bump_frameworks = [x for x in bump_frameworks if x.get('bumped_count') == bump_count]
         
         ### Starting message generation... ###
 
@@ -1937,7 +1939,7 @@ def generate_followup_response(
             else:
                 framework_index = determine_best_bump_framework_from_convo(
                     convo_history=convo_history,
-                    bump_framework_ids=[bf.id for bf in bump_frameworks],
+                    bump_framework_ids=[bf.get('id', -1) for bf in bump_frameworks],
                 )
         
             send_slack_message(
@@ -1948,7 +1950,7 @@ def generate_followup_response(
             best_framework = bump_frameworks[framework_index]
 
             send_slack_message(
-                message=f" - Selected Framework: {best_framework.title} (#{best_framework.id})",
+                message=f" - Selected Framework: {best_framework.get('title')} (#{best_framework.get('id')})",
                 webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
             )
         else:
@@ -1979,7 +1981,7 @@ def generate_followup_response(
         response, prompt = generate_chat_gpt_response_to_conversation_thread(
             prospect_id=prospect_id,
             convo_history=convo_history,
-            bump_framework_id=best_framework.id if best_framework else None,
+            bump_framework_id=best_framework.get('id') if best_framework else None,
             account_research_copy=research_str,
         )  # type: ignore
 
@@ -1991,10 +1993,10 @@ def generate_followup_response(
         return {
             "response": response,
             "prompt": prompt,
-            "bump_framework_id": best_framework.id if best_framework else None,
-            "bump_framework_title": best_framework.title if best_framework else None,
-            "bump_framework_description": best_framework.description if best_framework else None,
-            "bump_framework_length": best_framework.bump_length.value if best_framework else None,
+            "bump_framework_id": best_framework.get('id') if best_framework else None,
+            "bump_framework_title": best_framework.get('title') if best_framework else None,
+            "bump_framework_description": best_framework.get('description') if best_framework else None,
+            "bump_framework_length": best_framework.get('bump_length') if best_framework else None,
             "account_research_points": account_research_points,
         }
 
