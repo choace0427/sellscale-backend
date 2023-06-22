@@ -1921,9 +1921,6 @@ def generate_followup_response(
         # Filter by bumped count
         if overall_status.value == 'BUMPED':
             bump_frameworks = [x for x in bump_frameworks if x.bumped_count == bump_count]
-
-        if len(bump_frameworks) == 0:
-            return None
         
         ### Starting message generation... ###
 
@@ -1932,30 +1929,30 @@ def generate_followup_response(
             webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
         )
 
-        # Determine the best bump framework
-        if len(bump_frameworks) == 1:
-            framework_index = 0
-        else:
-            framework_index = determine_best_bump_framework_from_convo(
-                convo_history=convo_history,
-                bump_framework_ids=[bf.id for bf in bump_frameworks],
-            )
-        
-        send_slack_message(
-            message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
-            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-        )
-        
-        best_framework = bump_frameworks[framework_index]
-        if not best_framework:
-            raise Exception(
-                f"Could not find best bump framework, index {framework_index} / {len(bump_frameworks)}"
-            )
+        if len(bump_frameworks) > 0:
 
-        send_slack_message(
-            message=f" - Selected Framework: {best_framework.title} (#{best_framework.id})",
-            webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
-        )
+            # Determine the best bump framework
+            if len(bump_frameworks) == 1:
+                framework_index = 0
+            else:
+                framework_index = determine_best_bump_framework_from_convo(
+                    convo_history=convo_history,
+                    bump_framework_ids=[bf.id for bf in bump_frameworks],
+                )
+        
+            send_slack_message(
+                message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
+                webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+            )
+            
+            best_framework = bump_frameworks[framework_index]
+
+            send_slack_message(
+                message=f" - Selected Framework: {best_framework.title} (#{best_framework.id})",
+                webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
+            )
+        else:
+            best_framework = None
 
         # Determine the best account research
         points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
@@ -1982,7 +1979,7 @@ def generate_followup_response(
         response, prompt = generate_chat_gpt_response_to_conversation_thread(
             prospect_id=prospect_id,
             convo_history=convo_history,
-            bump_framework_id=best_framework.id,
+            bump_framework_id=best_framework.id if best_framework else None,
             account_research_copy=research_str,
         )  # type: ignore
 
@@ -1994,10 +1991,10 @@ def generate_followup_response(
         return {
             "response": response,
             "prompt": prompt,
-            "bump_framework_id": best_framework.id,
-            "bump_framework_title": best_framework.title,
-            "bump_framework_description": best_framework.description,
-            "bump_framework_length": best_framework.bump_length.value,
+            "bump_framework_id": best_framework.id if best_framework else None,
+            "bump_framework_title": best_framework.title if best_framework else None,
+            "bump_framework_description": best_framework.description if best_framework else None,
+            "bump_framework_length": best_framework.bump_length.value if best_framework else None,
             "account_research_points": account_research_points,
         }
 

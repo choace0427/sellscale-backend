@@ -279,7 +279,7 @@ def run_next_client_sdr_scrape():
 def generate_chat_gpt_response_to_conversation_thread(
     prospect_id: int,
     convo_history: List[LinkedInConvoMessage],
-    bump_framework_id: int,
+    bump_framework_id: Optional[int] = None,
     account_research_copy: str = "",
     override_bump_length: Optional[BumpLength] = None,
     max_retries: int = 3,
@@ -303,7 +303,7 @@ def generate_chat_gpt_response_to_conversation_thread(
 def generate_chat_gpt_response_to_conversation_thread_helper(
     prospect_id: int,
     convo_history: List[LinkedInConvoMessage],
-    bump_framework_id: int,
+    bump_framework_id: Optional[int] = None,
     account_research_copy: str = "",
     override_bump_length: Optional[BumpLength] = None,
 ):
@@ -338,12 +338,15 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         + details
     )
 
-    bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
-    if bump_framework:
-        message_content = message_content + (
-            "\nHere are other relevant details you can use to make the message better: "
-            + bump_framework.description
-        )
+    if bump_framework_id:
+        bump_framework: Optional[BumpFramework] = BumpFramework.query.get(bump_framework_id)
+        if bump_framework:
+            message_content = message_content + (
+                "\nHere are other relevant details you can use to make the message better: "
+                + bump_framework.description
+            )
+    else:
+        bump_framework = None
 
     if account_research_copy:
         message_content = message_content + (
