@@ -97,7 +97,7 @@ def create_voice_builder_samples(
     )
 
     results_queue = queue.Queue()
-    max_threads = 3
+    max_threads = 5
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         futures = [
