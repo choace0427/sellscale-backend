@@ -506,6 +506,22 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         and last_2_msg_was_you
         and latest_convo_entries[2].connection_degree == "You"
     )
+
+    last_message_from_me = (
+        latest_convo_entries[0]
+        if latest_convo_entries[0].connection_degree == "You"
+        else None
+    )
+    if (
+        last_message_from_me
+        and last_message_from_me.date > dt.datetime.now() - dt.timedelta(days=1)
+    ):
+        send_to_purgatory(
+            prospect_id=prospect_id,
+            days=2,
+            reason=ProspectHiddenReason.RECENTLY_BUMPED,
+        )
+
     has_prospect_replied = False
     for entry in latest_convo_entries:
         if entry.connection_degree != "You":
