@@ -370,6 +370,9 @@ def get_generate_email_prompt(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
+    framework_id = get_request_parameter(
+        "bump_framework_id", request, json=True, required=False, parameter_type=int
+    )
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     if prospect is None or prospect.client_sdr_id != client_sdr_id:
@@ -378,7 +381,11 @@ def get_generate_email_prompt(client_sdr_id: int):
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
     # generate_prospect_research(prospect.id, False, False)
 
-    prompt = ai_email_prompt(client_sdr_id, prospect_id)
+    prompt = ai_email_prompt(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        email_bump_framework_id=framework_id
+    )
     return jsonify({"prompt": prompt}), 200
 
 
