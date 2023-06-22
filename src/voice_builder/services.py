@@ -104,7 +104,8 @@ def create_voice_builder_samples(
                 create_voice_builder_sample,
                 voice_builder_onboarding_id=voice_builder_onboarding_id,
                 computed_prompt=computed_prompt,
-            )
+                queue=results_queue,
+            ) for _ in range(n)
         ]
         concurrent.futures.wait(futures)
 
