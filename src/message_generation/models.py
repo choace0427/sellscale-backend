@@ -132,6 +132,11 @@ class GeneratedMessageQueue(db.Model):
 
     nylas_message_id = db.Column(db.String, unique=True, index=True, nullable=True)
     li_message_urn_id = db.Column(db.String, unique=True, index=True, nullable=True)
+    bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"))
+    bump_framework_title = db.Column(db.String, nullable=True)
+    bump_framework_description = db.Column(db.String, nullable=True)
+    bump_framework_length = db.Column(db.String, nullable=True)
+    account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
 
 
 class GeneratedMessageAutoBump(db.Model):

@@ -38,6 +38,11 @@ class LinkedinConversationEntry(db.Model):
     urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
     ai_generated = db.Column(db.Boolean, nullable=True) # is at least partially AI generated
+    bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"))
+    bump_framework_title = db.Column(db.String, nullable=True)
+    bump_framework_description = db.Column(db.String, nullable=True)
+    bump_framework_length = db.Column(db.String, nullable=True)
+    account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
 
     def li_conversation_thread_by_prospect_id(prospect_id: int):
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
@@ -76,6 +81,11 @@ class LinkedinConversationEntry(db.Model):
             "urn_id": self.urn_id,
             "message": self.message,
             "ai_generated": self.ai_generated,
+            "bump_framework_id": self.bump_framework_id,
+            "bump_framework_title": self.bump_framework_title,
+            "bump_framework_description": self.bump_framework_description,
+            "bump_framework_length": self.bump_framework_length,
+            "account_research_points": self.account_research_points,
         }
 
 

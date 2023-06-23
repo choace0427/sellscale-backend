@@ -92,13 +92,35 @@ def send_message(client_sdr_id: int):
     if purgatory is None:
         purgatory = True
 
+    bf_id = get_request_parameter(
+        "bump_framework_id", request, json=True, required=False, parameter_type=int
+    )
+    bf_title = get_request_parameter(
+        "bump_framework_title", request, json=True, required=False, parameter_type=str
+    )
+    bf_description = get_request_parameter(
+        "bump_framework_description", request, json=True, required=False, parameter_type=str
+    )
+    bf_length = get_request_parameter(
+        "bump_framework_length", request, json=True, required=False, parameter_type=str
+    )
+    account_research_points = get_request_parameter(
+        "account_research_points", request, json=True, required=False, parameter_type=list
+    )
+
+
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
     msg_urn_id = api.send_message(msg, recipients=[urn_id])
     if isinstance(msg_urn_id, str) and ai_generated:
         add_generated_msg_queue(
             client_sdr_id=client_sdr_id,
-            li_message_urn_id=msg_urn_id
+            li_message_urn_id=msg_urn_id,
+            bump_framework_id=bf_id,
+            bump_framework_title=bf_title,
+            bump_framework_description=bf_description,
+            bump_framework_length=bf_length,
+            account_research_points=account_research_points
         )
 
     if purgatory:
