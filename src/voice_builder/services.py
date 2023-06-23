@@ -165,7 +165,6 @@ def create_voice_builder_sample(voice_builder_onboarding_id: int, computed_promp
         db.session.commit()
 
         queue.put(voice_builder_sample.to_dict())
-        print('put in queue')
 
         return True, voice_builder_sample.to_dict()
 
@@ -221,6 +220,8 @@ def generate_computed_prompt(voice_builder_onboarding_id: int):
 
     computed_prompt = """
 {instruction}
+
+The message should be no longer than 300 words.
 
 ## Here are a couple examples
 {sample_str}
