@@ -1,3 +1,5 @@
+from typing import List
+from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
 from src.prospecting.nylas.services import (
     nylas_send_email,
@@ -849,6 +851,58 @@ def post_add_note(client_sdr_id: int):
 
     prospect_note_id = create_prospect_note(prospect_id=prospect_id, note=note)
     return jsonify({"message": "Success", "prospect_note_id": prospect_note_id}), 200
+
+
+
+@PROSPECTING_BLUEPRINT.route("/note", methods=["GET"])
+@require_user
+def get_single_note(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True, parameter_type=int
+    )
+
+    # Check that prospect exists and belongs to user
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect is None:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
+    if len(prospect_notes) == 0:
+        # Make sure there's at least one note
+        create_prospect_note(prospect_id=prospect_id, note='')
+        prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
+
+    return jsonify({"message": "Success", "data": prospect_notes[-1].to_dict()}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/note", methods=["PUT"])
+@require_user
+def update_single_note(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    note = get_request_parameter(
+        "note", request, json=True, required=True, parameter_type=str
+    )
+
+    # Check that prospect exists and belongs to user
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect is None:
+        return jsonify({"message": "Prospect not found"}), 404
+    elif prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect does not belong to user"}), 403
+
+    prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
+    if len(prospect_notes) == 0:
+        create_prospect_note(prospect_id=prospect_id, note=note)
+    else:
+        prospect_notes[-1].note = note
+        db.session.commit()
+
+    return jsonify({"message": "Success"}), 200
+
 
 
 @PROSPECTING_BLUEPRINT.route("/batch_mark_as_lead", methods=["POST"])

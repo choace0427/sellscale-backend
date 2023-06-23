@@ -129,6 +129,26 @@ def post_prospect_li_conversation_woz(client_sdr_id: int):
     return jsonify({"message": message})
 
 
+@LI_CONVERASTION_BLUEPRINT.route("/prospect/read_messages", methods=["POST"])
+@require_user
+def post_prospect_read_messages(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    updated = prospect.li_unread_messages != 0
+    prospect.li_unread_messages = 0
+    db.session.commit()
+
+    return jsonify({"message": 'Success', "data": {
+        "updated": updated,
+    }})
+
+
 @LI_CONVERASTION_BLUEPRINT.route("/processed", methods=["POST"])
 def post_prospect_li_conversation_processed():
     """Marks a prospect's LinkedIn conversation entry as processed."""
