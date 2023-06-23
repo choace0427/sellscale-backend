@@ -221,7 +221,7 @@ def generate_computed_prompt(voice_builder_onboarding_id: int):
     computed_prompt = """
 {instruction}
 
-The message should be no longer than 300 words.
+The message should be no longer than 300 characters.
 
 ## Here are a couple examples
 {sample_str}
