@@ -300,6 +300,14 @@ def create_client_archetype(
         persona_contact_objective=persona_contact_objective,
         is_unassigned_contact_archetype=is_unassigned_contact_archetype,
         active=active,
+        email_blocks_configuration=[
+            "Personalize the title to their company and or the prospect",
+            "Include a greeting with Hi, Hello, or Hey with their first name",
+            "Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.",
+            "Mention what we do and offer and how it can help them based on their background, company, and key details.",
+            "Use the objective for a call to action",
+            "End with Best, (new line) (My Name) (new line) (Title)",
+        ],
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -376,6 +384,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
         ],
         scrape_time="13:27:21",
         next_scrape="2023-06-08 13:27:21.493957",
+        auth_token=generate_random_alphanumeric(32),
     )
     db.session.add(sdr)
     db.session.commit()

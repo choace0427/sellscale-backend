@@ -415,18 +415,15 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
                 prospect_id=prospect.id,
             )
         )
-    print("saving objects ...")
     bulk_objects = [obj for obj in bulk_objects if obj]
     db.session.bulk_save_objects(bulk_objects)
     db.session.commit()
-    print("Done saving!")
 
     update_prospect_status(prospect.id, convo_urn_id)
 
     # Classify conversation
     if prospect.status.value.startswith("ACTIVE_CONVO"):
-
-        latest_convo_entries: List[LinkedinConversationEntry] = (
+        latest_convo_entries: list[LinkedinConversationEntry] = (
             LinkedinConversationEntry.query.filter_by(
                 conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
             )
@@ -445,6 +442,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
                     "content": message.message,
                 }
             )
+        messages.reverse()
         classify_active_convo(prospect.id, messages)
 
     return "OK", 200
@@ -613,7 +611,17 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 def classify_active_convo(prospect_id: int, messages):
 
     status = get_prospect_status_from_convo(messages)
-    update_prospect_status_linkedin(prospect_id, status)
+
+    # Make sure the prospect's status has changed before sending messages
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.status == status:
+        return
+
+    success, message = update_prospect_status_linkedin(prospect_id, status)
+
+    # Make sure the prospect's status has changed before sending messages
+    if not success:
+        return
 
     # Send slack message
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -648,7 +656,6 @@ def classify_active_convo(prospect_id: int, messages):
                 },
             }
         )
-    block_messages.reverse()
     blocks += block_messages
 
     blocks.append(
@@ -707,7 +714,7 @@ def get_prospect_status_from_convo(messages) -> ProspectStatus:
     elif classification == 4:
         status = ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED
     else:
-        status = ProspectStatus.ACTIVE_CONVO
+        status = ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
 
     return status
 

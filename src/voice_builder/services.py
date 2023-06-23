@@ -1,5 +1,8 @@
 import json
 from typing import Optional
+from app import app
+import queue
+import concurrent.futures
 
 from sqlalchemy import func
 from src.message_generation.services_stack_ranked_configurations import (
@@ -88,61 +91,83 @@ def create_voice_builder_samples(
     voice_builder_onboarding_id: int,
     n: int,
 ):
-    
     # Using existing samples to reinforce the new sample generation
     computed_prompt = generate_computed_prompt(
         voice_builder_onboarding_id=voice_builder_onboarding_id
     )
 
+    results_queue = queue.Queue()
+    max_threads = 5
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+        futures = [
+            executor.submit(
+                create_voice_builder_sample,
+                voice_builder_onboarding_id=voice_builder_onboarding_id,
+                computed_prompt=computed_prompt,
+                queue=results_queue,
+            ) for _ in range(n)
+        ]
+        concurrent.futures.wait(futures)
+
     samples = []
-    for _ in range(n):
-        success, sample = create_voice_builder_sample(
-            voice_builder_onboarding_id=voice_builder_onboarding_id,
-            computed_prompt=computed_prompt,
-        )
-        if success: samples.append(sample)
+    while not results_queue.empty():
+        result = results_queue.get()
+        samples.append(result)
+
+    # samples = []
+    # for _ in range(n):
+    #     success, sample = create_voice_builder_sample(
+    #         voice_builder_onboarding_id=voice_builder_onboarding_id,
+    #         computed_prompt=computed_prompt,
+    #     )
+    #     if success: samples.append(sample)
     return samples
 
 
-def create_voice_builder_sample(voice_builder_onboarding_id: int, computed_prompt: str):
-    voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
-        voice_builder_onboarding_id
-    )
-    archetype_id = voice_builder_onboarding.client_archetype_id
-    (
-        prompt,
-        _,
-        research_point_ids,
-        cta_id,
-        bio_data,
-        prospect_id,
-    ) = get_sample_prompt_from_config_details(
-        generated_message_type=voice_builder_onboarding.generated_message_type.value,
-        research_point_types=[x.value for x in ResearchPointType],
-        configuration_type="DEFAULT",
-        client_id=voice_builder_onboarding.client_id,
-        archetype_id=archetype_id,
-    )
+def create_voice_builder_sample(voice_builder_onboarding_id: int, computed_prompt: str, queue: queue.Queue):
+    with app.app_context():
+        voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
+            voice_builder_onboarding_id
+        )
+        archetype_id = voice_builder_onboarding.client_archetype_id
+        (
+            prompt,
+            _,
+            research_point_ids,
+            cta_id,
+            bio_data,
+            prospect_id,
+        ) = get_sample_prompt_from_config_details(
+            generated_message_type=voice_builder_onboarding.generated_message_type.value,
+            research_point_types=[x.value for x in ResearchPointType],
+            configuration_type="DEFAULT",
+            client_id=voice_builder_onboarding.client_id,
+            archetype_id=archetype_id,
+        )
 
-    completion, final_prompt = get_computed_prompt_completion(
-        computed_prompt=computed_prompt,
-        prompt=prompt,
-    )
+        completion, final_prompt = get_computed_prompt_completion(
+            computed_prompt=computed_prompt,
+            prompt=prompt,
+        )
 
-    voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples(
-        voice_builder_onboarding_id=voice_builder_onboarding_id,
-        sample_readable_data=json.dumps(bio_data),
-        sample_prompt=prompt,
-        sample_final_prompt=final_prompt,
-        sample_completion=completion,
-        research_point_ids=research_point_ids,
-        cta_id=cta_id,
-        prospect_id=prospect_id,
-    )
-    db.session.add(voice_builder_sample)
-    db.session.commit()
+        voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples(
+            voice_builder_onboarding_id=voice_builder_onboarding_id,
+            sample_readable_data=json.dumps(bio_data),
+            sample_prompt=prompt,
+            sample_final_prompt=final_prompt,
+            sample_completion=completion,
+            research_point_ids=research_point_ids,
+            cta_id=cta_id,
+            prospect_id=prospect_id,
+        )
+        db.session.add(voice_builder_sample)
+        db.session.commit()
 
-    return True, voice_builder_sample.to_dict()
+        queue.put(voice_builder_sample.to_dict())
+        print('put in queue')
+
+        return True, voice_builder_sample.to_dict()
 
 
 def edit_voice_builder_sample(

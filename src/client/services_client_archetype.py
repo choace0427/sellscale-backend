@@ -336,7 +336,7 @@ def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int,
         return []
 
     if archetype.email_blocks_configuration is None:
-        create_empty_archetype_email_blocks_configuration(
+        create_default_archetype_email_blocks_configuration(
             client_sdr_id, client_archetype_id)
 
     if email_bump_framework_id:
@@ -351,7 +351,7 @@ def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int,
     return archetype.email_blocks_configuration
 
 
-def create_empty_archetype_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int) -> bool:
+def create_default_archetype_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int) -> bool:
     """Create an empty email blocks configuration for a given archetype
 
     Args:
@@ -372,7 +372,14 @@ def create_empty_archetype_email_blocks_configuration(client_sdr_id: int, client
     if archetype.client_sdr_id != sdr.id:
         return False
 
-    archetype.email_blocks_configuration = []
+    archetype.email_blocks_configuration = [
+        "Personalize the title to their company and or the prospect",
+        "Include a greeting with Hi, Hello, or Hey with their first name",
+        "Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.",
+        "Mention what we do and offer and how it can help them based on their background, company, and key details.",
+        "Use the objective for a call to action",
+        "End with Best, (new line) (My Name) (new line) (Title)"
+    ]
     db.session.add(archetype)
     db.session.commit()
 

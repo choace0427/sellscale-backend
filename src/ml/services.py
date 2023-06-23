@@ -1117,7 +1117,7 @@ def chat_ai_classify_active_convo(messages, output_options: List[str]) -> int:
         options += f"- {i+1}. {option}\n"
 
     prompt = f"""
-    Based on this conversation, classify the latest state of the conversation as one of the following options. Only respond with the option number.
+    Based on this conversation, classify the conversation as one of the following options. Only respond with the option number.
 
     {options}
     """

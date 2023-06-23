@@ -1,4 +1,5 @@
 from typing import List, Union, Optional
+from src.client.models import ClientArchetype
 
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpLength
@@ -321,16 +322,17 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     from model_import import Prospect
 
     # First the first message from the SDR
-    msg = next(filter(lambda x: x.connection_degree == 'You', convo_history), None)
+    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
         raise Exception("No message from SDR found in convo_history")
-
-    transcript = msg.message
     sender = msg.author
+
+    transcript = "\n\n".join([x.author + ": " + x.message for x in convo_history])
     content = transcript + "\n\n" + sender + ":"
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     details = ""
     if random.random() < 0.5:
@@ -350,7 +352,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     )
 
     if bump_framework_id:
-        bump_framework: Optional[BumpFramework] = BumpFramework.query.get(bump_framework_id)
+        bump_framework: Optional[BumpFramework] = BumpFramework.query.get(
+            bump_framework_id
+        )
         if bump_framework:
             message_content = message_content + (
                 "\nHere are other relevant details you can use to make the message better: "
@@ -369,19 +373,29 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         bump_framework and bump_framework.bump_length == BumpLength.SHORT
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 1-3 sentences."
+            "\n\nPlease keep this message between 1-2 sentences or half a paragraph. No salutations needed."
         )
     elif override_bump_length == BumpLength.MEDIUM or (
         bump_framework and bump_framework.bump_length == BumpLength.MEDIUM
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 3-5 sentences. Separate into paragraphs with line breaks when needed."
+            "\n\nPlease keep this message between 2-4 sentences or around 1 paragraph. Separate into paragraphs with line breaks when needed. No salutations needed."
         )
     elif override_bump_length == BumpLength.LONG or (
         bump_framework and bump_framework.bump_length == BumpLength.LONG
     ):
         message_content = message_content + (
-            "\n\nPlease keep this message between 5-7 sentences. Separate into paragraphs with line breaks when needed."
+            "\n\nPlease keep this message between 4-6 sentences or around 1-2 paragraphs. Separate into paragraphs with line breaks when needed. Include a salutation."
+        )
+
+    message_content = message_content + (
+        "\n\nNote that this is part of a chat conversation, so please keep the tone conversational and friendly."
+    )
+
+    if archetype and archetype.persona_contact_objective:
+        message_content = (
+            message_content
+            + f"\n\nThe goal of this conversation of chatting with this person is the following: `{archetype.persona_contact_objective}`"
         )
 
     response = wrapped_chat_gpt_completion(
@@ -390,7 +404,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             {"role": "user", "content": content},
         ],
         max_tokens=200,
-        model="gpt-4-0314",
+        model="gpt-4",
     )
 
     if client_sdr.message_generation_captivate_mode:
