@@ -412,6 +412,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
                 message=msg,
                 urn_id=msg_urn_id,
                 client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect.id,
             )
         )
     print("saving objects ...")
@@ -526,6 +527,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
     for entry in latest_convo_entries:
         if entry.connection_degree != "You":
             prospect.li_last_message_from_prospect = entry.message
+            prospect.li_last_message_timestamp = entry.date
             db.session.add(prospect)
             db.session.commit()
             has_prospect_replied = True

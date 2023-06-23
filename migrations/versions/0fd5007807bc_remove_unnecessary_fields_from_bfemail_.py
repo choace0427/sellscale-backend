@@ -1,7 +1,7 @@
 """Remove unnecessary fields from BFEmail model
 
 Revision ID: 0fd5007807bc
-Revises: 82353fe07af8
+Revises: 36164989edf8
 Create Date: 2023-06-21 10:25:23.933245
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '0fd5007807bc'
-down_revision = '82353fe07af8'
+down_revision = '36164989edf8'
 branch_labels = None
 depends_on = None
 

@@ -401,6 +401,8 @@ class Prospect(db.Model):
     li_last_message_timestamp = db.Column(db.DateTime, nullable=True)
     li_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
     li_last_message_from_prospect = db.Column(db.String, nullable=True)
+    li_unread_messages = db.Column(db.Integer, nullable=True)
+
     li_num_followers = db.Column(db.Integer, nullable=True)
     li_should_deep_scrape = db.Column(db.Boolean, nullable=True)
     li_urn_id = db.Column(db.String, nullable=True)
@@ -579,6 +581,7 @@ class Prospect(db.Model):
             "li_last_message_timestamp": self.li_last_message_timestamp,
             "li_is_last_message_from_sdr": self.li_is_last_message_from_sdr,
             "li_last_message_from_prospect": self.li_last_message_from_prospect,
+            "li_unread_messages": self.li_unread_messages,
             "li_num_followers": self.li_num_followers,
             "li_urn_id": self.li_urn_id,
             "health_check_score": self.health_check_score,

@@ -104,6 +104,7 @@ def create_linkedin_conversation_entry(
     urn_id: Union[str, None] = None,
     img_expire: int = 0,
     client_sdr_id: int = -1,
+    prospect_id: int = -1,
 ):
     if message.strip() == "":
         return None
@@ -175,6 +176,16 @@ def create_linkedin_conversation_entry(
             thread_urn_id=thread_urn_id,
             urn_id=urn_id,
         )
+
+        # A new message is being recorded, increase unread message count
+        if prospect_id != -1:
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            if not prospect.li_unread_messages:
+                prospect.li_unread_messages = 1
+            else:
+                prospect.li_unread_messages += 1
+            db.session.add(prospect)
+
         return new_linkedin_conversation_entry
     else:
         # Populate the urn_id is it's not already set
