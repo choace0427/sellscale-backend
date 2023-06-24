@@ -172,6 +172,7 @@ class GeneratedMessageAutoBump(db.Model):
             "latest_li_message_id": self.latest_li_message_id,
             "message": self.message,
             "bump_framework": {
+                "id": self.bump_framework_id,
                 "title": self.bump_framework_title,
                 "description": self.bump_framework_description,
                 "length": self.bump_framework_length.value
