@@ -521,15 +521,32 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             reason=ProspectHiddenReason.RECENTLY_BUMPED,
         )
 
+    # Update the last message values accordingly
     has_prospect_replied = False
+    last_msg_from_prospect = None
+    last_msg_from_sdr = None
     for entry in latest_convo_entries:
-        if entry.connection_degree != "You":
-            prospect.li_last_message_from_prospect = entry.message
-            prospect.li_last_message_timestamp = entry.date
-            db.session.add(prospect)
-            db.session.commit()
-            has_prospect_replied = True
-            break
+        if entry.connection_degree == "You":
+            if not last_msg_from_sdr:
+                last_msg_from_sdr = entry
+        else:
+            if not last_msg_from_prospect:
+                last_msg_from_prospect = entry
+
+    if last_msg_from_prospect:
+        prospect.li_last_message_from_prospect = last_msg_from_prospect.message
+        has_prospect_replied = True
+
+    if last_msg_from_sdr:
+        prospect.li_last_message_from_sdr = last_msg_from_sdr.message
+
+    if last_msg_from_prospect or last_msg_from_sdr:
+        prospect.li_last_message_timestamp = latest_convo_entries[0].date
+        prospect.li_is_last_message_from_sdr = latest_convo_entries[0].connection_degree == "You"
+        db.session.add(prospect)
+        db.session.commit()
+
+
     record_marked_not_interested = (
         ProspectStatusRecords.query.filter_by(
             prospect_id=prospect_id, to_status=ProspectStatus.NOT_INTERESTED
