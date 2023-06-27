@@ -6,6 +6,7 @@ from src.client.services import (
     submit_demo_feedback,
     get_all_demo_feedback,
     get_demo_feedback_for_client,
+    toggle_client_sdr_auto_bump,
 )
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
@@ -957,6 +958,18 @@ def post_toggle_client_sdr_autopilot_enabled():
     success = toggle_client_sdr_autopilot_enabled(client_sdr_id=client_sdr_id)
     if not success:
         return "Failed to toggle autopilot enabled", 400
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/toggle_auto_bump", methods=["POST"])
+def post_toggle_client_sdr_auto_bump():
+    """Toggles auto bump for a client SDR"""
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    success = toggle_client_sdr_auto_bump(client_sdr_id=client_sdr_id)
+    if not success:
+        return "Failed to toggle auto bump", 400
     return "OK", 200
 
 

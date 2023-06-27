@@ -285,6 +285,7 @@ class ClientSDR(db.Model):
 
     auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_calendar_sync = db.Column(db.Boolean, nullable=True, default=False)
+    auto_bump = db.Column(db.Boolean, nullable=True, default=False)
 
     message_generation_captivate_mode = db.Column(
         db.Boolean, nullable=True, default=False
@@ -325,6 +326,7 @@ class ClientSDR(db.Model):
             "calendly_connected": self.calendly_access_token is not None,
             "auto_generate_messages": self.auto_generate_messages,
             "auto_calendar_sync": self.auto_calendar_sync,
+            "auto_bump": self.auto_bump,
         }
 
 
