@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Optional, Tuple
 
 from app import db, celery
@@ -28,12 +29,21 @@ def create_simulation(
 
 
 def send_li_convo_message(
-    simulation_id: int, message: LinkedInConvoMessage, meta_data: Optional[dict] = None
+    simulation_id: int,
+    message: LinkedInConvoMessage,
+    meta_data: Optional[dict] = None,
+    message_date: Optional[datetime.datetime] = None,
 ):
 
     simulation: Simulation = Simulation.query.get(simulation_id)
     if not simulation:
         return False
+
+    max_simulation_record_created_date = (
+        SimulationRecord.query.filter(SimulationRecord.simulation_id == simulation_id)
+        .order_by(SimulationRecord.created_at.desc())
+        .first()
+    )
 
     record = SimulationRecord(
         simulation_id=simulation_id,
@@ -49,6 +59,12 @@ def send_li_convo_message(
         },
         meta_data=meta_data or message.meta_data or None,
     )
+    if message_date:
+        record.created_at = message_date
+    elif max_simulation_record_created_date:
+        record.created_at = (
+            max_simulation_record_created_date.created_at + datetime.timedelta(hours=1)
+        )
     db.session.add(record)
     db.session.commit()
 
@@ -223,6 +239,10 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
 
         client_sdr: ClientSDR = ClientSDR.query.get(simulation.client_sdr_id)
 
+        max_simulation_record_date = max(
+            [msg.date for msg in convo_history if msg.date is not None]
+        )
+
         success = send_li_convo_message(
             simulation_id=simulation_id,
             message=LinkedInConvoMessage(
@@ -230,6 +250,7 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
                 connection_degree="You",
                 author=client_sdr.name,
             ),
+            message_date=max_simulation_record_date + datetime.timedelta(days=2),
             meta_data={
                 "prompt": data.get("prompt", ""),
                 "bump_framework_id": data.get("bump_framework_id", None),
