@@ -217,6 +217,7 @@ def attempt_chat_completion(
     max_attempts: int = 3,
 ):
     attempts = 0
+    exception = None
     while attempts < max_attempts:
         try:
             response = openai.ChatCompletion.create(
@@ -233,6 +234,6 @@ def attempt_chat_completion(
         except Exception as e:
             attempts += 1
             # Add a random delay before the next attempt
+            exception = e
             time.sleep(random.uniform(0.5, 1.5))
-    print(f"OpenAI chat completion exceeded maximum attempts ({max_attempts})!")
-    raise Exception("OpenAI chat completion exceeded maximum attempts!")
+    raise Exception(exception)
