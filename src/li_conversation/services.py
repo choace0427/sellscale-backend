@@ -336,18 +336,24 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
 
     details = ""
     if random.random() < 0.5:
-        details = "For some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
+        details = "\nFor some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
             first_name=prospect.first_name,
             title=prospect.title,
             company=prospect.company,
         )
 
+    # message_content = (
+    #     "You are a helpful assistant helping the user write their next reply in a message thread. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
+    #     + sender
+    #     + "."
+    #     + "\n------\n"
+    #     + details
+    # )
     message_content = (
-        "You are a helpful assistant helping the user write their next reply in a message thread, with the goal of getting the prospect on a call. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
+        "You are "
         + sender
-        + ". If there are no messages from the other person who is not "
-        + sender
-        + " write a follow-up, 'bump' message that includes personalization from the original message."
+        + " who is writing a follow up response to a message thread. Keep responses friendly and concise while also adding personalization where relevant.\n"
+        + "\n------\n"
         + details
     )
 
@@ -355,41 +361,38 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         bump_framework: Optional[BumpFramework] = BumpFramework.query.get(
             bump_framework_id
         )
-        if bump_framework:
-            message_content = message_content + (
-                "\nHere are other relevant details you can use to make the message better: "
-                + bump_framework.description
-            )
     else:
         bump_framework = None
 
     if account_research_copy:
         message_content = message_content + (
-            "\nUse what you think is relevant from this account research: "
+            "\n\nNaturally integrate pieces of information from this account research into the messaging:\n-----\n"
             + account_research_copy
+            + "\n-----\n"
         )
 
     if override_bump_length == BumpLength.SHORT or (
         bump_framework and bump_framework.bump_length == BumpLength.SHORT
     ):
-        message_content = message_content + (
-            "\n\nPlease keep this message between 1-2 sentences or half a paragraph. No salutations needed."
-        )
+        message_content = message_content + ("\nLength: 1-2 sentences.")
     elif override_bump_length == BumpLength.MEDIUM or (
         bump_framework and bump_framework.bump_length == BumpLength.MEDIUM
     ):
-        message_content = message_content + (
-            "\n\nPlease keep this message between 2-4 sentences or around 1 paragraph. Separate into paragraphs with line breaks when needed. No salutations needed."
-        )
+        message_content = message_content + ("\nLength: 2-4 sentences")
     elif override_bump_length == BumpLength.LONG or (
         bump_framework and bump_framework.bump_length == BumpLength.LONG
     ):
+        message_content = message_content + ("\nLength: 2 paragraphs.")
+
+    if bump_framework:
         message_content = message_content + (
-            "\n\nPlease keep this message between 4-6 sentences or around 1-2 paragraphs. Separate into paragraphs with line breaks when needed. Include a salutation."
+            "\n\nYou will be using the bump framework below to construct the message - follow the instructions carefully to construct the message:\nBump Framework:\n----\n "
+            + bump_framework.description
+            + "\n-----"
         )
 
     message_content = message_content + (
-        "\n\nNote that this is part of a chat conversation, so please keep the tone conversational and friendly."
+        "\n\nNote that this is part of a chat conversation so keep the messaging conversational.\n"
     )
 
     # if archetype and archetype.persona_contact_objective:
