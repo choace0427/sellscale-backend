@@ -98,10 +98,13 @@ def get_prospect_li_conversation():
             return jsonify({"error": "Invalid bump length."}), 400
 
     prospect: Prospect = Prospect.query.get(prospect_id)
+    convo_history = get_li_convo_history(prospect.id)
+    if not convo_history or len(convo_history) == 0:
+        return jsonify({"error": "No conversation history found."}), 404
 
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
         prospect_id=prospect.id,
-        convo_history=get_li_convo_history(prospect.id),
+        convo_history=convo_history,
         bump_framework_id=bump_framework_id,
         account_research_copy=account_research_copy,
         override_bump_length=bump_length,
@@ -109,7 +112,7 @@ def get_prospect_li_conversation():
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200
     else:
-        return "No conversation thread found.", 404
+        return jsonify({"error": "No conversation thread found."}), 404
 
 
 @LI_CONVERASTION_BLUEPRINT.route("/prospect/send_woz_message", methods=["POST"])
