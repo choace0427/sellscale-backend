@@ -505,8 +505,9 @@ def nylas_send_email(
     query_params = f"?c={client_uuid}&s={sdr_uuid}&p={prospect_uuid}"
     link = unsubscribe_url + query_params
 
-    if not reply_to_message_id:
-        body += f"</br></br><a href='{link}' target='_blank'>Unsubscribe</a>"
+    # todo(Aakash) uncomment this to bring back Unsubscribe!
+    # if not reply_to_message_id:
+    #     body += f"</br></br><a href='{link}' target='_blank'>Unsubscribe</a>"
 
     # Send email through Nylas
     res = requests.post(
@@ -559,8 +560,10 @@ def nylas_send_email(
     return result
 
 
-def get_email_messages_with_prospect(client_sdr_id: int, prospect_id: int, thread_id: str, x: Optional[int] = None) -> list:
-    """ Gets the messages between a ClientSDR and a Prospect. Optionally, can limit the number of messages returned.
+def get_email_messages_with_prospect(
+    client_sdr_id: int, prospect_id: int, thread_id: str, x: Optional[int] = None
+) -> list:
+    """Gets the messages between a ClientSDR and a Prospect. Optionally, can limit the number of messages returned.
 
     Args:
         - client_sdr_id (int): ID of the ClientSDR
