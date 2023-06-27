@@ -383,6 +383,7 @@ def random_cta_for_prospect(prospect_id: int):
     archetype_id = prospect.archetype_id
     ctas = (
         GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id)
+        .filter_by(active=True)
         .order_by(func.random())
         .first()
     )
