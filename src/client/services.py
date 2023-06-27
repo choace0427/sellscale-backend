@@ -478,6 +478,18 @@ def toggle_client_sdr_autopilot_enabled(client_sdr_id: int):
     return {"autopilot_enabled": sdr.autopilot_enabled}
 
 
+def toggle_client_sdr_auto_bump(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return None
+
+    sdr.auto_bump = not sdr.auto_bump
+    db.session.add(sdr)
+    db.session.commit()
+
+    return True
+
+
 def reset_client_sdr_sight_auth_token(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
