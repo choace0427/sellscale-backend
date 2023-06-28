@@ -514,7 +514,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
     if (
         last_message_from_me
         and last_message_from_me.date > dt.datetime.now() - dt.timedelta(days=1)
-        and prospect.status not in (ProspectStatus.ACCEPTED)
+        and prospect.status not in [ProspectStatus.ACCEPTED]
     ):
         send_to_purgatory(
             prospect_id=prospect_id,
