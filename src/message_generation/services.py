@@ -1699,6 +1699,13 @@ def process_generated_msg_queue(
                 LinkedinConversationEntry.connection_degree == "You",
             ).first()
         )
+
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.li_conversation_urn_id == li_convo_msg.thread_urn_id,
+        ).first()
+        prospect_name = prospect.full_name
+
         if not li_convo_msg:
             return False
         li_convo_msg.ai_generated = True if msg_queue else False
@@ -1731,7 +1738,7 @@ def process_generated_msg_queue(
                         "type": "header",
                         "text": {
                             "type": "plain_text",
-                            "text": f"🤖 New Human response from {client_sdr.name} [LINKEDIN]",
+                            "text": f"🤖 New Human response from {client_sdr.name} to {prospect_name} [LINKEDIN]",
                         },
                     },
                     {

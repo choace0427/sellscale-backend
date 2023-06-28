@@ -514,6 +514,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
     if (
         last_message_from_me
         and last_message_from_me.date > dt.datetime.now() - dt.timedelta(days=1)
+        and prospect.status not in (ProspectStatus.ACCEPTED)
     ):
         send_to_purgatory(
             prospect_id=prospect_id,
@@ -542,10 +543,11 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
     if last_msg_from_prospect or last_msg_from_sdr:
         prospect.li_last_message_timestamp = latest_convo_entries[0].date
-        prospect.li_is_last_message_from_sdr = latest_convo_entries[0].connection_degree == "You"
+        prospect.li_is_last_message_from_sdr = (
+            latest_convo_entries[0].connection_degree == "You"
+        )
         db.session.add(prospect)
         db.session.commit()
-
 
     record_marked_not_interested = (
         ProspectStatusRecords.query.filter_by(
