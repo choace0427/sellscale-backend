@@ -64,6 +64,7 @@ class LinkedinConversationEntry(db.Model):
 
     def to_dict(self):
         return {
+            "id": self.id,
             "conversation_url": self.conversation_url,
             "author": self.author,
             "first_name": self.first_name,
