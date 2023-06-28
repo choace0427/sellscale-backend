@@ -187,10 +187,13 @@ def create_linkedin_conversation_entry(
         # A new message is being recorded, increase unread message count
         if prospect_id != -1:
             prospect: Prospect = Prospect.query.get(prospect_id)
-            if not prospect.li_unread_messages:
-                prospect.li_unread_messages = 1
+            if connection_degree == "You":
+                prospect.li_unread_messages = 0
             else:
-                prospect.li_unread_messages += 1
+                if not prospect.li_unread_messages:
+                    prospect.li_unread_messages = 1
+                else:
+                    prospect.li_unread_messages += 1
             db.session.add(prospect)
 
         return new_linkedin_conversation_entry
