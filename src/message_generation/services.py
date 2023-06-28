@@ -1759,6 +1759,13 @@ def process_generated_msg_queue(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
+                            "text": f"*Message was sent at:* {li_convo_msg.date}",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
                             "text": "*SellScale Sight*: <{link}|Link>".format(
                                 link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
                                 + client_sdr.auth_token
