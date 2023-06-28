@@ -1899,7 +1899,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         # Update bump message
         bump_msg: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.filter(
             GeneratedMessageAutoBump.latest_li_message_id
-            == latest_convo_entries[0].li_id,
+            == latest_convo_entries[-1].li_id,
         ).first()
         if not bump_msg:
             raise Exception(
