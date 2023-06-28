@@ -1903,7 +1903,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         ).first()
         if not bump_msg:
             raise Exception(
-                f"Could not find bump message with li_message_id {latest_convo_entries[0].li_id}"
+                f"Could not find bump message with li_message_id {latest_convo_entries[-1].li_id}"
             )
 
         bump_msg.message = data.get("response")
