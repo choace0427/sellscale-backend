@@ -315,6 +315,12 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
     convo = api.get_conversation(convo_urn_id, limit=60)
 
     if not convo or len(convo) == 0:
+
+        send_slack_message(
+            message=f"Attempted to update (& auto detect status) for a li convo that's empty! Prospect: {prospect.full_name} (#{prospect.id})",
+            webhook_urls=[URL_MAP["csm-convo-sorter"]],
+        )
+
         return "No conversation found", 400
 
     bulk_objects = []
