@@ -1693,12 +1693,12 @@ def process_generated_msg_queue(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     if li_message_urn_id:
-        li_convo_msg: LinkedinConversationEntry = (
-            LinkedinConversationEntry.query.filter(
-                LinkedinConversationEntry.urn_id == li_message_urn_id,
-                LinkedinConversationEntry.connection_degree == "You",
-            ).first()
-        )
+        li_convo_msg: LinkedinConversationEntry = LinkedinConversationEntry.query.filter(
+            LinkedinConversationEntry.urn_id == li_message_urn_id,
+            LinkedinConversationEntry.connection_degree == "You",
+        ).first()
+        if not li_convo_msg:
+            return False
 
         prospect: Prospect = Prospect.query.filter(
             Prospect.client_sdr_id == client_sdr_id,
@@ -1706,8 +1706,6 @@ def process_generated_msg_queue(
         ).first()
         prospect_name = prospect.full_name
 
-        if not li_convo_msg:
-            return False
         li_convo_msg.ai_generated = True if msg_queue else False
         li_convo_msg.bump_framework_id = (
             msg_queue.bump_framework_id if msg_queue else None
