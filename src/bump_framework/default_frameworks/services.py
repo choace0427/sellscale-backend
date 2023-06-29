@@ -57,7 +57,7 @@ DEFAULT_BUMP_FRAMEWORKS = [
         "bumped_count": 0,
     },
     {
-        "title": "Follow Up #1",
+        "title": "Follow Up #2",
         "description": "Write a short, 1-2 sentence bump. Do not use the word 'bump'.",
         "overall_status": ProspectOverallStatus.BUMPED,
         "substatus": None,
@@ -66,7 +66,7 @@ DEFAULT_BUMP_FRAMEWORKS = [
 
     },
     {
-        "title": "Follow Up #2",
+        "title": "Follow Up #3",
         "description": "Write a longer follow up about their company and how we can help.",
         "overall_status": ProspectOverallStatus.BUMPED,
         "substatus": None,
@@ -74,7 +74,7 @@ DEFAULT_BUMP_FRAMEWORKS = [
         "bumped_count": 2,
     },
     {
-        "title": "Follow Up #3",
+        "title": "Follow Up #4",
         "description": "Write one, final short follow up.",
         "overall_status": ProspectOverallStatus.BUMPED,
         "substatus": None,
