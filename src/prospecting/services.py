@@ -1411,6 +1411,7 @@ def map_prospect_linkedin_status_to_prospect_overall_status(
         ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_QUESTION: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectStatus.NOT_INTERESTED: ProspectOverallStatus.REMOVED,
         ProspectStatus.DEMO_SET: ProspectOverallStatus.DEMO,
         ProspectStatus.DEMO_WON: ProspectOverallStatus.DEMO,

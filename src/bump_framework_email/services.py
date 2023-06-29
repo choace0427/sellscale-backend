@@ -76,6 +76,7 @@ def get_bump_framework_email_count_for_sdr(
         ProspectStatus.ACTIVE_CONVO_OBJECTION.value: 0,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value: 0,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING.value: 0,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL.value: 0,
     }
     for bump_framework in bump_frameworks:
         if bump_framework.get("overall_status") in counts:
@@ -116,7 +117,9 @@ def create_bump_framework_email(
         int: The id of the newly created bump framework
     """
     if default:
-        all_bump_frameworks: list[BumpFrameworkEmail] = BumpFrameworkEmail.query.filter_by(
+        all_bump_frameworks: list[
+            BumpFrameworkEmail
+        ] = BumpFrameworkEmail.query.filter_by(
             client_sdr_id=client_sdr_id,
             client_archetype_id=client_archetype_id,
             overall_status=overall_status,
@@ -189,11 +192,13 @@ def modify_bump_framework_email(
         bump_framework.bumped_count = bumped_count
 
     if default:
-        default_bump_frameworks: list[BumpFrameworkEmail] = BumpFrameworkEmail.query.filter(
+        default_bump_frameworks: list[
+            BumpFrameworkEmail
+        ] = BumpFrameworkEmail.query.filter(
             BumpFrameworkEmail.client_sdr_id == client_sdr_id,
             BumpFrameworkEmail.client_archetype_id == client_archetype_id,
             BumpFrameworkEmail.overall_status == overall_status,
-            BumpFrameworkEmail.default == True
+            BumpFrameworkEmail.default == True,
         )
         if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
             default_bump_frameworks = default_bump_frameworks.filter(

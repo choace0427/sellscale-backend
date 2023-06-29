@@ -79,6 +79,7 @@ def get_bump_framework_count_for_sdr(
         ProspectStatus.ACTIVE_CONVO_OBJECTION.value: 0,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value: 0,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING.value: 0,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL.value: 0,
     }
     for bump_framework in bump_frameworks:
         if bump_framework.get("overall_status") in counts:

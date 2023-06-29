@@ -172,6 +172,7 @@ class ProspectStatus(enum.Enum):
     ACTIVE_CONVO_OBJECTION = "ACTIVE_CONVO_OBJECTION"
     ACTIVE_CONVO_SCHEDULING = "ACTIVE_CONVO_SCHEDULING"
     ACTIVE_CONVO_NEXT_STEPS = "ACTIVE_CONVO_NEXT_STEPS"
+    ACTIVE_CONVO_REVIVAL = "ACTIVE_CONVO_REVIVAL"
 
     def to_dict():
         return {
@@ -210,6 +211,7 @@ class ProspectStatus(enum.Enum):
             ProspectStatus.ACTIVE_CONVO_OBJECTION,
             ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
             ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+            ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ]
 
     def status_descriptions():
@@ -329,6 +331,12 @@ class ProspectStatus(enum.Enum):
                 "name": "Active Convo - Next Steps",
                 "description": "The Prospect gave short reply and needs follow up.",
                 "enum_val": ProspectStatus.ACTIVE_CONVO_NEXT_STEPS.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+            },
+            ProspectStatus.ACTIVE_CONVO_REVIVAL.value: {
+                "name": "Active Convo - Revival",
+                "description": "The Prospect has been revived.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO_REVIVAL.value,
                 "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
         }
@@ -475,7 +483,9 @@ class Prospect(db.Model):
                 "title": self.title,
                 "icp_fit_score": self.icp_fit_score,
                 "icp_fit_reason": self.icp_fit_reason,
-                "li_public_id": self.linkedin_url.split("/in/")[1].split("/")[0] if self.linkedin_url else None,
+                "li_public_id": self.linkedin_url.split("/in/")[1].split("/")[0]
+                if self.linkedin_url
+                else None,
                 "img_url": self.img_url,
             }
 
@@ -835,6 +845,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_OBJECTION: [
@@ -846,6 +857,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
@@ -857,6 +869,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUESTION: [
@@ -868,6 +881,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
@@ -879,9 +893,21 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_QUESTION,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_NEXT_STEPS: [
+        ProspectStatus.NOT_INTERESTED,
+        # ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.DEMO_SET,
+    ],
+    ProspectStatus.ACTIVE_CONVO_REVIVAL: [
         ProspectStatus.NOT_INTERESTED,
         # ProspectStatus.SCHEDULING,
         ProspectStatus.NOT_QUALIFIED,

@@ -1816,6 +1816,7 @@ def generate_message_bumps():
                     "ACTIVE_CONVO_OBJECTION",
                     "ACTIVE_CONVO_SCHEDULING",
                     "ACTIVE_CONVO_NEXT_STEPS",
+                    "ACTIVE_CONVO_REVIVAL",
                 ]
             ),
             or_(
