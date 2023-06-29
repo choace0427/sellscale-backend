@@ -40,8 +40,7 @@ def update_linkedin_conversation_entries():
     Update the LinkedinConversationEntry table with new entries
     """
     LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID = 3365881184675991
-    p: PhantomBusterAgent = PhantomBusterAgent(
-        LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
+    p: PhantomBusterAgent = PhantomBusterAgent(LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
     data = p.get_output()
 
     all_messages = []
@@ -329,20 +328,17 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     from model_import import Prospect
 
     # First the first message from the SDR
-    msg = next(filter(lambda x: x.connection_degree ==
-               "You", convo_history), None)
+    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
         raise Exception("No message from SDR found in convo_history")
     sender = msg.author
 
-    transcript = "\n\n".join(
-        [x.author + ": " + x.message for x in convo_history])
+    transcript = "\n\n".join([x.author + ": " + x.message for x in convo_history])
     content = transcript + "\n\n" + sender + ":"
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     details = ""
     if random.random() < 0.5:
@@ -392,7 +388,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     elif override_bump_length == BumpLength.LONG or (
         bump_framework and bump_framework.bump_length == BumpLength.LONG
     ):
-        message_content = message_content + ("\nLength: 2 paragraphs.")
+        message_content = message_content + (
+            "\nLength: 2 paragraphs. Separate with line breaks."
+        )
 
     if bump_framework:
         message_content = message_content + (
@@ -402,7 +400,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         )
 
     message_content = message_content + (
-        "\n\nNote that this is part of a chat conversation so keep the messaging conversational.\n"
+        "\n\nNote that this is part of a chat conversation so write one follow up message\n"
     )
 
     # if archetype and archetype.persona_contact_objective:
@@ -544,8 +542,7 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
             Prospect.li_conversation_thread_id.isnot(None),
             or_(
                 Prospect.li_conversation_thread_id == conversation_url,
-                Prospect.li_conversation_thread_id.ilike(
-                    "%" + conversation_url + "%"),
+                Prospect.li_conversation_thread_id.ilike("%" + conversation_url + "%"),
             ),
         ).first()
         if prospect:
@@ -596,8 +593,7 @@ def scrape_conversations_inbox():
         next_time = (
             datetime.utcnow()
             + timedelta(hours=3)
-            + timedelta(seconds=random.randint(-scrape_time_offset,
-                        scrape_time_offset))
+            + timedelta(seconds=random.randint(-scrape_time_offset, scrape_time_offset))
         )
         next_datetime = datetime(
             next_time.year,
@@ -655,8 +651,7 @@ def scrape_conversations_inbox():
                 if prospect is None:
                     # Fill in the prospect's urn_id if it's not in the database
                     prospect = Prospect.query.filter(
-                        Prospect.linkedin_url.like(
-                            f"%/in/{profile_public_id}%")
+                        Prospect.linkedin_url.like(f"%/in/{profile_public_id}%")
                     ).first()
                     if prospect is not None:
                         prospect.li_urn_id = profile_urn_id
@@ -672,8 +667,7 @@ def scrape_conversations_inbox():
                     prospect_id=prospect.id,
                     scrape_time=(
                         datetime.utcnow()
-                        + timedelta(seconds=random.randint(0,
-                                    scrape_time_offset))
+                        + timedelta(seconds=random.randint(0, scrape_time_offset))
                     ),
                 )
                 db.session.add(scrape)
@@ -681,8 +675,7 @@ def scrape_conversations_inbox():
 
                 send_slack_message(
                     message=f"Scheduled scrape for convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) at {scrape.scrape_time} UTC 👌",
-                    webhook_urls=[
-                        URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                    webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
                 )
 
 
@@ -713,8 +706,7 @@ def scrape_conversation_queue():
 
             send_slack_message(
                 message=f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
-                webhook_urls=[
-                    URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
 
             # Update calendar events
@@ -726,8 +718,7 @@ def scrape_conversation_queue():
 
 @celery.task
 def send_autogenerated_bumps():
-    """Grabs active SDRs with autobump enabled and sends the oldest unsent autobump message to the oldest prospect in ACCEPTED or BUMPED status.
-    """
+    """Grabs active SDRs with autobump enabled and sends the oldest unsent autobump message to the oldest prospect in ACCEPTED or BUMPED status."""
     # Get current time
     utc = pytz.UTC
     now = utc.localize(datetime.utcnow())
@@ -742,7 +733,7 @@ def send_autogenerated_bumps():
 
     for sdr in autobumpable_sdrs:
         # Default timezone to PST
-        timezone = sdr.timezone or 'America/Los_Angeles'
+        timezone = sdr.timezone or "America/Los_Angeles"
 
         start_time, end_time = get_working_hours_in_utc(timezone)
         # Skip if not in working hours
@@ -750,25 +741,29 @@ def send_autogenerated_bumps():
             continue
 
         # Get messages that haven't been sent yet and belong to Prospects that are in ACCEPTED or BUMPED status
-        oldest_auto_message = db.session.query(
-            Prospect.id.label("prospect_id"),
-            GeneratedMessageAutoBump.id.label("auto_bump_message_id"),
-        ).select_from(
-            GeneratedMessageAutoBump
-        ).join(
-            Prospect, Prospect.id == GeneratedMessageAutoBump.prospect_id
-        ).filter(
-            Prospect.client_sdr_id == sdr.id,
-            Prospect.overall_status.in_(
-                [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]),
-            func.length(GeneratedMessageAutoBump.message) > 5,
-            or_(Prospect.hidden_until == None, Prospect.hidden_until < now),
-            GeneratedMessageAutoBump.bump_framework_id != None,
-            GeneratedMessageAutoBump.bump_framework_title != None,
-            GeneratedMessageAutoBump.bump_framework_description != None,
-            GeneratedMessageAutoBump.bump_framework_length != None,
-            GeneratedMessageAutoBump.account_research_points != None,
-        ).order_by(GeneratedMessageAutoBump.id.asc()).first()
+        oldest_auto_message = (
+            db.session.query(
+                Prospect.id.label("prospect_id"),
+                GeneratedMessageAutoBump.id.label("auto_bump_message_id"),
+            )
+            .select_from(GeneratedMessageAutoBump)
+            .join(Prospect, Prospect.id == GeneratedMessageAutoBump.prospect_id)
+            .filter(
+                Prospect.client_sdr_id == sdr.id,
+                Prospect.overall_status.in_(
+                    [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
+                ),
+                func.length(GeneratedMessageAutoBump.message) > 5,
+                or_(Prospect.hidden_until == None, Prospect.hidden_until < now),
+                GeneratedMessageAutoBump.bump_framework_id != None,
+                GeneratedMessageAutoBump.bump_framework_title != None,
+                GeneratedMessageAutoBump.bump_framework_description != None,
+                GeneratedMessageAutoBump.bump_framework_length != None,
+                GeneratedMessageAutoBump.account_research_points != None,
+            )
+            .order_by(GeneratedMessageAutoBump.id.asc())
+            .first()
+        )
 
         if oldest_auto_message is None:
             continue
@@ -778,7 +773,7 @@ def send_autogenerated_bumps():
             [
                 oldest_auto_message.prospect_id,
                 sdr.id,
-                oldest_auto_message.auto_bump_message_id
+                oldest_auto_message.auto_bump_message_id,
             ],
             priority=1,
         )
@@ -787,7 +782,9 @@ def send_autogenerated_bumps():
 
 
 @celery.task
-def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_message_auto_bump_id: int) -> bool:
+def send_autogenerated_bump(
+    prospect_id: int, client_sdr_id: int, generated_message_auto_bump_id: int
+) -> bool:
     """Sends an autogenerated bump message to a prospect.
 
     Args:
@@ -824,24 +821,26 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
         generated_message_auto_bump_id
     )
     if (
-        message is None or
-        message.prospect_id != prospect_id or
-        message.bump_framework_id is None or
-        message.bump_framework_title is None or
-        message.bump_framework_description is None or
-        message.bump_framework_length is None or
-        message.account_research_points is None
+        message is None
+        or message.prospect_id != prospect_id
+        or message.bump_framework_id is None
+        or message.bump_framework_title is None
+        or message.bump_framework_description is None
+        or message.bump_framework_length is None
+        or message.account_research_points is None
     ):
-        raise Exception(
-            "Invalid autogenerated bump message fed into AI sender")
+        raise Exception("Invalid autogenerated bump message fed into AI sender")
 
     # 4. Make sure that the Prospect is in a valid state
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if prospect.overall_status not in [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]:
+    if prospect.overall_status not in [
+        ProspectOverallStatus.ACCEPTED,
+        ProspectOverallStatus.BUMPED,
+    ]:
         return False
 
     # 5. Check that this bump is responding to the last message, else discard
-    if last_message is None or message.latest_li_message_id != last_message.get('id'):
+    if last_message is None or message.latest_li_message_id != last_message.get("id"):
         db.session.delete(message)
         db.session.commit()
         send_slack_message(
@@ -853,22 +852,23 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
                     "text": {
                         "type": "plain_text",
                         "text": f"🚨 SDR {sdr.name} (#{sdr.id}): Will not send because cached bump is out of date",
-                        "emoji": True
-                    }
+                        "emoji": True,
+                    },
                 },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Conversation with prospect '*{prospect.full_name}*' (#{prospect.id}) 🤖 ---"
-                    }
+                        "text": f"--- Conversation with prospect *{prospect.full_name}* (#{prospect.id}) ---",
+                    },
                 },
                 {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Most recent message*: " + last_message.get('message'),
+                            "text": "*Most recent message*: "
+                            + last_message.get("message"),
                         },
                     ],
                 },
@@ -877,11 +877,12 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Autobump Message* (#{message.id}): " + message.message,
+                            "text": f"*Autobump Message* (#{message.id}): "
+                            + message.message,
                         },
                     ],
                 },
-            ]
+            ],
         )
         return False
 
@@ -898,22 +899,23 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
                     "text": {
                         "type": "plain_text",
                         "text": f"🚨 SDR {sdr.name} (#{sdr.id}): Will not send because generated message is too short",
-                        "emoji": True
-                    }
+                        "emoji": True,
+                    },
                 },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Conversation with prospect '*{prospect.full_name}*' (#{prospect.id}) 🤖 ---"
-                    }
+                        "text": f"--- Conversation with prospect *{prospect.full_name}* (#{prospect.id}) ---",
+                    },
                 },
                 {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Most recent message*: " + last_message.get('message'),
+                            "text": "*Most recent message*: "
+                            + last_message.get("message"),
                         },
                     ],
                 },
@@ -922,11 +924,12 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Autobump Message* (#{message.id}): " + message.message,
+                            "text": f"*Autobump Message* (#{message.id}): "
+                            + message.message,
                         },
                     ],
                 },
-            ]
+            ],
         )
         return False
 
@@ -948,13 +951,8 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
     # 8. Send to purgatory
     send_to_purgatory(prospect_id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
 
-    # 9. Delete message
-    db.session.delete(message)
-    db.session.commit()
-
-    # 10. Refetch conversation to update statuses
-    # convo, _ = fetch_conversation(prospect_id, api)
-
+    # 7-8a. Send Slack message
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     send_slack_message(
         message=f"•••: ✅ SDR {sdr.name} (#{sdr.id}): Sending autogenerated bump message to prospect {prospect.full_name} (#{prospect.id}) 🤖\nLast Message: {last_message.get('message')}\nMessage: {message.message}",
         webhook_urls=[URL_MAP["operations-autobump"]],
@@ -963,40 +961,22 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "✅ SDR {sdr.name} (#{sdr.id}): Sending autogenerated bump message",
-                    "emoji": True
-                }
+                    "text": f"✅ SDR {sdr.name} (#{sdr.id}): Sending autogenerated bump message",
+                    "emoji": True,
+                },
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Conversation with prospect '*{prospect.full_name}*' (#{prospect.id}) 🤖 ---"
-                }
-            },
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Most recent message*: " + last_message.get('message'),
-                    },
-                ],
-            },
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Autobump Message* (#{message.id}): " + message.message,
-                    },
-                ],
+                    "text": f"--- *Archetype*: {archetype.archetype}, (#{archetype.id}) ---",
+                },
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Using Bump Framework '*{last_message.get('bump_framework_title')}*' (#{last_message.get('bump_framework_id')}) 🤖 ---"
+                    "text": f"--- Conversation with prospect *{prospect.full_name}* (#{prospect.id}) ---",
                 },
             },
             {
@@ -1004,7 +984,8 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"{last_message.get('bump_framework_description')}",
+                        "text": "*Most recent message*: "
+                        + last_message.get("message"),
                     },
                 ],
             },
@@ -1013,11 +994,44 @@ def send_autogenerated_bump(prospect_id: int, client_sdr_id: int, generated_mess
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"With account research points:\n {last_message.get('account_research_points')}",
+                        "text": f"*Autobump Message* (#{message.id}): "
+                        + message.message,
                     },
                 ],
             },
-        ]
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"--- Using Bump Framework *{message.bump_framework_title}* (#{message.bump_framework_id}) ---",
+                },
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"{message.bump_framework_description}",
+                    },
+                ],
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"With account research points:\n {message.account_research_points}",
+                    },
+                ],
+            },
+        ],
     )
+
+    # 9. Delete message
+    db.session.delete(message)
+    db.session.commit()
+
+    # 10. Refetch conversation to update statuses
+    # convo, _ = fetch_conversation(prospect_id, api)
 
     return True
