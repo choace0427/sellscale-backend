@@ -179,6 +179,18 @@ def auto_mark_uninterested_bumped_prospects_job():
         auto_mark_uninterested_bumped_prospects.delay()
 
 
+def auto_run_daily_revival_cleanup_job():
+    from src.li_conversation.conversation_analyzer.daily_revival_cleanup_job import (
+        run_daily_prospect_to_revival_status_cleanup_job,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        run_daily_prospect_to_revival_status_cleanup_job.delay()
+
+
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 # scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
@@ -211,6 +223,7 @@ scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
+scheduler.add_job(auto_run_daily_revival_cleanup_job, trigger="interval", hours=1)
 
 scheduler.start()
 
