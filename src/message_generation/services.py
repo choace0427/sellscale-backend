@@ -1835,6 +1835,31 @@ def generate_message_bumps():
                 return
 
 
+def clear_auto_generated_bumps(bump_framework_id: int) -> bool:
+    """Clears all generated_message_auto_bump entries that have the given bump_framework_id
+
+    Is used for outdated bump frameworks
+
+    Args:
+        bump_framework_id (int): Bump Framework ID
+
+    Returns:
+        bool: True if successful
+    """
+
+    generated_bumps: List[GeneratedMessageAutoBump] = (
+        GeneratedMessageAutoBump.query.filter(
+            GeneratedMessageAutoBump.bump_framework_id == bump_framework_id
+        ).all()
+    )
+
+    for bump in generated_bumps:
+        db.session.delete(bump)
+    db.session.commit()
+
+    return True
+
+
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
     """Generates a follow up message for a prospect, using their convo history and bump frameworks
 

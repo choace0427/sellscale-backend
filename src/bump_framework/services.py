@@ -2,6 +2,7 @@ from model_import import BumpFramework
 from app import db
 from src.bump_framework.models import BumpLength
 from src.client.models import ClientArchetype
+from src.message_generation.services import clear_auto_generated_bumps
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from typing import Optional
 
@@ -222,6 +223,9 @@ def modify_bump_framework(
 
     db.session.add(bump_framework)
     db.session.commit()
+
+    # Delete auto_generated_messages using this bump_framework
+    clear_auto_generated_bumps(bump_framework_id)
 
     return True
 
