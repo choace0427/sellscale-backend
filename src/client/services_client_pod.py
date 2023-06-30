@@ -41,7 +41,7 @@ def add_client_sdr_to_client_pod(client_sdr_id: int, client_pod_id: int) -> bool
     Adds a client sdr to a client pod
     """
     client_sdr = ClientSDR.query.filter_by(id=client_sdr_id).first()
-    client_sdr.client_pod_id = client_pod_id
+    client_sdr.client_pod_id = client_pod_id or None
     db.session.commit()
     return True
 

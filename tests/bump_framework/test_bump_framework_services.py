@@ -148,6 +148,7 @@ def test_modify_bump_framework():
     assert bump_framework.bump_length.value == "LONG"
     modify_bump_framework(
         client_sdr_id=sdr.id,
+        client_archetype_id=archetype_id,
         bump_framework_id=bump_id,
         overall_status=ProspectOverallStatus.PROSPECTED,
         length=BumpLength.SHORT,

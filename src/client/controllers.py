@@ -1003,7 +1003,7 @@ def post_add_sdr_to_pod():
         "client_sdr_id", request, json=True, required=True
     )
     client_pod_id: int = get_request_parameter(
-        "client_pod_id", request, json=True, required=True
+        "client_pod_id", request, json=True, required=False
     )
     success = add_client_sdr_to_client_pod(
         client_sdr_id=client_sdr_id,

@@ -1,7 +1,6 @@
 from app import db, app
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
-    add_archetype_to_default_bump_frameworks,
 )
 from src.bump_framework.models import JunctionBumpFrameworkClientArchetype
 from test_utils import (
