@@ -1565,10 +1565,12 @@ def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
 
 def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason):
     prospect: Prospect = Prospect.query.get(prospect_id)
-    prospect.hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
-    prospect.hidden_reason = reason
-    db.session.add(prospect)
-    db.session.commit()
+    new_hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+    if new_hidden_until > prospect.hidden_until:
+        prospect.hidden_until = new_hidden_until
+        prospect.hidden_reason = reason
+        db.session.add(prospect)
+        db.session.commit()
 
 
 def update_prospect_demo_date(prospect_id: int, demo_date: datetime.datetime):

@@ -327,6 +327,7 @@ class ClientSDR(db.Model):
             "auto_generate_messages": self.auto_generate_messages,
             "auto_calendar_sync": self.auto_calendar_sync,
             "auto_bump": self.auto_bump,
+            "message_generation_captivate_mode": self.message_generation_captivate_mode,
         }
 
 
