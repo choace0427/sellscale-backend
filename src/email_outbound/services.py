@@ -75,7 +75,8 @@ def batch_update_emails(
 
         prospect: Prospect = Prospect.query.get(prospect_id_payload)
         prospect_email_id: int = prospect.approved_prospect_email_id
-        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect_email_id)
 
         if not prospect_email:
             continue
@@ -93,7 +94,8 @@ def batch_update_emails(
 
 
 def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
-    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(
+        campaign_id)
     if not outbound_campaign:
         return False, "Campaign not found"
     outbound_campaign.status = OutboundCampaignStatus.COMPLETE
@@ -105,21 +107,32 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     bulk_updates = []
     time_index = datetime.datetime.utcnow()
     for prospect in prospects:
-        prospect_email = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id)
         prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
         prospect_email.email_status = ProspectEmailStatus.SENT
 
         # set date_scheduled to a time between 9am and 5pm on a weekday. keep it at a 5 minute interval from previous email
         time_index = time_index + datetime.timedelta(minutes=5)
         if time_index.hour > 17:  # nothing after 5p PST
-            time_index = datetime.datetime(
-                time_index.year,
-                time_index.month,
-                time_index.day + 1,
-                9,
-                0,
-                0,
-            )
+            try:
+                time_index = datetime.datetime(
+                    time_index.year,
+                    time_index.month,
+                    time_index.day + 1,
+                    9,
+                    0,
+                    0,
+                )
+            except:
+                time_index = datetime.datetime(
+                    time_index.year,
+                    (time_index.month + 1) % 12,
+                    1,
+                    9,
+                    0,
+                    0,
+                )
         if time_index.isoweekday() > 5:  # skip weekends
             time_index = datetime.datetime(
                 time_index.year,
@@ -228,7 +241,8 @@ def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) ->
 
     """
     for prospect_id in prospect_ids:
-        update_prospect_email_flow_statuses.apply_async(args=[prospect_id, campaign_id])
+        update_prospect_email_flow_statuses.apply_async(
+            args=[prospect_id, campaign_id])
 
     return True
 
@@ -270,7 +284,8 @@ def update_prospect_email_flow_statuses(
             personalized_first_line.message_status = GeneratedMessageStatus.SENT
 
             # Updates to outbound_campaign
-            campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+            campaign: OutboundCampaign = OutboundCampaign.query.get(
+                campaign_id)
             if campaign and campaign.campaign_type == GeneratedMessageType.LINKEDIN:
                 return "Campaign {} is not an email campaign".format(campaign.id), False
             campaign.status = OutboundCampaignStatus.COMPLETE
@@ -610,6 +625,7 @@ def get_sequences(client_sdr_id: int, archetype_id: int):
         Sequence.client_sdr_id == client_sdr_id,
     ).all()
     return (
-        jsonify({"message": "Success", "data": [s.to_dict() for s in sequences]}),
+        jsonify({"message": "Success", "data": [
+                s.to_dict() for s in sequences]}),
         200,
     )
