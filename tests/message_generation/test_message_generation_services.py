@@ -96,6 +96,9 @@ def test_get_messages_queued_for_outreach():
             "img_url": None,
             "message_id": generated_message_id,
             "completion": "this is a test",
+            "icp_fit_score": prospect.icp_fit_score,
+            "icp_fit_reason": prospect.icp_fit_reason,
+            "archetype": archetype.archetype,
         }
     ]
 

@@ -42,6 +42,7 @@ from src.message_generation.models import (
     GeneratedMessageEditRecord,
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
+    GeneratedMessageAutoBump,
 )
 
 from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs

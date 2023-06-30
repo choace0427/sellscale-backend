@@ -8,6 +8,7 @@ from src.message_generation.models import GeneratedMessageQueue
 from sqlalchemy import or_
 from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
+from sqlalchemy import text
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
     OPENAI_COMPLETION_DAVINCI_3_MODEL,
@@ -655,7 +656,7 @@ def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message_type = message.message_type.value
     data = db.session.execute(
-        """
+        text("""
             select length(completion), *
             from generated_message
             where prospect_id = {prospect_id}
@@ -664,7 +665,7 @@ def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
         """.format(
             prospect_id=prospect_id,
             message_type=message_type,
-        )
+        ))
     ).fetchall()
     ids = [x["id"] for x in data]
     new_index = (ids.index(message_id) + 1) % len(ids)

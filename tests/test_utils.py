@@ -27,6 +27,7 @@ from model_import import (
     OutboundCampaign,
     GeneratedMessageFeedback,
     GeneratedMessageJob,
+    GeneratedMessageAutoBump,
     ResponseConfiguration,
     SightOnboarding,
     AdversaryTrainingPoint,
@@ -78,7 +79,6 @@ def test_app():
     with app.app_context():
         clear_all_entities(JunctionBumpFrameworkClientArchetype)
         clear_all_entities(EngagementFeedItem)
-        clear_all_entities(BumpFramework)
         clear_all_entities(Echo)
         for p in Prospect.query.all():
             prospect: Prospect = p
@@ -91,6 +91,8 @@ def test_app():
         clear_all_entities(PersonaSplitRequestTask)
         clear_all_entities(PersonaSplitRequest)
         clear_all_entities(LinkedinConversationEntry)
+        clear_all_entities(GeneratedMessageAutoBump)
+        clear_all_entities(BumpFramework)
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
