@@ -8,7 +8,6 @@ from src.ml.openai_wrappers import (
 
 def get_current_company_description(data):
     # ___________ is building the _____________ for ________
-
     company_name = data.get("company", {}).get("details", {}).get("name")
     company_description = data.get("company", {}).get("details", {}).get("description")
 

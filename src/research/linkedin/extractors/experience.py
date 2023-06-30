@@ -28,7 +28,9 @@ def get_current_experience_description(data):
         .get("description", "")
     )
 
-    description = description.replace("\n", " ")  # We may eventually need to replace strange symbols as well
+    description = description.replace(
+        "\n", " "
+    )  # We may eventually need to replace strange symbols as well
 
     raw_data = {
         "company_name": company_name,
@@ -37,15 +39,13 @@ def get_current_experience_description(data):
     }
 
     instruction = 'You\'re writing a short sentence summary of an individual based on their job experience. Only include one sentence of the top 3 most impactful skills they have. Include the name of their company. Limit your summary to a maximum of 30 words. Use "they" and "their" to refer to the individual. Refer to their work in the present tense.'
-    prompt = (
-        f"{instruction}\n\njob title: {raw_data['title']}\ncompany name: {raw_data['company_name']}\job description: {raw_data['description']}\n\nsummary: "
-    )
+    prompt = f"{instruction}\n\njob title: {raw_data['title']}\ncompany name: {raw_data['company_name']}\job description: {raw_data['description']}\n\nsummary: "
 
     if not company_name or not title or not description:
         response = ""
     else:
         response = wrapped_create_completion(
-          model=OPENAI_COMPLETION_DAVINCI_3_MODEL, prompt=prompt, max_tokens=50
+            model=OPENAI_COMPLETION_DAVINCI_3_MODEL, prompt=prompt, max_tokens=50
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
@@ -85,7 +85,7 @@ def get_years_of_experience(data):
 
 def get_years_of_experience_at_current_job(data):
     # been in current job for X years
-    company_name = deep_get(data, "company.details.name")
+    company_name = deep_get(data, "personal.position_groups.0.company.name")
 
     positions = deep_get(data, "personal.position_groups", [])
     newest_position = positions[0].get("date", {}).get("start")
@@ -226,7 +226,9 @@ def get_list_of_past_jobs(data):
             continue
 
         # Must have worked at least 1 year at the company.
-        time_at_job = (end_date_year - start_date_year) + ((end_date_month - start_date_month) / 12)
+        time_at_job = (end_date_year - start_date_year) + (
+            (end_date_month - start_date_month) / 12
+        )
         if time_at_job < 1:
             continue
 
