@@ -634,6 +634,10 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
 
 def classify_active_convo(prospect_id: int, messages):
+    # Make sure the prospect's status is not already ACTIVE_CONVO_REVIVAL
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.status == ProspectStatus.ACTIVE_CONVO_REVIVAL:
+        return
 
     status = get_prospect_status_from_convo(messages)
 
