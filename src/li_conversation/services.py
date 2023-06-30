@@ -715,6 +715,10 @@ def scrape_conversation_queue():
             populate_prospect_events(prospect.client_sdr_id, prospect.id)
 
         except Exception as e:
+            send_slack_message(
+                message=f"🛑 Error scraping convo between SDR #{scrape.client_sdr_id} and prospect #{scrape.prospect_id}\nMsg: {e}",
+                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+            )
             continue
 
 
