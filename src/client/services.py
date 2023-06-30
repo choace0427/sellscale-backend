@@ -88,10 +88,8 @@ def create_client(
         do_not_contact_keywords_in_company_names=[],
         do_not_contact_company_names=[],
     )
-    c_id = c.id
     db.session.add(c)
     db.session.commit()
-    c: Client = Client.query.get(c_id)
     c.regenerate_uuid()
 
     return {"client_id": c.id}

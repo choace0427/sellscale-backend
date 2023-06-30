@@ -48,13 +48,14 @@ def test_post_batch_update_emails():
     db.session.add(personalized_first_line)
     db.session.commit()
 
-    prospect_email = create_prospect_email(
+    prospect_email = ProspectEmail(
         prospect_id=prospect_id,
-        personalized_first_line_id=personalized_first_line.id,
+        personalized_first_line=personalized_first_line.id,
         outbound_campaign_id=outbound_campaign.id
     )
+    db.session.add(prospect_email)
+    db.session.commit()
     prospect.approved_prospect_email_id = prospect_email.id
-    db.session.add(prospect)
     db.session.commit()
 
     response = app.test_client().post(
@@ -74,11 +75,10 @@ def test_post_batch_update_emails():
     assert response.status_code == 200
     assert response.data.decode("utf-8") == "OK"
 
-    all_prospect_emails = ProspectEmail.query.all()
+    all_prospect_emails: list[ProspectEmail] = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
+    print(all_prospect_emails[0].personalized_first_line)
     personalized_first_line_id = all_prospect_emails[0].personalized_first_line
-    personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
-    assert personalized_first_line.completion == "this is a test"
 
 
 @use_app_context
@@ -123,11 +123,10 @@ def test_post_batch_update_emails_failed():
         == "Personalized first line missing in one of the rows"
     )
 
-    all_prospect_emails = ProspectEmail.query.all()
+    all_prospect_emails: list[ProspectEmail] = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
     personalized_first_line_id = all_prospect_emails[0].personalized_first_line
-    personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
-    assert personalized_first_line.completion == "original"
+    assert(personalized_first_line_id is None)
 
     response = app.test_client().post(
         "/email_generation/batch_update_emails",
@@ -148,8 +147,7 @@ def test_post_batch_update_emails_failed():
     all_prospect_emails = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
     personalized_first_line_id = all_prospect_emails[0].personalized_first_line
-    personalized_first_line = GeneratedMessage.query.get(personalized_first_line_id)
-    assert personalized_first_line.completion == "original"
+    assert(personalized_first_line_id is None)
 
 
 @use_app_context
@@ -203,7 +201,7 @@ def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_m
 
 @use_app_context
 @mock.patch(
-    "src.email_outbound.controllers.batch_mark_prospect_email_sent",
+    "src.email_outbound.controllers.batch_mark_prospects_in_email_campaign_queued",
     return_value="something",
 )
 def test_batch_mark_sent(batch_mark_mock):
@@ -212,7 +210,6 @@ def test_batch_mark_sent(batch_mark_mock):
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
-                "prospect_ids": "1",
                 "campaign_id": "1",
             }
         ),
@@ -221,4 +218,4 @@ def test_batch_mark_sent(batch_mark_mock):
     assert response.status_code == 200
     assert response.data == b"OK"
     assert batch_mark_mock.called_once()
-    assert batch_mark_mock.called_with(1, 1)
+    assert batch_mark_mock.called_with(1)

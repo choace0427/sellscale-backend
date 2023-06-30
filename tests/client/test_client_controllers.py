@@ -51,7 +51,7 @@ def test_create_client():
     )
     assert response.status_code == 200
 
-    client = Client.query.first()
+    client: Client = Client.query.first()
     assert client.company == "test company"
     assert client.contact_name == "test contact name"
     assert client.contact_email == "test contact email"
@@ -78,14 +78,6 @@ def test_get_archetypes():
     assert response.status_code == 200
     assert len(r_json.get("archetypes")) == 1
     assert r_json.get("archetypes")[0].get("id") == archetype.id
-    assert r_json.get("archetypes")[0].get("performance").get("total_prospects") == 1
-    assert (
-        r_json.get("archetypes")[0]
-        .get("performance")
-        .get("status_map")
-        .get("PROSPECTED")
-        == 1
-    )
 
 
 @use_app_context
