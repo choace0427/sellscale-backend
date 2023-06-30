@@ -30,7 +30,6 @@ def run_daily_prospect_to_revival_status_cleanup_job():
         where 
             linkedin_conversation_entry.connection_degree = 'You' and 
             linkedin_conversation_entry.date < NOW() - '3 days'::INTERVAL
-        limit 1;
     """
     ).fetchall()
 
