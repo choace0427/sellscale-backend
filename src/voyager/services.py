@@ -428,6 +428,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
     update_prospect_status(prospect.id, convo_urn_id)
 
     # Classify conversation
+    prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.status.value.startswith("ACTIVE_CONVO"):
         latest_convo_entries: list[LinkedinConversationEntry] = (
             LinkedinConversationEntry.query.filter_by(
