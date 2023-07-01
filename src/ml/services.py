@@ -696,7 +696,7 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
 
         prospect_location = "Prospect location unknown."
         prospect_education = "Prospect school and degree unknown."
-        cache = json.loads(iscraper_cache.payload)
+        cache = json.loads(iscraper_cache.payload) if iscraper_cache and iscraper_cache.payload else None
         if cache and cache.get("location"):
             prospect_location = cache.get("location")
         if cache and cache.get("education") and len(cache.get("education")) > 0:

@@ -7,6 +7,7 @@ from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpLength
 from src.prospecting.services import send_to_purgatory
 from src.utils.datetime.dateparse_utils import get_working_hours_in_utc, is_weekend
+from src.utils.slack import exception_to_str
 
 from src.voyager.linkedin import LinkedIn
 
@@ -718,7 +719,7 @@ def scrape_conversation_queue():
 
         except Exception as e:
             send_slack_message(
-                message=f"🛑 Error scraping convo between SDR #{scrape.client_sdr_id} and prospect #{scrape.prospect_id}\nMsg: {e}",
+                message=f"🛑 Error scraping convo between SDR #{scrape.client_sdr_id} and prospect #{scrape.prospect_id}\nMsg: {exception_to_str()}",
                 webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
             continue

@@ -214,5 +214,11 @@ def get_all_research_point_types():
             "description": "Extracts the common education",
             "example": "John Doe attended University of California, Berkeley. I attended University of California, Berkeley from 2016 to 2020.",
             "deprecated": False,
+        },
+        {
+            "transformer": ResearchPointType.CUSTOM.value,
+            "description": "Used to create custom research points",
+            "example": "{ 'label': 'Favorite Food', 'value': 'Pizza' }",
+            "deprecated": False,
         }
     ]

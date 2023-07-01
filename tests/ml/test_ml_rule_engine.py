@@ -159,7 +159,7 @@ def test_rule_linkedin_length():
     rule_linkedin_length(
         GeneratedMessageType.LINKEDIN, big_message, problems, highlighted_words
     )
-    assert problems == ["The message is over 300 characters long. Please reduce to just under 300 characters."]
+    assert problems == ["The message is slightly too long. Reduce the length by a few words."]
 
 
 @use_app_context

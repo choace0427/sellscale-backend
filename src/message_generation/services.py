@@ -1246,7 +1246,7 @@ def batch_approve_message_generations_by_heuristic(prospect_ids: list):
 
     for prospect_id in tqdm(prospect_ids):
         data = db.session.execute(
-            """
+            text("""
             select length(completion), *
             from generated_message
             where prospect_id = {prospect_id} and generated_message.message_type = 'LINKEDIN'
@@ -1254,7 +1254,7 @@ def batch_approve_message_generations_by_heuristic(prospect_ids: list):
             limit 1;
         """.format(
                 prospect_id=prospect_id
-            )
+            ))
         ).fetchall()
         if len(data) == 0:
             continue
