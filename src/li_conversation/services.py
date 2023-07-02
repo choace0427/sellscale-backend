@@ -712,9 +712,10 @@ def scrape_conversation_queue():
                 api, conversation_urn_id, prospect_id
             )
 
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             prospect: Prospect = Prospect.query.get(prospect_id)
             send_slack_message(
-                message=f"••• Scraping convo between SDR {api.client_sdr.name} (#{api.client_sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
+                message=f"••• Scraping convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
                 webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
 
