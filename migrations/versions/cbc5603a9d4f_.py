@@ -35,6 +35,7 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
+    
     op.create_table(
         "generated_message",
         sa.Column("created_at", sa.DateTime(), nullable=True),
