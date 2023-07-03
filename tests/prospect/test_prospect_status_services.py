@@ -49,7 +49,7 @@ def test_get_valid_next_prospect_statuses():
         is not None
     )
 
-    assert len(valid_next_statuses["all_statuses"]) == 13
+    assert len(valid_next_statuses["all_statuses"]) == 19
 
     # Test LinkedIn again
     prospect.status = ProspectStatus.SENT_OUTREACH

@@ -135,13 +135,11 @@ def check_statuses_of_fine_tune_jobs():
     updated_job_ids = []
     for j in jobs:
         job: GNLPModelFineTuneJobs = j
-        archetype: ClientArchetype = ClientArchetype.query.get(
-            job.archetype_id)
+        archetype: ClientArchetype = ClientArchetype.query.get(job.archetype_id)
         archetype_id = archetype.id
         archetype_name = archetype.archetype
 
-        fine_tune_status = get_fine_tune_timeline(
-            fine_tune_id=job.finetune_job_id)
+        fine_tune_status = get_fine_tune_timeline(fine_tune_id=job.finetune_job_id)
         model_uuid = fine_tune_status.get("fine_tuned_model")
 
         client: Client = Client.query.get(archetype.client_id)
@@ -192,8 +190,7 @@ def get_fine_tune_timeline(fine_tune_id: str):
 def create_profane_word(words: str):
     from model_import import ProfaneWords
 
-    word_exists = ProfaneWords.query.filter(
-        ProfaneWords.words == words).first()
+    word_exists = ProfaneWords.query.filter(ProfaneWords.words == words).first()
     if word_exists:
         return word_exists
 
@@ -360,8 +357,7 @@ def get_sequence_draft(
         if len(parts) != 2:
             continue
 
-        subject = re.sub(r"^subject: ", "",
-                         parts[0].strip(), flags=re.IGNORECASE)
+        subject = re.sub(r"^subject: ", "", parts[0].strip(), flags=re.IGNORECASE)
 
         body = re.sub(r"--\s?$", "", parts[1].strip(), flags=re.IGNORECASE)
         body = re.sub(r"-\s?$", "", body, flags=re.IGNORECASE)
@@ -696,7 +692,11 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
 
         prospect_location = "Prospect location unknown."
         prospect_education = "Prospect school and degree unknown."
-        cache = json.loads(iscraper_cache.payload) if iscraper_cache and iscraper_cache.payload else None
+        cache = (
+            json.loads(iscraper_cache.payload)
+            if iscraper_cache and iscraper_cache.payload
+            else None
+        )
         if cache and cache.get("location"):
             prospect_location = cache.get("location")
         if cache and cache.get("education") and len(cache.get("education")) > 0:
@@ -816,12 +816,12 @@ Edited Text:""".format(
 
 
 def ai_email_prompt(
-        client_sdr_id: int,
-        prospect_id: int,
-        email_bump_framework_id: Optional[int] = None,
-        overriden_blocks: Optional[list[str]] = None
+    client_sdr_id: int,
+    prospect_id: int,
+    email_bump_framework_id: Optional[int] = None,
+    overriden_blocks: Optional[list[str]] = None,
 ) -> str:
-    """ Generate an AI Email Prompt given a prospect. Uses the prospect's archetype and email bump framework (if given) to generate the prompt.
+    """Generate an AI Email Prompt given a prospect. Uses the prospect's archetype and email bump framework (if given) to generate the prompt.
 
     If email_bump_framework_id is included, the email bump framework will be used to generate the prompt. Otherwise, the default SellScale blocks will be used.
 
@@ -840,8 +840,7 @@ def ai_email_prompt(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
         AccountResearchPoints.prospect_id == prospect.id
     ).all()
@@ -897,7 +896,8 @@ def ai_email_prompt(
     # Followup emails / test emails
     if email_bump_framework_id is not None:
         bf_email: BumpFrameworkEmail = BumpFrameworkEmail.query.get(
-            email_bump_framework_id)
+            email_bump_framework_id
+        )
         block_structure = ""
         for index, block in enumerate(bf_email.email_blocks):
             block_structure += f"{index + 1}. {block}\n"
@@ -1020,8 +1020,7 @@ def generate_followup_email_with_objective_prompt(
     client: Client = Client.query.get(client_sdr.client_id)
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     research_points: ResearchPoints = ResearchPoints.get_research_points_by_prospect_id(
         prospect_id
@@ -1203,8 +1202,7 @@ def determine_best_bump_framework_from_convo(
 
     bump_frameworks = []
     for bump_framework_id in bump_framework_ids:
-        bump_framework: BumpFramework = BumpFramework.query.get(
-            bump_framework_id)
+        bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
         if bump_framework:
             bump_frameworks.append(
                 {
@@ -1228,9 +1226,7 @@ def determine_best_bump_framework_from_convo(
     for message in convo_history[::-1]:
         messages.append(
             {
-                "role": "user"
-                if message.connection_degree == "You"
-                else "assistant",
+                "role": "user" if message.connection_degree == "You" else "assistant",
                 "content": message.message,
             }
         )
