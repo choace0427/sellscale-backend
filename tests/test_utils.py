@@ -649,3 +649,12 @@ def clear_all_entities(SQLAlchemyObject):
 
 def test_simple_test():
     assert True
+
+
+def test_socket_blocks():
+    import requests
+
+    with pytest.raises(Exception):
+        response = requests.request(
+            "GET", "http://google.com"
+        )
