@@ -209,7 +209,8 @@ def update_generated_message_job_queue_status(
     """
     if not gm_job_id:
         return True
-    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
+    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(
+        gm_job_id)
     if gm_job:
         gm_job.status = status.value
         gm_job.error_message = error_message
@@ -228,7 +229,8 @@ def increment_generated_message_job_queue_attempts(gm_job_id: int) -> bool:
     Returns:
         bool: True if the job was updated, False otherwise
     """
-    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
+    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(
+        gm_job_id)
     if gm_job:
         if gm_job.attempts:
             gm_job.attempts += 1
@@ -270,7 +272,8 @@ def research_and_generate_outreaches_for_prospect(  # THIS IS A PROTECTED TASK. 
             return (False, "Prospect does not exist")
 
         # Create research payload and bullet points for the Prospect
-        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+        get_research_and_bullet_points_new(
+            prospect_id=prospect_id, test_mode=False)
 
         # Generate outreaches for the Prospect
         generate_linkedin_outreaches_with_configurations(
@@ -280,7 +283,8 @@ def research_and_generate_outreaches_for_prospect(  # THIS IS A PROTECTED TASK. 
         )
 
         # Run auto approval
-        batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
+        batch_approve_message_generations_by_heuristic(
+            prospect_ids=[prospect_id])
 
         # Mark the job as completed
         update_generated_message_job_queue_status(
@@ -311,7 +315,8 @@ def generate_prompt(prospect_id: int, notes: str = ""):
         **bio_data
     )
     prompt = (
-        prompt.replace('"', "").replace("\\", "").replace("\n", "\\n").replace("\r", "")
+        prompt.replace('"', "").replace("\\", "").replace(
+            "\n", "\\n").replace("\r", "")
     )
 
     return prompt, bio_data
@@ -322,7 +327,8 @@ def generate_batches_of_research_points(
 ):
     perms = []
     for i in range(n):
-        sample = [x for x in random.sample(points, min(len(points), num_per_perm))]
+        sample = [x for x in random.sample(
+            points, min(len(points), num_per_perm))]
         perms.append(sample)
     return perms
 
@@ -344,7 +350,8 @@ def generate_batch_of_research_points_from_config(
         return generate_batches_of_research_points(
             points=all_research_points, n=n, num_per_perm=2
         )
-    allowed_research_point_types_in_config = [x for x in config.research_point_types]
+    allowed_research_point_types_in_config = [
+        x for x in config.research_point_types]
 
     research_points = [
         x
@@ -468,14 +475,16 @@ def generate_linkedin_outreaches(
         ResearchPoints
     ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
-    perms = generate_batches_of_research_points(points=research_points_list, n=4)
+    perms = generate_batches_of_research_points(
+        points=research_points_list, n=4)
 
     if not perms or len(perms) == 0:
         raise ValueError("No research point permutations")
 
     outreaches = []
     for perm in perms:
-        notes, research_points, cta = get_notes_and_points_from_perm(perm, cta_id)
+        notes, research_points, cta = get_notes_and_points_from_perm(
+            perm, cta_id)
 
         able_to_generate_with_few_shot = can_generate_with_few_shot(
             prospect_id=prospect_id
@@ -875,7 +884,8 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         generate_prospect_research(prospect.id, False, False)
 
         # Create research points and payload for the prospect
-        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+        get_research_and_bullet_points_new(
+            prospect_id=prospect_id, test_mode=False)
 
         # Get the top configuration and research poitn permutations for the prospect
         NUM_GENERATIONS = 1  # number of ProspectEmail's to make
@@ -1124,7 +1134,8 @@ def mark_prospect_email_approved(prospect_email_id: int, ai_approved: bool = Fal
         ai_approved=ai_approved,
     )
 
-    run_message_rule_engine(message_id=prospect_email.personalized_subject_line)
+    run_message_rule_engine(
+        message_id=prospect_email.personalized_subject_line)
     run_message_rule_engine(message_id=prospect_email.personalized_body)
 
     return success
@@ -1232,7 +1243,8 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
         db.session.commit()
 
     if prospect.approved_outreach_message_id == None:
-        delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
+        delete_research_points_and_payload_by_prospect_id(
+            prospect_id=prospect_id)
 
     return True
 
@@ -1360,11 +1372,13 @@ def get_named_entities(string: str):
     fewshot_1_entities = (
         "entities: David // Aakash // Gusto // Naropa University // Stratosphere"
     )
-    fewshot_1 = fewshot_1_message + "\n\n" + instruction + "\n\n" + fewshot_1_entities
+    fewshot_1 = fewshot_1_message + "\n\n" + \
+        instruction + "\n\n" + fewshot_1_entities
 
     fewshot_2_message = "message: I'd like to commend you for being in the industry for 16+ years. That is no small feat!"
     fewshot_2_entities = "entities: NONE"
-    fewshot_2 = fewshot_2_message + "\n\n" + instruction + "\n\n" + fewshot_2_entities
+    fewshot_2 = fewshot_2_message + "\n\n" + \
+        instruction + "\n\n" + fewshot_2_entities
 
     target = "message: " + message + "\n\n" + instruction + "\n\n" + "entities:"
 
@@ -1383,7 +1397,8 @@ def get_named_entities(string: str):
                 temperature=0,
             )
             entities_clean = (
-                response["choices"][0]["text"].strip().replace("\n", "").split(" // ")
+                response["choices"][0]["text"].strip().replace(
+                    "\n", "").split(" // ")
             )
             break
         except:
@@ -1456,7 +1471,8 @@ def run_check_message_has_bad_entities(message_id: int):
         ):
             flagged_entities.append(entity)
 
-    generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(
+        message_id)
     generated_message.unknown_named_entities = flagged_entities
     db.session.add(generated_message)
     db.session.commit()
@@ -1690,6 +1706,8 @@ def process_generated_msg_queue(
         GeneratedMessageQueue.li_message_urn_id == li_message_urn_id,
         GeneratedMessageQueue.nylas_message_id == nylas_message_id,
     ).first()
+    if not msg_queue:
+        return False
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1707,22 +1725,12 @@ def process_generated_msg_queue(
         ).first()
         prospect_name = prospect.full_name
 
-        li_convo_msg.ai_generated = True if msg_queue else False
-        li_convo_msg.bump_framework_id = (
-            msg_queue.bump_framework_id if msg_queue else None
-        )
-        li_convo_msg.bump_framework_title = (
-            msg_queue.bump_framework_title if msg_queue else None
-        )
-        li_convo_msg.bump_framework_description = (
-            msg_queue.bump_framework_description if msg_queue else None
-        )
-        li_convo_msg.bump_framework_length = (
-            msg_queue.bump_framework_length if msg_queue else None
-        )
-        li_convo_msg.account_research_points = (
-            msg_queue.account_research_points if msg_queue else None
-        )
+        li_convo_msg.ai_generated = True
+        li_convo_msg.bump_framework_id = msg_queue.bump_framework_id
+        li_convo_msg.bump_framework_title = msg_queue.bump_framework_title
+        li_convo_msg.bump_framework_description = msg_queue.bump_framework_description
+        li_convo_msg.bump_framework_length = msg_queue.bump_framework_length
+        li_convo_msg.account_research_points = msg_queue.account_research_points
 
         db.session.add(li_convo_msg)
         db.session.commit()
@@ -1948,7 +1956,8 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         bump_msg.message = data.get("response")
         bump_msg.bump_framework_id = data.get("bump_framework_id")
         bump_msg.bump_framework_title = data.get("bump_framework_title")
-        bump_msg.bump_framework_description = data.get("bump_framework_description")
+        bump_msg.bump_framework_description = data.get(
+            "bump_framework_description")
         bump_msg.bump_framework_length = data.get("bump_framework_length")
         bump_msg.account_research_points = data.get("account_research_points")
 
@@ -1991,7 +2000,8 @@ def generate_followup_response(
         bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
             client_sdr_id=client_sdr_id,
             overall_statuses=[overall_status],
-            substatuses=[li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
+            substatuses=[
+                li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
             client_archetype_ids=[prospect.archetype_id],
         )
 
@@ -2023,7 +2033,8 @@ def generate_followup_response(
             else:
                 framework_index = determine_best_bump_framework_from_convo(
                     convo_history=convo_history,
-                    bump_framework_ids=[bf.get("id", -1) for bf in bump_frameworks],
+                    bump_framework_ids=[bf.get("id", -1)
+                                        for bf in bump_frameworks],
                 )
 
             if show_slack_messages:
@@ -2068,7 +2079,8 @@ def generate_followup_response(
         response, prompt = generate_chat_gpt_response_to_conversation_thread(
             prospect_id=prospect_id,
             convo_history=convo_history,
-            bump_framework_id=best_framework.get("id") if best_framework else None,
+            bump_framework_id=best_framework.get(
+                "id") if best_framework else None,
             account_research_copy=research_str,
         )  # type: ignore
 
