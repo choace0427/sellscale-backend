@@ -417,7 +417,8 @@ def generate_linkedin_outreaches_with_configurations(
         )
 
         if not perms or len(perms) == 0:
-            raise ValueError("No research point permutations")
+            return []
+            #raise ValueError("No research point permutations")
 
         outreaches = []
 

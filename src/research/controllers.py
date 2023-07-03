@@ -145,6 +145,19 @@ def get_personal_research_points(client_sdr_id: int):
     return jsonify(data)
 
 
+@RESEARCH_BLUEPRINT.route("/account_research_points", methods=["GET"])
+@require_user
+def get_account_research_points_endpoint(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True
+    )
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    return jsonify(get_account_research_points_by_prospect_id(prospect_id=prospect_id))
+
 @RESEARCH_BLUEPRINT.route("/account_research_points/inputs", methods=["GET"])
 @require_user
 def get_account_research_points_inputs_endpoint(client_sdr_id: int):

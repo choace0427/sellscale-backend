@@ -61,7 +61,7 @@ def test_get_account_research_points(generate_prospect_research_delay_patch):
     prospect_id = prospect.id
 
     response = app.test_client().get(
-        f"research/personal_research_points?prospect_id={prospect.id}",
+        f"research/account_research_points?prospect_id={prospect.id}",
         headers={
             "Content-Type": "application/json",
             "Authorization": "Bearer " + "TEST_AUTH_TOKEN",
