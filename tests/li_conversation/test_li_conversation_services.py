@@ -1,5 +1,6 @@
 from app import db
 from decorators import use_app_context
+from src.prospecting.models import ProspectStatus
 from test_utils import (
     test_app,
     basic_client,
@@ -110,7 +111,7 @@ def test_get_li_conversation_entries():
     )
 
     client.active = True
-    prospect.status = "ACTIVE_CONVO"
+    prospect.status = ProspectStatus.ACTIVE_CONVO
 
     data = get_li_conversation_entries()
     assert data[0]['conversation_url'] == 'test-thread-id'

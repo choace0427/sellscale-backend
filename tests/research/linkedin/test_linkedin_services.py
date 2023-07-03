@@ -42,17 +42,17 @@ EXAMPLE_PAYLOAD = {
 }
 
 EXAMPLE_PAYLOAD_PERSONAL = {
-    "position_groups": [
+    'position_groups': [
         {
-            "company": {
-                "name": "Test",
-                "url": "https://www.linkedin.com/company/test_company",
+            'company': {
+                'name': 'Test',
+                'url': 'https://www.linkedin.com/company/test_company',
             }
         },
     ]
 }
 
-EXAMPLE_PAYLOAD_COMPANY = {"details": {"name": "Fake Company Mock"}}
+EXAMPLE_PAYLOAD_COMPANY = {'details': {'name': 'Fake Company Mock'}}
 
 
 @use_app_context
@@ -100,11 +100,11 @@ def test_get_research_payload_new_payload_exists():
 @use_app_context
 @mock.patch(
     "src.research.linkedin.services.research_personal_profile_details",
-    return_value=json.dumps(EXAMPLE_PAYLOAD_PERSONAL),
+    return_value=EXAMPLE_PAYLOAD_PERSONAL,
 )
 @mock.patch(
     "src.research.linkedin.services.research_corporate_profile_details",
-    return_value=json.dumps(EXAMPLE_PAYLOAD_COMPANY),
+    return_value=EXAMPLE_PAYLOAD_COMPANY,
 )
 def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company):
     client = basic_client()
@@ -118,8 +118,10 @@ def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company)
     cache = basic_iscraper_payload_cache(
         linkedin_url="https://www.linkedin.com/in/test"
     )
+    payload = json.loads(cache.payload)
     returned = get_research_payload_new(prospect.id)
-    assert returned == {"personal": cache.payload, "company": EXAMPLE_PAYLOAD_COMPANY}
+    assert returned.get('personal') == payload
+    assert returned.get('company') == EXAMPLE_PAYLOAD_COMPANY
 
     clear_all_entities(ResearchPayload)
     clear_all_entities(IScraperPayloadCache)
@@ -144,7 +146,7 @@ def test_get_research_payload_new(mock_iscraper_personal, mock_iscraper_company)
     returned = get_research_payload_new(prospect_id)
     assert returned == {
         "personal": EXAMPLE_PAYLOAD_PERSONAL,
-        "company": {"details": {"name": "Fake Company TEST"}},
+        "company": {"details": {"name": "Fake Company Mock"}},
     }
     clear_all_entities(ResearchPayload)
     clear_all_entities(IScraperPayloadCache)

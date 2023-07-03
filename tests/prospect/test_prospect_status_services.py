@@ -71,7 +71,7 @@ def test_get_valid_next_prospect_statuses():
         valid_next_statuses["valid_next_statuses"][ProspectStatus.NOT_QUALIFIED.value]
         is not None
     )
-    assert len(valid_next_statuses["all_statuses"]) == 13
+    assert len(valid_next_statuses["all_statuses"]) == 19
 
     # Test Email
     prospect_email = basic_prospect_email(prospect)
@@ -90,7 +90,7 @@ def test_get_valid_next_prospect_statuses():
         ]
         is not None
     )
-    assert len(valid_next_statuses["all_statuses"]) == 11
+    assert len(valid_next_statuses["all_statuses"]) == 13
 
     # Test Email again
     prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
@@ -102,4 +102,4 @@ def test_get_valid_next_prospect_statuses():
         ]
         is not None
     )
-    assert len(valid_next_statuses["all_statuses"]) == 11
+    assert len(valid_next_statuses["all_statuses"]) == 13

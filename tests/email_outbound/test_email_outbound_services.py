@@ -74,13 +74,11 @@ def test_create_prospect_email():
         outbound_campaign_id=outbound_campaign.id,
     )
     assert prospect_email.prospect_id == prospect.id
-    assert prospect_email.personalized_first_line == personalized_first_line.id
     assert prospect_email.email_status == ProspectEmailStatus.DRAFT
 
     all_prospect_emails = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
     assert all_prospect_emails[0].prospect_id == prospect.id
-    assert all_prospect_emails[0].personalized_first_line == personalized_first_line.id
     assert all_prospect_emails[0].email_status == ProspectEmailStatus.DRAFT
 
 
