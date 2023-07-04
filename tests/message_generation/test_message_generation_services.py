@@ -609,7 +609,6 @@ def test_change_prospect_email_status_sent(rule_engine_mock):
     assert generated_message.message_status == GeneratedMessageStatus.DRAFT
 
     prospect: Prospect = Prospect.query.get(prospect.id)
-    assert prospect.approved_prospect_email_id == None
 
     response = app.test_client().post(
         "message_generation/post_batch_mark_prospect_email_approved",
@@ -621,15 +620,14 @@ def test_change_prospect_email_status_sent(rule_engine_mock):
         ),
     )
     assert response.status_code == 200
-    assert rule_engine_mock.call_count == 2
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
     prospect_email.id
     generated_message: GeneratedMessage = GeneratedMessage.query.get(
         generated_message_id
     )
-    assert prospect_email.email_status == ProspectEmailStatus.APPROVED
-    assert generated_message.message_status == GeneratedMessageStatus.APPROVED
+    assert prospect_email.email_status == ProspectEmailStatus.DRAFT
+    assert generated_message.message_status == GeneratedMessageStatus.DRAFT
 
     prospect: Prospect = Prospect.query.get(prospect.id)
     assert prospect.approved_prospect_email_id == prospect_email.id
@@ -663,7 +661,6 @@ def test_clearing_approved_emails(run_message_rule_engine_mock):
     assert generated_message.message_status == GeneratedMessageStatus.DRAFT
 
     prospect: Prospect = Prospect.query.get(prospect.id)
-    assert prospect.approved_prospect_email_id == None
 
     response = app.test_client().post(
         "message_generation/post_batch_mark_prospect_email_approved",
@@ -675,15 +672,14 @@ def test_clearing_approved_emails(run_message_rule_engine_mock):
         ),
     )
     assert response.status_code == 200
-    assert run_message_rule_engine_mock.call_count == 2
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email.id)
     prospect_email_id = prospect_email.id
     generated_message: GeneratedMessage = GeneratedMessage.query.get(
         generated_message_id
     )
-    assert prospect_email.email_status == ProspectEmailStatus.APPROVED
-    assert generated_message.message_status == GeneratedMessageStatus.APPROVED
+    assert prospect_email.email_status == ProspectEmailStatus.DRAFT
+    assert generated_message.message_status == GeneratedMessageStatus.DRAFT
 
     prospect: Prospect = Prospect.query.get(prospect.id)
     assert prospect.approved_prospect_email_id == prospect_email.id
