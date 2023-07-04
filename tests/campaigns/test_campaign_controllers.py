@@ -1009,6 +1009,7 @@ def test_post_remove_ungenerated_prospects():
     db.session.add(prospect3)
     db.session.commit()
     prospect_ids = [prospect.id, prospect2.id, prospect3.id]
+    prospect_1_id = prospect.id
     prospect_3_id = prospect3.id
 
     campaign = create_outbound_campaign(
@@ -1033,7 +1034,7 @@ def test_post_remove_ungenerated_prospects():
     )
     assert response.status_code == 200
     campaign = OutboundCampaign.query.get(campaign_id)
-    assert campaign.prospect_ids == [prospect_3_id]
+    assert campaign.prospect_ids == [prospect_1_id, prospect_3_id]
 
     # test creating a LI campaign from this email campaign
     response = app.test_client().post(
@@ -1051,7 +1052,7 @@ def test_post_remove_ungenerated_prospects():
 
     campaign = OutboundCampaign.query.get(campaign_id)
     assert campaign.campaign_type.value == "LINKEDIN"
-    assert campaign.prospect_ids == [prospect_3_id]
+    assert campaign.prospect_ids == [prospect_1_id, prospect_3_id]
     assert campaign.client_archetype_id == archetype_id
     assert campaign.ctas == [cta.id]
     assert campaign.client_sdr_id == client_sdr_id
