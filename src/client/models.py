@@ -59,6 +59,9 @@ class Client(db.Model):
     mission = db.Column(db.String, nullable=True)
     case_study = db.Column(db.String, nullable=True)
 
+    analytics_activation_date = db.Column(db.DateTime, nullable=True)
+    analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -290,6 +293,9 @@ class ClientSDR(db.Model):
     message_generation_captivate_mode = db.Column(
         db.Boolean, nullable=True, default=False
     )
+
+    analytics_activation_date = db.Column(db.DateTime, nullable=True)
+    analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
