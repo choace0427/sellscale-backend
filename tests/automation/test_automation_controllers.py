@@ -7,8 +7,11 @@ import mock
 
 
 class FakePostResponse:
+    def __init__(self, return_payload={"id": "TEST_ID"}):
+        self.payload = return_payload
+
     def json(self):
-        return {"id": "TEST_ID"}
+        return self.payload
 
 
 @use_app_context
@@ -16,7 +19,15 @@ class FakePostResponse:
     "src.automation.services.requests.request",
     return_value=FakePostResponse(),
 )
-def test_configure_phantom_agents(request_patch):
+@mock.patch(
+    "src.automation.services.requests.get",
+    return_value=FakePostResponse(return_payload=[]),
+)
+@mock.patch(
+    "src.automation.services.requests.post",
+    return_value=FakePostResponse(return_payload=[]),
+)
+def test_configure_phantom_agents(request_post_patch, request_get_patch, request_patch):
     client = basic_client()
     sdr = basic_client_sdr(client)
     sdr_id = sdr.id
