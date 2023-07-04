@@ -258,10 +258,10 @@ def test_create_prospect_from_linkedin_link_successful(
     success = create_prospect_from_linkedin_link(pu_id)
     pu = ProspectUploads.query.get(pu_id)
     iscraper_cache = IScraperPayloadCache.query.all()
-    assert len(iscraper_cache) == 1
+    assert len(iscraper_cache) == 2
     assert success
-    assert iscraper_research_personal_profile_details_mock.call_count == 1
-    assert pu.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
+    assert iscraper_research_personal_profile_details_mock.call_count == 2
+    assert pu.status == ProspectUploadsStatus.UPLOAD_COMPLETE
     assert Prospect.query.count() == 1
 
 

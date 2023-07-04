@@ -1,3 +1,4 @@
+import json
 import pytest
 from app import db
 from config import TestingConfig
@@ -566,17 +567,17 @@ def basic_stack_ranked_message_generation_config(
 
 
 EXAMPLE_PAYLOAD_PERSONAL = {
-    "position_groups": [
+    'position_groups': [
         {
-            "company": {
-                "name": "Test",
-                "url": "https://www.linkedin.com/company/test_company",
+            'company': {
+                'name': 'Test',
+                'url': 'https://www.linkedin.com/company/test_company',
             }
         },
     ]
 }
 
-EXAMPLE_PAYLOAD_COMPANY = {"details": {"name": "Fake Company TEST"}}
+EXAMPLE_PAYLOAD_COMPANY = {'details': {'name': 'Fake Company Mock'}}
 
 
 def basic_iscraper_payload_cache(
@@ -590,7 +591,7 @@ def basic_iscraper_payload_cache(
         payload_type = IScraperPayloadType.COMPANY
     cache = IScraperPayloadCache(
         linkedin_url=linkedin_url,
-        payload=payload,
+        payload=json.dumps(payload),
         payload_type=payload_type,
     )
     db.session.add(cache)
@@ -655,3 +656,12 @@ def clear_all_entities(SQLAlchemyObject):
 
 def test_simple_test():
     assert True
+
+
+def test_socket_blocks():
+    import requests
+
+    with pytest.raises(Exception):
+        response = requests.request(
+            "GET", "http://google.com"
+        )

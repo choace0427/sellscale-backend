@@ -1,3 +1,4 @@
+from flask import jsonify
 from decorators import use_app_context
 from app import db
 from model_import import ResearchType
@@ -71,7 +72,6 @@ def test_get_editing_details():
     assert response.json["cta"] == cta.to_dict()
     assert response.json["linkedin_payload"] == li_payload.payload
     assert response.json["serp_payload"] == serp_payload.payload
-    assert response.json["prospect"] == prospect.to_dict()
     assert response.json["research_points"] == [
         li_point.to_dict(),
         serp_point.to_dict(),

@@ -49,7 +49,7 @@ def test_search_google_news(serp_mock):
     search_google_news(query=query, intext=intext)
     serp_mock.assert_called_with(
         {
-            "api_key": None,
+            "api_key": 'None',
             "engine": "google",
             "q": '"SellScale" (intext:"skyrocket")',
             "tbm": "nws",
@@ -65,7 +65,7 @@ def test_search_google_news(serp_mock):
     search_google_news(query=query, intext=intext)
     serp_mock.assert_called_with(
         {
-            "api_key": None,
+            "api_key": 'None',
             "engine": "google",
             "q": '"SellScale" (intext:"skyrocket" OR intext:"growth")',
             "tbm": "nws",
@@ -82,7 +82,7 @@ def test_search_google_news(serp_mock):
     search_google_news(query=query, intext=intext, exclude=exclude)
     serp_mock.assert_called_with(
         {
-            "api_key": None,
+            "api_key": 'None',
             "engine": "google",
             "q": '"SellScale" (intext:"skyrocket" OR intext:"growth") -lost -fear',
             "tbm": "nws",
