@@ -158,7 +158,7 @@ def test_get_prospects():
     assert returned.get("total_count") == 1
     prospects = returned.get("prospects")
     assert prospects[0].full_name == "jim"
-    assert prospects[0].company == "Datadog"
+    assert prospects[0].company == "Apple"
 
     # Test filtering by email
     prospect_8 = basic_prospect(c, a, c_sdr, full_name="dave", company="scalingsell")
@@ -203,7 +203,11 @@ def test_get_prospect_generated_message():
 
 
 @use_app_context
-def test_update_prospect_status_with_note():
+@mock.patch("src.prospecting.services.get_research_and_bullet_points_new.delay")
+@mock.patch("src.prospecting.services.get_research_payload_new")
+def test_update_prospect_status_with_note(
+    get_research_payload_new_mock, get_research_and_bullet_points_new_delay
+):
     client = basic_client()
     client_id = client.id
     archetype = basic_archetype(client)
@@ -248,7 +252,11 @@ def test_update_prospect_status_with_note():
 
 
 @use_app_context
-def test_update_prospect_status_active_convo_disable_ai():
+@mock.patch("src.prospecting.services.get_research_and_bullet_points_new.delay")
+@mock.patch("src.prospecting.services.get_research_payload_new")
+def test_update_prospect_status_active_convo_disable_ai(
+    get_research_payload_new_mock, get_research_and_bullet_points_new_delay
+):
     client = basic_client()
     archetype = basic_archetype(client)
     client_sdr = basic_client_sdr(client)

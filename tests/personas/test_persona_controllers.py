@@ -1,3 +1,4 @@
+import mock
 from app import app, db
 
 from model_import import Client, PersonaSplitRequestTask, PersonaSplitRequest
@@ -15,7 +16,8 @@ import json
 
 
 @use_app_context
-def test_split_prospects():
+@mock.patch("src.personas.services.process_persona_split_request_task.apply_async")
+def test_split_prospects(process_persona_split_request_task_split):
     client: Client = basic_client()
     client_sdr = basic_client_sdr(client)
 
@@ -76,7 +78,7 @@ def test_split_prospects():
         },
     )
     assert response.status_code == 200
-    assert len(response.json["recent_requests"]) == 2
+    assert len(response.json["recent_requests"]) == 1
     split_request_id = response.json["recent_requests"][0]["id"]
 
     response = app.test_client().get(
