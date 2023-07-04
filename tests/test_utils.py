@@ -344,6 +344,12 @@ def basic_prospect_email(
     )
     db.session.add(p)
     db.session.commit()
+
+    # Updated approved_prospect_email_id
+    prospect.approved_prospect_email_id = p.id
+    db.session.add(prospect)
+    db.session.commit()
+
     return p
 
 

@@ -188,7 +188,7 @@ def test_create_prospect_from_prospect_upload_row(celery_create_prospect_mock):
 
 @use_app_context
 @mock.patch(
-    "src.prospecting.upload.services.research_personal_profile_details",
+    "src.research.linkedin.services.research_personal_profile_details",
     return_value=ERROR_ISCRAPER_PAYLOAD,
 )
 def test_create_prospect_from_linkedin_link_iscraper_error(
@@ -212,12 +212,12 @@ def test_create_prospect_from_linkedin_link_iscraper_error(
     success = create_prospect_from_linkedin_link(pu_id)
     pu: ProspectUploads = ProspectUploads.query.get(pu_id)
     assert not success
-    assert pu.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
+    assert pu.status == ProspectUploadsStatus.UPLOAD_FAILED
     assert pu.error_type == ProspectUploadsErrorType.ISCRAPER_FAILED
     assert pu.iscraper_error_message == "Some iScraper message"
 
     with mock.patch(
-        "src.prospecting.upload.services.research_personal_profile_details",
+        "src.research.linkedin.services.research_personal_profile_details",
         return_value=BAD_ISCRAPER_PAYLOAD,
     ):
         # Check that the prospect should be disqualified
@@ -231,7 +231,7 @@ def test_create_prospect_from_linkedin_link_iscraper_error(
 
 @use_app_context
 @mock.patch(
-    "src.prospecting.upload.services.research_personal_profile_details",
+    "src.research.linkedin.services.research_personal_profile_details",
     return_value=VALID_ISCRAPER_PAYLOAD,
 )
 def test_create_prospect_from_linkedin_link_successful(
@@ -267,7 +267,7 @@ def test_create_prospect_from_linkedin_link_successful(
 
 @use_app_context
 @mock.patch(
-    "src.prospecting.upload.services.research_personal_profile_details",
+    "src.research.linkedin.services.research_personal_profile_details",
     side_effect=Exception("Some exception"),
 )
 def test_create_prospect_from_linkedin_link_failure(

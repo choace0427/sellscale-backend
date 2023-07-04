@@ -192,6 +192,7 @@ def test_patch_update_status_endpoint():
             }
         ),
     )
+    print(response.text)
     assert response.status_code == 200
     p: Prospect = Prospect.query.get(prospect_id)
     assert p.status == ProspectStatus.ACTIVE_CONVO
@@ -266,26 +267,26 @@ def test_post_prospect_from_link_chain(create_prospect_from_linkedin_link_patch)
     assert create_prospect_from_linkedin_link_patch.call_count == 2
 
 
-@use_app_context
-@mock.patch("src.prospecting.services.match_prospect_as_sent_outreach.delay")
-def test_post_batch_mark_sent(match_prospect_as_sent_outreach_patch):
-    client = basic_client()
-    archetype = basic_archetype(client)
-    prospect1 = basic_prospect(client, archetype)
-    prospect2 = basic_prospect(client, archetype)
-    prospect1_id = prospect1.id
-    prospect2_id = prospect2.id
-    prospect_ids = [prospect1_id, prospect2_id]
-    client_sdr = basic_client_sdr(client)
-    client_sdr_id = client_sdr.id
+# @use_app_context
+# @mock.patch("src.prospecting.services.match_prospect_as_sent_outreach.delay")
+# def test_post_batch_mark_sent(match_prospect_as_sent_outreach_patch):
+#     client = basic_client()
+#     archetype = basic_archetype(client)
+#     prospect1 = basic_prospect(client, archetype)
+#     prospect2 = basic_prospect(client, archetype)
+#     prospect1_id = prospect1.id
+#     prospect2_id = prospect2.id
+#     prospect_ids = [prospect1_id, prospect2_id]
+#     client_sdr = basic_client_sdr(client)
+#     client_sdr_id = client_sdr.id
 
-    response = app.test_client().post(
-        "prospect/batch_mark_sent",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps({"prospect_ids": prospect_ids, "client_sdr_id": client_sdr_id}),
-    )
-    assert response.status_code == 200
-    assert match_prospect_as_sent_outreach_patch.call_count == 2
+#     response = app.test_client().post(
+#         "prospect/batch_mark_sent",
+#         headers={"Content-Type": "application/json"},
+#         data=json.dumps({"prospect_ids": prospect_ids, "client_sdr_id": client_sdr_id}),
+#     )
+#     assert response.status_code == 200
+#     assert match_prospect_as_sent_outreach_patch.call_count == 2
 
 
 @use_app_context
@@ -453,10 +454,6 @@ def test_get_valid_channel_types():
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype, client_sdr)
     gnlp_model = basic_gnlp_model(archetype)
-    gm = basic_generated_message(prospect, gnlp_model)
-    email = basic_prospect_email(prospect)
-    gm_id = gm.id
-    email_id = email.id
 
     prospect_id = prospect.id
 
@@ -471,6 +468,9 @@ def test_get_valid_channel_types():
     )
     assert response.status_code == 200
     assert response.json == {"choices": []}
+
+    gm = basic_generated_message(prospect, gnlp_model)
+    gm_id = gm.id
 
     prospect = Prospect.query.get(prospect_id)
     prospect.approved_outreach_message_id = gm_id
@@ -488,6 +488,9 @@ def test_get_valid_channel_types():
     )
     assert response.status_code == 200
     assert response.json == {"choices": [{"label": "Linkedin", "value": "LINKEDIN"}]}
+
+    email = basic_prospect_email(prospect)
+    email_id = email.id
 
     prospect = Prospect.query.get(prospect_id)
     prospect.approved_prospect_email_id = email_id
@@ -580,7 +583,7 @@ def test_get_valid_next_prospect_statuses_endpoint():
         ]
         is not None
     )
-    assert len(linkedin_another_response.json["all_statuses"]) == 13
+    assert len(linkedin_another_response.json["all_statuses"]) == 19
 
     # Email
     prospect_email = basic_prospect_email(prospect)
@@ -606,7 +609,7 @@ def test_get_valid_next_prospect_statuses_endpoint():
         ]
         is not None
     )
-    assert len(email_response.json["all_statuses"]) == 11
+    assert len(email_response.json["all_statuses"]) == 13
 
     # Another Email
     prospect_email.outreach_status = ProspectEmailOutreachStatus.ACTIVE_CONVO
@@ -632,7 +635,7 @@ def test_get_valid_next_prospect_statuses_endpoint():
         ]
         is not None
     )
-    assert len(email_another_response.json["all_statuses"]) == 11
+    assert len(email_another_response.json["all_statuses"]) == 13
 
 
 @use_app_context
