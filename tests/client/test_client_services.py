@@ -138,7 +138,9 @@ def test_add_client_and_archetype():
     )
     assert response.status_code == 200
 
-    client_archetypes: list = ClientArchetype.query.all()
+    client_archetypes: list = ClientArchetype.query.order_by(
+        ClientArchetype.created_at.desc()
+    ).all()
     assert len(client_archetypes) == 1
     archetype = client_archetypes[0]
     assert archetype.client_id == c.id
