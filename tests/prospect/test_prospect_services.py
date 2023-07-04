@@ -327,16 +327,21 @@ def test_update_prospect_status_active_convo_disable_ai(
 
 
 @use_app_context
-def test_add_prospect():
+@mock.patch("src.prospecting.services.get_research_and_bullet_points_new.delay")
+@mock.patch("src.prospecting.services.get_research_payload_new")
+def test_add_prospect(
+    get_research_payload_new_mock, get_research_and_bullet_points_new_delay
+):
     client = basic_client()
     client_id = client.id
     archetype = basic_archetype(client)
     archetype_id = archetype.id
     client_sdr = basic_client_sdr(client)
+    client_sdr_id = client_sdr.id
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
-        client_sdr_id=client_sdr.id,
+        client_sdr_id=client_sdr_id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -372,7 +377,7 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
-        client_sdr_id=client_sdr.id,
+        client_sdr_id=client_sdr_id,
         company="testing testasara",
         company_url="testing.com",
         employee_count="10-100",
@@ -389,7 +394,7 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
-        client_sdr_id=client_sdr.id,
+        client_sdr_id=client_sdr_id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -406,7 +411,7 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
-        client_sdr_id=client_sdr.id,
+        client_sdr_id=client_sdr_id,
         company="testing",
         company_url="testing.com",
         employee_count="10-100",
@@ -423,7 +428,7 @@ def test_add_prospect():
     add_prospect(
         client_id=client_id,
         archetype_id=archetype_id,
-        client_sdr_id=client_sdr.id,
+        client_sdr_id=client_sdr_id,
         company="testing 2",
         company_url="testing.com",
         employee_count="10-100",
