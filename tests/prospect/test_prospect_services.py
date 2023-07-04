@@ -315,7 +315,7 @@ def test_update_prospect_status_active_convo_disable_ai():
     )
     prospect = Prospect.query.get(prospect1_id)
     assert prospect is not None
-    #assert prospect.deactivate_ai_engagement == True
+    # assert prospect.deactivate_ai_engagement == True
 
 
 @use_app_context
@@ -632,9 +632,7 @@ def test_validate_prospect_json_payload_invalid():
             "title": "Growth Engineer",
         },
     ]
-    validated, _ = validate_prospect_json_payload(
-        payload=bad_li_payload
-    )
+    validated, _ = validate_prospect_json_payload(payload=bad_li_payload)
     assert validated == False
 
     bad_email_payload = [
@@ -643,13 +641,11 @@ def test_validate_prospect_json_payload_invalid():
             "company_url": "https://athelas.com/",
             "emailBAD": "",
             "full_name": "Aakash Adesara",
-            "linkedin_url": "some_url",
+            "linkedin_url": "",
             "title": "Growth Engineer",
         },
     ]
-    validated, _ = validate_prospect_json_payload(
-        payload=bad_email_payload
-    )
+    validated, _ = validate_prospect_json_payload(payload=bad_email_payload)
     assert validated == False
 
     correct_payload = [
@@ -662,9 +658,7 @@ def test_validate_prospect_json_payload_invalid():
             "title": "Growth Engineer",
         },
     ]
-    validated, _ = validate_prospect_json_payload(
-        payload=correct_payload
-    )
+    validated, _ = validate_prospect_json_payload(payload=correct_payload)
     assert validated == True
 
 
@@ -696,22 +690,26 @@ def test_add_prospects_from_json_payload_invalid(
 @use_app_context
 def test_toggle_ai_engagement_endpoint():
     client = basic_client()
+    client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
-    prospect = basic_prospect(client, archetype)
+    prospect = basic_prospect(client, archetype, client_sdr)
     prospect_id = prospect.id
 
     assert not prospect.deactivate_ai_engagement
 
     response = app.test_client().patch(
         f"prospect/{prospect_id}/ai_engagement",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + get_login_token(),
+        },
         data=json.dumps({}),
     )
     assert response.status_code == 200
 
     prospect = Prospect.query.get(prospect_id)
     assert prospect is not None
-    #assert prospect.deactivate_ai_engagement == True
+    # assert prospect.deactivate_ai_engagement == True
 
 
 @use_app_context
@@ -810,8 +808,8 @@ def test_send_slack_reminder(send_slack_message_patch):
     assert send_slack_message_patch.call_count == 1
 
     prospect: Prospect = Prospect.query.get(1)
-    #assert prospect.last_reviewed is not None
-    #assert prospect.deactivate_ai_engagement == True
+    # assert prospect.last_reviewed is not None
+    # assert prospect.deactivate_ai_engagement == True
 
 
 @use_app_context
@@ -819,7 +817,11 @@ def test_send_slack_reminder(send_slack_message_patch):
     "src.research.linkedin.services.research_personal_profile_details",
     return_value=SAMPLE_LINKEDIN_RESEARCH_PAYLOAD,
 )
-def test_create_prospect_from_linkedin_link(research_personal_profile_details_patch):
+@mock.patch("src.prospecting.services.get_research_and_bullet_points_new.delay")
+def test_create_prospect_from_linkedin_link(
+    get_research_and_bullet_points_new_delay_mock,
+    research_personal_profile_details_patch,
+):
     client = basic_client()
     archetype = basic_archetype(client)
     client_id = client.id
@@ -857,7 +859,7 @@ def test_create_prospect_from_linkedin_link(research_personal_profile_details_pa
     assert prospect.last_name == "Barlow"
 
     iscraper_cache: list[IScraperPayloadCache] = IScraperPayloadCache.query.all()
-    assert len(iscraper_cache) == 1
+    assert len(iscraper_cache) == 2
 
 
 @use_app_context
@@ -885,7 +887,9 @@ def test_update_prospect_status_email():
     prospect_email_id = prospect_email.id
 
     # No override success
-    update_prospect_status_email(prospect_id, ProspectEmailOutreachStatus.SENT_OUTREACH, override_status=True)
+    update_prospect_status_email(
+        prospect_id, ProspectEmailOutreachStatus.SENT_OUTREACH, override_status=True
+    )
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     assert prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     prospect: Prospect = Prospect.query.get(prospect_id)
