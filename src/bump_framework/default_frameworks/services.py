@@ -28,7 +28,6 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
         return 0
 
     # Create the default bump frameworks
-    default_bump_frameworks: list[BumpFramework] = []
     for default_bump_framework in DEFAULT_BUMP_FRAMEWORKS:
         create_bump_framework(
             client_sdr_id=client_sdr_id,
@@ -44,7 +43,7 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
             sellscale_default_generated=True,
         )
 
-    return len(default_bump_frameworks)
+    return len(DEFAULT_BUMP_FRAMEWORKS)
 
 
 DEFAULT_BUMP_FRAMEWORKS = [

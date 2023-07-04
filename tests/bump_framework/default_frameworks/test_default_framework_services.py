@@ -16,11 +16,11 @@ from model_import import BumpFramework
 def test_create_default_bump_frameworks():
     client = basic_client()
     sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
 
-    count = create_default_bump_frameworks(sdr.id)
+    count = create_default_bump_frameworks(sdr.id, archetype.id)
     assert count == 6
     assert BumpFramework.query.count() == 6
-    assert JunctionBumpFrameworkClientArchetype.query.count() == 0 # No archetypes, so no junctions.
 
 
 @use_app_context
@@ -29,12 +29,7 @@ def test_add_archetype_to_default_bump_frameworks():
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, sdr)
 
-    count = create_default_bump_frameworks(sdr.id)
+    count = create_default_bump_frameworks(sdr.id, archetype.id)
     assert count == 6
     assert BumpFramework.query.count() == 6
-    assert JunctionBumpFrameworkClientArchetype.query.count() == 6
 
-    archetype2 = basic_archetype(client, sdr)
-    add_archetype_to_default_bump_frameworks(sdr.id, archetype2.id)
-    assert BumpFramework.query.count() == 6
-    assert JunctionBumpFrameworkClientArchetype.query.count() == 12
