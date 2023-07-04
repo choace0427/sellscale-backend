@@ -380,7 +380,7 @@ def test_post_toggle_stack_ranked_configuration_tool_active():
     )
 
 
-@mock.patch("src.ml.fine_tuned_models.wrapped_create_completion", return_value="A")
+@mock.patch("src.ml.fine_tuned_models.wrapped_chat_gpt_completion", return_value="A")
 def test_post_stack_ranked_configuration_tool_generate_sample(
     wrapped_create_completion_mock,
 ):
@@ -395,6 +395,6 @@ def test_post_stack_ranked_configuration_tool_generate_sample(
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 200
-    
+
     result = json.loads(response.data)
-    assert result.get('full_prompt') == "this is a prompt: PROMPT_DATA"
+    assert result.get("full_prompt") == "this is a prompt: PROMPT_DATA"

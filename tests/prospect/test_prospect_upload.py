@@ -234,7 +234,13 @@ def test_create_prospect_from_linkedin_link_iscraper_error(
     "src.research.linkedin.services.research_personal_profile_details",
     return_value=VALID_ISCRAPER_PAYLOAD,
 )
+@mock.patch("src.prospecting.services.get_research_and_bullet_points_new.delay")
+@mock.patch("src.prospecting.upload.services.run_and_assign_health_score.apply_async")
+@mock.patch("src.prospecting.upload.services.generate_prospect_research.apply_async")
 def test_create_prospect_from_linkedin_link_successful(
+    generate_prospect_research_mock,
+    run_and_assign_health_score_mock,
+    get_research_and_bullet_points_new_delay_mock,
     iscraper_research_personal_profile_details_mock,
 ):
     c = basic_client()

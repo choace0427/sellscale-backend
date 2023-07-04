@@ -474,8 +474,12 @@ def test_generate_prospect_email(
 )
 @mock.patch("src.research.linkedin.services.get_research_and_bullet_points_new")
 @mock.patch("src.message_generation.services.run_message_rule_engine")
+@mock.patch("src.ml.services.wrapped_chat_gpt_completion", return_value="completion")
 def test_research_and_generate_emails_for_prospect_and_wipe(
-    rule_engine_mock, linkedin_research_patch, get_custom_completion_for_client_mock
+    wrapped_chat_gpt_completion_mock,
+    rule_engine_mock,
+    linkedin_research_patch,
+    get_custom_completion_for_client_mock,
 ):
     client = basic_client()
     archetype = basic_archetype(client)
