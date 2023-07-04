@@ -406,8 +406,11 @@ def test_delete_message_generation_by_prospect_id():
     return_value=("completion", 5),
 )
 @mock.patch("src.message_generation.services.run_message_rule_engine")
+@mock.patch("src.ml.services.wrapped_chat_gpt_completion", return_value="completion")
 def test_generate_prospect_email(
-    rule_engine_mock, get_custom_completion_for_client_mock
+    wrapped_chat_gpt_completion_mock,
+    rule_engine_mock,
+    get_custom_completion_for_client_mock,
 ):
     client = basic_client()
     client_sdr = basic_client_sdr(client)
@@ -437,7 +440,7 @@ def test_generate_prospect_email(
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
         assert message.gnlp_model_id == None
-        #assert message.completion == "completion"
+        # assert message.completion == "completion"
 
     prospect_emails: list[ProspectEmail] = ProspectEmail.query.all()
     prospect_email_ids = [pe.id for pe in prospect_emails]
@@ -510,7 +513,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
         assert message.gnlp_model_id == None
-        #assert message.completion == "completion"
+        # assert message.completion == "completion"
 
     prospect_emails: list[ProspectEmail] = ProspectEmail.query.all()
     assert len(prospect_emails) == 1
@@ -585,7 +588,7 @@ def test_research_and_generate_outreaches_for_prospect_individual(
     research_and_generate_outreaches_for_prospect(
         prospect_id=prospect.id, outbound_campaign_id=campaign.id
     )
-    #assert generate_linkedin_outreaches_patch.call_count == 1
+    # assert generate_linkedin_outreaches_patch.call_count == 1
     assert linkedin_research_patch.call_count == 1
 
 
@@ -1008,7 +1011,7 @@ def test_get_named_entities_fail(openai_mock):
     assert len(entities) == 0
 
     entities = get_named_entities("Sellscale tester - David")
-    #assert openai_mock.call_count == 1
+    # assert openai_mock.call_count == 1
     assert len(entities) == 0
 
 

@@ -1,6 +1,4 @@
-import datetime
 import mock
-import json
 
 
 @mock.patch(
@@ -13,9 +11,7 @@ import json
 @mock.patch(
     "src.research.linkedin.extractors.experience.get_current_year", return_value=2023
 )
-def test_get_recent_recommendation_summary(
-    year_patch, month_patch, get_completion_patch
-):
+def test_get_recent_experience_summary(year_patch, month_patch, get_completion_patch):
     from src.research.linkedin.extractors.experience import (
         get_years_of_experience_at_current_job,
     )
@@ -27,7 +23,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2022, "month": 12},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -43,7 +40,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2021, "month": 12},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -59,7 +57,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2022, "month": 2},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -75,7 +74,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2022, "month": 1},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -91,7 +91,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2022, "month": 10},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -107,7 +108,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2022, "month": 7},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -123,7 +125,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2022, "month": 5},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -139,7 +142,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2021, "month": 10},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -155,7 +159,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2020, "month": 10},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -171,7 +176,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2017, "month": 7},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -187,7 +193,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2013, "month": 7},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -203,7 +210,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 2010, "month": 7},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
@@ -219,7 +227,8 @@ def test_get_recent_recommendation_summary(
                     "date": {
                         "start": {"year": 1960, "month": 7},
                         "end": {"year": None, "month": None},
-                    }
+                    },
+                    "company": {"name": "SellScale"},
                 }
             ]
         },
