@@ -11,13 +11,26 @@ from test_utils import (
     basic_archetype,
     basic_generated_message,
     basic_generated_message_cta,
-    basic_gnlp_model
+    basic_gnlp_model,
 )
 from src.automation.services import *
 
+
+class FakePostResponse:
+    def __init__(self, return_payload={"id": "TEST_ID"}):
+        self.payload = return_payload
+
+    def json(self):
+        return self.payload
+
+
 @use_app_context
-@mock.patch("src.automation.models.PhantomBusterAgent.get_arguments", return_value={"sessionCookie": "some_cookie"})
-def test_update_phantom_buster_li_at(pbagent_get_arguments_mock):
+@mock.patch(
+    "src.automation.models.PhantomBusterAgent.get_arguments",
+    return_value={"sessionCookie": "some_cookie"},
+)
+@mock.patch("src.automation.services.requests.request", return_value=FakePostResponse())
+def test_update_phantom_buster_li_at(request_mock, pbagent_get_arguments_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)
     inbox_phantom, outbound_phantom = basic_phantom_buster_configs(client, sdr)
@@ -31,6 +44,7 @@ def test_update_phantom_buster_li_at(pbagent_get_arguments_mock):
 @use_app_context
 def test_create_pb_linkedin_invite_csv():
     from model_import import GeneratedMessage, Prospect
+
     client = basic_client()
     sdr = basic_client_sdr(client)
     sdr_id = sdr.id
@@ -43,7 +57,7 @@ def test_create_pb_linkedin_invite_csv():
     generated_message = basic_generated_message(prospect, gnlp, cta)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
-    prospect.approved_outreach_message_id=generated_message.id
+    prospect.approved_outreach_message_id = generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
     data = create_pb_linkedin_invite_csv(sdr.id)
@@ -97,6 +111,7 @@ EXAMPLE_PB_WEBHOOK_RESPONSE_BAD = {
 @use_app_context
 def test_update_pb_linkedin_send_status():
     from model_import import GeneratedMessage, Prospect
+
     client = basic_client()
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, sdr)
@@ -107,7 +122,7 @@ def test_update_pb_linkedin_send_status():
     generated_message = basic_generated_message(prospect, gnlp, cta)
     gm_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
-    prospect.approved_outreach_message_id=generated_message.id
+    prospect.approved_outreach_message_id = generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
     response = update_pb_linkedin_send_status(sdr.id, EXAMPLE_PB_WEBHOOK_RESPONSE_BAD)
