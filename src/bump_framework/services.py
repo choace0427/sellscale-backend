@@ -12,7 +12,10 @@ def get_bump_frameworks_for_sdr(
     overall_statuses: Optional[list[ProspectOverallStatus]] = [],
     substatuses: Optional[list[str]] = [],
     client_archetype_ids: Optional[list[int]] = [],
-    activeOnly: Optional[bool] = True,
+    exclude_client_archetype_ids: Optional[list[int]] = [],
+    exclude_ss_default: Optional[bool] = False,
+    unique_only: Optional[bool] = False,
+    active_only: Optional[bool] = True,
 ) -> list[dict]:
     """Get all bump frameworks for a given SDR and overall status
 
@@ -21,6 +24,8 @@ def get_bump_frameworks_for_sdr(
         overall_statuses (Optional[list[ProspectOverallStatus]], optional): The overall statuses of the bump frameworks. Defaults to [] which is ALL statuses.
         substatuses (Optional[list[str]], optional): The substatuses of the bump frameworks. Defaults to [] which is ALL substatuses.
         client_archetype_ids (Optional[list[int]], optional): The ids of the client archetypes. Defaults to [] which is ALL archetypes.
+        exclude_client_archetype_ids (Optional[list[int]], optional): The ids of the client archetypes to exclude. Defaults to [] which is NO archetypes.
+        excludeSSDefault (Optional[bool], optional): Whether to exclude bump frameworks with sellscale_default_generated. Defaults to False.
         activeOnly (Optional[bool], optional): Whether to only return active bump frameworks. Defaults to True.
 
     Returns:
@@ -41,6 +46,7 @@ def get_bump_frameworks_for_sdr(
     bfs: list[BumpFramework] = BumpFramework.query.filter(
         BumpFramework.client_sdr_id == client_sdr_id,
         BumpFramework.client_archetype_id.in_(client_archetype_ids),
+        BumpFramework.client_archetype_id.notin_(exclude_client_archetype_ids),
         BumpFramework.overall_status.in_(overall_statuses),
     )
 
@@ -48,11 +54,26 @@ def get_bump_frameworks_for_sdr(
     if len(substatuses) > 0:
         bfs = bfs.filter(BumpFramework.substatus.in_(substatuses))
 
-    # If activeOnly is specified, filter by active
-    if activeOnly:
+    # If exclude_ss_default is specified, filter by sellscale_default_generated
+    if exclude_ss_default:
+        bfs = bfs.filter(BumpFramework.sellscale_default_generated == False)
+
+    # If active_only is specified, filter by active
+    if active_only:
         bfs = bfs.filter(BumpFramework.active == True)
 
     bfs: list[BumpFramework] = bfs.all()
+
+    # If unique_only is specified, filter by unique
+    if unique_only:
+        seen = set()
+        bf_unique = []
+        for bf in bfs:
+            seen_tuple = (bf.title, bf.description)
+            if seen_tuple in seen:
+                continue
+            bf_unique.append(bf)
+            seen.add(seen_tuple)
 
     return [bf.to_dict() for bf in bfs]
 
@@ -274,3 +295,42 @@ def activate_bump_framework(client_sdr_id: int, bump_framework_id: int) -> None:
     db.session.commit()
 
     return
+
+
+def clone_bump_framework(client_sdr_id: int, bump_framework_id: int, target_archetype_id: int) -> int:
+    """ Clones (imports) an existent bump framework's attributes into a new bump framework under the target archetype
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        bump_framework_id (int): ID of the bump framework to clone
+        target_archetype_id (int): ID of the target archetype
+
+    Returns:
+        int: ID of the new bump framework
+    """
+    archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
+    if not archetype:
+        return -1
+    elif archetype.client_sdr_id != client_sdr_id:
+        return -1
+
+    existing_bf: BumpFramework = BumpFramework.query.get(bump_framework_id)
+    if not existing_bf:
+        return -1
+    elif existing_bf.client_sdr_id != client_sdr_id:
+        return -1
+
+    new_framework_id: int = create_bump_framework(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=target_archetype_id,
+        overall_status=existing_bf.overall_status,
+        substatus=existing_bf.substatus,
+        length=existing_bf.bump_length,
+        title=existing_bf.title,
+        description=existing_bf.description,
+        bumped_count=existing_bf.bumped_count,
+        default=True,
+        sellscale_default_generated=False,
+    )
+
+    return new_framework_id

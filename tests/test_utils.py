@@ -623,6 +623,7 @@ def basic_engagement_feed_item(
 
 def basic_bump_framework(
     client_sdr: ClientSDR,
+    client_archetype: ClientArchetype = None,
     title: str = "test-title",
     description: str = "test-description",
     length: BumpLength = BumpLength.MEDIUM,
@@ -634,6 +635,7 @@ def basic_bump_framework(
 
     bump_framework = BumpFramework(
         client_sdr_id=client_sdr.id,
+        client_archetype_id=client_archetype.id if client_archetype else None,
         title=title,
         description=description,
         bump_length=length,

@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 from model_import import BumpFramework
 from src.bump_framework.models import BumpLength
 from src.bump_framework.services import (
+    clone_bump_framework,
     create_bump_framework,
     get_bump_framework_count_for_sdr,
     modify_bump_framework,
@@ -11,6 +12,7 @@ from src.bump_framework.services import (
     activate_bump_framework,
     get_bump_frameworks_for_sdr,
 )
+from src.client.models import ClientArchetype
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.ml.services import (
@@ -46,6 +48,24 @@ def get_bump_frameworks(client_sdr_id: int):
         )
         or []
     )
+    exclude_client_archetype_ids = (
+        get_request_parameter(
+            "exclude_client_archetype_ids", request, json=False, required=False, parameter_type=list
+        )
+        or []
+    )
+    exclude_ss_default = (
+        get_request_parameter(
+            "exclude_ss_default", request, json=False, required=False, parameter_type=bool
+        )
+        or False
+    )
+    unique_only = (
+        get_request_parameter(
+            "unique_only", request, json=False, required=False, parameter_type=bool
+        )
+        or False
+    )
 
     overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
@@ -62,6 +82,9 @@ def get_bump_frameworks(client_sdr_id: int):
         overall_statuses=overall_statuses_enumed,
         substatuses=substatuses,
         client_archetype_ids=client_archetype_ids,
+        exclude_client_archetype_ids=exclude_client_archetype_ids,
+        exclude_ss_default=exclude_ss_default,
+        unique_only=unique_only,
     )
 
     counts = get_bump_framework_count_for_sdr(
@@ -333,3 +356,37 @@ def post_autoselect_bump_framework(client_sdr_id: int):
         ),
         200,
     )
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/bump/clone", methods=["POST"])
+@require_user
+def post_clone_bump_framework(client_sdr_id: int):
+    """Clones a bump framework"""
+    existent_bump_framework_id = get_request_parameter(
+        "existent_bump_framework_id", request, json=True, required=True
+    )
+    new_archetype_id = get_request_parameter(
+        "new_archetype_id", request, json=True, required=True
+    )
+
+    bump_framework: BumpFramework = BumpFramework.query.get(existent_bump_framework_id)
+    if not bump_framework:
+        return jsonify({"error": "Bump framework not found."}), 404
+    elif bump_framework.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This bump framework does not belong to you."}), 401
+
+    archetype: ClientArchetype = ClientArchetype.query.get(new_archetype_id)
+    if not archetype:
+        return jsonify({"error": "Archetype not found."}), 404
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This archetype does not belong to you."}), 401
+
+    new_id = clone_bump_framework(
+        client_sdr_id=client_sdr_id,
+        bump_framework_id=existent_bump_framework_id,
+        target_archetype_id=new_archetype_id
+    )
+    if new_id != -1:
+        return jsonify({"status": "success", "data": {"bump_framework_id": new_id}}), 200
+    else:
+        return jsonify({"status": "error", "message": "Could not import bump framework"}), 400
