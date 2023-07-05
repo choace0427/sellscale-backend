@@ -31,12 +31,24 @@ def get_request_parameter(
         else:
             return default_value
 
+    if type(value) == str and parameter_type == bool:
+        if value.lower() == 'true':
+            return True
+        elif value.lower() == 'false':
+            return False
+        else:
+            message = "Invalid request. Parameter for boolean must be either 'true' or 'false'.".format(
+                key, parameter_type, type(value)
+            )
+            raise InvalidOperation(message)
+
     if parameter_type == list and not json:
         value = values.getlist(key)
         if value[0] == '':
             return default_value
         value = value[0].split(',')
         return value
+
     if parameter_type != None and type(value) != parameter_type:
         try:
             return parameter_type(value)
