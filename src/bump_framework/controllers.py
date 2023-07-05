@@ -54,18 +54,21 @@ def get_bump_frameworks(client_sdr_id: int):
         )
         or []
     )
-    exclude_ss_default = (
-        get_request_parameter(
-            "exclude_ss_default", request, json=False, required=False, parameter_type=bool
-        )
-        or False
+    exclude_ss_default = get_request_parameter(
+        "exclude_ss_default", request, json=False, required=False, parameter_type=bool
     )
-    unique_only = (
-        get_request_parameter(
-            "unique_only", request, json=False, required=False, parameter_type=bool
-        )
-        or False
+    if exclude_ss_default is None or exclude_ss_default.lower() == "false":
+        exclude_ss_default = False
+    else:
+        exclude_ss_default = True
+
+    unique_only = get_request_parameter(
+        "unique_only", request, json=False, required=False, parameter_type=bool
     )
+    if unique_only is None or unique_only.lower() == "false":
+        unique_only = False
+    else:
+        unique_only = True
 
     overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
@@ -369,7 +372,8 @@ def post_clone_bump_framework(client_sdr_id: int):
         "new_archetype_id", request, json=True, required=True
     )
 
-    bump_framework: BumpFramework = BumpFramework.query.get(existent_bump_framework_id)
+    bump_framework: BumpFramework = BumpFramework.query.get(
+        existent_bump_framework_id)
     if not bump_framework:
         return jsonify({"error": "Bump framework not found."}), 404
     elif bump_framework.client_sdr_id != client_sdr_id:
