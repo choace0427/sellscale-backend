@@ -74,6 +74,7 @@ def get_bump_frameworks_for_sdr(
                 continue
             bf_unique.append(bf)
             seen.add(seen_tuple)
+        bfs = bf_unique
 
     return [bf.to_dict() for bf in bfs]
 
