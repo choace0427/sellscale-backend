@@ -1,0 +1,66 @@
+exec(
+    """
+from model_import import ClientSDR, Client
+from datetime import timedelta
+
+client_sdrs = ClientSDR.query.all()
+min_analytics_activation_date = min([sdr.analytics_activation_date for sdr in client_sdrs])
+max_analytics_activation_date = max([sdr.analytics_activation_date for sdr in client_sdrs])
+
+print(f"min_analytics_activation_date: {min_analytics_activation_date}")
+print(f"max_analytics_activation_date: {max_analytics_activation_date}")
+print("")
+print("")
+
+cohorts = {}
+cohort_index = min_analytics_activation_date
+while cohort_index <= max_analytics_activation_date:
+    cohorts[str(cohort_index.year) + "-" + str(cohort_index.month)] = {}
+    cohorts[str(cohort_index.year) + "-" + str(cohort_index.month)]['clients'] = {}
+    cohort_index = cohort_index + timedelta(days=30)
+        
+for cohort_key in cohorts:
+    for cohort_key_2 in cohorts:
+        cohorts[cohort_key][cohort_key_2] = 0
+
+for sdr in client_sdrs:
+    if sdr.client_id == 1 and sdr.id not in (1,2):
+        continue
+        
+    analytics_activation_cohort = str(sdr.analytics_activation_date.year) + "-" + str(sdr.analytics_activation_date.month) if sdr.analytics_activation_date else 'None-None'
+    analytics_deactivation_cohort = str(sdr.analytics_deactivation_date.year) + "-" + str(sdr.analytics_deactivation_date.month) if sdr.analytics_deactivation_date else 'None-None'
+
+    for cohort_key in cohorts:
+        for cohort_key_2 in cohorts[cohort_key]:
+            if analytics_activation_cohort > cohort_key_2:
+                continue
+            if analytics_activation_cohort == cohort_key and analytics_deactivation_cohort >= cohort_key_2:
+                cohorts[cohort_key][cohort_key_2] += 1
+                client: Client = Client.query.get(sdr.client_id)
+                if client.company not in cohorts[cohort_key]['clients']:
+                    cohorts[cohort_key]['clients'][client.company] = set()
+                cohorts[cohort_key]['clients'][client.company].add(sdr.id)
+
+
+print("\t\t", end="")
+for cohort in cohorts:
+    print(cohort, end="\t\t")
+print("")
+print("\t\t", end="")
+for cohort in cohorts:
+    print("-----", end="\t\t")
+print("")
+                
+for cohort in cohorts:
+    print(cohort, end="\t|\t")
+    for cohort2 in cohorts[cohort]:
+        if "-" in cohort2:
+            print(cohorts[cohort][cohort2], end="\t|\t")
+    print(", ".join([x + " (+" +  str(len(cohorts[cohort]['clients'][x])) + ")" for x in cohorts[cohort]['clients']]) if len(cohorts[cohort]['clients']) > 0 else "", end="\t\t")
+    print("")
+    print("\t|--\t", end="")
+    for cohort in cohorts:
+        print("-----", end="\t\t")
+    print("")
+"""
+)
