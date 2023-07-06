@@ -599,7 +599,7 @@ def prospect_from_link(client_sdr_id: int):
             url=url,
             batch=batch
         )
-        run_and_assign_health_score(archetype_id=archetype_id)
+        run_and_assign_health_score(archetype_id=archetype_id, live=True)
 
     return jsonify({"status": "success", "data": {}}), 200
 
