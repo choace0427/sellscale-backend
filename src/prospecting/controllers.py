@@ -564,11 +564,18 @@ def get_prospects_endpoint(client_sdr_id: int):
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])
-def prospect_from_link():
+@require_user
+def prospect_from_link(client_sdr_id: int):
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True
     )
     url = get_request_parameter("url", request, json=True, required=True)
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return jsonify({"status": "error", "message": "Invalid archetype id"}), 400
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Not authorized"}), 401
 
     batch = generate_random_alphanumeric(32)
     create_prospect_from_linkedin_link.apply_async(
@@ -585,7 +592,7 @@ def prospect_from_link():
         ),
     )
 
-    return "OK", 200
+    return jsonify({"status": "success", "data": {}}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link_chain", methods=["POST"])
