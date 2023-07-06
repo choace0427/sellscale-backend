@@ -47,7 +47,7 @@ def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
         # print(result.get('title'))
         # print(name)
         match = re.search(
-            rf"^{first}\s*\w*\s+({last[0]}|{last}).\s*-.*$", result.get("title")
+            rf"^{first}\s*\w*\s+({last[0]}|{last}).\s*\|.*$", result.get("title")
         )
         if match:
             # print('Matched!')
