@@ -383,6 +383,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
         scrape_time="13:27:21",
         next_scrape="2023-06-08 13:27:21.493957",
         auth_token=generate_random_alphanumeric(32),
+        auto_generate_messages=True,
     )
     db.session.add(sdr)
     db.session.commit()
