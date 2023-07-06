@@ -594,11 +594,13 @@ def prospect_from_link(client_sdr_id: int):
             ),
         )
     else:
-        create_prospect_from_linkedin_link(
+        success = create_prospect_from_linkedin_link(
             archetype_id=archetype_id,
             url=url,
             batch=batch
         )
+        if not success:
+            return jsonify({"status": "error", "message": "Failed to create prospect. Please check profile or check for duplicates."}), 400
         run_and_assign_health_score(archetype_id=archetype_id, live=True)
 
     return jsonify({"status": "success", "data": {}}), 200
