@@ -41,7 +41,8 @@ def update_linkedin_conversation_entries():
     Update the LinkedinConversationEntry table with new entries
     """
     LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID = 3365881184675991
-    p: PhantomBusterAgent = PhantomBusterAgent(LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
+    p: PhantomBusterAgent = PhantomBusterAgent(
+        LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
     data = p.get_output()
 
     all_messages = []
@@ -329,19 +330,23 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     from model_import import Prospect
 
     # First the first message from the SDR
-    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
+    msg = next(filter(lambda x: x.connection_degree ==
+               "You", convo_history), None)
     if not msg:
         raise Exception("No message from SDR found in convo_history")
     sender = msg.author
 
     transcript = "\n\n".join(
-        [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
+        [x.author + " (" + str(x.date)[0:10] + "): " +
+         x.message for x in convo_history]
     )
-    content = transcript + "\n\n" + sender + " (" + str(datetime.now())[0:10] + "):"
+    content = transcript + "\n\n" + sender + \
+        " (" + str(datetime.now())[0:10] + "):"
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        prospect.archetype_id)
 
     details = ""
     if random.random() < 0.5:
@@ -545,7 +550,8 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
             Prospect.li_conversation_thread_id.isnot(None),
             or_(
                 Prospect.li_conversation_thread_id == conversation_url,
-                Prospect.li_conversation_thread_id.ilike("%" + conversation_url + "%"),
+                Prospect.li_conversation_thread_id.ilike(
+                    "%" + conversation_url + "%"),
             ),
         ).first()
         if prospect:
@@ -596,7 +602,8 @@ def scrape_conversations_inbox():
         next_time = (
             datetime.utcnow()
             + timedelta(hours=3)
-            + timedelta(seconds=random.randint(-scrape_time_offset, scrape_time_offset))
+            + timedelta(seconds=random.randint(-scrape_time_offset,
+                        scrape_time_offset))
         )
         next_datetime = datetime(
             next_time.year,
@@ -654,7 +661,8 @@ def scrape_conversations_inbox():
                 if prospect is None:
                     # Fill in the prospect's urn_id if it's not in the database
                     prospect = Prospect.query.filter(
-                        Prospect.linkedin_url.like(f"%/in/{profile_public_id}%")
+                        Prospect.linkedin_url.like(
+                            f"%/in/{profile_public_id}%")
                     ).first()
                     if prospect is not None:
                         prospect.li_urn_id = profile_urn_id
@@ -670,7 +678,8 @@ def scrape_conversations_inbox():
                     prospect_id=prospect.id,
                     scrape_time=(
                         datetime.utcnow()
-                        + timedelta(seconds=random.randint(0, scrape_time_offset))
+                        + timedelta(seconds=random.randint(0,
+                                    scrape_time_offset))
                     ),
                 )
                 db.session.add(scrape)
@@ -678,7 +687,8 @@ def scrape_conversations_inbox():
 
                 send_slack_message(
                     message=f"Scheduled scrape for convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) at {scrape.scrape_time} UTC 👌",
-                    webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                    webhook_urls=[
+                        URL_MAP["operations-linkedin-scraping-with-voyager"]],
                 )
 
 
@@ -716,7 +726,8 @@ def scrape_conversation_queue():
             prospect: Prospect = Prospect.query.get(prospect_id)
             send_slack_message(
                 message=f"••• Scraping convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
-                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                webhook_urls=[
+                    URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
 
             # Update calendar events
@@ -725,7 +736,8 @@ def scrape_conversation_queue():
         except Exception as e:
             send_slack_message(
                 message=f"🛑 Error scraping convo between SDR #{scrape.client_sdr_id} and prospect #{scrape.prospect_id}\nMsg: {exception_to_str()}",
-                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                webhook_urls=[
+                    URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
             continue
 
@@ -767,7 +779,8 @@ def send_autogenerated_bumps():
                 Prospect.overall_status.in_(
                     [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
                 ),
-                func.length(GeneratedMessageAutoBump.message) > 5,
+                # Minimum length of 15 characters
+                func.length(GeneratedMessageAutoBump.message) > 14,
                 or_(Prospect.hidden_until == None, Prospect.hidden_until < now),
                 GeneratedMessageAutoBump.bump_framework_id != None,
                 GeneratedMessageAutoBump.bump_framework_title != None,
@@ -810,10 +823,7 @@ def send_autogenerated_bump(
     Returns:
         bool: True if message was sent successfully, False otherwise
     """
-    from src.message_generation.services import (
-        add_generated_msg_queue,
-        process_generated_msg_queue,
-    )
+    from src.message_generation.services import add_generated_msg_queue
     from src.voyager.services import get_profile_urn_id, fetch_conversation
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -825,7 +835,8 @@ def send_autogenerated_bump(
     api = LinkedIn(client_sdr_id)
     if not api.is_valid():
         send_slack_message(
-            message=f"••• 🚨 URGENT 🚨: SDR {sdr.name} (#{sdr.id}) has invalid linkedin cookies. Please reset in order to use Voyager.",
+            message=f"🚨 URGENT 🚨: SDR {sdr.name} (#{sdr.id}) has invalid Linkedin Cookies. Please reset in order to use Voyager.",
+            webhook_urls=[URL_MAP["operations-autobump"]],
         )
         return False
 
@@ -847,7 +858,8 @@ def send_autogenerated_bump(
         or message.bump_framework_length is None
         or message.account_research_points is None
     ):
-        raise Exception("Invalid autogenerated bump message fed into AI sender")
+        raise Exception(
+            "Invalid autogenerated bump message fed into AI sender")
 
     # 4. Make sure that the Prospect is in a valid state
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -864,14 +876,14 @@ def send_autogenerated_bump(
         db.session.delete(message)
         db.session.commit()
         send_slack_message(
-            message=f"••• 🚨 SDR {sdr.name} (#{sdr.id}): Will not send because cached bump is out of date. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because it's not responding to the last message in the thread 🤖\nLast message: {last_message.get('message')}\nMessage: {message.message}",
+            message=f"••• 🚨🔄 SDR {sdr.name} (#{sdr.id}): Will not send because cached bump is out of date. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because it's not responding to the last message in the thread 🤖\nLast message: {last_message.get('message')}\nMessage: {message.message}",
             webhook_urls=[URL_MAP["operations-autobump"]],
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🚨 SDR {sdr.name} (#{sdr.id}): Will not send because cached bump is out of date",
+                        "text": f"🚨🔄 SDR {sdr.name} (#{sdr.id}): Will not send because cached bump is out of date",
                         "emoji": True,
                     },
                 },
@@ -883,12 +895,14 @@ def send_autogenerated_bump(
                     },
                 },
                 {
+                    "type": "divider"
+                },
+                {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Most recent message*: "
-                            + last_message.get("message"),
+                            "text": "*Most recent message*: " + last_message.get("message"),
                         },
                     ],
                 },
@@ -897,28 +911,54 @@ def send_autogenerated_bump(
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Autobump Message* (#{message.id}): "
-                            + message.message,
+                            "text": f"*Autobump Message* (#{message.id}): *{message.message}*",
                         },
                     ],
-                },
+                }
             ],
         )
         return False
 
-    # 6. Check that the generated message has at least 5 characters, else discard
-    if len(message.message) < 5:
+    # 5b. Check that the bump (reference DB) is set to default, else discard
+    bump: BumpFramework = BumpFramework.query.get(message.bump_framework_id)
+    if bump is None or not bump.default:
         db.session.delete(message)
         db.session.commit()
         send_slack_message(
-            message=f"••• 🚨 SDR {sdr.name} (#{sdr.id}): Will not send because generated message is too short. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because the last message in the thread is too short 🤖\nLast message: {last_message.get('message')}\nMessage: {message.message}",
+            message=f"••• 🚨❌ SDR {sdr.name} (#{sdr.id}): Will not send because the bump is not set to default. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because the bump is not set to default 🤖\nLast message: {last_message.get('message')}\nMessage: {message.message}",
             webhook_urls=[URL_MAP["operations-autobump"]],
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🚨 SDR {sdr.name} (#{sdr.id}): Will not send because generated message is too short",
+                        "text": f"🚨❌ SDR {sdr.name} (#{sdr.id}): Will not send because the BumpFramework is not set to default",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"BumpFramework: *{bump.title}* (#{bump.id}) is not set to default",
+                    },
+                },
+            ],
+        )
+
+    # 6. Check that the generated message has at least 15 characters, else discard
+    if len(message.message) < 15:
+        db.session.delete(message)
+        db.session.commit()
+        send_slack_message(
+            message=f"••• 🚨📏 SDR {sdr.name} (#{sdr.id}): Will not send because generated message is too short. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because the last message in the thread is too short 🤖\nLast message: {last_message.get('message')}\nMessage: {message.message}",
+            webhook_urls=[URL_MAP["operations-autobump"]],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"🚨📏 SDR {sdr.name} (#{sdr.id}): Will not send because generated message is too short",
                         "emoji": True,
                     },
                 },
@@ -930,12 +970,14 @@ def send_autogenerated_bump(
                     },
                 },
                 {
+                    "type": "divider"
+                },
+                {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Most recent message*: "
-                            + last_message.get("message"),
+                            "text": "*Most recent message*: " + last_message.get("message"),
                         },
                     ],
                 },
@@ -944,11 +986,10 @@ def send_autogenerated_bump(
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Autobump Message* (#{message.id}): "
-                            + message.message,
+                            "text": f"*Autobump Message* (#{message.id}): *{message.message}*",
                         },
                     ],
-                },
+                }
             ],
         )
         return False
@@ -956,20 +997,22 @@ def send_autogenerated_bump(
     # 6.b. Check that the last message was more than 48 hours ago, else discard
     utc = pytz.UTC
     now = utc.localize(datetime.utcnow())
-    last_message_date = last_message.get("date") or last_message.get("created_at")
+    last_message_date = last_message.get(
+        "date") or last_message.get("created_at")
     last_message_date = utc.localize(last_message_date)
     if (now - last_message_date).total_seconds() < 60 * 60 * 48:
-        formatted_last_message_date = last_message_date.strftime("%m/%d/%Y %H:%M:%S")
+        formatted_last_message_date = last_message_date.strftime(
+            "%m/%d/%Y %H:%M:%S")
         formatted_now = now.strftime("%m/%d/%Y %H:%M:%S")
         send_slack_message(
-            message=f'••• 🚨 SDR {sdr.name} (#{sdr.id}): Will not send because last message was less than 48 hours ago. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because the last message in the thread was less than 48 hours ago 🤖\nLast message: {last_message.get("message")}\nMessage: {message.message}',
+            message=f'••• 🚨⏳ SDR {sdr.name} (#{sdr.id}): Will not send because last message was less than 48 hours ago. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because the last message in the thread was less than 48 hours ago 🤖\nLast message: {last_message.get("message")}\nMessage: {message.message}',
             webhook_urls=[URL_MAP["operations-autobump"]],
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🚨 SDR {sdr.name} (#{sdr.id}): Will not send because last message was less than 48 hours ago",
+                        "text": f"🚨⏳ SDR {sdr.name} (#{sdr.id}): Will not send because last message was less than 48 hours ago",
                         "emoji": True,
                     },
                 },
@@ -979,6 +1022,9 @@ def send_autogenerated_bump(
                         "type": "mrkdwn",
                         "text": f"--- Conversation with prospect *{prospect.full_name}* (#{prospect.id}) ---",
                     },
+                },
+                {
+                    "type": "divider",
                 },
                 {
                     "type": "context",
@@ -995,8 +1041,7 @@ def send_autogenerated_bump(
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Autobump Message* ({formatted_now}) (#{message.id}): "
-                            + message.message,
+                            "text": f"*Autobump Message* ({formatted_now}) (#{message.id}): *{message.message}*",
                         },
                     ],
                 },
@@ -1041,7 +1086,8 @@ def send_autogenerated_bump(
     send_to_purgatory(prospect_id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
 
     # 7-8a. Send Slack message
-    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        prospect.archetype_id)
     send_slack_message(
         message=f"•••: ✅ SDR {sdr.name} (#{sdr.id}): Sending autogenerated bump message to prospect {prospect.full_name} (#{prospect.id}) 🤖\nLast Message: {last_message.get('message')}\nMessage: {message.message}",
         webhook_urls=[URL_MAP["operations-autobump"]],
@@ -1069,6 +1115,9 @@ def send_autogenerated_bump(
                 },
             },
             {
+                "type": "divider"
+            },
+            {
                 "type": "context",
                 "elements": [
                     {
@@ -1082,10 +1131,12 @@ def send_autogenerated_bump(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Autobump Message* (#{message.id}): "
-                        + message.message,
+                        "text": f"*Autobump Message* (#{message.id}): *{message.message}*",
                     },
                 ],
+            },
+            {
+                "type": "divider"
             },
             {
                 "type": "section",
