@@ -55,8 +55,21 @@ for cohort in cohorts:
     print(cohort, end="\t|\t")
     for cohort2 in cohorts[cohort]:
         if "-" in cohort2:
-            print(cohorts[cohort][cohort2], end="\t|\t")
-    print(", ".join([x + " (+" +  str(len(cohorts[cohort]['clients'][x])) + ")" for x in cohorts[cohort]['clients']]) if len(cohorts[cohort]['clients']) > 0 else "", end="\t\t")
+            starting_count = cohorts[cohort][cohort]
+            current_count = cohorts[cohort][cohort2]
+            if cohort > cohort2:
+                color_code = "⬜️"
+            elif current_count / (starting_count + 0.001) > 0.75:
+                color_code = "🟩"
+            elif current_count / (starting_count + 0.001) > 0.5:
+                color_code = "🟨"
+            elif current_count / (starting_count + 0.001) > 0.25:
+                color_code = "🟧"
+            else:
+                color_code = "🟥"
+            print(color_code, end=" ")
+            print(current_count, end="\t|\t")
+    print(", ".join([x + "+" +  str(len(cohorts[cohort]['clients'][x])) for x in cohorts[cohort]['clients']]) if len(cohorts[cohort]['clients']) > 0 else "", end="\t\t")
     print("")
     print("\t|--\t", end="")
     for cohort in cohorts:
