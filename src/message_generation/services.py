@@ -708,7 +708,7 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
     return True
 
 
-def create_cta(archetype_id: int, text_value: str):
+def create_cta(archetype_id: int, text_value: str, expiration_date: Optional[datetime.datetime]):
     duplicate_cta_exists = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == archetype_id,
         GeneratedMessageCTA.text_value == text_value,
@@ -717,7 +717,7 @@ def create_cta(archetype_id: int, text_value: str):
         return duplicate_cta_exists
 
     cta: GeneratedMessageCTA = GeneratedMessageCTA(
-        archetype_id=archetype_id, text_value=text_value, active=True
+        archetype_id=archetype_id, text_value=text_value, active=True, expiration_date=expiration_date
     )
     db.session.add(cta)
     db.session.commit()
@@ -725,12 +725,14 @@ def create_cta(archetype_id: int, text_value: str):
     return cta
 
 
-def update_cta(cta_id: int, text_value: str):
+def update_cta(cta_id: int, text_value: str, expiration_date: Optional[datetime.datetime]):
     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
     if not cta:
         return False
 
     cta.text_value = text_value
+    if expiration_date:
+        cta.expiration_date = expiration_date
 
     db.session.add(cta)
     db.session.commit()
@@ -752,6 +754,24 @@ def delete_cta(cta_id: int):
     db.session.commit()
 
     return True
+
+def is_cta_active(cta_id: int):
+    from model_import import GeneratedMessageCTA
+
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+    if cta.expiration_date and cta.expiration_date < datetime.datetime.utcnow():
+        if cta.active:
+            cta.active = False
+            db.session.add(cta)
+            db.session.commit()
+
+            send_slack_message(
+                message=f"CTA #{cta_id} has expired and is now inactive.",
+                webhook_urls=[URL_MAP["csm-notifications-cta-expired"]],
+            )
+
+        return False
+    return cta.active
 
 
 def toggle_cta_active(cta_id: int):

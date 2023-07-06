@@ -206,17 +206,24 @@ class GeneratedMessageCTA(db.Model):
     text_value = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True)
 
+    expiration_date = db.Column(
+        db.DateTime, nullable=True
+    )  # in UTC
+
     def get_active_ctas_for_archetype(archetype_id):
         return GeneratedMessageCTA.query.filter_by(
             archetype_id=archetype_id, active=True
         ).all()
 
     def to_dict(self):
+        from src.message_generation.services import is_cta_active
+
         return {
             "id": self.id,
             "archetype_id": self.archetype_id,
             "text_value": self.text_value,
-            "active": self.active,
+            "active": is_cta_active(self.id),
+            "expiration_date": self.expiration_date,
         }
 
 

@@ -19,6 +19,7 @@ from src.campaigns.services import (
 from typing import Optional
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from sqlalchemy import and_, or_, not_
 
 SLACK_CHANNEL = URL_MAP["operations-campaign-generation"]
 
@@ -74,10 +75,19 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
 
         # Generate campaign for LinkedIn given SLAs for the SDR
         if client_sdr.weekly_li_outbound_target is not None and client_sdr.weekly_li_outbound_target > 0:       # LinkedIn
+            
+            # Don't use CTAs that will expire in the next 10 days
+            current_date = datetime.utcnow()
+            in_10_days = current_date + timedelta(days=10)
+
             # Get CTAs for archetype. If none, block and send slack message
             ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
                 GeneratedMessageCTA.archetype_id == archetypes[0].id,
-                GeneratedMessageCTA.active == True
+                GeneratedMessageCTA.active == True,
+                or_(
+                    GeneratedMessageCTA.expiration_date == None,
+                    GeneratedMessageCTA.expiration_date > in_10_days,
+                )
             ).all()
             if len(ctas) == 0:
                 send_slack_message(f"🤖 ❌ 🖊️ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active CTAs for LinkedIn.", [SLACK_CHANNEL])

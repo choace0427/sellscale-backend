@@ -45,6 +45,7 @@ from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from model_import import OutboundCampaign
 from tqdm import tqdm
+from datetime import datetime
 
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
 
@@ -228,7 +229,10 @@ def post_create_cta():
     )
     text_value = get_request_parameter("text_value", request, json=True, required=True)
 
-    cta = create_cta(archetype_id=archetype_id, text_value=text_value)
+    date_str = get_request_parameter("expiration_date", request, json=True, required=False)
+    expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
+
+    cta = create_cta(archetype_id=archetype_id, text_value=text_value, expiration_date=expiration_date)
     return jsonify({"cta_id": cta.id})
 
 
@@ -239,7 +243,10 @@ def put_update_cta():
     cta_id = get_request_parameter("cta_id", request, json=True, required=True)
     text_value = get_request_parameter("text_value", request, json=True, required=True)
 
-    success = update_cta(cta_id=cta_id, text_value=text_value)
+    date_str = get_request_parameter("expiration_date", request, json=True, required=False)
+    expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
+
+    success = update_cta(cta_id=cta_id, text_value=text_value, expiration_date=expiration_date)
     if success:
         return jsonify({"message": "Success"}), 200
     else:
@@ -270,6 +277,15 @@ def delete_cta_request():
         return "OK", 200
 
     return "Failed to delete", 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/cta/active", methods=["GET"])
+def get_is_active_cta():
+    from src.message_generation.services import is_cta_active
+
+    cta_id = get_request_parameter("cta_id", request, json=False, required=True, parameter_type=int)
+
+    return jsonify({"message": "Success", "data": is_cta_active(cta_id)}), 200
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/toggle_cta_active", methods=["POST"])

@@ -130,7 +130,7 @@ def test_create_cta():
 def test_delete_cta():
     client = basic_client()
     archetype = basic_archetype(client)
-    cta = create_cta(text_value="test", archetype_id=archetype.id)
+    cta = create_cta(text_value="test", archetype_id=archetype.id, expiration_date=None)
     all_ctas: list = GeneratedMessageCTA.query.all()
     assert len(all_ctas) == 1
 
@@ -153,7 +153,7 @@ def test_delete_cta():
 def test_toggle_cta():
     client = basic_client()
     archetype = basic_archetype(client)
-    cta = create_cta(text_value="test", archetype_id=archetype.id)
+    cta = create_cta(text_value="test", archetype_id=archetype.id, expiration_date=None)
     cta_id = cta.id
 
     assert cta.active == True
@@ -180,7 +180,7 @@ def test_delete_cta_with_generated_message():
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
     gnlp_model = basic_gnlp_model(archetype)
-    cta = create_cta(text_value="test", archetype_id=archetype.id)
+    cta = create_cta(text_value="test", archetype_id=archetype.id, expiration_date=None)
     all_ctas: list = GeneratedMessageCTA.query.all()
     assert len(all_ctas) == 1
 
@@ -228,7 +228,7 @@ def test_generate_linkedin_outreaches(
     campaign = basic_outbound_campaign(
         [prospect_id], GeneratedMessageType.LINKEDIN, archetype, sdr
     )
-    cta = create_cta(text_value="test", archetype_id=archetype.id)
+    cta = create_cta(text_value="test", archetype_id=archetype.id, expiration_date=None)
     gnlp_model = basic_gnlp_model(archetype)
     gnlp_model.id = 5
     db.session.add(gnlp_model)

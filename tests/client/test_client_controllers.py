@@ -288,6 +288,7 @@ def test_get_ctas_endpoint():
             "archetype_id": client_archetype.id,
             "text_value": "test_cta",
             "active": True,
+            "expiration_date": None,
         }
     ]
 
