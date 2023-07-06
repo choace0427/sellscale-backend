@@ -66,7 +66,7 @@ def get_bump_frameworks_for_sdr(
         bfs = bfs.filter(BumpFramework.active == True)
 
     # If bumped_count is specified, filter by bumped_count
-    if bumped_count is not None and "BUMPED" in overall_statuses:
+    if bumped_count is not None and ProspectOverallStatus.BUMPED in overall_statuses:
         bfs = bfs.filter(BumpFramework.bumped_count == bumped_count)
 
     bfs: list[BumpFramework] = bfs.all()
