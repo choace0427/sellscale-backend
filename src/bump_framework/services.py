@@ -16,6 +16,7 @@ def get_bump_frameworks_for_sdr(
     exclude_ss_default: Optional[bool] = False,
     unique_only: Optional[bool] = False,
     active_only: Optional[bool] = True,
+    bumped_count: Optional[int] = None,
 ) -> list[dict]:
     """Get all bump frameworks for a given SDR and overall status
 
@@ -27,6 +28,8 @@ def get_bump_frameworks_for_sdr(
         exclude_client_archetype_ids (Optional[list[int]], optional): The ids of the client archetypes to exclude. Defaults to [] which is NO archetypes.
         excludeSSDefault (Optional[bool], optional): Whether to exclude bump frameworks with sellscale_default_generated. Defaults to False.
         activeOnly (Optional[bool], optional): Whether to only return active bump frameworks. Defaults to True.
+        uniqueOnly (Optional[bool], optional): Whether to only return unique bump frameworks. Defaults to False.
+        bumpedCount (Optional[int], optional): The number of times the bump framework has been bumped. Defaults to None.
 
     Returns:
         list[dict]: A list of bump frameworks
@@ -61,6 +64,10 @@ def get_bump_frameworks_for_sdr(
     # If active_only is specified, filter by active
     if active_only:
         bfs = bfs.filter(BumpFramework.active == True)
+
+    # If bumped_count is specified, filter by bumped_count
+    if bumped_count is not None and "BUMPED" in overall_statuses:
+        bfs = bfs.filter(BumpFramework.bumped_count == bumped_count)
 
     bfs: list[BumpFramework] = bfs.all()
 
@@ -243,6 +250,8 @@ def modify_bump_framework(
             default_bump_framework.default = False
             db.session.add(default_bump_framework)
     bump_framework.default = default
+
+    bump_framework.sellscale_default_generated = False
 
     db.session.add(bump_framework)
     db.session.commit()

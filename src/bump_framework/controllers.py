@@ -66,6 +66,11 @@ def get_bump_frameworks(client_sdr_id: int):
         )
         or False
     )
+    bumped_count = (
+        get_request_parameter(
+            "bumped_count", request, json=False, required=False, parameter_type=int
+        ) or None
+    )
 
     overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
@@ -85,6 +90,7 @@ def get_bump_frameworks(client_sdr_id: int):
         exclude_client_archetype_ids=exclude_client_archetype_ids,
         exclude_ss_default=exclude_ss_default,
         unique_only=unique_only,
+        bumped_count=bumped_count,
     )
 
     counts = get_bump_framework_count_for_sdr(
