@@ -570,6 +570,7 @@ def prospect_from_link(client_sdr_id: int):
         "archetype_id", request, json=True, required=True
     )
     url = get_request_parameter("url", request, json=True, required=True)
+    live = get_request_parameter("live", request, json=True, required=False) or False
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
@@ -578,19 +579,29 @@ def prospect_from_link(client_sdr_id: int):
         return jsonify({"status": "error", "message": "Not authorized"}), 401
 
     batch = generate_random_alphanumeric(32)
-    create_prospect_from_linkedin_link.apply_async(
-        args=[archetype_id, url, batch],
-        queue="prospecting",
-        routing_key="prospecting",
-        priority=1,
-        link=run_and_assign_health_score.signature(
-            args=[archetype_id],
+    if not live:
+        create_prospect_from_linkedin_link.apply_async(
+            args=[archetype_id, url, batch],
             queue="prospecting",
             routing_key="prospecting",
-            priority=3,
-            immutable=True,
-        ),
-    )
+            priority=1,
+            link=run_and_assign_health_score.signature(
+                args=[archetype_id],
+                queue="prospecting",
+                routing_key="prospecting",
+                priority=3,
+                immutable=True,
+            ),
+        )
+    else:
+        success = create_prospect_from_linkedin_link(
+            archetype_id=archetype_id,
+            url=url,
+            batch=batch
+        )
+        if not success:
+            return jsonify({"status": "error", "message": "Failed to create prospect. Please check profile or check for duplicates."}), 400
+        run_and_assign_health_score(archetype_id=archetype_id, live=True)
 
     return jsonify({"status": "success", "data": {}}), 200
 

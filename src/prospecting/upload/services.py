@@ -438,7 +438,7 @@ def create_prospect_from_linkedin_link(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def run_and_assign_health_score(
-    self, archetype_id: Optional[int] = None, prospect_id: Optional[int] = None
+    self, archetype_id: Optional[int] = None, prospect_id: Optional[int] = None, live: Optional[bool] = False
 ):
     """Celery task for running and assigning health scores to prospects.
 
@@ -446,6 +446,8 @@ def run_and_assign_health_score(
 
     Args:
         archetype_id (int): The archetype id to run the health score on.
+        prospect_id (int): The prospect id to run the health score on.
+        live (bool): Whether or not to run the task in live mode.
 
     Raises:
         self.retry: If the task fails, it will retry, up to the max_retries limit.
@@ -486,12 +488,15 @@ def run_and_assign_health_score(
             db.session.add(prospect)
             db.session.commit()
 
-            icp_classify.apply_async(
-                args=[prospect.id, client_sdr_id, archetype_id],
-                queue="ml_prospect_classification",
-                routing_key="ml_prospect_classification",
-                priority=3,
-            )
+            if not live:
+                icp_classify.apply_async(
+                    args=[prospect.id, client_sdr_id, archetype_id],
+                    queue="ml_prospect_classification",
+                    routing_key="ml_prospect_classification",
+                    priority=3,
+                )
+            else:
+                icp_classify(prospect_id=prospect.id, client_sdr_id=client_sdr_id, archetype_id=archetype_id)
             return
 
         # Regular, archetype-wide health score
