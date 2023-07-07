@@ -55,6 +55,7 @@ class BumpFramework(db.Model):
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
             "bumped_count": self.bumped_count,
+            "bump_delay_days": self.bump_delay_days,
             "sellscale_default_generated": self.sellscale_default_generated,
         }
 
