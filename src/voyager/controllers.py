@@ -122,6 +122,7 @@ def send_message(client_sdr_id: int):
             bump_framework_length=bf_length,
             account_research_points=account_research_points
         )
+        fetch_conversation(api=api, prospect_id=prospect_id, check_for_update=True)
 
     if purgatory:
         send_to_purgatory(prospect_id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
