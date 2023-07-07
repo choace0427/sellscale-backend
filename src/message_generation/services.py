@@ -2127,6 +2127,9 @@ def generate_followup_response(
             "bump_framework_length": best_framework.get("bump_length")
             if best_framework
             else None,
+            "bump_framework_delay": best_framework.get("bump_delay_days")
+            if best_framework
+            else None,
             "account_research_points": account_research_points,
         }
 

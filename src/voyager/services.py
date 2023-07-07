@@ -575,7 +575,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.add(prospect)
         db.session.commit()
 
-        # Make sure the prospect isn't in the main pipeline for 48 hours
+        # Make sure the prospect isn't in the main pipeline for 24 hours
         send_to_purgatory(prospect.id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
 
         return
