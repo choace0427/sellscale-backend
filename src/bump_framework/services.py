@@ -127,6 +127,7 @@ def create_bump_framework(
     overall_status: ProspectOverallStatus,
     length: BumpLength,
     bumped_count: int = None,
+    bump_delay_days: int = 2,
     active: bool = True,
     substatus: Optional[str] = None,
     default: Optional[bool] = False,
@@ -142,6 +143,7 @@ def create_bump_framework(
         overall_status (ProspectOverallStatus): The overall status of the bump framework
         length (BumpLength): The length of the bump framework
         bumped_count (int, optional): The number which corresponds to which bump in the sequence this BF appears. Defaults to None.
+        bump_delay_days (int, optional): The number of days to wait before bumping. Defaults to 2.
         active (bool, optional): Whether the bump framework is active. Defaults to True.
         substatus (Optional[str], optional): The substatus of the bump framework. Defaults to None.
         default (Optional[bool], optional): Whether the bump framework is the default. Defaults to False.
@@ -178,6 +180,7 @@ def create_bump_framework(
         substatus=substatus,
         bump_length=length,
         bumped_count=bumped_count,
+        bump_delay_days=bump_delay_days,
         active=active,
         default=default,
         sellscale_default_generated=sellscale_default_generated,
@@ -198,6 +201,7 @@ def modify_bump_framework(
     title: Optional[str],
     description: Optional[str],
     bumped_count: Optional[int] = None,
+    bump_delay_days: Optional[int] = None,
     default: Optional[bool] = False,
 ) -> bool:
     """Modify a bump framework
@@ -211,6 +215,7 @@ def modify_bump_framework(
         title (Optional[str]): The title of the bump framework
         description (Optional[str]): The description of the bump framework
         bumped_count (Optional[int], optional): The number which corresponds to which bump in the sequence this BF appears. Defaults to None.
+        bump_delay_days (Optional[int], optional): The number of days to wait before bumping. Defaults to 2.
         default (Optional[bool]): Whether the bump framework is the default
 
     Returns:
@@ -233,6 +238,9 @@ def modify_bump_framework(
 
     if bumped_count:
         bump_framework.bumped_count = bumped_count
+
+    if bump_delay_days:
+        bump_framework.bump_delay_days = bump_delay_days
 
     if default:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(

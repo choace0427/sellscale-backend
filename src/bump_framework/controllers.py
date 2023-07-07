@@ -135,6 +135,12 @@ def post_create_bump_framework(client_sdr_id: int):
         )
         or None
     )
+    bump_delay_days = (
+        get_request_parameter(
+            "bump_delay_days", request, json=True, required=False, parameter_type=int
+        )
+        or 2
+    )
     substatus = (
         get_request_parameter(
             "substatus", request, json=True, required=False, parameter_type=str
@@ -170,6 +176,7 @@ def post_create_bump_framework(client_sdr_id: int):
         overall_status=overall_status,
         length=length,
         bumped_count=bumped_count,
+        bump_delay_days=bump_delay_days,
         substatus=substatus,
         default=default,
     )
@@ -226,6 +233,12 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or None
     )
+    bump_delay_days = (
+        get_request_parameter(
+            "bump_delay_days", request, json=True, required=False, parameter_type=int
+        )
+        or None
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -262,6 +275,7 @@ def patch_bump_framework(client_sdr_id: int):
         length=length,
         description=description,
         bumped_count=bumped_count,
+        bump_delay_days=bump_delay_days,
         default=default,
     )
 
