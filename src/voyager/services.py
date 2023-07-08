@@ -632,6 +632,11 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.add(prospect)
         db.session.commit()
         return
+    if last_msg_from_prospect:
+        prospect.hidden_until = None
+        prospect.hidden_reason = None
+        db.session.add(prospect)
+        db.session.commit()
 
 
 def classify_active_convo(prospect_id: int, messages):
