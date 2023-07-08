@@ -1860,6 +1860,8 @@ def generate_message_bumps():
                 client_sdr_id=prospect.client_sdr_id,
                 prospect_id=prospect.id,
             )
+            # important: this short circuits this loop if we successfully generate a bump
+            #       that way it only generates a bump once every 2 minutes
             if success == True:
                 return
 
