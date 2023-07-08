@@ -4,6 +4,8 @@ import datetime as dt
 import random
 import os
 
+from tomlkit import datetime
+
 from src.message_generation.services import process_generated_msg_queue
 
 from src.utils.slack import send_slack_message, URL_MAP
@@ -633,8 +635,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.commit()
         return
     if last_msg_from_prospect:
-        prospect.hidden_until = None
-        prospect.hidden_reason = None
+        prospect.hidden_until = dt.datetime.now()
         db.session.add(prospect)
         db.session.commit()
 
