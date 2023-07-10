@@ -34,7 +34,7 @@ def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
     # print(f'Searching for "{query}"...')
 
     # Before each run, wait so we don't get rate limited
-    time.sleep(random.uniform(1, 5))
+    #time.sleep(random.uniform(1, 5))
 
     from duckduckgo_search import ddg
 
