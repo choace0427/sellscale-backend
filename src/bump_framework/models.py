@@ -32,6 +32,7 @@ class BumpFramework(db.Model):
     bump_length = db.Column(db.Enum(BumpLength),
                             nullable=True, default=BumpLength.MEDIUM)
     bumped_count = db.Column(db.Integer, nullable=True, default=0)
+    bump_delay_days = db.Column(db.Integer, nullable=True, default=2)
 
     sellscale_default_generated = db.Column(
         db.Boolean, nullable=True, default=False)
@@ -54,6 +55,7 @@ class BumpFramework(db.Model):
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
             "bumped_count": self.bumped_count,
+            "bump_delay_days": self.bump_delay_days,
             "sellscale_default_generated": self.sellscale_default_generated,
         }
 

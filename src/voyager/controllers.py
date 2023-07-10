@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from src.bump_framework.models import BumpFramework
 from src.prospecting.services import send_to_purgatory
 from src.voyager.services import fetch_li_prospects_for_sdr
 from src.prospecting.models import Prospect, ProspectHiddenReason
@@ -122,9 +123,12 @@ def send_message(client_sdr_id: int):
             bump_framework_length=bf_length,
             account_research_points=account_research_points
         )
+        fetch_conversation(api=api, prospect_id=prospect_id, check_for_update=True)
 
     if purgatory:
-        send_to_purgatory(prospect_id, 2, ProspectHiddenReason.RECENTLY_BUMPED)
+        bump: BumpFramework = BumpFramework.query.get(bf_id)
+        bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
+        send_to_purgatory(prospect_id, bump_delay, ProspectHiddenReason.RECENTLY_BUMPED)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 

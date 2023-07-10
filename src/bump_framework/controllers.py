@@ -135,6 +135,12 @@ def post_create_bump_framework(client_sdr_id: int):
         )
         or None
     )
+    bump_delay_days = (
+        get_request_parameter(
+            "bump_delay_days", request, json=True, required=False, parameter_type=int
+        )
+        or 2
+    )
     substatus = (
         get_request_parameter(
             "substatus", request, json=True, required=False, parameter_type=str
@@ -170,6 +176,7 @@ def post_create_bump_framework(client_sdr_id: int):
         overall_status=overall_status,
         length=length,
         bumped_count=bumped_count,
+        bump_delay_days=bump_delay_days,
         substatus=substatus,
         default=default,
     )
@@ -226,6 +233,14 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or None
     )
+    bump_delay_days = (
+        get_request_parameter(
+            "bump_delay_days", request, json=True, required=False, parameter_type=int
+        )
+        or None
+    )
+    if bump_delay_days < 2:
+        return jsonify({"status": "error", "message": "Bump delay must be at least 2 days."}), 400
 
     # Get the enum value for the overall status
     found_key = False
@@ -235,7 +250,7 @@ def patch_bump_framework(client_sdr_id: int):
             found_key = True
             break
     if not found_key:
-        return jsonify({"error": "Invalid overall status."}), 400
+        return jsonify({"status": "error", "message": "Invalid overall status."}), 400
 
     # Get the enum value for the bump length
     found_key = False
@@ -245,13 +260,13 @@ def patch_bump_framework(client_sdr_id: int):
             found_key = True
             break
     if not found_key:
-        return jsonify({"error": "Invalid bump length."}), 400
+        return jsonify({"status": "error", "message": "Invalid bump length."}), 400
 
     bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
     if not bump_framework:
-        return jsonify({"error": "Bump framework not found."}), 404
+        return jsonify({"status": "error", "message": "Bump framework not found."}), 404
     elif bump_framework.client_sdr_id != client_sdr_id:
-        return jsonify({"error": "This bump framework does not belong to you."}), 401
+        return jsonify({"status": "error", "message": "This bump framework does not belong to you."}), 401
 
     modified = modify_bump_framework(
         client_sdr_id=client_sdr_id,
@@ -262,10 +277,11 @@ def patch_bump_framework(client_sdr_id: int):
         length=length,
         description=description,
         bumped_count=bumped_count,
+        bump_delay_days=bump_delay_days,
         default=default,
     )
 
-    return jsonify({"message": "Bump framework updated."}), 200 if modified else 400
+    return jsonify({"status": "success", "data": {}}), 200 if modified else 400
 
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump/deactivate", methods=["POST"])

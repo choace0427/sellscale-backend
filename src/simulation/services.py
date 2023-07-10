@@ -250,7 +250,7 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
                 connection_degree="You",
                 author=client_sdr.name,
             ),
-            message_date=max_simulation_record_date + datetime.timedelta(days=2),
+            message_date=max_simulation_record_date + datetime.timedelta(days=data.get("bump_framework_delay", 2)),
             meta_data={
                 "prompt": data.get("prompt", ""),
                 "bump_framework_id": data.get("bump_framework_id", None),
