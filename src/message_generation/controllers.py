@@ -229,10 +229,16 @@ def post_create_cta():
     )
     text_value = get_request_parameter("text_value", request, json=True, required=True)
 
-    date_str = get_request_parameter("expiration_date", request, json=True, required=False)
+    date_str = get_request_parameter(
+        "expiration_date", request, json=True, required=False
+    )
     expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
 
-    cta = create_cta(archetype_id=archetype_id, text_value=text_value, expiration_date=expiration_date)
+    cta = create_cta(
+        archetype_id=archetype_id,
+        text_value=text_value,
+        expiration_date=expiration_date,
+    )
     return jsonify({"cta_id": cta.id})
 
 
@@ -243,10 +249,14 @@ def put_update_cta():
     cta_id = get_request_parameter("cta_id", request, json=True, required=True)
     text_value = get_request_parameter("text_value", request, json=True, required=True)
 
-    date_str = get_request_parameter("expiration_date", request, json=True, required=False)
+    date_str = get_request_parameter(
+        "expiration_date", request, json=True, required=False
+    )
     expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
 
-    success = update_cta(cta_id=cta_id, text_value=text_value, expiration_date=expiration_date)
+    success = update_cta(
+        cta_id=cta_id, text_value=text_value, expiration_date=expiration_date
+    )
     if success:
         return jsonify({"message": "Success"}), 200
     else:
@@ -283,7 +293,9 @@ def delete_cta_request():
 def get_is_active_cta():
     from src.message_generation.services import is_cta_active
 
-    cta_id = get_request_parameter("cta_id", request, json=False, required=True, parameter_type=int)
+    cta_id = get_request_parameter(
+        "cta_id", request, json=False, required=True, parameter_type=int
+    )
 
     return jsonify({"message": "Success", "data": is_cta_active(cta_id)}), 200
 
@@ -560,8 +572,11 @@ def get_stack_ranked_configuration_priority_endpoint():
 @require_user
 def get_all_stack_ranked_configurations(client_sdr_id: int):
     """Get all stack ranked configurations for a given client_sdr_id"""
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=False
+    )
 
-    configs = get_stack_ranked_configurations(client_sdr_id)
+    configs = get_stack_ranked_configurations(client_sdr_id, archetype_id=archetype_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in configs]}), 200
 
