@@ -206,9 +206,7 @@ class GeneratedMessageCTA(db.Model):
     text_value = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True)
 
-    expiration_date = db.Column(
-        db.DateTime, nullable=True
-    )  # in UTC
+    expiration_date = db.Column(db.DateTime, nullable=True)  # in UTC
 
     def get_active_ctas_for_archetype(archetype_id):
         return GeneratedMessageCTA.query.filter_by(
@@ -313,6 +311,27 @@ class StackRankedMessageGenerationConfiguration(db.Model):
         db.Integer, nullable=True
     )  # lower = less priority; higher = more priority
 
+    prompt_1 = db.Column(db.String, nullable=True)
+    completion_1 = db.Column(db.String, nullable=True)
+
+    prompt_2 = db.Column(db.String, nullable=True)
+    completion_2 = db.Column(db.String, nullable=True)
+
+    prompt_3 = db.Column(db.String, nullable=True)
+    completion_3 = db.Column(db.String, nullable=True)
+
+    prompt_4 = db.Column(db.String, nullable=True)
+    completion_4 = db.Column(db.String, nullable=True)
+
+    prompt_5 = db.Column(db.String, nullable=True)
+    completion_5 = db.Column(db.String, nullable=True)
+
+    prompt_6 = db.Column(db.String, nullable=True)
+    completion_6 = db.Column(db.String, nullable=True)
+
+    prompt_7 = db.Column(db.String, nullable=True)
+    completion_7 = db.Column(db.String, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -327,4 +346,18 @@ class StackRankedMessageGenerationConfiguration(db.Model):
             "priority": self.priority,
             "active": self.active,
             "always_enable": self.always_enable,
+            "prompt_1": self.prompt_1,
+            "completion_1": self.completion_1,
+            "prompt_2": self.prompt_2,
+            "completion_2": self.completion_2,
+            "prompt_3": self.prompt_3,
+            "completion_3": self.completion_3,
+            "prompt_4": self.prompt_4,
+            "completion_4": self.completion_4,
+            "prompt_5": self.prompt_5,
+            "completion_5": self.completion_5,
+            "prompt_6": self.prompt_6,
+            "completion_6": self.completion_6,
+            "prompt_7": self.prompt_7,
+            "completion_7": self.completion_7,
         }
