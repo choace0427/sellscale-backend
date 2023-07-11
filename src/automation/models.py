@@ -96,7 +96,7 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "sales_navigator_url": self.sales_navigator_url,
             "scrape_count": self.scrape_count,
-            "status": self.status,
+            "status": self.status.value,
             "pb_container_id": self.pb_container_id,
             "result_available": True if self.result else False,
             "launch_date": self.launch_date
