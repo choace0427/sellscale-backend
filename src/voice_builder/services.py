@@ -106,7 +106,8 @@ def create_voice_builder_samples(
                 voice_builder_onboarding_id=voice_builder_onboarding_id,
                 computed_prompt=computed_prompt,
                 queue=results_queue,
-            ) for _ in range(n)
+            )
+            for _ in range(n)
         ]
         concurrent.futures.wait(futures)
 
@@ -125,10 +126,12 @@ def create_voice_builder_samples(
     return samples
 
 
-def create_voice_builder_sample(voice_builder_onboarding_id: int, computed_prompt: str, queue: queue.Queue):
+def create_voice_builder_sample(
+    voice_builder_onboarding_id: int, computed_prompt: str, queue: queue.Queue
+):
     with app.app_context():
-        voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
-            voice_builder_onboarding_id
+        voice_builder_onboarding: VoiceBuilderOnboarding = (
+            VoiceBuilderOnboarding.query.get(voice_builder_onboarding_id)
         )
         archetype_id = voice_builder_onboarding.client_archetype_id
         (
@@ -215,7 +218,6 @@ def generate_computed_prompt(voice_builder_onboarding_id: int):
             ]
         )
 
-
     suffix = "\nprompt: {prompt}\ncompletion:"
 
     computed_prompt = """
@@ -245,6 +247,9 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     voice_builder_onboarding: VoiceBuilderOnboarding = VoiceBuilderOnboarding.query.get(
         voice_builder_onboarding_id
     )
+    voice_builder_samples = VoiceBuilderSamples.query.filter_by(
+        voice_builder_onboarding_id=voice_builder_onboarding_id
+    ).all()
     computed_prompt = generate_computed_prompt(voice_builder_onboarding_id)
 
     client: Client = Client.query.get(voice_builder_onboarding.client_id)
@@ -261,6 +266,47 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
         sub_title=sub_title,
         generated_message_type=voice_builder_onboarding.generated_message_type.value,
     )
+
+    prompt_1, prompt_2, prompt_3, prompt_4, prompt_5, prompt_6, prompt_7 = (
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    (
+        completion_1,
+        completion_2,
+        completion_3,
+        completion_4,
+        completion_5,
+        completion_6,
+        completion_7,
+    ) = (None, None, None, None, None, None, None)
+
+    if len(voice_builder_samples) > 0:
+        prompt_1 = voice_builder_samples[0].sample_prompt
+        completion_1 = voice_builder_samples[0].sample_completion
+    if len(voice_builder_samples) > 1:
+        prompt_2 = voice_builder_samples[1].sample_prompt
+        completion_2 = voice_builder_samples[1].sample_completion
+    if len(voice_builder_samples) > 2:
+        prompt_3 = voice_builder_samples[2].sample_prompt
+        completion_3 = voice_builder_samples[2].sample_completion
+    if len(voice_builder_samples) > 3:
+        prompt_4 = voice_builder_samples[3].sample_prompt
+        completion_4 = voice_builder_samples[3].sample_completion
+    if len(voice_builder_samples) > 4:
+        prompt_5 = voice_builder_samples[4].sample_prompt
+        completion_5 = voice_builder_samples[4].sample_completion
+    if len(voice_builder_samples) > 5:
+        prompt_6 = voice_builder_samples[5].sample_prompt
+        completion_6 = voice_builder_samples[5].sample_completion
+    if len(voice_builder_samples) > 6:
+        prompt_7 = voice_builder_samples[6].sample_prompt
+        completion_7 = voice_builder_samples[6].sample_completion
 
     priority = 4
     if archetype:
@@ -279,6 +325,20 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
             client_id=voice_builder_onboarding.client_id,
             archetype_id=voice_builder_onboarding.client_archetype_id,
             priority=priority,
+            prompt_1=prompt_1,
+            completion_1=completion_1,
+            prompt_2=prompt_2,
+            completion_2=completion_2,
+            prompt_3=prompt_3,
+            completion_3=completion_3,
+            prompt_4=prompt_4,
+            completion_4=completion_4,
+            prompt_5=prompt_5,
+            completion_5=completion_5,
+            prompt_6=prompt_6,
+            completion_6=completion_6,
+            prompt_7=prompt_7,
+            completion_7=completion_7,
         )
     )
     db.session.add(srmc)

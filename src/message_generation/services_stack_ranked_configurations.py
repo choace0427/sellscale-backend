@@ -303,7 +303,7 @@ def get_stack_ranked_configurations(client_sdr_id: int, archetype_id: Optional[i
     archetype_ids = [archetype.id for archetype in archetypes]
     configs: list[StackRankedMessageGenerationConfiguration] = (
         StackRankedMessageGenerationConfiguration.query.filter_by(
-            client_id=sdr.client_id,
+            client_id=sdr.client_id, generated_message_type="LINKEDIN"
         )
         .filter(
             or_(

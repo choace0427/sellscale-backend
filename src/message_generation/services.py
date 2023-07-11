@@ -2201,3 +2201,104 @@ def delete_prospect_bump(client_sdr_id: int, prospect_id: int):
     db.session.commit()
 
     return True
+
+
+def update_stack_ranked_configuration_data(
+    configuration_id: int,
+    instruction: Optional[str],
+    completion_1: Optional[str],
+    completion_2: Optional[str],
+    completion_3: Optional[str],
+    completion_4: Optional[str],
+    completion_5: Optional[str],
+    completion_6: Optional[str],
+    completion_7: Optional[str],
+):
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.get(configuration_id)
+    )
+
+    if not srmgc:
+        return False
+
+    if instruction:
+        srmgc.instruction = instruction
+    if completion_1:
+        srmgc.completion_1 = completion_1
+    if completion_2:
+        srmgc.completion_2 = completion_2
+    if completion_3:
+        srmgc.completion_3 = completion_3
+    if completion_4:
+        srmgc.completion_4 = completion_4
+    if completion_5:
+        srmgc.completion_5 = completion_5
+    if completion_6:
+        srmgc.completion_6 = completion_6
+    if completion_7:
+        srmgc.completion_7 = completion_7
+
+    new_computed_prompt = srmgc.instruction + "\n------\n"
+    if srmgc.prompt_1 and srmgc.completion_1:
+        new_computed_prompt += (
+            "prompt: "
+            + srmgc.prompt_1
+            + "\ncompletion: "
+            + srmgc.completion_1
+            + "\n------\n"
+        )
+    if srmgc.prompt_2 and srmgc.completion_2:
+        new_computed_prompt += (
+            "prompt: "
+            + srmgc.prompt_2
+            + "\ncompletion: "
+            + srmgc.completion_2
+            + "\n------\n"
+        )
+    if srmgc.prompt_3 and srmgc.completion_3:
+        new_computed_prompt += (
+            "prompt: "
+            + srmgc.prompt_3
+            + "\ncompletion: "
+            + srmgc.completion_3
+            + "\n------\n"
+        )
+    if srmgc.prompt_4 and srmgc.completion_4:
+        new_computed_prompt += (
+            "prompt: "
+            + srmgc.prompt_4
+            + "\ncompletion: "
+            + srmgc.completion_4
+            + "\n------\n"
+        )
+    if srmgc.prompt_5 and srmgc.completion_5:
+        new_computed_prompt += (
+            "prompt: "
+            + srmgc.prompt_5
+            + "\ncompletion: "
+            + srmgc.completion_5
+            + "\n------\n"
+        )
+    if srmgc.prompt_6 and srmgc.completion_6:
+        new_computed_prompt += (
+            "prompt: "
+            + srmgc.prompt_6
+            + "\ncompletion: "
+            + srmgc.completion_6
+            + "\n------\n"
+        )
+    if srmgc.prompt_7 and srmgc.completion_7:
+        new_computed_prompt += (
+            "prompt: "
+            + srmgc.prompt_7
+            + "\ncompletion: "
+            + srmgc.completion_7
+            + "\n------\n"
+        )
+    new_computed_prompt += "prompt: {prompt}\ncompletion:"
+    srmgc.computed_prompt = new_computed_prompt
+
+    db.session.add(srmgc)
+    db.session.commit()
+
+    return True

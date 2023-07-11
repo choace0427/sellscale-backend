@@ -1,5 +1,13 @@
+from calendar import c
+
+from httpx import Client
 from src.client.models import ClientSDR
-from src.message_generation.services import delete_prospect_bump, get_prospect_bump
+from src.message_generation.models import StackRankedMessageGenerationConfiguration
+from src.message_generation.services import (
+    delete_prospect_bump,
+    get_prospect_bump,
+    update_stack_ranked_configuration_data,
+)
 from app import db
 
 from flask import Blueprint, request, jsonify
@@ -760,6 +768,63 @@ def post_update_stack_ranked_configuration_tool_instruction_and_prompt():
     if success:
         return "OK", 200
     return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/update_stack_ranked_configuration_data",
+    methods=["POST"],
+)
+@require_user
+def post_update_stack_ranked_configuration_data(client_sdr_id: int):
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    srmgc = StackRankedMessageGenerationConfiguration.query.get(configuration_id)
+    if not srmgc or srmgc.client_id != client_sdr.client_id:
+        return "Unauthorized", 401
+
+    instruction = get_request_parameter(
+        "instruction", request, json=True, required=False
+    )
+    completion_1 = get_request_parameter(
+        "completion_1", request, json=True, required=False
+    )
+    completion_2 = get_request_parameter(
+        "completion_2", request, json=True, required=False
+    )
+    completion_3 = get_request_parameter(
+        "completion_3", request, json=True, required=False
+    )
+    completion_4 = get_request_parameter(
+        "completion_4", request, json=True, required=False
+    )
+    completion_5 = get_request_parameter(
+        "completion_5", request, json=True, required=False
+    )
+    completion_6 = get_request_parameter(
+        "completion_6", request, json=True, required=False
+    )
+    completion_7 = get_request_parameter(
+        "completion_7", request, json=True, required=False
+    )
+
+    success = update_stack_ranked_configuration_data(
+        configuration_id=configuration_id,
+        instruction=instruction,
+        completion_1=completion_1,
+        completion_2=completion_2,
+        completion_3=completion_3,
+        completion_4=completion_4,
+        completion_5=completion_5,
+        completion_6=completion_6,
+        completion_7=completion_7,
+    )
+
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(
