@@ -2283,3 +2283,44 @@ def onboarding_setup_completion_report(client_sdr_id: int):
             "bump_framework_email": bump_framework_email,
         },
     }
+
+
+def get_persona_setup_status_map_for_persona(persona_id: int):
+    data = db.session.execute(
+        """
+        select 
+            client_archetype.archetype,
+            count(distinct prospect.id) > 10 "contacts",
+            max(case when (
+                client_archetype.persona_contact_objective is not null and 
+                client_archetype.persona_fit_reason is not null and 
+                client_archetype.archetype is not null
+            ) then 1 else 0 end) = 1 "teach",
+            count(distinct prospect.id) filter (where prospect.icp_fit_score is not null) > 1 "prioritize",
+            count(distinct generated_message_cta.id) > 1 and 
+                count(distinct bump_framework.id) filter (where bump_framework.overall_status in ('ACCEPTED', 'BUMPED')) > 2  "linkedin",
+            max(case when client_archetype.email_blocks_configuration is not null then 1 else 0 end) = 1 "email",
+            count(distinct generated_message_cta.id) > 1 "linkedin-ctas",
+            count(distinct bump_framework.id) filter (where bump_framework.overall_status in ('ACCEPTED', 'BUMPED')) > 2 "linkedin-bump-frameworks",
+            max(case when client_archetype.email_blocks_configuration is not null then 1 else 0 end) = 1 "email-blocks"
+        from client_archetype
+            join prospect on prospect.archetype_id = client_archetype.id
+            join generated_message_cta on generated_message_cta.archetype_id = client_archetype.id
+            left join bump_framework on bump_framework.client_archetype_id = client_archetype.id and bump_framework.default
+        where client_archetype.id = {persona_id}
+        group by 1;
+    """.format(
+            persona_id=persona_id
+        )
+    ).fetchone()
+
+    return {
+        "contacts": data[1],
+        "teach": data[2],
+        "prioritize": data[3],
+        "linkedin": data[4],
+        "email": data[5],
+        "linkedin-ctas": data[6],
+        "linkedin-bump-frameworks": data[7],
+        "email-blocks": data[8],
+    }

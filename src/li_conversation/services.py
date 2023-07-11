@@ -41,8 +41,7 @@ def update_linkedin_conversation_entries():
     Update the LinkedinConversationEntry table with new entries
     """
     LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID = 3365881184675991
-    p: PhantomBusterAgent = PhantomBusterAgent(
-        LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
+    p: PhantomBusterAgent = PhantomBusterAgent(LINKEDIN_CONVERSATION_SCRAPER_PHANTOM_ID)
     data = p.get_output()
 
     all_messages = []
@@ -117,6 +116,13 @@ def create_linkedin_conversation_entry(
     if message.strip() == "":
         return None
 
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/{prospect_id}".format(
+        auth_token=sdr.auth_token, prospect_id=prospect_id
+    )
+
     """
     Check for duplicates and duplicate does not exist, create a new LinkedinConversationEntry
     """
@@ -153,6 +159,8 @@ def create_linkedin_conversation_entry(
                 Time-sensitive keyword was detected.
 
                 Take appropriate action then mark this message as ✅
+
+                *Direct Link:* {direct_link}
                 """,
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
@@ -330,23 +338,19 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     from model_import import Prospect
 
     # First the first message from the SDR
-    msg = next(filter(lambda x: x.connection_degree ==
-               "You", convo_history), None)
+    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
         raise Exception("No message from SDR found in convo_history")
     sender = msg.author
 
     transcript = "\n\n".join(
-        [x.author + " (" + str(x.date)[0:10] + "): " +
-         x.message for x in convo_history]
+        [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
     )
-    content = transcript + "\n\n" + sender + \
-        " (" + str(datetime.now())[0:10] + "):"
+    content = transcript + "\n\n" + sender + " (" + str(datetime.now())[0:10] + "):"
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     details = ""
     if random.random() < 0.5:
@@ -550,8 +554,7 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
             Prospect.li_conversation_thread_id.isnot(None),
             or_(
                 Prospect.li_conversation_thread_id == conversation_url,
-                Prospect.li_conversation_thread_id.ilike(
-                    "%" + conversation_url + "%"),
+                Prospect.li_conversation_thread_id.ilike("%" + conversation_url + "%"),
             ),
         ).first()
         if prospect:
@@ -602,8 +605,7 @@ def scrape_conversations_inbox():
         next_time = (
             datetime.utcnow()
             + timedelta(hours=3)
-            + timedelta(seconds=random.randint(-scrape_time_offset,
-                        scrape_time_offset))
+            + timedelta(seconds=random.randint(-scrape_time_offset, scrape_time_offset))
         )
         next_datetime = datetime(
             next_time.year,
@@ -661,8 +663,7 @@ def scrape_conversations_inbox():
                 if prospect is None:
                     # Fill in the prospect's urn_id if it's not in the database
                     prospect = Prospect.query.filter(
-                        Prospect.linkedin_url.like(
-                            f"%/in/{profile_public_id}%")
+                        Prospect.linkedin_url.like(f"%/in/{profile_public_id}%")
                     ).first()
                     if prospect is not None:
                         prospect.li_urn_id = profile_urn_id
@@ -678,8 +679,7 @@ def scrape_conversations_inbox():
                     prospect_id=prospect.id,
                     scrape_time=(
                         datetime.utcnow()
-                        + timedelta(seconds=random.randint(0,
-                                    scrape_time_offset))
+                        + timedelta(seconds=random.randint(0, scrape_time_offset))
                     ),
                 )
                 db.session.add(scrape)
@@ -687,8 +687,7 @@ def scrape_conversations_inbox():
 
                 send_slack_message(
                     message=f"Scheduled scrape for convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) at {scrape.scrape_time} UTC 👌",
-                    webhook_urls=[
-                        URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                    webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
                 )
 
 
@@ -726,8 +725,7 @@ def scrape_conversation_queue():
             prospect: Prospect = Prospect.query.get(prospect_id)
             send_slack_message(
                 message=f"••• Scraping convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
-                webhook_urls=[
-                    URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
 
             # Update calendar events
@@ -736,8 +734,7 @@ def scrape_conversation_queue():
         except Exception as e:
             send_slack_message(
                 message=f"🛑 Error scraping convo between SDR #{scrape.client_sdr_id} and prospect #{scrape.prospect_id}\nMsg: {exception_to_str()}",
-                webhook_urls=[
-                    URL_MAP["operations-linkedin-scraping-with-voyager"]],
+                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
             )
             continue
 
@@ -858,8 +855,7 @@ def send_autogenerated_bump(
         or message.bump_framework_length is None
         or message.account_research_points is None
     ):
-        raise Exception(
-            "Invalid autogenerated bump message fed into AI sender")
+        raise Exception("Invalid autogenerated bump message fed into AI sender")
 
     # 4. Make sure that the Prospect is in a valid state
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -894,15 +890,14 @@ def send_autogenerated_bump(
                         "text": f"--- Conversation with prospect *{prospect.full_name}* (#{prospect.id}) ---",
                     },
                 },
-                {
-                    "type": "divider"
-                },
+                {"type": "divider"},
                 {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Most recent message*: " + last_message.get("message"),
+                            "text": "*Most recent message*: "
+                            + last_message.get("message"),
                         },
                     ],
                 },
@@ -914,7 +909,7 @@ def send_autogenerated_bump(
                             "text": f"*Autobump Message* (#{message.id}): *{message.message}*",
                         },
                     ],
-                }
+                },
             ],
         )
         return False
@@ -969,15 +964,14 @@ def send_autogenerated_bump(
                         "text": f"--- Conversation with prospect *{prospect.full_name}* (#{prospect.id}) ---",
                     },
                 },
-                {
-                    "type": "divider"
-                },
+                {"type": "divider"},
                 {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "*Most recent message*: " + last_message.get("message"),
+                            "text": "*Most recent message*: "
+                            + last_message.get("message"),
                         },
                     ],
                 },
@@ -989,7 +983,7 @@ def send_autogenerated_bump(
                             "text": f"*Autobump Message* (#{message.id}): *{message.message}*",
                         },
                     ],
-                }
+                },
             ],
         )
         return False
@@ -997,13 +991,13 @@ def send_autogenerated_bump(
     # 6.b. Check that the last message was more than 48 hours ago, else discard
     utc = pytz.UTC
     now = utc.localize(datetime.utcnow())
-    last_message_date = last_message.get(
-        "date") or last_message.get("created_at")
+    last_message_date = last_message.get("date") or last_message.get("created_at")
     last_message_date = utc.localize(last_message_date)
-    bump_delay_seconds = bump.bump_delay_days * 60 * 60 if bump.bump_delay_days else 48 * 60 * 60
+    bump_delay_seconds = (
+        bump.bump_delay_days * 60 * 60 if bump.bump_delay_days else 48 * 60 * 60
+    )
     if (now - last_message_date).total_seconds() < bump_delay_seconds:
-        formatted_last_message_date = last_message_date.strftime(
-            "%m/%d/%Y %H:%M:%S")
+        formatted_last_message_date = last_message_date.strftime("%m/%d/%Y %H:%M:%S")
         formatted_now = now.strftime("%m/%d/%Y %H:%M:%S")
         send_slack_message(
             message=f'••• 🚨⏳ SDR {sdr.name} (#{sdr.id}): Will not send because last message was less than bump delay hours ago. Autogenerated bump message #{message.id} for prospect {prospect.full_name} (#{prospect.id}) discarded because the last message in the thread was less than 48 hours ago 🤖\nLast message: {last_message.get("message")}\nMessage: {message.message}',
@@ -1085,11 +1079,12 @@ def send_autogenerated_bump(
 
     # 8. Send to purgatory
     bump_delay_days = bump.bump_delay_days or 2
-    send_to_purgatory(prospect_id, bump_delay_days, ProspectHiddenReason.RECENTLY_BUMPED)
+    send_to_purgatory(
+        prospect_id, bump_delay_days, ProspectHiddenReason.RECENTLY_BUMPED
+    )
 
     # 7-8a. Send Slack message
-    archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     send_slack_message(
         message=f"•••: ✅ SDR {sdr.name} (#{sdr.id}): Sending autogenerated bump message to prospect {prospect.full_name} (#{prospect.id}) 🤖\nLast Message: {last_message.get('message')}\nMessage: {message.message}",
         webhook_urls=[URL_MAP["operations-autobump"]],
@@ -1116,9 +1111,7 @@ def send_autogenerated_bump(
                     "text": f"--- Conversation with prospect *{prospect.full_name}* (#{prospect.id}) ---",
                 },
             },
-            {
-                "type": "divider"
-            },
+            {"type": "divider"},
             {
                 "type": "context",
                 "elements": [
@@ -1137,9 +1130,7 @@ def send_autogenerated_bump(
                     },
                 ],
             },
-            {
-                "type": "divider"
-            },
+            {"type": "divider"},
             {
                 "type": "section",
                 "text": {
