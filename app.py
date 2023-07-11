@@ -161,6 +161,7 @@ def register_blueprints(app):
     from src.company.controllers import COMPANY_BLUEPRINT
     from src.calendly.controllers import CALENDLY_BLUEPRINT
     from src.simulation.controllers import SIMULATION_BLUEPRINT
+    from src.automation.phantom_buster.controllers import PHANTOM_BUSTER_BLUEPRINT
 
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -195,6 +196,7 @@ def register_blueprints(app):
     app.register_blueprint(COMPANY_BLUEPRINT, url_prefix="/company")
     app.register_blueprint(CALENDLY_BLUEPRINT, url_prefix="/calendly")
     app.register_blueprint(SIMULATION_BLUEPRINT, url_prefix="/simulation")
+    app.register_blueprint(PHANTOM_BUSTER_BLUEPRINT, url_prefix="/automation/phantom_buster")
 
     db.init_app(app)
 

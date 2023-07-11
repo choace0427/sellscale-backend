@@ -56,6 +56,7 @@ from model_import import (
     PersonaSplitRequestTask,
     PhantomBusterPayload,
 )
+from src.automation.models import PhantomBusterSalesNavigatorConfig, PhantomBusterSalesNavigatorLaunch, SalesNavigatorLaunchStatus
 from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
 from src.daily_notifications.models import (
     DailyNotification,
@@ -124,6 +125,8 @@ def test_app():
         clear_all_entities(GNLPModelFineTuneJobs)
         clear_all_entities(StackRankedMessageGenerationConfiguration)
         clear_all_entities(ClientArchetype)
+        clear_all_entities(PhantomBusterSalesNavigatorLaunch)
+        clear_all_entities(PhantomBusterSalesNavigatorConfig)
         clear_all_entities(ClientSDR)
         clear_all_entities(ClientPod)
         clear_all_entities(Client)
@@ -647,6 +650,58 @@ def basic_bump_framework(
     db.session.commit()
 
     return bump_framework
+
+
+def basic_pb_sn_config(
+    common_pool: bool = True,
+    phantom_name: str = "test_phantom_name",
+    phantom_uuid: str = "test_phantom_uuid",
+    linkedin_session_cookie: str = "test_linkedin_session_cookie",
+    daily_trigger_count: int = 0,
+    daily_prospect_count: int = 0,
+    in_use: bool = False,
+    client: Client = None,
+    client_sdr: ClientSDR = None,
+):
+    phantom = PhantomBusterSalesNavigatorConfig(
+        client_id=client.id if client else None,
+        client_sdr_id=client_sdr.id if client_sdr else None,
+        common_pool=common_pool,
+        phantom_name=phantom_name,
+        phantom_uuid=phantom_uuid,
+        linkedin_session_cookie=linkedin_session_cookie,
+        daily_trigger_count=daily_trigger_count,
+        daily_prospect_count=daily_prospect_count,
+        in_use=in_use,
+    )
+    db.session.add(phantom)
+    db.session.commit()
+
+    return phantom
+
+
+def basic_pb_sn_launch(
+    phantom: PhantomBusterSalesNavigatorConfig,
+    client_sdr: ClientSDR,
+    sales_navigator_url: str = "test_sales_navigator_url",
+    scrape_count: int = 0,
+    status: SalesNavigatorLaunchStatus = SalesNavigatorLaunchStatus.QUEUED,
+    pb_container_id: str = None,
+    result: list[dict] = None,
+):
+    launch = PhantomBusterSalesNavigatorLaunch(
+        sales_navigator_config_id=phantom.id,
+        client_sdr_id=client_sdr.id,
+        sales_navigator_url=sales_navigator_url,
+        scrape_count=scrape_count,
+        status=status,
+        pb_container_id=pb_container_id,
+        result=result,
+    )
+    db.session.add(launch)
+    db.session.commit()
+
+    return launch
 
 
 def clear_all_entities(SQLAlchemyObject):
