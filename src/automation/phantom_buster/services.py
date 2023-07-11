@@ -198,8 +198,14 @@ def collect_and_load_sales_navigator_results(self) -> None:
             # Mark the launch as complete
             launch.status = SalesNavigatorLaunchStatus.SUCCESS
 
+            # Clear the error message
+            launch.error_message = None
+
             # Mark the agent as in_use=False
             agent.in_use = False
+            db.session.commit()
+
+    return
 
 
 @celery.task()
@@ -248,6 +254,7 @@ def run_phantom_buster_sales_navigator(self, launch_id: int) -> tuple[bool, str]
 
         # Update PhantomBuster agent's sales_navigator_url
         phantom.update_argument("searches", launch.sales_navigator_url)
+        phantom.update_argument("numberOfProfiles", launch.scrape_count)
 
         # Launch PhantomBuster agent
         response = phantom.run_phantom()
