@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from src.company.services import find_company_for_prospect
 from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
@@ -1634,3 +1634,35 @@ def find_prospect_id_from_li_or_email(
             return prospect.id
 
     return None
+
+
+def get_prospect_li_history(prospect_id: int):
+
+  from model_import import (ProspectStatusRecords, DemoFeedback, GeneratedMessageStatus)
+    
+  prospect: Prospect = Prospect.query.get(prospect_id)
+  intro_msg: GeneratedMessage = GeneratedMessage.query.filter(
+    GeneratedMessage.prospect_id == prospect_id,
+    GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
+  ).first()
+  prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
+  convo_history: List[LinkedinConversationEntry] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+  status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
+    ProspectStatusRecords.prospect_id == prospect_id
+  ).all()
+  demo_feedback: DemoFeedback = DemoFeedback.query.filter(
+    DemoFeedback.prospect_id == prospect_id,
+  ).first()
+
+  return {
+      'creation_date': prospect.created_at,
+      'intro_msg': {
+        'message': intro_msg.completion,
+        'date': intro_msg.date_sent,
+      } if intro_msg else None,
+      'notes': [{ 'message': n.note, 'date': n.created_at } for n in prospect_notes],
+      'convo': [{ 'author': c.connection_degree, 'message': c.message, 'date': c.date } for c in convo_history],
+      'statuses': [{ 'from': s.from_status.value, 'to': s.to_status.value, 'date': s.created_at } for s in status_history],
+      'demo_feedback': { 'status': demo_feedback.status, 'rating': demo_feedback.rating, 'feedback': demo_feedback.feedback, 'date': demo_feedback.created_at }  if demo_feedback else None,
+  }
+

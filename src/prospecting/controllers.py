@@ -1,4 +1,6 @@
 from typing import List
+
+from src.prospecting.services import get_prospect_li_history
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
 from src.prospecting.nylas.services import (
@@ -1005,3 +1007,17 @@ def get_demo_date(client_sdr_id: int, prospect_id: int):
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
     return jsonify({"demo_date": prospect.demo_date}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/li_history", methods=["GET"])
+@require_user
+def get_li_history(client_sdr_id: int, prospect_id: int):
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect not found"}), 404
+    
+    history = get_prospect_li_history(prospect_id=prospect_id)
+
+    return jsonify({"message": "Success", "data": history}), 200
+
