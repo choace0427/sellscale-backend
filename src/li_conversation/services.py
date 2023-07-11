@@ -119,7 +119,7 @@ def create_linkedin_conversation_entry(
     prospect: Prospect = Prospect.query.get(prospect_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=home/all-contacts/{prospect_id}".format(
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/{prospect_id}".format(
         auth_token=sdr.auth_token, prospect_id=prospect_id
     )
 
