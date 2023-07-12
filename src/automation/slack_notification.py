@@ -93,8 +93,9 @@ def send_status_change_slack_block(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Title:* {title}{last_message}".format(
+                "text": "*Title:* {title}\n*Company:* {company}{last_message}".format(
                     title=prospect.title,
+                    company=prospect.company,
                     last_message="\n*Last message:* {}...".format(last_email_message) if last_email_message else "",
                 ),
             },
