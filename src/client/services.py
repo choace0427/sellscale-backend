@@ -135,6 +135,8 @@ def update_client_sdr_details(
     name: Optional[str] = None,
     email: Optional[str] = None,
     title: Optional[str] = None,
+    disable_ai_on_prospect_respond: Optional[bool] = None,
+    disable_ai_on_message_send: Optional[bool] = None,
 ):
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
@@ -146,6 +148,10 @@ def update_client_sdr_details(
         csdr.email = email
     if title:
         csdr.title = title
+    if disable_ai_on_prospect_respond is not None:
+        csdr.disable_ai_on_prospect_respond = disable_ai_on_prospect_respond
+    if disable_ai_on_message_send is not None:
+        csdr.disable_ai_on_message_send = disable_ai_on_message_send
 
     db.session.add(csdr)
     db.session.commit()
