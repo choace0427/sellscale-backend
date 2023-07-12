@@ -37,6 +37,72 @@ class PhantomBusterConfig(db.Model):
     error_message = db.Column(db.String, nullable=True)
 
 
+class PhantomBusterSalesNavigatorConfig(db.Model):
+    __tablename__ = "phantom_buster_sales_navigator_config"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    common_pool = db.Column(db.Boolean, default=False)
+
+    phantom_name = db.Column(db.String)
+    phantom_uuid = db.Column(db.String)
+    linkedin_session_cookie = db.Column(db.String)
+
+    daily_trigger_count = db.Column(db.Integer, default=0)      # 4 triggers per day
+    daily_prospect_count = db.Column(db.Integer, default=0)     # 600 prospects per day
+    in_use = db.Column(db.Boolean, default=False)
+
+    last_run_date = db.Column(db.DateTime, nullable=True)
+    error_message = db.Column(db.String, nullable=True)
+
+
+class SalesNavigatorLaunchStatus(enum.Enum):
+    NEEDS_AGENT = "NEEDS_AGENT"
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
+
+
+class PhantomBusterSalesNavigatorLaunch(db.Model):
+    __tablename__ = "phantom_buster_sales_navigator_launch"
+
+    id = db.Column(db.Integer, primary_key=True)
+    sales_navigator_config_id = db.Column(
+        db.Integer, db.ForeignKey("phantom_buster_sales_navigator_config.id"), nullable=True
+    )
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id")
+    )
+    sales_navigator_url = db.Column(db.String)
+    scrape_count = db.Column(db.Integer, default=0)
+
+    status = db.Column(db.Enum(SalesNavigatorLaunchStatus), default=SalesNavigatorLaunchStatus.QUEUED)
+    pb_container_id = db.Column(db.String, nullable=True)
+    result = db.Column(db.JSON, nullable=True)
+
+    launch_date = db.Column(db.DateTime, nullable=True)
+    error_message = db.Column(db.String, nullable=True)
+
+    def to_dict(self) -> dict:
+        # Result is too large and should not be returned in the frontend unless during download
+        # instead we will return a boolean to determine if the result is available to download
+
+        return {
+            "id": self.id,
+            "sales_navigator_config_id": self.sales_navigator_config_id,
+            "client_sdr_id": self.client_sdr_id,
+            "sales_navigator_url": self.sales_navigator_url,
+            "scrape_count": self.scrape_count,
+            "status": self.status.value,
+            "pb_container_id": self.pb_container_id,
+            "result_available": True if self.result else False,
+            "launch_date": self.launch_date
+        }
+
+
 class PhantomBusterPayload(db.Model):
     __tablename__ = "phantom_buster_payload"
 
@@ -145,21 +211,31 @@ class PhantomBusterAgent:
 
         return self.get_phantom_buster_payload(s3_folder, orgS3Folder)
 
-    #
-
     def get_phantom_buster_payload(self, s3Folder, orgS3Folder):
 
         url = "https://cache1.phantombooster.com/{orgS3Folder}/{s3Folder}/result.json".format(
             orgS3Folder=orgS3Folder, s3Folder=s3Folder
         )
 
-        headers = {"X-Phantombuster-Key": "UapzERoGG1Q7qcY1jmoisJgR6MNJUmdL2w4UcLCtOJQ"}
+        headers = {"X-Phantombuster-Key": self.api_key}
         response = requests.request("GET", url, headers=headers, data={})
 
         return response.json()
 
+    def get_output_by_container_id(self, container_id: str) -> dict:
 
-    #
+        url = "https://api.phantombuster.com/api/v2/containers/fetch-result-object?id={container_id}".format(
+            container_id=container_id
+        )
+
+        headers = {"X-Phantombuster-Key": self.api_key}
+        response = requests.request("GET", url, headers=headers)
+        response = response.json()
+        result_object = response.get("resultObject", None)
+        if result_object:
+            result = json.loads(result_object)
+            return result
+        return None
 
     def update_launch_schedule(self):
 

@@ -1,5 +1,13 @@
+from calendar import c
+
+from httpx import Client
 from src.client.models import ClientSDR
-from src.message_generation.services import delete_prospect_bump, get_prospect_bump
+from src.message_generation.models import StackRankedMessageGenerationConfiguration
+from src.message_generation.services import (
+    delete_prospect_bump,
+    get_prospect_bump,
+    update_stack_ranked_configuration_data,
+)
 from app import db
 
 from flask import Blueprint, request, jsonify
@@ -229,10 +237,16 @@ def post_create_cta():
     )
     text_value = get_request_parameter("text_value", request, json=True, required=True)
 
-    date_str = get_request_parameter("expiration_date", request, json=True, required=False)
+    date_str = get_request_parameter(
+        "expiration_date", request, json=True, required=False
+    )
     expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
 
-    cta = create_cta(archetype_id=archetype_id, text_value=text_value, expiration_date=expiration_date)
+    cta = create_cta(
+        archetype_id=archetype_id,
+        text_value=text_value,
+        expiration_date=expiration_date,
+    )
     return jsonify({"cta_id": cta.id})
 
 
@@ -243,10 +257,14 @@ def put_update_cta():
     cta_id = get_request_parameter("cta_id", request, json=True, required=True)
     text_value = get_request_parameter("text_value", request, json=True, required=True)
 
-    date_str = get_request_parameter("expiration_date", request, json=True, required=False)
+    date_str = get_request_parameter(
+        "expiration_date", request, json=True, required=False
+    )
     expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
 
-    success = update_cta(cta_id=cta_id, text_value=text_value, expiration_date=expiration_date)
+    success = update_cta(
+        cta_id=cta_id, text_value=text_value, expiration_date=expiration_date
+    )
     if success:
         return jsonify({"message": "Success"}), 200
     else:
@@ -283,7 +301,9 @@ def delete_cta_request():
 def get_is_active_cta():
     from src.message_generation.services import is_cta_active
 
-    cta_id = get_request_parameter("cta_id", request, json=False, required=True, parameter_type=int)
+    cta_id = get_request_parameter(
+        "cta_id", request, json=False, required=True, parameter_type=int
+    )
 
     return jsonify({"message": "Success", "data": is_cta_active(cta_id)}), 200
 
@@ -560,8 +580,11 @@ def get_stack_ranked_configuration_priority_endpoint():
 @require_user
 def get_all_stack_ranked_configurations(client_sdr_id: int):
     """Get all stack ranked configurations for a given client_sdr_id"""
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=False
+    )
 
-    configs = get_stack_ranked_configurations(client_sdr_id)
+    configs = get_stack_ranked_configurations(client_sdr_id, archetype_id=archetype_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in configs]}), 200
 
@@ -745,6 +768,63 @@ def post_update_stack_ranked_configuration_tool_instruction_and_prompt():
     if success:
         return "OK", 200
     return message, 400
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/update_stack_ranked_configuration_data",
+    methods=["POST"],
+)
+@require_user
+def post_update_stack_ranked_configuration_data(client_sdr_id: int):
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    srmgc = StackRankedMessageGenerationConfiguration.query.get(configuration_id)
+    if not srmgc or srmgc.client_id != client_sdr.client_id:
+        return "Unauthorized", 401
+
+    instruction = get_request_parameter(
+        "instruction", request, json=True, required=False
+    )
+    completion_1 = get_request_parameter(
+        "completion_1", request, json=True, required=False
+    )
+    completion_2 = get_request_parameter(
+        "completion_2", request, json=True, required=False
+    )
+    completion_3 = get_request_parameter(
+        "completion_3", request, json=True, required=False
+    )
+    completion_4 = get_request_parameter(
+        "completion_4", request, json=True, required=False
+    )
+    completion_5 = get_request_parameter(
+        "completion_5", request, json=True, required=False
+    )
+    completion_6 = get_request_parameter(
+        "completion_6", request, json=True, required=False
+    )
+    completion_7 = get_request_parameter(
+        "completion_7", request, json=True, required=False
+    )
+
+    success = update_stack_ranked_configuration_data(
+        configuration_id=configuration_id,
+        instruction=instruction,
+        completion_1=completion_1,
+        completion_2=completion_2,
+        completion_3=completion_3,
+        completion_4=completion_4,
+        completion_5=completion_5,
+        completion_6=completion_6,
+        completion_7=completion_7,
+    )
+
+    if success:
+        return "OK", 200
+
+    return "Failed to update", 400
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

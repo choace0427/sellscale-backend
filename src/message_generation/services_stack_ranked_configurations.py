@@ -288,7 +288,7 @@ def get_prompts_from_stack_ranked_config(
     }
 
 
-def get_stack_ranked_configurations(client_sdr_id: int):
+def get_stack_ranked_configurations(client_sdr_id: int, archetype_id: Optional[int]):
 
     from model_import import StackRankedMessageGenerationConfiguration, ClientSDR
 
@@ -296,10 +296,14 @@ def get_stack_ranked_configurations(client_sdr_id: int):
     archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
         client_sdr_id=sdr.id
     ).all()
+
+    if archetype_id:
+        archetypes = [ClientArchetype.query.get(archetype_id)]
+
     archetype_ids = [archetype.id for archetype in archetypes]
     configs: list[StackRankedMessageGenerationConfiguration] = (
         StackRankedMessageGenerationConfiguration.query.filter_by(
-            client_id=sdr.client_id,
+            client_id=sdr.client_id, generated_message_type="LINKEDIN"
         )
         .filter(
             or_(

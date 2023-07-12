@@ -1909,17 +1909,29 @@ def submit_demo_feedback(
         bool: Whether it was successful or not
     """
 
-    demo_feedback = DemoFeedback(
-        client_id=client_id,
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        status=status,
-        rating=rating,
-        feedback=feedback,
-    )
+    existing_demo_feedback: DemoFeedback = DemoFeedback.query.filter(
+        DemoFeedback.client_sdr_id == client_sdr_id,
+        DemoFeedback.prospect_id == prospect_id,
+    ).first()
+    if existing_demo_feedback:
+        existing_demo_feedback.status = status
+        existing_demo_feedback.rating = rating
+        existing_demo_feedback.feedback = feedback
 
-    db.session.add(demo_feedback)
-    db.session.commit()
+        db.session.add(existing_demo_feedback)
+        db.session.commit()
+    else:
+        demo_feedback = DemoFeedback(
+            client_id=client_id,
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            status=status,
+            rating=rating,
+            feedback=feedback,
+        )
+
+        db.session.add(demo_feedback)
+        db.session.commit()
 
     return True
 
