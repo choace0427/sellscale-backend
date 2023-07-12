@@ -44,7 +44,7 @@ class LinkedinConversationEntry(db.Model):
     bump_framework_length = db.Column(db.String, nullable=True)
     account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
 
-    def li_conversation_thread_by_prospect_id(prospect_id: int):
+    def li_conversation_thread_by_prospect_id(prospect_id: int) -> list:
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         li_conversation_thread_id = p.li_conversation_thread_id
 
