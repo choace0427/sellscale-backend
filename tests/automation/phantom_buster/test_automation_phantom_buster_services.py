@@ -79,13 +79,17 @@ def test_collect_and_load_sales_navigator_results(get_output_by_container_id_moc
     client = basic_client()
     sdr = basic_client_sdr(client)
     agent = basic_pb_sn_config(client_sdr=sdr, in_use=True)
+    agent_id = agent.id
     launch = basic_pb_sn_launch(agent, sdr, pb_container_id="pb_container_id", status=SalesNavigatorLaunchStatus.RUNNING)
+    launch_id = launch.id
 
     assert launch.result is None
     collect_and_load_sales_navigator_results()
     get_output_by_container_id_mock.assert_called_once_with("pb_container_id")
+    launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
     assert launch.result == {"test": "test"}
     assert launch.status == SalesNavigatorLaunchStatus.SUCCESS
+    agent: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.get(agent_id)
     assert agent.in_use is False
 
 
@@ -127,7 +131,10 @@ def test_run_phantom_buster_sales_navigator(mock_run_phantom, mock_update_argume
     assert success
     launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
     mock_run_phantom.assert_called_once()
-    mock_update_argument.assert_called_once_with("searches", launch.sales_navigator_url)
+    mock_update_argument_calls = mock_update_argument.call_args_list
+    assert len(mock_update_argument_calls) == 2
+    mock_update_argument.assert_any_call("searches", launch.sales_navigator_url)
+    mock_update_argument.assert_any_call("numberOfProfiles", launch.scrape_count)
     mock_get_agent_data.assert_called_once()
     assert launch.pb_container_id == "test_container_id"
     assert launch.status == SalesNavigatorLaunchStatus.RUNNING

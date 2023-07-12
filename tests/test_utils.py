@@ -652,6 +652,29 @@ def basic_bump_framework(
     return bump_framework
 
 
+def basic_generated_message_autobump(
+    prospect: Prospect,
+    client_sdr: ClientSDR,
+    bump_framework: BumpFramework = None,
+    message: str = "test-message",
+    account_research_points: list[str] = None,
+):
+    autobump = GeneratedMessageAutoBump(
+        prospect_id=prospect.id,
+        client_sdr_id=client_sdr.id,
+        bump_framework_id=bump_framework.id if bump_framework else None,
+        message=message,
+        account_research_points=account_research_points,
+        bump_framework_title=bump_framework.title if bump_framework else None,
+        bump_framework_description=bump_framework.description if bump_framework else None,
+        bump_framework_length=bump_framework.bump_length if bump_framework else None,
+    )
+    db.session.add(autobump)
+    db.session.commit()
+
+    return autobump
+
+
 def basic_pb_sn_config(
     common_pool: bool = True,
     phantom_name: str = "test_phantom_name",
