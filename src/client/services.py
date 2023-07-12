@@ -1973,6 +1973,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
 
     allStatuses = [status.name for status in ProspectOverallStatus]
     allStatuses.remove(ProspectOverallStatus.REMOVED.name)
+    allStatuses.remove(ProspectOverallStatus.DEMO.name)
     prospects: list[Prospect] = (
         Prospect.query.filter(
             Prospect.client_sdr_id == client_sdr_id,
