@@ -52,8 +52,16 @@ def get_sales_navigator_launch_endpoint(client_sdr_id: int, launch_id: int):
         client_sdr_id=client_sdr_id,
         launch_id=launch_id
     )
+    if not launch:
+        return jsonify({"status": "error", "message": "Launch not available"}), 404
 
-    return send_csv(launch, filename="launch_results.csv")
+    # Extract headers from the first dictionary
+    headers = launch[0].keys()
+
+    # Convert the list of dictionaries to a list of lists
+    launch_transformed = [list(headers)] + [list(row.values()) for row in launch]
+
+    return send_csv(launch_transformed, filename="launch_results.csv")
 
 
 @PHANTOM_BUSTER_BLUEPRINT.route("/sales_navigator/webhook", methods=["POST"])

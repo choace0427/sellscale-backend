@@ -34,7 +34,7 @@ def get_sales_navigator_launches(client_sdr_id: int) -> list[dict]:
     return [launch.to_dict() for launch in launches]
 
 
-def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> dict:
+def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> list:
     """Returns the JSON result (to be returned as CSV) corresponding to the launch
 
     Args:
@@ -42,7 +42,7 @@ def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> dic
         launch_id (int): ID of the Sales Navigator Launch
 
     Returns:
-        dict: The result of the Sales Navigator Launch
+        list: The result of the Sales Navigator Launch
     """
     launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
     if launch.client_sdr_id != client_sdr_id:
