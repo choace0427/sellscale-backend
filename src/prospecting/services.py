@@ -23,6 +23,7 @@ from src.prospecting.models import (
     Prospect,
     ProspectChannels,
     ProspectStatus,
+    ProspectStatusRecords,
     ProspectUploadBatch,
     ProspectNote,
     ProspectOverallStatus,
@@ -1553,11 +1554,55 @@ def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
     Removes a prospect from being contacted if their client_sdr assigned
     is the same as the client_sdr calling this.
     """
-    prospect = Prospect.query.get(prospect_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return False
 
+    # Create a record
+    prospect_removed = ProspectStatusRecords(
+        prospect_id=prospect_id,
+        from_status=prospect.status,
+        to_status=ProspectStatus.NOT_QUALIFIED,
+    )
+    db.session.add(prospect_removed)
+
+    # Remove the prospect
     prospect.overall_status = ProspectOverallStatus.REMOVED
+    prospect.status = ProspectStatus.NOT_QUALIFIED
+
+    # If the prospect has linkedin generated message mark them as blocked
+    # Only mark as blocked if the message has not been sent (it's too late otherwise)
+    if prospect.approved_outreach_message_id:
+        message: GeneratedMessage = GeneratedMessage.query.get(
+            prospect.approved_outreach_message_id
+        )
+        if message.message_status != GeneratedMessageStatus.SENT:
+            message.message_status = GeneratedMessageStatus.BLOCKED
+
+    # Do the same for messages sent via email
+    if prospect.approved_prospect_email_id:
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id
+        )
+        if prospect_email.personalized_first_line:
+            first_line: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_first_line
+            )
+            if first_line.message_status != GeneratedMessageStatus.SENT:
+                first_line.message_status = GeneratedMessageStatus.BLOCKED
+        if prospect_email.personalized_subject_line:
+            subject_line: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_subject_line
+            )
+            if subject_line.message_status != GeneratedMessageStatus.SENT:
+                subject_line.message_status = GeneratedMessageStatus.BLOCKED
+        if prospect_email.personalized_body:
+            body: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_body
+            )
+            if body.message_status != GeneratedMessageStatus.SENT:
+                body.message_status = GeneratedMessageStatus.BLOCKED
+
     db.session.add(prospect)
     db.session.commit()
     return True
@@ -1639,7 +1684,7 @@ def find_prospect_id_from_li_or_email(
 def get_prospect_li_history(prospect_id: int):
 
   from model_import import (ProspectStatusRecords, DemoFeedback, GeneratedMessageStatus)
-    
+
   prospect: Prospect = Prospect.query.get(prospect_id)
   intro_msg: GeneratedMessage = GeneratedMessage.query.filter(
     GeneratedMessage.prospect_id == prospect_id,
