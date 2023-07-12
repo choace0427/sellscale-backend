@@ -734,7 +734,7 @@ def get_prospect_status_from_convo(messages) -> ProspectStatus:
         "The conversation needs more engagement",  # ACTIVE_CONVO_NEXT_STEPS
         "There is an objection or abrasion about a product or service",  # ACTIVE_CONVO_OBJECTION
         "There is a question",  # ACTIVE_CONVO_QUESTION
-        "They might not be a great fit or might not be qualified",  # ACTIVE_CONVO_QUAL_NEEDED
+        # "They might not be a great fit or might not be qualified",  # ACTIVE_CONVO_QUAL_NEEDED
     ]
 
     classification = chat_ai_classify_active_convo(messages, options)
@@ -747,8 +747,8 @@ def get_prospect_status_from_convo(messages) -> ProspectStatus:
         status = ProspectStatus.ACTIVE_CONVO_OBJECTION
     elif classification == 3:
         status = ProspectStatus.ACTIVE_CONVO_QUESTION
-    elif classification == 4:
-        status = ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED
+    # elif classification == 4:
+    #     status = ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED
     else:
         status = ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
 
