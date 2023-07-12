@@ -192,87 +192,89 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     # If the prospect's profile img is expired, update it
-    if (
-        time.time() * 1000 > int(prospect.img_expire)
-        and len(details.get("participants", [])) > 0
-    ):
-        prospect.img_url = details.get("participants", [])[0].get(
-            "com.linkedin.voyager.messaging.MessagingMember", {}
-        ).get("miniProfile", {}).get("picture", {}).get(
-            "com.linkedin.common.VectorImage", {}
-        ).get(
-            "rootUrl", ""
-        ) + details.get(
-            "participants", []
-        )[
-            0
-        ].get(
-            "com.linkedin.voyager.messaging.MessagingMember", {}
-        ).get(
-            "miniProfile", {}
-        ).get(
-            "picture", {}
-        ).get(
-            "com.linkedin.common.VectorImage", {}
-        ).get(
-            "artifacts", [{}, {}, {}]
-        )[
-            2
-        ].get(
-            "fileIdentifyingUrlPathSegment", ""
-        )
-        prospect.img_expire = (
-            details.get("participants", [])[0]
-            .get("com.linkedin.voyager.messaging.MessagingMember", {})
-            .get("miniProfile", {})
-            .get("picture", {})
-            .get("com.linkedin.common.VectorImage", {})
-            .get("artifacts", [{}, {}, {}])[2]
-            .get("expiresAt", 0)
-        )
-        db.session.add(prospect)
-        db.session.commit()
-    # If the SDR's profile img is expired, update it
-    if time.time() * 1000 > int(api.client_sdr.img_expire):
-        api.client_sdr.img_url = details.get("events", [])[0].get("from", {}).get(
-            "com.linkedin.voyager.messaging.MessagingMember", {}
-        ).get("miniProfile", {}).get("picture", {}).get(
-            "com.linkedin.common.VectorImage", {}
-        ).get(
-            "rootUrl", ""
-        ) + details.get(
-            "events", []
-        )[
-            0
-        ].get(
-            "from", {}
-        ).get(
-            "com.linkedin.voyager.messaging.MessagingMember", {}
-        ).get(
-            "miniProfile", {}
-        ).get(
-            "picture", {}
-        ).get(
-            "com.linkedin.common.VectorImage", {}
-        ).get(
-            "artifacts", []
-        )[
-            2
-        ].get(
-            "fileIdentifyingUrlPathSegment", ""
-        )
-        api.client_sdr.img_expire = (
-            details.get("events", [])[0]
-            .get("from", {})
-            .get("com.linkedin.voyager.messaging.MessagingMember", {})
-            .get("miniProfile", {})
-            .get("picture", {})
-            .get("com.linkedin.common.VectorImage", {})
-            .get("artifacts", [])[2]
-            .get("expiresAt", 0)
-        )
-        db.session.add(api.client_sdr)
-        db.session.commit()
+    # if (
+    #     time.time() * 1000 > int(prospect.img_expire)
+    #     and len(details.get("participants", [])) > 0
+    # ):
+    #     prospect.img_url = details.get("participants", [])[0].get(
+    #         "com.linkedin.voyager.messaging.MessagingMember", {}
+    #     ).get("miniProfile", {}).get("picture", {}).get(
+    #         "com.linkedin.common.VectorImage", {}
+    #     ).get(
+    #         "rootUrl", ""
+    #     ) + details.get(
+    #         "participants", []
+    #     )[
+    #         0
+    #     ].get(
+    #         "com.linkedin.voyager.messaging.MessagingMember", {}
+    #     ).get(
+    #         "miniProfile", {}
+    #     ).get(
+    #         "picture", {}
+    #     ).get(
+    #         "com.linkedin.common.VectorImage", {}
+    #     ).get(
+    #         "artifacts", [{}, {}, {}]
+    #     )[
+    #         2
+    #     ].get(
+    #         "fileIdentifyingUrlPathSegment", ""
+    #     )
+    #     prospect.img_expire = (
+    #         details.get("participants", [])[0]
+    #         .get("com.linkedin.voyager.messaging.MessagingMember", {})
+    #         .get("miniProfile", {})
+    #         .get("picture", {})
+    #         .get("com.linkedin.common.VectorImage", {})
+    #         .get("artifacts", [{}, {}, {}])[2]
+    #         .get("expiresAt", 0)
+    #     )
+    #     db.session.add(prospect)
+    #     db.session.commit()
+
+    # print(details.get("events", [])[0])
+    # # If the SDR's profile img is expired, update it
+    # if time.time() * 1000 > int(api.client_sdr.img_expire):
+    #     api.client_sdr.img_url = details.get("events", [])[0].get("from", {}).get(
+    #         "com.linkedin.voyager.messaging.MessagingMember", {}
+    #     ).get("miniProfile", {}).get("picture", {}).get(
+    #         "com.linkedin.common.VectorImage", {}
+    #     ).get(
+    #         "rootUrl", ""
+    #     ) + details.get(
+    #         "events", []
+    #     )[
+    #         0
+    #     ].get(
+    #         "from", {}
+    #     ).get(
+    #         "com.linkedin.voyager.messaging.MessagingMember", {}
+    #     ).get(
+    #         "miniProfile", {}
+    #     ).get(
+    #         "picture", {}
+    #     ).get(
+    #         "com.linkedin.common.VectorImage", {}
+    #     ).get(
+    #         "artifacts", []
+    #     )[
+    #         2
+    #     ].get(
+    #         "fileIdentifyingUrlPathSegment", ""
+    #     )
+    #     api.client_sdr.img_expire = (
+    #         details.get("events", [])[0]
+    #         .get("from", {})
+    #         .get("com.linkedin.voyager.messaging.MessagingMember", {})
+    #         .get("miniProfile", {})
+    #         .get("picture", {})
+    #         .get("com.linkedin.common.VectorImage", {})
+    #         .get("artifacts", [])[2]
+    #         .get("expiresAt", 0)
+    #     )
+    #     db.session.add(api.client_sdr)
+    #     db.session.commit()
 
     # If li_conversation_thread_id not set, might as well save it now
     if not prospect.li_conversation_thread_id:
