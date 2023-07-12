@@ -80,10 +80,7 @@ def get_sales_navigator_launch_endpoint(client_sdr_id: int, launch_id: int):
     # Extract headers from the first dictionary
     headers = launch[0].keys()
 
-    # Convert the list of dictionaries to a list of lists
-    launch_transformed = [list(headers)] + [list(row.values()) for row in launch]
-
-    return send_csv(launch_transformed, filename="launch_results.csv")
+    return send_csv(launch, "launch_results.csv", headers)
 
 
 @PHANTOM_BUSTER_BLUEPRINT.route("/sales_navigator/webhook", methods=["POST"])
