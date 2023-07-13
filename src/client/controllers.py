@@ -1532,7 +1532,7 @@ def post_demo_feedback(client_sdr_id: int):
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo: {date}\n*Demo*: {showed}".format(
+                        "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {date}\n*Demo*: {showed}".format(
                             prospect=prospect.full_name,
                             company=prospect.company,
                             persona=archetype.archetype,
