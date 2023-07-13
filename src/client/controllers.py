@@ -1487,6 +1487,8 @@ def post_demo_feedback(client_sdr_id: int):
     )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(client_sdr.archetype_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     if not prospect or prospect.client_sdr_id != client_sdr_id:
@@ -1502,21 +1504,44 @@ def post_demo_feedback(client_sdr_id: int):
     )
 
     send_slack_message(
-        message=f"""
-        ✍️ New demo feedback via {client_sdr.name}!
-        _Details_
-        With {prospect.full_name} on {str(prospect.demo_date)}
+        message="🎊 ✍️ NEW Demo Feedback Collected",
+        webhook_urls=[URL_MAP["csm-demo-feedback"], client.pipeline_notifications_webhook_url],
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "🎊 ✍️ NEW Demo Feedback Collected",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}".format(
+                        rating=rating,
+                        rep=client_sdr.name,
+                        notes=feedback,
+                    ),
+                },
+            },
+            { "type": "divider" },
+            {
+                "type": "context",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo: {date}\n*Demo*: {showed}".format(
+                        prospect=prospect.full_name,
+                        company=prospect.company,
+                        persona=archetype.archetype,
+                        date=str(prospect.demo_date),
+                        showed=status,
+                    ),
+                },
+            },
 
-        _Did the demo happen?_
-        {status}
-
-        _How did it go?_
-        {rating}
-
-        _What did you like / what would you change?_
-        {feedback}
-        """,
-        webhook_urls=[URL_MAP["csm-demo-feedback"]],
+        ]
     )
 
     return jsonify({"message": "Success"}), 200
