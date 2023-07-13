@@ -1488,8 +1488,8 @@ def post_demo_feedback(client_sdr_id: int):
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(client_sdr.archetype_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 400
