@@ -1050,6 +1050,16 @@ def post_toggle_client_sdr_auto_bump():
     return "OK", 200
 
 
+@CLIENT_BLUEPRINT.route("/sdr/auto_bump", methods=["POST"])
+@require_user
+def post_client_sdr_auto_bump(client_sdr_id: int):
+    """Toggles auto bump for a client SDR"""
+    success = toggle_client_sdr_auto_bump(client_sdr_id=client_sdr_id)
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to toggle auto bump"}), 400
+    return jsonify({"status": "success", "data": {}}), 200
+
+
 @CLIENT_BLUEPRINT.route("/pod", methods=["POST"])
 def post_create_pod():
     client_id: int = get_request_parameter(
