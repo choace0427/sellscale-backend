@@ -142,6 +142,7 @@ class GeneratedMessageQueue(db.Model):
 class SendStatus(enum.Enum):
     IN_QUEUE = "IN_QUEUE"
     PROCESSING = "PROCESSING"
+    SENT = "SENT"
 
 
 class GeneratedMessageAutoBump(db.Model):
