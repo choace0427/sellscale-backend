@@ -139,6 +139,11 @@ class GeneratedMessageQueue(db.Model):
     account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
 
 
+class SendStatus(enum.Enum):
+    IN_QUEUE = "IN_QUEUE"
+    PROCESSING = "PROCESSING"
+
+
 class GeneratedMessageAutoBump(db.Model):
     __tablename__ = "generated_message_auto_bump"
 
@@ -163,6 +168,8 @@ class GeneratedMessageAutoBump(db.Model):
     bump_framework_length = db.Column(db.Enum(BumpLength), nullable=True)
 
     account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
+
+    send_status = db.Column(db.Enum(SendStatus), nullable=True)
 
     def to_dict(self) -> dict:
         return {

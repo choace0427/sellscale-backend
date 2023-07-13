@@ -1,5 +1,5 @@
 from src.li_conversation.models import LinkedInConvoMessage
-from src.message_generation.models import GeneratedMessageAutoBump
+from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
 from src.ml.services import determine_account_research_from_convo_and_bump_framework
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
@@ -1938,6 +1938,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
             bump_framework_description=None,
             bump_framework_length=None,
             account_research_points=None,
+            send_status=SendStatus.IN_QUEUE,
         )
         db.session.add(bump_msg)
         db.session.commit()
