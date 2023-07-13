@@ -201,6 +201,16 @@ def run_sales_navigator_launches():
         collect_and_trigger_phantom_buster_sales_navigator_launches.delay()
 
 
+def run_sales_navigator_reset():
+    from src.automation.phantom_buster.services import reset_sales_navigator_config_counts
+
+    if (
+            os.environ.get("FLASK_ENV") == "production"
+            and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        reset_sales_navigator_config_counts()
+
+
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 # scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
@@ -235,6 +245,7 @@ scheduler.add_job(
 )
 scheduler.add_job(auto_run_daily_revival_cleanup_job, trigger="interval", hours=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
+scheduler.add_job(run_sales_navigator_reset, trigger="interval", days=1)
 
 scheduler.start()
 

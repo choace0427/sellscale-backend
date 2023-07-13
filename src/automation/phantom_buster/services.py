@@ -16,6 +16,19 @@ DAILY_PROSPECT_SCRAPE_LIMIT = 600
 MAXIMUM_SCRAPE_PER_LAUNCH = 150
 
 
+def reset_sales_navigator_config_counts() -> None:
+    """Resets the daily counts for the Sales Navigator config
+
+    Returns:
+        None
+    """
+    configs: list[PhantomBusterSalesNavigatorConfig] = PhantomBusterSalesNavigatorConfig.query.all()
+    for config in configs:
+        config.daily_trigger_count = 0
+        config.daily_prospect_count = 0
+        db.session.commit()
+
+
 def get_sales_navigator_launches(client_sdr_id: int) -> list[dict]:
     """Returns all Sales Navigator launches belonging to this SDR
 
@@ -34,7 +47,7 @@ def get_sales_navigator_launches(client_sdr_id: int) -> list[dict]:
     return [launch.to_dict() for launch in launches]
 
 
-def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> list:
+def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> tuple[list, list]:
     """Returns the JSON result (to be returned as CSV) corresponding to the launch
 
     Args:
@@ -42,13 +55,13 @@ def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> lis
         launch_id (int): ID of the Sales Navigator Launch
 
     Returns:
-        list: The result of the Sales Navigator Launch
+        tuple[list, list]: Tuple of the raw and processed results
     """
     launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
     if launch.client_sdr_id != client_sdr_id:
         return None
 
-    return launch.result
+    return launch.result_raw, launch.result_processed
 
 
 def create_phantom_buster_sales_navigator_config(linkedin_session_cookie: str, client_sdr_id: Optional[int]) -> int:
@@ -178,6 +191,18 @@ def collect_and_load_sales_navigator_results(self) -> None:
 
     This function is triggered by a webhook from PhantomBuster.
     """
+    def process_phantom_result_raw(result_raw: list[dict]) -> list[dict]:
+        result_processed = []
+        for raw_dict in result_raw:
+            processed_dict: dict = dict(raw_dict)
+            url = processed_dict.get("profileUrl")
+            if url:
+                processed_url = url.replace('/sales/lead/', '/in/').split(',')[0]
+                processed_dict["profileUrl"] = processed_url
+            result_processed.append(processed_dict)
+
+        return result_processed
+
     # Find all SalesNavigatorLaunch entries with status=RUNNING and pb_container_id set
     launches: list[PhantomBusterSalesNavigatorLaunch] = PhantomBusterSalesNavigatorLaunch.query.filter(
         PhantomBusterSalesNavigatorLaunch.status == SalesNavigatorLaunchStatus.RUNNING,
@@ -188,12 +213,14 @@ def collect_and_load_sales_navigator_results(self) -> None:
         # Query the PhantomBuster API for the results of each pb_container_id
         agent: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.get(launch.sales_navigator_config_id)
         phantom: PhantomBusterAgent = PhantomBusterAgent(agent.phantom_uuid)
-        result = phantom.get_output_by_container_id(launch.pb_container_id)
+        result_raw = phantom.get_output_by_container_id(launch.pb_container_id)
+        result_processed = process_phantom_result_raw(result_raw)
 
         # If the result exists, then load the result into the database, and mark the launch as complete
-        if result:
+        if result_raw:
             # Load the result into the database
-            launch.result = result
+            launch.result_raw = result_raw
+            launch.result_processed = result_processed
 
             # Mark the launch as complete
             launch.status = SalesNavigatorLaunchStatus.SUCCESS

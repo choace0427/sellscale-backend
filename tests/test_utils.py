@@ -710,7 +710,7 @@ def basic_pb_sn_launch(
     scrape_count: int = 0,
     status: SalesNavigatorLaunchStatus = SalesNavigatorLaunchStatus.QUEUED,
     pb_container_id: str = None,
-    result: list[dict] = None,
+    result_raw: list[dict] = None,
 ):
     launch = PhantomBusterSalesNavigatorLaunch(
         sales_navigator_config_id=phantom.id,
@@ -719,7 +719,7 @@ def basic_pb_sn_launch(
         scrape_count=scrape_count,
         status=status,
         pb_container_id=pb_container_id,
-        result=result,
+        result_raw=result_raw,
     )
     db.session.add(launch)
     db.session.commit()

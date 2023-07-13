@@ -27,10 +27,10 @@ def test_get_sales_navigator_launch_result():
     client = basic_client()
     sdr = basic_client_sdr(client)
     agent = basic_pb_sn_config(client_sdr=sdr)
-    launch = basic_pb_sn_launch(agent, sdr, result={"test": "test"})
+    launch = basic_pb_sn_launch(agent, sdr, result_raw=[{"profileUrl": "https://www.linkedin.com/sales/lead/THISISATEST,NAME_SEARCH,Yqtx"}])
 
-    launch_result = get_sales_navigator_launch_result(sdr.id, launch.id)
-    assert launch_result["test"] == "test"
+    launch_raw, launch_processed = get_sales_navigator_launch_result(sdr.id, launch.id)
+    assert launch_raw[0]["profileUrl"] == "https://www.linkedin.com/sales/lead/THISISATEST,NAME_SEARCH,Yqtx"
 
 
 @use_app_context
@@ -74,7 +74,7 @@ def test_register_phantom_buster_sales_navigator_url():
 
 
 @use_app_context
-@mock.patch("src.automation.models.PhantomBusterAgent.get_output_by_container_id", return_value={"test": "test"})
+@mock.patch("src.automation.models.PhantomBusterAgent.get_output_by_container_id", return_value=[{"profileUrl": "https://www.linkedin.com/sales/lead/THISISATEST,NAME_SEARCH,Yqtx"}])
 def test_collect_and_load_sales_navigator_results(get_output_by_container_id_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)
@@ -83,11 +83,12 @@ def test_collect_and_load_sales_navigator_results(get_output_by_container_id_moc
     launch = basic_pb_sn_launch(agent, sdr, pb_container_id="pb_container_id", status=SalesNavigatorLaunchStatus.RUNNING)
     launch_id = launch.id
 
-    assert launch.result is None
+    assert launch.result_raw is None
     collect_and_load_sales_navigator_results()
     get_output_by_container_id_mock.assert_called_once_with("pb_container_id")
     launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
-    assert launch.result == {"test": "test"}
+    assert launch.result_raw == [{"profileUrl": "https://www.linkedin.com/sales/lead/THISISATEST,NAME_SEARCH,Yqtx"}]
+    assert launch.result_processed == [{"profileUrl": "https://www.linkedin.com/in/THISISATEST"}]
     assert launch.status == SalesNavigatorLaunchStatus.SUCCESS
     agent: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.get(agent_id)
     assert agent.in_use is False

@@ -81,7 +81,8 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
 
     status = db.Column(db.Enum(SalesNavigatorLaunchStatus), default=SalesNavigatorLaunchStatus.QUEUED)
     pb_container_id = db.Column(db.String, nullable=True)
-    result = db.Column(db.JSON, nullable=True)
+    result_raw = db.Column(db.JSON, nullable=True)
+    result_processed = db.Column(db.JSON, nullable=True)
 
     launch_date = db.Column(db.DateTime, nullable=True)
     error_message = db.Column(db.String, nullable=True)
@@ -98,7 +99,7 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             "scrape_count": self.scrape_count,
             "status": self.status.value,
             "pb_container_id": self.pb_container_id,
-            "result_available": True if self.result else False,
+            "result_available": True if self.result_raw and self.result_processed else False,
             "launch_date": self.launch_date
         }
 
