@@ -3,6 +3,7 @@ from flask_csv import send_csv
 from src.authentication.decorators import require_user
 from src.automation.models import PhantomBusterSalesNavigatorLaunch
 from src.automation.phantom_buster.services import collect_and_load_sales_navigator_results, create_phantom_buster_sales_navigator_config, get_sales_navigator_launch_result, get_sales_navigator_launches, register_phantom_buster_sales_navigator_url
+from src.utils.converters.dictionary_converters import dictionary_normalization
 
 from src.utils.request_helpers import get_request_parameter
 
@@ -70,15 +71,20 @@ def get_sales_navigator_launch_endpoint(client_sdr_id: int, launch_id: int):
     if launch.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
-    launch = get_sales_navigator_launch_result(
+    launch: list[dict] = get_sales_navigator_launch_result(
         client_sdr_id=client_sdr_id,
         launch_id=launch_id
     )
     if not launch:
         return jsonify({"status": "error", "message": "Launch not available"}), 404
 
-    # Extract headers from the first dictionary
-    headers = launch[0].keys()
+    # Extract headers from the dictionary
+    headers = set()
+    for result in launch:
+        headers.update(result.keys())
+
+    # Normalize dictionary data
+    dictionary_normalization(keys=headers, dictionaries=launch)
 
     return send_csv(launch, "launch_results.csv", headers)
 
