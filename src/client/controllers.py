@@ -1529,18 +1529,19 @@ def post_demo_feedback(client_sdr_id: int):
             { "type": "divider" },
             {
                 "type": "context",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo: {date}\n*Demo*: {showed}".format(
-                        prospect=prospect.full_name,
-                        company=prospect.company,
-                        persona=archetype.archetype,
-                        date=str(prospect.demo_date),
-                        showed=status,
-                    ),
-                },
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo: {date}\n*Demo*: {showed}".format(
+                            prospect=prospect.full_name,
+                            company=prospect.company,
+                            persona=archetype.archetype,
+                            date=str(prospect.demo_date),
+                            showed=status,
+                        ),
+                    }
+                ]
             },
-
         ]
     )
 
