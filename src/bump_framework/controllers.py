@@ -243,7 +243,6 @@ def patch_bump_framework(client_sdr_id: int):
         get_request_parameter(
             "use_account_research", request, json=True, required=False, parameter_type=bool
         )
-        or None
     )
     bump_delay_days = (
         get_request_parameter(
