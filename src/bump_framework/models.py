@@ -36,6 +36,8 @@ class BumpFramework(db.Model):
 
     sellscale_default_generated = db.Column(
         db.Boolean, nullable=True, default=False)
+    use_account_research = db.Column(
+        db.Boolean, nullable=True, default=True)
 
     def to_dict(self):
         archetype: ClientArchetype = ClientArchetype.query.get(
@@ -57,6 +59,7 @@ class BumpFramework(db.Model):
             "bumped_count": self.bumped_count,
             "bump_delay_days": self.bump_delay_days,
             "sellscale_default_generated": self.sellscale_default_generated,
+            "use_account_research": self.use_account_research,
         }
 
 
