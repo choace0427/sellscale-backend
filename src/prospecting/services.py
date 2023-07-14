@@ -1774,39 +1774,8 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data = None):
     prospect_referral: Prospect = Prospect.query.get(referral_id)
     prospect_referred: Prospect = Prospect.query.get(referred_id)
     send_slack_message(
-        message=f"SellScale just multi-threaded 🪡🧵",
+        message=f"SellScale just multi-threaded 🪡🧵\n*Original contact:* {prospect_referral.full_name} (#{prospect_referral.id})\n*Message:* {prospect_referral.li_last_message_from_prospect}\n*SellScale sent outreach to a new person:* {prospect_referred.full_name} (#{prospect_referred.id})",
         webhook_urls=[URL_MAP["company-pipeline"]],
-        blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"SellScale just multi-threaded 🪡🧵",
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Original contact:* {prospect_referral.full_name} (#{prospect_referral.id})",
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Message:* {prospect_referral.li_last_message_from_prospect}",
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*SellScale sent outreach to a new person:* {prospect_referred.full_name} (#{prospect_referred.id})",
-                    },
-                },
-        ]
     )
 
     return True
