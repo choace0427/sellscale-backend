@@ -2039,9 +2039,19 @@ def get_personas_page_details(client_sdr_id: int):
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_outreach_message_id.is_(None))
+            .filter(
+                Prospect.overall_status.notin_(
+                    [ProspectOverallStatus.REMOVED, ProspectOverallStatus.DEMO]
+                )
+            )
             .label("num_unused_li_prospects"),
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_prospect_email_id.is_(None))
+            .filter(
+                Prospect.overall_status.notin_(
+                    [ProspectOverallStatus.REMOVED, ProspectOverallStatus.DEMO]
+                )
+            )
             .label("num_unused_email_prospects"),
         )
         .select_from(ClientArchetype)
