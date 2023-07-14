@@ -1780,9 +1780,16 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data = None):
                 {
                     "type": "header",
                     "text": {
+                        "type": "plain_text",
+                        "text": f"SellScale just multi-threaded 🪡🧵",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
                         "type": "mrkdwn",
                         "text": f"*Original contact:* {prospect_referral.full_name} (#{prospect_referral.id})",
-                        "emoji": True,
                     },
                 },
                 {
