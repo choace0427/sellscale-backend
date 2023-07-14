@@ -42,6 +42,8 @@ from src.prospecting.services import (
     batch_update_prospect_statuses,
     mark_prospect_reengagement,
     get_prospect_generated_message,
+    send_li_outreach_connection,
+    add_prospect_referral,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -581,6 +583,7 @@ def prospect_from_link(client_sdr_id: int):
         return jsonify({"status": "error", "message": "Not authorized"}), 401
 
     batch = generate_random_alphanumeric(32)
+    prospect_id = None
     if not live:
         create_prospect_from_linkedin_link.apply_async(
             args=[archetype_id, url, batch],
@@ -596,7 +599,7 @@ def prospect_from_link(client_sdr_id: int):
             ),
         )
     else:
-        success = create_prospect_from_linkedin_link(
+        success, prospect_id = create_prospect_from_linkedin_link(
             archetype_id=archetype_id,
             url=url,
             batch=batch
@@ -605,7 +608,7 @@ def prospect_from_link(client_sdr_id: int):
             return jsonify({"status": "error", "message": "Failed to create prospect. Please check profile or check for duplicates."}), 400
         run_and_assign_health_score(archetype_id=archetype_id, live=True)
 
-    return jsonify({"status": "success", "data": {}}), 200
+    return jsonify({"status": "success", "data": { "prospect_id": prospect_id }}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link_chain", methods=["POST"])
@@ -1020,4 +1023,57 @@ def get_li_history(client_sdr_id: int, prospect_id: int):
     history = get_prospect_li_history(prospect_id=prospect_id)
 
     return jsonify({"message": "Success", "data": history}), 200
+
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/update", methods=["POST"])
+@require_user
+def post_update_prospect(client_sdr_id: int, prospect_id: int):
+  """Update prospect details"""
+  # This should really be PATCH at '/<prospect_id>' but that's used for something else
+
+  email = get_request_parameter("email", request, json=True, required=False, parameter_type=str)
+
+  prospect: Prospect = Prospect.query.get(prospect_id)
+  if not prospect or prospect.client_sdr_id != client_sdr_id:
+      return jsonify({"message": "Prospect not found"}), 404
+  
+  prospect.email = email
+  db.session.commit()
+
+  return jsonify({"message": "Success"}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/send_outreach_connection", methods=["POST"])
+@require_user
+def post_send_outreach_connection(client_sdr_id: int, prospect_id: int):
+  """Sends a li outreach connection request to a prospect"""
+
+  message = get_request_parameter("message", request, json=True, required=True, parameter_type=str)
+
+  prospect: Prospect = Prospect.query.get(prospect_id)
+  if not prospect or prospect.client_sdr_id != client_sdr_id:
+      return jsonify({"message": "Prospect not found"}), 404
+  
+  success = send_li_outreach_connection(prospect_id, message)
+
+  return jsonify({"message": "Success"}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/add_referral", methods=["POST"])
+@require_user
+def post_prospect_add_referral(client_sdr_id: int, prospect_id: int):
+  """Adds a prospect that this prospect referred us to"""
+
+  referred_id = get_request_parameter("referred_id", request, json=True, required=True, parameter_type=int)
+  meta_data = get_request_parameter("metadata", request, json=True, required=False)
+
+  prospect: Prospect = Prospect.query.get(prospect_id)
+  referred: Prospect = Prospect.query.get(referred_id)
+  if not prospect or prospect.client_sdr_id != client_sdr_id or not referred or referred.client_sdr_id != client_sdr_id:
+      return jsonify({"message": "Prospect or referred prospect not found"}), 404
+  
+  success = add_prospect_referral(prospect_id, referred_id)# , meta_data)
+
+  return jsonify({"message": "Success"}), 200
 

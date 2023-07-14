@@ -27,6 +27,7 @@ from src.message_generation.services import (
     batch_update_generated_message_ctas,
     get_generation_statuses,
     manually_mark_ai_approve,
+    generate_li_convo_init_msg,
 )
 from src.message_generation.services_stack_ranked_configurations import (
     create_stack_ranked_configuration,
@@ -887,3 +888,16 @@ def delete_auto_bump_message(client_sdr_id: int):
         return jsonify({"message": "Failed to delete"}), 400
 
     return jsonify({"message": "Success"}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/generate_init_li_message", methods=["POST"])
+@require_user
+def post_generate_init_li_message(client_sdr_id: int):
+    """Generates the init li outbound message for a prospect"""
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    message, meta_data = generate_li_convo_init_msg(prospect_id)
+
+    return jsonify({"message": "Success", "data": { "message": message, "metadata": meta_data }}), 200

@@ -115,19 +115,8 @@ def generate_sim_li_convo_init_msg(simulation_id: int):
         bool: Whether or not a message was generated
     """
 
-    from src.ml.fine_tuned_models import get_config_completion
-    from src.message_generation.services import generate_prompt
     from src.client.models import ClientSDR
-    from src.message_generation.services import get_notes_and_points_from_perm
-    from src.message_generation.models import GeneratedMessageType
-    from src.message_generation.services_stack_ranked_configurations import (
-        get_top_stack_ranked_config_ordering,
-        random_cta_for_prospect,
-    )
-    from src.message_generation.models import StackRankedMessageGenerationConfiguration
-    from src.message_generation.services import (
-        generate_batch_of_research_points_from_config,
-    )
+    from src.message_generation.services import generate_li_convo_init_msg
 
     simulation: Simulation = Simulation.query.get(simulation_id)
     if not simulation:
@@ -135,57 +124,18 @@ def generate_sim_li_convo_init_msg(simulation_id: int):
     if simulation.type != SimulationType.LI_CONVERSATION:
         return False
 
-    TOP_CONFIGURATION: Optional[
-        StackRankedMessageGenerationConfiguration
-    ] = get_top_stack_ranked_config_ordering(
-        generated_message_type=GeneratedMessageType.LINKEDIN.value,
-        prospect_id=simulation.prospect_id,
-    )
-    perms = generate_batch_of_research_points_from_config(
-        prospect_id=simulation.prospect_id, config=TOP_CONFIGURATION, n=1
-    )
-
-    if not perms or len(perms) == 0:
-        get_research_and_bullet_points_new(
-            prospect_id=simulation.prospect_id, test_mode=False
-        )
-
-        TOP_CONFIGURATION: Optional[
-            StackRankedMessageGenerationConfiguration
-        ] = get_top_stack_ranked_config_ordering(
-            generated_message_type=GeneratedMessageType.LINKEDIN.value,
-            prospect_id=simulation.prospect_id,
-        )
-        perms = generate_batch_of_research_points_from_config(
-            prospect_id=simulation.prospect_id, config=TOP_CONFIGURATION, n=1
-        )
-        if not perms or len(perms) == 0:
-            raise ValueError("No research point permutations")
-    perm = perms[0]
-
-    cta, cta_id = random_cta_for_prospect(prospect_id=simulation.prospect_id)
-    notes, research_points, _ = get_notes_and_points_from_perm(perm, cta_id=cta_id)
-    prompt, _ = generate_prompt(prospect_id=simulation.prospect_id, notes=notes)
-
-    if len(research_points) == 0:
-        return False
-
-    completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
+    message, meta_data = generate_li_convo_init_msg(simulation.prospect_id)
 
     client_sdr: ClientSDR = ClientSDR.query.get(simulation.client_sdr_id)
 
     success = send_li_convo_message(
         simulation_id=simulation_id,
         message=LinkedInConvoMessage(
-            message=completion,
+            message=message,
             connection_degree="You",
             author=client_sdr.name,
         ),
-        meta_data={
-            "prompt": few_shot_prompt,
-            "cta": cta,
-            "research_points": research_points,
-        },
+        meta_data=meta_data,
     )
     return success
 
