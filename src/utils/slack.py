@@ -27,6 +27,7 @@ URL_MAP = {
     "csm-human-response": "https://hooks.slack.com/services/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",
     "csm-urgent-alerts": "https://hooks.slack.com/services/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",
     "csm-notifications-cta-expired": "https://hooks.slack.com/services/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",
+    "company-pipeline": "https://hooks.slack.com/services/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",
 }
 
 
