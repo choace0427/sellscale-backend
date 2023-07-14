@@ -633,6 +633,7 @@ def basic_bump_framework(
     active: bool = True,
     overall_status: ProspectOverallStatus = ProspectOverallStatus.BUMPED,
     default: bool = False,
+    use_account_research: bool = True,
 ):
     from model_import import BumpFramework
 
@@ -645,6 +646,7 @@ def basic_bump_framework(
         active=active,
         overall_status=overall_status,
         default=default,
+        use_account_research=use_account_research,
     )
     db.session.add(bump_framework)
     db.session.commit()

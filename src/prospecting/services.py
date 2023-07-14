@@ -5,7 +5,7 @@ from src.company.services import find_company_for_prospect
 from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
 from sqlalchemy import or_
 import requests
-from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
+from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus, GeneratedMessageType
 from src.email_outbound.models import (
     ProspectEmail,
     ProspectEmailStatus,
@@ -28,6 +28,7 @@ from src.prospecting.models import (
     ProspectNote,
     ProspectOverallStatus,
     ProspectHiddenReason,
+    ProspectReferral,
     VALID_NEXT_LINKEDIN_STATUSES,
 )
 from app import db, celery
@@ -48,7 +49,7 @@ from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
 from src.utils.converters.string_converters import needs_title_casing
 import datetime
-
+from flask import jsonify
 
 def search_prospects(
     query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0
@@ -999,8 +1000,8 @@ def create_prospect_from_linkedin_link(
                 payload=payload,
                 payload_type=IScraperPayloadType.PERSONAL,
             )
-            return True
-        return False
+            return True, new_prospect_id
+        return False, None
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
@@ -1349,6 +1350,30 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
     archetype: ClientArchetype = ClientArchetype.query.get(p.archetype_id)
     archetype_name = archetype.archetype if archetype else None
 
+    # Get referrals
+    referrals = db.session.execute(
+          f"""
+            SELECT p_2.id, p_2.full_name
+            FROM prospect as p_1
+            JOIN prospect_referral ON p_1.id = prospect_referral.referral_id
+            JOIN prospect as p_2 ON prospect_referral.referred_id = p_2.id
+            where p_1.id = {p.id};
+          """
+    ).fetchall()
+    referrals = [dict(row) for row in referrals]
+
+    # Get referred
+    referred = db.session.execute(
+          f"""
+            SELECT p_1.id, p_1.full_name
+            FROM prospect as p_1
+            JOIN prospect_referral ON p_1.id = prospect_referral.referral_id
+            JOIN prospect as p_2 ON prospect_referral.referred_id = p_2.id
+            where p_2.id = {p.id};
+          """
+    ).fetchall()
+    referred = [dict(row) for row in referred]
+
     return {
         "prospect_info": {
             "details": {
@@ -1388,6 +1413,8 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "url": company_url,
                 "employee_count": company_employee_count,
             },
+            "referrals": referrals,
+            "referred": referred,
         },
         "status_code": 200,
         "message": "Success",
@@ -1710,4 +1737,47 @@ def get_prospect_li_history(prospect_id: int):
       'statuses': [{ 'from': s.from_status.value, 'to': s.to_status.value, 'date': s.created_at } for s in status_history],
       'demo_feedback': { 'status': demo_feedback.status, 'rating': demo_feedback.rating, 'feedback': demo_feedback.feedback, 'date': demo_feedback.created_at }  if demo_feedback else None,
   }
+
+
+def send_li_outreach_connection(prospect_id: int, message: str):
+    """
+    Sends a LinkedIn outreach connection message to a prospect. This is very async, it will happen eventually
+    based on our PhantomBuster schedule.
+    """
+    
+    outreach_msg = GeneratedMessage(
+        prospect_id=prospect_id,
+        outbound_campaign_id=None,
+        research_points=[],
+        prompt='',
+        completion=message,
+        message_status=GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
+        message_type=GeneratedMessageType.LINKEDIN,
+        few_shot_prompt='',
+    )
+    db.session.add(outreach_msg)
+    db.session.commit()
+
+    return True
+
+
+def add_prospect_referral(referral_id: int, referred_id: int, meta_data = None):
+    
+    referral = ProspectReferral(
+        referral_id=referral_id,
+        referred_id=referred_id,
+        meta_data=meta_data
+    )
+    db.session.add(referral)
+    db.session.commit()
+
+    prospect_referral: Prospect = Prospect.query.get(referral_id)
+    prospect_referred: Prospect = Prospect.query.get(referred_id)
+    send_slack_message(
+        message=f"SellScale just multi-threaded 🪡🧵\n*Original contact:* {prospect_referral.full_name} (#{prospect_referral.id})\n*Message:* {prospect_referral.li_last_message_from_prospect}\n*SellScale sent outreach to a new person:* {prospect_referred.full_name} (#{prospect_referred.id})",
+        webhook_urls=[URL_MAP["company-pipeline"]],
+    )
+
+    return True
+
 

@@ -390,12 +390,14 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     else:
         bump_framework = None
 
-    if account_research_copy:
-        message_content = message_content + (
-            "\n\nNaturally integrate pieces of information from this account research into the messaging:\n-----\n"
-            + account_research_copy
-            + "\n-----\n"
-        )
+    # Only include account research if the framework is set to use it
+    if bump_framework.use_account_research:
+        if account_research_copy:
+            message_content = message_content + (
+                "\n\nNaturally integrate pieces of information from this account research into the messaging:\n-----\n"
+                + account_research_copy
+                + "\n-----\n"
+            )
 
     if override_bump_length == BumpLength.SHORT or (
         bump_framework and bump_framework.bump_length == BumpLength.SHORT

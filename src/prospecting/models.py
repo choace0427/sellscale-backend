@@ -944,3 +944,19 @@ VALID_NEXT_LINKEDIN_STATUSES = {
     ProspectStatus.DEMO_WON: [],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_WON],
 }
+
+
+class ProspectReferral(db.Model):
+    __tablename__ = "prospect_referral"
+
+    referral_id = db.Column(db.Integer, db.ForeignKey('prospect.id'), primary_key=True)
+    referred_id = db.Column(db.Integer, db.ForeignKey('prospect.id'), primary_key=True)
+
+    meta_data = db.Column(db.JSON, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "referral_id": self.referral_id,
+            "referred_id": self.referred_id,
+            "meta_data": self.meta_data,
+        }

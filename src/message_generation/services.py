@@ -2093,11 +2093,15 @@ def generate_followup_response(
 
         account_research_points = []
         research_str = ""
-        for point in random_sample_points:
-            account_research_points.append(
-                point.value,
-            )
-            research_str += f"{point.value}\n"
+
+        # Only include account research points if bump framework allows it
+        use_account_research = best_framework.get("use_account_research")
+        if use_account_research:
+            for point in random_sample_points:
+                account_research_points.append(
+                    point.value,
+                )
+                research_str += f"{point.value}\n"
 
         # Generate response
         from src.li_conversation.services import (
@@ -2303,3 +2307,73 @@ def update_stack_ranked_configuration_data(
     db.session.commit()
 
     return True
+
+def generate_li_convo_init_msg(prospect_id: int):
+    """Generates the initial message for a linkedin conversation
+
+    Args:
+        prospect_id (int): The prospect id
+
+    Returns:
+        str: The message
+        dict: The generation metadata
+    """
+
+    from src.ml.fine_tuned_models import get_config_completion
+    from src.message_generation.services import generate_prompt
+    from src.client.models import ClientSDR
+    from src.message_generation.services import get_notes_and_points_from_perm
+    from src.message_generation.models import GeneratedMessageType
+    from src.message_generation.services_stack_ranked_configurations import (
+        get_top_stack_ranked_config_ordering,
+        random_cta_for_prospect,
+    )
+    from src.message_generation.models import StackRankedMessageGenerationConfiguration
+    from src.message_generation.services import (
+        generate_batch_of_research_points_from_config,
+    )
+
+    TOP_CONFIGURATION: Optional[
+        StackRankedMessageGenerationConfiguration
+    ] = get_top_stack_ranked_config_ordering(
+        generated_message_type=GeneratedMessageType.LINKEDIN.value,
+        prospect_id=prospect_id,
+    )
+    perms = generate_batch_of_research_points_from_config(
+        prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
+    )
+
+    if not perms or len(perms) == 0:
+        get_research_and_bullet_points_new(
+            prospect_id=prospect_id, test_mode=False
+        )
+
+        TOP_CONFIGURATION: Optional[
+            StackRankedMessageGenerationConfiguration
+        ] = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
+            prospect_id=prospect_id,
+        )
+        perms = generate_batch_of_research_points_from_config(
+            prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
+        )
+        if not perms or len(perms) == 0:
+            raise ValueError("No research point permutations")
+    perm = perms[0]
+
+    cta, cta_id = random_cta_for_prospect(prospect_id=prospect_id)
+    notes, research_points, _ = get_notes_and_points_from_perm(perm, cta_id=cta_id)
+    prompt, _ = generate_prompt(prospect_id=prospect_id, notes=notes)
+
+    if len(research_points) == 0:
+        return None, None
+
+    completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
+
+    return completion, {
+        "prompt": few_shot_prompt,
+        "cta": cta,
+        "research_points": research_points,
+    }
+
+

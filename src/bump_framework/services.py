@@ -132,6 +132,7 @@ def create_bump_framework(
     substatus: Optional[str] = None,
     default: Optional[bool] = False,
     sellscale_default_generated: Optional[bool] = False,
+    use_account_research: Optional[bool] = True,
 ) -> int:
     """Create a new bump framework, if default is True, set all other bump frameworks to False
 
@@ -184,6 +185,7 @@ def create_bump_framework(
         active=active,
         default=default,
         sellscale_default_generated=sellscale_default_generated,
+        use_account_research=use_account_research
     )
     db.session.add(bump_framework)
     db.session.commit()
@@ -202,6 +204,7 @@ def modify_bump_framework(
     description: Optional[str],
     bumped_count: Optional[int] = None,
     bump_delay_days: Optional[int] = None,
+    use_account_research: Optional[bool] = None,
     default: Optional[bool] = False,
 ) -> bool:
     """Modify a bump framework
@@ -217,6 +220,7 @@ def modify_bump_framework(
         bumped_count (Optional[int], optional): The number which corresponds to which bump in the sequence this BF appears. Defaults to None.
         bump_delay_days (Optional[int], optional): The number of days to wait before bumping. Defaults to 2.
         default (Optional[bool]): Whether the bump framework is the default
+        use_account_research (Optional[bool]): Whether the bump framework uses account research
 
     Returns:
         bool: Whether the bump framework was modified
@@ -241,6 +245,9 @@ def modify_bump_framework(
 
     if bump_delay_days:
         bump_framework.bump_delay_days = bump_delay_days
+
+    if use_account_research is not None:
+        bump_framework.use_account_research = use_account_research
 
     if default:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
