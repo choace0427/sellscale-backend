@@ -1,5 +1,6 @@
 from app import db
 from decorators import use_app_context
+from src.li_conversation.models import LinkedInConvoMessage
 from src.prospecting.models import ProspectStatus
 from test_utils import (
     test_app,
@@ -7,9 +8,11 @@ from test_utils import (
     basic_client_sdr,
     basic_archetype,
     basic_prospect,
+    basic_bump_framework,
     basic_linkedin_conversation_entry
 )
 from src.li_conversation.services import (
+    generate_chat_gpt_response_to_conversation_thread_helper,
     update_linkedin_conversation_entries,
     create_linkedin_conversation_entry,
     update_li_conversation_extractor_phantom,
@@ -52,6 +55,9 @@ def test_update_linkedin_conversation_entries(pb_agent_mock):
 @use_app_context
 def test_create_linkedin_conversation_entry():
     """Test create_linkedin_conversation_entry"""
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    client_sdr.auth_token = "123123"
     conversation_url = "https://www.linkedin.com/messaging/conversations/123456789"
     author = "John Doe"
     first_name = "John"
@@ -75,6 +81,7 @@ def test_create_linkedin_conversation_entry():
         connection_degree=connection_degree,
         li_url=li_url,
         message=message,
+        client_sdr_id=client_sdr.id
     )
 
 
@@ -119,3 +126,40 @@ def test_get_li_conversation_entries():
     assert data[0]['message'] == 'test-message'
     assert data[0]['connection_degree'] == 'test-degree'
     assert data[0]['sdr_name'] == 'Test SDR'
+
+
+@use_app_context
+@mock.patch("src.li_conversation.services.wrapped_chat_gpt_completion", return_value="This is a test response")
+def test_generate_chat_gpt_response_to_conversation_thread_helper(mock_chat_gpt_completion):
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr, li_conversation_thread_id='test-thread-id')
+
+    m: LinkedInConvoMessage = LinkedInConvoMessage(
+        author="test-author",
+        message="test-message",
+        connection_degree="You",
+    )
+
+    bump_framework = basic_bump_framework(client_sdr, archetype, use_account_research=True)
+    response, _ = generate_chat_gpt_response_to_conversation_thread_helper(
+        prospect.id,
+        [m],
+        bump_framework.id,
+        account_research_copy="test-account-research-copy",
+    )
+    mocked_arguments = mock_chat_gpt_completion.call_args[0]
+    assert 'Naturally integrate pieces' in mocked_arguments[0][0].get('content')
+    assert response == "This is a test response"
+
+    bump_framework_no_research = basic_bump_framework(client_sdr, archetype, use_account_research=False)
+    response, _ = generate_chat_gpt_response_to_conversation_thread_helper(
+        prospect.id,
+        [m],
+        bump_framework_no_research.id,
+        account_research_copy="test-account-research-copy",
+    )
+    mocked_arguments = mock_chat_gpt_completion.call_args[0]
+    assert 'Naturally integrate pieces' not in mocked_arguments[0][0].get('content')
+    assert response == "This is a test response"

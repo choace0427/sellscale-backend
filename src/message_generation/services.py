@@ -2093,11 +2093,15 @@ def generate_followup_response(
 
         account_research_points = []
         research_str = ""
-        for point in random_sample_points:
-            account_research_points.append(
-                point.value,
-            )
-            research_str += f"{point.value}\n"
+
+        # Only include account research points if bump framework allows it
+        use_account_research = best_framework.get("use_account_research")
+        if use_account_research:
+            for point in random_sample_points:
+                account_research_points.append(
+                    point.value,
+                )
+                research_str += f"{point.value}\n"
 
         # Generate response
         from src.li_conversation.services import (

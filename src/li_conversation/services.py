@@ -124,7 +124,7 @@ def create_linkedin_conversation_entry(
     prospect: Prospect = Prospect.query.get(prospect_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/{prospect_id}".format(
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
         auth_token=sdr.auth_token, prospect_id=prospect_id
     )
 
@@ -390,12 +390,14 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     else:
         bump_framework = None
 
-    if account_research_copy:
-        message_content = message_content + (
-            "\n\nNaturally integrate pieces of information from this account research into the messaging:\n-----\n"
-            + account_research_copy
-            + "\n-----\n"
-        )
+    # Only include account research if the framework is set to use it
+    if bump_framework.use_account_research:
+        if account_research_copy:
+            message_content = message_content + (
+                "\n\nNaturally integrate pieces of information from this account research into the messaging:\n-----\n"
+                + account_research_copy
+                + "\n-----\n"
+            )
 
     if override_bump_length == BumpLength.SHORT or (
         bump_framework and bump_framework.bump_length == BumpLength.SHORT
