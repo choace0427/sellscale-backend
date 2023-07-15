@@ -1,3 +1,4 @@
+from src.bump_framework_email.models import BumpFrameworkEmail
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
@@ -2265,6 +2266,17 @@ def onboarding_setup_completion_report(client_sdr_id: int):
         BumpFramework.client_sdr_id == client_sdr_id
     ).all()
 
+    bump_frameworks_email: List[BumpFrameworkEmail] = BumpFrameworkEmail.query.filter(
+        BumpFrameworkEmail.client_sdr_id == client_sdr_id
+    ).all()
+
+    voices: List[StackRankedMessageGenerationConfiguration] = (
+        db.session.query(StackRankedMessageGenerationConfiguration)
+        .join(ClientArchetype, StackRankedMessageGenerationConfiguration.archetype_id == ClientArchetype.id)
+        .filter(ClientArchetype.client_sdr_id == client_sdr_id)
+        .all()
+    )
+
     company_info = bool(
         client.company
         and client.tagline
@@ -2288,10 +2300,9 @@ def onboarding_setup_completion_report(client_sdr_id: int):
     )
 
     create_linkedin_ctas = len(ctas) > 0
-    create_email_style = False
-    voice_builder = False
+    voice_builder = len(voices) > 0
     bump_framework_linkedin = len(bump_frameworks) > 0
-    bump_framework_email = False
+    bump_framework_email = len(bump_frameworks_email) > 0
 
     return {
         "general": {
@@ -2308,7 +2319,6 @@ def onboarding_setup_completion_report(client_sdr_id: int):
         },
         "msg_gen": {
             "create_linkedin_ctas": create_linkedin_ctas,
-            "create_email_style": create_email_style,
             "voice_builder": voice_builder,
             "bump_framework_linkedin": bump_framework_linkedin,
             "bump_framework_email": bump_framework_email,
