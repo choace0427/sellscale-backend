@@ -1,9 +1,13 @@
+import os
 import re
 import urllib.parse
 import requests
 import time
 import random
 
+from src.utils.slack import URL_MAP, send_slack_message
+
+serp_api_key = os.getenv("SERP_API_KEY")
 headers = {"user-agent": "my-app/0.0.1"}
 
 
@@ -34,24 +38,51 @@ def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
     # print(f'Searching for "{query}"...')
 
     # Before each run, wait so we don't get rate limited
-    #time.sleep(random.uniform(1, 5))
+    # time.sleep(random.uniform(1, 5))
 
-    from duckduckgo_search import ddg
+    # Use Google SERP API - START
+    try:
+        from serpapi import GoogleSearch
 
-    results = ddg(query, region=region, page=1, max_results=10)
+        params = {
+            "q": query,
+            "location": "Austin, Texas, United States",
+            "hl": "en",
+            "gl": "us",
+            "google_domain": "google.com",
+            "api_key": serp_api_key,
+        }
 
-    if not results:
-        return None
+        search = GoogleSearch(params)
+        results = search.get_dict()
 
-    for result in results:
-        # print(result.get('title'))
-        # print(name)
-        match = re.search(
-            rf"^{first}\s*\w*\s+({last[0]}|{last}).\s*\|.*$", result.get("title")
+        potential_linkedin_link = results["organic_results"][0]["link"]
+        if "linkedin.com" in potential_linkedin_link:
+            return potential_linkedin_link
+    except:
+        send_slack_message(
+            message="🚨 Serp API is failing during uploading. Please ensure there are sufficient credits by visiting https://serpapi.com/.",
+            webhook_urls=[URL_MAP["user-errors"]],
         )
-        if match:
-            # print('Matched!')
-            return result.get("href")
+    # Use Google SERP API - END
+
+    # Use the DuckDuckGo API - START
+    # from duckduckgo_search import ddg
+
+    # results = ddg(query, region=region, page=1, max_results=10)
+
+    # if not results:
+    #     return None
+
+    # for result in results:
+    #     # print(result.get('title'))
+    #     # print(name)
+    # match = re.search(
+    #     rf"^{first}\s*\w*\s+({last[0]}|{last}).\s*\|.*$", result.get("title")
+    # )
+    # if match:
+    #     return result.get("href")
+    # Use the DuckDuckGo API - END
 
     # Old system of hitting DuckDuckGo directly
     # print(f'https://duckduckgo.com/?q={urllib.parse.quote(query)}')
