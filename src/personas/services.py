@@ -1,5 +1,6 @@
 from typing import Optional
 from src.company.models import Company
+from src.message_generation.models import GeneratedMessageStatus
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from model_import import (
     PersonaSplitRequest,
@@ -453,7 +454,7 @@ def unassign_prospects(client_sdr_id: int, client_archetype_id: int, use_icp_heu
         if prospect.approved_outreach_message_id is not None:
             prospect_message: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
             if prospect_message is not None:
-                db.session.delete(prospect_message)
+                prospect_message.message_status = GeneratedMessageStatus.BLOCKED
             prospect.approved_outreach_message_id = None
         if prospect.approved_prospect_email_id is not None:
             prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
@@ -462,17 +463,17 @@ def unassign_prospects(client_sdr_id: int, client_archetype_id: int, use_icp_heu
                 if prospect_email.personalized_body is not None:
                     personalized_body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
                     if personalized_body is not None:
-                        db.session.delete(personalized_body)
+                        personalized_body.message_status = GeneratedMessageStatus.BLOCKED
                     prospect_email.personalized_body = None
                 if prospect_email.personalized_first_line is not None:
                     personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_first_line)
                     if personalized_first_line is not None:
-                        db.session.delete(personalized_first_line)
+                        personalized_first_line.message_status = GeneratedMessageStatus.BLOCKED
                     prospect_email.personalized_first_line = None
                 if prospect_email.personalized_subject_line is not None:
                     personalized_subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
                     if personalized_subject_line is not None:
-                        db.session.delete(personalized_subject_line)
+                        personalized_subject_line.message_status = GeneratedMessageStatus.BLOCKED
                     prospect_email.personalized_subject_line = None
             prospect.approved_prospect_email_id = None
 

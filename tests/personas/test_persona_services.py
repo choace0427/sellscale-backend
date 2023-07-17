@@ -89,8 +89,8 @@ def test_unassign_prospects():
         use_icp_heuristic=True,
     )
     assert success
-    assert GeneratedMessage.query.get(gm_id) is None
-    assert GeneratedMessage.query.get(gm2_id) is None
+    assert GeneratedMessage.query.get(gm_id).message_status.value == "BLOCKED"
+    assert GeneratedMessage.query.get(gm2_id).message_status.value == "BLOCKED"
     prospect_1: Prospect = Prospect.query.get(prospect_id)
     assert prospect_1.approved_outreach_message_id is None
     assert prospect_1.archetype_id == unassigned_archetype.id
