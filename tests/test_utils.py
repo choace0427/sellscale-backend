@@ -295,7 +295,7 @@ def basic_generated_message_cta(archetype: ClientArchetype):
 
 def basic_generated_message(
     prospect: Prospect,
-    gnlp_model: GNLPModel,
+    gnlp_model: Optional[GNLPModel] = None,
     message_cta: Optional[GeneratedMessageCTA] = None,
 ):
     from model_import import (
@@ -307,7 +307,7 @@ def basic_generated_message(
     message_cta_id = None if message_cta is None else message_cta.id
     g = GeneratedMessage(
         prospect_id=prospect.id,
-        gnlp_model_id=gnlp_model.id,
+        gnlp_model_id=gnlp_model.id if gnlp_model else None,
         research_points=[],
         prompt="",
         completion="this is a test",

@@ -1,3 +1,4 @@
+from typing import Optional
 from src.company.models import Company
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from model_import import (
@@ -361,3 +362,120 @@ Output:""",
         db.session.rollback()
 
         raise self.retry(exc=e, countdown=10**self.request.retries)
+
+
+def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_archetype_id: int) -> tuple[list[int], list[dict]]:
+    """ Gets a list of prospects that should be unassigned from a persona using the ICP heuristic
+
+    ICP Heuristic: Unassign prospects that are LOW or VERY_LOW
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        client_archetype_id (int): ID of the Client Archetype
+
+    Returns:
+        tuple[list[int], list[dict]]: A tuple of two lists. The first list is a list of prospect IDs that should be unassigned. The second list is a list of dictionaries containing the prospect information.
+    """
+    # Get the target archetype
+    target_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if target_archetype is None:
+        return []
+
+    # Get the prospects that should be unassigned
+    prospects_to_unassign: list[Prospect] = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.icp_fit_score.in_([0, 1])
+    ).all()
+    if len(prospects_to_unassign) == 0:
+        return [], []
+
+    return [prospect.id for prospect in prospects_to_unassign], [prospect.to_dict() for prospect in prospects_to_unassign]
+
+
+def unassign_prospects(client_sdr_id: int, client_archetype_id: int, use_icp_heuristic: bool = True,  manual_unassign_list: Optional[list] = []) -> bool:
+    """ Unassigns prospects from a persona, placing them into the Unassigned persona
+
+    Args:
+        client_sdr_id (int): ID of the SDR
+        client_archetype_id (int): ID of the persona to unassign prospects from
+        use_icp_heuristic (bool, optional): Whether or not to use the ICP heuristic. Defaults to True.
+        manual_unassign_list (Optional[list], optional): List of prospect IDs to manually unassign. Defaults to [].
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from src.message_generation.models import GeneratedMessage
+    from src.email_outbound.models import ProspectEmail
+
+    # Get the target archetype
+    target_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if target_archetype is None:
+        return False
+
+    # Get the unassigned archetype
+    unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == True
+    ).first()
+    if unassigned_archetype is None:
+        return False
+
+    # Grab the prospects to unassign
+    unassign_prospects: list[Prospect] = []
+
+    # Grab the manual prospects to unassign
+    manual_prospect_list: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(manual_unassign_list)
+    ).all()
+    unassign_prospects.extend(manual_prospect_list)
+
+    # Use the ICP Heuristic (ICP score must be LOW or VERY LOW)
+    # LOW: ICP score 0
+    # VERY LOW: ICP score 1
+    if use_icp_heuristic:
+        low_icp_prospects = Prospect.query.filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.archetype_id == target_archetype.id,
+            Prospect.icp_fit_score.in_([0, 1])
+        ).all()
+        unassign_prospects.extend(low_icp_prospects)
+
+    # Unassign the contacts by reassigning to the "Unassigned" archetype
+    for prospect in unassign_prospects:
+        prospect.archetype_id = unassigned_archetype.id
+        prospect.icp_fit_error = None
+        prospect.icp_fit_score = None
+        prospect.icp_fit_reason = None
+        prospect.icp_fit_prompt_data = None
+
+        # IF the prospect has a generated message, delete the message and clear the ID
+        if prospect.approved_outreach_message_id is not None:
+            prospect_message: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+            if prospect_message is not None:
+                db.session.delete(prospect_message)
+            prospect.approved_outreach_message_id = None
+        if prospect.approved_prospect_email_id is not None:
+            prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+            if prospect_email is not None:
+                prospect_email.date_scheduled_to_send = None
+                if prospect_email.personalized_body is not None:
+                    personalized_body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
+                    if personalized_body is not None:
+                        db.session.delete(personalized_body)
+                    prospect_email.personalized_body = None
+                if prospect_email.personalized_first_line is not None:
+                    personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_first_line)
+                    if personalized_first_line is not None:
+                        db.session.delete(personalized_first_line)
+                    prospect_email.personalized_first_line = None
+                if prospect_email.personalized_subject_line is not None:
+                    personalized_subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
+                    if personalized_subject_line is not None:
+                        db.session.delete(personalized_subject_line)
+                    prospect_email.personalized_subject_line = None
+            prospect.approved_prospect_email_id = None
+
+        db.session.commit()
+
+    return True
