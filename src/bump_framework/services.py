@@ -185,7 +185,7 @@ def create_bump_framework(
         active=active,
         default=default,
         sellscale_default_generated=sellscale_default_generated,
-        use_account_research=use_account_research
+        use_account_research=use_account_research,
     )
     db.session.add(bump_framework)
     db.session.commit()
@@ -291,10 +291,6 @@ def deactivate_bump_framework(client_sdr_id: int, bump_framework_id: int) -> Non
         BumpFramework.client_sdr_id == client_sdr_id,
     ).first()
 
-    # Can't deactive the sellscale generated default frameworks
-    if bump_framework.sellscale_default_generated:
-        return
-
     bump_framework.active = False
     db.session.add(bump_framework)
     db.session.commit()
@@ -322,8 +318,10 @@ def activate_bump_framework(client_sdr_id: int, bump_framework_id: int) -> None:
     return
 
 
-def clone_bump_framework(client_sdr_id: int, bump_framework_id: int, target_archetype_id: int) -> int:
-    """ Clones (imports) an existent bump framework's attributes into a new bump framework under the target archetype
+def clone_bump_framework(
+    client_sdr_id: int, bump_framework_id: int, target_archetype_id: int
+) -> int:
+    """Clones (imports) an existent bump framework's attributes into a new bump framework under the target archetype
 
     Args:
         client_sdr_id (int): ID of the client SDR
