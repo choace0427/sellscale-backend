@@ -57,11 +57,26 @@ def test_create_pb_linkedin_invite_csv():
     generated_message = basic_generated_message(prospect, gnlp, cta)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
+    generated_message.priority_rating = 1
+    generated_message_2 = basic_generated_message(prospect, gnlp, cta)
+    generated_message_2_id = generated_message_2.id
+    generated_message_2.completion = "This is a higher priority message"
+    generated_message_2.message_status = "QUEUED_FOR_OUTREACH"
+    generated_message_2.priority_rating = 10
+    generated_message_3 = basic_generated_message(prospect, gnlp, cta)
+    generated_message_3_id = generated_message_3.id
+    generated_message_3.completion = "This is low priority, should not appear"
+    generated_message_3.message_status = "QUEUED_FOR_OUTREACH"
+    generated_message_3.priority_rating = 0
     prospect.approved_outreach_message_id = generated_message.id
     prospect.linkedin_url = "https://www.linkedin.com/in/davidmwei"
 
     data = create_pb_linkedin_invite_csv(sdr.id)
     assert data == [
+        {
+            "Linkedin": "https://www.linkedin.com/in/davidmwei",
+            "Message": "This is a higher priority message",
+        },
         {
             "Linkedin": "https://www.linkedin.com/in/davidmwei",
             "Message": "this is a test",
@@ -74,6 +89,10 @@ def test_create_pb_linkedin_invite_csv():
     assert data == [
         {
             "Linkedin": "https://www.linkedin.com/in/davidmwei",
+            "Message": "This is a higher priority message",
+        },
+        {
+            "Linkedin": "https://www.linkedin.com/in/davidmwei",
             "Message": "this is a test",
         }
     ]
@@ -82,6 +101,10 @@ def test_create_pb_linkedin_invite_csv():
 
     data = create_pb_linkedin_invite_csv(sdr.id)
     assert data == [
+        {
+            "Linkedin": "https://www.linkedin.com/in/davidmwei",
+            "Message": "This is a higher priority message",
+        },
         {
             "Linkedin": "https://www.linkedin.com/in/davidmwei",
             "Message": "this is a test",
@@ -93,7 +116,12 @@ def test_create_pb_linkedin_invite_csv():
     assert p.status.value == "SEND_OUTREACH_FAILED"
 
     data = create_pb_linkedin_invite_csv(sdr_id)
-    assert data == []
+    assert data == [
+        {
+            "Linkedin": "https://www.linkedin.com/in/davidmwei",
+            "Message": "This is low priority, should not appear",
+        }
+    ]
 
 
 EXAMPLE_PB_WEBHOOK_RESPONSE_GOOD = {

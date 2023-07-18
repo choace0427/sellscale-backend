@@ -523,7 +523,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
                 GeneratedMessage.pb_csv_count <= 2,
                 GeneratedMessage.pb_csv_count == None,
             ),  # Only grab messages that have not been sent twice
-        )
+        ).order_by(GeneratedMessage.priority_rating.desc())
         .order_by(GeneratedMessage.created_at.desc())
         .limit(csv_limit)
     ).all()
