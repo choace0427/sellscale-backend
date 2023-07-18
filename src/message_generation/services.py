@@ -41,7 +41,7 @@ from src.ml.rule_engine import run_message_rule_engine
 from src.ml.services import ai_email_prompt, generate_email
 from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
-from src.research.models import ResearchPayload, ResearchPoints
+from src.research.models import ResearchPayload, ResearchPointType, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from model_import import Prospect, ProspectOverallStatus
@@ -323,7 +323,14 @@ def generate_batches_of_research_points(
     perms = []
     for i in range(n):
         sample = [x for x in random.sample(points, min(len(points), num_per_perm))]
+        if ResearchPointType.CUSTOM in [x.research_point_type for x in points]:
+            custom_point = [
+                x for x in points if x.research_point_type == ResearchPointType.CUSTOM
+            ][0]
+            if custom_point not in sample:
+                sample.append(custom_point)
         perms.append(sample)
+
     return perms
 
 
@@ -430,7 +437,6 @@ def generate_linkedin_outreaches_with_configurations(
             )
 
             outreaches.append(completion)
-
 
             message: GeneratedMessage = GeneratedMessage(
                 prospect_id=prospect_id,
@@ -2322,6 +2328,7 @@ def update_stack_ranked_configuration_data(
 
     return True
 
+
 def generate_li_convo_init_msg(prospect_id: int):
     """Generates the initial message for a linkedin conversation
 
@@ -2358,9 +2365,7 @@ def generate_li_convo_init_msg(prospect_id: int):
     )
 
     if not perms or len(perms) == 0:
-        get_research_and_bullet_points_new(
-            prospect_id=prospect_id, test_mode=False
-        )
+        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         TOP_CONFIGURATION: Optional[
             StackRankedMessageGenerationConfiguration
@@ -2389,5 +2394,3 @@ def generate_li_convo_init_msg(prospect_id: int):
         "cta": cta,
         "research_points": research_points,
     }
-
-

@@ -2041,8 +2041,11 @@ def get_personas_page_details(client_sdr_id: int):
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_outreach_message_id.is_(None))
             .filter(
-                Prospect.overall_status.notin_(
-                    [ProspectOverallStatus.REMOVED, ProspectOverallStatus.DEMO]
+                Prospect.overall_status.in_(
+                    [
+                        ProspectOverallStatus.PROSPECTED,
+                        ProspectOverallStatus.SENT_OUTREACH,
+                    ]
                 )
             )
             .label("num_unused_li_prospects"),
@@ -2050,7 +2053,10 @@ def get_personas_page_details(client_sdr_id: int):
             .filter(Prospect.approved_prospect_email_id.is_(None))
             .filter(
                 Prospect.overall_status.notin_(
-                    [ProspectOverallStatus.REMOVED, ProspectOverallStatus.DEMO]
+                    [
+                        ProspectOverallStatus.PROSPECTED,
+                        ProspectOverallStatus.SENT_OUTREACH,
+                    ]
                 )
             )
             .label("num_unused_email_prospects"),
@@ -2272,7 +2278,11 @@ def onboarding_setup_completion_report(client_sdr_id: int):
 
     voices: List[StackRankedMessageGenerationConfiguration] = (
         db.session.query(StackRankedMessageGenerationConfiguration)
-        .join(ClientArchetype, StackRankedMessageGenerationConfiguration.archetype_id == ClientArchetype.id)
+        .join(
+            ClientArchetype,
+            StackRankedMessageGenerationConfiguration.archetype_id
+            == ClientArchetype.id,
+        )
         .filter(ClientArchetype.client_sdr_id == client_sdr_id)
         .all()
     )
