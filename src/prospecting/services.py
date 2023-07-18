@@ -5,7 +5,11 @@ from src.company.services import find_company_for_prospect
 from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
 from sqlalchemy import or_
 import requests
-from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus, GeneratedMessageType
+from src.message_generation.models import (
+    GeneratedMessage,
+    GeneratedMessageStatus,
+    GeneratedMessageType,
+)
 from src.email_outbound.models import (
     ProspectEmail,
     ProspectEmailStatus,
@@ -50,6 +54,7 @@ from src.automation.slack_notification import send_status_change_slack_block
 from src.utils.converters.string_converters import needs_title_casing
 import datetime
 from flask import jsonify
+
 
 def search_prospects(
     query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0
@@ -364,94 +369,20 @@ def update_prospect_status_linkedin(
             metadata={"threadUrl": p.li_conversation_thread_id},
         )
     elif new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
-        send_slack_message(
-            message=f"Prospect {p.full_name} is scheduling a meeting with {client_sdr.name}!",
-            webhook_urls=[URL_MAP["autodetect-scheduling"]],
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"Prospect {p.full_name} is scheduling a meeting with {client_sdr.name}!",
-                    },
-                },
-                {  # Add prospect title and (optional) last message
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Title:* {title}\n{last_message}".format(
-                            title=p.title,
-                            last_message=""
-                            if not p.li_last_message_from_prospect
-                            else '*Last Message*: "{}"'.format(
-                                p.li_last_message_from_prospect
-                            ),
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*SellScale Sight*: <{link}|Link>".format(
-                            link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-                            + client_sdr.auth_token
-                        ),
-                    },
-                },
-            ],
+        create_engagement_feed_item(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            channel_type=ProspectChannels.LINKEDIN.value,
+            engagement_type=EngagementFeedType.SCHEDULING.value,
+            engagement_metadata=message,
         )
-
-    # if (
-    #     new_status == ProspectStatus.ACTIVE_CONVO
-    #     and ProspectStatus.ACTIVE_CONVO in VALID_NEXT_LINKEDIN_STATUSES[current_status]
-    # ):
-    # send_slack_message(
-    #     message=f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-    #     webhook_urls=[URL_MAP["csm-convo-sorter"]],
-    #     blocks=[
-    #         {
-    #             "type": "header",
-    #             "text": {
-    #                 "type": "plain_text",
-    #                 "text": f"🔎 Prospect {p.full_name} is in an unassigned active convo under {client_sdr.name}'s pipeline!",
-    #             },
-    #         },
-    #         {
-    #             "type": "context",
-    #             "elements": [
-    #                 {
-    #                     "type": "plain_text",
-    #                     "text": "Please assign this conversation a substatus via SellScale Sight to ensure that the conversation is handled properly.",
-    #                 },
-    #             ],
-    #         },
-    #         {  # Add prospect title and (optional) last message
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": "*Title:* {title}\n{last_message}".format(
-    #                     title=p.title,
-    #                     last_message=""
-    #                     if not p.li_last_message_from_prospect
-    #                     else '*Last Message*: "{}"'.format(
-    #                         p.li_last_message_from_prospect
-    #                     ),
-    #                 ),
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": "*SellScale Sight*: <{link}|Link>".format(
-    #                     link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-    #                     + client_sdr.auth_token
-    #                 ),
-    #             },
-    #         },
-    #     ],
-    # )
+        send_status_change_slack_block(
+            outreach_type=ProspectChannels.LINKEDIN,
+            prospect=p,
+            new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+            custom_message=" is scheduling! 🙏🔥",
+            metadata={"threadUrl": p.li_conversation_thread_id},
+        )
 
     # status jumps
     if (
@@ -1352,7 +1283,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
 
     # Get referrals
     referrals = db.session.execute(
-          f"""
+        f"""
             SELECT p_2.id, p_2.full_name
             FROM prospect as p_1
             JOIN prospect_referral ON p_1.id = prospect_referral.referral_id
@@ -1364,7 +1295,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
 
     # Get referred
     referred = db.session.execute(
-          f"""
+        f"""
             SELECT p_1.id, p_1.full_name
             FROM prospect as p_1
             JOIN prospect_referral ON p_1.id = prospect_referral.referral_id
@@ -1710,33 +1641,50 @@ def find_prospect_id_from_li_or_email(
 
 def get_prospect_li_history(prospect_id: int):
 
-  from model_import import (ProspectStatusRecords, DemoFeedback, GeneratedMessageStatus)
+    from model_import import ProspectStatusRecords, DemoFeedback, GeneratedMessageStatus
 
-  prospect: Prospect = Prospect.query.get(prospect_id)
-  intro_msg: GeneratedMessage = GeneratedMessage.query.filter(
-    GeneratedMessage.prospect_id == prospect_id,
-    GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
-  ).first()
-  prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-  convo_history: List[LinkedinConversationEntry] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-  status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
-    ProspectStatusRecords.prospect_id == prospect_id
-  ).all()
-  demo_feedback: DemoFeedback = DemoFeedback.query.filter(
-    DemoFeedback.prospect_id == prospect_id,
-  ).first()
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    intro_msg: GeneratedMessage = GeneratedMessage.query.filter(
+        GeneratedMessage.prospect_id == prospect_id,
+        GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
+    ).first()
+    prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
+    convo_history: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
+        ProspectStatusRecords.prospect_id == prospect_id
+    ).all()
+    demo_feedback: DemoFeedback = DemoFeedback.query.filter(
+        DemoFeedback.prospect_id == prospect_id,
+    ).first()
 
-  return {
-      'creation_date': prospect.created_at,
-      'intro_msg': {
-        'message': intro_msg.completion,
-        'date': intro_msg.date_sent,
-      } if intro_msg else None,
-      'notes': [{ 'message': n.note, 'date': n.created_at } for n in prospect_notes],
-      'convo': [{ 'author': c.connection_degree, 'message': c.message, 'date': c.date } for c in convo_history],
-      'statuses': [{ 'from': s.from_status.value, 'to': s.to_status.value, 'date': s.created_at } for s in status_history],
-      'demo_feedback': { 'status': demo_feedback.status, 'rating': demo_feedback.rating, 'feedback': demo_feedback.feedback, 'date': demo_feedback.created_at }  if demo_feedback else None,
-  }
+    return {
+        "creation_date": prospect.created_at,
+        "intro_msg": {
+            "message": intro_msg.completion,
+            "date": intro_msg.date_sent,
+        }
+        if intro_msg
+        else None,
+        "notes": [{"message": n.note, "date": n.created_at} for n in prospect_notes],
+        "convo": [
+            {"author": c.connection_degree, "message": c.message, "date": c.date}
+            for c in convo_history
+        ],
+        "statuses": [
+            {"from": s.from_status.value, "to": s.to_status.value, "date": s.created_at}
+            for s in status_history
+        ],
+        "demo_feedback": {
+            "status": demo_feedback.status,
+            "rating": demo_feedback.rating,
+            "feedback": demo_feedback.feedback,
+            "date": demo_feedback.created_at,
+        }
+        if demo_feedback
+        else None,
+    }
 
 
 def send_li_outreach_connection(prospect_id: int, message: str):
@@ -1744,16 +1692,16 @@ def send_li_outreach_connection(prospect_id: int, message: str):
     Sends a LinkedIn outreach connection message to a prospect. This is very async, it will happen eventually
     based on our PhantomBuster schedule.
     """
-    
+
     outreach_msg = GeneratedMessage(
         prospect_id=prospect_id,
         outbound_campaign_id=None,
         research_points=[],
-        prompt='',
+        prompt="",
         completion=message,
         message_status=GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
         message_type=GeneratedMessageType.LINKEDIN,
-        few_shot_prompt='',
+        few_shot_prompt="",
     )
     db.session.add(outreach_msg)
     db.session.commit()
@@ -1761,12 +1709,10 @@ def send_li_outreach_connection(prospect_id: int, message: str):
     return True
 
 
-def add_prospect_referral(referral_id: int, referred_id: int, meta_data = None):
-    
+def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None):
+
     referral = ProspectReferral(
-        referral_id=referral_id,
-        referred_id=referred_id,
-        meta_data=meta_data
+        referral_id=referral_id, referred_id=referred_id, meta_data=meta_data
     )
     db.session.add(referral)
     db.session.commit()
@@ -1779,5 +1725,3 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data = None):
     )
 
     return True
-
-
