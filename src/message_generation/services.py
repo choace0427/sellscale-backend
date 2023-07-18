@@ -122,7 +122,7 @@ def get_messages_queued_for_outreach(
     total_count = joined_prospect_message.count()
 
     joined_prospect_message = (
-        joined_prospect_message.order_by(GeneratedMessage.created_at.desc())
+        joined_prospect_message.order_by(GeneratedMessage.priority_rating.desc()).order_by(GeneratedMessage.created_at.desc())
         .limit(limit)
         .offset(offset)
         .all()
