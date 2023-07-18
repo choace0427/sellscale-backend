@@ -420,8 +420,15 @@ def get_sample_prompt_from_config_details(
     research_points = []
     research_point_ids = []
     selected_research_point_types = []
+
+    has_custom = False
+    if "CUSTOM" in research_point_types:
+        has_custom = True
+
     if configuration_type == "DEFAULT":
         research_point_types = random.sample(research_point_types, 2)
+        if has_custom:
+            research_point_types.append("CUSTOM")
 
     for rpt in research_point_types:
         rp, rp_type, id = get_random_research_point(
