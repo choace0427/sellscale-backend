@@ -6,6 +6,7 @@ from test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
+    basic_outbound_campaign,
     basic_phantom_buster_configs,
     basic_prospect,
     basic_archetype,
@@ -54,16 +55,17 @@ def test_create_pb_linkedin_invite_csv():
     prospect_id = prospect.id
     gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
-    generated_message = basic_generated_message(prospect, gnlp, cta)
+    campaign = basic_outbound_campaign([prospect_id], "LINKEDIN", archetype, sdr)
+    generated_message = basic_generated_message(prospect, gnlp, cta, campaign)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
     generated_message.priority_rating = 1
-    generated_message_2 = basic_generated_message(prospect, gnlp, cta)
+    generated_message_2 = basic_generated_message(prospect, gnlp, cta, campaign)
     generated_message_2_id = generated_message_2.id
     generated_message_2.completion = "This is a higher priority message"
     generated_message_2.message_status = "QUEUED_FOR_OUTREACH"
     generated_message_2.priority_rating = 10
-    generated_message_3 = basic_generated_message(prospect, gnlp, cta)
+    generated_message_3 = basic_generated_message(prospect, gnlp, cta, campaign)
     generated_message_3_id = generated_message_3.id
     generated_message_3.completion = "This is low priority, should not appear"
     generated_message_3.message_status = "QUEUED_FOR_OUTREACH"

@@ -10,6 +10,7 @@ from src.automation.models import (
 from model_import import Client, ClientSDR, ProspectStatus, GeneratedMessageType
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
+from src.campaigns.models import OutboundCampaign
 from src.prospecting.services import update_prospect_status_linkedin
 from src.utils.slack import send_slack_message, URL_MAP
 import json
@@ -513,6 +514,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
             GeneratedMessage.id.label("generated_message_id"),
         )
         .join(GeneratedMessage, Prospect.id == GeneratedMessage.prospect_id)
+        .join(OutboundCampaign, GeneratedMessage.outbound_campaign_id == OutboundCampaign.id)
         .filter(
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.approved_outreach_message_id != None,
@@ -523,7 +525,8 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
                 GeneratedMessage.pb_csv_count <= 2,
                 GeneratedMessage.pb_csv_count == None,
             ),  # Only grab messages that have not been sent twice
-        ).order_by(GeneratedMessage.priority_rating.desc())
+        ).order_by(OutboundCampaign.priority_rating.desc())
+        .order_by(GeneratedMessage.priority_rating.desc())
         .order_by(GeneratedMessage.created_at.desc())
         .limit(csv_limit)
     ).all()

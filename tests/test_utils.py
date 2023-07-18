@@ -297,6 +297,7 @@ def basic_generated_message(
     prospect: Prospect,
     gnlp_model: Optional[GNLPModel] = None,
     message_cta: Optional[GeneratedMessageCTA] = None,
+    campaign: Optional[OutboundCampaign] = None,
 ):
     from model_import import (
         GeneratedMessage,
@@ -308,6 +309,7 @@ def basic_generated_message(
     g = GeneratedMessage(
         prospect_id=prospect.id,
         gnlp_model_id=gnlp_model.id if gnlp_model else None,
+        outbound_campaign_id=campaign.id if campaign else None,
         research_points=[],
         prompt="",
         completion="this is a test",

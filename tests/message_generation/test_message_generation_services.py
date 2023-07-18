@@ -78,7 +78,8 @@ def test_get_messages_queued_for_outreach():
     prospect_id = prospect.id
     gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
-    generated_message = basic_generated_message(prospect, gnlp, cta)
+    outbound_campaign = basic_outbound_campaign([prospect_id], "LINKEDIN", archetype, sdr)
+    generated_message = basic_generated_message(prospect, gnlp, cta, outbound_campaign)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
     prospect.approved_outreach_message_id = generated_message.id

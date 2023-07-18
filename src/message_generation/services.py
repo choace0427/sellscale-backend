@@ -108,6 +108,10 @@ def get_messages_queued_for_outreach(
             ClientArchetype,
             ClientArchetype.id == Prospect.archetype_id,
         )
+        .join(
+            OutboundCampaign,
+            OutboundCampaign.id == GeneratedMessage.outbound_campaign_id,
+        )
         .filter(
             Prospect.client_sdr_id == client_sdr_id,
             GeneratedMessage.message_status
@@ -122,7 +126,9 @@ def get_messages_queued_for_outreach(
     total_count = joined_prospect_message.count()
 
     joined_prospect_message = (
-        joined_prospect_message.order_by(GeneratedMessage.priority_rating.desc()).order_by(GeneratedMessage.created_at.desc())
+        joined_prospect_message.order_by(OutboundCampaign.priority_rating.desc())
+        .order_by(GeneratedMessage.priority_rating.desc())
+        .order_by(GeneratedMessage.created_at.desc())
         .limit(limit)
         .offset(offset)
         .all()
