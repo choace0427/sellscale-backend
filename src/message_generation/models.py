@@ -90,6 +90,8 @@ class GeneratedMessage(db.Model):
     before_autocorrect_text = db.Column(db.String, nullable=True)
     after_autocorrect_text = db.Column(db.String, nullable=True)
 
+    priority_rating = db.Column(db.Integer, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -118,6 +120,7 @@ class GeneratedMessage(db.Model):
             "adversary_identified_mistake": self.adversary_identified_mistake,
             "adversary_identified_fix": self.adversary_identified_fix,
             "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
+            "priority_rating": self.priority_rating,
         }
 
 

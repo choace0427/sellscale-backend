@@ -271,6 +271,9 @@ def create_new_campaign(client_sdr_id: int):
     ctas = get_request_parameter(
         "ctas", request, json=True, required=False, parameter_type=list
     )
+    priority_rating = get_request_parameter(
+        "priority_rating", request, json=True, required=False, parameter_type=int
+    )
 
     # Turn campaign type from string to enum
     if campaign_type == "EMAIL":
@@ -288,6 +291,7 @@ def create_new_campaign(client_sdr_id: int):
             client_sdr_id=client_sdr_id,
             campaign_start_date=campaign_start_date,
             campaign_end_date=campaign_end_date,
+            priority_rating=priority_rating,
         )
         return jsonify({"campaign_id": campaign.id}), 200
     except Exception as e:

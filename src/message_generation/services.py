@@ -395,6 +395,8 @@ def has_any_linkedin_messages(prospect_id: int):
 def generate_linkedin_outreaches_with_configurations(
     prospect_id: int, outbound_campaign_id: int, cta_id: str = None
 ):
+    campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
+
     if has_any_linkedin_messages(prospect_id=prospect_id):
         return None
     NUM_GENERATIONS = 3
@@ -429,6 +431,7 @@ def generate_linkedin_outreaches_with_configurations(
 
             outreaches.append(completion)
 
+
             message: GeneratedMessage = GeneratedMessage(
                 prospect_id=prospect_id,
                 research_points=research_points,
@@ -443,6 +446,7 @@ def generate_linkedin_outreaches_with_configurations(
                 stack_ranked_message_generation_configuration_id=TOP_CONFIGURATION.id
                 if TOP_CONFIGURATION
                 else None,
+                priority_rating=campaign.priority_rating if campaign else 0,
             )
             db.session.add(message)
             db.session.commit()
@@ -464,6 +468,8 @@ def generate_linkedin_outreaches(
 
     if has_any_linkedin_messages(prospect_id=prospect_id):
         return None
+
+    campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
     research_points_list: list[
         ResearchPoints
@@ -517,6 +523,7 @@ def generate_linkedin_outreaches(
                 message_type=GeneratedMessageType.LINKEDIN,
                 generated_message_instruction_id=instruction_id,
                 few_shot_prompt=few_shot_prompt,
+                priority_rating=campaign.priority_rating if campaign else 0,
             )
             db.session.add(message)
             db.session.commit()
@@ -795,6 +802,8 @@ def get_personalized_first_line_from_prompt(
     outbound_campaign_id: int,
     config: Optional[StackRankedMessageGenerationConfiguration],
 ):
+    campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
+
     if not config:
         completion, few_shot_prompt = get_personalized_first_line_for_client(
             archetype_id=archetype_id,
@@ -814,6 +823,7 @@ def get_personalized_first_line_from_prompt(
         outbound_campaign_id=outbound_campaign_id,
         few_shot_prompt=few_shot_prompt,
         stack_ranked_message_generation_configuration_id=config.id if config else None,
+        priority_rating=campaign.priority_rating if campaign else 0,
     )
     db.session.add(personalized_first_line)
     db.session.commit()
@@ -871,6 +881,8 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
     self, prospect_id: int, campaign_id: int, gm_job_id: int
 ) -> tuple[bool, str]:
     try:
+        campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+
         # Mark the job as in progress
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
@@ -955,6 +967,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 message_status=GeneratedMessageStatus.DRAFT,
                 message_type=GeneratedMessageType.EMAIL,
                 few_shot_prompt=email_generation_prompt,
+                priority_rating=campaign.priority_rating if campaign else 0,
             )
             personalized_body = GeneratedMessage(
                 prospect_id=prospect_id,
@@ -965,6 +978,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 message_status=GeneratedMessageStatus.DRAFT,
                 message_type=GeneratedMessageType.EMAIL,
                 few_shot_prompt=email_generation_prompt,
+                priority_rating=campaign.priority_rating if campaign else 0,
             )
             db.session.add(personalized_subject_line)
             db.session.add(personalized_body)

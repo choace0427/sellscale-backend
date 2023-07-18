@@ -59,6 +59,8 @@ class OutboundCampaign(db.Model):
     receipt_link = db.Column(db.String, nullable=True)
     cost = db.Column(db.Float, nullable=True)
 
+    priority_rating = db.Column(db.Integer, nullable=True, default=0)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -75,4 +77,5 @@ class OutboundCampaign(db.Model):
             "uuid": self.uuid,
             "receipt_link": self.receipt_link,
             "cost": self.cost,
+            "priority_rating": self.priority_rating,
         }

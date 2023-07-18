@@ -484,6 +484,7 @@ def create_outbound_campaign(
     campaign_start_date: datetime,
     campaign_end_date: datetime,
     ctas: Optional[list] = None,
+    priority_rating: Optional[int] = 0,
 ) -> OutboundCampaign:
     """Creates a new outbound campaign
 
@@ -500,6 +501,7 @@ def create_outbound_campaign(
         campaign_start_date (datetime): Start date of the campaign
         campaign_end_date (datetime): End date of the campaign
         status (OutboundCampaignStatus): Status of the campaign
+        priority_rating (int): Priority level of the campaign
 
     Returns:
         OutboundCampaign: The newly created outbound campaign
@@ -558,6 +560,7 @@ def create_outbound_campaign(
         campaign_end_date=campaign_end_date,
         status=OutboundCampaignStatus.PENDING,
         uuid=uuid,
+        priority_rating=priority_rating,
     )
     db.session.add(campaign)
     db.session.commit()
@@ -1617,7 +1620,7 @@ def get_linkedin_campaign_analytics(campaign_id: int):
         raise Exception("Campaign is not a LinkedIn campaign")
 
     data = db.session.execute(
-        f"""select 
+        f"""select
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "# of Sent Outreach",
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') "# of Acceptances",
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') "# of Active Convos",
