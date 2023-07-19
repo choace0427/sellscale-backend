@@ -1777,55 +1777,13 @@ def process_generated_msg_queue(
         li_convo_msg.bump_framework_length = msg_queue.bump_framework_length
         li_convo_msg.account_research_points = msg_queue.account_research_points
 
+        if msg_queue.bump_framework_id:
+            bf: BumpFramework = BumpFramework.query.get(msg_queue.bump_framework_id)
+            if bf:
+                bf.etl_num_times_used += 1
+
         db.session.add(li_convo_msg)
         db.session.commit()
-
-        if not li_convo_msg.ai_generated:
-
-            send_slack_message(
-                message="New response from Human!",
-                webhook_urls=[URL_MAP["csm-human-response"]],
-                blocks=[
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": f"🤖 New Human response from {client_sdr.name} to {prospect_name} [LINKEDIN]",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "_A human has manually responded to the convo below. Please make a bump framework if relevant to answer this for humans in the future._",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Human:* {li_convo_msg.message}",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Message was sent at:* {li_convo_msg.date}",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*SellScale Sight*: <{link}|Link>".format(
-                                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-                                + client_sdr.auth_token
-                            ),
-                        },
-                    },
-                ],
-            )
 
     if nylas_message_id:
         nylas_msg: EmailConversationMessage = EmailConversationMessage.query.filter(

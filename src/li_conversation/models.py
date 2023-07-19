@@ -44,6 +44,8 @@ class LinkedinConversationEntry(db.Model):
     bump_framework_length = db.Column(db.String, nullable=True)
     account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
 
+    bump_analytics_processed = db.Column(db.Boolean, default=False)
+
     def li_conversation_thread_by_prospect_id(prospect_id: int) -> list:
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         li_conversation_thread_id = p.li_conversation_thread_id
@@ -87,6 +89,7 @@ class LinkedinConversationEntry(db.Model):
             "bump_framework_description": self.bump_framework_description,
             "bump_framework_length": self.bump_framework_length,
             "account_research_points": self.account_research_points,
+            "bump_analytics_processed": self.bump_analytics_processed,
         }
 
 

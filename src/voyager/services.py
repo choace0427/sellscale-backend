@@ -5,6 +5,7 @@ import random
 import os
 
 from tomlkit import datetime
+from src.bump_framework.models import BumpFramework
 
 from src.message_generation.services import process_generated_msg_queue
 
@@ -429,6 +430,8 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
     db.session.bulk_save_objects(bulk_objects)
     db.session.commit()
 
+    run_conversation_bump_analytics(convo_urn_id=convo_urn_id)
+
     update_prospect_status(prospect.id, convo_urn_id)
 
     # Classify conversation
@@ -457,6 +460,76 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
         classify_active_convo(prospect.id, messages)
 
     return "OK", 200
+
+
+# DELETE ME
+def run_backfill_bf_analytics() -> bool:
+    # Get all LIConvoEntries that have a bump framework
+    convo_entries: list[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.query.filter(
+            LinkedinConversationEntry.bump_framework_id != None
+        )
+    ).all()
+
+    # Put unique convo_urn_ids into a set
+    convo_urn_ids: set[int] = set()
+    for entry in convo_entries:
+        convo_urn_ids.add(entry.conversation_url.split("/")[-2])
+
+    print(convo_urn_ids)
+
+    # Get entire conversations for the unique urns
+    for convo_urn_id in convo_urn_ids:
+        # Get all entries for the convo_urn_id
+        convo_entries: list[LinkedinConversationEntry] = (
+            LinkedinConversationEntry.query.filter_by(
+                conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
+            )
+            .order_by(LinkedinConversationEntry.date.asc())
+            .all()
+        )
+        # If a bump framework is present, add to the count
+        for index, entry in enumerate(convo_entries):
+            if entry.bump_framework_id:
+                bump: BumpFramework = BumpFramework.query.get(entry.bump_framework_id)
+                bump.etl_num_times_used += 1
+                # Check to see if the next message is from the prospect
+                if index + 1 < len(convo_entries):
+                    next_entry = convo_entries[index + 1]
+                    if next_entry.connection_degree != "You":
+                        bump.etl_num_times_converted += 1
+                db.session.commit()
+            entry.bump_analytics_processed = True
+
+    return convo_urn_ids
+
+
+def run_conversation_bump_analytics(convo_urn_id: int) -> bool:
+    convo_entries: list[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.query.filter_by(
+            conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
+            bump_anaytics_processed=or_(None, False),
+        )
+        .order_by(LinkedinConversationEntry.date.asc())
+        .all()
+    )
+
+    if not convo_entries:
+        return True
+
+    # For entries, if the entry has a bump framework, check to see if the next message is from the prospect
+    for index, entry in enumerate(convo_entries):
+        if entry.bump_framework_id:
+            if index + 1 < len(convo_entries):
+                next_entry = convo_entries[index + 1]
+                if next_entry.connection_degree != "You":
+                    # Prospect responded, this bump was successful
+                    bump: BumpFramework = BumpFramework.query.get(entry.bump_framework_id)
+                    bump.etl_num_times_converted += 1
+        entry.bump_analytics_processed = True
+        db.session.commit()
+
+    return True
 
 
 def update_prospect_status(prospect_id: int, convo_urn_id: str):

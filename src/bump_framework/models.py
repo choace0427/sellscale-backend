@@ -39,6 +39,9 @@ class BumpFramework(db.Model):
     use_account_research = db.Column(
         db.Boolean, nullable=True, default=True)
 
+    etl_num_times_used = db.Column(db.Integer, nullable=True, default=0)
+    etl_num_times_converted = db.Column(db.Integer, nullable=True, default=0)
+
     def to_dict(self):
         archetype: ClientArchetype = ClientArchetype.query.get(
             self.client_archetype_id
@@ -60,6 +63,8 @@ class BumpFramework(db.Model):
             "bump_delay_days": self.bump_delay_days,
             "sellscale_default_generated": self.sellscale_default_generated,
             "use_account_research": self.use_account_research,
+            "etl_num_times_used": self.etl_num_times_used,
+            "etl_num_times_converted": self.etl_num_times_converted,
         }
 
 
