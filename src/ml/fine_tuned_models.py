@@ -183,7 +183,7 @@ def get_computed_prompt_completion(
             {"role": "system", "content": few_shot_prompt},
         ],
         temperature=0.7,
-        max_tokens=240,
+        max_tokens=100,
         model=OPENAI_CHAT_GPT_4_MODEL,
     )
     return (response, few_shot_prompt)
