@@ -391,7 +391,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         bump_framework = None
 
     # Only include account research if the framework is set to use it
-    if bump_framework.use_account_research:
+    if not bump_framework or bump_framework.use_account_research:
         if account_research_copy:
             message_content = message_content + (
                 "\n\nNaturally integrate pieces of information from this account research into the messaging:\n-----\n"
@@ -421,9 +421,20 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             + "\n-----"
         )
 
-    if prospect.status == ProspectStatus.ACCEPTED:
+    conversation_length_1_and_message_from_me = (
+        len(convo_history) == 1 and convo_history[0].connection_degree == "You"
+    )
+    conversation_length_greater_than_1_and_messages_only_from_me = len(
+        convo_history
+    ) > 1 and all([x.connection_degree == "You" for x in convo_history])
+
+    if conversation_length_1_and_message_from_me:
         message_content = message_content + (
             "\n\nImportant Context: This person has just accepted your connection request.\n"
+        )
+    elif conversation_length_greater_than_1_and_messages_only_from_me:
+        message_content = message_content + (
+            "\n\nImportant Context: This person has not responded to your message so you are writing a follow up message.\n"
         )
 
     message_content = message_content + (
