@@ -117,7 +117,7 @@ def test_add_client_and_archetype():
 
     c: Client = get_client(clients[0].id)
     assert c.id == clients[0].id
-    assert len(c.notification_allowlist) == 4
+    assert len(c.notification_allowlist) == 5
     assert c.linkedin_outbound_enabled == True
     assert c.email_outbound_enabled == True
     c_sdr: ClientSDR = basic_client_sdr(c)

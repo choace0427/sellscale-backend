@@ -7,7 +7,7 @@ from src.li_conversation.autobump_helpers.services_firewall import (
     rule_no_sdr_name_in_message,
     rule_no_stale_message,
     rule_no_profanity,
-    run_autobump_firewall
+    run_autobump_firewall,
 )
 from test_utils import (
     test_app,
@@ -16,9 +16,10 @@ from test_utils import (
     basic_archetype,
     basic_prospect,
     basic_bump_framework,
-    basic_generated_message_autobump
+    basic_generated_message_autobump,
 )
 from datetime import datetime, timedelta
+
 
 @use_app_context
 def test_run_autobump_firewall():
@@ -28,10 +29,14 @@ def test_run_autobump_firewall():
     prospect = basic_prospect(client, archetype, sdr)
     framework = basic_bump_framework(sdr, archetype, default=True)
 
-    good_message = "Hi! Just wanted to bump this message and see if you are still interested?"
+    good_message = (
+        "Hi! Just wanted to bump this message and see if you are still interested?"
+    )
 
     # No violations
-    autobump = basic_generated_message_autobump(prospect, sdr, framework, message=good_message)
+    autobump = basic_generated_message_autobump(
+        prospect, sdr, framework, message=good_message
+    )
     result, violations = run_autobump_firewall(autobump.id)
     assert result == True
     assert violations == []
@@ -40,7 +45,10 @@ def test_run_autobump_firewall():
     autobump = basic_generated_message_autobump(prospect, sdr, framework, message=" ")
     result, violations = run_autobump_firewall(autobump.id)
     assert result == False
-    assert violations == ["Message shorter than 15 characters.", "Message is blank.",]
+    assert violations == [
+        "Message shorter than 15 characters.",
+        "Message is blank.",
+    ]
 
 
 @use_app_context
@@ -102,11 +110,11 @@ def test_rule_no_stale_message():
     # Stale message
     autobump = basic_generated_message_autobump(prospect, sdr, framework)
     autobump_id = autobump.id
-    autobump.created_at = datetime.now() - timedelta(days=3)
+    autobump.created_at = datetime.now() - timedelta(days=4)
     db.session.commit()
     violations = []
     rule_no_stale_message(autobump_id, violations)
-    assert violations == ["Message is stale (generated more than 2 days ago)"]
+    assert violations == ["Message is stale (generated more than 3 days ago)"]
 
     # Not stale message
     autobump = basic_generated_message_autobump(prospect, sdr, framework)
@@ -128,10 +136,7 @@ def test_rule_no_sdr_name_in_message():
 
     # Contains SDR name
     autobump = basic_generated_message_autobump(
-        prospect,
-        sdr,
-        framework,
-        message="Hi, my name is " + sdr.name
+        prospect, sdr, framework, message="Hi, my name is " + sdr.name + ":"
     )
     autobump_id = autobump.id
     violations = []
@@ -140,10 +145,7 @@ def test_rule_no_sdr_name_in_message():
 
     # Does not contain SDR name
     autobump = basic_generated_message_autobump(
-        prospect,
-        sdr,
-        framework,
-        message="Hi, my name is not"
+        prospect, sdr, framework, message="Hi, my name is not"
     )
     autobump_id = autobump.id
     violations = []
