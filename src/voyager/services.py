@@ -511,7 +511,7 @@ def run_conversation_bump_analytics(convo_urn_id: int) -> bool:
     convo_entries: list[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter_by(
             conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
-            bump_anaytics_processed=or_(None, False),
+            bump_analytics_processed=or_(None, False),
         )
         .order_by(LinkedinConversationEntry.date.asc())
         .all()
@@ -527,7 +527,9 @@ def run_conversation_bump_analytics(convo_urn_id: int) -> bool:
                 next_entry = convo_entries[index + 1]
                 if next_entry.connection_degree != "You":
                     # Prospect responded, this bump was successful
-                    bump: BumpFramework = BumpFramework.query.get(entry.bump_framework_id)
+                    bump: BumpFramework = BumpFramework.query.get(
+                        entry.bump_framework_id
+                    )
                     bump.etl_num_times_converted = bump.etl_num_times_converted or 0
                     bump.etl_num_times_converted += 1
         entry.bump_analytics_processed = True
