@@ -1780,6 +1780,7 @@ def process_generated_msg_queue(
         if msg_queue.bump_framework_id:
             bf: BumpFramework = BumpFramework.query.get(msg_queue.bump_framework_id)
             if bf:
+                bf.etl_num_times_used = bf.etl_num_times_used or 0
                 bf.etl_num_times_used += 1
 
         db.session.add(li_convo_msg)
