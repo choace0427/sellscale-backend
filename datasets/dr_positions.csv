@@ -1,21 +1,21 @@
 "doctor", recruiter
 "physician", liaison
 "dentist", recruitment
-"optometrist"
-"veterinarian"
-"vet"
-"pharmacist"
-"psychologist"
-"chiropractor"
-"chiro"
-"ob"
-"ob-gyn"
-"obgyn"
-"obstetrician"
-"gynecologist"
-"surgeon"
-"neurosurgeon"
-"ophthalmologist"
+"optometrist", &
+"veterinarian", practice
+"vet", practices
+"pharmacist", recruiting
+"psychologist", services
+"chiropractor", relations
+"chiro", +
+"ob", acquisition
+"ob-gyn", recruiter/sourcing
+"obgyn", liaison/recruiter
+"obstetrician", and
+"gynecologist", network
+"surgeon", developer
+"neurosurgeon", sourcing
+"ophthalmologist", sourcer
 "otolaryngologist"
 "pediatrician"
 "oncologist"
