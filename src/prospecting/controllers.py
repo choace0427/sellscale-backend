@@ -1,6 +1,6 @@
 from typing import List
 
-from src.prospecting.services import get_prospect_li_history
+from src.prospecting.services import get_prospect_li_history, patch_prospect
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
 from src.prospecting.nylas.services import (
@@ -252,6 +252,46 @@ def update_status(client_sdr_id: int, prospect_id: int):
             )
         else:
             return jsonify({"message": "Failed to update: " + success[1]}), 400
+
+
+@PROSPECTING_BLUEPRINT.route("/<int:prospect_id>/entity", methods=["PATCH"])
+@require_user
+def patch_prospect_endpoint(client_sdr_id: int, prospect_id: int):
+    """Patches a prospect"""
+    title = get_request_parameter(
+        "title", request, json=True, required=False, parameter_type=str
+    )
+    email = get_request_parameter(
+        "email", request, json=True, required=False, parameter_type=str
+    )
+    linkedin_url = get_request_parameter(
+        "linkedin_url", request, json=True, required=False, parameter_type=str
+    )
+    company_name = get_request_parameter(
+        "company_name", request, json=True, required=False, parameter_type=str
+    )
+    company_website = get_request_parameter(
+        "company_website", request, json=True, required=False, parameter_type=str
+    )
+
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return jsonify({"status": "error", "message": "Prospect not found"}), 404
+    if p.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Not authorized"}), 401
+
+    success = patch_prospect(
+        prospect_id=prospect_id,
+        title=title,
+        email=email,
+        linkedin_url=linkedin_url,
+        company_name=company_name,
+        company_website=company_website,
+    )
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to update prospect"}), 400
+
+    return jsonify({"status": "success", "data": None}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/get_valid_next_statuses", methods=["GET"])
@@ -1019,7 +1059,7 @@ def get_li_history(client_sdr_id: int, prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 404
-    
+
     history = get_prospect_li_history(prospect_id=prospect_id)
 
     return jsonify({"message": "Success", "data": history}), 200
@@ -1037,7 +1077,7 @@ def post_update_prospect(client_sdr_id: int, prospect_id: int):
   prospect: Prospect = Prospect.query.get(prospect_id)
   if not prospect or prospect.client_sdr_id != client_sdr_id:
       return jsonify({"message": "Prospect not found"}), 404
-  
+
   prospect.email = email
   db.session.commit()
 
@@ -1054,7 +1094,7 @@ def post_send_outreach_connection(client_sdr_id: int, prospect_id: int):
   prospect: Prospect = Prospect.query.get(prospect_id)
   if not prospect or prospect.client_sdr_id != client_sdr_id:
       return jsonify({"message": "Prospect not found"}), 404
-  
+
   success = send_li_outreach_connection(prospect_id, message)
 
   return jsonify({"message": "Success"}), 200
@@ -1072,7 +1112,7 @@ def post_prospect_add_referral(client_sdr_id: int, prospect_id: int):
   referred: Prospect = Prospect.query.get(referred_id)
   if not prospect or prospect.client_sdr_id != client_sdr_id or not referred or referred.client_sdr_id != client_sdr_id:
       return jsonify({"message": "Prospect or referred prospect not found"}), 404
-  
+
   success = add_prospect_referral(prospect_id, referred_id)# , meta_data)
 
   return jsonify({"message": "Success"}), 200
