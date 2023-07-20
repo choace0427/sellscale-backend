@@ -306,7 +306,7 @@ def get_bump_framework(client_sdr_id: int, bump_id: int):
     elif bump_framework.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "This bump framework does not belong to you."}), 401
 
-    return jsonify(bump_framework.to_dict()), 200
+    return jsonify({"status": "success", "data": {"bump_framework": bump_framework.to_dict()}}), 200
 
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump/deactivate", methods=["POST"])
