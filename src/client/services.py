@@ -43,7 +43,7 @@ from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
 from model_import import StackRankedMessageGenerationConfiguration
 from typing import List, Optional
 from src.ml.fine_tuned_models import get_latest_custom_model
-from src.utils.slack import send_slack_message
+from src.utils.slack import URL_MAP, send_slack_message
 import os
 import requests
 from sqlalchemy import func, case, distinct
@@ -1954,6 +1954,112 @@ def get_all_demo_feedback(client_sdr_id: int):
     ).all()
 
     return demo_feedback
+
+
+def scrape_for_demos() -> int:
+    """Recurring job which will scrape for Prospects that have a demo_date set but no demo feedback
+
+    Returns:
+        int: Number of demos scraped
+    """
+    # Initialize missing count
+    missing_count = 0
+
+    # If it is currently the weekend, return
+    if datetime.now().weekday() >= 5:
+        return missing_count
+
+    # Get all prospects that have a demo_date set (in the past) but no demo feedback
+    prospects = (
+        db.session.query(
+            Prospect.id.label("prospect_id")
+        )
+        .outerjoin(DemoFeedback, Prospect.id == DemoFeedback.prospect_id)
+        .filter(
+            DemoFeedback.prospect_id == None,
+            Prospect.demo_date != None,
+            Prospect.demo_date < datetime.now(),
+        )
+    ).all()
+
+    if len(prospects) == 0:
+        send_slack_message(
+            message="🎉 No missing feedback, yay!",
+            webhook_urls=[URL_MAP["csm-demo-date"]],
+        )
+        return missing_count
+
+    # Send message to Slack
+    for prospect in prospects:
+        prospect_id = prospect.prospect_id
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect:
+            continue
+        sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        if not sdr:
+            continue
+        client: Client = Client.query.get(sdr.client_id)
+        if not client:
+            continue
+
+        missing_count += 1
+
+        direct_link =  "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+            auth_token=sdr.auth_token,
+            prospect_id=prospect_id,
+        )
+
+        # Send message to Slack
+        send_slack_message(
+            message="📅 {sdr_name} - Demo feedback missing".format(sdr_name=sdr.name),
+            webhook_urls=[URL_MAP["csm-demo-date"]],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "📅 {sdr_name} - Demo feedback missing".format(sdr_name=sdr.name),
+                        "emoji": True
+                    }
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "Rep: *{sdr_name}*, *{client_name}*".format(sdr_name=sdr.name, client_name=client.company)
+                        },
+                    ],
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "Prospect: *{prospect_name}*, *{prospect_company}*".format(prospect_name=prospect.full_name, prospect_company=prospect.company),
+                        },
+                    ]
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "Scheduled demo date: *{demo_date}*".format(demo_date=prospect.demo_date.strftime("%b %d, %Y")),
+                        },
+                    ]
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Collect feedback through #sdr-concierge or reschedule.\n<{direct_link}|Click here to go to the prospect's page>".format(direct_link=direct_link),
+                    }
+                }
+            ]
+        )
+
+    return missing_count
 
 
 def list_prospects_caught_by_client_filters(client_sdr_id: int):
