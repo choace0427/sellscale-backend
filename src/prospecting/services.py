@@ -237,6 +237,7 @@ def get_prospects(
 
     return {"total_count": total_count, "prospects": prospects}
 
+
 def patch_prospect(
     prospect_id: int,
     title: Optional[str] = None,
@@ -245,7 +246,7 @@ def patch_prospect(
     company_name: Optional[str] = None,
     company_website: Optional[str] = None,
 ) -> bool:
-    """ Modifies fields of a prospect
+    """Modifies fields of a prospect
 
     Args:
         prospect_id (int): ID of the prospect to modify
@@ -1744,8 +1745,16 @@ def send_li_outreach_connection(prospect_id: int, message: str):
         message_status=GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
         message_type=GeneratedMessageType.LINKEDIN,
         few_shot_prompt="",
+        priority_rating=10,
     )
     db.session.add(outreach_msg)
+    db.session.commit()
+    generated_message_id = outreach_msg.id
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.status = ProspectStatus.QUEUED_FOR_OUTREACH
+    prospect.approved_outreach_message_id = generated_message_id
+    db.session.add(prospect)
     db.session.commit()
 
     return True
