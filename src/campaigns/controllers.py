@@ -188,6 +188,12 @@ def get_all_campaigns(client_sdr_id: int):
             )
             or []
         )
+        archetype_id = (
+            get_request_parameter(
+                "archetype_id", request, json=True, required=False, parameter_type=int
+            )
+            or None
+        )
         include_analytics = (
             get_request_parameter(
                 "include_analytics",
@@ -209,6 +215,7 @@ def get_all_campaigns(client_sdr_id: int):
 
     outbound_campaigns_info: dict[int, list[OutboundCampaign]] = get_outbound_campaigns(
         client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
         query=query,
         campaign_start_date=campaign_start_date,
         campaign_end_date=campaign_end_date,

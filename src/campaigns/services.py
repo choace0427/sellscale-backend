@@ -366,6 +366,7 @@ def get_outbound_campaigns(
     limit: Optional[int] = 10,
     offset: Optional[int] = 0,
     filters: Optional[list[dict[str, int]]] = [],
+    archetype_id: Optional[int] = None,
 ) -> dict[int, list[OutboundCampaign]]:
     """Gets outbound campaigns belonging to the SDR, with optional query and filters.
 
@@ -373,6 +374,7 @@ def get_outbound_campaigns(
 
     Args:
         client_sdr_id: The ID of the SDR.
+        archetype_id: The ID of the archetype to get campaigns for.
         query: The query to search for. Can search for name only.
         campaign_start: The start date of the campaign to search for.
         campaign_end: The end date of the campaign to search for.
@@ -462,6 +464,9 @@ def get_outbound_campaigns(
         .filter(
             OutboundCampaign.client_sdr_id == client_sdr_id,
             OutboundCampaign.name.ilike(f"%{query}%"),
+        )
+        .filter(
+            (OutboundCampaign.client_archetype_id == archetype_id) if archetype_id else True
         )
         .order_by(ordering[0])
         .order_by(ordering[1])
