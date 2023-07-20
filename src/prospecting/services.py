@@ -270,6 +270,7 @@ def patch_prospect(
         p.email = email
     if linkedin_url:
         p.linkedin_url = linkedin_url
+    db.session.commit()
 
     if company_name:
         p.company = company_name
@@ -279,7 +280,6 @@ def patch_prospect(
         find_company_for_prospect(p.id)
 
     db.session.commit()
-
     return True
 
 
