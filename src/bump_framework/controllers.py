@@ -296,6 +296,19 @@ def patch_bump_framework(client_sdr_id: int):
     return jsonify({"status": "success", "data": {}}), 200 if modified else 400
 
 
+@BUMP_FRAMEWORK_BLUEPRINT.route("/bump/<int:bump_id>", methods=["GET"])
+@require_user
+def get_bump_framework(client_sdr_id: int, bump_id: int):
+    """Gets a bump framework"""
+    bump_framework: BumpFramework = BumpFramework.query.get(bump_id)
+    if not bump_framework:
+        return jsonify({"status": "error", "message": "Bump framework not found."}), 404
+    elif bump_framework.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "This bump framework does not belong to you."}), 401
+
+    return jsonify(bump_framework.to_dict()), 200
+
+
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump/deactivate", methods=["POST"])
 @require_user
 def post_deactivate_bump_framework(client_sdr_id: int):
