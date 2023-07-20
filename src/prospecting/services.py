@@ -278,6 +278,8 @@ def patch_prospect(
         p.company_url = company_website
         find_company_for_prospect(p.id)
 
+    db.session.commit()
+
     return True
 
 
