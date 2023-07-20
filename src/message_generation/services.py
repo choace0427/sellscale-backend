@@ -108,7 +108,7 @@ def get_messages_queued_for_outreach(
             ClientArchetype,
             ClientArchetype.id == Prospect.archetype_id,
         )
-        .join(
+        .outerjoin(
             OutboundCampaign,
             OutboundCampaign.id == GeneratedMessage.outbound_campaign_id,
         )
