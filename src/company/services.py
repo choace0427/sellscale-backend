@@ -187,6 +187,9 @@ def find_company_for_prospect(prospect_id: int) -> Company:
 
     if company:
         prospect.company_id = company.id
+        prospect.company = company.name
+        prospect.company_url = company.websites[0]
+        prospect.employee_count = company.employees
         db.session.commit()
         return company
     else:

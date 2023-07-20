@@ -237,6 +237,48 @@ def get_prospects(
 
     return {"total_count": total_count, "prospects": prospects}
 
+def patch_prospect(
+    prospect_id: int,
+    title: Optional[str] = None,
+    email: Optional[str] = None,
+    linkedin_url: Optional[str] = None,
+    company_name: Optional[str] = None,
+    company_website: Optional[str] = None,
+) -> bool:
+    """ Modifies fields of a prospect
+
+    Args:
+        prospect_id (int): ID of the prospect to modify
+        title (Optional[str], optional): The prospect's title (role). Defaults to None.
+        email (Optional[str], optional): The prospect's email. Defaults to None.
+        linkedin_url (Optional[str], optional): The prospect's LinkedIn URL. Defaults to None.
+        company_name (Optional[str], optional): The prospect's current company name. Defaults to None.
+        company_website (Optional[str], optional): The website of the prospect's current company. Defaults to None.
+
+    Returns:
+        bool: True if the prospect was modified, False otherwise
+    """
+
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return False
+
+    if title:
+        p.title = title
+    if email:
+        p.email = email
+    if linkedin_url:
+        p.linkedin_url = linkedin_url
+
+    if company_name:
+        p.company = company_name
+        find_company_for_prospect(p.id)
+    if company_website:
+        p.company_url = company_website
+        find_company_for_prospect(p.id)
+
+    return True
+
 
 def prospect_exists_for_client(full_name: str, client_id: int):
     from src.prospecting.models import Prospect
