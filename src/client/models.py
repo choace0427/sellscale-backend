@@ -320,6 +320,7 @@ class ClientSDR(db.Model):
             "weekly_li_outbound_target": self.weekly_li_outbound_target,
             "weekly_email_outbound_target": self.weekly_email_outbound_target,
             "scheduling_link": self.scheduling_link,
+            "pipeline_notifications_webhook_url": self.pipeline_notifications_webhook_url,
             "last_li_conversation_scrape_date": self.last_li_conversation_scrape_date,
             "li_connected": self.li_at_token is not None,
             "li_voyager_connected": self.li_cookies is not None

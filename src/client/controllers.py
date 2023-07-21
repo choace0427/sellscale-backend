@@ -581,6 +581,21 @@ def patch_update_pipeline_client_sdr_webhook():
     return "OK", 200
 
 
+@CLIENT_BLUEPRINT.route("/sdr/webhook", methods=["PATCH"])
+@require_user
+def patch_client_sdr_webhook(client_sdr_id):
+    """Update the Client SDR Webhook"""
+    webhook = get_request_parameter("webhook", request, json=True, required=True)
+
+    success = update_client_sdr_pipeline_notification_webhook(
+        client_sdr_id=client_sdr_id, webhook=webhook
+    )
+
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to update webhook"}), 404
+    return jsonify({"status": "success", "message": "Webhook updated"}), 200
+
+
 @CLIENT_BLUEPRINT.route("/test_sdr_webhook", methods=["POST"])
 def post_test_sdr_webhook():
     """Sends a test message through the Client SDR Webhook
