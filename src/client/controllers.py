@@ -338,16 +338,6 @@ def create_sdr():
     return resp
 
 
-@CLIENT_BLUEPRINT.route("/sdr", methods=["GET"])
-@require_user
-def get_sdr(client_sdr_id: int):
-    """Gets the client SDR"""
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    sdr_dict = client_sdr.to_dict()
-
-    return jsonify({"message": "Success", "data": {"sdr": sdr_dict}}), 200
-
-
 @CLIENT_BLUEPRINT.route("/sdr/deactivate", methods=["POST"])
 def deactivate_sdr_endpoint():
     client_sdr_id = get_request_parameter(
