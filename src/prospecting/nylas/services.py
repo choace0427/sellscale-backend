@@ -441,6 +441,20 @@ def nylas_update_messages(
             )
             db.session.add(new_message)
 
+            # Increment unread messages
+            prospect.email_unread_messages = prospect.email_unread_messages + 1 if prospect.email_unread_messages else 1
+
+    db.session.commit()
+
+    # Get the latest message and update the prospect accordingly
+    latest_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
+        prospect_id=prospect_id
+    ).order_by(EmailConversationMessage.date_received.desc()).first()
+    prospect.email_last_message_timestamp = latest_message.date_received
+    prospect.email_is_last_message_from_sdr = latest_message.from_sdr
+    prospect.email_last_message_from_prospect = None if latest_message.from_sdr else latest_message.body
+    prospect.email_last_message_from_sdr = latest_message.body if latest_message.from_sdr else None
+
     db.session.commit()
 
     return True

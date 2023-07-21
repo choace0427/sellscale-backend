@@ -412,6 +412,12 @@ class Prospect(db.Model):
     li_last_message_from_sdr = db.Column(db.String, nullable=True)
     li_unread_messages = db.Column(db.Integer, nullable=True)
 
+    email_last_message_timestamp = db.Column(db.DateTime, nullable=True)
+    email_is_last_message_from_sdr = db.Column(db.Boolean, nullable=True)
+    email_last_message_from_prospect = db.Column(db.String, nullable=True)
+    email_last_message_from_sdr = db.Column(db.String, nullable=True)
+    email_unread_messages = db.Column(db.Integer, nullable=True)
+
     li_num_followers = db.Column(db.Integer, nullable=True)
     li_should_deep_scrape = db.Column(db.Boolean, nullable=True)
     li_urn_id = db.Column(db.String, nullable=True)
@@ -617,6 +623,11 @@ class Prospect(db.Model):
             else None,
             "demo_date": self.demo_date,
             "email_data": p_email.to_dict() if p_email else {},
+            "email_last_message_timestamp": self.email_last_message_timestamp,
+            "email_is_last_message_from_sdr": self.email_is_last_message_from_sdr,
+            "email_last_message_from_prospect": self.email_last_message_from_prospect,
+            "email_last_message_from_sdr": self.email_last_message_from_sdr,
+            "email_unread_messages": self.email_unread_messages,
         }
 
 
