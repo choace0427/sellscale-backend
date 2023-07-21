@@ -287,7 +287,11 @@ def get_sdr(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     sdr_dict = client_sdr.to_dict()
 
-    return jsonify({"message": "Success", "data": {"sdr": sdr_dict}}), 200
+    if client_sdr:
+        client: Client = Client.query.get(client_sdr.client_id)
+        sdr_dict = sdr_dict | {"client": client.to_dict()}
+
+    return jsonify({"message": "Success", "sdr_info": sdr_dict}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["PATCH"])
@@ -332,6 +336,16 @@ def create_sdr():
         return "Client not found", 404
 
     return resp
+
+
+@CLIENT_BLUEPRINT.route("/sdr", methods=["GET"])
+@require_user
+def get_sdr(client_sdr_id: int):
+    """Gets the client SDR"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    sdr_dict = client_sdr.to_dict()
+
+    return jsonify({"message": "Success", "data": {"sdr": sdr_dict}}), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr/deactivate", methods=["POST"])
