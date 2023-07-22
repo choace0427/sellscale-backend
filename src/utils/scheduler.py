@@ -220,7 +220,7 @@ def run_scrape_for_demos():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        scrape_for_demos
+        scrape_for_demos()
 
     return
 

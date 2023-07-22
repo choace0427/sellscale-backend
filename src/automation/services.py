@@ -514,7 +514,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
             GeneratedMessage.id.label("generated_message_id"),
         )
         .join(GeneratedMessage, Prospect.id == GeneratedMessage.prospect_id)
-        .join(OutboundCampaign, GeneratedMessage.outbound_campaign_id == OutboundCampaign.id)
+        .outerjoin(OutboundCampaign, GeneratedMessage.outbound_campaign_id == OutboundCampaign.id)
         .filter(
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.approved_outreach_message_id != None,
