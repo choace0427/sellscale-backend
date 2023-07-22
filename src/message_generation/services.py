@@ -785,8 +785,11 @@ def is_cta_active(cta_id: int):
             db.session.add(cta)
             db.session.commit()
 
+            archetype: ClientArchetype = ClientArchetype.query.get(cta.archetype_id)
+            sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+
             send_slack_message(
-                message=f"CTA #{cta_id} has expired and is now inactive.",
+                message=f"CTA #{cta_id} has expired and is now inactive.\n*CTA:* {cta.text_value}\n*SDR:* {sdr.name}\n*Archetype:* {archetype.archetype}\n*Expiration Date:* {cta.expiration_date}",
                 webhook_urls=[URL_MAP["csm-notifications-cta-expired"]],
             )
 
