@@ -192,6 +192,10 @@ def collect_and_load_sales_navigator_results(self) -> None:
     This function is triggered by a webhook from PhantomBuster.
     """
     def process_phantom_result_raw(result_raw: list[dict]) -> list[dict]:
+        if type(result_raw) != list:
+            # Most likely the PB Payload is different than expected.
+            jsonUrl = result_raw.get('jsonUrl')
+            result_raw = requests.get(jsonUrl).json()
         result_processed = []
         for raw_dict in result_raw:
             processed_dict: dict = dict(raw_dict)
