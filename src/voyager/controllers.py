@@ -30,28 +30,30 @@ def get_self_profile(client_sdr_id: int):
     profile = api.get_user_profile(use_cache=False)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+    
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     # If the SDR's profile img is expired, update it
-    if profile and time.time() * 1000 > int(api.client_sdr.img_expire):
-        api.client_sdr.img_url = profile.get("miniProfile", {}).get("picture", {}).get(
+    if profile and time.time() * 1000 > int(sdr.img_expire):
+        sdr.img_url = profile.get("miniProfile", {}).get("picture", {}).get(
             "com.linkedin.common.VectorImage", {}
         ).get("rootUrl", "") + profile.get("miniProfile", {}).get("picture", {}).get(
             "com.linkedin.common.VectorImage", {}
         ).get(
-            "artifacts", []
+            "artifacts", [{}, {}, {}]
         )[
             2
         ].get(
             "fileIdentifyingUrlPathSegment", ""
         )
-        api.client_sdr.img_expire = (
+        sdr.img_expire = (
             profile.get("miniProfile", {})
             .get("picture", {})
-            .get("com.linkedin.common.VectorImage", {})
-            .get("artifacts", [])[2]
+            .get("com.linkedin.common.V{ectorImage", {})
+            .get("artifacts", [{}, {}, {}])[2]
             .get("expiresAt", 0)
         )
-        db.session.add(api.client_sdr)
+        db.session.add(sdr)
         db.session.commit()
 
     return jsonify({"message": "Success", "data": profile}), 200

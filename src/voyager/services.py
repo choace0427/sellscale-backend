@@ -192,91 +192,6 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    # If the prospect's profile img is expired, update it
-    # if (
-    #     time.time() * 1000 > int(prospect.img_expire)
-    #     and len(details.get("participants", [])) > 0
-    # ):
-    #     prospect.img_url = details.get("participants", [])[0].get(
-    #         "com.linkedin.voyager.messaging.MessagingMember", {}
-    #     ).get("miniProfile", {}).get("picture", {}).get(
-    #         "com.linkedin.common.VectorImage", {}
-    #     ).get(
-    #         "rootUrl", ""
-    #     ) + details.get(
-    #         "participants", []
-    #     )[
-    #         0
-    #     ].get(
-    #         "com.linkedin.voyager.messaging.MessagingMember", {}
-    #     ).get(
-    #         "miniProfile", {}
-    #     ).get(
-    #         "picture", {}
-    #     ).get(
-    #         "com.linkedin.common.VectorImage", {}
-    #     ).get(
-    #         "artifacts", [{}, {}, {}]
-    #     )[
-    #         2
-    #     ].get(
-    #         "fileIdentifyingUrlPathSegment", ""
-    #     )
-    #     prospect.img_expire = (
-    #         details.get("participants", [])[0]
-    #         .get("com.linkedin.voyager.messaging.MessagingMember", {})
-    #         .get("miniProfile", {})
-    #         .get("picture", {})
-    #         .get("com.linkedin.common.VectorImage", {})
-    #         .get("artifacts", [{}, {}, {}])[2]
-    #         .get("expiresAt", 0)
-    #     )
-    #     db.session.add(prospect)
-    #     db.session.commit()
-
-    # print(details.get("events", [])[0])
-    # # If the SDR's profile img is expired, update it
-    # if time.time() * 1000 > int(api.client_sdr.img_expire):
-    #     api.client_sdr.img_url = details.get("events", [])[0].get("from", {}).get(
-    #         "com.linkedin.voyager.messaging.MessagingMember", {}
-    #     ).get("miniProfile", {}).get("picture", {}).get(
-    #         "com.linkedin.common.VectorImage", {}
-    #     ).get(
-    #         "rootUrl", ""
-    #     ) + details.get(
-    #         "events", []
-    #     )[
-    #         0
-    #     ].get(
-    #         "from", {}
-    #     ).get(
-    #         "com.linkedin.voyager.messaging.MessagingMember", {}
-    #     ).get(
-    #         "miniProfile", {}
-    #     ).get(
-    #         "picture", {}
-    #     ).get(
-    #         "com.linkedin.common.VectorImage", {}
-    #     ).get(
-    #         "artifacts", []
-    #     )[
-    #         2
-    #     ].get(
-    #         "fileIdentifyingUrlPathSegment", ""
-    #     )
-    #     api.client_sdr.img_expire = (
-    #         details.get("events", [])[0]
-    #         .get("from", {})
-    #         .get("com.linkedin.voyager.messaging.MessagingMember", {})
-    #         .get("miniProfile", {})
-    #         .get("picture", {})
-    #         .get("com.linkedin.common.VectorImage", {})
-    #         .get("artifacts", [])[2]
-    #         .get("expiresAt", 0)
-    #     )
-    #     db.session.add(api.client_sdr)
-    #     db.session.commit()
-
     # If li_conversation_thread_id not set, might as well save it now
     if not prospect.li_conversation_thread_id:
         prospect.li_conversation_thread_id = (
@@ -318,6 +233,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     convo = api.get_conversation(convo_urn_id, limit=60)
+    update_profile_picture(api.client_sdr_id, prospect_id, convo)
 
     if not convo or len(convo) == 0:
 
@@ -866,3 +782,72 @@ def fetch_li_prospects_for_sdr(client_sdr_id: int):
         # convos, status_text = fetch_conversation(api, prospect_id)
         # print(f"Fetched {len(convos)}, returned status: {status_text}")
         # time.sleep(random.uniform(1, 3))
+
+
+def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
+    
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    if len(convo) == 0: return
+    if time.time() * 1000 <= int(prospect.img_expire) and time.time() * 1000 <= int(sdr.img_expire): return
+
+    sdr_updated = False
+    prospect_updated = False
+    for message in tqdm(convo):
+
+        urn_id = (
+            message.get("from", {})
+            .get("com.linkedin.voyager.messaging.MessagingMember", {})
+            .get("miniProfile", {})
+            .get("entityUrn", "")
+            .replace("urn:li:fs_miniProfile:", "")
+        )
+
+        image_url = message.get("from", {}).get(
+            "com.linkedin.voyager.messaging.MessagingMember", {}
+        ).get("miniProfile", {}).get("picture", {}).get(
+            "com.linkedin.common.VectorImage", {}
+        ).get(
+            "rootUrl", ""
+        ) + message.get(
+            "from", {}
+        ).get(
+            "com.linkedin.voyager.messaging.MessagingMember", {}
+        ).get(
+            "miniProfile", {}
+        ).get(
+            "picture", {}
+        ).get(
+            "com.linkedin.common.VectorImage", {}
+        ).get(
+            "artifacts", [{}, {}, {}]
+        )[
+            2
+        ].get(
+            "fileIdentifyingUrlPathSegment", ""
+        )
+        image_expire = (
+            message.get("from", {})
+            .get("com.linkedin.voyager.messaging.MessagingMember", {})
+            .get("miniProfile", {})
+            .get("picture", {})
+            .get("com.linkedin.common.VectorImage", {})
+            .get("artifacts", [{}, {}, {}])[2]
+            .get("expiresAt", 0)
+        )
+
+        if prospect.li_urn_id == urn_id:
+            prospect.img_url = image_url
+            prospect.img_expire = image_expire
+            db.session.add(prospect)
+            db.session.commit()
+            prospect_updated = True
+        else:
+            sdr.img_url = image_url
+            sdr.img_expire = image_expire
+            db.session.add(sdr)
+            db.session.commit()
+            sdr_updated = True
+        
+        if sdr_updated and prospect_updated: return
