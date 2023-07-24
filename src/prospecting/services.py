@@ -1732,12 +1732,18 @@ def get_prospect_li_history(prospect_id: int):
     }
 
 
-def send_li_outreach_connection(prospect_id: int, message: str):
-    """
-    Sends a LinkedIn outreach connection message to a prospect. This is very async, it will happen eventually
+def send_li_outreach_connection(prospect_id: int, message: str) -> bool:
+    """ Sends a LinkedIn outreach connection message to a prospect. This is very async, it will happen eventually
     based on our PhantomBuster schedule.
-    """
 
+    Args:
+        prospect_id: The ID of the Prospect to send the message to.
+        message: The message to send to the Prospect.
+
+    Returns:
+        True if the message was successfully queued, False otherwise.
+    """
+    # Create a new GeneratedMessage
     outreach_msg = GeneratedMessage(
         prospect_id=prospect_id,
         outbound_campaign_id=None,
@@ -1753,17 +1759,95 @@ def send_li_outreach_connection(prospect_id: int, message: str):
     db.session.commit()
     generated_message_id = outreach_msg.id
 
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    prospect.status = ProspectStatus.QUEUED_FOR_OUTREACH
-    prospect.approved_outreach_message_id = generated_message_id
-    db.session.add(prospect)
+    # Attach the GeneratedMessage to the Referred Prospect
+    prospect_referred: Prospect = Prospect.query.get(prospect_id)
+    prospect_referred.status = ProspectStatus.QUEUED_FOR_OUTREACH
+    prospect_referred.approved_outreach_message_id = generated_message_id
+    db.session.add(prospect_referred)
     db.session.commit()
+
+    # Grab the ProspectReferral record in order to get the referring prospect
+    referral_record: ProspectReferral = ProspectReferral.query.filter(
+        ProspectReferral.referred_id == prospect_id
+    ).first()
+    if not referral_record:
+        raise Exception("No referral record found for prospect_id: {}".format(prospect_id))
+    prospect_referring: Prospect = Prospect.query.get(referral_record.referral_id)
+
+    # Grab the ClientSDR and the Archetype
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect_referring.client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect_referring.archetype_id)
+
+    # Send a Slack message notifying that a message has been queued for outreach for the referred prospect
+    gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
+    message_to_referred = gm.completion
+    send_slack_message(
+        message=f"SellScale just multi-threaded",
+        webhook_urls=[URL_MAP["company-pipeline"]],
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "🧵 SellScale just multi-threaded",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "SellScale is reaching out to *{referred_name} ({referred_company})* through a referral from *{referral_name} ({referral_company})* on behalf of *{sdr_name}* for *{archetype_name}*".format(
+                            referral_name = prospect_referring.full_name,
+                            referral_company = prospect_referring.company,
+                            referred_name = prospect_referred.full_name,
+                            referred_company = prospect_referred.company,
+                            sdr_name = client_sdr.name,
+                            archetype_name = archetype.archetype,
+                        ),
+                    }
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*😴 Original Contact*: {referral_name} ({referral_company})\n*Message from Contact*: ```{referral_message}```".format(
+                        referral_name = prospect_referring.full_name,
+                        referral_company = prospect_referring.company,
+                        referral_message = prospect_referring.li_last_message_from_prospect
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*🆕 New Contact*: {referred_name} ({referred_company})\n*Outreach to new contact*: ```{referred_message}```".format(
+                        referred_name = prospect_referred.full_name,
+                        referred_company = prospect_referred.company,
+                        referred_message = message_to_referred
+                    ),
+                },
+            },
+        ]
+    )
 
     return True
 
 
-def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None):
+def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None) -> bool:
+    """ Adds a ProspectReferral record to the database
 
+    Args:
+        referral_id (int): The ID of the Prospect who referred the other Prospect
+        referred_id (int): The ID of the Prospect who was referred
+        meta_data (dict, optional): Any additional metadata to store with the ProspectReferral record. Defaults to None.
+
+    Returns:
+        bool: True if the ProspectReferral record was successfully added to the database, False otherwise
+    """
     referral = ProspectReferral(
         referral_id=referral_id, referred_id=referred_id, meta_data=meta_data
     )
@@ -1772,9 +1856,17 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None):
 
     prospect_referral: Prospect = Prospect.query.get(referral_id)
     prospect_referred: Prospect = Prospect.query.get(referred_id)
+    if not prospect_referral or not prospect_referred:
+        return False
+
+    # Get ClientSDR and ClientArchetype
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect_referral.client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect_referral.archetype_id)
+
+    # Send a Slack message notifying that a Prospect was referred
     send_slack_message(
-        message=f"SellScale just multi-threaded 🪡🧵\n*Original contact:* {prospect_referral.full_name} (#{prospect_referral.id})\n*Message:* {prospect_referral.li_last_message_from_prospect}\n*SellScale sent outreach to a new person:* {prospect_referred.full_name} (#{prospect_referred.id})",
-        webhook_urls=[URL_MAP["company-pipeline"]],
+        message=f"SellScale just multithreaded to *{prospect_referred.full_name} ({prospect_referred.company})* from *{prospect_referral.full_name} ({prospect_referral.company})* on behalf of *{client_sdr.name}* for *{archetype.archetype}*",
+        webhook_urls=[URL_MAP["company-pipeline"]]
     )
 
     return True
