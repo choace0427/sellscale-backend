@@ -100,6 +100,12 @@ class LinkedinConversationEntry(db.Model):
             "bump_framework_length": self.bump_framework_length,
             "account_research_points": self.account_research_points,
             "bump_analytics_processed": self.bump_analytics_processed,
+            "initial_message_id": self.initial_message_id,
+            "initial_message_cta_id": self.initial_message_cta_id,
+            "initial_message_cta_text": self.initial_message_cta_text,
+            "initial_message_research_points": self.initial_message_research_points,
+            "initial_message_stack_ranked_config_id": self.initial_message_stack_ranked_config_id,
+            "initial_message_stack_ranked_config_name": self.initial_message_stack_ranked_config_name,
         }
 
 
