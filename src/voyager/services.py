@@ -172,6 +172,13 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
             .all()
         ]
 
+    if not check_for_update:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if prospect.li_conversation_urn_id:
+            update_prospect_status(prospect_id=prospect_id, convo_urn_id=prospect.li_conversation_urn_id)
+            return get_convo_entries(prospect.li_conversation_urn_id), "NO_UPDATE"
+
+
     prospect_urn_id = get_profile_urn_id(prospect_id, api)
 
     # Check if we need to update the conversation
@@ -193,15 +200,16 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     # If li_conversation_thread_id not set, might as well save it now
-    if not prospect.li_conversation_thread_id:
+    if not prospect.li_conversation_thread_id or not prospect.li_conversation_urn_id:
         prospect.li_conversation_thread_id = (
             f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
         )
+        prospect.li_conversation_urn_id = convo_urn_id
         db.session.add(prospect)
         db.session.commit()
 
     # If not, we return the conversation from the database
-    if convo_entry or not check_for_update:
+    if convo_entry:
         update_prospect_status(prospect_id=prospect_id, convo_urn_id=convo_urn_id)
         return get_convo_entries(convo_urn_id), "NO_UPDATE"
     else:
