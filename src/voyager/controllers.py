@@ -224,10 +224,10 @@ def get_conversation(client_sdr_id: int):
     """Gets a conversation with a prospect"""
 
     prospect_id = get_request_parameter(
-        "prospect_id", request, json=False, required=True
+        "prospect_id", request, json=False, required=True, parameter_type=int
     )
     check_for_update = get_request_parameter(
-        "check_for_update", request, json=False, required=False
+        "check_for_update", request, json=False, required=False, parameter_type=bool
     )
 
     if check_for_update is None:
