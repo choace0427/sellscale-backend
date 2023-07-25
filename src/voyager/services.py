@@ -153,7 +153,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     """Gets the latest conversation with a prospect, syncing the db as needed
 
     Args:
-        api (LinkedIN): instance of LinkedIn class
+        api (LinkedIn | None): instance of LinkedIn class
         prospect_id (int): ID of the prospect
         check_for_update (bool): Optional - Whether to check for new messages from LinkedIn
 
@@ -175,7 +175,8 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     if not check_for_update:
         prospect: Prospect = Prospect.query.get(prospect_id)
         if prospect.li_conversation_urn_id:
-            update_prospect_status(prospect_id=prospect_id, convo_urn_id=prospect.li_conversation_urn_id)
+            print('got here')
+            #update_prospect_status(prospect_id=prospect_id, convo_urn_id=prospect.li_conversation_urn_id)
             return get_convo_entries(prospect.li_conversation_urn_id), "NO_UPDATE"
 
 

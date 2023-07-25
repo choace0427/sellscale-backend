@@ -235,9 +235,9 @@ def get_conversation(client_sdr_id: int):
     else:
         check_for_update = bool(check_for_update)
 
-    api = LinkedIn(client_sdr_id)
+    api = LinkedIn(client_sdr_id) if check_for_update else None
     convo, status_text = fetch_conversation(api, prospect_id, check_for_update)
-    if not api.is_valid():
+    if api and not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     prospect: Prospect = Prospect.query.get(prospect_id)
