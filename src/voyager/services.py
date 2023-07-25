@@ -175,7 +175,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
     if not check_for_update:
         prospect: Prospect = Prospect.query.get(prospect_id)
         if prospect.li_conversation_urn_id:
-            update_prospect_status(prospect_id=prospect_id, convo_urn_id=prospect.li_conversation_urn_id)
+            #update_prospect_status(prospect_id=prospect_id, convo_urn_id=prospect.li_conversation_urn_id)
             return get_convo_entries(prospect.li_conversation_urn_id), "NO_UPDATE"
 
 
