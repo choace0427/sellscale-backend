@@ -1,7 +1,7 @@
 from typing import List, Union, Optional
 from src.client.models import ClientArchetype
 from src.li_conversation.autobump_helpers.services_firewall import run_autobump_firewall
-from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
+from src.message_generation.models import GeneratedMessage, GeneratedMessageAutoBump, GeneratedMessageCTA, SendStatus, StackRankedMessageGenerationConfiguration
 from src.prospecting.models import (
     ProspectHiddenReason,
     ProspectOverallStatus,
@@ -11,6 +11,7 @@ from src.prospecting.models import (
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpLength
 from src.prospecting.services import send_to_purgatory
+from src.research.models import ResearchPoints
 from src.utils.datetime.dateparse_utils import get_working_hours_in_utc, is_weekend
 from src.utils.slack import exception_to_str
 
@@ -99,6 +100,75 @@ def check_for_duplicate_linkedin_conversation_entry(
             LinkedinConversationEntry.author == author,
             LinkedinConversationEntry.message == message,
         ).first()
+
+
+# DELETE ME
+# def backfill_gen_message_data():
+#     from tqdm import tqdm
+#     # Get all active SDRs
+#     sdrs: list[ClientSDR] = ClientSDR.query.filter(ClientSDR.active == True).all()
+
+#     # Get Aakash's SDR
+#     # sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == 1).first()
+#     # sdrs: list[ClientSDR] = [sdr]
+
+#     # For each SDR
+#     for sdr in sdrs:
+#         # Get prospects that are in a status that is not prospected
+#         joined_query = (
+#             db.session.query(
+#                 Prospect.id.label("prospect_id"),
+#                 LinkedinConversationEntry.id.label("linkedin_convo_entry_id"),
+#                 LinkedinConversationEntry.message.label("linkedin_convo_entry_message"),
+#                 GeneratedMessage.id.label("gen_message_id"),
+#                 GeneratedMessage.completion.label("gen_message_completion"),
+#             )
+#             .join(
+#                 LinkedinConversationEntry,
+#                 Prospect.li_conversation_urn_id == LinkedinConversationEntry.thread_urn_id,
+#             )
+#             .join(
+#                 GeneratedMessage,
+#                 (GeneratedMessage.prospect_id == Prospect.id) &
+#                 (func.length(LinkedinConversationEntry.message) > 20) &
+#                 (GeneratedMessage.completion.startswith(func.substr(LinkedinConversationEntry.message, 1, func.length(LinkedinConversationEntry.message) - 1)))
+#             )
+#             .filter(
+#                 Prospect.client_sdr_id == sdr.id,
+#                 Prospect.approved_outreach_message_id.isnot(None),
+#                 LinkedinConversationEntry.initial_message_id == None
+#             ).all()
+#         )
+#         # For every entry in the joined query, update the LI Convo Entry
+#         for query in tqdm(joined_query):
+#             prospect_id = query.prospect_id
+#             linkedin_convo_entry_id = query.linkedin_convo_entry_id
+#             linkedin_convo_entry_message = query.linkedin_convo_entry_message
+#             gen_message_id = query.gen_message_id
+#             gen_message_completion = query.gen_message_completion
+
+#             gm: GeneratedMessage = GeneratedMessage.query.get(gen_message_id)
+#             cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(gm.message_cta)
+#             research_points: list[ResearchPoints] = ResearchPoints.query.filter(
+#                 ResearchPoints.id.in_(gm.research_points)
+#             ).all()
+#             research_points = [rp.value for rp in research_points]
+#             sr_config: StackRankedMessageGenerationConfiguration = StackRankedMessageGenerationConfiguration.query.get(
+#                 gm.stack_ranked_message_generation_configuration_id
+#             )
+
+#             # Update the LI Convo Entry
+#             li_convo_entry: LinkedinConversationEntry = LinkedinConversationEntry.query.get(
+#                 linkedin_convo_entry_id
+#             )
+#             li_convo_entry.initial_message_id = gen_message_id
+#             li_convo_entry.initial_message_cta_id = gm.message_cta
+#             li_convo_entry.initial_message_cta_text = cta.text_value if cta else None
+#             li_convo_entry.initial_message_research_points = research_points
+#             li_convo_entry.initial_message_stack_ranked_config_id = gm.stack_ranked_message_generation_configuration_id
+#             li_convo_entry.initial_message_stack_ranked_config_name = sr_config.name if sr_config else None
+
+#             db.session.commit()
 
 
 def create_linkedin_conversation_entry(
@@ -200,6 +270,27 @@ def create_linkedin_conversation_entry(
             thread_urn_id=thread_urn_id,
             urn_id=urn_id,
         )
+
+        # Check if this conversation entry is a generated initial message
+        initial_message: GeneratedMessage = GeneratedMessage.query.filter(
+            GeneratedMessage.completion.startswith(func.substr(message, 1, func.length(message) - 1)),
+            GeneratedMessage.prospect_id == prospect_id,
+        ).first()
+        if initial_message:
+            message_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(initial_message.message_cta)
+            research_points: list[ResearchPoints] = ResearchPoints.query.filter(
+                ResearchPoints.id.in_(initial_message.research_points)
+            ).all()
+            stack_ranked_config: StackRankedMessageGenerationConfiguration = StackRankedMessageGenerationConfiguration.query.get(
+                initial_message.stack_ranked_message_generation_configuration_id
+            )
+            research_points = [rp.value for rp in research_points]
+            new_linkedin_conversation_entry.initial_message_id = initial_message.id
+            new_linkedin_conversation_entry.initial_message_cta_id = initial_message.message_cta
+            new_linkedin_conversation_entry.initial_message_cta_text = message_cta.text_value if message_cta else ""
+            new_linkedin_conversation_entry.initial_message_research_points = research_points
+            new_linkedin_conversation_entry.initial_message_stack_ranked_config_id = initial_message.stack_ranked_message_generation_configuration_id
+            new_linkedin_conversation_entry.initial_message_stack_ranked_config_name = stack_ranked_config.name if stack_ranked_config else ""
 
         # A new message is being recorded, increase unread message count
         if prospect_id != -1:

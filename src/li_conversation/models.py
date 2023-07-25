@@ -38,11 +38,21 @@ class LinkedinConversationEntry(db.Model):
     urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
     ai_generated = db.Column(db.Boolean, nullable=True) # is at least partially AI generated
+
+    # Relevant for bumps
     bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"))
     bump_framework_title = db.Column(db.String, nullable=True)
     bump_framework_description = db.Column(db.String, nullable=True)
     bump_framework_length = db.Column(db.String, nullable=True)
     account_research_points = db.Column(db.ARRAY(db.String), nullable=True)
+
+    # Relevant for initial message
+    initial_message_id = db.Column(db.Integer, db.ForeignKey("generated_message.id"))
+    initial_message_cta_id = db.Column(db.Integer, db.ForeignKey("generated_message_cta.id"))
+    initial_message_cta_text = db.Column(db.String, nullable=True)
+    initial_message_research_points = db.Column(db.ARRAY(db.String), nullable=True)
+    initial_message_stack_ranked_config_id = db.Column(db.Integer, db.ForeignKey("stack_ranked_message_generation_configuration.id"))
+    initial_message_stack_ranked_config_name = db.Column(db.String, nullable=True)
 
     bump_analytics_processed = db.Column(db.Boolean, default=False)
 
@@ -90,6 +100,12 @@ class LinkedinConversationEntry(db.Model):
             "bump_framework_length": self.bump_framework_length,
             "account_research_points": self.account_research_points,
             "bump_analytics_processed": self.bump_analytics_processed,
+            "initial_message_id": self.initial_message_id,
+            "initial_message_cta_id": self.initial_message_cta_id,
+            "initial_message_cta_text": self.initial_message_cta_text,
+            "initial_message_research_points": self.initial_message_research_points,
+            "initial_message_stack_ranked_config_id": self.initial_message_stack_ranked_config_id,
+            "initial_message_stack_ranked_config_name": self.initial_message_stack_ranked_config_name,
         }
 
 
