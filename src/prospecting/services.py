@@ -1735,7 +1735,7 @@ def get_prospect_li_history(prospect_id: int):
     }
 
 
-def send_li_outreach_connection(prospect_id: int, message: str) -> bool:
+def send_li_outreach_connection(prospect_id: int, message: str) -> int:
     """ Sends a LinkedIn outreach connection message to a prospect. This is very async, it will happen eventually
     based on our PhantomBuster schedule.
 
@@ -1744,7 +1744,7 @@ def send_li_outreach_connection(prospect_id: int, message: str) -> bool:
         message: The message to send to the Prospect.
 
     Returns:
-        True if the message was successfully queued, False otherwise.
+        The ID of the GeneratedMessage that was created.
     """
     # Create a new GeneratedMessage
     outreach_msg = GeneratedMessage(
@@ -1762,12 +1762,29 @@ def send_li_outreach_connection(prospect_id: int, message: str) -> bool:
     db.session.commit()
     generated_message_id = outreach_msg.id
 
-    # Attach the GeneratedMessage to the Referred Prospect
+    # Attach the GeneratedMessage to the Prospect
     prospect_referred: Prospect = Prospect.query.get(prospect_id)
     prospect_referred.status = ProspectStatus.QUEUED_FOR_OUTREACH
     prospect_referred.approved_outreach_message_id = generated_message_id
     db.session.add(prospect_referred)
     db.session.commit()
+
+    return generated_message_id
+
+
+def send_li_referral_outreach_connection(prospect_id: int, message: str) -> bool:
+    """ Sends a LinkedIn outreach connection message to a referred prospect. 
+
+    Args:
+        prospect_id: The ID of the referred prospect to send the message to.
+        message: The message to send to the referred rrospect.
+
+    Returns:
+        True if the message was successfully queued, False otherwise.
+    """
+    
+    # Send outreach
+    generated_message_id = send_li_outreach_connection(prospect_id=prospect_id, message=message)
 
     # Grab the ProspectReferral record in order to get the referring prospect
     referral_record: ProspectReferral = ProspectReferral.query.filter(
@@ -1776,6 +1793,7 @@ def send_li_outreach_connection(prospect_id: int, message: str) -> bool:
     if not referral_record:
         raise Exception("No referral record found for prospect_id: {}".format(prospect_id))
     prospect_referring: Prospect = Prospect.query.get(referral_record.referral_id)
+    prospect_referred: Prospect = Prospect.query.get(prospect_id)
 
     # Grab the ClientSDR and the Archetype
     client_sdr: ClientSDR = ClientSDR.query.get(prospect_referring.client_sdr_id)
@@ -1868,7 +1886,7 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None) ->
 
     # Send a Slack message notifying that a Prospect was referred
     send_slack_message(
-        message=f"SellScale just multithreaded to *{prospect_referred.full_name} ({prospect_referred.company})* from *{prospect_referral.full_name} ({prospect_referral.company})* on behalf of *{client_sdr.name}* for *{archetype.archetype}*",
+        message=f"SellScale just formed a referral association to *{prospect_referred.full_name} ({prospect_referred.company})* from *{prospect_referral.full_name} ({prospect_referral.company})* for SDR *{client_sdr.name}* in the persona *{archetype.archetype}*",
         webhook_urls=[URL_MAP["company-pipeline"]]
     )
 
