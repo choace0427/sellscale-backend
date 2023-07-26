@@ -570,6 +570,15 @@ def get_prospects_endpoint(client_sdr_id: int):
             )
             or False
         )
+        shallow_data = (
+            get_request_parameter(
+                "shallow_data",
+                request,
+                json=True,
+                required=False,
+            )
+            or False
+        )
     except Exception as e:
         return e.args[0], 400
 
@@ -606,7 +615,7 @@ def get_prospects_endpoint(client_sdr_id: int):
             {
                 "message": "Success",
                 "total_count": total_count,
-                "prospects": [p.to_dict(return_convo=True) for p in prospects],
+                "prospects": [ (p.to_dict(shallow_data=True) if shallow_data else p.to_dict(return_convo=True)) for p in prospects],
                 "elapsed_time": elapsed_time,
             }
         ),
