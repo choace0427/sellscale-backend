@@ -504,6 +504,9 @@ def update_prospect_status_linkedin(
         )
     except Exception as err:
         return False, err.message if hasattr(err, "message") else err
+    
+    # Update the prospect overall status
+    calculate_prospect_overall_status(prospect_id=prospect_id)
 
     return True, "Success"
 
