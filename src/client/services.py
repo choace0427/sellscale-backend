@@ -1956,6 +1956,25 @@ def get_all_demo_feedback(client_sdr_id: int):
     return demo_feedback
 
 
+def get_demo_feedback(client_sdr_id: int, prospect_id: int):
+    """Get demo feedback for a prospect
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+        prospect_id (int): Prospect ID
+
+    Returns:
+        DemoFeedback: Demo feedback
+    """
+
+    demo_feedback: DemoFeedback = DemoFeedback.query.filter(
+        DemoFeedback.client_sdr_id == client_sdr_id,
+        DemoFeedback.prospect_id == prospect_id,
+    ).first()
+
+    return demo_feedback
+
+
 def scrape_for_demos() -> int:
     """Recurring job which will scrape for Prospects that have a demo_date set but no demo feedback
 

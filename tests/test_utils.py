@@ -24,6 +24,7 @@ from model_import import (
     ProspectStatusRecords,
     PhantomBusterConfig,
     ProspectUploadBatch,
+    DemoFeedback,
     ProspectNote,
     OutboundCampaign,
     GeneratedMessageFeedback,
@@ -120,6 +121,7 @@ def test_app():
         clear_all_entities(ProspectNote)
         clear_all_entities(ProspectUploads)
         clear_all_entities(ProspectUploadsRawCSV)
+        clear_all_entities(DemoFeedback)
         clear_all_entities(Prospect)
         clear_all_entities(GNLPModel)
         clear_all_entities(GNLPModelFineTuneJobs)

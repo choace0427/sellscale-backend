@@ -62,6 +62,54 @@ def test_create_client():
 
 
 @use_app_context
+def test_demo_feedback():
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, client_sdr)
+    prospect = basic_prospect(client, archetype, client_sdr)
+
+    # Submit demo feedback
+    response = app.test_client().post(
+        "client/demo_feedback",
+        headers={
+            "Authorization": "Bearer {}".format(get_login_token()),
+            "Content-Type": "application/json",
+        },
+        data=json.dumps(
+            {
+                "prospect_id": prospect.id,
+                "status": "OCCURRED",
+                "rating": "3/5",
+                "feedback": "This is a test",
+            }
+        ),
+    )
+    assert response.status_code == 200
+
+    # Check that demo feedback was created
+    response = app.test_client().get(
+        "client/demo_feedback",
+        headers={
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    r_json = response.json
+    assert response.status_code == 200
+    assert len(r_json.get("data")) == 1
+
+    # Check that demo feedback was created, prospect specific
+    response = app.test_client().get(
+        f"client/demo_feedback?prospect_id={prospect.id}",
+        headers={
+            "Authorization": "Bearer {}".format(get_login_token()),
+        },
+    )
+    r_json = response.json
+    assert response.status_code == 200
+    assert len(r_json.get("data")) == 1
+
+
+@use_app_context
 def test_get_archetypes():
     client = basic_client()
     client_sdr = basic_client_sdr(client)

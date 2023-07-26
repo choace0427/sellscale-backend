@@ -5,6 +5,7 @@ from src.prospecting.models import Prospect
 from src.client.services import (
     submit_demo_feedback,
     get_all_demo_feedback,
+    get_demo_feedback,
     get_demo_feedback_for_client,
     toggle_client_sdr_auto_bump,
 )
@@ -1565,20 +1566,40 @@ def post_demo_feedback(client_sdr_id: int):
 
 @CLIENT_BLUEPRINT.route("/demo_feedback", methods=["GET"])
 @require_user
-def get_demo_feedback(client_sdr_id: int):
+def get_demo_feedback_sdr_endpoint(client_sdr_id: int):
     """Get demo feedback"""
 
-    all_feedback = get_all_demo_feedback(client_sdr_id)
-
-    return (
-        jsonify(
-            {
-                "message": "Success",
-                "data": [feedback.to_dict() for feedback in all_feedback],
-            }
-        ),
-        200,
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=False
     )
+
+    if prospect_id:
+        
+        feedback = get_demo_feedback(client_sdr_id, prospect_id)
+
+        return (
+            jsonify(
+                {
+                    "message": "Success",
+                    "data": [feedback.to_dict()],
+                }
+            ),
+            200,
+        )
+
+    else:
+
+        all_feedback = get_all_demo_feedback(client_sdr_id)
+
+        return (
+            jsonify(
+                {
+                    "message": "Success",
+                    "data": [feedback.to_dict() for feedback in all_feedback],
+                }
+            ),
+            200,
+        )
 
 
 @CLIENT_BLUEPRINT.route("/do_not_contact_filters", methods=["POST"])
