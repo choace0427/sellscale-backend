@@ -58,6 +58,7 @@ from src.prospecting.upload.services import (
 from src.utils.request_helpers import get_request_parameter
 
 from tqdm import tqdm
+import time
 from src.prospecting.services import delete_prospect_by_id
 
 from src.utils.random_string import generate_random_alphanumeric
@@ -579,6 +580,8 @@ def get_prospects_endpoint(client_sdr_id: int):
             if len(keys) != 2 or keys != {"field", "direction"}:
                 return jsonify({"message": "Invalid filters supplied to API"}), 400
 
+    start_time = time.time()
+
     prospects_info: dict[int, list[Prospect]] = get_prospects(
         client_sdr_id,
         query,
@@ -592,6 +595,9 @@ def get_prospects_endpoint(client_sdr_id: int):
         show_purgatory,
     )
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
     total_count = prospects_info.get("total_count")
     prospects = prospects_info.get("prospects")
 
@@ -601,6 +607,7 @@ def get_prospects_endpoint(client_sdr_id: int):
                 "message": "Success",
                 "total_count": total_count,
                 "prospects": [p.to_dict(return_convo=True) for p in prospects],
+                "elapsed_time": elapsed_time,
             }
         ),
         200,
