@@ -1360,6 +1360,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "full_name": p.full_name,
                 "title": p.title,
                 "company": p.company,
+                "address": "",
                 "status": p.status.value,
                 "overall_status": p.overall_status.value
                 if p.overall_status
@@ -1376,6 +1377,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "persona_id": p.archetype_id,
                 "demo_date": p.demo_date,
             },
+            "data": p.to_dict(),
             "li": {
                 "li_conversation_url": p.li_conversation_thread_id,
                 "li_conversation_thread": li_conversation_thread,
