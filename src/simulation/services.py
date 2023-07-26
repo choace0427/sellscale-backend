@@ -374,13 +374,9 @@ def update_sim_li_convo(simulation_id: int):
 
         messages = []
         for msg in convo_history:
-            messages.append(
-                {
-                    "role": "user" if msg.connection_degree == "You" else "assistant",
-                    "content": msg.message,
-                }
-            )
-        li_status = get_prospect_status_from_convo(messages)
+            timestamp = msg.date.strftime("%m/%d/%Y, %H:%M:%S") if msg.date else ""
+            messages.append(f"{msg.author} ({timestamp}): {msg.message}")
+        li_status = get_prospect_status_from_convo(messages, simulation.client_sdr_id)
 
         simulation: Simulation = Simulation.query.get(simulation_id)
         simulation.meta_data = {

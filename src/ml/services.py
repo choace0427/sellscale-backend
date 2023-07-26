@@ -13,7 +13,7 @@ from src.research.models import AccountResearchPoints
 from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectStatus
 from src.message_generation.models import GeneratedMessage
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
@@ -1100,40 +1100,66 @@ def replenish_all_ml_credits_for_all_sdrs() -> bool:
     return True
 
 
-"""Selects one of the following options based on the conversation history.
-Args:
-    messages: The conversation history.
-    output_options: The options to choose from.
-Returns:
-    The index of the selected option.
-"""
+def chat_ai_classify_active_convo(messages: list[str], seller: str) -> ProspectStatus:
+    """Selects one of the following options based on the conversation history.
 
+    Args:
+        messages: The conversation history.
+        seller: The name of the seller.
 
-def chat_ai_classify_active_convo(messages, output_options: List[str]) -> int:
-
-    options = ""
-    for i, option in enumerate(output_options):
-        options += f"- {i+1}. {option}\n"
-
-    prompt = f"""
-    Based on this conversation, classify the conversation as one of the following options. Only respond with the option number.
-
-    {options}
+    Returns:
+        The index of the selected option.
     """
-    messages.append({"role": "user", "content": prompt})
+    # Construct the transcript
+    transcript = ""
+    for message in messages:
+        transcript += message + "\n\n"
+
+    prompt = """
+    I have a transcript of a conversation below between a seller and potential customer. Help me classify the conversation based on the most recent messages. Please classify the conversation as one of the following options, provide just the number and nothing else.
+
+    1. MORE_ENGAGEMENT: The conversation needs more engagement from the seller
+    2. OBJECTION: There is an objection or abrasion about a product or service from the customer. Or the customer states that they are completely not interested. Or the customer states that they are not the best person to contact.
+    3. QUESTION: There is a question from the customer
+    4. CIRCLE_BACK: The customer has stated that now is not a good time and that the seller should reach out at a later time.
+    5. REFERRAL: The customer is referring the seller to a different contact
+    6. OTHER: Some other conversation
+
+    Seller: {seller_name}
+
+    --- Begin Transcript ---
+    {transcript}
+    --- End Transcript ---
+    """.format(
+        seller_name=seller,
+        transcript=transcript
+    )
 
     response = wrapped_chat_gpt_completion(
-        messages,
-        temperature=0.7,
-        max_tokens=240,
+        [{
+            "role": "user",
+            "content": prompt,
+        }],
+        temperature=0,
+        max_tokens=10,
         model=OPENAI_CHAT_GPT_4_MODEL,
     )
 
     match = re.search(r"\d+", response)
     if match:
-        return int(match.group()) - 1
+        number = int(match.group(0))
     else:
-        return -1
+        return ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
+
+    cases = {
+        1: ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        2: ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        3: ProspectStatus.ACTIVE_CONVO_QUESTION,
+        4: ProspectStatus.ACTIVE_CONVO_CIRCLE_BACK,
+        5: ProspectStatus.ACTIVE_CONVO_REFERRAL,
+        6: ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+    }
+    return cases.get(number, ProspectStatus.ACTIVE_CONVO_NEXT_STEPS)
 
 
 def determine_account_research_from_convo_and_bump_framework(

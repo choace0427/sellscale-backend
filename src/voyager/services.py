@@ -35,6 +35,7 @@ from tqdm import tqdm
 from src.utils.abstract.attr_utils import deep_get
 from src.voyager.linkedin import LinkedIn
 from sqlalchemy import or_
+from fuzzywuzzy import fuzz
 
 
 def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
@@ -373,14 +374,8 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 
         messages = []
         for message in latest_convo_entries:
-            messages.append(
-                {
-                    "role": "user"
-                    if message.connection_degree == "You"
-                    else "assistant",
-                    "content": message.message,
-                }
-            )
+            timestamp = message.date.strftime("%m/%d/%Y, %H:%M:%S")
+            messages.append(f"{message.author} ({timestamp}): {message.message}")
         messages.reverse()
         classify_active_convo(prospect.id, messages)
 
@@ -652,14 +647,14 @@ def classify_active_convo(prospect_id: int, messages):
     if prospect.status == ProspectStatus.ACTIVE_CONVO_REVIVAL:
         return
 
-    status = get_prospect_status_from_convo(messages)
+    status = get_prospect_status_from_convo(messages, prospect.client_sdr_id)
 
     # Make sure the prospect's status has changed before sending messages
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.status == status:
         return
 
-    success, message = update_prospect_status_linkedin(prospect_id, status)
+    success, message = update_prospect_status_linkedin(prospect_id, status, quietly=True)
 
     # Make sure the prospect's status has changed before sending messages
     if not success:
@@ -733,32 +728,45 @@ def classify_active_convo(prospect_id: int, messages):
     )
 
 
-def get_prospect_status_from_convo(messages) -> ProspectStatus:
+def get_prospect_status_from_convo(messages: list[str], client_sdr_id: int) -> ProspectStatus:
+    """Determines what a prospect status should be based on the state of their convo
 
-    options = [
-        "Trying to schedule a time",  # ACTIVE_CONVO_SCHEDULING
-        "The conversation needs more engagement",  # ACTIVE_CONVO_NEXT_STEPS
-        "There is an objection or abrasion about a product or service",  # ACTIVE_CONVO_OBJECTION
-        "There is a question",  # ACTIVE_CONVO_QUESTION
-        # "They might not be a great fit or might not be qualified",  # ACTIVE_CONVO_QUAL_NEEDED
-    ]
+    Args:
+        messages (list[str]): List of messages in the convo
+        client_sdr_id (int): ID of the Client SDR
 
-    classification = chat_ai_classify_active_convo(messages, options)
-    status = None
-    if classification == 0:
-        status = ProspectStatus.ACTIVE_CONVO_SCHEDULING
-    elif classification == 1:
-        status = ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
-    elif classification == 2:
-        status = ProspectStatus.ACTIVE_CONVO_OBJECTION
-    elif classification == 3:
-        status = ProspectStatus.ACTIVE_CONVO_QUESTION
-    # elif classification == 4:
-    #     status = ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED
-    else:
-        status = ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
+    Returns:
+        ProspectStatus: The new status of the prospect
+    """
 
-    return status
+    # Short circuit by using our own heuristics
+    def get_prospect_status_from_convo_heuristics(messages):
+        most_recent_message = messages[-1]
+        scheduling_key_words = ["today", "tomorrow", "@", "week", "month", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "hear more"]
+
+        # If the most recent message is from the prospect, run our heuristics
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        is_sdr_message = fuzz.ratio(most_recent_message.split("(")[0], sdr.name) > 80
+        if not is_sdr_message:
+            message_lowered = most_recent_message.lower()
+
+            # Detect scheduling
+            for key_word in scheduling_key_words:
+                if key_word in message_lowered:
+                    return ProspectStatus.ACTIVE_CONVO_SCHEDULING
+
+        return None
+
+    # Get heuristic based status (used for Scheduling, mainly)
+    heuristic_status = get_prospect_status_from_convo_heuristics(messages)
+    if heuristic_status:
+        return heuristic_status
+
+    # Get status from AI
+    clientSDR: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    classify_status = chat_ai_classify_active_convo(messages, clientSDR.name)
+
+    return classify_status
 
 
 def fetch_li_prospects_for_sdr(client_sdr_id: int):
@@ -794,7 +802,7 @@ def fetch_li_prospects_for_sdr(client_sdr_id: int):
 
 
 def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
-    
+
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -858,5 +866,5 @@ def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
             db.session.add(sdr)
             db.session.commit()
             sdr_updated = True
-        
+
         if sdr_updated and prospect_updated: return
