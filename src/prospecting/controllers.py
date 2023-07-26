@@ -42,7 +42,7 @@ from src.prospecting.services import (
     batch_update_prospect_statuses,
     mark_prospect_reengagement,
     get_prospect_generated_message,
-    send_li_outreach_connection,
+    send_li_referral_outreach_connection,
     add_prospect_referral,
 )
 from src.prospecting.prospect_status_services import (
@@ -1111,7 +1111,7 @@ def post_send_outreach_connection(client_sdr_id: int, prospect_id: int):
   if not prospect or prospect.client_sdr_id != client_sdr_id:
       return jsonify({"message": "Prospect not found"}), 404
 
-  success = send_li_outreach_connection(prospect_id, message)
+  success = send_li_referral_outreach_connection(prospect_id, message)
 
   return jsonify({"message": "Success"}), 200
 
