@@ -331,6 +331,7 @@ def update_prospect_status_linkedin(
     message: any = {},
     note: Optional[str] = None,
     manually_send_to_purgatory: bool = False,
+    quietly: Optional[bool] = False,
 ) -> tuple[bool, str]:
     from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
     from src.daily_notifications.services import create_engagement_feed_item
@@ -391,13 +392,14 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SCHEDULING.value,
             engagement_metadata=message,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.LINKEDIN,
-            prospect=p,
-            new_status=ProspectStatus.SCHEDULING,
-            custom_message=" is scheduling! 🙏🔥",
-            metadata={"threadUrl": p.li_conversation_thread_id},
-        )
+        if not quietly:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.LINKEDIN,
+                prospect=p,
+                new_status=ProspectStatus.SCHEDULING,
+                custom_message=" is scheduling! 🙏🔥",
+                metadata={"threadUrl": p.li_conversation_thread_id},
+            )
     elif new_status == ProspectStatus.DEMO_SET:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
@@ -421,13 +423,14 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SCHEDULING.value,
             engagement_metadata=message,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.LINKEDIN,
-            prospect=p,
-            new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
-            custom_message=" is scheduling! 🙏🔥",
-            metadata={"threadUrl": p.li_conversation_thread_id},
-        )
+        if not quietly:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.LINKEDIN,
+                prospect=p,
+                new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+                custom_message=" is scheduling! 🙏🔥",
+                metadata={"threadUrl": p.li_conversation_thread_id},
+            )
 
     # status jumps
     if (
