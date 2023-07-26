@@ -654,7 +654,7 @@ def classify_active_convo(prospect_id: int, messages):
     if prospect.status == status:
         return
 
-    success, message = update_prospect_status_linkedin(prospect_id, status, quietly=True)
+    success, message = update_prospect_status_linkedin(prospect_id, status)
 
     # Make sure the prospect's status has changed before sending messages
     if not success:
