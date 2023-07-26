@@ -1100,6 +1100,58 @@ def replenish_all_ml_credits_for_all_sdrs() -> bool:
     return True
 
 
+def chat_ai_verify_scheduling_convo(messages: list[str], seller: str) -> bool:
+    """Verifies if the conversation is about scheduling a meeting.
+
+    Args:
+        messages (list[str]): The conversation history.
+        seller (str): The name of the seller.
+
+    Returns:
+        bool: Whether the conversation is about scheduling a meeting.
+    """
+    # Construct the transcript
+    transcript = ""
+    for message in messages:
+        transcript += message + "\n\n"
+
+    prompt = """The following transcript was determined to feature a seller and a potential customer discussing a time to meet. The following transcript was thus classified as "SCHEDULING".
+
+Can you confirm, by replying either 0 (for False) or 1 (for True) that this conversation meets the following criteria for "SCHEDULING."
+
+Criteria (one or the other):
+1. Both parties are actively engaged in finding a time to meet.
+2. The customer is showing a willingness to schedule a call.
+
+Seller: {seller_name}
+
+--- Start Transcript ---
+{transcript}
+--- End Transcript ---
+""".format(
+    seller_name=seller,
+    transcript=transcript
+)
+
+    response = wrapped_chat_gpt_completion(
+        [{
+            "role": "user",
+            "content": prompt
+        }],
+        temperature=0,
+        max_tokens=10,
+        model=OPENAI_CHAT_GPT_4_MODEL
+    )
+
+    match = re.search(r"\d+", response)
+    if match:
+        number = int(match.group(0))
+    else:
+        return False
+
+    return number == 1
+
+
 def chat_ai_classify_active_convo(messages: list[str], seller: str) -> ProspectStatus:
     """Selects one of the following options based on the conversation history.
 
@@ -1115,25 +1167,24 @@ def chat_ai_classify_active_convo(messages: list[str], seller: str) -> ProspectS
     for message in messages:
         transcript += message + "\n\n"
 
-    prompt = """
-    I have a transcript of a conversation below between a seller and potential customer. Help me classify the conversation based on the most recent messages. Please classify the conversation as one of the following options, provide just the number and nothing else.
+    prompt = """I have a transcript of a conversation below between a seller and potential customer. Help me classify the conversation based on the most recent messages. Please classify the conversation as one of the following options, provide just the number and nothing else.
 
-    1. MORE_ENGAGEMENT: The conversation needs more engagement from the seller
-    2. OBJECTION: There is an objection or abrasion about a product or service from the customer. Or the customer states that they are completely not interested. Or the customer states that they are not the best person to contact.
-    3. QUESTION: There is a question from the customer
-    4. CIRCLE_BACK: The customer has stated that now is not a good time and that the seller should reach out at a later time.
-    5. REFERRAL: The customer is referring the seller to a different contact
-    6. OTHER: Some other conversation
+1. MORE_ENGAGEMENT: The conversation needs more engagement from the seller
+2. OBJECTION: There is an objection or abrasion about a product or service from the customer. Or the customer states that they are completely not interested. Or the customer states that they are not the best person to contact.
+3. QUESTION: There is a question from the customer
+4. CIRCLE_BACK: The customer has stated that now is not a good time and that the seller should reach out at a later time.
+5. REFERRAL: The customer is referring the seller to a different contact
+6. OTHER: Some other conversation
 
-    Seller: {seller_name}
+Seller: {seller_name}
 
-    --- Begin Transcript ---
-    {transcript}
-    --- End Transcript ---
-    """.format(
-        seller_name=seller,
-        transcript=transcript
-    )
+--- Begin Transcript ---
+{transcript}
+--- End Transcript ---
+""".format(
+    seller_name=seller,
+    transcript=transcript
+)
 
     response = wrapped_chat_gpt_completion(
         [{

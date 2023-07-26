@@ -16,6 +16,7 @@ import mock
 import json
 from src.ml.services import (
     chat_ai_classify_active_convo,
+    chat_ai_verify_scheduling_convo,
     create_upload_jsonl_file,
     initiate_fine_tune_job,
     check_statuses_of_fine_tune_jobs,
