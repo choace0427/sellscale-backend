@@ -11,7 +11,7 @@ from src.message_generation.services import process_generated_msg_queue
 
 from src.utils.slack import send_slack_message, URL_MAP
 
-from src.ml.services import chat_ai_classify_active_convo
+from src.ml.services import chat_ai_classify_active_convo, chat_ai_verify_scheduling_convo
 
 from src.automation.services import (
     create_new_auto_connect_phantom,
@@ -757,13 +757,17 @@ def get_prospect_status_from_convo(messages: list[str], client_sdr_id: int) -> P
 
         return None
 
+    clientSDR: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
     # Get heuristic based status (used for Scheduling, mainly)
     heuristic_status = get_prospect_status_from_convo_heuristics(messages)
     if heuristic_status:
-        return heuristic_status
+        # Run a ChatGPT verifier to make sure the status is doubly-correct
+        correct = chat_ai_verify_scheduling_convo(messages, clientSDR.name)
+        if correct:
+            return heuristic_status
 
     # Get status from AI
-    clientSDR: ClientSDR = ClientSDR.query.get(client_sdr_id)
     classify_status = chat_ai_classify_active_convo(messages, clientSDR.name)
 
     return classify_status
