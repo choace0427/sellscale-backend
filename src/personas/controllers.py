@@ -68,12 +68,12 @@ def get_persona_unassign_prospects(client_sdr_id: int):
         "client_archetype_id", request, json=False, required=True
     )
 
-    _, prospect_dicts = get_unassignable_prospects_using_icp_heuristic(
+    _, prospect_dicts, count = get_unassignable_prospects_using_icp_heuristic(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id
     )
 
-    return jsonify({"status": "success", "data": {"prospects": prospect_dicts}}), 200
+    return jsonify({"status": "success", "data": {"prospects": prospect_dicts, "total_count": count}}), 200
 
 
 @PERSONAS_BLUEPRINT.route("/prospects/unassign", methods=["POST"])
@@ -90,7 +90,7 @@ def post_persona_unassign_prospects(client_sdr_id: int):
         "use_icp_heuristic", request, json=True, required=False, parameter_type=bool, default_value=False
     )
 
-    success = unassign_prospects(
+    success = unassign_prospects.delay(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         use_icp_heuristic=use_icp_heuristic,

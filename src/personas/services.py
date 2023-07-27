@@ -365,7 +365,7 @@ Output:""",
         raise self.retry(exc=e, countdown=10**self.request.retries)
 
 
-def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_archetype_id: int) -> tuple[list[int], list[dict]]:
+def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_archetype_id: int) -> tuple[list[int], list[dict], int]:
     """ Gets a list of prospects that should be unassigned from a persona using the ICP heuristic
 
     ICP Heuristic: Unassign prospects that are LOW or VERY_LOW
@@ -375,7 +375,9 @@ def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_ar
         client_archetype_id (int): ID of the Client Archetype
 
     Returns:
-        tuple[list[int], list[dict]]: A tuple of two lists. The first list is a list of prospect IDs that should be unassigned. The second list is a list of dictionaries containing the prospect information.
+        list[int]: List of prospect IDs that should be unassigned
+        list[dict]: List of prospect dictionaries that should be unassigned
+        int: Total count of prospects that should be unassigned
     """
     # Get the target archetype
     target_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
@@ -387,13 +389,18 @@ def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_ar
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.archetype_id == client_archetype_id,
         Prospect.icp_fit_score.in_([0, 1])
-    ).all()
+    )
+
+    # Get the count
+    total_count = prospects_to_unassign.count()
+    prospects_to_unassign = prospects_to_unassign.limit(10).all()
     if len(prospects_to_unassign) == 0:
-        return [], []
+        return [], [], total_count
 
-    return [prospect.id for prospect in prospects_to_unassign], [prospect.to_dict() for prospect in prospects_to_unassign]
+    return [prospect.id for prospect in prospects_to_unassign], [prospect.to_dict(shallow_data=True) for prospect in prospects_to_unassign], total_count
 
 
+@celery.task(bind=True, max_retries=3)
 def unassign_prospects(client_sdr_id: int, client_archetype_id: int, use_icp_heuristic: bool = True,  manual_unassign_list: Optional[list] = []) -> bool:
     """ Unassigns prospects from a persona, placing them into the Unassigned persona
 
