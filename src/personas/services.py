@@ -401,7 +401,7 @@ def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_ar
 
 
 @celery.task(bind=True, max_retries=3)
-def unassign_prospects(client_sdr_id: int, client_archetype_id: int, use_icp_heuristic: bool = True,  manual_unassign_list: Optional[list] = []) -> bool:
+def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_icp_heuristic: bool = True,  manual_unassign_list: Optional[list] = []) -> bool:
     """ Unassigns prospects from a persona, placing them into the Unassigned persona
 
     Args:
