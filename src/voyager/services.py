@@ -225,6 +225,7 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
                 process_generated_msg_queue(
                     client_sdr_id=api.client_sdr_id,
                     li_message_urn_id=message.get("urn_id"),
+                    li_convo_entry_id=message.get("id"),
                 )
 
         return messages, "UPDATED"

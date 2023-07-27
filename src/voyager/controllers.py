@@ -30,7 +30,7 @@ def get_self_profile(client_sdr_id: int):
     profile = api.get_user_profile(use_cache=False)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
-    
+
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     # If the SDR's profile img is expired, update it
@@ -126,47 +126,6 @@ def send_message(client_sdr_id: int):
                 bump_framework_description=bf_description,
                 bump_framework_length=bf_length,
                 account_research_points=account_research_points
-            )
-        elif not ai_generated and not bf_id:
-            # IF NOT AI GENERATED: MUST BE HUMAN WRITTEN
-            prospect: Prospect = Prospect.query.get(prospect_id)
-            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-            send_slack_message(
-                message="New response from Human!",
-                webhook_urls=[URL_MAP["csm-human-response"]],
-                blocks=[
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": f"🤖 New Human response from {sdr.name} to {prospect.full_name} [LINKEDIN]",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "_A human has manually responded to the convo below. Please make a bump framework if relevant to answer this for humans in the future._",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Human:* {msg}",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*SellScale Sight*: <{link}|Link>".format(
-                                link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-                                + sdr.auth_token
-                            ),
-                        },
-                    },
-                ],
             )
 
         fetch_conversation(api=api, prospect_id=prospect_id, check_for_update=True)

@@ -291,6 +291,7 @@ def create_linkedin_conversation_entry(
             new_linkedin_conversation_entry.initial_message_research_points = research_points
             new_linkedin_conversation_entry.initial_message_stack_ranked_config_id = initial_message.stack_ranked_message_generation_configuration_id
             new_linkedin_conversation_entry.initial_message_stack_ranked_config_name = stack_ranked_config.name if stack_ranked_config else ""
+            new_linkedin_conversation_entry.ai_generated = True
 
         # A new message is being recorded, increase unread message count
         if prospect_id != -1:
