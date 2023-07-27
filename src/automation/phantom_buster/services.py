@@ -13,7 +13,7 @@ from src.client.models import Client, ClientSDR
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 DAILY_AGENT_TRIGGER_LIMIT = 4
 DAILY_PROSPECT_SCRAPE_LIMIT = 600
-MAXIMUM_SCRAPE_PER_LAUNCH = 150
+MAXIMUM_SCRAPE_PER_LAUNCH = 400
 
 
 def reset_sales_navigator_config_counts() -> None:
@@ -134,10 +134,12 @@ def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape
     Returns:
         tuple[bool, str]: Success and message
     """
-
     # IMPROVEMENT: IF THERE IS HIGH CUSTOMER DEMAND
     # We can, instead of forcing a job to have an agent tied to it, register a job without an agent
     # then have cron logic which will try to assign an agent to it.
+
+    # Set the scrape_count to a maximum
+    scrape_count = min(scrape_count, MAXIMUM_SCRAPE_PER_LAUNCH)
 
     # Grab the PhantomBusterSalesNavigatorConfig that may belong to this sdr
     config: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.filter(
