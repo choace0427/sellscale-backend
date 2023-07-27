@@ -1770,6 +1770,10 @@ def process_generated_msg_queue(
             li_convo_entry.ai_generated = False
             db.session.commit()
 
+            # Make sure that this is a SDR message
+            if li_convo_entry.connection_degree != "You":
+                return False
+
             # Get prospect information
             p: Prospect = Prospect.query.filter(
                 Prospect.li_conversation_urn_id == li_convo_entry.thread_urn_id
@@ -1784,6 +1788,10 @@ def process_generated_msg_queue(
             )
             email_convo_entry.ai_generated = False
             db.session.commit()
+
+            # Make sure that this is a SDR message
+            if not email_convo_entry.from_sdr:
+                return False
 
             p: Prospect = Prospect.query.get(email_convo_entry.prospect_id)
             send_slack = True
