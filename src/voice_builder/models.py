@@ -48,10 +48,18 @@ class VoiceBuilderSamples(db.Model):
     def to_dict(self):
 
         from src.prospecting.models import Prospect
+        from src.message_generation.models import GeneratedMessageCTA
+
         if self.prospect_id:
             prospect = Prospect.query.get(self.prospect_id)
         else:
             prospect = None
+
+        # Get meta_data
+        research_points: list[ResearchPoints] = ResearchPoints.query.filter(
+            ResearchPoints.id.in_(self.research_point_ids)
+        ).all()
+        cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(self.cta_id)
 
         return {
             "id": self.id,
@@ -69,4 +77,8 @@ class VoiceBuilderSamples(db.Model):
             ],
             "cta_id": self.cta_id,
             "prospect": prospect.to_dict() if prospect else None,
+            "meta_data": {
+                "research_points": [rp.to_dict() for rp in research_points],
+                "cta": cta.to_dict() if cta else None,
+            },
         }
