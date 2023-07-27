@@ -210,6 +210,8 @@ def get_client_archetype_prospects(
 ) -> list:
     """Gets the prospects in an archetype
 
+    Hard limit to 10 prospects
+
     Args:
         client_sdr_id (int): The ID of the Client SDR
         archetype_id (int): The ID of the Client Archetype
@@ -222,7 +224,7 @@ def get_client_archetype_prospects(
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.archetype_id == archetype_id,
         Prospect.full_name.ilike(f"%{query}%"),
-    ).all()
+    ).limit(10).all()
 
     return [p.to_dict(shallow_data=True) for p in prospects]
 
