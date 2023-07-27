@@ -123,13 +123,14 @@ def create_phantom_buster_sales_navigator_config(linkedin_session_cookie: str, c
     return config.id
 
 
-def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape_count: int, client_sdr_id: int) -> tuple[bool, str]:
+def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape_count: int, client_sdr_id: int, scrape_name: str) -> tuple[bool, str]:
     """Registers a Sales Navigator URL to a PhantomBusterSalesNavigatorConfig entry
 
     Args:
         sales_navigator_url (str): Sales Navigator URL
         scrape_count (int): Number of times to scrape this URL
         client_sdr_id (int): The ID of the Client SDR who is running a Sales Navigator job
+        scrape_name (str): Name of the scrape
 
     Returns:
         tuple[bool, str]: Success and message
@@ -178,6 +179,7 @@ def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape
         sales_navigator_url=sales_navigator_url,
         status=SalesNavigatorLaunchStatus.QUEUED,
         scrape_count=scrape_count,
+        name=scrape_name,
     )
     db.session.add(launch)
     db.session.commit()

@@ -45,7 +45,8 @@ def test_register_phantom_buster_sales_navigator_url():
     success, _ = register_phantom_buster_sales_navigator_url(
         sales_navigator_url="sales_navigator_url",
         scrape_count=150,
-        client_sdr_id=sdr.id
+        client_sdr_id=sdr.id,
+        scrape_name='test_name'
     )
     assert success
     assert common_pool_phantom.daily_trigger_count == 1
@@ -56,6 +57,7 @@ def test_register_phantom_buster_sales_navigator_url():
     assert launch[0].sales_navigator_url == "sales_navigator_url"
     assert launch[0].scrape_count == 150
     assert launch[0].status == SalesNavigatorLaunchStatus.QUEUED
+    assert launch[0].name == 'test_name'
 
     # Now using the client-specific agent (should take priority)
     client_specific_phantom = basic_pb_sn_config(client_sdr=sdr)
@@ -64,7 +66,8 @@ def test_register_phantom_buster_sales_navigator_url():
     success, _ = register_phantom_buster_sales_navigator_url(
         sales_navigator_url="sales_navigator_url",
         scrape_count=150,
-        client_sdr_id=sdr.id
+        client_sdr_id=sdr.id,
+        scrape_name='test_name'
     )
     assert success
     assert client_specific_phantom.daily_trigger_count == 1
