@@ -1730,6 +1730,8 @@ def process_generated_msg_queue(
     client_sdr_id: int,
     li_message_urn_id: Union[str, None] = None,
     nylas_message_id: Union[str, None] = None,
+    li_convo_entry_id: Optional[int] = None,
+    email_convo_entry_id: Optional[int] = None,
 ):
     """Sets a li or email message to AI generated or not, then removes itself from the queue
 
@@ -1737,6 +1739,8 @@ def process_generated_msg_queue(
         client_sdr_id (int): The ID of the client SDR
         li_message_urn_id (Union[str, None], optional): LinkedIn msg urn ID. Defaults to None.
         nylas_message_id (Union[str, None], optional): Nylas msg ID. Defaults to None.
+        convo_entry_id (int): The ID of the convo entry
+        email_convo_entry_id (int): The ID of the email convo entry
 
     Returns:
         bool: True if removed, False if not.
@@ -1753,9 +1757,88 @@ def process_generated_msg_queue(
         GeneratedMessageQueue.nylas_message_id == nylas_message_id,
     ).first()
     if not msg_queue:
-        return False
+        send_slack = False
+        response_type = ""
+        message = ""
 
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        # Set the message to AI generated false
+        if li_convo_entry_id:
+            li_convo_entry: LinkedinConversationEntry = LinkedinConversationEntry.query.get(
+                li_convo_entry_id
+            )
+            li_convo_entry.ai_generated = False
+            db.session.commit()
+
+            # Get prospect information
+            p: Prospect = Prospect.query.filter(
+                Prospect.li_conversation_urn_id == li_convo_entry.thread_urn_id
+            ).first()
+            send_slack = True
+            response_type = "LinkedIn"
+            message = li_convo_entry.message
+
+        elif email_convo_entry_id:
+            email_convo_entry: EmailConversationMessage = EmailConversationMessage.query.get(
+                email_convo_entry_id
+            )
+            email_convo_entry.ai_generated = False
+            db.session.commit()
+
+            p: Prospect = Prospect.query.get(email_convo_entry.prospect_id)
+            send_slack = True
+            response_type = "Email"
+            message = email_convo_entry.body
+
+        # Send a slack message that this is Human generated
+        if send_slack:
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            prospect_name = p.full_name if p else "Unknown Prospect"
+            prospect_id = p.id if p else ""
+            archetype: ClientArchetype = ClientArchetype.query.get(p.archetype_id) if p else None
+            archetype_name = archetype.archetype if archetype else "Unknown Archetype"
+            archetype_id = archetype.id if archetype else "Unknown Archetype"
+            direct_link =  "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                auth_token=sdr.auth_token,
+                prospect_id=prospect_id if prospect_id else "",
+            )
+            send_slack_message(
+                message="🧑 New response from Human!",
+                webhook_urls=[URL_MAP["csm-human-response"]],
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"🧑 Human Response - {sdr.name} [{response_type}]",
+                        },
+                    },
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "_A human has manually responded to the convo below. Please make a bump framework if relevant to answer this for humans in the future._",
+                            }
+                        ],
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Prospect:* <{direct_link}|{prospect_name} (#{prospect_id})>\n*Archetype:* {archetype_name}",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Custom Message:*\n```{message}```",
+                        },
+                    },
+                ],
+            )
+
+        return False
 
     if li_message_urn_id:
         li_convo_msg: LinkedinConversationEntry = (

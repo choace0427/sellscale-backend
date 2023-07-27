@@ -306,6 +306,7 @@ def nylas_get_messages(
             process_generated_msg_queue(
                 client_sdr_id=client_sdr_id,
                 nylas_message_id=message.nylas_message_id,
+                email_convo_entry_id=message.id,
             )
 
     return [message.to_dict() for message in messages]
