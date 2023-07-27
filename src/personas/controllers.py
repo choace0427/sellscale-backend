@@ -91,10 +91,10 @@ def post_persona_unassign_prospects(client_sdr_id: int):
     )
 
     success = unassign_prospects.delay(
-        client_sdr_id=client_sdr_id,
-        client_archetype_id=client_archetype_id,
-        use_icp_heuristic=use_icp_heuristic,
-        manual_unassign_list=manual_unassign_list,
+        client_sdr_id,
+        client_archetype_id,
+        use_icp_heuristic,
+        manual_unassign_list,
     )
     if not success:
         return jsonify({"status": "error", "message": "Unable to unassign prospects"}), 400
