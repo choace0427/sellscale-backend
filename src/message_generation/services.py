@@ -1782,7 +1782,7 @@ def process_generated_msg_queue(
             send_slack = True
             response_type = "LinkedIn"
             message = li_convo_entry.message
-            message_date = str(li_convo_entry.message_date)
+            message_date = str(li_convo_entry.date)
 
         elif email_convo_entry_id:
             email_convo_entry: EmailConversationMessage = (
