@@ -1761,6 +1761,7 @@ def process_generated_msg_queue(
         send_slack = False
         response_type = ""
         message = ""
+        message_date = ""
 
         # Set the message to AI generated false
         if li_convo_entry_id:
@@ -1781,6 +1782,7 @@ def process_generated_msg_queue(
             send_slack = True
             response_type = "LinkedIn"
             message = li_convo_entry.message
+            message_date = str(li_convo_entry.message_date)
 
         elif email_convo_entry_id:
             email_convo_entry: EmailConversationMessage = (
@@ -1797,6 +1799,7 @@ def process_generated_msg_queue(
             send_slack = True
             response_type = "Email"
             message = email_convo_entry.body
+            message_date = str(email_convo_entry.date_received)
 
         # Send a slack message that this is Human generated
         if send_slack:
@@ -1836,7 +1839,7 @@ def process_generated_msg_queue(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Prospect:* <{direct_link}|{prospect_name} (#{prospect_id})>\n*Archetype:* {archetype_name}",
+                            "text": f"*Prospect:* <{direct_link}|{prospect_name} (#{prospect_id})>\n*Archetype:* {archetype_name}\n*Message Date:* {message_date}",
                         },
                     },
                     {
