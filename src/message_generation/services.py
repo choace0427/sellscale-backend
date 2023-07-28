@@ -1840,7 +1840,7 @@ def process_generated_msg_queue(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Prospect:* <{direct_link}|{prospect_name} (#{prospect_id})>\n*Archetype:* {archetype_name}\n*Message Date:* {message_date}\n*Date Scraped: *{date_scraped}",
+                            "text": f"*Prospect:* <{direct_link}|{prospect_name} (#{prospect_id})>\n*Archetype:* {archetype_name}\n*Message Date:* {message_date}\n*Date Scraped:* {date_scraped}",
                         },
                     },
                     {
