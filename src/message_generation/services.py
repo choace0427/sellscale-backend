@@ -1815,6 +1815,7 @@ def process_generated_msg_queue(
                 auth_token=sdr.auth_token,
                 prospect_id=prospect_id if prospect_id else "",
             )
+            date_scraped = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             send_slack_message(
                 message="🧑 New response from Human!",
                 webhook_urls=[URL_MAP["csm-human-response"]],
@@ -1839,9 +1840,7 @@ def process_generated_msg_queue(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Prospect:* <{direct_link}|{prospect_name} (#{prospect_id})>\n*Archetype:* {archetype_name}\n*Message Date:* {message_date}\n*Date Scraped: *{
-                                datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                            }",
+                            "text": f"*Prospect:* <{direct_link}|{prospect_name} (#{prospect_id})>\n*Archetype:* {archetype_name}\n*Message Date:* {message_date}\n*Date Scraped: *{date_scraped}",
                         },
                     },
                     {
