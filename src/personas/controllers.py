@@ -100,3 +100,20 @@ def post_persona_unassign_prospects(client_sdr_id: int):
         return jsonify({"status": "error", "message": "Unable to unassign prospects"}), 400
 
     return jsonify({"status": "success", "data": {}}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/prospect_from_li_url", methods=["GET"])
+@require_user
+def get_prospect_from_li_url(client_sdr_id: int):
+    """Gets a prospect from a LinkedIn URL"""
+    li_url = get_request_parameter(
+        "li_url", request, json=False, required=True, parameter_type=str
+    )
+
+    from src.prospecting.services import find_prospect_id_from_li_or_email
+    
+    prospect_id = find_prospect_id_from_li_or_email(client_sdr_id, li_url, None)
+
+    return jsonify({"status": "success", "data": {
+        "prospect_id": prospect_id
+    }}), 200
