@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
 from sqlalchemy import text
+from sqlalchemy.sql.expression import func
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
     OPENAI_COMPLETION_DAVINCI_3_MODEL,
@@ -1763,11 +1764,15 @@ def process_generated_msg_queue(
 
         # Set the message to AI generated false
         if li_convo_entry_id:
-            li_convo_entry: LinkedinConversationEntry = LinkedinConversationEntry.query.get(
-                li_convo_entry_id
+            li_convo_entry: LinkedinConversationEntry = (
+                LinkedinConversationEntry.query.get(li_convo_entry_id)
             )
             li_convo_entry.ai_generated = False
             db.session.commit()
+
+            # Make sure that this is a SDR message
+            if li_convo_entry.connection_degree != "You":
+                return False
 
             # Get prospect information
             p: Prospect = Prospect.query.filter(
@@ -1778,11 +1783,15 @@ def process_generated_msg_queue(
             message = li_convo_entry.message
 
         elif email_convo_entry_id:
-            email_convo_entry: EmailConversationMessage = EmailConversationMessage.query.get(
-                email_convo_entry_id
+            email_convo_entry: EmailConversationMessage = (
+                EmailConversationMessage.query.get(email_convo_entry_id)
             )
             email_convo_entry.ai_generated = False
             db.session.commit()
+
+            # Make sure that this is a SDR message
+            if not email_convo_entry.from_sdr:
+                return False
 
             p: Prospect = Prospect.query.get(email_convo_entry.prospect_id)
             send_slack = True
@@ -1794,10 +1803,12 @@ def process_generated_msg_queue(
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             prospect_name = p.full_name if p else "Unknown Prospect"
             prospect_id = p.id if p else ""
-            archetype: ClientArchetype = ClientArchetype.query.get(p.archetype_id) if p else None
+            archetype: ClientArchetype = (
+                ClientArchetype.query.get(p.archetype_id) if p else None
+            )
             archetype_name = archetype.archetype if archetype else "Unknown Archetype"
             archetype_id = archetype.id if archetype else "Unknown Archetype"
-            direct_link =  "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
                 auth_token=sdr.auth_token,
                 prospect_id=prospect_id if prospect_id else "",
             )
@@ -1898,9 +1909,13 @@ def process_generated_msg_queue(
 def generate_message_bumps():
 
     # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
-    sdrs: List[ClientSDR] = ClientSDR.query.filter(
-        ClientSDR.active == True, ClientSDR.auto_generate_messages == True
-    ).all()
+    sdrs: List[ClientSDR] = (
+        ClientSDR.query.filter(
+            ClientSDR.active == True, ClientSDR.auto_generate_messages == True
+        )
+        .order_by(func.random())
+        .all()
+    )
 
     for sdr in sdrs:
         prospects: List[Prospect] = Prospect.query.filter(

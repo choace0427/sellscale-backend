@@ -13,7 +13,7 @@ from src.client.models import Client, ClientSDR
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 DAILY_AGENT_TRIGGER_LIMIT = 4
 DAILY_PROSPECT_SCRAPE_LIMIT = 600
-MAXIMUM_SCRAPE_PER_LAUNCH = 150
+MAXIMUM_SCRAPE_PER_LAUNCH = 400
 
 
 def reset_sales_navigator_config_counts() -> None:
@@ -123,21 +123,24 @@ def create_phantom_buster_sales_navigator_config(linkedin_session_cookie: str, c
     return config.id
 
 
-def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape_count: int, client_sdr_id: int) -> tuple[bool, str]:
+def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape_count: int, client_sdr_id: int, scrape_name: str) -> tuple[bool, str]:
     """Registers a Sales Navigator URL to a PhantomBusterSalesNavigatorConfig entry
 
     Args:
         sales_navigator_url (str): Sales Navigator URL
         scrape_count (int): Number of times to scrape this URL
         client_sdr_id (int): The ID of the Client SDR who is running a Sales Navigator job
+        scrape_name (str): Name of the scrape
 
     Returns:
         tuple[bool, str]: Success and message
     """
-
     # IMPROVEMENT: IF THERE IS HIGH CUSTOMER DEMAND
     # We can, instead of forcing a job to have an agent tied to it, register a job without an agent
     # then have cron logic which will try to assign an agent to it.
+
+    # Set the scrape_count to a maximum
+    scrape_count = min(scrape_count, MAXIMUM_SCRAPE_PER_LAUNCH)
 
     # Grab the PhantomBusterSalesNavigatorConfig that may belong to this sdr
     config: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.filter(
@@ -176,6 +179,7 @@ def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape
         sales_navigator_url=sales_navigator_url,
         status=SalesNavigatorLaunchStatus.QUEUED,
         scrape_count=scrape_count,
+        name=scrape_name,
     )
     db.session.add(launch)
     db.session.commit()

@@ -36,7 +36,7 @@ def test_get_unassignable_prospects_using_icp_heuristic():
     prospect_2.icp_fit_reason = "test"
     db.session.commit()
 
-    ids, dicts = get_unassignable_prospects_using_icp_heuristic(client_sdr_id=sdr_id, client_archetype_id=archetype_id)
+    ids, dicts, count = get_unassignable_prospects_using_icp_heuristic(client_sdr_id=sdr_id, client_archetype_id=archetype_id)
     assert len(ids) == 1
     assert prospect_id in ids
     assert prospect_2_id not in ids

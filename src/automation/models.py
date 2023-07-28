@@ -87,6 +87,8 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
     launch_date = db.Column(db.DateTime, nullable=True)
     error_message = db.Column(db.String, nullable=True)
 
+    name = db.Column(db.String, nullable=True)
+
     def to_dict(self) -> dict:
         # Result is too large and should not be returned in the frontend unless during download
         # instead we will return a boolean to determine if the result is available to download
@@ -100,7 +102,8 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             "status": self.status.value,
             "pb_container_id": self.pb_container_id,
             "result_available": True if self.result_raw and self.result_processed else False,
-            "launch_date": self.launch_date
+            "launch_date": self.launch_date,
+            "name": self.name
         }
 
 

@@ -51,11 +51,15 @@ def post_sales_navigator_launch(client_sdr_id):
     scrape_count = get_request_parameter(
         "scrape_count", request, json=True, required=True, parameter_type=int
     )
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
 
     success, _ = register_phantom_buster_sales_navigator_url(
         sales_navigator_url=sales_navigator_url,
         scrape_count=scrape_count,
         client_sdr_id=client_sdr_id,
+        scrape_name=name
     )
     if not success:
         return jsonify({"status": "error", "message": "Launch not available. Try again."}), 404
