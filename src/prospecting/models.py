@@ -449,6 +449,8 @@ class Prospect(db.Model):
 
     demo_date = db.Column(db.DateTime, nullable=True)
 
+    active = db.Column(db.Boolean, nullable=True)
+
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
 
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
@@ -532,6 +534,7 @@ class Prospect(db.Model):
                 "email_last_message_from_prospect": self.email_last_message_from_prospect,
                 "email_last_message_from_sdr": self.email_last_message_from_sdr,
                 "email_unread_messages": self.email_unread_messages,
+                "active": self.active,
             }
 
         # Get generated message if it exists and is requested

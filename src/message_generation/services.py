@@ -1941,6 +1941,7 @@ def generate_message_bumps():
                 Prospect.hidden_until == None,
                 Prospect.hidden_until <= datetime.datetime.utcnow(),
             ),
+            Prospect.active == True,
         ).all()
 
         # print(f"Generating bumps for {len(prospects)} prospects...")
