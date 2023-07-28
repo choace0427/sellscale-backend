@@ -2,6 +2,9 @@ from app import db
 from model_import import ResearchPointType, ClientArchetype
 from typing import Union, Optional
 from src.client.models import ClientSDR
+from src.email_outbound.models import ProspectEmail
+from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
+from src.prospecting.models import Prospect, ProspectStatus
 
 from src.utils.slack import URL_MAP, send_slack_message
 
@@ -409,5 +412,144 @@ def patch_archetype_email_blocks_configuration(client_sdr_id: int, client_archet
     archetype.email_blocks_configuration = blocks
     db.session.add(archetype)
     db.session.commit()
+
+    return True
+
+
+def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> bool:
+    """Activate a client archetype.
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+        client_archetype_id (int): Client archetype ID
+
+    Returns:
+        bool: success
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not archetype:
+        return False
+    if archetype.client_sdr_id != sdr.id:
+        return False
+
+    # Mark the archetype as active
+    archetype.active = True
+
+    # Collect bulk save objects list for efficient update
+    bulk_save_objects: list[Union[ClientArchetype, Prospect, GeneratedMessage]] = []
+    bulk_save_objects.append(archetype)
+
+    # Get all prospects for this archetype
+    prospects: list[Prospect] = Prospect.query.filter(Prospect.archetype_id==archetype.id).all()
+    for prospect in prospects:
+        # Mark as active
+        prospect.active = True
+        bulk_save_objects.append(prospect)
+
+    db.session.bulk_save_objects(bulk_save_objects)
+
+    return True
+
+
+def deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> bool:
+    """Deactivate a client archetype.
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+        client_archetype_id (int): Client archetype ID
+
+    Returns:
+        bool: success
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not archetype:
+        return False
+    if archetype.client_sdr_id != sdr.id:
+        return False
+
+    archetype.active = False
+    db.session.commit()
+
+    return True
+
+
+def hard_deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> bool:
+    """Hard deactivate a client archetype. This will also block messages and mark the prospects as inactive.
+
+    Args:
+        client_sdr_id (int): client sdr id
+        client_archetype_id (int): client archetype id
+
+    Returns:
+        bool: success
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not archetype:
+        return False
+    if archetype.client_sdr_id != sdr.id:
+        return False
+
+    # Set archetype to no longer active
+    archetype.active = False
+
+    # Collect bulk save objects list for efficient update
+    bulk_save_objects: list[Union[ClientArchetype, Prospect, ProspectEmail, GeneratedMessage]] = []
+    bulk_save_objects.append(archetype)
+
+    # Get all prospects that are in this archetype that are in the PROSPECTED state
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == archetype.id
+    ).all()
+
+    for prospect in prospects:
+        # Mark prospect as no longer active
+        prospect.active = False
+
+        # If the prospect is in a status PROSPECTED or QUEUED_FOR_OUTREACH, we need to block and wipe the messages
+        if prospect.status == ProspectStatus.PROSPECTED or prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH:
+
+            # If the prospect has a generated message, mark it as BLOCKED and remove the ID from Prospect
+            if prospect.approved_outreach_message_id:
+                gm: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+                gm.message_status = GeneratedMessageStatus.BLOCKED
+                prospect.approved_outreach_message_id = None
+                bulk_save_objects.append(gm)
+
+            # If the prospect has a email component, grab the generated message and mark it as BLOCKED and remove the ID from ProspectEmail
+            if prospect.approved_prospect_email_id:
+                p_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+                subject: GeneratedMessage = GeneratedMessage.query.get(p_email.personalized_subject_line)
+                if subject:
+                    subject.message_status = GeneratedMessageStatus.BLOCKED
+                    p_email.personalized_subject_line = None
+                    bulk_save_objects.append(subject)
+                first_line: GeneratedMessage = GeneratedMessage.query.get(p_email.personalized_first_line)
+                if first_line:
+                    first_line.message_status = GeneratedMessageStatus.BLOCKED
+                    p_email.personalized_first_line = None
+                    bulk_save_objects.append(first_line)
+                body: GeneratedMessage = GeneratedMessage.query.get(p_email.personalized_body)
+                if body:
+                    body.message_status = GeneratedMessageStatus.BLOCKED
+                    p_email.personalized_body = None
+                    bulk_save_objects.append(body)
+                bulk_save_objects.append(p_email)
+
+        bulk_save_objects.append(prospect)
+
+    # Bulk save all objects
+    db.session.bulk_save_objects(bulk_save_objects)
 
     return True

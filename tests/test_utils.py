@@ -168,7 +168,7 @@ def basic_archetype(
 ) -> ClientArchetype:
     client_sdr_id = None if client_sdr is None else client_sdr.id
     a = ClientArchetype(
-        client_id=client.id, client_sdr_id=client_sdr_id, archetype="Testing archetype"
+        client_id=client.id, client_sdr_id=client_sdr_id, archetype="Testing archetype", active=True
     )
     db.session.add(a)
     db.session.commit()
@@ -201,6 +201,7 @@ def basic_prospect(
         client_sdr_id=client_sdr_id,
         email=email,
         li_conversation_thread_id=li_conversation_thread_id,
+        active=True,
     )
     db.session.add(p)
     db.session.commit()

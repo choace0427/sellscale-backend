@@ -504,7 +504,7 @@ def update_prospect_status_linkedin(
         )
     except Exception as err:
         return False, err.message if hasattr(err, "message") else err
-    
+
     # Update the prospect overall status
     calculate_prospect_overall_status(prospect_id=prospect_id)
 
@@ -860,6 +860,7 @@ def add_prospect(
             client_sdr_id=client_sdr_id,
             li_num_followers=linkedin_num_followers,
             overall_status=overall_status,
+            active=True,
         )
         db.session.add(prospect)
         db.session.commit()
@@ -1778,7 +1779,7 @@ def send_li_outreach_connection(prospect_id: int, message: str) -> int:
 
 
 def send_li_referral_outreach_connection(prospect_id: int, message: str) -> bool:
-    """ Sends a LinkedIn outreach connection message to a referred prospect. 
+    """ Sends a LinkedIn outreach connection message to a referred prospect.
 
     Args:
         prospect_id: The ID of the referred prospect to send the message to.
@@ -1787,7 +1788,7 @@ def send_li_referral_outreach_connection(prospect_id: int, message: str) -> bool
     Returns:
         True if the message was successfully queued, False otherwise.
     """
-    
+
     # Send outreach
     generated_message_id = send_li_outreach_connection(prospect_id=prospect_id, message=message)
 
