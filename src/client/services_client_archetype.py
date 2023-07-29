@@ -438,6 +438,7 @@ def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> b
 
     # Mark the archetype as active
     archetype.active = True
+    db.session.commit()
 
     # Collect bulk save objects list for efficient update
     bulk_save_objects: list[Union[ClientArchetype, Prospect, GeneratedMessage]] = []
@@ -503,6 +504,7 @@ def hard_deactivate_client_archetype(client_sdr_id: int, client_archetype_id: in
 
     # Set archetype to no longer active
     archetype.active = False
+    db.session.commit()
 
     # Collect bulk save objects list for efficient update
     bulk_save_objects: list[Union[ClientArchetype, Prospect, ProspectEmail, GeneratedMessage]] = []
