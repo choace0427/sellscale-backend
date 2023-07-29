@@ -444,13 +444,13 @@ def post_deactivate_archetype(client_sdr_id: int, archetype_id: int):
     )
 
     if hard_deactivate:
-        success = hard_deactivate_client_archetype(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+        success = hard_deactivate_client_archetype(client_sdr_id=client_sdr_id, client_archetype_id=archetype_id)
         if success:
             return jsonify({"status": "success", "data": {"message": "Deactivated and cleared messages"}}), 200
         else:
             return jsonify({"status": "error", "message": "Failed to deactivate and clear messages"}), 404
     else:
-        success = deactivate_client_archetype(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+        success = deactivate_client_archetype(client_sdr_id=client_sdr_id, client_archetype_id=archetype_id)
         if success:
             return jsonify({"status": "success", "data": {"message": "Deactivated"}}), 200
         else:
