@@ -461,7 +461,7 @@ def post_deactivate_archetype(client_sdr_id: int, archetype_id: int):
 @require_user
 def post_activate_archetype(client_sdr_id: int, archetype_id: int):
 
-    success = activate_client_archetype(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+    success = activate_client_archetype(client_sdr_id=client_sdr_id, client_archetype_id=archetype_id)
     if success:
         return jsonify({"status": "success", "data": {"message": "Activated"}}), 200
 
