@@ -1,3 +1,4 @@
+import email
 from src.li_conversation.models import LinkedInConvoMessage
 from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
 from src.ml.services import determine_account_research_from_convo_and_bump_framework
@@ -15,6 +16,7 @@ from src.ml.openai_wrappers import (
     OPENAI_COMPLETION_DAVINCI_3_MODEL,
 )
 from model_import import (
+    PLGProductLeads,
     ClientArchetype,
     GeneratedMessageType,
     GeneratedMessage,
@@ -2474,13 +2476,20 @@ def generate_li_convo_init_msg(prospect_id: int):
 
 @celery.task(bind=True, max_retries=3)
 def scribe_sample_email_generation(
-    self,
-    USER_LINKEDIN: str,
-    USER_EMAIL: str,
-    PROSPECT_LINKEDIN: str,
-    BLOCKS: str
+    self, USER_LINKEDIN: str, USER_EMAIL: str, PROSPECT_LINKEDIN: str, BLOCKS: str
 ):
     random_code = generate_random_alphanumeric(num_chars=10)
+
+    plg_lead = PLGProductLeads(
+        email=USER_EMAIL,
+        user_linkedin_url=USER_LINKEDIN,
+        prospect_linkedin_url=PROSPECT_LINKEDIN,
+        blocks=BLOCKS,
+        is_test=False,
+    )
+    db.session.add(plg_lead)
+    db.session.commit()
+
     try:
         CLIENT_ID = 38  # SellScale Scribe client
         CLIENT_ARCHETYPE_ID = 268  # SellScale Scribe archetype

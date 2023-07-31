@@ -371,3 +371,16 @@ class DemoFeedback(db.Model):
             "rating": self.rating,
             "feedback": self.feedback,
         }
+
+
+class PLGProductLeads(db.Model):
+    __tablename__ = "plg_product_leads"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    email = db.Column(db.String)
+    user_linkedin_url = db.Column(db.String)
+    prospect_linkedin_url = db.Column(db.String)
+    blocks = db.Column(db.JSON)
+
+    is_test = db.Column(db.Boolean, nullable=True, default=False)
