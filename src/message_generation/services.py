@@ -52,6 +52,7 @@ from ..ml.fine_tuned_models import (
     get_config_completion,
     get_few_shot_baseline_prompt,
 )
+from src.utils.random_string import generate_random_alphanumeric
 from src.email_outbound.services import create_prospect_email
 from src.message_generation.ner_exceptions import ner_exceptions, title_abbreviations
 from ..utils.abstract.attr_utils import deep_get
@@ -2478,6 +2479,7 @@ def scribe_sample_email_generation(
     USER_EMAIL: str,
     PROSPECT_LINKEDIN: str,
 ):
+    random_code = generate_random_alphanumeric(num_chars=10)
     try:
         BLOCKS = """
             1. Personalize the title to their company and or the prospect
@@ -2494,7 +2496,7 @@ def scribe_sample_email_generation(
         CLIENT_SDR_ID = 89  # SellScale Scribe SDR
 
         send_slack_message(
-            message=f"[{USER_EMAIL}] Started new email generation task",
+            message=f"[{USER_EMAIL} {random_code}] Started new email generation task",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
 
@@ -2522,7 +2524,7 @@ def scribe_sample_email_generation(
                 db.session.commit()
 
             send_slack_message(
-                message=f"[{USER_EMAIL}] Generating research points for prospect ({prospect_id}) ({input_linkedin_url}) ...",
+                message=f"[{USER_EMAIL} {random_code}] Generating research points for prospect ({prospect_id}) ({input_linkedin_url}) ...",
                 webhook_urls=[URL_MAP["ops-scribe-submissions"]],
             )
             get_research_and_bullet_points_new(
@@ -2538,12 +2540,12 @@ def scribe_sample_email_generation(
             return prospect_id
 
         send_slack_message(
-            message=f"[{USER_EMAIL}] Finding prospect ({PROSPECT_LINKEDIN}) on LinkedIn ...",
+            message=f"[{USER_EMAIL} {random_code}] Finding prospect ({PROSPECT_LINKEDIN}) on LinkedIn ...",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
         prospect = get_indiduals_prospect_id_from_linkedin_url(PROSPECT_LINKEDIN)
         send_slack_message(
-            message=f"[{USER_EMAIL}] Finding user ({USER_LINKEDIN}) on LinkedIn ...",
+            message=f"[{USER_EMAIL} {random_code}] Finding user ({USER_LINKEDIN}) on LinkedIn ...",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
         user = get_indiduals_prospect_id_from_linkedin_url(USER_LINKEDIN)
@@ -2634,7 +2636,7 @@ def scribe_sample_email_generation(
         )
 
         send_slack_message(
-            message=f"[{USER_EMAIL}] Generating a new completion ...",
+            message=f"[{USER_EMAIL} {random_code}] Generating a new completion ...",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
         completion = wrapped_chat_gpt_completion(
@@ -2646,7 +2648,7 @@ def scribe_sample_email_generation(
             model=OPENAI_CHAT_GPT_4_MODEL,
         )
         send_slack_message(
-            message=f"[{USER_EMAIL}] Generated completion ...",
+            message=f"[{USER_EMAIL} {random_code}] Generated completion ...",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
 
@@ -2661,7 +2663,11 @@ def scribe_sample_email_generation(
             "completion": completion,
         }
         send_slack_message(
-            message=f"[{USER_EMAIL}] Sending email to user via a Zap...",
+            message=f"[{USER_EMAIL} {random_code}] Sending email to user via a Zap...",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+        send_slack_message(
+            message=f"[{USER_EMAIL} {random_code}] Generated Email:\n{completion}",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
         r = requests.post(zapier_webhook_url, json=zapier_payload)
@@ -2669,7 +2675,7 @@ def scribe_sample_email_generation(
         # Mark launch as failed
         print("Error occurred: " + str(e))
         send_slack_message(
-            message=f"[{USER_EMAIL}] 🚨🚨 Error occurred: {str(e)}",
+            message=f"[{USER_EMAIL} {random_code}] 🚨🚨 Error occurred: {str(e)}",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
 
