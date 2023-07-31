@@ -925,6 +925,11 @@ def post_generate_scribe_completion():
     BLOCKS = get_request_parameter("blocks", request, json=True, required=True)
 
     send_slack_message(
+        message=f"New Sales Lead from PLG Demo! Email: {USER_EMAIL}\nThey are sending an email from {USER_LINKEDIN} → {PROSPECT_LINKEDIN}\nThis was the blocks:\n---\n{BLOCKS}\n---",
+        webhook_urls=[URL_MAP["sales-leads-plg-demo"]],
+    )
+
+    send_slack_message(
         message=f"[{USER_EMAIL}] 🎉🪄 New Scribe Completion Job Triggered! From {USER_LINKEDIN} to {PROSPECT_LINKEDIN}",
         webhook_urls=[URL_MAP["ops-scribe-submissions"]],
     )
