@@ -70,6 +70,10 @@ from src.message_generation.services_stack_ranked_configurations import (
     get_top_stack_ranked_config_ordering,
 )
 from src.utils.slack import URL_MAP, send_slack_message
+from src.prospecting.services import *
+from model_import import Prospect, ResearchPoints, ResearchPayload
+from app import db
+from src.ml.openai_wrappers import *
 
 
 HUGGING_FACE_KEY = os.environ.get("HUGGING_FACE_KEY")
@@ -2465,3 +2469,209 @@ def generate_li_convo_init_msg(prospect_id: int):
         "cta": cta,
         "research_points": research_points,
     }
+
+
+@celery.task(bind=True, max_retries=3)
+def scribe_sample_email_generation(
+    self,
+    USER_LINKEDIN: str,
+    USER_EMAIL: str,
+    PROSPECT_LINKEDIN: str,
+):
+    try:
+        BLOCKS = """
+            1. Personalize the title to their company and or the prospect
+            2. Include a greeting with Hi, Hello, or Hey with their first name
+            3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
+            4. Mention what we do and offer and how it can help them based on their background, company, and key details.
+            5. Use the objective for a call to action
+            6. End with Best, (new line) (My Name) (new line) (Title)
+            7. Have a P.S with a short, personalized line. Ideally it is something that is relevant to their background or interests
+        """
+
+        CLIENT_ID = 38  # SellScale Scribe client
+        CLIENT_ARCHETYPE_ID = 268  # SellScale Scribe archetype
+        CLIENT_SDR_ID = 89  # SellScale Scribe SDR
+
+        send_slack_message(
+            message=f"[{USER_EMAIL}] Started new email generation task",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+
+        def get_indiduals_prospect_id_from_linkedin_url(input_linkedin_url):
+            linkedin_slug = get_linkedin_slug_from_url(input_linkedin_url)
+            prospect = (
+                Prospect.query.filter(
+                    Prospect.linkedin_url.ilike("%" + linkedin_slug + "%")
+                )
+                .filter(Prospect.client_id == CLIENT_ID)
+                .first()
+            )
+            prospect_id = None
+            if prospect:
+                prospect_id = prospect.id
+            else:
+                success, prospect_id = create_prospect_from_linkedin_link(
+                    archetype_id=CLIENT_ARCHETYPE_ID,
+                    url=input_linkedin_url,
+                    synchronous_research=True,
+                )
+                prospect = Prospect.query.filter_by(id=prospect_id).first()
+                prospect.linkedin_url = "linkedin.com/in/" + linkedin_slug
+                db.session.add(prospect)
+                db.session.commit()
+
+            send_slack_message(
+                message=f"[{USER_EMAIL}] Generating research points for prospect ({prospect_id}) ({input_linkedin_url}) ...",
+                webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+            )
+            get_research_and_bullet_points_new(
+                prospect_id=prospect_id,
+                test_mode=False,
+            )
+
+            prospect = Prospect.query.filter_by(id=prospect_id).first()
+            research_points = ResearchPoints.get_research_points_by_prospect_id(
+                prospect_id
+            )
+
+            return prospect_id
+
+        send_slack_message(
+            message=f"[{USER_EMAIL}] Finding prospect ({PROSPECT_LINKEDIN}) on LinkedIn ...",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+        prospect = get_indiduals_prospect_id_from_linkedin_url(PROSPECT_LINKEDIN)
+        send_slack_message(
+            message=f"[{USER_EMAIL}] Finding user ({USER_LINKEDIN}) on LinkedIn ...",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+        user = get_indiduals_prospect_id_from_linkedin_url(USER_LINKEDIN)
+
+        prospect_rp = ResearchPayload.query.filter_by(prospect_id=prospect).first()
+        user_rp = ResearchPayload.query.filter_by(prospect_id=user).first()
+
+        if prospect_rp:
+            prospect_rp = prospect_rp.payload
+        if user_rp:
+            user_rp = user_rp.payload
+
+        # names
+        structure = BLOCKS
+        sdr_name = (
+            deep_get(user_rp, "personal.first_name", "")
+            + " "
+            + deep_get(user_rp, "personal.last_name", "")
+        )
+        sdr_title = deep_get(user_rp, "personal.sub_title", "")
+        sdr_company_name = deep_get(
+            user_rp, "personal.position_groups.0.company.name", ""
+        )
+        sdr_company_description = deep_get(user_rp, "company.details.description") or ""
+        sdr_company_tagline = deep_get(user_rp, "company.details.tagline") or ""
+        prospect_name = (
+            deep_get(prospect_rp, "personal.first_name", "")
+            + " "
+            + deep_get(prospect_rp, "personal.last_name", "")
+        )
+        prospect_title = deep_get(prospect_rp, "personal.sub_title")
+        prospect_bio = deep_get(prospect_rp, "personal.summary") or ""
+        prospect_company_name = deep_get(
+            prospect_rp, "personal.position_groups.0.company.name"
+        )
+        prospect_research_points = ResearchPoints.get_research_points_by_prospect_id(
+            prospect
+        )
+        prospect_research_joined = "\n".join(
+            ["- " + rp.value for rp in prospect_research_points]
+        )
+
+        prompt = """You are a sales development representative writing on behalf of the SDR.
+
+        Write a personalized cold email short enough I could read on an iphone easily. Here's the structure
+        {structure}
+
+        Note - you do not need to include all info.
+
+        SDR info:
+        SDR Name: {client_sdr_name}
+        Title: {client_sdr_title}
+
+        Company info:
+        Tagline: {company_tagline}
+        Company description: {company_description}
+
+        Prospect info:
+        Prospect Name: {prospect_name}
+        Prospect Title: {prospect_title}
+        Prospect Bio:
+        "{prospect_bio}"
+        Prospect Company Name: {prospect_company_name}
+
+        More research:
+        {prospect_research}
+
+        Final instructions
+        - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed".
+        - Use markdown as needed to accomplish the instructions.
+
+        Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
+
+        I want to write this email with the following objective: {persona_contact_objective}
+
+        Output:""".format(
+            structure=structure,
+            client_sdr_name=sdr_name,
+            client_sdr_title=sdr_title,
+            company_tagline=sdr_company_tagline,
+            company_description=sdr_company_description,
+            prospect_name=prospect_name,
+            prospect_title=prospect_title,
+            prospect_bio=prospect_bio,
+            prospect_company_name=prospect_company_name,
+            prospect_research=prospect_research_joined,
+            persona_contact_objective="Get on an intro call",
+        )
+
+        send_slack_message(
+            message=f"[{USER_EMAIL}] Generating a new completion ...",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+        completion = wrapped_chat_gpt_completion(
+            [
+                {"role": "system", "content": prompt},
+            ],
+            temperature=0.7,
+            max_tokens=240,
+            model=OPENAI_CHAT_GPT_4_MODEL,
+        )
+        send_slack_message(
+            message=f"[{USER_EMAIL}] Generated completion ...",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+
+        # make call to zapier webhook with completion in payload
+        zapier_webhook_url = "https://hooks.zapier.com/hooks/catch/13803519/318v030/"
+        zapier_payload = {
+            "user_first_name": deep_get(user_rp, "personal.first_name", ""),
+            "user_company_title_case": deep_get(
+                user_rp, "personal.position_groups.0.company.name", ""
+            ),
+            "email": USER_EMAIL,
+            "completion": completion,
+        }
+        send_slack_message(
+            message=f"[{USER_EMAIL}] Sending email to user via a Zap...",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+        r = requests.post(zapier_webhook_url, json=zapier_payload)
+    except Exception as e:
+        # Mark launch as failed
+        print("Error occurred: " + str(e))
+        send_slack_message(
+            message=f"[{USER_EMAIL}] 🚨🚨 Error occurred: {str(e)}",
+            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+        )
+
+        # Retry
+        self.retry(exc=e, countdown=5)
