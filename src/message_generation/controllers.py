@@ -922,6 +922,7 @@ def post_generate_scribe_completion():
     PROSPECT_LINKEDIN = get_request_parameter(
         "prospect_linkedin", request, json=True, required=True
     )
+    BLOCKS = get_request_parameter("blocks", request, json=True, required=True)
 
     send_slack_message(
         message=f"[{USER_EMAIL}] 🎉🪄 New Scribe Completion Job Triggered! From {USER_LINKEDIN} to {PROSPECT_LINKEDIN}",
@@ -929,11 +930,7 @@ def post_generate_scribe_completion():
     )
 
     scribe_sample_email_generation.apply_async(
-        args=[
-            USER_LINKEDIN,
-            USER_EMAIL,
-            PROSPECT_LINKEDIN,
-        ],
+        args=[USER_LINKEDIN, USER_EMAIL, PROSPECT_LINKEDIN, BLOCKS],
         priority=1,
     )
 

@@ -2478,19 +2478,10 @@ def scribe_sample_email_generation(
     USER_LINKEDIN: str,
     USER_EMAIL: str,
     PROSPECT_LINKEDIN: str,
+    BLOCKS: str
 ):
     random_code = generate_random_alphanumeric(num_chars=10)
     try:
-        BLOCKS = """
-            1. Personalize the title to their company and or the prospect
-            2. Include a greeting with Hi, Hello, or Hey with their first name
-            3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
-            4. Mention what we do and offer and how it can help them based on their background, company, and key details.
-            5. Use the objective for a call to action
-            6. End with Best, (new line) (My Name) (new line) (Title)
-            7. Have a P.S with a short, personalized line. Ideally it is something that is relevant to their background or interests
-        """
-
         CLIENT_ID = 38  # SellScale Scribe client
         CLIENT_ARCHETYPE_ID = 268  # SellScale Scribe archetype
         CLIENT_SDR_ID = 89  # SellScale Scribe SDR
