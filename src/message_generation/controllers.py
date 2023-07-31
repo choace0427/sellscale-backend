@@ -923,10 +923,13 @@ def post_generate_scribe_completion():
         "prospect_linkedin", request, json=True, required=True
     )
 
-    scribe_sample_email_generation.delay(
-        USER_LINKEDIN=USER_LINKEDIN,
-        USER_EMAIL=USER_EMAIL,
-        PROSPECT_LINKEDIN=PROSPECT_LINKEDIN,
+    scribe_sample_email_generation.apply_async(
+        args=[
+            USER_LINKEDIN,
+            USER_EMAIL,
+            PROSPECT_LINKEDIN,
+        ],
+        priority=1,
     )
 
     return "OK", 200
