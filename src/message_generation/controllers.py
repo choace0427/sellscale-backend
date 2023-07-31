@@ -923,6 +923,11 @@ def post_generate_scribe_completion():
         "prospect_linkedin", request, json=True, required=True
     )
 
+    send_slack_message(
+        message=f"[{USER_EMAIL}] 🎉🪄 New Scribe Completion Job Triggered! From {USER_LINKEDIN} to {PROSPECT_LINKEDIN}",
+        webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+    )
+
     scribe_sample_email_generation.apply_async(
         args=[
             USER_LINKEDIN,
