@@ -1016,7 +1016,7 @@ def post_generate_scribe_completion():
     prospect_research_points = ResearchPoints.get_research_points_by_prospect_id(
         prospect
     )
-    prospect_research_joined = " ".join(
+    prospect_research_joined = "\n".join(
         ["- " + rp.value for rp in prospect_research_points]
     )
 
@@ -1091,6 +1091,20 @@ def post_generate_scribe_completion():
     )
     print("Completion done. Send email to user now at " + USER_EMAIL)
     print(completion)
+
+    # make call to zapier webhook with completion in payload
+    zapier_webhook_url = "https://hooks.zapier.com/hooks/catch/13803519/318v030/"
+    zapier_payload = {
+        "user_first_name": deep_get(user_rp, "personal.first_name", ""),
+        "user_company_title_case": deep_get(
+            user_rp, "personal.position_groups.0.company.name", ""
+        ),
+        "email": USER_EMAIL,
+        "completion": completion,
+    }
+    print("Sending to zapier webhook now")
+    r = requests.post(zapier_webhook_url, json=zapier_payload)
+    print(r.status_code)
 
     return jsonify(
         {
