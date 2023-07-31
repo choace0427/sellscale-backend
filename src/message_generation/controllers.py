@@ -55,6 +55,10 @@ from src.authentication.decorators import require_user
 from model_import import OutboundCampaign
 from tqdm import tqdm
 from datetime import datetime
+from src.prospecting.services import *
+from model_import import Prospect, ResearchPoints, ResearchPayload
+from app import db
+from src.ml.openai_wrappers import *
 
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
 
@@ -900,4 +904,196 @@ def post_generate_init_li_message(client_sdr_id: int):
 
     message, meta_data = generate_li_convo_init_msg(prospect_id)
 
-    return jsonify({"message": "Success", "data": { "message": message, "metadata": meta_data }}), 200
+    return (
+        jsonify(
+            {"message": "Success", "data": {"message": message, "metadata": meta_data}}
+        ),
+        200,
+    )
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/generate_scribe_completion", methods=["POST"])
+def post_generate_scribe_completion():
+    USER_LINKEDIN = get_request_parameter(
+        "user_linkedin", request, json=True, required=True
+    )
+    USER_EMAIL = get_request_parameter("user_email", request, json=True, required=True)
+    PROSPECT_LINKEDIN = get_request_parameter(
+        "prospect_linkedin", request, json=True, required=True
+    )
+    BLOCKS = """
+        1. Personalize the title to their company and or the prospect
+        2. Include a greeting with Hi, Hello, or Hey with their first name
+        3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
+        4. Mention what we do and offer and how it can help them based on their background, company, and key details.
+        5. Use the objective for a call to action
+        6. End with Best, (new line) (My Name) (new line) (Title)
+        7. Have a P.S with a short, personalized line. Ideally it is something that is relevant to their background or interests
+    """
+
+    CLIENT_ID = 38  # SellScale Scribe client
+    CLIENT_ARCHETYPE_ID = 268  # SellScale Scribe archetype
+    CLIENT_SDR_ID = 89  # SellScale Scribe SDR
+
+    def get_indiduals_prospect_id_from_linkedin_url(input_linkedin_url):
+        print("Looking for individual with linkedin url: " + input_linkedin_url)
+        linkedin_slug = get_linkedin_slug_from_url(input_linkedin_url)
+        prospect = (
+            Prospect.query.filter(
+                Prospect.linkedin_url.ilike("%" + linkedin_slug + "%")
+            )
+            .filter(Prospect.client_id == CLIENT_ID)
+            .first()
+        )
+        prospect_id = None
+        if prospect:
+            print("Found prospect with id {}".format(prospect.id))
+            prospect_id = prospect.id
+        else:
+            print("Prospect not found, creating new prospect")
+            success, prospect_id = create_prospect_from_linkedin_link(
+                archetype_id=CLIENT_ARCHETYPE_ID,
+                url=input_linkedin_url,
+                synchronous_research=True,
+            )
+            prospect = Prospect.query.filter_by(id=prospect_id).first()
+            prospect.linkedin_url = "linkedin.com/in/" + linkedin_slug
+            db.session.add(prospect)
+            db.session.commit()
+            print("Created prospect with id {}".format(prospect_id))
+
+        get_research_and_bullet_points_new(
+            prospect_id=prospect_id,
+            test_mode=False,
+        )
+
+        prospect = Prospect.query.filter_by(id=prospect_id).first()
+        research_points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+        print(
+            "Found individual named {} with id {}".format(
+                prospect.full_name, prospect_id
+            )
+        )
+        print("Research points:")
+        for research_point in research_points:
+            print("\t- " + research_point.value)
+        print("-------")
+
+        return prospect_id
+
+    prospect = get_indiduals_prospect_id_from_linkedin_url(PROSPECT_LINKEDIN)
+    user = get_indiduals_prospect_id_from_linkedin_url(USER_LINKEDIN)
+
+    prospect_rp = ResearchPayload.query.filter_by(prospect_id=prospect).first()
+    user_rp = ResearchPayload.query.filter_by(prospect_id=user).first()
+
+    if prospect_rp:
+        prospect_rp = prospect_rp.payload
+    if user_rp:
+        user_rp = user_rp.payload
+
+    # names
+    structure = BLOCKS
+    sdr_name = (
+        deep_get(user_rp, "personal.first_name", "")
+        + " "
+        + deep_get(user_rp, "personal.last_name", "")
+    )
+    sdr_title = deep_get(user_rp, "personal.sub_title", "")
+    sdr_company_name = deep_get(user_rp, "personal.position_groups.0.company.name", "")
+    sdr_company_description = deep_get(user_rp, "company.details.description") or ""
+    sdr_company_tagline = deep_get(user_rp, "company.details.tagline") or ""
+    prospect_name = (
+        deep_get(prospect_rp, "personal.first_name", "")
+        + " "
+        + deep_get(prospect_rp, "personal.last_name", "")
+    )
+    prospect_title = deep_get(prospect_rp, "personal.sub_title")
+    prospect_bio = deep_get(prospect_rp, "personal.summary") or ""
+    prospect_company_name = deep_get(
+        prospect_rp, "personal.position_groups.0.company.name"
+    )
+    prospect_research_points = ResearchPoints.get_research_points_by_prospect_id(
+        prospect
+    )
+    prospect_research_joined = " ".join(
+        ["- " + rp.value for rp in prospect_research_points]
+    )
+
+    print("SDR Name: " + sdr_name)
+    print("SDR Title: " + sdr_title)
+    print("SDR Company Name: " + sdr_company_name)
+    print("SDR Company Description: " + sdr_company_description)
+    print("SDR Company Tagline: " + sdr_company_tagline)
+    print("-------")
+    print("Prospect Name: " + prospect_name)
+    print("Prospect Title: " + prospect_title)
+    print("Prospect Bio: " + prospect_bio)
+    print("Prospect Company Name: " + prospect_company_name)
+    print("Prospect Research Points: " + prospect_research_joined)
+    print("-------")
+
+    prompt = """You are a sales development representative writing on behalf of the SDR.
+
+    Write a personalized cold email short enough I could read on an iphone easily. Here's the structure
+    {structure}
+
+    Note - you do not need to include all info.
+
+    SDR info:
+    SDR Name: {client_sdr_name}
+    Title: {client_sdr_title}
+
+    Company info:
+    Tagline: {company_tagline}
+    Company description: {company_description}
+
+    Prospect info:
+    Prospect Name: {prospect_name}
+    Prospect Title: {prospect_title}
+    Prospect Bio:
+    "{prospect_bio}"
+    Prospect Company Name: {prospect_company_name}
+
+    More research:
+    {prospect_research}
+
+    Final instructions
+    - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed".
+    - Use markdown as needed to accomplish the instructions.
+
+    Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
+
+    I want to write this email with the following objective: {persona_contact_objective}
+
+    Output:""".format(
+        structure=structure,
+        client_sdr_name=sdr_name,
+        client_sdr_title=sdr_title,
+        company_tagline=sdr_company_tagline,
+        company_description=sdr_company_description,
+        prospect_name=prospect_name,
+        prospect_title=prospect_title,
+        prospect_bio=prospect_bio,
+        prospect_company_name=prospect_company_name,
+        prospect_research=prospect_research_joined,
+        persona_contact_objective="Get on an intro call",
+    )
+
+    print("Making completion now ...")
+    completion = wrapped_chat_gpt_completion(
+        [
+            {"role": "system", "content": prompt},
+        ],
+        temperature=0.7,
+        max_tokens=240,
+        model=OPENAI_CHAT_GPT_4_MODEL,
+    )
+    print("Completion done. Send email to user now at " + USER_EMAIL)
+    print(completion)
+
+    return jsonify(
+        {
+            "completion": completion,
+        }
+    )
