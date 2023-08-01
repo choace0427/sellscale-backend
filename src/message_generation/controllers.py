@@ -935,14 +935,10 @@ def post_generate_scribe_completion():
         webhook_urls=[URL_MAP["ops-scribe-submissions"]],
     )
 
-    plg_product_leads_in_last_hour = (
-        PLGProductLeads.query.filter(
-            PLGProductLeads.created_at
-            > datetime.datetime.utcnow() - datetime.timedelta(hours=1)
-        )
-        .all()
-        .count()
-    )
+    plg_product_leads_in_last_hour = PLGProductLeads.query.filter(
+        PLGProductLeads.created_at
+        > datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+    ).count()
     if plg_product_leads_in_last_hour > 1000:
         return "Too many submissions in the last hour", 400
 
