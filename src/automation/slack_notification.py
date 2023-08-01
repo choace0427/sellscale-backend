@@ -170,22 +170,28 @@ def send_status_change_slack_block(
         )
 
     if outreach_type == ProspectChannels.LINKEDIN:  # Add next steps for Linkedin
+        sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        direct_link =  "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+            auth_token=sdr.auth_token,
+            prospect_id=prospect.id,
+        )
+
         message_blocks.append(
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Next steps: Respond on Linkedin conversation thread",
+                    "text": "Next steps: Respond",
                 },
                 "accessory": {
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": "Click to see Linkedin Thread",
+                        "text": "View Convo in Sight",
                         "emoji": True,
                     },
-                    "value": (metadata and metadata.get("threadUrl")) or "https://www.linkedin.com",
-                    "url": (metadata and metadata.get("threadUrl")) or "https://www.linkedin.com",
+                    "value": direct_link,
+                    "url": direct_link,
                     "action_id": "button-action",
                 },
             }
@@ -292,13 +298,13 @@ def send_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Next steps: Respond on Linkedin conversation thread",
+                    "text": "Next steps: Respond",
                 },
                 "accessory": {
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": "Click to see Linkedin Thread",
+                        "text": "View Convo in Sight",
                         "emoji": True,
                     },
                     "value": li_message_payload.get("threadUrl")
