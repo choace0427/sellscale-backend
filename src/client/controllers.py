@@ -83,6 +83,7 @@ from src.client.services_client_archetype import (
     get_email_blocks_configuration,
     hard_deactivate_client_archetype,
     modify_archetype_prospect_filters,
+    move_prospects_to_archetype,
     patch_archetype_email_blocks_configuration,
     update_transformer_blocklist,
     replicate_transformer_blocklist,
@@ -466,6 +467,40 @@ def post_activate_archetype(client_sdr_id: int, archetype_id: int):
         return jsonify({"status": "success", "data": {"message": "Activated"}}), 200
 
     return jsonify({"status": "error", "message": "Failed to activate"}), 404
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/bulk_action/move", methods=["POST"])
+@require_user
+def post_archetype_bulk_action_move_prospects(client_sdr_id: int, archetype_id: int):
+    target_archetype_id = get_request_parameter(
+        "target_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
+
+    if len(prospect_ids) > 100:
+        return jsonify({"status": "error", "message": "Too many prospects. Limit 100."}), 400
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not sdr or not archetype or sdr.id != archetype.client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+    target_archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
+    if not target_archetype or sdr.id != target_archetype.client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid target archetype"}), 400
+
+    success = move_prospects_to_archetype(
+        client_sdr_id=client_sdr_id,
+        source_archetype_id=archetype_id,
+        target_archetype_id=target_archetype_id,
+        prospect_ids=prospect_ids
+    )
+    if success:
+        return jsonify({"status": "success", "data": {"message": "Moved prospects"}}), 200
+
+    return jsonify({"status": "error", "message": "Failed to move prospects"}), 400
+
 
 
 @CLIENT_BLUEPRINT.route("/prospect_upload/<upload_id>/stats", methods=["GET"])

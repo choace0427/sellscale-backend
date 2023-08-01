@@ -538,3 +538,45 @@ def hard_deactivate_client_archetype(client_sdr_id: int, client_archetype_id: in
     db.session.commit()
 
     return True
+
+
+def move_prospects_to_archetype(client_sdr_id: int, source_archetype_id: int, target_archetype_id: int, prospect_ids: list[int]):
+    """Move prospects from one archetype to another.
+
+    Args:
+        client_sdr_id (int): client sdr id
+        source_archetype_id (int): source archetype id
+        target_archetype_id (int): target archetype id
+
+    Returns:
+        bool: success
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    source_archetype: ClientArchetype = ClientArchetype.query.get(source_archetype_id)
+    if not source_archetype:
+        return False
+    if source_archetype.client_sdr_id != sdr.id:
+        return False
+
+    target_archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
+    if not target_archetype:
+        return False
+    if target_archetype.client_sdr_id != sdr.id:
+        return False
+
+    # Get all prospects that are in this archetype that are in the PROSPECTED state
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == source_archetype.id,
+        Prospect.id.in_(prospect_ids)
+    ).all()
+
+    for prospect in prospects:
+        # Reassign the prospect to the new archetype
+        prospect.archetype_id = target_archetype.id
+
+    db.session.commit()
+
+    return True

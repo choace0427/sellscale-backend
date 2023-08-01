@@ -7,7 +7,7 @@ from model_import import (
     GNLPModel,
     ProspectOverallStatus,
 )
-from src.client.services_client_archetype import hard_deactivate_client_archetype
+from src.client.services_client_archetype import hard_deactivate_client_archetype, move_prospects_to_archetype
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.prospecting.models import Prospect, ProspectStatus
@@ -131,3 +131,37 @@ def test_hard_deactivate_client_archetype():
     assert subject_line.message_status == GeneratedMessageStatus.SENT
     assert first_line.message_status == GeneratedMessageStatus.SENT
     assert body.message_status == GeneratedMessageStatus.SENT
+
+
+@use_app_context
+def test_move_prospects_to_archetype():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    archetype_id = archetype.id
+    archetype_2 = basic_archetype(client, sdr)
+    archetype_2_id = archetype_2.id
+    prospect = basic_prospect(client, archetype, sdr)
+    prospect_id = prospect.id
+    prospect_2 = basic_prospect(client, archetype, sdr)
+    prospect_2_id = prospect_2.id
+
+    # Move both prospects to archetype_2
+    assert prospect.archetype_id == archetype_id
+    assert prospect_2.archetype_id == archetype_id
+    result = move_prospects_to_archetype(
+        sdr.id, archetype_id, archetype_2_id, [prospect_id, prospect_2_id]
+    )
+    assert result == True
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_2: Prospect = Prospect.query.get(prospect_2_id)
+    assert prospect.archetype_id == archetype_2_id
+    assert prospect_2.archetype_id == archetype_2_id
+
+    # Move prospect to archetype
+    result = move_prospects_to_archetype(sdr.id, archetype_2_id, archetype_id, [prospect_id])
+    assert result == True
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_2: Prospect = Prospect.query.get(prospect_2_id)
+    assert prospect.archetype_id == archetype_id
+    assert prospect_2.archetype_id == archetype_2_id
