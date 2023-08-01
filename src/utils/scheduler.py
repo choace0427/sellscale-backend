@@ -1,7 +1,10 @@
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 import atexit
 import time
 import os
+
+from pytz import timezone
 
 ENV = os.environ.get("FLASK_ENV")
 
@@ -225,42 +228,39 @@ def run_scrape_for_demos():
     return
 
 
+daily_trigger = CronTrigger(hour=9, timezone=timezone('America/Los_Angeles'))
+monthly_trigger = CronTrigger(day=1, hour=9, timezone=timezone('America/Los_Angeles'))
+
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
-# scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", hours=1)
-scheduler.add_job(
-    func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
-)
-# scheduler.add_job( # todo(Aakash): delete this after June 15, 2023 and related code if not needed
-#     func=run_next_client_sdr_li_conversation_scraper_job,
-#     trigger="cron",
-#     hour="9-17",
-#     minute="*/10",
-# )
-# scheduler.add_job(func=refresh_fine_tune_statuses_job, trigger="interval", minutes=10)
-scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
-scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
-scheduler.add_job(func=run_backfill_analytics_for_sdrs_job, trigger="interval", hours=1)
-scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hours=6)
-scheduler.add_job(
-    func=run_sync_vessel_mailboxes_and_sequences_job, trigger="interval", hours=24
-)
 
-scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
-scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
-scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=12)
-
-scheduler.add_job(func=replenish_sdr_credits, trigger="interval", days=1)
+# Minute triggers
 scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
-
+scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
+scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
 scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)
+scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
+scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
+
+#Hourly triggers
+scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
+scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
+scheduler.add_job(func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1)
 scheduler.add_job(auto_run_daily_revival_cleanup_job, trigger="interval", hours=1)
-scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
-scheduler.add_job(run_sales_navigator_reset, trigger="interval", hours=24)
-scheduler.add_job(run_scrape_for_demos, trigger="interval", hours=24)
+scheduler.add_job(func=run_backfill_analytics_for_sdrs_job, trigger="interval", hours=1)
+scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hours=6)
+
+# Daily triggers
+scheduler.add_job(func=run_sync_vessel_mailboxes_and_sequences_job, trigger=daily_trigger)
+scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
+scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
+
+# Monthly triggers
+scheduler.add_job(func=replenish_sdr_credits, trigger=monthly_trigger)
+
 
 scheduler.start()
 

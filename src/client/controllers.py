@@ -77,9 +77,13 @@ from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
 )
 from src.client.services_client_archetype import (
+    activate_client_archetype,
     create_empty_archetype_prospect_filters,
+    deactivate_client_archetype,
     get_email_blocks_configuration,
+    hard_deactivate_client_archetype,
     modify_archetype_prospect_filters,
+    move_prospects_to_archetype,
     patch_archetype_email_blocks_configuration,
     update_transformer_blocklist,
     replicate_transformer_blocklist,
@@ -302,12 +306,25 @@ def patch_sdr(client_sdr_id: int):
     email = get_request_parameter("email", request, json=True, required=False)
     title = get_request_parameter("title", request, json=True, required=False)
 
-    disable_ai_on_prospect_respond = get_request_parameter("disable_ai_on_prospect_respond", request, json=True, required=False, parameter_type=bool)
-    disable_ai_on_message_send = get_request_parameter("disable_ai_on_message_send", request, json=True, required=False, parameter_type=bool)
+    disable_ai_on_prospect_respond = get_request_parameter(
+        "disable_ai_on_prospect_respond",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+    )
+    disable_ai_on_message_send = get_request_parameter(
+        "disable_ai_on_message_send",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+    )
 
     success = update_client_sdr_details(
         client_sdr_id=client_sdr_id,
-        name=name, email=email,
+        name=name,
+        email=email,
         title=title,
         disable_ai_on_prospect_respond=disable_ai_on_prospect_respond,
         disable_ai_on_message_send=disable_ai_on_message_send,
@@ -431,6 +448,93 @@ def patch_toggle_archetype_active():
     if not success:
         return "Failed to update active", 404
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/deactivate", methods=["POST"])
+@require_user
+def post_deactivate_archetype(client_sdr_id: int, archetype_id: int):
+    hard_deactivate = get_request_parameter(
+        "hard_deactivate", request, json=True, required=True, parameter_type=bool
+    )
+
+    if hard_deactivate:
+        success = hard_deactivate_client_archetype(
+            client_sdr_id=client_sdr_id, client_archetype_id=archetype_id
+        )
+        if success:
+            return (
+                jsonify(
+                    {
+                        "status": "success",
+                        "data": {"message": "Deactivated and cleared messages"},
+                    }
+                ),
+                200,
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "Failed to deactivate and clear messages",
+                    }
+                ),
+                404,
+            )
+    else:
+        success = deactivate_client_archetype(
+            client_sdr_id=client_sdr_id, client_archetype_id=archetype_id
+        )
+        if success:
+            return (
+                jsonify({"status": "success", "data": {"message": "Deactivated"}}),
+                200,
+            )
+        else:
+            return jsonify({"status": "error", "message": "Failed to deactivate"}), 404
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/activate", methods=["POST"])
+@require_user
+def post_activate_archetype(client_sdr_id: int, archetype_id: int):
+
+    success = activate_client_archetype(
+        client_sdr_id=client_sdr_id, client_archetype_id=archetype_id
+    )
+    if success:
+        return jsonify({"status": "success", "data": {"message": "Activated"}}), 200
+
+    return jsonify({"status": "error", "message": "Failed to activate"}), 404
+
+
+@CLIENT_BLUEPRINT.route("/archetype/bulk_action/move", methods=["POST"])
+@require_user
+def post_archetype_bulk_action_move_prospects(client_sdr_id: int):
+    target_archetype_id = get_request_parameter(
+        "target_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
+
+    if len(prospect_ids) > 100:
+        return jsonify({"status": "error", "message": "Too many prospects. Limit 100."}), 400
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    target_archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
+    if not target_archetype or sdr.id != target_archetype.client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid target archetype"}), 400
+
+    success = move_prospects_to_archetype(
+        client_sdr_id=client_sdr_id,
+        target_archetype_id=target_archetype_id,
+        prospect_ids=prospect_ids
+    )
+    if success:
+        return jsonify({"status": "success", "data": {"message": "Moved prospects"}}), 200
+
+    return jsonify({"status": "error", "message": "Failed to move prospects"}), 400
+
 
 
 @CLIENT_BLUEPRINT.route("/prospect_upload/<upload_id>/stats", methods=["GET"])
@@ -1072,7 +1176,10 @@ def post_client_sdr_auto_bump(client_sdr_id: int):
     """Toggles auto bump for a client SDR"""
     success = toggle_client_sdr_auto_bump(client_sdr_id=client_sdr_id)
     if not success:
-        return jsonify({"status": "error", "message": "Failed to toggle auto bump"}), 400
+        return (
+            jsonify({"status": "error", "message": "Failed to toggle auto bump"}),
+            400,
+        )
     return jsonify({"status": "success", "data": {}}), 200
 
 
@@ -1521,7 +1628,10 @@ def post_demo_feedback(client_sdr_id: int):
 
     send_slack_message(
         message="🎊 ✍️ NEW Demo Feedback Collected",
-        webhook_urls=[URL_MAP["csm-demo-feedback"], client.pipeline_notifications_webhook_url],
+        webhook_urls=[
+            URL_MAP["csm-demo-feedback"],
+            client.pipeline_notifications_webhook_url,
+        ],
         blocks=[
             {
                 "type": "header",
@@ -1542,7 +1652,7 @@ def post_demo_feedback(client_sdr_id: int):
                     ),
                 },
             },
-            { "type": "divider" },
+            {"type": "divider"},
             {
                 "type": "context",
                 "elements": [
@@ -1556,9 +1666,9 @@ def post_demo_feedback(client_sdr_id: int):
                             showed=status,
                         ),
                     }
-                ]
+                ],
             },
-        ]
+        ],
     )
 
     return jsonify({"message": "Success"}), 200
@@ -1574,8 +1684,11 @@ def get_demo_feedback_sdr_endpoint(client_sdr_id: int):
     )
 
     if prospect_id:
-        
+
         feedback = get_demo_feedback(client_sdr_id, prospect_id)
+
+        if not feedback:
+            return jsonify({"message": "Feedback not found"}), 400
 
         return (
             jsonify(

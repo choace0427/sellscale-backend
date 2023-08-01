@@ -6,6 +6,7 @@ from src.message_generation.models import StackRankedMessageGenerationConfigurat
 from src.message_generation.services import (
     delete_prospect_bump,
     get_prospect_bump,
+    scribe_sample_email_generation,
     update_stack_ranked_configuration_data,
 )
 from app import db
@@ -55,6 +56,11 @@ from src.authentication.decorators import require_user
 from model_import import OutboundCampaign
 from tqdm import tqdm
 from datetime import datetime
+from src.prospecting.services import *
+from model_import import Prospect, ResearchPoints, ResearchPayload
+from app import db
+from src.ml.openai_wrappers import *
+from model_import import PLGProductLeads
 
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
 
@@ -900,4 +906,52 @@ def post_generate_init_li_message(client_sdr_id: int):
 
     message, meta_data = generate_li_convo_init_msg(prospect_id)
 
-    return jsonify({"message": "Success", "data": { "message": message, "metadata": meta_data }}), 200
+    return (
+        jsonify(
+            {"message": "Success", "data": {"message": message, "metadata": meta_data}}
+        ),
+        200,
+    )
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/generate_scribe_completion", methods=["POST"])
+def post_generate_scribe_completion():
+    USER_LINKEDIN = get_request_parameter(
+        "user_linkedin", request, json=True, required=True
+    )
+    USER_EMAIL = get_request_parameter("user_email", request, json=True, required=True)
+    PROSPECT_LINKEDIN = get_request_parameter(
+        "prospect_linkedin", request, json=True, required=True
+    )
+    BLOCKS = get_request_parameter("blocks", request, json=True, required=True)
+
+    plg_product_lead_exists = PLGProductLeads.query.filter_by(email=USER_EMAIL).first()
+    if plg_product_lead_exists:
+        send_slack_message(
+            message=f"[{USER_EMAIL}] Existing PLG lead created a new Scribe Completion Job! From {USER_LINKEDIN} to {PROSPECT_LINKEDIN}",
+            webhook_urls=[URL_MAP["sales-leads-plg-demo"]],
+        )
+    else:
+        send_slack_message(
+            message=f"🎉✅🎉✅ New Sales Lead from PLG Website Demo!\nEmail: {USER_EMAIL}\nThey are sending an email from {USER_LINKEDIN} → {PROSPECT_LINKEDIN}\nThese were the blocks:\n---\n{BLOCKS}\n---",
+            webhook_urls=[URL_MAP["sales-leads-plg-demo"]],
+        )
+
+    send_slack_message(
+        message=f"[{USER_EMAIL}] 🎉🪄 New Scribe Completion Job Triggered! From {USER_LINKEDIN} to {PROSPECT_LINKEDIN}",
+        webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+    )
+
+    plg_product_leads_in_last_hour = PLGProductLeads.query.filter(
+        PLGProductLeads.created_at
+        > datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+    ).count()
+    if plg_product_leads_in_last_hour > 1000:
+        return "Too many submissions in the last hour", 400
+
+    scribe_sample_email_generation.apply_async(
+        args=[USER_LINKEDIN, USER_EMAIL, PROSPECT_LINKEDIN, BLOCKS],
+        priority=1,
+    )
+
+    return "OK", 200

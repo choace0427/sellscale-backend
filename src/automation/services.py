@@ -1,5 +1,5 @@
 import random
-from sqlalchemy import or_
+from sqlalchemy import nullslast, or_
 from app import db, celery
 from sqlalchemy.sql.expression import func
 from src.automation.models import (
@@ -525,8 +525,8 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
                 GeneratedMessage.pb_csv_count <= 2,
                 GeneratedMessage.pb_csv_count == None,
             ),  # Only grab messages that have not been sent twice
-        ).order_by(OutboundCampaign.priority_rating.desc())
-        .order_by(GeneratedMessage.priority_rating.desc())
+        ).order_by(nullslast(OutboundCampaign.priority_rating.desc()))
+        .order_by(nullslast(GeneratedMessage.priority_rating.desc()))
         .order_by(GeneratedMessage.created_at.desc())
         .limit(csv_limit)
     ).all()

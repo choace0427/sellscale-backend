@@ -5,6 +5,7 @@ from src.client.models import (
     ClientSDR,
     ClientPod,
     DemoFeedback,
+    PLGProductLeads,
 )
 from src.prospecting.models import (
     Prospect,
