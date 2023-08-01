@@ -2517,6 +2517,7 @@ def scribe_sample_email_generation(
                     archetype_id=CLIENT_ARCHETYPE_ID,
                     url=input_linkedin_url,
                     synchronous_research=True,
+                    allow_duplicates=False,
                 )
                 prospect = Prospect.query.filter_by(id=prospect_id).first()
                 prospect.linkedin_url = "linkedin.com/in/" + linkedin_slug

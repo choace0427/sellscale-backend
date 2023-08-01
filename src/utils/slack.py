@@ -30,11 +30,13 @@ URL_MAP = {
     "company-pipeline": "https://hooks.slack.com/services/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",
     "csm-demo-date": "https://hooks.slack.com/services/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",
     "ops-scribe-submissions": "https://hooks.slack.com/services/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",
-    'sales-leads-plg-demo': 'https://hooks.slack.com/services/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'
+    "sales-leads-plg-demo": "https://hooks.slack.com/services/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",
 }
 
 
 def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
+    print(message)
+    return
     if (
         os.environ.get("FLASK_ENV") != "production"
         and os.environ.get("FLASK_ENV") != "celery-production"

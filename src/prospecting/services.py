@@ -931,6 +931,7 @@ def create_prospect_from_linkedin_link(
     batch: str = None,
     email: str = None,
     synchronous_research: bool = False,
+    allow_duplicates: bool = True
 ):
     from src.research.linkedin.services import research_personal_profile_details
 
@@ -986,6 +987,7 @@ def create_prospect_from_linkedin_link(
             email=email,
             linkedin_num_followers=followers_count,
             synchronous_research=synchronous_research,
+            allow_duplicates=allow_duplicates,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
