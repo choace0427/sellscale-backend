@@ -150,7 +150,7 @@ def test_move_prospects_to_archetype():
     assert prospect.archetype_id == archetype_id
     assert prospect_2.archetype_id == archetype_id
     result = move_prospects_to_archetype(
-        sdr.id, archetype_id, archetype_2_id, [prospect_id, prospect_2_id]
+        sdr.id, archetype_2_id, [prospect_id, prospect_2_id]
     )
     assert result == True
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -159,7 +159,7 @@ def test_move_prospects_to_archetype():
     assert prospect_2.archetype_id == archetype_2_id
 
     # Move prospect to archetype
-    result = move_prospects_to_archetype(sdr.id, archetype_2_id, archetype_id, [prospect_id])
+    result = move_prospects_to_archetype(sdr.id, archetype_id, [prospect_id])
     assert result == True
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_2: Prospect = Prospect.query.get(prospect_2_id)
