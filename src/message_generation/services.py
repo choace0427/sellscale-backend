@@ -6,7 +6,7 @@ from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
 from src.research.account_research import generate_prospect_research
 from src.message_generation.models import GeneratedMessageQueue
-from sqlalchemy import or_
+from sqlalchemy import nullslast, or_
 from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
 from sqlalchemy import text
@@ -135,8 +135,8 @@ def get_messages_queued_for_outreach(
 
     joined_prospect_message = (
         joined_prospect_message.order_by(OutboundCampaign.priority_rating.desc())
-        .order_by(GeneratedMessage.priority_rating.desc())
-        .order_by(GeneratedMessage.created_at.desc())
+        .order_by(nullslast(GeneratedMessage.priority_rating.desc()))
+        .order_by(nullslast(GeneratedMessage.created_at.desc()))
         .limit(limit)
         .offset(offset)
         .all()
