@@ -2166,6 +2166,8 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.active,
             ClientArchetype.icp_matching_prompt,
             ClientArchetype.is_unassigned_contact_archetype,
+            ClientArchetype.persona_fit_reason,
+            ClientArchetype.persona_contact_objective,
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_outreach_message_id.is_(None))
