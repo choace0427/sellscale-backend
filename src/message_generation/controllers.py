@@ -929,7 +929,7 @@ def post_generate_scribe_completion():
     if plg_product_lead_exists:
         send_slack_message(
             message=f"[{USER_EMAIL}] Existing PLG lead created a new Scribe Completion Job! From {USER_LINKEDIN} to {PROSPECT_LINKEDIN}",
-            webhook_urls=[URL_MAP["ops-scribe-submissions"]],
+            webhook_urls=[URL_MAP["sales-leads-plg-demo"]],
         )
     else:
         send_slack_message(
