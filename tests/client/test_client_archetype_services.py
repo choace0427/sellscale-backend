@@ -134,7 +134,8 @@ def test_hard_deactivate_client_archetype():
 
 
 @use_app_context
-def test_move_prospects_to_archetype():
+@mock.patch("src.client.services_client_archetype.mark_queued_and_classify.apply_async", return_value=True)
+def test_move_prospects_to_archetype(mock_mark_queued_and_classify):
     client = basic_client()
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, sdr)
@@ -157,6 +158,7 @@ def test_move_prospects_to_archetype():
     prospect_2: Prospect = Prospect.query.get(prospect_2_id)
     assert prospect.archetype_id == archetype_2_id
     assert prospect_2.archetype_id == archetype_2_id
+    assert mock_mark_queued_and_classify.call_count == 2
 
     # Move prospect to archetype
     result = move_prospects_to_archetype(sdr.id, archetype_id, [prospect_id])
@@ -165,3 +167,4 @@ def test_move_prospects_to_archetype():
     prospect_2: Prospect = Prospect.query.get(prospect_2_id)
     assert prospect.archetype_id == archetype_id
     assert prospect_2.archetype_id == archetype_2_id
+    assert mock_mark_queued_and_classify.call_count == 3

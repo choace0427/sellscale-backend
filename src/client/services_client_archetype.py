@@ -5,6 +5,7 @@ from typing import Union, Optional
 from src.client.models import ClientSDR
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
+from src.ml.services import mark_queued_and_classify
 from src.prospecting.models import Prospect, ProspectStatus
 
 from src.utils.slack import URL_MAP, send_slack_message
@@ -570,5 +571,15 @@ def move_prospects_to_archetype(client_sdr_id: int, target_archetype_id: int, pr
         prospect.archetype_id = target_archetype.id
 
     db.session.commit()
+
+    # Re-classify the prospects
+    for index, prospect_id in enumerate(prospect_ids):
+        countdown = float(index / 2.0)
+        mark_queued_and_classify.apply_async(
+            args=[client_sdr_id, target_archetype_id, prospect_id, countdown],
+            queue="ml_prospect_classification",
+            routing_key="ml_prospect_classification",
+            priority=5,
+        )
 
     return True

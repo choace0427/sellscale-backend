@@ -163,7 +163,8 @@ def send_status_change_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*ICP fit reason:* {}".format(prospect.icp_fit_reason),
+                    "text": "*SellScale AI Researcher says 🕵️🔎:* '_{}_'".format(prospect.icp_fit_reason),
+                    "emoji": True,
                 },
             }
         )
