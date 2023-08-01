@@ -60,6 +60,7 @@ from src.prospecting.services import *
 from model_import import Prospect, ResearchPoints, ResearchPayload
 from app import db
 from src.ml.openai_wrappers import *
+from model_import import PLGProductLeads
 
 MESSAGE_GENERATION_BLUEPRINT = Blueprint("message_generation", __name__)
 
@@ -933,6 +934,17 @@ def post_generate_scribe_completion():
         message=f"[{USER_EMAIL}] 🎉🪄 New Scribe Completion Job Triggered! From {USER_LINKEDIN} to {PROSPECT_LINKEDIN}",
         webhook_urls=[URL_MAP["ops-scribe-submissions"]],
     )
+
+    plg_product_leads_in_last_hour = (
+        PLGProductLeads.query.filter(
+            PLGProductLeads.created_at
+            > datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+        )
+        .all()
+        .count()
+    )
+    if plg_product_leads_in_last_hour > 1000:
+        return "Too many submissions in the last hour", 400
 
     scribe_sample_email_generation.apply_async(
         args=[USER_LINKEDIN, USER_EMAIL, PROSPECT_LINKEDIN, BLOCKS],
