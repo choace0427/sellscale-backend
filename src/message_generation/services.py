@@ -2494,7 +2494,7 @@ def scribe_sample_email_generation(
 7. Have a P.S with a short, personalized line. Ideally it is something that is relevant to their background or interests""",
         "resurrection": """0. Come up with a zesty, fun subject line that is personalized to them
 1. Start by saying we haven't heard from them, but make it lighthearted and include a joke, perhaps related to their industry or role
-2. Personalize title: Include their company name/prospect's name in the greeting.
+2. Personalize title: Include the prospect's name in the greeting.
 3. Mention we've been trying to get ahold of them, and if what our company does is still a priority
 4. Ask if they've given up
 5. Closing: Sign off with "Best," (newline) Your Name.
