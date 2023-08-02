@@ -49,8 +49,7 @@ def replicate_transformer_blocklist(
     Returns:
         tuple[bool, str]: success & message
     """
-    source_ca: ClientArchetype = ClientArchetype.query.get(
-        source_client_archetype_id)
+    source_ca: ClientArchetype = ClientArchetype.query.get(source_client_archetype_id)
     if not source_ca:
         return False, "Source client archetype not found"
     destination_ca: ClientArchetype = ClientArchetype.query.get(
@@ -124,7 +123,9 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
     return list_of_archetypes
 
 
-def create_empty_archetype_prospect_filters(client_sdr_id: int, archetype_id: int) -> bool:
+def create_empty_archetype_prospect_filters(
+    client_sdr_id: int, archetype_id: int
+) -> bool:
     """Creates an empty archetype prospect filter for the given archetype id
 
     Args:
@@ -173,7 +174,7 @@ def create_empty_archetype_prospect_filters(client_sdr_id: int, archetype_id: in
             "headquarter_location_exclusion": [],
             "account_industry_inclusion": [],
             "account_industry_exclusion": [],
-        }
+        },
     }
 
     ca.prospect_filters = empty_filter
@@ -211,7 +212,6 @@ def modify_archetype_prospect_filters(
     headquarter_location_exclusion: Optional[list] = [],
     account_industry_inclusion: Optional[list] = [],
     account_industry_exclusion: Optional[list] = [],
-
 ) -> bool:
     """
     Modify the prospect filters for a given archetype
@@ -260,7 +260,7 @@ def modify_archetype_prospect_filters(
                 "industry_inclusion": industry_inclusion,
                 "industry_exclusion": industry_exclusion,
                 "years_of_experience": years_of_experience,
-            }
+            },
         },
         "account": {
             "annual_revenue": annual_revenue,
@@ -269,7 +269,7 @@ def modify_archetype_prospect_filters(
             "headquarter_location_exclusion": headquarter_location_exclusion,
             "account_industry_inclusion": account_industry_inclusion,
             "account_industry_exclusion": account_industry_exclusion,
-        }
+        },
     }
 
     sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
@@ -283,8 +283,7 @@ def modify_archetype_prospect_filters(
                 "text": {
                     "type": "mrkdwn",
                     "text": "SDR *{sdr_name}* has modified the prospect filters for archetype *{archetype_name}*!".format(
-                        sdr_name=sdr.name,
-                        archetype_name=ca.archetype
+                        sdr_name=sdr.name, archetype_name=ca.archetype
                     ),
                 },
             },
@@ -302,7 +301,8 @@ def modify_archetype_prospect_filters(
                 "text": {
                     "type": "mrkdwn",
                     "text": "*SellScale Sight*: <{link}|Link>".format(
-                        link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + sdr.auth_token
+                        link="https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                        + sdr.auth_token
                     ),
                 },
             },
@@ -316,7 +316,11 @@ def modify_archetype_prospect_filters(
     return True
 
 
-def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int, email_bump_framework_id: Optional[int] = None) -> list:
+def get_email_blocks_configuration(
+    client_sdr_id: int,
+    client_archetype_id: int,
+    email_bump_framework_id: Optional[int] = None,
+) -> list:
     """Get the email blocks configuration for a given archetype and/or bump_framework ID
 
     Args:
@@ -334,7 +338,8 @@ def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int,
         return []
 
     archetype: ClientArchetype = ClientArchetype.query.filter_by(
-        id=client_archetype_id).first()
+        id=client_archetype_id
+    ).first()
     if not archetype:
         return []
     if archetype.client_sdr_id != sdr.id:
@@ -342,11 +347,13 @@ def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int,
 
     if archetype.email_blocks_configuration is None:
         create_default_archetype_email_blocks_configuration(
-            client_sdr_id, client_archetype_id)
+            client_sdr_id, client_archetype_id
+        )
 
     if email_bump_framework_id:
         bf_email: BumpFrameworkEmail = BumpFrameworkEmail.query.get(
-            email_bump_framework_id)
+            email_bump_framework_id
+        )
         if not bf_email:
             return []
         if bf_email.client_archetype_id != archetype.id:
@@ -356,7 +363,9 @@ def get_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int,
     return archetype.email_blocks_configuration
 
 
-def create_default_archetype_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int) -> bool:
+def create_default_archetype_email_blocks_configuration(
+    client_sdr_id: int, client_archetype_id: int
+) -> bool:
     """Create an empty email blocks configuration for a given archetype
 
     Args:
@@ -371,7 +380,8 @@ def create_default_archetype_email_blocks_configuration(client_sdr_id: int, clie
         return False
 
     archetype: ClientArchetype = ClientArchetype.query.filter_by(
-        id=client_archetype_id).first()
+        id=client_archetype_id
+    ).first()
     if not archetype:
         return False
     if archetype.client_sdr_id != sdr.id:
@@ -383,7 +393,7 @@ def create_default_archetype_email_blocks_configuration(client_sdr_id: int, clie
         "Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.",
         "Mention what we do and offer and how it can help them based on their background, company, and key details.",
         "Use the objective for a call to action",
-        "End with Best, (new line) (My Name) (new line) (Title)"
+        "End with Best, (new line) (My Name) (new line) (Title)",
     ]
     db.session.add(archetype)
     db.session.commit()
@@ -391,7 +401,9 @@ def create_default_archetype_email_blocks_configuration(client_sdr_id: int, clie
     return True
 
 
-def patch_archetype_email_blocks_configuration(client_sdr_id: int, client_archetype_id: int, blocks: list[str]) -> tuple[bool, str]:
+def patch_archetype_email_blocks_configuration(
+    client_sdr_id: int, client_archetype_id: int, blocks: list[str]
+) -> tuple[bool, str]:
     """Patch the email blocks configuration for a given archetype
 
     Args:
@@ -405,7 +417,8 @@ def patch_archetype_email_blocks_configuration(client_sdr_id: int, client_archet
         return False, "Client SDR not found"
 
     archetype: ClientArchetype = ClientArchetype.query.filter_by(
-        id=client_archetype_id).first()
+        id=client_archetype_id
+    ).first()
     if not archetype:
         return False, "Client archetype not found"
     if archetype.client_sdr_id != sdr.id:
@@ -443,7 +456,11 @@ def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> b
     db.session.commit()
 
     # Bulk update prospects
-    update_statement = update(Prospect).where(Prospect.archetype_id==archetype.id).values(active=True)
+    update_statement = (
+        update(Prospect)
+        .where(Prospect.archetype_id == archetype.id)
+        .values(active=True)
+    )
     db.session.execute(update_statement)
     db.session.commit()
 
@@ -476,7 +493,9 @@ def deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) ->
     return True
 
 
-def hard_deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> bool:
+def hard_deactivate_client_archetype(
+    client_sdr_id: int, client_archetype_id: int
+) -> bool:
     """Hard deactivate a client archetype. This will also block messages and mark the prospects as inactive.
 
     Args:
@@ -512,26 +531,39 @@ def hard_deactivate_client_archetype(client_sdr_id: int, client_archetype_id: in
         prospect.active = False
 
         # If the prospect is in a status PROSPECTED or QUEUED_FOR_OUTREACH, we need to block and wipe the messages
-        if prospect.status == ProspectStatus.PROSPECTED or prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH:
+        if (
+            prospect.status == ProspectStatus.PROSPECTED
+            or prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH
+        ):
 
             # If the prospect has a generated message, mark it as BLOCKED and remove the ID from Prospect
             if prospect.approved_outreach_message_id:
-                gm: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+                gm: GeneratedMessage = GeneratedMessage.query.get(
+                    prospect.approved_outreach_message_id
+                )
                 gm.message_status = GeneratedMessageStatus.BLOCKED
                 prospect.approved_outreach_message_id = None
 
             # If the prospect has a email component, grab the generated message and mark it as BLOCKED and remove the ID from ProspectEmail
             if prospect.approved_prospect_email_id:
-                p_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
-                subject: GeneratedMessage = GeneratedMessage.query.get(p_email.personalized_subject_line)
+                p_email: ProspectEmail = ProspectEmail.query.get(
+                    prospect.approved_prospect_email_id
+                )
+                subject: GeneratedMessage = GeneratedMessage.query.get(
+                    p_email.personalized_subject_line
+                )
                 if subject:
                     subject.message_status = GeneratedMessageStatus.BLOCKED
                     p_email.personalized_subject_line = None
-                first_line: GeneratedMessage = GeneratedMessage.query.get(p_email.personalized_first_line)
+                first_line: GeneratedMessage = GeneratedMessage.query.get(
+                    p_email.personalized_first_line
+                )
                 if first_line:
                     first_line.message_status = GeneratedMessageStatus.BLOCKED
                     p_email.personalized_first_line = None
-                body: GeneratedMessage = GeneratedMessage.query.get(p_email.personalized_body)
+                body: GeneratedMessage = GeneratedMessage.query.get(
+                    p_email.personalized_body
+                )
                 if body:
                     body.message_status = GeneratedMessageStatus.BLOCKED
                     p_email.personalized_body = None
@@ -541,7 +573,9 @@ def hard_deactivate_client_archetype(client_sdr_id: int, client_archetype_id: in
     return True
 
 
-def move_prospects_to_archetype(client_sdr_id: int, target_archetype_id: int, prospect_ids: list[int]):
+def move_prospects_to_archetype(
+    client_sdr_id: int, target_archetype_id: int, prospect_ids: list[int]
+):
     """Move prospects from one archetype to another.
 
     Args:
@@ -574,7 +608,7 @@ def move_prospects_to_archetype(client_sdr_id: int, target_archetype_id: int, pr
 
     # Re-classify the prospects
     for index, prospect_id in enumerate(prospect_ids):
-        countdown = float(index / 2.0)
+        countdown = float(index * 6)
         mark_queued_and_classify.apply_async(
             args=[client_sdr_id, target_archetype_id, prospect_id, countdown],
             queue="ml_prospect_classification",
