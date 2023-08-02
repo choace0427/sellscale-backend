@@ -2479,9 +2479,65 @@ def generate_li_convo_init_msg(prospect_id: int):
 
 @celery.task(bind=True, max_retries=3)
 def scribe_sample_email_generation(
-    self, USER_LINKEDIN: str, USER_EMAIL: str, PROSPECT_LINKEDIN: str, BLOCKS: str
+    self, USER_LINKEDIN: str, USER_EMAIL: str, PROSPECT_LINKEDIN: str, BLOCK_KEY: str
 ):
     random_code = generate_random_alphanumeric(num_chars=10)
+
+    BLOCK_OPTIONS = {
+        "email": """1. Come up with a fun subject line using the company or prospect name
+2. Include a greeting with Hi, Hello, or Hey with their first name
+3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal. 
+4. Inferring what they do from their title, transition into introducing our service
+5. Mention what we do and offer and how it can help them based on their background, company, and key details.
+5. Use the objective for a call to action
+6. End with Best, (new line) (My Name) (new line) (Title)
+7. Have a P.S with a short, personalized line. Ideally it is something that is relevant to their background or interests""",
+        "linkedin": """
+1. Personalize the title to their company and or the prospect
+2. Start with a fun joke or icebreaker related to their industry or company. Make sure it's polite & is relevant to their company or industry! Follow up with a personalized line related to their role.
+4. Mention what we do and offer and how it can help them based on their background, company, and key details. Connect to their experiences.
+5. Use the objective for a call to action and keep it light hearted.
+6. End with Best, (new line) (My Name)""",
+        "skeptical": """
+1. Personalize the title to their company and/or the prospect.
+2. Start with a respectful greeting such as "Hello" or "Hi" followed by their first name.
+3. Acknowledge their skepticism openly and respectfully. Mention that you understand their concerns and that it's natural to have questions.
+4. Personalized 1-2 lines. Highlight a specific concern or skepticism they have expressed in previous communication.
+5. Provide detailed information and evidence to counter their skepticism. Offer data, case studies, or testimonials that support the benefits and reliability of our product/service.
+6. Address any potential risks or challenges they might perceive, and offer viable solutions or explanations to mitigate those concerns.
+7. Use a genuine and persuasive call to action that invites them to engage further, ask additional questions, or schedule a meeting to address any lingering doubts.
+8. End with Best regards, (new line) (Your Name) (new line) (Your Title).""",
+        "research": """
+1. Personalize the title to their company and or the prospect
+2. Include a greeting with Hi, Hello, or Hey with their first name
+3. Personalized 1-2 lines. Mention research about their company, role, and background. Keep it related to the same domain of what we offer.
+4. Connect the research and mention what we do and offer and how it can help them based on their background, company, and key details.
+5. Use the objective for a call to action and tie it back to the research.
+6. End with Best, (new line) (My Name) (new line) (Title)""",
+        "linkedin": """1. Personalize the message with their first name and mention something about their profile.
+2. Start with a friendly greeting.
+3. Make it personalized and mention a specific detail about their background or role.
+4. Express how you can offer value or synergy based on your common interests or objectives.
+5. Use a call to action to encourage them to connect or engage further.
+
+Keep the whole message 1-2 sentences and 1 paragraph long. Keep it short!""",
+        "bullets": """1. Personalize: Use their first name and refer to something specific about their profile.
+2. Greeting: Begin with a friendly and professional greeting.
+3. Personalized Compliment: Mention a particular achievement or skill from their background.
+4. Common Interest: Highlight a shared interest or passion.
+5. Value Proposition: Express how connecting could be mutually beneficial or lead to potential collaborations. Use bullet points here to emphasize each value proposition.
+6. Call to Action: Encourage them to accept the invitation to connect or engage further.
+7. Closing: End with a courteous closing.""",
+        "short": """1. Personalize the title to their company and or the prospect
+2. Include a greeting with Hi, Hello, or Hey with their first name
+3. Make a 3 paragraph email and each paragraph is just 1 sentence. Sentence 1 is a personalized hook. Sentence 2 is a question related to their role & our product. Sentence 3 has a call to action.
+6. End with Best, (new line) (My Name) (new line) (Title)""",
+    }
+
+    key = BLOCK_KEY
+    if key not in BLOCK_OPTIONS:
+        key = "generic"
+    BLOCKS = BLOCK_OPTIONS[BLOCK_KEY]
 
     plg_lead = PLGProductLeads(
         email=USER_EMAIL,

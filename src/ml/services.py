@@ -725,6 +725,8 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
         {prospect_company_description}
         '''\n\n"""
 
+        print(prompt)
+
         prompt += HARD_CODE_ICP_PROMPT
 
         # Generate Completion
@@ -1129,18 +1131,14 @@ Seller: {seller_name}
 {transcript}
 --- End Transcript ---
 """.format(
-    seller_name=seller,
-    transcript=transcript
-)
+        seller_name=seller, transcript=transcript
+    )
 
     response = wrapped_chat_gpt_completion(
-        [{
-            "role": "user",
-            "content": prompt
-        }],
+        [{"role": "user", "content": prompt}],
         temperature=0,
         max_tokens=10,
-        model=OPENAI_CHAT_GPT_4_MODEL
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
 
     match = re.search(r"\d+", response)
@@ -1182,15 +1180,16 @@ Seller: {seller_name}
 {transcript}
 --- End Transcript ---
 """.format(
-    seller_name=seller,
-    transcript=transcript
-)
+        seller_name=seller, transcript=transcript
+    )
 
     response = wrapped_chat_gpt_completion(
-        [{
-            "role": "user",
-            "content": prompt,
-        }],
+        [
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
         temperature=0,
         max_tokens=10,
         model=OPENAI_CHAT_GPT_4_MODEL,

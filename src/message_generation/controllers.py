@@ -923,7 +923,7 @@ def post_generate_scribe_completion():
     PROSPECT_LINKEDIN = get_request_parameter(
         "prospect_linkedin", request, json=True, required=True
     )
-    BLOCKS = get_request_parameter("blocks", request, json=True, required=True)
+    BLOCK_KEY = get_request_parameter("block_key", request, json=True, required=True)
 
     plg_product_lead_exists = PLGProductLeads.query.filter_by(email=USER_EMAIL).first()
     if plg_product_lead_exists:
@@ -933,7 +933,7 @@ def post_generate_scribe_completion():
         )
     else:
         send_slack_message(
-            message=f"🎉✅🎉✅ New Sales Lead from PLG Website Demo!\nEmail: {USER_EMAIL}\nThey are sending an email from {USER_LINKEDIN} → {PROSPECT_LINKEDIN}\nThese were the blocks:\n---\n{BLOCKS}\n---",
+            message=f"🎉✅🎉✅ New Sales Lead from PLG Website Demo!\nEmail: {USER_EMAIL}\nThey are sending an email from {USER_LINKEDIN} → {PROSPECT_LINKEDIN}\nThis was the block key:\n---\n{BLOCK_KEY}\n---",
             webhook_urls=[URL_MAP["sales-leads-plg-demo"]],
         )
 
@@ -950,7 +950,7 @@ def post_generate_scribe_completion():
         return "Too many submissions in the last hour", 400
 
     scribe_sample_email_generation.apply_async(
-        args=[USER_LINKEDIN, USER_EMAIL, PROSPECT_LINKEDIN, BLOCKS],
+        args=[USER_LINKEDIN, USER_EMAIL, PROSPECT_LINKEDIN, BLOCK_KEY],
         priority=1,
     )
 
