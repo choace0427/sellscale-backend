@@ -530,7 +530,6 @@ def clone_persona(
         persona_contact_objective=persona_contact_objective,
     )
     new_persona_id = result.get('client_archetype_id')
-    persona: ClientArchetype = ClientArchetype.query.get(new_persona_id)
 
     if option_ctas:
         original_ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter_by(
@@ -538,7 +537,7 @@ def clone_persona(
         ).all()
         for original_cta in original_ctas:
             cta = create_cta(
-                archetype_id=persona.id,
+                archetype_id=new_persona_id,
                 text_value=original_cta.text_value,
                 expiration_date=original_cta.expiration_date,
                 active=original_cta.active,
@@ -552,7 +551,7 @@ def clone_persona(
             new_id = clone_bump_framework(
                 client_sdr_id=client_sdr_id,
                 bump_framework_id=original_bump_framework.id,
-                target_archetype_id=persona.id
+                target_archetype_id=new_persona_id
             )
 
     if option_voices:
@@ -561,7 +560,7 @@ def clone_persona(
         ).all()
         for original_voice in original_voices:
             voice = StackRankedMessageGenerationConfiguration(
-                configuration_type=original_voice.computed_prompt,
+                configuration_type=original_voice.configuration_type,
                 generated_message_type=original_voice.generated_message_type,
                 research_point_types=original_voice.research_point_types,
                 instruction=original_voice.instruction,
@@ -570,7 +569,7 @@ def clone_persona(
                 always_enable=original_voice.always_enable,
                 name=original_voice.name,
                 client_id=original_voice.client_id,
-                archetype_id=persona.id,
+                archetype_id=new_persona_id,
                 priority=original_voice.priority,
                 prompt_1=original_voice.prompt_1,
                 completion_1=original_voice.completion_1,
@@ -591,6 +590,8 @@ def clone_persona(
         db.session.commit()
 
     if option_email_blocks:
+        persona: ClientArchetype = ClientArchetype.query.get(new_persona_id)
+        original_persona: ClientArchetype = ClientArchetype.query.get(original_persona_id)
         persona.email_blocks_configuration = original_persona.email_blocks_configuration
         db.session.commit()
 
