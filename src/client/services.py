@@ -1,4 +1,3 @@
-import celery
 from src.bump_framework_email.models import BumpFrameworkEmail
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -14,7 +13,7 @@ from click import Option
 from src.client.models import DemoFeedback
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.automation.models import PhantomBusterAgent
-from app import db
+from app import celery, db
 from flask import jsonify
 import time
 import json
