@@ -16,7 +16,7 @@ DAILY_PROSPECT_SCRAPE_LIMIT = 600
 MAXIMUM_SCRAPE_PER_LAUNCH = 400
 
 
-@celery.task()
+@celery.task
 def reset_sales_navigator_config_counts() -> None:
     """Resets the daily counts for the Sales Navigator config
 
@@ -244,7 +244,7 @@ def collect_and_load_sales_navigator_results(self) -> None:
     return
 
 
-@celery.task()
+@celery.task
 def collect_and_trigger_phantom_buster_sales_navigator_launches() -> None:
     """Collects and triggers PhantomBusterSalesNavigatorLaunch entries
     """
