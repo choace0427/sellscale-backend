@@ -729,7 +729,10 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
 
 
 def create_cta(
-    archetype_id: int, text_value: str, expiration_date: Optional[datetime.datetime]
+    archetype_id: int,
+    text_value: str,
+    expiration_date: Optional[datetime.datetime],
+    active: bool = True,
 ):
     duplicate_cta_exists = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == archetype_id,
@@ -741,7 +744,7 @@ def create_cta(
     cta: GeneratedMessageCTA = GeneratedMessageCTA(
         archetype_id=archetype_id,
         text_value=text_value,
-        active=True,
+        active=active,
         expiration_date=expiration_date,
     )
     db.session.add(cta)
