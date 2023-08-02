@@ -2493,17 +2493,17 @@ def scribe_sample_email_generation(
 6. End with Best, (new line) (My Name) (new line) (Title)
 7. Have a P.S with a short, personalized line. Ideally it is something that is relevant to their background or interests""",
         "resurrection": """0. Come up with a zesty, fun subject line that is personalized to them
-1. 1. Start by saying we haven't heard from them, but make it lighthearted and include a joke, perhaps related to their industry or role
+1. Start by saying we haven't heard from them, but make it lighthearted and include a joke, perhaps related to their industry or role
 2. Personalize title: Include their company name/prospect's name in the greeting.
 3. Mention we've been trying to get ahold of them, and if what our company does is still a priority
 4. Ask if they've given up
 5. Closing: Sign off with "Best," (newline) Your Name.
 Be casual and creative.""",
-        "warm_intro": """1. Mention a unique fact about the company and their mission that we noticed; connects with our company's goals
-2. Transition into how we may be able to partner to further the prospect's mission by explaining what we do
-3. Ask if there's any interest to meet
-Note: don't make it too salesly.
--- IMPORTANT! Inject "Thanks for agreeing to send this warm intro over" at the beginning of this message as it's an opt-in intro sent by a third party. --""",
+        "warm_intro": """1. Start with a greeting
+2. Mention a unique fact or insight about their company
+3. Transition into how we may be able to partner to help the company. Then explain what we do.
+4. Ask if there's any interest to meet
+Note: don't make it too salesly. Make it brief and casual.""",
         "linkedin": """1. Greeting: open with a friendly greeting
 2. Specific detail about them: Include a personalized detail related to their background or role.
 3. Write a short sentence on what we do and how it relates to them. 
