@@ -1,4 +1,11 @@
 from typing import Optional
+
+from src.bump_framework.services import clone_bump_framework
+from src.message_generation.services import create_cta
+
+from src.client.services import (
+    create_client_archetype,
+)
 from src.company.models import Company
 from src.message_generation.models import GeneratedMessageStatus
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
@@ -8,6 +15,10 @@ from model_import import (
     PersonaSplitRequestTaskStatus,
     ClientArchetype,
     Prospect,
+    ClientSDR,
+    GeneratedMessageCTA,
+    BumpFramework,
+    StackRankedMessageGenerationConfiguration,
 )
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.services import get_prospect_details
@@ -487,3 +498,100 @@ def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_i
         db.session.commit()
 
     return True
+
+
+def clone_persona(
+    client_sdr_id: int,
+    original_persona_id: int,
+    persona_name: str,
+    persona_fit_reason: str,
+    persona_icp_matching_instructions: str,
+    persona_contact_objective: str,
+    option_ctas: bool,
+    option_bump_frameworks: bool,
+    option_voices: bool,
+    option_email_blocks: bool,
+):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if sdr is None: return None
+
+    original_persona: ClientArchetype = ClientArchetype.query.get(original_persona_id)
+    if original_persona is None: return None
+    
+    result = create_client_archetype(
+        client_id=sdr.client_id,
+        client_sdr_id=client_sdr_id,
+        archetype=persona_name,
+        filters=None,
+        base_archetype_id=original_persona_id,
+        disable_ai_after_prospect_engaged=True,
+        persona_fit_reason=persona_fit_reason,
+        icp_matching_prompt=persona_icp_matching_instructions,
+        persona_contact_objective=persona_contact_objective,
+    )
+    new_persona_id = result.get('client_archetype_id')
+    persona: ClientArchetype = ClientArchetype.query.get(new_persona_id)
+
+    if option_ctas:
+        original_ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter_by(
+            archetype_id=original_persona_id
+        ).all()
+        for original_cta in original_ctas:
+            cta = create_cta(
+                archetype_id=persona.id,
+                text_value=original_cta.text_value,
+                expiration_date=original_cta.expiration_date,
+                active=original_cta.active,
+            )
+
+    if option_bump_frameworks:
+        original_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
+            client_archetype_id=original_persona_id
+        ).all()
+        for original_bump_framework in original_bump_frameworks:
+            new_id = clone_bump_framework(
+                client_sdr_id=client_sdr_id,
+                bump_framework_id=original_bump_framework.id,
+                target_archetype_id=persona.id
+            )
+
+    if option_voices:
+        original_voices: list[StackRankedMessageGenerationConfiguration] = StackRankedMessageGenerationConfiguration.query.filter_by(
+            archetype_id=original_persona_id
+        ).all()
+        for original_voice in original_voices:
+            voice = StackRankedMessageGenerationConfiguration(
+                configuration_type=original_voice.computed_prompt,
+                generated_message_type=original_voice.generated_message_type,
+                research_point_types=original_voice.research_point_types,
+                instruction=original_voice.instruction,
+                computed_prompt=original_voice.computed_prompt,
+                active=original_voice.active,
+                always_enable=original_voice.always_enable,
+                name=original_voice.name,
+                client_id=original_voice.client_id,
+                archetype_id=persona.id,
+                priority=original_voice.priority,
+                prompt_1=original_voice.prompt_1,
+                completion_1=original_voice.completion_1,
+                prompt_2=original_voice.prompt_2,
+                completion_2=original_voice.completion_2,
+                prompt_3=original_voice.prompt_3,
+                completion_3=original_voice.completion_3,
+                prompt_4=original_voice.prompt_4,
+                completion_4=original_voice.completion_4,
+                prompt_5=original_voice.prompt_5,
+                completion_5=original_voice.completion_5,
+                prompt_6=original_voice.prompt_6,
+                completion_6=original_voice.completion_6,
+                prompt_7=original_voice.prompt_7,
+                completion_7=original_voice.completion_7,
+            )
+            db.session.add(voice)
+        db.session.commit()
+
+    if option_email_blocks:
+        persona.email_blocks_configuration = original_persona.email_blocks_configuration
+        db.session.commit()
+
+    return persona

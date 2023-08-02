@@ -1,6 +1,9 @@
 from crypt import methods
 from typing import Optional
 from flask import Blueprint, request, jsonify
+from src.personas.services import (
+    clone_persona,
+)
 from src.prospecting.models import Prospect
 from src.client.services import (
     submit_demo_feedback,
@@ -259,6 +262,44 @@ def get_archetype_prospects_endpoint(client_sdr_id: int, archetype_id: int):
     prospects = get_client_archetype_prospects(client_sdr_id, archetype_id, search)
 
     return jsonify({"message": "Success", "prospects": prospects}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/clone", methods=["POST"])
+@require_user
+def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
+    
+    persona_name = get_request_parameter("persona_name", request, json=True, required=True, parameter_type=str)
+    persona_fit_reason = get_request_parameter("persona_fit_reason", request, json=True, required=True, parameter_type=str)
+    persona_icp_matching_instructions = get_request_parameter("persona_icp_matching_instructions", request, json=True, required=True, parameter_type=str)
+    persona_contact_objective = get_request_parameter("persona_contact_objective", request, json=True, required=True, parameter_type=str)
+    
+    option_ctas = get_request_parameter("option_ctas", request, json=True, required=True, parameter_type=bool)
+    option_bump_frameworks = get_request_parameter("option_bump_frameworks", request, json=True, required=True, parameter_type=bool)
+    option_voices = get_request_parameter("option_voices", request, json=True, required=True, parameter_type=bool)
+    option_email_blocks = get_request_parameter("option_email_blocks", request, json=True, required=True, parameter_type=bool)
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return "Failed to find archetype", 404
+
+    persona = clone_persona(
+        client_sdr_id=client_sdr_id,
+        original_persona_id=archetype_id,
+        persona_name=persona_name,
+        persona_fit_reason=persona_fit_reason,
+        persona_icp_matching_instructions=persona_icp_matching_instructions,
+        persona_contact_objective=persona_contact_objective,
+        option_ctas=option_ctas,
+        option_bump_frameworks=option_bump_frameworks,
+        option_voices=option_voices,
+        option_email_blocks=option_email_blocks,
+    )
+    if not persona:
+        return "Failed to clone archetype", 500
+
+    return jsonify({"message": "Success", "data": {
+        "archetype": persona.to_dict(),
+    }}), 200
 
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes", methods=["GET"])
