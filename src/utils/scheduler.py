@@ -228,7 +228,7 @@ def run_scrape_for_demos():
     return
 
 
-daily_trigger = CronTrigger(hour=10, minute=30, timezone=timezone('America/Los_Angeles'))
+daily_trigger = CronTrigger(hour=9, timezone=timezone('America/Los_Angeles'))
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone('America/Los_Angeles'))
 
 # Add all jobs to scheduler
