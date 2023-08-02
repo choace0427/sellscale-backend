@@ -1,3 +1,4 @@
+import celery
 from src.bump_framework_email.models import BumpFrameworkEmail
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -1976,7 +1977,7 @@ def get_demo_feedback(client_sdr_id: int, prospect_id: int):
 
     return demo_feedback
 
-
+@celery.task()
 def scrape_for_demos() -> int:
     """Recurring job which will scrape for Prospects that have a demo_date set but no demo feedback
 

@@ -211,7 +211,7 @@ def run_sales_navigator_reset():
             os.environ.get("FLASK_ENV") == "production"
             and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        reset_sales_navigator_config_counts()
+        reset_sales_navigator_config_counts.delay()
 
     return
 
@@ -223,13 +223,13 @@ def run_scrape_for_demos():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        scrape_for_demos()
+        scrape_for_demos.delay()
 
     return
 
 
-daily_trigger = CronTrigger(hour=9, timezone=timezone('America/Los_Angeles'))
-monthly_trigger = CronTrigger(day=1, hour=9, timezone=timezone('America/Los_Angeles'))
+daily_trigger = CronTrigger(hour=10, timezone=timezone('America/Los_Angeles'))
+monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone('America/Los_Angeles'))
 
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
