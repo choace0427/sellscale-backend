@@ -560,7 +560,7 @@ def clone_persona(
         ).all()
         for original_voice in original_voices:
             voice = StackRankedMessageGenerationConfiguration(
-                configuration_type=original_voice.computed_prompt,
+                configuration_type=original_voice.configuration_type,
                 generated_message_type=original_voice.generated_message_type,
                 research_point_types=original_voice.research_point_types,
                 instruction=original_voice.instruction,
