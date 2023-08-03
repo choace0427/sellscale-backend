@@ -453,6 +453,9 @@ class Prospect(db.Model):
 
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
 
+    in_icp_sample = db.Column(db.Boolean, nullable=True)
+    icp_fit_score_override = db.Column(db.Integer, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
@@ -535,6 +538,8 @@ class Prospect(db.Model):
                 "email_last_message_from_sdr": self.email_last_message_from_sdr,
                 "email_unread_messages": self.email_unread_messages,
                 "active": self.active,
+                "in_icp_sample": self.in_icp_sample,
+                "icp_fit_score_override": self.icp_fit_score_override,
             }
 
         # Get generated message if it exists and is requested
@@ -663,6 +668,8 @@ class Prospect(db.Model):
             "email_last_message_from_prospect": self.email_last_message_from_prospect,
             "email_last_message_from_sdr": self.email_last_message_from_sdr,
             "email_unread_messages": self.email_unread_messages,
+            "in_icp_sample": self.in_icp_sample,
+            "icp_fit_score_override": self.icp_fit_score_override,
         }
 
 
