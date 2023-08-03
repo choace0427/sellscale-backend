@@ -1976,7 +1976,7 @@ def get_demo_feedback(client_sdr_id: int, prospect_id: int) -> list[DemoFeedback
     demo_feedback: list[DemoFeedback] = DemoFeedback.query.filter(
         DemoFeedback.client_sdr_id == client_sdr_id,
         DemoFeedback.prospect_id == prospect_id,
-    ).all()
+    ).order_by(DemoFeedback.id.asc()).all()
 
     return demo_feedback
 
