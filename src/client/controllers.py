@@ -1782,8 +1782,8 @@ def patch_demo_feedback(client_sdr_id: int):
         "next_demo_date", request, json=True, required=False, parameter_type=str
     )
 
-    feedback: DemoFeedback = DemoFeedback.query.get(feedback_id)
-    if feedback.client_sdr_id != client_sdr_id:
+    df: DemoFeedback = DemoFeedback.query.get(feedback_id)
+    if df.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "Feedback does not belong to you"}), 403
 
     result = edit_demo_feedback(
