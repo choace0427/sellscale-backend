@@ -734,6 +734,32 @@ def basic_pb_sn_launch(
     return launch
 
 
+def basic_demo_feedback(
+    client: Client,
+    client_sdr: ClientSDR,
+    prospect: Prospect,
+    status: str = "test_status",
+    rating: str = "test_rating",
+    feedback: str = "test_feedback",
+    demo_date: datetime = datetime.now(),
+    next_demo_date: datetime = datetime.now() + timedelta(days=1),
+) -> DemoFeedback:
+    df: DemoFeedback = DemoFeedback(
+        client_id=client.id,
+        client_sdr_id=client_sdr.id,
+        prospect_id=prospect.id,
+        status=status,
+        rating=rating,
+        feedback=feedback,
+        demo_date=demo_date,
+        next_demo_date=next_demo_date,
+    )
+    db.session.add(df)
+    db.session.commit()
+
+    return df
+
+
 def clear_all_entities(SQLAlchemyObject):
     echos = SQLAlchemyObject.query.all()
     for e in echos:

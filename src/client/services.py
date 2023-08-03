@@ -1899,8 +1899,11 @@ def submit_demo_feedback(
     status: str,
     rating: str,
     feedback: str,
+    next_demo_date: Optional[datetime] = None,
 ):
-    """Submits demo feedback
+    """Submits demo feedback.
+
+    If this is not the first demo feedback and contains a next demo, update prospect accordingly
 
     Args:
         client_sdr_id (int): Client SDR ID
@@ -1913,30 +1916,31 @@ def submit_demo_feedback(
     Returns:
         bool: Whether it was successful or not
     """
+    # Get the demo date that this feedback is referring to, otherwise use today
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    demo_date = prospect.demo_date
+    if not demo_date:
+        demo_date = datetime.now()
 
-    existing_demo_feedback: DemoFeedback = DemoFeedback.query.filter(
-        DemoFeedback.client_sdr_id == client_sdr_id,
-        DemoFeedback.prospect_id == prospect_id,
-    ).first()
-    if existing_demo_feedback:
-        existing_demo_feedback.status = status
-        existing_demo_feedback.rating = rating
-        existing_demo_feedback.feedback = feedback
+    # Create a new DemoFeedback object
+    demo_feedback = DemoFeedback(
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        status=status,
+        rating=rating,
+        feedback=feedback,
+        demo_date=demo_date,
+        next_demo_date=next_demo_date,
+    )
 
-        db.session.add(existing_demo_feedback)
-        db.session.commit()
-    else:
-        demo_feedback = DemoFeedback(
-            client_id=client_id,
-            client_sdr_id=client_sdr_id,
-            prospect_id=prospect_id,
-            status=status,
-            rating=rating,
-            feedback=feedback,
-        )
+    # If next_demo_date is specified, update the prospect
+    if next_demo_date:
+        prospect.demo_date = next_demo_date
+        db.session.add(prospect)
 
-        db.session.add(demo_feedback)
-        db.session.commit()
+    db.session.add(demo_feedback)
+    db.session.commit()
 
     return True
 
@@ -1958,7 +1962,7 @@ def get_all_demo_feedback(client_sdr_id: int):
     return demo_feedback
 
 
-def get_demo_feedback(client_sdr_id: int, prospect_id: int):
+def get_demo_feedback(client_sdr_id: int, prospect_id: int) -> list[DemoFeedback]:
     """Get demo feedback for a prospect
 
     Args:
@@ -1966,15 +1970,71 @@ def get_demo_feedback(client_sdr_id: int, prospect_id: int):
         prospect_id (int): Prospect ID
 
     Returns:
-        DemoFeedback: Demo feedback
+        list[DemoFeedback}: List of Demo feedback
     """
 
-    demo_feedback: DemoFeedback = DemoFeedback.query.filter(
+    demo_feedback: list[DemoFeedback] = DemoFeedback.query.filter(
         DemoFeedback.client_sdr_id == client_sdr_id,
         DemoFeedback.prospect_id == prospect_id,
-    ).first()
+    ).all()
 
     return demo_feedback
+
+
+def edit_demo_feedback(
+    client_sdr_id: int,
+    demo_feedback_id: int,
+    status: Optional[str] = None,
+    rating: Optional[str] = None,
+    feedback: Optional[str] = None,
+    next_demo_date: Optional[datetime] = None,
+) -> bool:
+    """Edit demo feedback
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+        demo_feedback_id (int): Demo feedback ID
+        status (Optional[str], optional): Demo status. Defaults to None.
+        rating (Optional[str], optional): Demo rating. Defaults to None.
+        feedback (Optional[str], optional): Demo feedback. Defaults to None.
+        next_demo_date (Optional[datetime], optional): Next demo date. Defaults to None.
+
+    Returns:
+        bool: Whether it was successful or not
+    """
+    demo_feedback: DemoFeedback = DemoFeedback.query.get(demo_feedback_id)
+    if not demo_feedback:
+        return False
+
+    if status:
+        demo_feedback.status = status
+    if rating:
+        demo_feedback.rating = rating
+    if feedback:
+        demo_feedback.feedback = feedback
+    if next_demo_date:
+        demo_feedback.next_demo_date = next_demo_date
+
+    # If next_demo_date is specified, and this feedback is the most recent, update the prospect
+    if next_demo_date:
+        most_recent_demo_feedback: DemoFeedback = (
+            DemoFeedback.query.filter(
+                DemoFeedback.client_sdr_id == client_sdr_id,
+                DemoFeedback.prospect_id == demo_feedback.prospect_id,
+            )
+            .order_by(DemoFeedback.id.desc())
+            .first()
+        )
+        if most_recent_demo_feedback.id == demo_feedback.id:
+            prospect: Prospect = Prospect.query.get(demo_feedback.prospect_id)
+            prospect.demo_date = next_demo_date
+            db.session.add(prospect)
+
+    db.session.add(demo_feedback)
+    db.session.commit()
+
+    return True
+
 
 @celery.task
 def scrape_for_demos() -> int:

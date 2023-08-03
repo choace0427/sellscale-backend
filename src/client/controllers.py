@@ -6,6 +6,7 @@ from src.personas.services import (
 )
 from src.prospecting.models import Prospect
 from src.client.services import (
+    edit_demo_feedback,
     submit_demo_feedback,
     get_all_demo_feedback,
     get_demo_feedback,
@@ -100,7 +101,7 @@ from src.client.services_client_pod import (
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.client.models import ClientArchetype, ClientSDR, Client
+from src.client.models import ClientArchetype, ClientSDR, Client, DemoFeedback
 from app import db
 import os
 
@@ -267,12 +268,12 @@ def get_archetype_prospects_endpoint(client_sdr_id: int, archetype_id: int):
 @CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/clone", methods=["POST"])
 @require_user
 def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
-    
+
     persona_name = get_request_parameter("persona_name", request, json=True, required=True, parameter_type=str)
     persona_fit_reason = get_request_parameter("persona_fit_reason", request, json=True, required=True, parameter_type=str)
     persona_icp_matching_instructions = get_request_parameter("persona_icp_matching_instructions", request, json=True, required=True, parameter_type=str)
     persona_contact_objective = get_request_parameter("persona_contact_objective", request, json=True, required=True, parameter_type=str)
-    
+
     option_ctas = get_request_parameter("option_ctas", request, json=True, required=True, parameter_type=bool)
     option_bump_frameworks = get_request_parameter("option_bump_frameworks", request, json=True, required=True, parameter_type=bool)
     option_voices = get_request_parameter("option_voices", request, json=True, required=True, parameter_type=bool)
@@ -1649,6 +1650,9 @@ def post_demo_feedback(client_sdr_id: int):
     feedback = get_request_parameter(
         "feedback", request, json=True, required=True, parameter_type=str
     )
+    next_demo_date = get_request_parameter(
+        "next_demo_date", request, json=True, required=False, parameter_type=str
+    )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
@@ -1665,6 +1669,7 @@ def post_demo_feedback(client_sdr_id: int):
         status=status,
         rating=rating,
         feedback=feedback,
+        next_demo_date=next_demo_date,
     )
 
     send_slack_message(
@@ -1726,16 +1731,16 @@ def get_demo_feedback_sdr_endpoint(client_sdr_id: int):
 
     if prospect_id:
 
-        feedback = get_demo_feedback(client_sdr_id, prospect_id)
+        list_of_feedback = get_demo_feedback(client_sdr_id, prospect_id)
 
-        if not feedback:
+        if not list_of_feedback:
             return jsonify({"message": "Feedback not found"}), 400
 
         return (
             jsonify(
                 {
                     "message": "Success",
-                    "data": [feedback.to_dict()],
+                    "data": [feedback.to_dict() for feedback in list_of_feedback],
                 }
             ),
             200,
@@ -1754,6 +1759,45 @@ def get_demo_feedback_sdr_endpoint(client_sdr_id: int):
             ),
             200,
         )
+
+
+@CLIENT_BLUEPRINT.route("/demo_feedback", methods=["PATCH"])
+@require_user
+def patch_demo_feedback(client_sdr_id: int):
+    """Patch demo feedback"""
+
+    feedback_id = get_request_parameter(
+        "feedback_id", request, json=True, required=True, parameter_type=int
+    )
+    status = get_request_parameter(
+        "status", request, json=True, required=True, parameter_type=str
+    )
+    rating = get_request_parameter(
+        "rating", request, json=True, required=True, parameter_type=str
+    )
+    feedback = get_request_parameter(
+        "feedback", request, json=True, required=True, parameter_type=str
+    )
+    next_demo_date = get_request_parameter(
+        "next_demo_date", request, json=True, required=False, parameter_type=str
+    )
+
+    feedback: DemoFeedback = DemoFeedback.query.get(feedback_id)
+    if feedback.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Feedback does not belong to you"}), 403
+
+    result = edit_demo_feedback(
+        client_sdr_id=client_sdr_id,
+        demo_feedback_id=feedback_id,
+        status=status,
+        rating=rating,
+        feedback=feedback,
+        next_demo_date=next_demo_date,
+    )
+    if not result:
+        return jsonify({"status": "error", "message": "Demo feedback could not be edited"}), 400
+
+    return jsonify({"status": "success", "data": {"message": "Success"}}), 200
 
 
 @CLIENT_BLUEPRINT.route("/do_not_contact_filters", methods=["POST"])

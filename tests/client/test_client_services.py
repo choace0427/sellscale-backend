@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from app import app, db
 from decorators import use_app_context
 from model_import import (
@@ -7,6 +8,7 @@ from model_import import (
     GNLPModel,
     ProspectOverallStatus,
 )
+from src.client.models import DemoFeedback
 from test_utils import (
     test_app,
     basic_client,
@@ -18,9 +20,11 @@ from test_utils import (
     basic_generated_message_cta_with_text,
     basic_generated_message,
     basic_generated_message_cta,
+    basic_demo_feedback
 )
 from src.client.services import (
     create_client,
+    edit_demo_feedback,
     get_client,
     create_client_archetype,
     get_ctas,
@@ -31,6 +35,7 @@ from src.client.services import (
     get_client_sdr,
     get_sdr_available_outbound_channels,
     nylas_exchange_for_authorization_code,
+    submit_demo_feedback,
 )
 import json
 import mock
@@ -501,3 +506,93 @@ def test_nylas_exchange_for_authorization_code(mock_post_nylas_oauth_token):
     client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     assert client_sdr.nylas_account_id == "test_id"
     assert client_sdr.nylas_auth_code == "test_token"
+
+
+@use_app_context
+def test_submit_demo_feedback():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    prospect = basic_prospect(client, archetype, sdr)
+    prospect.demo_date = datetime.now()
+
+    assert prospect.demo_date != None
+    new_demo_date = datetime.now() + timedelta(days=1)
+    result = submit_demo_feedback(
+        client_sdr_id=sdr.id,
+        client_id=client.id,
+        prospect_id=prospect.id,
+        status="test_status",
+        rating="test_rating",
+        feedback="test_feedback",
+        next_demo_date=new_demo_date,
+    )
+    demo_feedback: list[DemoFeedback] = DemoFeedback.query.all()
+    assert len(demo_feedback) == 1
+    assert demo_feedback[0].client_sdr_id == sdr.id
+    assert demo_feedback[0].client_id == client.id
+    assert prospect.demo_date == new_demo_date
+
+    new_new_demo_date = datetime.now() + timedelta(days=2)
+    result = submit_demo_feedback(
+        client_sdr_id=sdr.id,
+        client_id=client.id,
+        prospect_id=prospect.id,
+        status="test_status",
+        rating="test_rating",
+        feedback="test_feedback",
+        next_demo_date=new_new_demo_date,
+    )
+    demo_feedback: list[DemoFeedback] = DemoFeedback.query.all()
+    assert len(demo_feedback) == 2
+    assert demo_feedback[1].client_sdr_id == sdr.id
+    assert demo_feedback[1].client_id == client.id
+    assert prospect.demo_date == new_new_demo_date
+
+
+@use_app_context
+def test_edit_demo_feedback():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    prospect = basic_prospect(client, archetype, sdr)
+    now = datetime.now()
+    prospect.demo_date = now
+    df = basic_demo_feedback(client, sdr, prospect)
+    df_2 = basic_demo_feedback(client, sdr, prospect)
+
+    # Editing the first demo feedback's next_demo_date should not update Prospect
+    no_effect_date = datetime.now() + timedelta(days=1)
+    result = edit_demo_feedback(
+        client_sdr_id=sdr.id,
+        demo_feedback_id=df.id,
+        status="edited_status",
+        rating="edited_rating",
+        feedback="edited_feedback",
+        next_demo_date=no_effect_date
+    )
+    assert result == True
+    demo_feedback: DemoFeedback = DemoFeedback.query.get(df.id)
+    assert demo_feedback.status == "edited_status"
+    assert demo_feedback.rating == "edited_rating"
+    assert demo_feedback.feedback == "edited_feedback"
+    assert demo_feedback.next_demo_date == no_effect_date
+    assert prospect.demo_date == now
+
+    # Editing the second demo feedback will update Prospect, it is the most recent
+    new_demo_date = datetime.now() + timedelta(days=2)
+    result = edit_demo_feedback(
+        client_sdr_id=sdr.id,
+        demo_feedback_id=df_2.id,
+        status="edited_status",
+        rating="edited_rating",
+        feedback="edited_feedback",
+        next_demo_date=new_demo_date
+    )
+    assert result == True
+    demo_feedback: DemoFeedback = DemoFeedback.query.get(df_2.id)
+    assert demo_feedback.status == "edited_status"
+    assert demo_feedback.rating == "edited_rating"
+    assert demo_feedback.feedback == "edited_feedback"
+    assert demo_feedback.next_demo_date == new_demo_date
+    assert prospect.demo_date == new_demo_date
