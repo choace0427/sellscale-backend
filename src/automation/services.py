@@ -578,7 +578,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
             continue
         if gm.pb_csv_count is None:
             gm.pb_csv_count = 0
-        # gm.pb_csv_count += 1
+        gm.pb_csv_count += 1
 
         # If the message has now been sent more than twice, we mark it as failed until the PB webhook is called
         if gm.pb_csv_count > 2:
