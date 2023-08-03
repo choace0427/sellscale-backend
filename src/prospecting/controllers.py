@@ -1089,12 +1089,17 @@ def post_update_prospect(client_sdr_id: int, prospect_id: int):
   # This should really be PATCH at '/<prospect_id>' but that's used for something else
 
   email = get_request_parameter("email", request, json=True, required=False, parameter_type=str)
+  in_icp_sample = get_request_parameter("in_icp_sample", request, json=True, required=False, parameter_type=bool)
+  icp_fit_score_override = get_request_parameter("icp_fit_score_override", request, json=True, required=False, parameter_type=int)
 
   prospect: Prospect = Prospect.query.get(prospect_id)
   if not prospect or prospect.client_sdr_id != client_sdr_id:
       return jsonify({"message": "Prospect not found"}), 404
 
-  prospect.email = email
+  if email is not None: prospect.email = email
+  if in_icp_sample is not None: prospect.in_icp_sample = in_icp_sample
+  if icp_fit_score_override is not None: prospect.icp_fit_score_override = icp_fit_score_override
+
   db.session.commit()
 
   return jsonify({"message": "Success"}), 200
