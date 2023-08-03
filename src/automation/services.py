@@ -11,6 +11,7 @@ from model_import import Client, ClientSDR, ProspectStatus, GeneratedMessageType
 from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
 from src.campaigns.models import OutboundCampaign
+from src.client.models import ClientArchetype
 from src.prospecting.services import update_prospect_status_linkedin
 from src.utils.slack import send_slack_message, URL_MAP
 import json
@@ -508,32 +509,60 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
     # Grab two random  messages that belong to the ClientSDR
     joined_prospect_message = (
         db.session.query(
-            Prospect.linkedin_url.label("linkedin_url"),
             Prospect.id.label("prospect_id"),
+            Prospect.full_name.label("full_name"),
+            Prospect.icp_fit_score.label("icp_fit_score"),
+            Prospect.icp_fit_reason.label("icp_fit_reason"),
+            Prospect.title.label("title"),
+            Prospect.company.label("company"),
+            Prospect.img_url.label("img_url"),
+            Prospect.linkedin_url.label("linkedin_url"),
+            Prospect.approved_outreach_message_id.label("generated_message_id"),
+            ClientArchetype.archetype.label("archetype"),
+            GeneratedMessage.id.label("message_id"),
             GeneratedMessage.completion.label("completion"),
-            GeneratedMessage.id.label("generated_message_id"),
         )
-        .join(GeneratedMessage, Prospect.id == GeneratedMessage.prospect_id)
-        .outerjoin(OutboundCampaign, GeneratedMessage.outbound_campaign_id == OutboundCampaign.id)
+        .join(
+            GeneratedMessage,
+            Prospect.approved_outreach_message_id == GeneratedMessage.id,
+        )
+        .join(
+            ClientArchetype,
+            ClientArchetype.id == Prospect.archetype_id,
+        )
+        .outerjoin(
+            OutboundCampaign,
+            OutboundCampaign.id == GeneratedMessage.outbound_campaign_id,
+        )
         .filter(
             Prospect.client_sdr_id == client_sdr_id,
-            Prospect.approved_outreach_message_id != None,
             GeneratedMessage.message_status
             == GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
-            GeneratedMessage.message_type == GeneratedMessageType.LINKEDIN,
             or_(
                 GeneratedMessage.pb_csv_count <= 2,
                 GeneratedMessage.pb_csv_count == None,
             ),  # Only grab messages that have not been sent twice
-        ).order_by(nullslast(OutboundCampaign.priority_rating.desc()))
+        )
+    )
+
+    total_count = joined_prospect_message.count()
+
+    joined_prospect_message = (
+        joined_prospect_message.order_by(OutboundCampaign.priority_rating.desc())
         .order_by(nullslast(GeneratedMessage.priority_rating.desc()))
-        .order_by(GeneratedMessage.created_at.desc())
+        .order_by(nullslast(GeneratedMessage.created_at.desc()))
         .limit(csv_limit)
-    ).all()
+        .all()
+    )
 
     data = []
+    print(len(joined_prospect_message))
     # Write the data rows
+    wrote_prospect = set()
     for message in joined_prospect_message:
+        if message.prospect_id in wrote_prospect:
+            continue
+        wrote_prospect.add(message.prospect_id)
         data.append(
             {
                 "Linkedin": message.linkedin_url,
@@ -549,7 +578,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
             continue
         if gm.pb_csv_count is None:
             gm.pb_csv_count = 0
-        gm.pb_csv_count += 1
+        # gm.pb_csv_count += 1
 
         # If the message has now been sent more than twice, we mark it as failed until the PB webhook is called
         if gm.pb_csv_count > 2:
