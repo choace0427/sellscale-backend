@@ -2196,7 +2196,7 @@ def generate_followup_response(
         research_str = ""
 
         # Only include account research points if bump framework allows it
-        use_account_research = best_framework.get("use_account_research")
+        use_account_research = best_framework.get("use_account_research") if best_framework else True
         if use_account_research:
             for point in random_sample_points:
                 account_research_points.append(
@@ -2486,7 +2486,7 @@ def scribe_sample_email_generation(
     BLOCK_OPTIONS = {
         "email": """1. Come up with a fun subject line using the company or prospect name
 2. Include a greeting with Hi, Hello, or Hey with their first name
-3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal. 
+3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
 4. Inferring what they do from their title, transition into introducing our service
 5. Mention what we do and offer and how it can help them based on their background, company, and key details.
 5. Use the objective for a call to action
@@ -2506,7 +2506,7 @@ Be casual and creative.""",
 Note: don't make it too salesly. Make it brief and casual.""",
         "linkedin": """1. Greeting: open with a friendly greeting
 2. Specific detail about them: Include a personalized detail related to their background or role.
-3. Write a short sentence on what we do and how it relates to them. 
+3. Write a short sentence on what we do and how it relates to them.
 Call to action (CTA): Encourage them to connect or engage further.
 
 Keep the whole message 1-2 sentences and 1 paragraph long. Keep it short!""",
