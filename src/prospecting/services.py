@@ -1948,6 +1948,7 @@ def get_prospects_for_icp(archetype_id: int):
     ).fetchone()
 
     def separate_data(rows):
+        if not rows: return []
         result = []
         for row in rows:
             sep = row.split(' -~- ')
