@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Union
+from src.campaigns.models import OutboundCampaign
 
 from src.company.services import find_company_for_prospect
 from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
@@ -1068,6 +1069,10 @@ def mark_prospects_as_queued_for_outreach(
     if campaign_id is not None:
         change_campaign_status(campaign_id, OutboundCampaignStatus.COMPLETE)
 
+        # Calculate campaign cost
+        campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+        campaign.calculate_cost()
+
     # Commit
     db.session.bulk_save_objects(updated_messages)
     db.session.commit()
@@ -1920,15 +1925,16 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None) ->
 
 
 def get_prospects_for_icp(archetype_id: int):
-    
+
     data = db.session.execute(
         f"""
-        select 
+        select
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 0) "VERY LOW",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 1) "LOW",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 2) "MEDIUM",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 3) "HIGH",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 4) "VERY HIGH",
+<<<<<<< HEAD
           
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
@@ -1936,6 +1942,15 @@ def get_prospects_for_icp(archetype_id: int):
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS"
         from 
+=======
+
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 2) "MEDIUM - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS"
+        from
+>>>>>>> 20e3e0ebd1b97882f44bf8a453e70c915a13a0c4
           client_archetype
           join prospect on prospect.archetype_id = client_archetype.id
         where client_archetype.id = {archetype_id};

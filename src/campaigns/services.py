@@ -1,5 +1,5 @@
 from app import db, celery
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, nullslast
 from typing import Optional
 
 from src.campaigns.models import *
@@ -141,6 +141,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
             Prospect.approved_outreach_message_id == GeneratedMessage.id,
         )
         .filter(Prospect.id.in_(oc.prospect_ids))
+        .order_by(nullslast(GeneratedMessage.problems.desc()))
     )
 
     # Filter by approved messages if filter is set
