@@ -1917,3 +1917,41 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None) ->
     )
 
     return True
+
+
+def get_prospects_for_icp(archetype_id: int):
+    
+    data = db.session.execute(
+        f"""
+        select 
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = 0) "VERY LOW",
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = 1) "LOW",
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = 2) "MEDIUM",
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = 3) "HIGH",
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = 4) "VERY HIGH",
+          
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 2) "MEDIUM - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS"
+        from 
+          client_archetype
+          join prospect on prospect.archetype_id = client_archetype.id
+        where client_archetype.id = {archetype_id};
+    """
+    ).fetchone()
+
+    return {
+        "very_low_count": data[0],
+        "low_count": data[1],
+        "medium_count": data[2],
+        "high_count": data[3],
+        "very_high_count": data[4],
+        "very_low_ids": data[5],
+        "low_ids": data[6],
+        "medium_ids": data[7],
+        "high_ids": data[8],
+        "very_high_ids": data[9],
+    }
+

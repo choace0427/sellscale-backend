@@ -37,6 +37,7 @@ from src.prospecting.services import (
     get_valid_channel_type_choices,
     toggle_ai_engagement,
     send_slack_reminder_for_prospect,
+    get_prospects_for_icp,
     create_prospect_note,
     get_prospect_details,
     batch_update_prospect_statuses,
@@ -1137,4 +1138,18 @@ def post_prospect_add_referral(client_sdr_id: int, prospect_id: int):
   success = add_prospect_referral(prospect_id, referred_id)# , meta_data)
 
   return jsonify({"message": "Success"}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/icp_fit", methods=["GET"])
+@require_user
+def get_icp_fit_for_archetype(client_sdr_id: int):
+    
+    archetype_id = get_request_parameter("archetype_id", request, json=False, required=True, parameter_type=str)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Archetype not found"}), 404
+    
+    data = get_prospects_for_icp(archetype_id)
+
+    return jsonify({"message": "Success", "data": data }), 200
 
