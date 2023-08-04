@@ -1934,7 +1934,6 @@ def get_prospects_for_icp(archetype_id: int):
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 2) "MEDIUM",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 3) "HIGH",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 4) "VERY HIGH",
-<<<<<<< HEAD
           
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
@@ -1942,15 +1941,6 @@ def get_prospects_for_icp(archetype_id: int):
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS"
         from 
-=======
-
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 2) "MEDIUM - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS"
-        from
->>>>>>> 20e3e0ebd1b97882f44bf8a453e70c915a13a0c4
           client_archetype
           join prospect on prospect.archetype_id = client_archetype.id
         where client_archetype.id = {archetype_id};
