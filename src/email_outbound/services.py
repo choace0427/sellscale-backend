@@ -99,6 +99,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     if not outbound_campaign:
         return False, "Campaign not found"
     outbound_campaign.status = OutboundCampaignStatus.COMPLETE
+    outbound_campaign.calculate_cost()
     db.session.add(outbound_campaign)
 
     prospects: list[Prospect] = Prospect.query.filter(
@@ -289,6 +290,9 @@ def update_prospect_email_flow_statuses(
             if campaign and campaign.campaign_type == GeneratedMessageType.LINKEDIN:
                 return "Campaign {} is not an email campaign".format(campaign.id), False
             campaign.status = OutboundCampaignStatus.COMPLETE
+
+            # Calculate the cost
+            campaign.calculate_cost()
 
             # Commit
             db.session.add(campaign)

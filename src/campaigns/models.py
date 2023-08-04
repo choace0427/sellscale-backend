@@ -3,6 +3,9 @@ from src.message_generation.models import GeneratedMessageType
 
 import enum
 
+EDITING_COST_PER_PROSPECT = 0.132
+UPWORKER_RECEIPT_LINK = 'https://www.upwork.com/nx/payments/reports/transaction-history'
+
 
 class OutboundCampaignStatus(enum.Enum):
     PENDING = "PENDING"
@@ -79,3 +82,9 @@ class OutboundCampaign(db.Model):
             "cost": self.cost,
             "priority_rating": self.priority_rating,
         }
+
+    def calculate_cost(self) -> float:
+        cost = EDITING_COST_PER_PROSPECT * len(self.prospect_ids)
+        self.cost = cost
+        self.receipt_link = UPWORKER_RECEIPT_LINK
+        return EDITING_COST_PER_PROSPECT * len(self.prospect_ids)
