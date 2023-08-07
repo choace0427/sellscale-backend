@@ -2,6 +2,7 @@ from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 import enum
 from typing import Optional
+from src.email_outbound.email_store.models import EmailStore
 
 from src.utils.hasher import generate_uuid
 
@@ -496,6 +497,12 @@ class Prospect(db.Model):
         if p_email and p_email.outreach_status:
             p_email_status = p_email.outreach_status.value
 
+        # Get prospect EmailStore information if it exists
+        email_store_data = None
+        if self.email_store_id:
+            email_store: EmailStore = EmailStore.query.get(self.email_store_id)
+            email_store_data = email_store.to_dict()
+
         # Check if shallow_data is requested
         if shallow_data:
             return {
@@ -541,6 +548,7 @@ class Prospect(db.Model):
                 "active": self.active,
                 "in_icp_sample": self.in_icp_sample,
                 "icp_fit_score_override": self.icp_fit_score_override,
+                "email_store": email_store_data,
             }
 
         # Get generated message if it exists and is requested
@@ -671,6 +679,7 @@ class Prospect(db.Model):
             "email_unread_messages": self.email_unread_messages,
             "in_icp_sample": self.in_icp_sample,
             "icp_fit_score_override": self.icp_fit_score_override,
+            "email_store": email_store_data,
         }
 
 

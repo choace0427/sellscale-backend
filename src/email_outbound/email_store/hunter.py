@@ -94,7 +94,7 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
         email=email,
         first_name=first_name,
         last_name=last_name,
-        prospect_id=prospect_id
+        company_name=company_name,
     )
     p.email_store_id = email_store_id
     email_store_hunter_verify.delay(email_store_id=email_store_id)

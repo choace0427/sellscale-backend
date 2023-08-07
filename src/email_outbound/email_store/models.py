@@ -40,3 +40,28 @@ class EmailStore(db.Model):
     verification_status_hunter_attempts = db.Column(db.Integer, nullable=True)
     verification_status_hunter_error = db.Column(db.JSON, nullable=True)
     # <--- Comes from Hunter
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "company_name": self.company_name,
+            "hunter_status": self.hunter_status,
+            "hunter_score": self.hunter_score,
+            "hunter_regexp": self.hunter_regexp,
+            "hunter_gibberish": self.hunter_gibberish,
+            "hunter_disposable": self.hunter_disposable,
+            "hunter_webmail": self.hunter_webmail,
+            "hunter_mx_records": self.hunter_mx_records,
+            "hunter_smtp_server": self.hunter_smtp_server,
+            "hunter_smtp_check": self.hunter_smtp_check,
+            "hunter_accept_all": self.hunter_accept_all,
+            "hunter_block": self.hunter_block,
+            "hunter_sources": self.hunter_sources,
+            "verification_status_hunter": self.verification_status_hunter,
+            "verification_status_hunter_attempts": self.verification_status_hunter_attempts,
+            "verification_status_hunter_error": self.verification_status_hunter_error,
+        }
+
