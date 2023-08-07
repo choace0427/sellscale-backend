@@ -60,7 +60,7 @@ class EmailStore(db.Model):
             "hunter_accept_all": self.hunter_accept_all,
             "hunter_block": self.hunter_block,
             "hunter_sources": self.hunter_sources,
-            "verification_status_hunter": self.verification_status_hunter,
+            "verification_status_hunter": self.verification_status_hunter.value if self.verification_status_hunter else None,
             "verification_status_hunter_attempts": self.verification_status_hunter_attempts,
             "verification_status_hunter_error": self.verification_status_hunter_error,
         }
