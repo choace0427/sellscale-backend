@@ -4,6 +4,8 @@ from model_import import Prospect, ClientSDR
 from app import db, celery
 import time
 
+from src.email_outbound.email_store.services import create_email_store, email_store_hunter_verify
+
 HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY")
 DEFAULT_MONTHLY_EMAIL_FETCHING_CREDITS = (
     2000  # number of email credits each sdr has per month
@@ -13,6 +15,7 @@ DEFAULT_MONTHLY_EMAIL_FETCHING_CREDITS = (
 def get_email_from_hunter(
     first_name: str, last_name: str, company_website: str = "", company_name: str = ""
 ):
+    # Retrieve a potential email
     url = "https://api.hunter.io/v2/email-finder?domain={domain}&first_name={first_name}&last_name={last_name}&api_key={api_key}&company={company}".format(
         domain=company_website,
         first_name=first_name,
@@ -28,6 +31,27 @@ def get_email_from_hunter(
         "score": response.json()["data"]["score"],
         "respose": response.json(),
     }
+
+
+def verify_email_from_hunter(email_address: str) -> (bool, dict):
+    """Calls the Hunter verify endpoint on an email address.
+
+    Args:
+        email_address (str): Email address to verify
+
+    Returns:
+        (bool, dict): (success, data)
+    """
+    # Get the email verifier payload
+    url = "https://api.hunter.io/v2/email-verifier?email={email}&api_key={api_key}".format(
+        email=email_address,
+        api_key=HUNTER_API_KEY,
+    )
+    response = requests.get(url)
+    if response.status_code != 200:
+        return False, {"error": response.text}
+
+    return True, response.json()
 
 
 @celery.task
@@ -50,6 +74,7 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     if not p.company_url or "linkedin.com/" in p.company_url:
         return None
 
+    # Get the email
     success, data = get_email_from_hunter(
         first_name=first_name,
         last_name=last_name,
@@ -59,11 +84,21 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     if not success:
         print(data)
         return None
-
     email = data["email"]
     score = data["score"]
     p.email = email
     p.hunter_email_score = score
+
+    # Verify the email
+    email_store_id = create_email_store(
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        prospect_id=prospect_id
+    )
+    p.email_store_id = email_store_id
+    email_store_hunter_verify.delay(email_store_id=email_store_id)
+
     client_sdr_id = p.client_sdr_id
     db.session.add(p)
     db.session.commit()

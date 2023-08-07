@@ -91,6 +91,9 @@ def make_celery(app):
         f'src.ml.services.test_rate_limiter': {
             "rate_limit": "2/s",
         },
+        f'src.email_outbound.email_store.services.email_store_hunter_verify': {
+            "rate_limit": "2/s",
+        }
     }
 
     class ContextTask(celery.Task):
