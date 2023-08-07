@@ -141,7 +141,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
             Prospect.approved_outreach_message_id == GeneratedMessage.id,
         )
         .filter(Prospect.id.in_(oc.prospect_ids))
-        .order_by(nullslast(GeneratedMessage.problems.desc()))
+        # .order_by(nullslast(GeneratedMessage.problems.desc()))
     )
 
     # Filter by approved messages if filter is set
@@ -467,7 +467,9 @@ def get_outbound_campaigns(
             OutboundCampaign.name.ilike(f"%{query}%"),
         )
         .filter(
-            (OutboundCampaign.client_archetype_id == archetype_id) if archetype_id else True
+            (OutboundCampaign.client_archetype_id == archetype_id)
+            if archetype_id
+            else True
         )
         .order_by(ordering[0])
         .order_by(ordering[1])
