@@ -247,7 +247,9 @@ def post_create_cta():
     date_str = get_request_parameter(
         "expiration_date", request, json=True, required=False
     )
-    expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
+    expiration_date = (
+        datetime.datetime.fromisoformat(date_str[:-1]) if date_str else None
+    )
 
     cta = create_cta(
         archetype_id=archetype_id,
@@ -267,7 +269,9 @@ def put_update_cta():
     date_str = get_request_parameter(
         "expiration_date", request, json=True, required=False
     )
-    expiration_date = datetime.fromisoformat(date_str[:-1]) if date_str else None
+    expiration_date = (
+        datetime.datetime.fromisoformat(date_str[:-1]) if date_str else None
+    )
 
     success = update_cta(
         cta_id=cta_id, text_value=text_value, expiration_date=expiration_date

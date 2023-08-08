@@ -2103,12 +2103,12 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         return True
 
     except Exception as e:
-
         send_slack_message(
             message=f"🛑 *Error occurred, broken generation:* '{e}'" "",
             webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
         )
 
+        db.session.rollback()
         return False
 
 

@@ -216,40 +216,18 @@ def create_linkedin_conversation_entry(
 
     # Flag as urgent if message is new and mentions something urgent
     if not duplicate_exists and client_sdr_id != -1 and connection_degree != "You":
-        if (
-            "tomorrow" in message.lower()
-            or "today" in message.lower()
-            or "@" in message.lower()
-            or "week" in message.lower()
-            or "month" in message.lower()
-            or "monday" in message.lower()
-            or "tuesday" in message.lower()
-            or "wednesday" in message.lower()
-            or "thursday" in message.lower()
-            or "friday" in message.lower()
-            or "saturday" in message.lower()
-            or "sunday" in message.lower()
-            or " phone" in message.lower()
-            or " cell" in message.lower()
-            or " call" in message.lower()
-            or "schedule" in message.lower()
-            or "available dates" in message.lower()
-        ):
-            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-            send_slack_message(
-                message=f"""
-                {author} wrote to {sdr.name} with the message:
-                ```
-                {message}
-                ```
-                Time-sensitive keyword was detected.
-
-                Take appropriate action then mark this message as ✅
-
-                *Direct Link:* {direct_link}
-                """,
-                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
-            )
+        detect_time_sensitive_keywords(
+            message=message,
+            client_sdr_id=client_sdr_id,
+            author=author,
+            direct_link=direct_link,
+        )
+        detect_multithreading_keywords(
+            message=message,
+            client_sdr_id=client_sdr_id,
+            author=author,
+            direct_link=direct_link,
+        )
 
     # Get the Thread URN ID from the conversation URL
     try:
@@ -358,6 +336,96 @@ def create_linkedin_conversation_entry(
             return duplicate_exists
         else:
             return None
+
+
+def detect_time_sensitive_keywords(message: str, client_sdr_id: int, author: str, direct_link: str) -> None:
+    """Detects time-sensitive keywords in a message and sends an alert to the CSM team
+
+    Args:
+        message (str): The message to check for time-sensitive keywords
+        client_sdr_id (int): The ID of the ClientSDR that received the message
+        author (str): The name of the person who sent the message
+        direct_link (str): The direct link to the message
+
+    Returns:
+        None
+
+    """
+    lowered_message = message.lower()
+    time_sensitive_keywords = set([
+        "tomorrow",
+        "@",
+        "today",
+        "week",
+        "month",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        " phone",
+        " cell",
+        " call",
+        "schedule",
+        "available dates",
+    ])
+    for keyword in time_sensitive_keywords:
+        if keyword in lowered_message:
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            send_slack_message(
+                message=f"""
+                {author} wrote to {sdr.name} with the message:
+                ```
+                {message}
+                ```
+                ⏰ Time-sensitive keyword was detected.
+
+                Take appropriate action then mark this message as ✅
+
+                *Direct Link:* {direct_link}
+                """,
+                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+            )
+
+    return
+
+
+def detect_multithreading_keywords(message: str, client_sdr_id: int, author: str, direct_link: str) -> None:
+    """Detects multithreading keywords in a message and sends an alert to the CSM team
+
+    Args:
+        message (str): The message to check for multithreading keywords
+        client_sdr_id (int): The ID of the ClientSDR that received the message
+        author (str): The name of the person who sent the message
+        direct_link (str): The direct link to the message
+
+    Returns:
+        None
+
+    """
+    lowered_message = message.lower()
+    multithreading_keywords = set([
+        "to reach out to",
+    ])
+    for keyword in multithreading_keywords:
+        if keyword in lowered_message:
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            send_slack_message(
+                message=f"""
+                {author} wrote to {sdr.name} with the message:
+                ```
+                {message}
+                ```
+                🧵 Multithreading keyword was detected.
+
+                Take appropriate action then mark this message as ✅
+
+                *Direct Link:* {direct_link}
+                """,
+                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+            )
 
 
 def update_li_conversation_extractor_phantom(client_sdr_id) -> tuple[str, int]:

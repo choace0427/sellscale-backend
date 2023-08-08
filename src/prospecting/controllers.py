@@ -67,7 +67,7 @@ from src.authentication.decorators import require_user
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
 from src.integrations.vessel import SalesEngagementIntegration
-from src.prospecting.hunter import find_hunter_emails_for_prospects_under_archetype
+from src.email_outbound.email_store.hunter import find_hunter_emails_for_prospects_under_archetype
 from src.prospecting.services import update_prospect_demo_date
 from src.message_generation.services import add_generated_msg_queue
 
@@ -1143,12 +1143,12 @@ def post_prospect_add_referral(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("/icp_fit", methods=["GET"])
 @require_user
 def get_icp_fit_for_archetype(client_sdr_id: int):
-    
+
     archetype_id = get_request_parameter("archetype_id", request, json=False, required=True, parameter_type=str)
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Archetype not found"}), 404
-    
+
     data = get_prospects_for_icp(archetype_id)
 
     return jsonify({"message": "Success", "data": data }), 200
