@@ -142,7 +142,9 @@ def auto_send_bumps():
 
 def replenish_sdr_credits():
     from src.ml.services import replenish_all_ml_credits_for_all_sdrs
-    from src.email_outbound.email_store.hunter import replenish_all_email_credits_for_all_sdrs
+    from src.email_outbound.email_store.hunter import (
+        replenish_all_email_credits_for_all_sdrs,
+    )
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -195,21 +197,25 @@ def auto_run_daily_revival_cleanup_job():
 
 
 def run_sales_navigator_launches():
-    from src.automation.phantom_buster.services import collect_and_trigger_phantom_buster_sales_navigator_launches
+    from src.automation.phantom_buster.services import (
+        collect_and_trigger_phantom_buster_sales_navigator_launches,
+    )
 
     if (
-            os.environ.get("FLASK_ENV") == "production"
-            and os.environ.get("SCHEDULING_INSTANCE") == "true"
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         collect_and_trigger_phantom_buster_sales_navigator_launches.delay()
 
 
 def run_sales_navigator_reset():
-    from src.automation.phantom_buster.services import reset_sales_navigator_config_counts
+    from src.automation.phantom_buster.services import (
+        reset_sales_navigator_config_counts,
+    )
 
     if (
-            os.environ.get("FLASK_ENV") == "production"
-            and os.environ.get("SCHEDULING_INSTANCE") == "true"
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         reset_sales_navigator_config_counts.delay()
 
@@ -229,7 +235,9 @@ def run_scrape_for_demos():
 
 
 def run_collect_and_trigger_email_store_hunter_verify():
-    from src.email_outbound.email_store.services import collect_and_trigger_email_store_hunter_verify
+    from src.email_outbound.email_store.services import (
+        collect_and_trigger_email_store_hunter_verify,
+    )
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -238,8 +246,8 @@ def run_collect_and_trigger_email_store_hunter_verify():
         collect_and_trigger_email_store_hunter_verify.delay()
 
 
-daily_trigger = CronTrigger(hour=9, timezone=timezone('America/Los_Angeles'))
-monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone('America/Los_Angeles'))
+daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
+monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
@@ -248,24 +256,30 @@ scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
-scheduler.add_job(func=generate_message_bumps, trigger="interval", seconds=30)
+scheduler.add_job(func=generate_message_bumps, trigger="interval", seconds=15)
 scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
 scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
 
-#Hourly triggers
+# Hourly triggers
 scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
 scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
-scheduler.add_job(func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1)
+scheduler.add_job(
+    func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
+)
 scheduler.add_job(auto_run_daily_revival_cleanup_job, trigger="interval", hours=1)
 scheduler.add_job(func=run_backfill_analytics_for_sdrs_job, trigger="interval", hours=1)
-scheduler.add_job(func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1)
+scheduler.add_job(
+    func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1
+)
 scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hours=6)
 
 # Daily triggers
-scheduler.add_job(func=run_sync_vessel_mailboxes_and_sequences_job, trigger=daily_trigger)
+scheduler.add_job(
+    func=run_sync_vessel_mailboxes_and_sequences_job, trigger=daily_trigger
+)
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 
