@@ -2569,9 +2569,9 @@ def get_persona_setup_status_map_for_persona(persona_id: int):
     }
 
 
-def get_client_sdrs_table_info():
+def get_client_sdr_table_info(client_sdr_id: int):
     
-    query = """
+    query = f"""
       select 
         client_sdr.name "SDR Name",
         client.company,
@@ -2580,14 +2580,15 @@ def get_client_sdrs_table_info():
         client_sdr.auto_bump "Autobump Enabled",
         case 
           when count(distinct bump_framework.id) filter (where not bump_framework.sellscale_default_generated and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')) >= 4 then TRUE else FALSE end "Bump Frameworks Set Up",
-        count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement)) "SDR Needs to Clear",
-        count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO') - (count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement))) "SellScale Needs to Clear",
+        count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and prospect.archetype_id = client_archetype.id and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement)) "SDR Needs to Clear",
+        count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and prospect.archetype_id = client_archetype.id) - (count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement))) "SellScale Needs to Clear",
         count(distinct prospect.id) filter (where prospect.status = 'ACTIVE_CONVO_SCHEDULING') "Is Scheduling",
         count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO') "Total Messages in Inbox",
         string_agg(distinct concat('- ', prospect.full_name, '  (', prospect.company, ')', chr(13)), '') filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send)) "Names of Contacts SDR Needs to Clear",
         count(distinct prospect.id) filter (where prospect.overall_status = 'DEMO' and demo_feedback.id is null and (prospect.demo_date is null or prospect.demo_date < NOW())),
         string_agg(distinct concat('- ', prospect.full_name, '  (', prospect.company, ')', chr(13)), '') filter (where prospect.overall_status = 'DEMO' and demo_feedback.id is null) "Prospects That Need Demo Feedback",
-        client_sdr.id
+        client_sdr.id,
+        client_archetype.id
       from prospect
         join client_sdr on client_sdr.id = prospect.client_sdr_id
         join client_archetype on client_archetype.client_sdr_id = client_sdr.id
@@ -2596,8 +2597,9 @@ def get_client_sdrs_table_info():
         left join demo_feedback on demo_feedback.prospect_id = prospect.id
       where 
         prospect.overall_status in ('ACTIVE_CONVO', 'DEMO') and 
-        (prospect.hidden_until < NOW() or prospect.hidden_until is null)
-      group by 1,2,3,4,5,14
+        (prospect.hidden_until < NOW() or prospect.hidden_until is null) and 
+        client_sdr.id = {client_sdr_id}
+      group by 1,2,3,4,5,14,15
       order by 6 desc;
     """
     data = db.session.execute(query).fetchall()
@@ -2618,6 +2620,7 @@ def get_client_sdrs_table_info():
         11: "count",
         12: "prospects_that_need_demo_feedback",
         13: "client_sdr_id",
+        14: "client_archetype_id",
     }
 
     # Convert and format output
