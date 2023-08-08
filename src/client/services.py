@@ -2567,3 +2567,67 @@ def get_persona_setup_status_map_for_persona(persona_id: int):
         "linkedin-bump-frameworks": data[7],
         "email-blocks": data[8],
     }
+
+
+def get_client_sdrs_table_info():
+    
+    query = """
+      select 
+        client_sdr.name "SDR Name",
+        client.company,
+        client_sdr.auth_token,
+        CONCAT('https://app.sellscale.com/authenticate?stytch_token_type=direct&token=', client_sdr.auth_token,'&redirect=all/inboxes') "SDR Sight Link",
+        client_sdr.auto_bump "Autobump Enabled",
+        case 
+          when count(distinct bump_framework.id) filter (where not bump_framework.sellscale_default_generated and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')) >= 4 then TRUE else FALSE end "Bump Frameworks Set Up",
+        count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement)) "SDR Needs to Clear",
+        count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO') - (count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement))) "SellScale Needs to Clear",
+        count(distinct prospect.id) filter (where prospect.status = 'ACTIVE_CONVO_SCHEDULING') "Is Scheduling",
+        count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO') "Total Messages in Inbox",
+        string_agg(distinct concat('- ', prospect.full_name, '  (', prospect.company, ')', chr(13)), '') filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send)) "Names of Contacts SDR Needs to Clear",
+        count(distinct prospect.id) filter (where prospect.overall_status = 'DEMO' and demo_feedback.id is null and (prospect.demo_date is null or prospect.demo_date < NOW())),
+        string_agg(distinct concat('- ', prospect.full_name, '  (', prospect.company, ')', chr(13)), '') filter (where prospect.overall_status = 'DEMO' and demo_feedback.id is null) "Prospects That Need Demo Feedback",
+        client_sdr.id
+      from prospect
+        join client_sdr on client_sdr.id = prospect.client_sdr_id
+        join client_archetype on client_archetype.client_sdr_id = client_sdr.id
+        join bump_framework on bump_framework.client_archetype_id = client_archetype.id
+        join client on client.id = client_archetype.client_id
+        left join demo_feedback on demo_feedback.prospect_id = prospect.id
+      where 
+        prospect.overall_status in ('ACTIVE_CONVO', 'DEMO') and 
+        (prospect.hidden_until < NOW() or prospect.hidden_until is null) and 
+        client_sdr.active and 
+        client.active and
+        client_sdr.client_id not in (1)
+      group by 1,2,3,4,5
+      order by 6 desc;
+    """
+    data = db.session.execute(query).fetchall()
+
+    # index to column
+    column_map = {
+        0: "client_sdr_name",
+        1: "company",
+        2: "auth_token",
+        3: "sight_link",
+        4: "autobump_enabled",
+        5: "bump_frameworks_setup",
+        6: "sdr_needs_to_clear",
+        7: "sellscale_needs_to_clear",
+        8: "is_scheduling",
+        9: "total_messages_in_inbox",
+        10: "names_of_contacts_sdr_needs_to_clear",
+        11: "count",
+        12: "prospects_that_need_demo_feedback",
+        13: "client_sdr_id",
+    }
+
+    # Convert and format output
+    data = [
+        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        for row in data
+    ]
+
+    return data
+

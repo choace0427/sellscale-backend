@@ -76,6 +76,7 @@ from src.client.services import (
     get_client_products,
     update_client_product,
     get_persona_setup_status_map_for_persona,
+    get_client_sdrs_table_info,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -374,6 +375,20 @@ def patch_sdr(client_sdr_id: int):
     if not success:
         return jsonify({"message": "Failed to update client SDR"}), 404
     return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/general_info", methods=["GET"])
+@require_user
+def get_sdr_general_info(client_sdr_id: int):
+    """Gets the client SDR general info"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    sdr_info = get_client_sdrs_table_info()
+    for sdr in sdr_info:
+        if sdr["client_sdr_id"] == client_sdr_id:
+            return jsonify({"message": "Success", "sdr_info": sdr}), 200
+        
+    return jsonify({"message": "Failed to find client SDR"}), 404
 
 
 @CLIENT_BLUEPRINT.route("/sdr/complete-onboarding", methods=["POST"])
