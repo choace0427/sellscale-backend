@@ -386,8 +386,8 @@ def get_sdr_general_info(client_sdr_id: int):
     sdr_info = get_client_sdrs_table_info()
     print(sdr_info)
     for sdr in sdr_info:
-        print(sdr["client_sdr_id"])
-        if sdr["client_sdr_id"] == client_sdr_id:
+        print(sdr["client_sdr_id"], client_sdr_id)
+        if int(sdr["client_sdr_id"]) == client_sdr_id:
             return jsonify({"message": "Success", "sdr_info": sdr}), 200
         
     return jsonify({"message": "Failed to find client SDR"}), 404
