@@ -2600,7 +2600,7 @@ def get_client_sdrs_table_info():
         client_sdr.active and 
         client.active and
         client_sdr.client_id not in (1)
-      group by 1,2,3,4,5
+      group by 1,2,3,4,5,14
       order by 6 desc;
     """
     data = db.session.execute(query).fetchall()
