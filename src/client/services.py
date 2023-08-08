@@ -2596,10 +2596,7 @@ def get_client_sdrs_table_info():
         left join demo_feedback on demo_feedback.prospect_id = prospect.id
       where 
         prospect.overall_status in ('ACTIVE_CONVO', 'DEMO') and 
-        (prospect.hidden_until < NOW() or prospect.hidden_until is null) and 
-        client_sdr.active and 
-        client.active and
-        client_sdr.client_id not in (1)
+        (prospect.hidden_until < NOW() or prospect.hidden_until is null)
       group by 1,2,3,4,5,14
       order by 6 desc;
     """

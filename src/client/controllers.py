@@ -384,9 +384,7 @@ def get_sdr_general_info(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     sdr_info = get_client_sdrs_table_info()
-    print(sdr_info)
     for sdr in sdr_info:
-        print(sdr["client_sdr_id"], client_sdr_id)
         if int(sdr["client_sdr_id"]) == client_sdr_id:
             return jsonify({"message": "Success", "sdr_info": sdr}), 200
         
