@@ -711,22 +711,49 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
             )
 
         # Create Prompt
-        prompt += f"""\n\nHere is the prospect's information:
-        Prospect Name: {prospect.full_name}
-        Prospect Title: {prospect.title}
-        Prospect LinkedIn Bio: {prospect.linkedin_bio}
-        Prospect Location: {prospect_location}
-        Prospect Education: {prospect_education}
+        if archetype.icp_matching_option_filters:
+            prompt += f"\n\nHere is the prospect's information:"
+            if archetype.icp_matching_option_filters.get("prospect_name"):
+                prompt += f"\nProspect Name: {prospect.full_name}"
+            if archetype.icp_matching_option_filters.get("prospect_title"):
+                prompt += f"\nProspect Title: {prospect.title}"
+            if archetype.icp_matching_option_filters.get("prospect_linkedin_bio"):
+                prompt += f"\nProspect LinkedIn Bio: {prospect.linkedin_bio}"
+            if archetype.icp_matching_option_filters.get("prospect_location"):
+                prompt += f"\nProspect Location: {prospect_location}"
+            if archetype.icp_matching_option_filters.get("prospect_education"):
+                prompt += f"\nProspect Education: {prospect_education}"
 
-        Here is the prospect's company information:
-        Prospect Company Name: {prospect.company}
-        Prospect Company Size: {prospect.employee_count}
-        Prospect Company Industry: {prospect.industry}
-        Prospect Company Location: {state}
-        Prospect Company Tagline: {prospect_company_specialities}
-        Prospect Company Description: '''
-        {prospect_company_description}
-        '''\n\n"""
+            prompt += f"\n\nHere is the prospect's company information:"
+            if archetype.icp_matching_option_filters.get("company_name"):
+                prompt += f"\nProspect Company Name: {prospect.company}"
+            if archetype.icp_matching_option_filters.get("company_size"):
+                prompt += f"\nProspect Company Size: {prospect.employee_count}"
+            if archetype.icp_matching_option_filters.get("company_industry"):
+                prompt += f"\nProspect Company Industry: {prospect.industry}"
+            if archetype.icp_matching_option_filters.get("company_location"):
+                prompt += f"\nProspect Company Location: {state}"
+            if archetype.icp_matching_option_filters.get("company_tagline"):
+                prompt += f"\nProspect Company Tagline: {prospect_company_specialities}"
+            if archetype.icp_matching_option_filters.get("company_description"):
+                prompt += f"\nProspect Company Description: '''\n{prospect_company_description}\n'''"
+        else:
+            prompt += f"""\n\nHere is the prospect's information:
+            Prospect Name: {prospect.full_name}
+            Prospect Title: {prospect.title}
+            Prospect LinkedIn Bio: {prospect.linkedin_bio}
+            Prospect Location: {prospect_location}
+            Prospect Education: {prospect_education}
+
+            Here is the prospect's company information:
+            Prospect Company Name: {prospect.company}
+            Prospect Company Size: {prospect.employee_count}
+            Prospect Company Industry: {prospect.industry}
+            Prospect Company Location: {state}
+            Prospect Company Tagline: {prospect_company_specialities}
+            Prospect Company Description: '''
+            {prospect_company_description}
+            '''\n\n"""
 
         print(prompt)
 
