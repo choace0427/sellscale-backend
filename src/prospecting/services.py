@@ -1943,7 +1943,7 @@ def get_prospects_for_icp(archetype_id: int):
         from 
           client_archetype
           join prospect on prospect.archetype_id = client_archetype.id
-        where client_archetype.id = {archetype_id};
+        where client_archetype.id = {archetype_id} and prospect.overall_status != 'REMOVED';
     """
     ).fetchone()
 
