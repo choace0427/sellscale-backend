@@ -465,7 +465,7 @@ def send_icp_classification_change_message(
 
 
 def patch_icp_classification_prompt(
-    archetype_id: int, prompt: str, send_slack_message: Optional[bool] = False
+    archetype_id: int, prompt: str, send_slack_message: Optional[bool] = False, option_filters: Optional[dict] = None
 ) -> bool:
     """Modifies the ICP Classification Prompt for a given archetype id.
 
@@ -482,6 +482,9 @@ def patch_icp_classification_prompt(
     sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
 
     archetype.icp_matching_prompt = prompt
+
+    if option_filters:
+        archetype.icp_matching_option_filters = option_filters
 
     db.session.add(archetype)
     db.session.commit()

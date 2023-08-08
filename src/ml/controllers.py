@@ -226,6 +226,9 @@ def patch_icp_classification_prompt_by_archetype_id_endpoint(
     prompt = get_request_parameter(
         "prompt", request, json=True, required=True, parameter_type=str
     )
+    option_filters = get_request_parameter(
+        "option_filters", request, json=True, required=False
+    )
     send_slack_message = (
         get_request_parameter(
             "send_slack_message",
@@ -247,7 +250,10 @@ def patch_icp_classification_prompt_by_archetype_id_endpoint(
         return jsonify({"message": "Archetype does not belong to this user"}), 401
 
     result, prompt = patch_icp_classification_prompt(
-        archetype_id, prompt, send_slack_message
+        archetype_id,
+        prompt,
+        send_slack_message,
+        option_filters,
     )
     if not result:
         return jsonify({"message": "Error updating prompt"}), 400

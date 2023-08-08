@@ -109,6 +109,7 @@ class ClientArchetype(db.Model):
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     persona_fit_reason = db.Column(db.String, nullable=True)
     icp_matching_prompt = db.Column(db.String, nullable=True)
+    icp_matching_option_filters = db.Column(db.JSON, nullable=True)
     persona_contact_objective = db.Column(db.String, nullable=True)
 
     vessel_sequence_id = db.Column(db.String, nullable=True)
@@ -142,6 +143,7 @@ class ClientArchetype(db.Model):
             "persona_fit_reason": self.persona_fit_reason,
             "persona_contact_objective": self.persona_contact_objective,
             "icp_matching_prompt": self.icp_matching_prompt,
+            "icp_matching_option_filters": self.icp_matching_option_filters,
             "vessel_sequence_id": self.vessel_sequence_id,
             "is_unassigned_contact_archetype": self.is_unassigned_contact_archetype,
             "prospect_filters": self.prospect_filters,
