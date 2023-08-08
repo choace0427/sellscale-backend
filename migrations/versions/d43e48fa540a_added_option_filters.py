@@ -1,7 +1,7 @@
 """Added option_filters
 
 Revision ID: d43e48fa540a
-Revises: d6665ef816e9
+Revises: 5043fb310a7e
 Create Date: 2023-08-07 16:51:50.513731
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'd43e48fa540a'
-down_revision = 'd6665ef816e9'
+down_revision = '5043fb310a7e'
 branch_labels = None
 depends_on = None
 
