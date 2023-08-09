@@ -1,6 +1,5 @@
+from src.company.models import Company
 from app import db
-from sqlalchemy.orm import relationship
-
 
 class Individual(db.Model):
     __tablename__ = "individual"
@@ -13,24 +12,23 @@ class Individual(db.Model):
     title = db.Column(db.String, nullable=True)
     bio = db.Column(db.String, nullable=True)
 
-    linkedin_url = db.Column(db.String, nullable=True, unique=True)
+    linkedin_url = db.Column(db.String, nullable=True)
     instagram_url = db.Column(db.String, nullable=True)
     facebook_url = db.Column(db.String, nullable=True)
     twitter_url = db.Column(db.String, nullable=True)
-    email = db.Column(db.String, nullable=True, unique=True)
+    email = db.Column(db.String, nullable=True, index=True, unique=True)
     phone = db.Column(db.String, nullable=True)
     address = db.Column(db.String, nullable=True)
 
-    li_urn_id = db.Column(db.String, nullable=True)
+    li_public_id = db.Column(db.String, nullable=True, index=True, unique=True)
+    li_urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), nullable=False, default=0)
 
     industry = db.Column(db.String, nullable=True)
     company_name = db.Column(db.String, nullable=True)
-    company_url = db.Column(db.String, nullable=True)
-    company_size = db.Column(db.String, nullable=True)
-    company_description = db.Column(db.String, nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
 
     linkedin_followers = db.Column(db.Integer, nullable=True)
     instagram_followers = db.Column(db.Integer, nullable=True)
@@ -39,10 +37,14 @@ class Individual(db.Model):
 
     # TODO: Maybe include a birthday field? We do get that li data
 
-    # ref to campaigns
-    # prospects = relationship("Prospect", backref="individual")
-
     def to_dict(self):
+        
+        if self.company_id:
+            company: Company = Company.query.get(self.company_id)
+            company_data = company.to_dict()
+        else:
+            company_data = None
+
         return {
             "full_name": self.full_name,
             "first_name": self.first_name,
@@ -56,16 +58,12 @@ class Individual(db.Model):
             "email": self.email,
             "phone": self.phone,
             "address": self.address,
+            "li_public_id": self.li_public_id,
             "li_urn_id": self.li_urn_id,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
             "industry": self.industry,
-            "company": {
-                "name": self.company_name,
-                "url": self.company_url,
-                "size": self.company_size,
-                "description": self.company_description,
-            },
+            "company": company_data,
             "followers": {
                 "linkedin": self.linkedin_followers,
                 "instagram": self.instagram_followers,

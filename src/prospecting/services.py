@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Union
 
-from src.individual.services import add_individual
+from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
 
 from src.company.services import find_company_for_prospect
@@ -881,7 +881,7 @@ def add_prospect(
 
     get_research_payload_new(prospect_id=p_id, test_mode=False)
     find_company_for_prospect(p_id)
-    add_individual(p_id)
+    add_individual_from_prospect(p_id)
 
     return p_id
 
@@ -1978,4 +1978,106 @@ def get_prospects_for_icp(archetype_id: int):
         "high_data": separate_data(data[8]),
         "very_high_data": separate_data(data[9]),
     }
+
+
+def add_existing_contact(
+    client_sdr_id: int,
+    connection_source: str,
+    full_name: str,
+    first_name: Optional[str],
+    last_name: Optional[str],
+    title: Optional[str],
+    bio: Optional[str],
+    linkedin_url: Optional[str],
+    instagram_url: Optional[str],
+    facebook_url: Optional[str],
+    twitter_url: Optional[str],
+    email: Optional[str],# Unique
+    phone: Optional[str],
+    address: Optional[str],
+    li_public_id: Optional[str],# Unique
+    li_urn_id: Optional[str],# Unique
+    img_url: Optional[str],
+    img_expire: Optional[int],
+    industry: Optional[str],
+    company_name: Optional[str],
+    company_id: Optional[str],
+    linkedin_followers: Optional[int],
+    instagram_followers: Optional[int],
+    facebook_followers: Optional[int],
+    twitter_followers: Optional[int],
+    notes: Optional[str],
+) -> Optional[int]:
+    """
+      Adds an existing contact to the database.
+
+      Returns the existing contact id.
+    """
+    
+    from src.individual.services import add_individual
+    from src.individual.models import Individual
+    from src.prospecting.models import ExistingContact
+
+    individual_id, created = add_individual(
+        full_name=full_name,
+        first_name=first_name,
+        last_name=last_name,
+        title=title,
+        bio=bio,
+        linkedin_url=linkedin_url,
+        instagram_url=instagram_url,
+        facebook_url=facebook_url,
+        twitter_url=twitter_url,
+        email=email,
+        phone=phone,
+        address=address,
+        li_public_id=li_public_id,
+        li_urn_id=li_urn_id,
+        img_url=img_url,
+        img_expire=img_expire,
+        industry=industry,
+        company_name=company_name,
+        company_id=company_id,
+        linkedin_followers=linkedin_followers,
+        instagram_followers=instagram_followers,
+        facebook_followers=facebook_followers,
+        twitter_followers=twitter_followers,
+    )
+    individual: Individual = Individual.query.get(individual_id)
+    if not individual:
+        send_slack_message(
+            message=f"Failed to create or update an individual for the creation of an existing contact {full_name} ({email})",
+            webhook_urls=[URL_MAP["csm-individuals"]],
+        )
+        return None
+    
+    # See if the existing contact already exists
+    existing_contact: ExistingContact = ExistingContact.query.filter(
+        ExistingContact.client_sdr_id == client_sdr_id,
+        ExistingContact.individual_id == individual_id,
+    ).first()
+    if existing_contact:
+        return existing_contact.id
+    
+    existing_contact = ExistingContact(
+        client_sdr_id=client_sdr_id,
+        full_name=individual.full_name,
+        title=individual.title,
+        individual_id=individual.id,
+        company_name=individual.company_name,
+        company_id=individual.company_id,
+        connection_source=connection_source,
+        notes=notes,
+    )
+    db.session.add(existing_contact)
+    db.session.commit()
+
+    return existing_contact.id
+
+
+
+
+
+
+
 

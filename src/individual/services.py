@@ -1,7 +1,10 @@
 import json
 import math
+from typing import Optional
 
 from psycopg2 import IntegrityError
+from src.company.services import find_company
+from src.individual.models import Individual
 from src.prospecting.models import Prospect
 from sqlalchemy import or_
 
@@ -12,185 +15,204 @@ from src.utils.math import get_unique_int
 from src.utils.slack import send_slack_message, URL_MAP
 
 
-def company_backfill(c_min: int, c_max: int):
+def backfill_prospects(client_sdr_id):
 
-    iscraper_cache = IScraperPayloadCache.query.filter(
-        IScraperPayloadCache.payload_type == "COMPANY"
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
     ).all()
 
-    c_max = min(c_max, len(iscraper_cache) - 1)
+    total_count = 0
+    dupe_count = 0
+    for prospect in prospects:
+        success = add_individual_from_prospect(prospect.id)
+        if not success: dupe_count += 1
+        total_count += 1
+
+    added_count = total_count - dupe_count
 
     send_slack_message(
-        message=f"Backfilling Companies: {c_min}/{c_max}...",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
+        message=f"Backfilled {total_count} prospects to individuals, {added_count} added, {dupe_count} duplicates.",
+        webhook_urls=[URL_MAP["csm-individuals"]],
     )
 
-    print(f"Processing {c_min}/{c_max}...")
-
-    c_count = 0
-    for index in range(c_min, c_max):
-        cache = iscraper_cache[index]
-        result = json.loads(cache.payload)
-        processed = add_company_cache_to_db.delay(result)
-        if processed:
-            c_count += 1
-
-    return c_count
+    return {
+        "total_count": total_count,
+        "dupe_count": dupe_count,
+        "added_count": added_count,
+    }
 
 
-@celery.task
-def add_individual(prospect_id: int) -> bool:
-
-    details = json_data.get("details", None)
-    if not details:
-        print(f"No details for company...")
-        return False
-
-    name = details.get("name", None)
-    universal_name = details.get("universal_name", None)
-
-    type = details.get("name", None)
-
-    img_cover_url = (details.get("images") or {}).get("cover", None)
-    img_logo_url = (details.get("images") or {}).get("logo", None)
-
-    li_followers = details.get("followers", None)
-    li_company_id = details.get("company_id", None)
-
-    phone = (details.get("phone") or {}).get("number", None)
-
-    websites = []
-    urls = details.get("urls") or {}
-    for value in urls.values():
-        websites.append(value)
-
-    employees = details.get("staff", {}).get("total", None)
-
-    founded_year = (details.get("founded") or {}).get("year", None)
-
-    description = details.get("description", None)
-
-    specialities = details.get("specialities", [])
-    industries = details.get("industries", [])
-
-    loc_head = (details.get("locations") or {}).get("headquarter", {})
-    loc_others = (details.get("locations") or {}).get("other", [])
-
-    if loc_head:
-        loc_head["is_headquarter"] = True
-        locations = [loc_head]
-    else:
-        locations = []
-
-    for loc in loc_others:
-        loc["is_headquarter"] = False
-        locations.append(loc)
-
-    career_page_url = (details.get("call_to_action") or {}).get("url", None)
-
-    company: Company = Company.query.filter(
-        Company.universal_name == universal_name
-    ).first()
-    if company:
-        print(f"Skipping existing company: {universal_name}")
-    else:
-        company = Company(
-            name=name,
-            universal_name=universal_name,
-            type=type,
-            img_cover_url=img_cover_url,
-            img_logo_url=img_logo_url,
-            li_followers=li_followers,
-            li_company_id=li_company_id,
-            phone=phone,
-            websites=websites,
-            employees=employees,
-            founded_year=founded_year,
-            description=description,
-            specialities=specialities,
-            industries=industries,
-            locations=locations,
-            career_page_url=career_page_url,
-        )
-
-        db.session.add(company)
-        db.session.commit()
-        print(f"Added company: {universal_name}")
-
-    # Add company relations
-    if company:
-        relations = json_data.get("related_companies") or []
-        if len(relations) > 0:
-            print(f"Found {len(relations)} company relations...")
-        for relation in relations:
-            other_company: Company = Company.query.filter(
-                Company.universal_name == relation.get("universal_name")
-            ).first()
-            if not other_company:
-                print(
-                    f'- No record of company found for: {relation.get("universal_name")}'
-                )
-                continue
-
-            id_pair = get_unique_int(company.id, other_company.id)
-            company_relation: CompanyRelation = CompanyRelation.query.get(id_pair)
-            if company_relation:
-                print(
-                    f"- Skipping company relation: {company_relation.company_id_1} <-> {company_relation.company_id_2}"
-                )
-            else:
-                company_relation = CompanyRelation(
-                    id_pair=id_pair,
-                    company_id_1=company.id,
-                    company_id_2=other_company.id,
-                )
-                db.session.add(company_relation)
-                db.session.commit()
-                print(
-                    f"- Added company relation: {company_relation.company_id_1} <-> {company_relation.company_id_2}"
-                )
-
-    return True
-
-
-def company_backfill_prospects(client_sdr_id: int):
-
-    prospects = Prospect.query.filter(
-        Prospect.client_sdr_id == client_sdr_id,
-        Prospect.company_id == None,
-    ).all()
-
-    print(f"Processing {len(prospects)} prospects...")
-
-    c_count = 0
-    for prospect in prospects:
-        success = find_company_for_prospect.delay(prospect.id)
-        if success:
-            c_count += 1
-
-    return c_count
-
-
-@celery.task
-def find_company_for_prospect(prospect_id: int) -> Company:
+def add_individual_from_prospect(prospect_id: int) -> bool:
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if prospect.company_id:
-        return Company.query.get(prospect.company_id)
+    if prospect.individual_id:
+        return False
+    
+    # TODO: Update the individual with updated prospect data
+    
+    individual_id, created = add_individual(
+        full_name=prospect.full_name,
+        first_name=prospect.first_name,
+        last_name=prospect.last_name,
+        title=prospect.title,
+        bio=prospect.linkedin_bio,
+        linkedin_url=prospect.linkedin_url,
+        instagram_url=None,
+        facebook_url=None,
+        twitter_url=prospect.twitter_url,
+        email=prospect.email,
+        phone=None,
+        address=None,
+        li_public_id=prospect.linkedin_url.split("/in/")[1].split("/")[0] if prospect.linkedin_url else None,
+        li_urn_id=prospect.li_urn_id,
+        img_url=prospect.img_url,
+        img_expire=prospect.img_expire,
+        industry=prospect.industry,
+        company_name=prospect.company,
+        company_id=prospect.company_id,
+        linkedin_followers=None,
+        instagram_followers=None,
+        facebook_followers=None,
+        twitter_followers=None,
+    )
+    prospect.individual_id = individual_id
+    db.session.commit()
 
-    company: Company = Company.query.filter(
-        or_(
-            Company.name == prospect.company,
-            Company.websites.any(prospect.company_url),
-        ),
-    ).first()
+    return True if individual_id else False
 
-    if company:
-        prospect.company_id = company.id
-        prospect.company = company.name
-        prospect.company_url = company.websites[0]
-        prospect.employee_count = company.employees
-        db.session.commit()
-        return company
+
+def add_individual(
+    full_name: Optional[str],
+    first_name: Optional[str],
+    last_name: Optional[str],
+    title: Optional[str],
+    bio: Optional[str],
+    linkedin_url: Optional[str],
+    instagram_url: Optional[str],
+    facebook_url: Optional[str],
+    twitter_url: Optional[str],
+    email: Optional[str],# Unique
+    phone: Optional[str],
+    address: Optional[str],
+    li_public_id: Optional[str],# Unique
+    li_urn_id: Optional[str],# Unique
+    img_url: Optional[str],
+    img_expire: Optional[int],
+    industry: Optional[str],
+    company_name: Optional[str],
+    company_id: Optional[str],
+    linkedin_followers: Optional[int],
+    instagram_followers: Optional[int],
+    facebook_followers: Optional[int],
+    twitter_followers: Optional[int],
+) -> tuple[Optional[int], bool]:
+    """
+      Adds an individual to the database, or updates an existing individual if
+      the email or li_public_id already exists.
+
+      Returns the individual id and if a new record was created.
+    """
+
+    # If there's no email, li_public_id, or li_urn_id it will be hard to find so we can't add it
+    if not email and not li_public_id and not li_urn_id:
+        send_slack_message(
+            message=f"Warning: Individual {full_name} has no email, li_public_id, or li_urn_id. Will not be added.",
+            webhook_urls=[URL_MAP["csm-individuals"]],
+        )
+        return None, False
+    
+
+    if email:
+        existing_individual_email: Individual = Individual.query.filter(
+            Individual.email == email,
+        ).first()
     else:
-        return None
+        existing_individual_email = None
+
+    if li_public_id:
+        existing_individual_li_public_id: Individual = Individual.query.filter(
+            Individual.li_public_id == li_public_id,
+        ).first()
+    else:
+        existing_individual_li_public_id = None
+
+    
+    if existing_individual_email and existing_individual_li_public_id:
+        if existing_individual_email.id != existing_individual_li_public_id.id:
+            send_slack_message(
+                message=f"Warning: Two individuals, {existing_individual_email.full_name} ({existing_individual_email.id}) and {existing_individual_li_public_id.full_name} ({existing_individual_li_public_id.id}) seem to be the same person. Please investigate and merge.",
+                webhook_urls=[URL_MAP["csm-individuals"]],
+            )
+            return None, False
+        else:
+            existing_individual = existing_individual_li_public_id
+    else:
+        if existing_individual_email:
+            existing_individual = existing_individual_email
+        elif existing_individual_li_public_id:
+            existing_individual = existing_individual_li_public_id
+        else:
+            existing_individual = None
+
+    if company_name and not company_id:
+        # Try and find company
+        company_id = find_company(company_name)
+
+    if existing_individual:
+        if full_name: existing_individual.full_name = full_name
+        if first_name: existing_individual.first_name = first_name
+        if last_name: existing_individual.last_name = last_name
+        if title: existing_individual.title = title
+        if bio: existing_individual.bio = bio
+        if linkedin_url: existing_individual.linkedin_url = linkedin_url
+        if instagram_url: existing_individual.instagram_url = instagram_url
+        if facebook_url: existing_individual.facebook_url = facebook_url
+        if twitter_url: existing_individual.twitter_url = twitter_url
+        if email: existing_individual.email = email
+        if phone: existing_individual.phone = phone
+        if address: existing_individual.address = address
+        if li_public_id: existing_individual.li_public_id = li_public_id
+        if li_urn_id: existing_individual.li_urn_id = li_urn_id
+        if img_url: existing_individual.img_url = img_url
+        if img_expire: existing_individual.img_expire = img_expire
+        if industry: existing_individual.industry = industry
+        if company_name: existing_individual.company_name = company_name
+        if company_id: existing_individual.company_id = company_id
+        if linkedin_followers: existing_individual.linkedin_followers = linkedin_followers
+        if instagram_followers: existing_individual.instagram_followers = instagram_followers
+        if facebook_followers: existing_individual.facebook_followers = facebook_followers
+        if twitter_followers: existing_individual.twitter_followers = twitter_followers
+        db.session.commit()
+        return existing_individual.id, False
+    
+    else:
+        individual = Individual(
+            full_name=full_name,
+            first_name=first_name,
+            last_name=last_name,
+            title=title,
+            bio=bio,
+            linkedin_url=linkedin_url,
+            instagram_url=instagram_url,
+            facebook_url=facebook_url,
+            twitter_url=twitter_url,
+            email=email if email else None,
+            phone=phone,
+            address=address,
+            li_public_id=li_public_id if li_public_id else None,
+            li_urn_id=li_urn_id if li_urn_id else None,
+            img_url=img_url,
+            img_expire=img_expire,
+            industry=industry,
+            company_name=company_name,
+            company_id=company_id,
+            linkedin_followers=linkedin_followers,
+            instagram_followers=instagram_followers,
+            facebook_followers=facebook_followers,
+            twitter_followers=twitter_followers,
+        )
+        db.session.add(individual)
+        db.session.commit()
+        return individual.id, True
+
+

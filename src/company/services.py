@@ -1,5 +1,6 @@
 import json
 import math
+from typing import Optional
 
 from psycopg2 import IntegrityError
 from src.prospecting.models import Prospect
@@ -181,6 +182,7 @@ def find_company_for_prospect(prospect_id: int) -> Company:
     company: Company = Company.query.filter(
         or_(
             Company.name == prospect.company,
+            Company.universal_name == prospect.company,
             Company.websites.any(prospect.company_url),
         ),
     ).first()
@@ -194,3 +196,16 @@ def find_company_for_prospect(prospect_id: int) -> Company:
         return company
     else:
         return None
+
+
+def find_company(company_name: str, company_url: str = '') -> Optional[int]:
+
+    company: Company = Company.query.filter(
+        or_(
+            Company.name == company_name,
+            Company.universal_name == company_name,
+            Company.websites.any(company_url),
+        ),
+    ).first()
+
+    return company.id if company else None

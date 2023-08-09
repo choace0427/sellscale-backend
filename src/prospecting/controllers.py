@@ -45,6 +45,7 @@ from src.prospecting.services import (
     get_prospect_generated_message,
     send_li_referral_outreach_connection,
     add_prospect_referral,
+    add_existing_contact,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -1152,4 +1153,50 @@ def get_icp_fit_for_archetype(client_sdr_id: int):
     data = get_prospects_for_icp(archetype_id)
 
     return jsonify({"message": "Success", "data": data }), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/existing_contacts", methods=["POST"])
+@require_user
+def post_existing_contacts(client_sdr_id: int):
+
+    existing_contacts = get_request_parameter("data", request, json=True, required=True, parameter_type=list)
+
+    total_count = len(existing_contacts)
+    added_count = 0
+    for c in existing_contacts:
+        contact_id = add_existing_contact(
+            client_sdr_id=client_sdr_id,
+            connection_source=c.get('connection_source', 'UNKNOWN'),
+            full_name=c.get('full_name', ''),
+            first_name=c.get('first_name', None),
+            last_name=c.get('last_name', None),
+            title=c.get('title', None),
+            bio=c.get('bio', None),
+            linkedin_url=c.get('linkedin_url', None),
+            instagram_url=c.get('instagram_url', None),
+            facebook_url=c.get('facebook_url', None),
+            twitter_url=c.get('twitter_url', None),
+            email=c.get('email', None),
+            phone=c.get('phone', None),
+            address=c.get('address', None),
+            li_public_id=c.get('li_public_id', None),
+            li_urn_id=c.get('li_urn_id', None),
+            img_url=c.get('img_url', None),
+            img_expire=c.get('img_expire', None),
+            industry=c.get('industry', None),
+            company_name=c.get('company_name', None),
+            company_id=c.get('company_id', None),
+            linkedin_followers=c.get('linkedin_followers', None),
+            instagram_followers=c.get('instagram_followers', None),
+            facebook_followers=c.get('facebook_followers', None),
+            twitter_followers=c.get('twitter_followers', None),
+            notes=c.get('notes', None)
+        )
+        if contact_id: added_count += 1
+
+    return jsonify({"message": "Success", "data": {
+        "total_count": total_count,
+        "added_count": added_count
+    } }), 200
+
 

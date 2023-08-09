@@ -31,6 +31,7 @@ URL_MAP = {
     "csm-demo-date": "https://hooks.slack.com/services/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",
     "ops-scribe-submissions": "https://hooks.slack.com/services/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",
     "sales-leads-plg-demo": "https://hooks.slack.com/services/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",
+    "csm-individuals": "https://hooks.slack.com/services/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",
 }
 
 
