@@ -48,6 +48,7 @@ def send_status_change_slack_block(
         client.pipeline_notifications_webhook_url
         and client.notification_allowlist
         and new_status in client.notification_allowlist
+        and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
     ):
         webhook_urls.append(client.pipeline_notifications_webhook_url)
     if (
@@ -55,6 +56,7 @@ def send_status_change_slack_block(
         and client_sdr.pipeline_notifications_webhook_url
         and client_sdr.notification_allowlist
         and new_status in client_sdr.notification_allowlist
+        and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
     ):
         webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
 
@@ -70,9 +72,14 @@ def send_status_change_slack_block(
     convo: list[LinkedinConversationEntry] = []
     if outreach_type == ProspectChannels.LINKEDIN:
         urn_id = prospect.li_conversation_urn_id
-        convo: list[LinkedinConversationEntry] = LinkedinConversationEntry.query.filter_by(
-            conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
-        ).order_by(LinkedinConversationEntry.created_at.desc()).limit(5).all()
+        convo: list[LinkedinConversationEntry] = (
+            LinkedinConversationEntry.query.filter_by(
+                conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
+            )
+            .order_by(LinkedinConversationEntry.created_at.desc())
+            .limit(5)
+            .all()
+        )
         if len(convo) > 0:
             has_messages = True
 
@@ -96,7 +103,9 @@ def send_status_change_slack_block(
                 "text": "*Title:* {title}\n*Company:* {company}{last_message}".format(
                     title=prospect.title,
                     company=prospect.company,
-                    last_message="\n*Last message:* {}...".format(last_email_message) if last_email_message else "",
+                    last_message="\n*Last message:* {}...".format(last_email_message)
+                    if last_email_message
+                    else "",
                 ),
             },
         }
@@ -124,7 +133,9 @@ def send_status_change_slack_block(
                         "text": {
                             "type": "mrkdwn",
                             "text": "*{sender}:* {message}".format(
-                                sender=c.author, degree=c.connection_degree, message=c.message
+                                sender=c.author,
+                                degree=c.connection_degree,
+                                message=c.message,
                             ),
                         },
                     }
@@ -163,7 +174,9 @@ def send_status_change_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*SellScale AI Researcher says 🕵️🔎:* '_{}_'".format(prospect.icp_fit_reason),
+                    "text": "*SellScale AI Researcher says 🕵️🔎:* '_{}_'".format(
+                        prospect.icp_fit_reason
+                    ),
                     "emoji": True,
                 },
             }
@@ -171,7 +184,7 @@ def send_status_change_slack_block(
 
     if outreach_type == ProspectChannels.LINKEDIN:  # Add next steps for Linkedin
         sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-        direct_link =  "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+        direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
             auth_token=sdr.auth_token,
             prospect_id=prospect.id,
         )
