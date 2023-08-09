@@ -284,3 +284,26 @@ def get_refetch_all_convos(client_sdr_id: int):
     fetch_li_prospects_for_sdr(client_sdr_id)
 
     return jsonify({"message": "Success"}), 200
+
+
+@VOYAGER_BLUEPRINT.route("/connections", methods=["GET"])
+@require_user
+def get_connections(client_sdr_id: int):
+    """Gets all linkedin connections for a SDR"""
+
+    limit = get_request_parameter("limit", request, json=False, required=False)
+    if limit is None:
+        limit = 20
+
+    api = LinkedIn(client_sdr_id)
+    profile = api.get_user_profile(use_cache=False)
+    if not api.is_valid():
+        return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+    sdr_urn_id = profile.get('miniProfile', {}).get('entityUrn', '').replace('urn:li:fs_miniProfile:', '')
+    if not sdr_urn_id:
+        return jsonify({"message": "Failed to find URN ID for SDR"}), 403
+
+    connections = api.graphql_get_connections(10, 0)
+    print(connections)
+
+    return jsonify({"message": "Success", "data": []}), 200

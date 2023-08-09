@@ -3,6 +3,7 @@ Provides linkedin api-related code
 """
 import base64
 import math
+from typing import Optional
 import urllib.parse
 import json
 import logging
@@ -541,3 +542,132 @@ class LinkedIn(object):
             return None
 
         return res.json()
+
+
+    def graphql_search_people(
+            self,
+            job_title: str,
+            regions: list[str],
+            limit: Optional[int],
+            offset: int
+    ) -> list[dict]:
+        """Get list of user's urns by job_title and regions."""
+        count = self._MAX_SEARCH_COUNT
+        if limit is None:
+            limit = -1
+
+        results = []
+        while True:
+            # when we're close to the limit, only fetch what we need to
+            if limit > -1 and limit - len(results) < count:
+                count = limit - len(results)
+
+            default_params = {
+                "origin": "FACETED_SEARCH",
+                "start": len(results) + offset,
+            }
+
+            res = self._fetch(
+                (f"/graphql?variables=(start:{default_params['start']},origin:{default_params['origin']},"
+                 f"query:(keywords:{job_title},flagshipSearchIntent:SEARCH_SRP,"
+                 f"queryParameters:List((key:geoUrn,value:List({','.join(regions)})),"
+                 f"(key:resultType,value:List(PEOPLE))),"
+                 f"includeFiltersInResponse:false))&=&queryId=voyagerSearchDashClusters"
+                 f".b0928897b71bd00a5a7291755dcd64f0"),
+                headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
+            )
+
+            data = json.loads(res.text)
+
+            new_elements = []
+            elements = data.get("included", [])
+
+            for element in elements:
+                if element.get("template", None) and element.get("template") == "UNIVERSAL":
+                    urn_id = element["entityUrn"].split("(")[-1].split(":")[-1].split(",")[0]
+                    element_dict = {
+                        "entity_urn": urn_id,
+                        "full_name": element["title"]["text"],
+                        "profile_url": element["navigationContext"]["url"]
+                    }
+                    new_elements.append(element_dict)
+
+            results.extend(new_elements)
+
+            # break the loop if we're done searching
+            # NOTE: we could also check for the `total` returned in the response.
+            # This is in data["data"]["paging"]["total"]
+            if (
+                    (-1 < limit <= len(results))  # if our results exceed set limit
+                    or len(results) / count >= self._MAX_REPEATED_REQUESTS
+            ) or len(new_elements) == 0:
+                break
+
+            self.logger.debug(f"results grew to {len(results)}")
+
+        return results
+    
+
+    def graphql_get_connections(
+            self,
+            limit: Optional[int],
+            offset: int
+    ) -> list[dict]:
+        """Get list of user's urns by job_title and regions."""
+        count = self._MAX_SEARCH_COUNT
+        if limit is None:
+            limit = -1
+
+        results = []
+        while True:
+            # when we're close to the limit, only fetch what we need to
+            if limit > -1 and limit - len(results) < count:
+                count = limit - len(results)
+
+            default_params = {
+                "origin": "FACETED_SEARCH",
+                "start": len(results) + offset,
+            }
+
+            res = self._fetch(
+                (f"/graphql?variables=(start:{default_params['start']},origin:MEMBER_PROFILE_CANNED_SEARCH,"
+                 f"query:(flagshipSearchIntent:SEARCH_SRP,"
+                 f"queryParameters:List((key:network,value:List(F)),"
+                 f"(key:resultType,value:List(PEOPLE))),"
+                 f"includeFiltersInResponse:false))&=&queryId=voyagerSearchDashClusters"
+                 f".b0928897b71bd00a5a7291755dcd64f0"),
+                headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
+            )
+
+            data = json.loads(res.text)
+
+            print(data['data'].keys())
+
+            new_elements = []
+            elements = data.get("included", [])
+
+            for element in elements:
+                if element.get("template", None) and element.get("template") == "UNIVERSAL":
+                    urn_id = element["entityUrn"].split("(")[-1].split(":")[-1].split(",")[0]
+                    element_dict = {
+                        "entity_urn": urn_id,
+                        "full_name": element["title"]["text"],
+                        "profile_url": element["navigationContext"]["url"]
+                    }
+                    new_elements.append(element_dict)
+
+            results.extend(new_elements)
+
+            # break the loop if we're done searching
+            # NOTE: we could also check for the `total` returned in the response.
+            # This is in data["data"]["paging"]["total"]
+            if (
+                    (-1 < limit <= len(results))  # if our results exceed set limit
+                    or len(results) / count >= self._MAX_REPEATED_REQUESTS
+            ) or len(new_elements) == 0:
+                break
+
+            self.logger.debug(f"results grew to {len(results)}")
+
+        return results
+
