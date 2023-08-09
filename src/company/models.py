@@ -32,6 +32,27 @@ class Company(db.Model):
 
     career_page_url = db.Column(db.String, nullable=True)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "universal_name": self.universal_name,
+            "type": self.type,
+            "img_cover_url": self.img_cover_url,
+            "img_logo_url": self.img_logo_url,
+            "li_followers": self.li_followers,
+            "li_company_id": self.li_company_id,
+            "phone": self.phone,
+            "websites": self.websites,
+            "employees": self.employees,
+            "founded_year": self.founded_year,
+            "description": self.description,
+            "specialities": self.specialities,
+            "industries": self.industries,
+            "locations": self.locations,
+            "career_page_url": self.career_page_url,
+        }
+
 
 
 class CompanyRelation(db.Model):

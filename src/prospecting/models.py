@@ -1,3 +1,4 @@
+from src.individual.models import Individual
 from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 import enum
@@ -458,6 +459,8 @@ class Prospect(db.Model):
     in_icp_sample = db.Column(db.Boolean, nullable=True)
     icp_fit_score_override = db.Column(db.Integer, nullable=True)
 
+    individual_id = db.Column(db.Integer, db.ForeignKey("individual.id"), nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
@@ -612,6 +615,13 @@ class Prospect(db.Model):
                         .all()
                     ]
 
+
+        if self.individual_id:
+            individual: Individual = Individual.query.get(self.individual_id)
+            individual_data = individual.to_dict()
+        else:
+            individual_data = None
+
         return {
             "id": self.id,
             "client_id": self.client_id,
@@ -680,6 +690,7 @@ class Prospect(db.Model):
             "in_icp_sample": self.in_icp_sample,
             "icp_fit_score_override": self.icp_fit_score_override,
             "email_store": email_store_data,
+            "individual_data": individual_data,
         }
 
 
@@ -1023,3 +1034,49 @@ class ProspectReferral(db.Model):
             "referred_id": self.referred_id,
             "meta_data": self.meta_data,
         }
+    
+
+class ExistingContact(db.Model):
+    __tablename__ = "existing_contact"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    full_name = db.Column(db.String, nullable=True)
+    title = db.Column(db.String, nullable=True)
+    individual_id = db.Column(db.Integer, db.ForeignKey("individual.id"), nullable=True)
+
+    company_name = db.Column(db.String, nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
+
+    connection_source = db.Column(db.String, nullable=True)
+    notes = db.Column(db.String, nullable=True)
+
+    def to_dict(self):
+        
+        if self.individual_id:
+            individual: Individual = Individual.query.get(self.individual_id)
+            individual_data = individual.to_dict()
+        else:
+            individual_data = None
+
+        # Check if this contact has been used as a prospect
+        prospect: Prospect = Prospect.query.filter_by(
+            client_sdr_id=self.client_sdr_id,
+            individual_id=self.individual_id,
+        ).first()
+        used = True if prospect else False
+
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "full_name": self.full_name,
+            "title": self.title,
+            "individual_data": individual_data,
+            "company_name": self.company_name,
+            "company_id": self.company_id,
+            "connection_source": self.connection_source,
+            "notes": self.notes,
+            "used": used,
+        }
+
