@@ -1,5 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Union
+
+from src.individual.services import add_individual
 from src.campaigns.models import OutboundCampaign
 
 from src.company.services import find_company_for_prospect
@@ -879,6 +881,7 @@ def add_prospect(
 
     get_research_payload_new(prospect_id=p_id, test_mode=False)
     find_company_for_prospect(p_id)
+    add_individual(p_id)
 
     return p_id
 
