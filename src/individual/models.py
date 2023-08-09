@@ -1,6 +1,6 @@
-
 from app import db
 from sqlalchemy.orm import relationship
+
 
 class Individual(db.Model):
     __tablename__ = "individual"
@@ -40,37 +40,36 @@ class Individual(db.Model):
     # TODO: Maybe include a birthday field? We do get that li data
 
     # ref to campaigns
-    prospects = relationship("Prospect", backref="individual")
+    # prospects = relationship("Prospect", backref="individual")
 
     def to_dict(self):
-      return {
-        "full_name": self.full_name,
-        "first_name": self.first_name,
-        "last_name": self.last_name,
-        "title": self.title,
-        "bio": self.bio,
-        "linkedin_url": self.linkedin_url,
-        "instagram_url": self.instagram_url,
-        "facebook_url": self.facebook_url,
-        "twitter_url": self.twitter_url,
-        "email": self.email,
-        "phone": self.phone,
-        "address": self.address,
-        "li_urn_id": self.li_urn_id,
-        "img_url": self.img_url,
-        "img_expire": self.img_expire,
-        "industry": self.industry,
-        "company": {
-          "name": self.company_name,
-          "url": self.company_url,
-          "size": self.company_size,
-          "description": self.company_description,
-        },
-        "followers": {
-          "linkedin": self.linkedin_followers,
-          "instagram": self.instagram_followers,
-          "facebook": self.facebook_followers,
-          "twitter": self.twitter_followers,
+        return {
+            "full_name": self.full_name,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "title": self.title,
+            "bio": self.bio,
+            "linkedin_url": self.linkedin_url,
+            "instagram_url": self.instagram_url,
+            "facebook_url": self.facebook_url,
+            "twitter_url": self.twitter_url,
+            "email": self.email,
+            "phone": self.phone,
+            "address": self.address,
+            "li_urn_id": self.li_urn_id,
+            "img_url": self.img_url,
+            "img_expire": self.img_expire,
+            "industry": self.industry,
+            "company": {
+                "name": self.company_name,
+                "url": self.company_url,
+                "size": self.company_size,
+                "description": self.company_description,
+            },
+            "followers": {
+                "linkedin": self.linkedin_followers,
+                "instagram": self.instagram_followers,
+                "facebook": self.facebook_followers,
+                "twitter": self.twitter_followers,
+            },
         }
-      }
-
