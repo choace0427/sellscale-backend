@@ -256,7 +256,7 @@ scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
-scheduler.add_job(func=generate_message_bumps, trigger="interval", seconds=15)
+scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)
 scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
