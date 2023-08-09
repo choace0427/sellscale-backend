@@ -39,7 +39,8 @@ def nylas_get_threads(
         - list: List of email threads
     """
     try:
-        success = nylas_update_threads(client_sdr_id, prospect_id, NYLAS_THREAD_LIMIT)
+        success = nylas_update_threads(
+            client_sdr_id, prospect_id, NYLAS_THREAD_LIMIT)
     except:
         success = False
 
@@ -108,8 +109,10 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
                     thread.get("last_message_timestamp"), tz=timezone.utc
                 )
 
-            existing_thread.subject = thread.get("subject", existing_thread.subject)
-            existing_thread.snippet = thread.get("snippet", existing_thread.snippet)
+            existing_thread.subject = thread.get(
+                "subject", existing_thread.subject)
+            existing_thread.snippet = thread.get(
+                "snippet", existing_thread.snippet)
             existing_thread.first_message_timestamp = first_message_timestamp
             existing_thread.last_message_received_timestamp = (
                 last_message_received_timestamp
@@ -122,8 +125,10 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
             existing_thread.has_attachments = thread.get(
                 "has_attachments", existing_thread.has_attachments
             )
-            existing_thread.unread = thread.get("unread", existing_thread.unread)
-            existing_thread.version = thread.get("version", existing_thread.version)
+            existing_thread.unread = thread.get(
+                "unread", existing_thread.unread)
+            existing_thread.version = thread.get(
+                "version", existing_thread.version)
             existing_thread.nylas_thread_id = thread.get(
                 "id", existing_thread.nylas_thread_id
             )
@@ -226,8 +231,10 @@ def nylas_update_single_thread(thread_id: str, thread: Optional[dict] = {}) -> b
                 thread.get("last_message_timestamp"), tz=timezone.utc
             )
 
-        existing_thread.subject = thread.get("subject", existing_thread.subject)
-        existing_thread.snippet = thread.get("snippet", existing_thread.snippet)
+        existing_thread.subject = thread.get(
+            "subject", existing_thread.subject)
+        existing_thread.snippet = thread.get(
+            "snippet", existing_thread.snippet)
         existing_thread.first_message_timestamp = first_message_timestamp
         existing_thread.last_message_received_timestamp = (
             last_message_received_timestamp
@@ -241,7 +248,8 @@ def nylas_update_single_thread(thread_id: str, thread: Optional[dict] = {}) -> b
             "has_attachments", existing_thread.has_attachments
         )
         existing_thread.unread = thread.get("unread", existing_thread.unread)
-        existing_thread.version = thread.get("version", existing_thread.version)
+        existing_thread.version = thread.get(
+            "version", existing_thread.version)
         existing_thread.nylas_thread_id = thread.get(
             "id", existing_thread.nylas_thread_id
         )
@@ -379,17 +387,21 @@ def nylas_update_messages(
                     tz=timezone.utc,
                 )
 
-            existing_message.subject = message.get("subject", existing_message.subject)
-            existing_message.snippet = message.get("snippet", existing_message.snippet)
+            existing_message.subject = message.get(
+                "subject", existing_message.subject)
+            existing_message.snippet = message.get(
+                "snippet", existing_message.snippet)
             existing_message.body = message.get("body", existing_message.body)
             existing_message.bcc = message.get("bcc", existing_message.bcc)
             existing_message.cc = message.get("cc", existing_message.cc)
             existing_message.date_received = date_received
-            existing_message.files = message.get("files", existing_message.files)
+            existing_message.files = message.get(
+                "files", existing_message.files)
             existing_message.message_from = message.get(
                 "from", existing_message.message_from
             )
-            existing_message.message_to = message.get("to", existing_message.message_to)
+            existing_message.message_to = message.get(
+                "to", existing_message.message_to)
             existing_message.reply_to = message.get(
                 "reply_to", existing_message.reply_to
             )
@@ -443,7 +455,8 @@ def nylas_update_messages(
             db.session.add(new_message)
 
             # Increment unread messages
-            prospect.email_unread_messages = prospect.email_unread_messages + 1 if prospect.email_unread_messages else 1
+            prospect.email_unread_messages = prospect.email_unread_messages + \
+                1 if prospect.email_unread_messages else 1
 
     db.session.commit()
 
@@ -491,7 +504,8 @@ def nylas_send_email(
         db.session.commit()
         prospect_email_id = prospect_email.id
     else:
-        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect_email_id)
         prospect_email_id = prospect_email.id
 
     prospect: Prospect = Prospect.query.get(prospect_id)

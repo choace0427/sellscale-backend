@@ -1,8 +1,12 @@
 import hashlib
 import json
 import datetime
+import re
 from typing import Optional
+from bs4 import BeautifulSoup
 from flask import jsonify
+from src.bump_framework_email.models import BumpFrameworkEmail
+from src.client.models import ClientSDR
 from src.email_outbound.models import Sequence, SequenceStatus
 
 from app import db, celery
@@ -19,6 +23,7 @@ from src.campaigns.models import (
     OutboundCampaign,
     OutboundCampaignStatus,
 )
+from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4_MODEL, wrapped_chat_gpt_completion
 from src.prospecting.services import calculate_prospect_overall_status
 from src.email_outbound.models import (
     EmailInteractionState,
@@ -633,3 +638,161 @@ def get_sequences(client_sdr_id: int, archetype_id: int):
                 s.to_dict() for s in sequences]}),
         200,
     )
+
+
+def generate_email_bump(
+    client_sdr_id: int,
+    prospect_id: int,
+    email_thread_id: str,
+    email_bump_framework_id: Optional[int] = None,
+    custom_account_research: Optional[list[str]] = None,
+    max_attempts: Optional[int] = 3,
+) -> (str, str):
+    """Generates a response to an email thread using Bump Frameworks.
+
+    Args:
+
+
+    Returns:
+        (str, str): The response and the GPT-3 prompt.
+    """
+    # Get SDR
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Get Prospect
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return None, None
+
+    # Get Email Bump Framework, if any
+    email_bump_framework: Optional[BumpFrameworkEmail] = None
+    email_structure: str = "Write a medium length email that follows the thread."
+    if email_bump_framework_id:
+        email_bump_framework = BumpFrameworkEmail.query.get(email_bump_framework_id)
+        if email_bump_framework:
+            blocks = email_bump_framework.email_blocks
+
+            # Join the blocks with a number and newline
+            for i, block in enumerate(blocks):
+                blocks[i] = f"{i+1}. {block}"
+            email_structure = "\n".join(blocks)
+
+    # Get Email Thread transcript
+    email_thread_transcript: list[dict] = get_email_messages_with_prospect_transcript_format(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        thread_id=email_thread_id
+    )
+    if len(email_thread_transcript) == 0:
+        return None, None
+
+    prompt = """You are {sdr_name} who is writing an email as part of an email thread. Keep responses friendly and concise.
+
+Use the following email structure when composing the email:
+{email_structure}
+
+Use the following custom personalization points when composing the email:
+{custom_personalization_points}
+
+Here is a transcript of the email thread so far:
+=== EMAIL THREAD TRANSCRIPT ===
+{email_thread_transcript}
+=== END EMAIL THREAD TRANSCRIPT ===
+
+""".format(
+    sdr_name=sdr.name,
+    email_structure=email_structure,
+    custom_personalization_points="\n".join(custom_account_research) if custom_account_research else "",
+    email_thread_transcript="\n\n".join(email_thread_transcript)
+)
+
+    for i in range(max_attempts):
+        try:
+            # Get response from Chat
+            response = wrapped_chat_gpt_completion(
+                [
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500,
+                model=OPENAI_CHAT_GPT_4_MODEL
+            )
+            print(response)
+
+            return response, prompt
+        except:
+            pass
+
+    return "Generation failed after 3 attempts", prompt
+
+
+def get_email_messages_with_prospect_transcript_format(
+    client_sdr_id: int, prospect_id: int, thread_id: str, x: Optional[int] = None
+) -> list[str]:
+    """Gets the messages between a ClientSDR and a Prospect in a transcript format. Optionally, can limit the number of messages returned.
+
+    Returns in the format:
+    [
+        "(Name) (ClientSDR) (date_received): > Message",
+        "(Name) (Prospect) (date_received): > Message",
+        "(Name) (Other) (date_received): > Message",
+        ...
+    ]
+
+    Oldest message first.
+
+    Args:
+        client_sdr_id (int): ID of the ClientSDR
+        prospect_id (int): ID of the Prospect
+        thread_id (str): ID of the EmailConversationThread
+        x (Optional[int], optional): Number of messages to return. Defaults to None.
+
+    Returns:
+        list[str]: List of messages in transcript format
+    """
+    from src.prospecting.nylas.services import get_email_messages_with_prospect
+
+    messages: list[dict] = get_email_messages_with_prospect(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        thread_id=thread_id,
+        x=x,
+    )
+    if not messages or len(messages) == 0:
+        return []
+    messages.reverse()
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    sdr_name: str = sdr.name
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_name: str = prospect.full_name
+
+    transcript: list[str] = []
+    for message in messages:
+        date_received = message.get('date_received')
+        sender_name = ''
+        sender_class = ''
+        body = ''
+
+        # Parse the email body
+        body: str = message.get('body')
+        bs = BeautifulSoup(body, 'html.parser')
+        body: str = bs.get_text()
+        body: str = re.sub(r"\n+", "\n", body)
+        body: str = "> " + body
+        body: str = body.strip().replace("\n", "\n> ")
+
+        from_sdr = message.get('from_sdr')
+        from_prospect = message.get('from_prospect')
+        if from_sdr:
+            sender_name = sdr_name
+            sender_class = 'SDR'
+        elif from_prospect:
+            sender_name = prospect_name
+            sender_class = 'Prospect'
+        else:
+            sender_name = message.get('message_from', [{'name': ''}])[0].get('name')
+            sender_class = 'Other'
+
+        transcript.append(f"({sender_name}) ({sender_class}) ({date_received}):\n{body}")
+
+    return transcript
