@@ -1049,7 +1049,7 @@ def remove_from_contact_list(client_sdr_id: int):
 @require_user
 def post_demo_date(client_sdr_id: int, prospect_id: int):
     demo_date = get_request_parameter("demo_date", request, json=True, required=True)
-    success = update_prospect_demo_date(prospect_id=prospect_id, demo_date=demo_date)
+    success = update_prospect_demo_date(client_sdr_id=client_sdr_id, prospect_id=prospect_id, demo_date=demo_date)
 
     date = datetime.fromisoformat(demo_date[:-1])
     hidden_days = (date - datetime.now()).days
