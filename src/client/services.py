@@ -94,6 +94,12 @@ def create_client(
     db.session.commit()
     c.regenerate_uuid()
 
+    create_client_sdr(
+        client_id=c.id,
+        name=contact_name,
+        email=contact_email,
+    )
+
     return {"client_id": c.id}
 
 
@@ -220,11 +226,15 @@ def get_client_archetype_prospects(
     Returns:
         list: The list of prospects
     """
-    prospects: list[Prospect] = Prospect.query.filter(
-        Prospect.client_sdr_id == client_sdr_id,
-        Prospect.archetype_id == archetype_id,
-        Prospect.full_name.ilike(f"%{query}%"),
-    ).limit(10).all()
+    prospects: list[Prospect] = (
+        Prospect.query.filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.archetype_id == archetype_id,
+            Prospect.full_name.ilike(f"%{query}%"),
+        )
+        .limit(10)
+        .all()
+    )
 
     return [p.to_dict(shallow_data=True) for p in prospects]
 
@@ -1973,10 +1983,14 @@ def get_demo_feedback(client_sdr_id: int, prospect_id: int) -> list[DemoFeedback
         list[DemoFeedback}: List of Demo feedback
     """
 
-    demo_feedback: list[DemoFeedback] = DemoFeedback.query.filter(
-        DemoFeedback.client_sdr_id == client_sdr_id,
-        DemoFeedback.prospect_id == prospect_id,
-    ).order_by(DemoFeedback.id.asc()).all()
+    demo_feedback: list[DemoFeedback] = (
+        DemoFeedback.query.filter(
+            DemoFeedback.client_sdr_id == client_sdr_id,
+            DemoFeedback.prospect_id == prospect_id,
+        )
+        .order_by(DemoFeedback.id.asc())
+        .all()
+    )
 
     return demo_feedback
 
@@ -2052,9 +2066,7 @@ def scrape_for_demos() -> int:
 
     # Get all prospects that have a demo_date set (in the past) but no demo feedback
     prospects = (
-        db.session.query(
-            Prospect.id.label("prospect_id")
-        )
+        db.session.query(Prospect.id.label("prospect_id"))
         .outerjoin(DemoFeedback, Prospect.id == DemoFeedback.prospect_id)
         .filter(
             DemoFeedback.prospect_id == None,
@@ -2085,7 +2097,7 @@ def scrape_for_demos() -> int:
 
         missing_count += 1
 
-        direct_link =  "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+        direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
             auth_token=sdr.auth_token,
             prospect_id=prospect_id,
         )
@@ -2099,16 +2111,20 @@ def scrape_for_demos() -> int:
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "📅 {sdr_name} - Demo feedback missing".format(sdr_name=sdr.name),
-                        "emoji": True
-                    }
+                        "text": "📅 {sdr_name} - Demo feedback missing".format(
+                            sdr_name=sdr.name
+                        ),
+                        "emoji": True,
+                    },
                 },
                 {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "Rep: *{sdr_name}*, *{client_name}*".format(sdr_name=sdr.name, client_name=client.company)
+                            "text": "Rep: *{sdr_name}*, *{client_name}*".format(
+                                sdr_name=sdr.name, client_name=client.company
+                            ),
                         },
                     ],
                 },
@@ -2117,27 +2133,34 @@ def scrape_for_demos() -> int:
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "Prospect: *{prospect_name}*, *{prospect_company}*".format(prospect_name=prospect.full_name, prospect_company=prospect.company),
+                            "text": "Prospect: *{prospect_name}*, *{prospect_company}*".format(
+                                prospect_name=prospect.full_name,
+                                prospect_company=prospect.company,
+                            ),
                         },
-                    ]
+                    ],
                 },
                 {
                     "type": "context",
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "Scheduled demo date: *{demo_date}*".format(demo_date=prospect.demo_date.strftime("%b %d, %Y")),
+                            "text": "Scheduled demo date: *{demo_date}*".format(
+                                demo_date=prospect.demo_date.strftime("%b %d, %Y")
+                            ),
                         },
-                    ]
+                    ],
                 },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Collect feedback through #sdr-concierge or reschedule.\n<{direct_link}|Click here to go to the prospect's page>".format(direct_link=direct_link),
-                    }
-                }
-            ]
+                        "text": "Collect feedback through #sdr-concierge or reschedule.\n<{direct_link}|Click here to go to the prospect's page>".format(
+                            direct_link=direct_link
+                        ),
+                    },
+                },
+            ],
         )
 
     return missing_count
@@ -2570,7 +2593,7 @@ def get_persona_setup_status_map_for_persona(persona_id: int):
 
 
 def get_client_sdr_table_info(client_sdr_id: int):
-    
+
     query = f"""
       select 
         client_sdr.name "SDR Name",
@@ -2630,4 +2653,3 @@ def get_client_sdr_table_info(client_sdr_id: int):
     ]
 
     return data
-
