@@ -1688,7 +1688,7 @@ def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: d
               Demo reminder requested for prospect below:
               SDR Name: {sdr.name}
               Prospect name: {prospect.full_name}
-              Demo date: {demo_date}
+              Demo date: {demo_date.strftime("%m/%d/%Y")}
               Please send a reminder to engage with prospect and confirm they'll be meeting.
             """,
             webhook_urls=[URL_MAP["prospect-demo-soon"]],
