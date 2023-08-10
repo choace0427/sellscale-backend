@@ -1212,9 +1212,12 @@ def get_existing_contacts_endpoint(client_sdr_id: int):
     limit = get_request_parameter("limit", request, json=False, required=False, parameter_type=int, default_value=20)
     offset = get_request_parameter("offset", request, json=False, required=False, parameter_type=int, default_value=0)
 
-    existing_contacts = get_existing_contacts(client_sdr_id, limit, offset)
+    existing_contacts, total_rows = get_existing_contacts(client_sdr_id, limit, offset)
 
-    return jsonify({"message": "Success", "data": existing_contacts }), 200
+    return jsonify({"message": "Success", "data": {
+        "total_rows": total_rows,
+        "existing_contacts": existing_contacts
+    } }), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/existing_contacts/add_to_persona", methods=["POST"])

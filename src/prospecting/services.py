@@ -2083,7 +2083,11 @@ def get_existing_contacts(client_sdr_id: int, limit: int, offset: int):
         ExistingContact.client_sdr_id == client_sdr_id,
     ).limit(limit).offset(offset).all()
 
-    return [c.to_dict() for c in existing_contacts]
+    total_rows: int = ExistingContact.query.filter(
+        ExistingContact.client_sdr_id == client_sdr_id,
+    ).count()
+
+    return [c.to_dict() for c in existing_contacts], total_rows
 
 
 def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
