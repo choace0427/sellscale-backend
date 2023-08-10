@@ -2075,8 +2075,37 @@ def add_existing_contact(
     return existing_contact.id
 
 
+def get_existing_contacts(client_sdr_id: int):
+    
+    from src.prospecting.models import ExistingContact
+    
+    existing_contacts: List[ExistingContact] = ExistingContact.query.filter(
+        ExistingContact.client_sdr_id == client_sdr_id,
+    )
+
+    return [c.to_dict() for c in existing_contacts]
 
 
+def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
+    
+    from src.prospecting.models import ExistingContact
+
+    added_count = 0
+    for contact_id in contact_ids:
+        
+        existing_contact: ExistingContact = ExistingContact.query.get(contact_id)
+        if not existing_contact: continue
+        contact_data = existing_contact.to_dict()
+        li_public_id = contact_data.get('individual_data', {}).get('li_public_id', None)
+        if not li_public_id: continue
+
+        success = create_prospects_from_linkedin_link_list(
+            url_string=f'https://www.linkedin.com/in/{li_public_id}/',
+            archetype_id=persona_id
+        )
+        if success: added_count += 1
+
+    return added_count
 
 
 

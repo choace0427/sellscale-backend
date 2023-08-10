@@ -1,5 +1,6 @@
 from typing import List
 
+from src.prospecting.models import ExistingContact
 from src.prospecting.services import get_prospect_li_history, patch_prospect
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
@@ -46,6 +47,8 @@ from src.prospecting.services import (
     send_li_referral_outreach_connection,
     add_prospect_referral,
     add_existing_contact,
+    get_existing_contacts,
+    add_existing_contacts_to_persona,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -1199,4 +1202,31 @@ def post_existing_contacts(client_sdr_id: int):
         "added_count": added_count
     } }), 200
 
+
+
+@PROSPECTING_BLUEPRINT.route("/existing_contacts", methods=["GET"])
+@require_user
+def get_existing_contacts_endpoint(client_sdr_id: int):
+
+    existing_contacts = get_existing_contacts(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": existing_contacts }), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/existing_contacts/add_to_persona", methods=["POST"])
+@require_user
+def post_add_existing_contacts_to_persona(client_sdr_id: int):
+
+    persona_id = get_request_parameter("persona_id", request, json=True, required=True, parameter_type=int)
+    contact_ids = get_request_parameter("contact_ids", request, json=True, required=True, parameter_type=list)
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(persona_id)
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Persona not found"}), 404
+
+    added_count = add_existing_contacts_to_persona(persona_id, contact_ids)
+
+    return jsonify({"message": "Success", "data": {
+        "added_count": added_count
+    } }), 200
 
