@@ -246,6 +246,16 @@ def run_collect_and_trigger_email_store_hunter_verify():
         collect_and_trigger_email_store_hunter_verify.delay()
 
 
+def process_sdr_stats_job():
+    from src.analytics.services_sdr_stats_puller import process_sdr_stats
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        process_sdr_stats.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
