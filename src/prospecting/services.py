@@ -776,6 +776,7 @@ def add_prospect(
     email: Optional[str] = None,
     allow_duplicates: bool = True,
     synchronous_research: bool = False,
+    set_status: ProspectStatus = ProspectStatus.PROSPECTED,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -795,12 +796,14 @@ def add_prospect(
         twitter_url (Optional[str], optional): Prospect's Twitter URL. Defaults to None.
         email (Optional[str], optional): Prospect's email. Defaults to None.
         allow_duplicates (bool, optional): Whether or not to check for duplicate prospects. Defaults to True.
+        synchronous_research (bool, optional): Whether or not to run synchronous research on the Prospect. Defaults to False.
+        set_status (ProspectStatus, optional): Status to set the Prospect to. Defaults to ProspectStatus.PROSPECTED.
 
     Returns:
         int or None: ID of the Prospect if it was added successfully, None otherwise
     """
-    status = ProspectStatus.PROSPECTED
-    overall_status = ProspectOverallStatus.PROSPECTED
+    status = set_status
+    overall_status = map_prospect_linkedin_status_to_prospect_overall_status(status)
 
     # full_name typically comes fron iScraper LinkedIn, so we run a Title Case check on it
     if full_name and needs_title_casing(full_name):
@@ -912,7 +915,7 @@ def get_navigator_slug_from_url(url: str):
 
 
 def create_prospects_from_linkedin_link_list(
-    url_string: str, archetype_id: int, delimeter: str = "..."
+    url_string: str, archetype_id: int, delimeter: str = "...", set_status: ProspectStatus = ProspectStatus.PROSPECTED,
 ):
     from tqdm import tqdm
 
@@ -921,7 +924,7 @@ def create_prospects_from_linkedin_link_list(
 
     for url in tqdm(prospect_urls):
         create_prospect_from_linkedin_link.delay(
-            archetype_id=archetype_id, url=url, batch=batch
+            archetype_id=archetype_id, url=url, batch=batch, set_status=set_status
         )
 
     return True
@@ -935,7 +938,8 @@ def create_prospect_from_linkedin_link(
     batch: str = None,
     email: str = None,
     synchronous_research: bool = False,
-    allow_duplicates: bool = True
+    allow_duplicates: bool = True,
+    set_status: ProspectStatus = ProspectStatus.PROSPECTED,
 ):
     from src.research.linkedin.services import research_personal_profile_details
 
@@ -992,6 +996,7 @@ def create_prospect_from_linkedin_link(
             linkedin_num_followers=followers_count,
             synchronous_research=synchronous_research,
             allow_duplicates=allow_duplicates,
+            set_status=set_status,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
@@ -2102,7 +2107,7 @@ def get_existing_contacts(client_sdr_id: int, limit: int, offset: int, search: s
 
 def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
     
-    from src.prospecting.models import ExistingContact
+    from src.prospecting.models import ExistingContact, ProspectStatus
 
     added_count = 0
     for contact_id in contact_ids:
@@ -2115,7 +2120,8 @@ def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
 
         success = create_prospects_from_linkedin_link_list(
             url_string=f'https://www.linkedin.com/in/{li_public_id}/',
-            archetype_id=persona_id
+            archetype_id=persona_id,
+            set_status=ProspectStatus.ACCEPTED,
         )
         if success:
             existing_contact.used = True
