@@ -699,6 +699,8 @@ Here is a transcript of the email thread so far:
 {email_thread_transcript}
 === END EMAIL THREAD TRANSCRIPT ===
 
+Do not include a subject line. Just return the body.
+
 """.format(
     sdr_name=sdr.name,
     email_structure=email_structure,
@@ -716,7 +718,6 @@ Here is a transcript of the email thread so far:
                 max_tokens=500,
                 model=OPENAI_CHAT_GPT_4_MODEL
             )
-            print(response)
 
             return response, prompt
         except:
