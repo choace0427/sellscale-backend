@@ -158,6 +158,9 @@ def add_individual(
         # Try and find company
         company_id = find_company(company_name)
 
+    if not full_name:
+        full_name = f"{first_name} {last_name}"
+
     if existing_individual:
         if full_name: existing_individual.full_name = full_name
         if first_name: existing_individual.first_name = first_name

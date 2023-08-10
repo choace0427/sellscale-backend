@@ -1208,8 +1208,11 @@ def post_existing_contacts(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/existing_contacts", methods=["GET"])
 @require_user
 def get_existing_contacts_endpoint(client_sdr_id: int):
+    
+    limit = get_request_parameter("limit", request, json=False, required=False, parameter_type=int, default_value=20)
+    offset = get_request_parameter("offset", request, json=False, required=False, parameter_type=int, default_value=0)
 
-    existing_contacts = get_existing_contacts(client_sdr_id)
+    existing_contacts = get_existing_contacts(client_sdr_id, limit, offset)
 
     return jsonify({"message": "Success", "data": existing_contacts }), 200
 

@@ -2075,13 +2075,13 @@ def add_existing_contact(
     return existing_contact.id
 
 
-def get_existing_contacts(client_sdr_id: int):
+def get_existing_contacts(client_sdr_id: int, limit: int, offset: int):
     
     from src.prospecting.models import ExistingContact
     
     existing_contacts: List[ExistingContact] = ExistingContact.query.filter(
         ExistingContact.client_sdr_id == client_sdr_id,
-    )
+    ).limit(limit).offset(offset).all()
 
     return [c.to_dict() for c in existing_contacts]
 
