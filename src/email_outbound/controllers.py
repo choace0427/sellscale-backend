@@ -180,7 +180,7 @@ def post_email_generation_generate_email_response(client_sdr_id: int):
         "email_thread_id", request, json=True, required=True
     )
     email_bump_framework_id = get_request_parameter(
-        "email_bump_framework_id", request, json=True, required=True
+        "email_bump_framework_id", request, json=True, required=False
     )
     custom_account_research = get_request_parameter(
         "custom_account_research", request, json=True, required=False
