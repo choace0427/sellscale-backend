@@ -1052,20 +1052,15 @@ class ExistingContact(db.Model):
     connection_source = db.Column(db.String, nullable=True)
     notes = db.Column(db.String, nullable=True)
 
-    def to_dict(self):
+    used = db.Column(db.Boolean, default=False)
+
+    def to_dict(self, include_individual=True) -> dict:
         
-        if self.individual_id:
+        if self.individual_id and include_individual:
             individual: Individual = Individual.query.get(self.individual_id)
             individual_data = individual.to_dict()
         else:
             individual_data = None
-
-        # Check if this contact has been used as a prospect
-        prospect: Prospect = Prospect.query.filter_by(
-            client_sdr_id=self.client_sdr_id,
-            individual_id=self.individual_id,
-        ).first()
-        used = True if prospect else False
 
         return {
             "id": self.id,
@@ -1077,6 +1072,6 @@ class ExistingContact(db.Model):
             "company_id": self.company_id,
             "connection_source": self.connection_source,
             "notes": self.notes,
-            "used": used,
+            "used": self.used,
         }
 

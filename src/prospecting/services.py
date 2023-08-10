@@ -2117,7 +2117,10 @@ def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
             url_string=f'https://www.linkedin.com/in/{li_public_id}/',
             archetype_id=persona_id
         )
-        if success: added_count += 1
+        if success:
+            existing_contact.used = True
+            db.session.commit()
+            added_count += 1
 
     return added_count
 
