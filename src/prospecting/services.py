@@ -2075,12 +2075,17 @@ def add_existing_contact(
     return existing_contact.id
 
 
-def get_existing_contacts(client_sdr_id: int, limit: int, offset: int):
+def get_existing_contacts(client_sdr_id: int, limit: int, offset: int, search: str):
     
     from src.prospecting.models import ExistingContact
     
     existing_contacts: List[ExistingContact] = ExistingContact.query.filter(
         ExistingContact.client_sdr_id == client_sdr_id,
+        or_(
+            ExistingContact.company_name.ilike(f"%{search}%"),
+            ExistingContact.full_name.ilike(f"%{search}%"),
+            ExistingContact.title.ilike(f"%{search}%"),
+        )
     ).limit(limit).offset(offset).all()
 
     total_rows: int = ExistingContact.query.filter(

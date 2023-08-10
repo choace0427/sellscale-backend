@@ -1211,8 +1211,9 @@ def get_existing_contacts_endpoint(client_sdr_id: int):
     
     limit = get_request_parameter("limit", request, json=False, required=False, parameter_type=int, default_value=20)
     offset = get_request_parameter("offset", request, json=False, required=False, parameter_type=int, default_value=0)
+    search = get_request_parameter("search", request, json=False, required=False, parameter_type=str, default_value='')
 
-    existing_contacts, total_rows = get_existing_contacts(client_sdr_id, limit, offset)
+    existing_contacts, total_rows = get_existing_contacts(client_sdr_id, limit, offset, search)
 
     return jsonify({"message": "Success", "data": {
         "total_rows": total_rows,
