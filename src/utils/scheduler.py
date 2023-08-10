@@ -285,6 +285,7 @@ scheduler.add_job(
     func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1
 )
 scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hours=6)
+scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 
 # Daily triggers
 scheduler.add_job(
