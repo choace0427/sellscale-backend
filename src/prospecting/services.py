@@ -2090,6 +2090,11 @@ def get_existing_contacts(client_sdr_id: int, limit: int, offset: int, search: s
 
     total_rows: int = ExistingContact.query.filter(
         ExistingContact.client_sdr_id == client_sdr_id,
+        or_(
+            ExistingContact.company_name.ilike(f"%{search}%"),
+            ExistingContact.full_name.ilike(f"%{search}%"),
+            ExistingContact.title.ilike(f"%{search}%"),
+        )
     ).count()
 
     return [c.to_dict() for c in existing_contacts], total_rows
