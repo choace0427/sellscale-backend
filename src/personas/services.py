@@ -437,6 +437,7 @@ def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_i
         ClientArchetype.client_sdr_id == client_sdr_id,
         ClientArchetype.is_unassigned_contact_archetype == True
     ).first()
+    unassigned_archetype_id = unassigned_archetype.id
     if unassigned_archetype is None:
         return False
 
@@ -462,7 +463,7 @@ def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_i
 
     # Unassign the contacts by reassigning to the "Unassigned" archetype
     for prospect in unassign_prospects:
-        prospect.archetype_id = unassigned_archetype.id
+        prospect.archetype_id = unassigned_archetype_id
         prospect.icp_fit_error = None
         prospect.icp_fit_score = None
         prospect.icp_fit_reason = None

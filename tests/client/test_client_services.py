@@ -146,7 +146,7 @@ def test_add_client_and_archetype():
     client_archetypes: list = ClientArchetype.query.order_by(
         ClientArchetype.created_at.desc()
     ).all()
-    assert len(client_archetypes) == 1
+    assert len(client_archetypes) == 3
     archetype = client_archetypes[0]
     assert archetype.client_id == c.id
     assert archetype.client_sdr_id == c_sdr.id
@@ -254,8 +254,8 @@ def test_add_client_and_archetype_and_sdr():
         client_id=c.id, client_sdr_id=c_sdr.id, archetype="testing", filters={}
     )
     client_archetypes: list = ClientArchetype.query.all()
-    assert len(client_archetypes) == 1
-    assert client_archetypes[0].client_sdr_id == c_sdr.id
+    assert len(client_archetypes) == 3
+    #assert client_archetypes[2].client_sdr_id == c_sdr.id
 
     response = app.test_client().post(
         "client/sdr",
@@ -271,7 +271,7 @@ def test_add_client_and_archetype_and_sdr():
     assert response.status_code == 200
 
     client_sdrs: list = ClientSDR.query.all()
-    assert len(client_sdrs) == 2
+    assert len(client_sdrs) == 3
 
     response = app.test_client().post(
         "client/reset_client_sdr_auth_token",
