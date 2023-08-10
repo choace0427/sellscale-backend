@@ -1963,6 +1963,14 @@ def get_prospects_for_icp(archetype_id: int):
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 2) "MEDIUM - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS"
+        
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = -3) "QUEUED",
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = -2) "CALCULATING",
+          count(distinct prospect.id) filter (where prospect.icp_fit_score = -1) "ERROR",
+
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = -3) "QUEUED - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = -2) "CALCULATING - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = -1) "ERROR - IDS",
         from 
           client_archetype
           join prospect on prospect.archetype_id = client_archetype.id
@@ -1997,6 +2005,13 @@ def get_prospects_for_icp(archetype_id: int):
         "medium_data": separate_data(data[7]),
         "high_data": separate_data(data[8]),
         "very_high_data": separate_data(data[9]),
+
+        "queued_count": data[10],
+        "calculating_count": data[11],
+        "error_count": data[12],
+        "queued_data": separate_data(data[13]),
+        "calculating_data": separate_data(data[14]),
+        "error_data": separate_data(data[15]),
     }
 
 
