@@ -1677,8 +1677,8 @@ def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: d
     db.session.add(prospect)
     db.session.commit()
 
-    date = datetime.fromisoformat(demo_date[:-1])
-    days_until = (date - datetime.now()).days
+    date = datetime.datetime.fromisoformat(demo_date[:-1])
+    days_until = (date - datetime.datetime.now()).days
     if days_until >= SEND_DEMO_REMINDER_NOTIF_DAYS:
         
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
