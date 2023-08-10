@@ -1163,13 +1163,14 @@ def get_icp_fit_for_archetype(client_sdr_id: int):
 def post_existing_contacts(client_sdr_id: int):
 
     existing_contacts = get_request_parameter("data", request, json=True, required=True, parameter_type=list)
+    connection_source = get_request_parameter("connection_source", request, json=True, required=True, parameter_type=str)
 
     total_count = len(existing_contacts)
     added_count = 0
     for c in existing_contacts:
         contact_id = add_existing_contact(
             client_sdr_id=client_sdr_id,
-            connection_source=c.get('connection_source', 'UNKNOWN'),
+            connection_source=connection_source,
             full_name=c.get('full_name', ''),
             first_name=c.get('first_name', None),
             last_name=c.get('last_name', None),
