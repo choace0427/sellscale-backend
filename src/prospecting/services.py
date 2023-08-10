@@ -777,6 +777,7 @@ def add_prospect(
     allow_duplicates: bool = True,
     synchronous_research: bool = False,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
+    set_note: str = None,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -798,6 +799,7 @@ def add_prospect(
         allow_duplicates (bool, optional): Whether or not to check for duplicate prospects. Defaults to True.
         synchronous_research (bool, optional): Whether or not to run synchronous research on the Prospect. Defaults to False.
         set_status (ProspectStatus, optional): Status to set the Prospect to. Defaults to ProspectStatus.PROSPECTED.
+        set_note (str, optional): Note to add to the Prospect. Defaults to None.
 
     Returns:
         int or None: ID of the Prospect if it was added successfully, None otherwise
@@ -886,6 +888,9 @@ def add_prospect(
     find_company_for_prospect(p_id)
     add_individual_from_prospect(p_id)
 
+    if set_note:
+        create_prospect_note(prospect_id=p_id, note=set_note)
+
     return p_id
 
 
@@ -915,7 +920,11 @@ def get_navigator_slug_from_url(url: str):
 
 
 def create_prospects_from_linkedin_link_list(
-    url_string: str, archetype_id: int, delimeter: str = "...", set_status: ProspectStatus = ProspectStatus.PROSPECTED,
+    url_string: str,
+    archetype_id: int,
+    delimeter: str = "...",
+    set_status: ProspectStatus = ProspectStatus.PROSPECTED,
+    set_note: str = None,
 ):
     from tqdm import tqdm
 
@@ -924,7 +933,11 @@ def create_prospects_from_linkedin_link_list(
 
     for url in tqdm(prospect_urls):
         create_prospect_from_linkedin_link.delay(
-            archetype_id=archetype_id, url=url, batch=batch, set_status=set_status
+            archetype_id=archetype_id,
+            url=url,
+            batch=batch,
+            set_status=set_status,
+            set_note=set_note,
         )
 
     return True
@@ -940,6 +953,7 @@ def create_prospect_from_linkedin_link(
     synchronous_research: bool = False,
     allow_duplicates: bool = True,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
+    set_note: str = None,
 ):
     from src.research.linkedin.services import research_personal_profile_details
 
@@ -997,6 +1011,7 @@ def create_prospect_from_linkedin_link(
             synchronous_research=synchronous_research,
             allow_duplicates=allow_duplicates,
             set_status=set_status,
+            set_note=set_note,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
@@ -2122,6 +2137,7 @@ def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
             url_string=f'https://www.linkedin.com/in/{li_public_id}/',
             archetype_id=persona_id,
             set_status=ProspectStatus.ACCEPTED,
+            set_note=f'Added from existing contact {existing_contact.full_name} ({existing_contact.company_name})',
         )
         if success:
             existing_contact.used = True
