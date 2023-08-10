@@ -1669,12 +1669,31 @@ def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason)
         db.session.add(prospect)
         db.session.commit()
 
-
-def update_prospect_demo_date(prospect_id: int, demo_date: datetime.datetime):
+# If a demo is more than 7 days away, send a reminder internally
+SEND_DEMO_REMINDER_NOTIF_DAYS = 7
+def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: datetime.datetime):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.demo_date = demo_date
     db.session.add(prospect)
     db.session.commit()
+
+    date = datetime.fromisoformat(demo_date[:-1])
+    days_until = (date - datetime.now()).days
+    if days_until >= SEND_DEMO_REMINDER_NOTIF_DAYS:
+        
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+        send_slack_message(
+            message=f"""
+              Demo reminder requested for prospect below:
+              SDR Name: {sdr.name}
+              Prospect name: {prospect.full_name}
+              Demo date: {demo_date}
+              Please send a reminder to engage with prospect and confirm they'll be meeting.
+            """,
+            webhook_urls=[URL_MAP["prospect-demo-soon"]],
+        )
+
     return True
 
 
