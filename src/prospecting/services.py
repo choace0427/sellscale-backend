@@ -2031,7 +2031,7 @@ def add_existing_contact(
         email=email,
         phone=phone,
         address=address,
-        li_public_id=li_public_id,
+        li_public_id=linkedin_url.split("/in/")[1].split("/")[0] if linkedin_url else li_public_id,
         li_urn_id=li_urn_id,
         img_url=img_url,
         img_expire=img_expire,
