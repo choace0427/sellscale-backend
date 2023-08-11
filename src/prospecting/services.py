@@ -1671,15 +1671,15 @@ def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason)
 
 # If a demo is more than 7 days away, send a reminder internally
 SEND_DEMO_REMINDER_NOTIF_DAYS = 7
-def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: datetime.datetime):
+def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: str, send_reminder: bool = False):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.demo_date = demo_date
     db.session.add(prospect)
     db.session.commit()
 
     date = datetime.datetime.fromisoformat(demo_date[:-1])
-    days_until = (date - datetime.datetime.now()).days
-    if days_until >= SEND_DEMO_REMINDER_NOTIF_DAYS:
+    #days_until = (date - datetime.datetime.now()).days
+    if send_reminder: #and days_until >= SEND_DEMO_REMINDER_NOTIF_DAYS:
         
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
