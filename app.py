@@ -117,6 +117,10 @@ app.config["CORS_HEADERS"] = "Content-Type"
 app.config.from_object(os.environ["APP_SETTINGS"])
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# Updated on August 11, 2023, previous values were default. (pool size 5, overflow 10)
+app.config['SQLALCHEMY_POOL_SIZE'] = 10
+app.config['SQLALCHEMY_MAX_OVERFLOW'] = 20
+
 db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
 
