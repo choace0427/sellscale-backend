@@ -237,7 +237,7 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
     if not convo_message:
         return False, "No message found"
     convo_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
-        EmailConversationThread.nylas_thread_id == convo_message.nylas_thread_id
+        nylas_thread_id=convo_message.nylas_thread_id
     )
     if not convo_thread:
         return False, "No conversation thread found"
