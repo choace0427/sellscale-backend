@@ -5,7 +5,7 @@ from src.client.services import populate_single_prospect_event
 from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
-from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
+from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmail, ProspectEmailOutreachStatus
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
 
@@ -229,6 +229,19 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
     if not metadata:
         return False, "No metadata in delta"
 
+    # Get the id of the message
+    message_id: str = metadata.get('message_id')
+    convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
+        EmailConversationMessage.nylas_message_id == message_id
+    ).first()
+    if not convo_message:
+        return False, "No message found"
+    convo_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
+        EmailConversationThread.nylas_thread_id == convo_message.nylas_thread_id
+    )
+    if not convo_thread:
+        return False, "No conversation thread found"
+
     payload: dict = metadata.get('payload')
     if not payload:
         return False, "No payload in metadata"
@@ -267,7 +280,7 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
             prospect=prospect,
             new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
             custom_message=" opened your email! 📧",
-            metadata={}
+            metadata={"prospect_email": prospect.email, "email_title": convo_thread.subject}
         )
 
     # Calculate prospect overall status

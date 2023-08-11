@@ -112,6 +112,27 @@ def send_status_change_slack_block(
         }
     )
 
+    # If email, include email information
+    if outreach_type == ProspectChannels.EMAIL:
+        email_address = metadata.get('prospect_email', 'unknown')
+        subject = metadata.get('email_title', 'unknown')
+        message_blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Prospect email: {email_address}"
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Subject: {subject}"
+                }
+            }
+        )
+
     # If we have messages, send them
     if has_messages:
         for c in reversed(convo):
