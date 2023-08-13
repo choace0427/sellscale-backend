@@ -69,31 +69,31 @@ def make_celery(app):
             "message_generation",
             message_generation_exchange,
             routing_key="message_generation",
-        ),
+        )
     )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"
     celery.conf.task_default_routing_key = "default"
     celery.conf.task_default_priority = 5  # 0 is the highest
     celery.conf.task_annotations = {
-        f"src.message_generation.services.research_and_generate_outreaches_for_prospect": {
+        f'src.message_generation.services.research_and_generate_outreaches_for_prospect': {
             "rate_limit": "2/s",
         },
-        f"src.message_generation.services.generate_prospect_email": {
+        f'src.message_generation.services.generate_prospect_email': {
             "rate_limit": "2/s",
         },
-        f"src.ml.services.icp_classify": {
+        f'src.ml.services.icp_classify': {
             "rate_limit": "2/s",
         },
-        f"app.add_together": {
+        f'app.add_together': {
             "rate_limit": "1/s",
         },
-        f"src.ml.services.test_rate_limiter": {
+        f'src.ml.services.test_rate_limiter': {
+            "rate_limit": "2/s",
+        },
+        f'src.email_outbound.email_store.services.email_store_hunter_verify': {
             "rate_limit": "2/s",
         }
-        # f'src.email_outbound.email_store.services.email_store_hunter_verify': {
-        #     "rate_limit": "2/s",
-        # }
     }
 
     class ContextTask(celery.Task):
@@ -198,17 +198,13 @@ def register_blueprints(app):
     app.register_blueprint(INTEGRATION_BLUEPRINT, url_prefix="/integration")
     app.register_blueprint(VOYAGER_BLUEPRINT, url_prefix="/voyager")
     app.register_blueprint(BUMP_FRAMEWORK_BLUEPRINT, url_prefix="/bump_framework")
-    app.register_blueprint(
-        BUMP_FRAMEWORK_EMAIL_BLUEPRINT, url_prefix="/bump_framework_email"
-    )
+    app.register_blueprint(BUMP_FRAMEWORK_EMAIL_BLUEPRINT, url_prefix="/bump_framework_email")
     app.register_blueprint(PERSONAS_BLUEPRINT, url_prefix="/personas")
     app.register_blueprint(VOICE_BUILDER_BLUEPRINT, url_prefix="/voice_builder")
     app.register_blueprint(COMPANY_BLUEPRINT, url_prefix="/company")
     app.register_blueprint(CALENDLY_BLUEPRINT, url_prefix="/calendly")
     app.register_blueprint(SIMULATION_BLUEPRINT, url_prefix="/simulation")
-    app.register_blueprint(
-        PHANTOM_BUSTER_BLUEPRINT, url_prefix="/automation/phantom_buster"
-    )
+    app.register_blueprint(PHANTOM_BUSTER_BLUEPRINT, url_prefix="/automation/phantom_buster")
     app.register_blueprint(INDIVIDUAL_BLUEPRINT, url_prefix="/individual")
 
     db.init_app(app)

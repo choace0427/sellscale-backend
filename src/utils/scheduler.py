@@ -281,9 +281,9 @@ scheduler.add_job(
 )
 scheduler.add_job(auto_run_daily_revival_cleanup_job, trigger="interval", hours=1)
 scheduler.add_job(func=run_backfill_analytics_for_sdrs_job, trigger="interval", hours=1)
-# scheduler.add_job(
-#     func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1
-# )
+scheduler.add_job(
+    func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1
+)
 scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hours=6)
 scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 
