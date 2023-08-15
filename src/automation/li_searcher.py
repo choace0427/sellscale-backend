@@ -59,9 +59,9 @@ def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
         potential_linkedin_link = results["organic_results"][0]["link"]
         if "linkedin.com" in potential_linkedin_link:
             return potential_linkedin_link
-    except:
+    except Exception as e:
         send_slack_message(
-            message="🚨 Serp API is failing during uploading. Please ensure there are sufficient credits by visiting https://serpapi.com/.",
+            message=f"🚨 Serp API is failing during uploading.\n{str(e)}\nPlease ensure there are sufficient credits by visiting https://serpapi.com/.",
             webhook_urls=[URL_MAP["user-errors"]],
         )
     # Use Google SERP API - END
