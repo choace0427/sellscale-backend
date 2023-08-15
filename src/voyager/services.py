@@ -101,12 +101,8 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
     if not sdr:
         return "No client sdr found with this id", 400
 
-    try:
-        li_at_token = json.loads(cookies).get("li_at")
-        sdr.li_at_token = li_at_token
-    except Exception as e:
-        print("Failed to parse li_at token", e)
-
+    li_at_token = json.loads(cookies).get("li_at")
+    sdr.li_at_token = li_at_token
     sdr.li_cookies = cookies
 
     # Update the pb agent
