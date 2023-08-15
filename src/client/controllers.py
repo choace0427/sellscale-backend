@@ -707,17 +707,6 @@ def patch_update_pipeline_webhook():
     return "OK", 200
 
 
-@CLIENT_BLUEPRINT.route("/test_webhook", methods=["POST"])
-def post_test_webhook():
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
-
-    success = test_client_pipeline_notification_webhook(client_id=client_id)
-
-    if not success:
-        return "Failed to test pipeline webhook", 404
-    return "OK", 200
-
-
 @CLIENT_BLUEPRINT.route("/update_pipeline_client_sdr_webhook", methods=["PATCH"])
 def patch_update_pipeline_client_sdr_webhook():
     """Update the Client SDR Webhook
