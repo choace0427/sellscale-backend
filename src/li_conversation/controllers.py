@@ -3,7 +3,7 @@ import json
 from src.message_generation.services import get_li_convo_history
 from app import db
 from flask import Blueprint, request, jsonify
-from flask_csv import send_csv
+from src.utils.csv import send_csv
 from model_import import Prospect, LinkedinConversationEntry
 from datetime import datetime, timedelta
 from src.bump_framework.models import BumpLength
@@ -142,7 +142,7 @@ def post_prospect_read_messages(client_sdr_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.client_sdr_id != client_sdr_id:
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     updated = prospect.li_unread_messages != 0
     prospect.li_unread_messages = 0
     db.session.commit()
