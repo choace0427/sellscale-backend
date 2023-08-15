@@ -122,7 +122,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # app.config['SQLALCHEMY_MAX_OVERFLOW'] = 40
 sqlalchemy_engine_options = {
     'max_overflow': 40,
-    'pool_size': 20
+    'pool_size': 20,
+    'pool_pre_ping': True
 }
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = sqlalchemy_engine_options
 
