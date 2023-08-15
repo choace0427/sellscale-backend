@@ -682,8 +682,16 @@ def update_client_sdr_pipeline_notification_webhook(client_sdr_id: int, webhook:
     if not csdr:
         return None
 
-    csdr.pipeline_notifications_webhook_url = webhook
+    csdr.pipeline_notifications_webhook_url = None
+
+    client: Client = Client.query.get(csdr.client_id)
+    if not csdr:
+        return client
+    
+    client.pipeline_notifications_webhook_url = webhook
+
     db.session.add(csdr)
+    db.session.add(client)
     db.session.commit()
 
     return True
