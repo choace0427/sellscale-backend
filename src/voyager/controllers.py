@@ -307,3 +307,19 @@ def get_connections(client_sdr_id: int):
     print(connections)
 
     return jsonify({"message": "Success", "data": []}), 200
+
+
+@VOYAGER_BLUEPRINT.route("/sales-nav", methods=["GET"])
+@require_user
+def get_sales_nav(client_sdr_id: int):
+    """."""
+
+    api = LinkedIn(client_sdr_id)
+    profile = api.get_user_profile(use_cache=False)
+    if not api.is_valid():
+        return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+    
+    result = api.graphql_get_sales_nav()
+
+    return jsonify({"message": "Success", "data": []}), 200
+

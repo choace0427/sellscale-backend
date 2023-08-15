@@ -111,7 +111,7 @@ class LinkedIn(object):
 
             # Attempt request again if we're being rate limited
             if res.status_code == 400 and self.request_count < 20:
-                return self._fetch(uri)
+                return self._fetch(uri=uri, base_request=base_request, **kwargs)
 
             return res
         except TooManyRedirects as e:
@@ -141,7 +141,7 @@ class LinkedIn(object):
 
             # Attempt request again if we're being rate limited
             if res.status_code == 400 and self.request_count < 20:
-                return self._fetch(uri)
+                return self._post(uri=uri, base_request=base_request, **kwargs)
 
             return res
         except TooManyRedirects as e:
@@ -670,4 +670,23 @@ class LinkedIn(object):
             self.logger.debug(f"results grew to {len(results)}")
 
         return results
+    
+
+    def graphql_get_sales_nav(
+            self,
+    ) -> list[dict]:
+        """."""
+
+        res = self._fetch(
+                (f"/sales-api/salesApiLeadSearch?q=recentSearchId&start=25&count=25&recentSearchId=2992170764&trackingParam=(sessionId:{generate_trackingId()})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-13"),
+                base_request=True,
+                headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
+
+        print(res.text)
+
+        data = res.json()
+
+        print(data['data'].keys())
+
 
