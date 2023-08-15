@@ -774,7 +774,7 @@ def post_test_sdr_webhook():
 
 @CLIENT_BLUEPRINT.route("/webhook", methods=["PATCH"])
 @require_user
-def patch_client_sdr_webhook(client_sdr_id):
+def patch_client_webhook(client_sdr_id):
     """Update the Client Webhook"""
     webhook = get_request_parameter("webhook", request, json=True, required=True)
 
@@ -791,7 +791,7 @@ def patch_client_sdr_webhook(client_sdr_id):
 
 @CLIENT_BLUEPRINT.route("/test_webhook", methods=["POST"])
 @require_user
-def post_test_webhook(client_sdr_id):
+def post_test_client_webhook(client_sdr_id):
     """Sends a test message through the Client Webhook
 
     Returns:
