@@ -386,13 +386,13 @@ def get_icp_classification_prompt_by_archetype_id(archetype_id: int) -> str:
         archetype_id (int): The archetype id.
 
     Returns:
-        str: The prompt.
+        str: The prompt and filters.
     """
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
         return None
 
-    return archetype.icp_matching_prompt
+    return archetype.icp_matching_prompt, archetype.icp_matching_option_filters
 
 
 # def post_icp_classification_prompt_change_request(

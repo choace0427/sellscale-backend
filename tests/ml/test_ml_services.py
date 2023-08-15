@@ -144,8 +144,9 @@ def test_get_icp_classification_prompt_by_archetype_id():
     archetype = basic_archetype(client)
     archetype.icp_matching_prompt = "test"
 
-    prompt = get_icp_classification_prompt_by_archetype_id(archetype.id)
+    prompt, filters = get_icp_classification_prompt_by_archetype_id(archetype.id)
     assert prompt == archetype.icp_matching_prompt
+    assert filters == archetype.icp_matching_option_filters
 
 
 @use_app_context

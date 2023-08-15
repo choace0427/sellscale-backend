@@ -181,9 +181,12 @@ def get_icp_classification_prompt_by_archetype_id_endpoint(
     elif archetype.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Archetype does not belong to this user"}), 401
 
-    result = get_icp_classification_prompt_by_archetype_id(archetype_id)
+    prompt, filters = get_icp_classification_prompt_by_archetype_id(archetype_id)
 
-    return jsonify({"message": "Success", "data": result}), 200
+    return jsonify({"message": "Success", "data": {
+        "prompt": prompt,
+        "filters": filters
+    }}), 200
 
 
 # @ML_BLUEPRINT.route(
