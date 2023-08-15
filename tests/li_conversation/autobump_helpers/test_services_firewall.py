@@ -4,6 +4,7 @@ from src.li_conversation.autobump_helpers.services_firewall import (
     rule_cant_be_blank,
     rule_default_framework,
     rule_minimum_character_count,
+    rule_no_blacklist_words,
     rule_no_sdr_name_in_message,
     rule_no_stale_message,
     rule_no_profanity,
@@ -52,6 +53,23 @@ def test_run_autobump_firewall():
 
 
 @use_app_context
+def test_rule_no_blacklist_words():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    sdr.blacklisted_words = ["bad", "words"]
+
+    message = "This message is clean"
+    violations = []
+    rule_no_blacklist_words(message, violations, sdr.id)
+    assert violations == []
+
+    message = "This message contains bad words"
+    violations = []
+    rule_no_blacklist_words(message, violations, sdr.id)
+    assert violations == ["Message contains blacklisted words: 'bad', 'words'"]
+
+
+@use_app_context
 def test_rule_minimum_character_count():
     message = "THIS MESSAGE IS OVER 15 CHARACTERS"
     violations = []
@@ -96,7 +114,7 @@ def test_rule_default_framework():
     autobump = basic_generated_message_autobump(prospect, sdr, framework)
     violations = []
     rule_default_framework(autobump.id, violations)
-    assert violations == ["Bump framework is not default"]
+    assert violations == [f"Bump framework (#{framework.id}) is not default"]
 
 
 @use_app_context

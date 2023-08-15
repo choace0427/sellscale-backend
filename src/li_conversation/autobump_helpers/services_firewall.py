@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import re
 from src.bump_framework.models import BumpFramework
 from src.client.models import ClientSDR
+from src.client.services_client_sdr import get_sdr_blacklist_words
 from src.message_generation.models import GeneratedMessageAutoBump
 
 # This MUST be changed when the relative path of the csv's changes.
@@ -43,6 +44,35 @@ def run_autobump_firewall(generated_message_autobump_id: int) -> tuple[bool, lis
         return False, violations
 
     return True, []
+
+
+def rule_no_blacklist_words(message: str, violations: list, client_sdr_id: int) -> tuple[bool, str]:
+    """Rule: Message cannot contain any words in the SDR's blacklist."""
+    # Get the blacklist words
+    blacklist_words = get_sdr_blacklist_words(client_sdr_id)
+    if not blacklist_words:
+        return True, "Success"
+
+    # Check the message for blacklist words
+    detected_blacklist_words = []
+    for word in message.split():
+        stripped_word = re.sub(
+            "[^0-9a-zA-Z]+",
+            "",
+            word,
+        ).strip()
+        if word in blacklist_words:
+            detected_blacklist_words.append("'" + word + "'")
+        elif stripped_word in blacklist_words:
+            detected_blacklist_words.append("'" + stripped_word + "'")
+
+    if detected_blacklist_words:
+        violations.append(
+            "Message contains blacklisted words: " + ", ".join(detected_blacklist_words)
+        )
+        return False, "Message contains blacklisted words: " + ", ".join(detected_blacklist_words)
+
+    return True, "Success"
 
 
 def rule_minimum_character_count(message: str, violations: list) -> tuple[bool, str]:

@@ -1,6 +1,7 @@
 from crypt import methods
 from typing import Optional
 from flask import Blueprint, request, jsonify
+from src.client.services_client_sdr import update_sdr_blacklist_words
 from src.personas.services import (
     clone_persona,
 )
@@ -2048,3 +2049,20 @@ def get_persona_setup_status(client_sdr_id: int, persona_id: int):
 
     status = get_persona_setup_status_map_for_persona(persona_id)
     return jsonify({"message": "Success", "data": status}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/blacklist_words", methods=["PATCH"])
+@require_user
+def patch_sdr_blacklist_words(client_sdr_id: int):
+    """Updates the blacklist words for an SDR"""
+
+    blacklist_words = get_request_parameter(
+        "blacklist_words", request, json=True, required=True
+    )
+
+    success = update_sdr_blacklist_words(client_sdr_id, blacklist_words)
+
+    if not success:
+        return jsonify({"message": "Failed to update blacklist words"}), 400
+
+    return jsonify({"message": "Success"}), 200

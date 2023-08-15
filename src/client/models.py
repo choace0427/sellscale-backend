@@ -303,6 +303,8 @@ class ClientSDR(db.Model):
     disable_ai_on_prospect_respond = db.Column(db.Boolean, nullable=True, default=False)
     disable_ai_on_message_send = db.Column(db.Boolean, nullable=True, default=False)
 
+    blacklisted_words = db.Column(db.ARRAY(db.String), nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
         self.uuid = uuid_str
@@ -343,6 +345,7 @@ class ClientSDR(db.Model):
             "message_generation_captivate_mode": self.message_generation_captivate_mode,
             "disable_ai_on_prospect_respond": self.disable_ai_on_prospect_respond,
             "disable_ai_on_message_send": self.disable_ai_on_message_send,
+            "blacklisted_words": self.blacklisted_words,
         }
 
 
