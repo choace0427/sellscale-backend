@@ -661,7 +661,7 @@ def test_client_pipeline_notification_webhook(client_id: int):
         return None
 
     send_slack_message(
-        message="This is a test message from the Sight Pipeline",
+        message="Elon Musk accepted your LinkedIn invitation!",
         webhook_urls=[c.pipeline_notifications_webhook_url],
     )
 
@@ -682,16 +682,9 @@ def update_client_sdr_pipeline_notification_webhook(client_sdr_id: int, webhook:
     if not csdr:
         return None
 
-    csdr.pipeline_notifications_webhook_url = None
-
-    client: Client = Client.query.get(csdr.client_id)
-    if not csdr:
-        return client
-    
-    client.pipeline_notifications_webhook_url = webhook
+    csdr.pipeline_notifications_webhook_url = webhook
 
     db.session.add(csdr)
-    db.session.add(client)
     db.session.commit()
 
     return True
@@ -714,7 +707,7 @@ def test_client_sdr_pipeline_notification_webhook(client_sdr_id: int):
         return None
 
     send_slack_message(
-        message="This is a test message from the Sight Pipeline",
+        message="Elon Musk accepted your LinkedIn invitation!",
         webhook_urls=[csdr.pipeline_notifications_webhook_url],
     )
 

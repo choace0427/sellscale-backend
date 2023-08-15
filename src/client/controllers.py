@@ -772,6 +772,41 @@ def post_test_sdr_webhook():
     return "OK", 200
 
 
+@CLIENT_BLUEPRINT.route("/webhook", methods=["PATCH"])
+@require_user
+def patch_client_sdr_webhook(client_sdr_id):
+    """Update the Client Webhook"""
+    webhook = get_request_parameter("webhook", request, json=True, required=True)
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    success = update_client_pipeline_notification_webhook(
+        client_id=sdr.client_id, webhook=webhook
+    )
+
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to update webhook"}), 404
+    return jsonify({"status": "success", "message": "Webhook updated"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/test_webhook", methods=["POST"])
+@require_user
+def post_test_webhook(client_sdr_id):
+    """Sends a test message through the Client Webhook
+
+    Returns:
+        response.status_code: 200 if successful, 404 if not
+    """
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    success = test_client_pipeline_notification_webhook(client_id=sdr.client_id)
+
+    if not success:
+        return "Failed to test pipeline client webhook", 404
+    return "OK", 200
+
+
 @CLIENT_BLUEPRINT.route("/send_magic_link_login", methods=["POST"])
 def post_send_magic_link_login():
     client_sdr_email: str = get_request_parameter(
