@@ -77,6 +77,7 @@ class Client(db.Model):
             "active": self.active,
             "linkedin_outbound_enabled": self.linkedin_outbound_enabled,
             "email_outbound_enabled": self.email_outbound_enabled,
+            "pipeline_notifications_webhook_url": self.pipeline_notifications_webhook_url,
             "tagline": self.tagline,
             "description": self.description,
             "value_prop_key_points": self.value_prop_key_points,
