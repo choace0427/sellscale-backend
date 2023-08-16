@@ -16,6 +16,7 @@ from flask import Response, jsonify, make_response
 from app import db
 from sqlalchemy.orm import Session
 from src.utils.slack import send_slack_message, URL_MAP
+from requests.cookies import cookiejar_from_dict
 
 from requests import TooManyRedirects
 
@@ -96,6 +97,7 @@ class LinkedIn(object):
             if cookies:
                 # If the cookies are expired, the API won't work anymore since
                 # `username` and `password` are not used at all in this case.
+                cookies = cookiejar_from_dict(json.loads(cookies))
                 self.client._set_session_cookies(cookies)
             else:
                 self.client.authenticate(self.client_sdr)

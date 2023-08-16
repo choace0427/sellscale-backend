@@ -100,6 +100,9 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
     sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not sdr:
         return "No client sdr found with this id", 400
+    
+    # Remove extra quotes
+    cookies = cookies.replace(':""', ':"').replace('"",', '",')
 
     li_at_token = json.loads(cookies).get("li_at")
     sdr.li_at_token = li_at_token

@@ -26,7 +26,12 @@ VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 def get_self_profile(client_sdr_id: int):
     """Get profile data for the SDR"""
 
-    api = LinkedIn(client_sdr_id)
+    cookies = get_request_parameter(
+        "cookies", request, json=False, required=False, parameter_type=str
+    ) or None
+    cookies = cookies.replace(':""', ':"').replace('"",', '",') if cookies else None
+
+    api = LinkedIn(client_sdr_id=client_sdr_id, cookies=cookies)
     profile = api.get_user_profile(use_cache=False)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
