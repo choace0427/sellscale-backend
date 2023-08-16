@@ -22,6 +22,7 @@ from src.ml.models import (
     GNLPModelType,
     ModelProvider,
 )
+import traceback
 
 from src.ml.openai_wrappers import (
     wrapped_create_completion,
@@ -785,13 +786,15 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
         return fit, reason
 
     except Exception as e:
-        db.session.rollback()
 
         from src.utils.slack import send_slack_message, URL_MAP
+        stack_trace = traceback.format_exc()
         send_slack_message(
-            message=f"Error when classifying prospect {prospect_id} for archetype {archetype_id}: {str(e)}",
+            message=f"Error when classifying prospect {prospect_id} for archetype {archetype_id}: {str(e)}\n{stack_trace}",
             webhook_urls=[URL_MAP["eng-icp-errors"]],
         )
+
+        db.session.rollback()
 
         prospect: Prospect = Prospect.query.filter(
             Prospect.id == prospect_id,
