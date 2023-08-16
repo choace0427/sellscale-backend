@@ -1977,19 +1977,19 @@ def get_prospects_for_icp(archetype_id: int):
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 3) "HIGH",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 4) "VERY HIGH",
           
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 2) "MEDIUM - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 2) "MEDIUM - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS",
         
           count(distinct prospect.id) filter (where prospect.icp_fit_score = -3) "QUEUED",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = -2) "CALCULATING",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = -1) "ERROR",
 
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = -3) "QUEUED - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = -2) "CALCULATING - IDS",
-          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title)) filter (where prospect.icp_fit_score = -1) "ERROR - IDS"
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = -3) "QUEUED - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = -2) "CALCULATING - IDS",
+          array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = -1) "ERROR - IDS"
         from 
           client_archetype
           join prospect on prospect.archetype_id = client_archetype.id
@@ -2009,7 +2009,8 @@ def get_prospects_for_icp(archetype_id: int):
                 "icp_fit_score": sep[3] or None,
                 "icp_fit_score_override": sep[4] or None,
                 "in_icp_sample": sep[5] or False,
-                "title": sep[6]
+                "title": sep[6],
+                "icp_fit_reason": sep[7],
             })
         return result
 
