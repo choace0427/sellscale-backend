@@ -787,6 +787,12 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
     except Exception as e:
         db.session.rollback()
 
+        from src.utils.slack import send_slack_message, URL_MAP
+        send_slack_message(
+            message=f"Error when classifying prospect {prospect_id} for archetype {archetype_id}: {str(e)}",
+            webhook_urls=[URL_MAP["eng-icp-errors"]],
+        )
+
         prospect: Prospect = Prospect.query.filter(
             Prospect.id == prospect_id,
             Prospect.client_sdr_id == client_sdr_id,

@@ -33,6 +33,7 @@ URL_MAP = {
     "sales-leads-plg-demo": "https://hooks.slack.com/services/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",
     "csm-individuals": "https://hooks.slack.com/services/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",
     "prospect-demo-soon": "https://hooks.slack.com/services/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",
+    "eng-icp-errors": "https://hooks.slack.com/services/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",
 }
 
 
