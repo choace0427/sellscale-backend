@@ -1,6 +1,5 @@
 import json
 from flask import Blueprint, request, jsonify, Response
-from flask_csv import send_csv
 from src.automation.models import PhantomBusterType
 from src.automation.services import (
     create_phantom_buster_config,
@@ -10,6 +9,7 @@ from src.automation.services import (
     create_pb_linkedin_invite_csv,
     update_pb_linkedin_send_status,
 )
+from src.utils.csv import send_csv
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
 from src.utils.slack import send_slack_message

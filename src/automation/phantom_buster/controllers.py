@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from flask_csv import send_csv
+from src.utils.csv import send_csv
 from src.authentication.decorators import require_user
 from src.automation.models import PhantomBusterSalesNavigatorLaunch
 from src.automation.phantom_buster.services import collect_and_load_sales_navigator_results, create_phantom_buster_sales_navigator_config, get_sales_navigator_launch_result, get_sales_navigator_launches, register_phantom_buster_sales_navigator_url
