@@ -50,8 +50,8 @@ class PhantomBusterSalesNavigatorConfig(db.Model):
     phantom_uuid = db.Column(db.String)
     linkedin_session_cookie = db.Column(db.String)
 
-    daily_trigger_count = db.Column(db.Integer, default=0)      # 4 triggers per day
-    daily_prospect_count = db.Column(db.Integer, default=0)     # 600 prospects per day
+    daily_trigger_count = db.Column(db.Integer, default=0)  # 4 triggers per day
+    daily_prospect_count = db.Column(db.Integer, default=0)  # 600 prospects per day
     in_use = db.Column(db.Boolean, default=False)
 
     last_run_date = db.Column(db.DateTime, nullable=True)
@@ -71,15 +71,17 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     sales_navigator_config_id = db.Column(
-        db.Integer, db.ForeignKey("phantom_buster_sales_navigator_config.id"), nullable=True
+        db.Integer,
+        db.ForeignKey("phantom_buster_sales_navigator_config.id"),
+        nullable=True,
     )
-    client_sdr_id = db.Column(
-        db.Integer, db.ForeignKey("client_sdr.id")
-    )
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
     sales_navigator_url = db.Column(db.String)
     scrape_count = db.Column(db.Integer, default=0)
 
-    status = db.Column(db.Enum(SalesNavigatorLaunchStatus), default=SalesNavigatorLaunchStatus.QUEUED)
+    status = db.Column(
+        db.Enum(SalesNavigatorLaunchStatus), default=SalesNavigatorLaunchStatus.QUEUED
+    )
     pb_container_id = db.Column(db.String, nullable=True)
     result_raw = db.Column(db.JSON, nullable=True)
     result_processed = db.Column(db.JSON, nullable=True)
@@ -101,9 +103,11 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             "scrape_count": self.scrape_count,
             "status": self.status.value,
             "pb_container_id": self.pb_container_id,
-            "result_available": True if self.result_raw and self.result_processed else False,
+            "result_available": True
+            if self.result_raw and self.result_processed
+            else False,
             "launch_date": self.launch_date,
-            "name": self.name
+            "name": self.name,
         }
 
 
@@ -181,6 +185,10 @@ class PhantomBusterAgent:
         response = requests.request("GET", url, headers=headers, data=payload)
         data: dict = response.json()
 
+        import pdb
+
+        pdb.set_trace()
+
         arguments = json.loads(data.get("argument", ""))
 
         return arguments
@@ -243,7 +251,9 @@ class PhantomBusterAgent:
 
     def update_launch_schedule(self):
 
-        config: PhantomBusterConfig = PhantomBusterConfig.query.filter(PhantomBusterConfig.phantom_uuid == self.id).first()
+        config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+            PhantomBusterConfig.phantom_uuid == self.id
+        ).first()
         client_sdr: ClientSDR = ClientSDR.query.get(config.client_sdr_id)
 
         ADDS_PER_LAUNCH = 2
@@ -259,10 +269,10 @@ class PhantomBusterAgent:
             if target > 45:
                 hours = hour_slots
                 # Only include the number of minutes that we need to reach our target
-                minutes = minute_slots[:math.ceil(target / (len(hours) * len(dows)))]
+                minutes = minute_slots[: math.ceil(target / (len(hours) * len(dows)))]
             else:
                 # Only include the number of hours that we need to reach our target
-                hours = hour_slots[:math.ceil(target / len(dows))]
+                hours = hour_slots[: math.ceil(target / len(dows))]
                 minutes = [41]
         else:
             hours = []
@@ -274,25 +284,69 @@ class PhantomBusterAgent:
             "repeatedLaunchTimes": {
                 "minute": minutes,
                 "hour": hours,
-                "day": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+                "day": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                    31,
+                ],
                 "dow": dows,
-                "month": ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],
+                "month": [
+                    "jan",
+                    "feb",
+                    "mar",
+                    "apr",
+                    "may",
+                    "jun",
+                    "jul",
+                    "aug",
+                    "sep",
+                    "oct",
+                    "nov",
+                    "dec",
+                ],
                 "timezone": client_sdr.timezone,
             },
-            "id": self.id
+            "id": self.id,
         }
         headers = {
             "accept": "application/json",
             "content-type": "application/json",
-            "X-Phantombuster-Key": self.api_key
+            "X-Phantombuster-Key": self.api_key,
         }
 
         response = requests.post(url, json=payload, headers=headers)
 
-        #print(response.text)
+        # print(response.text)
 
         return {
             "desired_target": client_sdr.weekly_li_outbound_target,
             "actual_target": len(hours) * len(minutes) * len(dows) * ADDS_PER_LAUNCH,
         }
-

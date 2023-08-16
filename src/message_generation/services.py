@@ -890,14 +890,9 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
             db.session.commit()
 
             # Generate the prospect email
-            generate_prospect_email.apply_async(
-                args=[prospect_id, campaign_id, gm_job.id],
-                countdown=i * 10,
-                queue="message_generation",
-                routing_key="message_generation",
-                priority=10,
-            )
+            generate_prospect_email(prospect_id, campaign_id, gm_job.id)
     except Exception as e:
+        print(e)
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
@@ -907,6 +902,9 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
     self, prospect_id: int, campaign_id: int, gm_job_id: int
 ) -> tuple[bool, str]:
     try:
+        import pdb
+
+        pdb.set_trace()
         campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
 
         # Mark the job as in progress
@@ -2196,7 +2194,9 @@ def generate_followup_response(
         research_str = ""
 
         # Only include account research points if bump framework allows it
-        use_account_research = best_framework.get("use_account_research") if best_framework else True
+        use_account_research = (
+            best_framework.get("use_account_research") if best_framework else True
+        )
         if use_account_research:
             for point in random_sample_points:
                 account_research_points.append(
