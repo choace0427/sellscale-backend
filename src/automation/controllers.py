@@ -167,7 +167,7 @@ def whisper_diarization():
 
     response = wrapped_create_completion(
         model=OPENAI_CHAT_GPT_4_MODEL,
-        prompt="This is a raw speaker transcript. Convert it into a conversion between Person A and Person B. Using the Person A and Person B titles along with semicolons to signify person changes. Use markdown formatting style.:"
+        prompt="This is a raw speaker transcript. Convert it into a conversion between persons. Label people as Person A, Person B, and Person C. Mark people changes as you would in a transcript (i.e. with colons and line breaks). Use markdown formatting style.:"
         + raw_transcript,
         max_tokens=int(len(raw_transcript) / 4 + 100),
     )
