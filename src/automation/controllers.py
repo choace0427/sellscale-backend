@@ -1,5 +1,7 @@
+import base64
 import json
 from flask import Blueprint, request, jsonify, Response
+import openai
 from src.automation.models import PhantomBusterType
 from src.automation.services import (
     create_phantom_buster_config,
@@ -133,3 +135,20 @@ def post_phantombuster_autoconnect_webhook(client_sdr_id: int):
 
     # Since this is a webhook, we need to return a response that PB won't flag
     return "OK", 200
+
+
+@AUTOMATION_BLUEPRINT.route("/whisper_transcribe", methods=["POST"])
+def whisper_transcribe():
+    """Webhook to be called by whisper after the transcription is finished"""
+    base_64_audio = get_request_parameter(
+        "base_64_audio", request, json=True, required=True
+    )
+
+    with open("audio.webm", "wb") as fh:
+        fh.write(base64.decodebytes(base_64_audio.encode()))
+        fh.close()
+
+    with open("audio.webm", "rb") as fh:
+        response = openai.Audio.transcribe("whisper-1", fh)
+
+    return jsonify(response)
