@@ -890,7 +890,13 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
             db.session.commit()
 
             # Generate the prospect email
-            generate_prospect_email(prospect_id, campaign_id, gm_job.id)
+            generate_prospect_email.apply_async(
+                args=[prospect_id, campaign_id, gm_job.id],
+                countdown=i * 10,
+                queue="message_generation",
+                routing_key="message_generation",
+                priority=10,
+            )
     except Exception as e:
         print(e)
         db.session.rollback()
