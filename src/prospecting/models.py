@@ -491,6 +491,7 @@ class Prospect(db.Model):
         from src.message_generation.models import GeneratedMessage
         from src.client.models import ClientArchetype
         from src.li_conversation.models import LinkedinConversationEntry
+        from src.research.models import ResearchPayload, ResearchType
 
         # Get prospect email status if it exists
         p_email: ProspectEmail = ProspectEmail.query.filter_by(
@@ -506,6 +507,21 @@ class Prospect(db.Model):
             email_store: EmailStore = EmailStore.query.get(self.email_store_id)
             email_store_data = email_store.to_dict()
 
+        # Get Prospect location information
+        research_payload: ResearchPayload = ResearchPayload.query.filter_by(
+            prospect_id=self.id,
+            research_type=ResearchType.LINKEDIN_ISCRAPER.value
+        ).first()
+        location = None
+        company_hq = None
+        if research_payload and research_payload.payload:
+            location = research_payload.payload.get("personal", {"location": {"default": None}}).get("location", {"default": None}).get("default", None)
+            company = research_payload.payload.get("company")
+            if company:
+                details = company.get("details")
+                if details:
+                    company_hq = details.get("locations", {"headquarter": {"country": None}}).get("headquarter", {"country": None}).get("country", None)
+
         # Check if shallow_data is requested
         if shallow_data:
             return {
@@ -513,7 +529,11 @@ class Prospect(db.Model):
                 "full_name": self.full_name,
                 "first_name": self.first_name,
                 "last_name": self.last_name,
+                "location": location,
+
                 "company": self.company,
+                "company_hq": company_hq,
+
                 "title": self.title,
                 "email": self.email,
                 "icp_fit_score": self.icp_fit_score,
@@ -627,8 +647,12 @@ class Prospect(db.Model):
             "client_id": self.client_id,
             "archetype_id": self.archetype_id,
             "archetype_name": archetype_name,
+            "location": location,
+
             "company": self.company,
             "company_url": self.company_url,
+            "company_hq": company_hq,
+
             "employee_count": self.employee_count,
             "first_name": self.first_name,
             "last_name": self.last_name,
@@ -1034,7 +1058,7 @@ class ProspectReferral(db.Model):
             "referred_id": self.referred_id,
             "meta_data": self.meta_data,
         }
-    
+
 
 class ExistingContact(db.Model):
     __tablename__ = "existing_contact"
@@ -1055,7 +1079,7 @@ class ExistingContact(db.Model):
     used = db.Column(db.Boolean, default=False)
 
     def to_dict(self, include_individual=True) -> dict:
-        
+
         if self.individual_id and include_individual:
             individual: Individual = Individual.query.get(self.individual_id)
             individual_data = individual.to_dict()
