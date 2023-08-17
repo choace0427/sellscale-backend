@@ -373,6 +373,7 @@ def detect_time_sensitive_keywords(
             " call",
             "schedule",
             "available dates",
+            "a conversation",
         ]
     )
     for keyword in time_sensitive_keywords:
