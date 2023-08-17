@@ -902,9 +902,6 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
     self, prospect_id: int, campaign_id: int, gm_job_id: int
 ) -> tuple[bool, str]:
     try:
-        import pdb
-
-        pdb.set_trace()
         campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
 
         # Mark the job as in progress

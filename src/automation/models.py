@@ -185,10 +185,6 @@ class PhantomBusterAgent:
         response = requests.request("GET", url, headers=headers, data=payload)
         data: dict = response.json()
 
-        import pdb
-
-        pdb.set_trace()
-
         arguments = json.loads(data.get("argument", ""))
 
         return arguments
