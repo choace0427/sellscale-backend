@@ -11,6 +11,11 @@ from src.automation.services import (
     create_pb_linkedin_invite_csv,
     update_pb_linkedin_send_status,
 )
+from src.ml.openai_wrappers import (
+    OPENAI_CHAT_GPT_4_MODEL,
+    wrapped_chat_gpt_completion,
+    wrapped_create_completion,
+)
 from src.utils.csv import send_csv
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
@@ -152,3 +157,23 @@ def whisper_transcribe():
         response = openai.Audio.transcribe("whisper-1", fh)
 
     return jsonify(response)
+
+
+@AUTOMATION_BLUEPRINT.route("/whisper_diarization", methods=["POST"])
+def whisper_diarization():
+    raw_transcript = get_request_parameter(
+        "raw_transcript", request, json=True, required=True
+    )
+
+    response = wrapped_create_completion(
+        model=OPENAI_CHAT_GPT_4_MODEL,
+        prompt="This is a raw speaker transcript. Convert it into a conversion between Person A and Person B. Using the Person A and Person B titles along with semicolons to signify person changes. Use markdown formatting style.:"
+        + raw_transcript,
+        max_tokens=int(len(raw_transcript) / 4 + 100),
+    )
+
+    return jsonify(
+        {
+            "diarized_transcript": response,
+        }
+    )
