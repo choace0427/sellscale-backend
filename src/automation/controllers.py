@@ -177,3 +177,23 @@ def whisper_diarization():
             "diarized_transcript": response,
         }
     )
+
+
+@AUTOMATION_BLUEPRINT.route("/whisper_analysis", methods=["POST"])
+def whisper_diarization():
+    raw_transcript = get_request_parameter(
+        "raw_transcript", request, json=True, required=True
+    )
+
+    response = wrapped_create_completion(
+        model=OPENAI_CHAT_GPT_4_MODEL,
+        prompt="Analyze this conversation and create three sections using markdown formatting: 1. Summary of the conversation. 2. General sentiment (very positive, positive, neutral, negative, very negative). 3. A list of the main topics discussed."
+        + raw_transcript,
+        max_tokens=int(len(raw_transcript) / 4 + 100),
+    )
+
+    return jsonify(
+        {
+            "analyzed_transcript": response,
+        }
+    )
