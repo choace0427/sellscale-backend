@@ -41,7 +41,7 @@ from src.prospecting.models import (
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
-from src.utils.slack import URL_MAP, send_slack_message
+from src.utils.slack import URL_MAP, CHANNEL_NAME_MAP, send_slack_message, send_delayed_slack_message
 from src.utils.converters.string_converters import (
     get_last_name_from_full_name,
     get_first_name_from_full_name,
@@ -56,6 +56,7 @@ from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
 from src.utils.converters.string_converters import needs_title_casing
 import datetime
+from datetime import timedelta
 from flask import jsonify
 
 
@@ -1669,8 +1670,7 @@ def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason)
         db.session.add(prospect)
         db.session.commit()
 
-# If a demo is more than 7 days away, send a reminder internally
-SEND_DEMO_REMINDER_NOTIF_DAYS = 7
+
 def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: str, send_reminder: bool = False):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.demo_date = demo_date
@@ -1678,12 +1678,11 @@ def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: s
     db.session.commit()
 
     date = datetime.datetime.fromisoformat(demo_date[:-1])
-    #days_until = (date - datetime.datetime.now()).days
-    if send_reminder: #and days_until >= SEND_DEMO_REMINDER_NOTIF_DAYS:
+    if send_reminder:
         
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-        send_slack_message(
+        send_delayed_slack_message(
             message=f"""
               Demo reminder requested for prospect below:
               SDR Name: {sdr.name}
@@ -1691,7 +1690,8 @@ def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: s
               Demo date: {date.strftime("%m/%d/%Y")}
               Please send a reminder to engage with prospect and confirm they'll be meeting.
             """,
-            webhook_urls=[URL_MAP["prospect-demo-soon"]],
+            channel_name=CHANNEL_NAME_MAP["prospect-demo-soon"],
+            delay_date=(date - timedelta(days=1)),
         )
 
     return True

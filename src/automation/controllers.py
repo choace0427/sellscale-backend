@@ -19,8 +19,9 @@ from src.ml.openai_wrappers import (
 from src.utils.csv import send_csv
 from src.utils.request_helpers import get_request_parameter
 from src.automation.inbox_scraper import scrape_inbox
-from src.utils.slack import send_slack_message
+from src.utils.slack import send_slack_message, CHANNEL_NAME_MAP, send_delayed_slack_message
 from src.authentication.decorators import require_user
+from datetime import datetime
 
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
@@ -111,6 +112,21 @@ def post_send_slack_message():
     message = get_request_parameter("message", request, json=True, required=True)
     channel = get_request_parameter("channel", request, json=True, required=True)
     send_slack_message(message=message, webhook_urls=[channel])
+    return "OK", 200
+
+
+@AUTOMATION_BLUEPRINT.route("/send_delayed_slack_message", methods=["POST"])
+def post_send_delayed_slack_message():
+    message = get_request_parameter("message", request, json=True, required=True)
+    channel = get_request_parameter("channel_name", request, json=True, required=True)
+    delay_date = get_request_parameter("delay_date", request, json=True, required=True)
+    date = datetime.fromisoformat(delay_date[:-1])
+
+    send_delayed_slack_message(
+        message=message,
+        channel_name=CHANNEL_NAME_MAP[channel],
+        delay_date=date,
+    )
     return "OK", 200
 
 

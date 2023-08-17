@@ -2,6 +2,8 @@ from slack_sdk.webhook import WebhookClient
 import os
 import linecache
 import sys
+import requests
+from datetime import datetime
 
 URL_MAP = {
     "autodetect-scheduling": "https://hooks.slack.com/services/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",
@@ -36,6 +38,11 @@ URL_MAP = {
     "eng-icp-errors": "https://hooks.slack.com/services/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",
 }
 
+CHANNEL_NAME_MAP = {
+    "csm-urgent-alerts": "C0594T0SAEN",
+    "prospect-demo-soon": "C05LXA34QF9",
+}
+
 
 def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
     if (
@@ -49,6 +56,30 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
         webhook.send(text=message, blocks=blocks)
 
     return True
+
+
+def send_delayed_slack_message(message: str, channel_name: str, delay_date: datetime) -> bool:
+    if (
+        os.environ.get("FLASK_ENV") != "production"
+        and os.environ.get("FLASK_ENV") != "celery-production"
+    ):
+        return
+    
+    zapier_slack_hook = 'https://hooks.zapier.com/hooks/catch/13803519/39efpuo/'
+
+    response = requests.post(
+        zapier_slack_hook,
+        headers={
+            "Content-Type": "application/json",
+        },
+        json={
+            "delay_date": delay_date.strftime('%a %b %d %Y'),
+            "message": message,
+            "channel_name": channel_name,
+        },
+    )
+    return response.status_code == 200
+
 
 
 def exception_to_str():
