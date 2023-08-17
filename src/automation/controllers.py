@@ -180,7 +180,7 @@ def whisper_diarization():
 
 
 @AUTOMATION_BLUEPRINT.route("/whisper_analysis", methods=["POST"])
-def whisper_diarization():
+def whisper_analysis():
     raw_transcript = get_request_parameter(
         "raw_transcript", request, json=True, required=True
     )
