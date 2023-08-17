@@ -142,7 +142,7 @@ def send_status_change_slack_block(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "{sender}: {message}".format(
+                            "text": "*{sender}:* {message}".format(
                                 sender=c.author, message=c.message
                             ),
                         },
