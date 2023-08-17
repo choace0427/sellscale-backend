@@ -13,6 +13,7 @@ from operator import itemgetter
 from time import sleep, time
 from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
+from src.voyager.test_services import make_search
 from app import db
 from sqlalchemy.orm import Session
 from src.utils.slack import send_slack_message, URL_MAP
@@ -676,19 +677,23 @@ class LinkedIn(object):
 
     def graphql_get_sales_nav(
             self,
+            keyword,
+            years_of_experience,
     ) -> list[dict]:
         """."""
 
-        res = self._fetch(
-                (f"/sales-api/salesApiLeadSearch?q=recentSearchId&start=25&count=25&recentSearchId=2992170764&trackingParam=(sessionId:{generate_trackingId()})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-13"),
-                base_request=True,
-                headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
-        )
+        # res = self._fetch(
+        #         (f"/sales-api/salesApiLeadSearch?q=searchQuery&query=(recentSearchParam:(id:3005739300,doLogHistory:true),filters:List((type:COMPANY_TYPE,values:List((id:P,text:Privately%20Held,selectionType:INCLUDED))),(type:FIRST_NAME,values:List((text:John,selectionType:INCLUDED)))))&start=0&count=25&trackingParam=(sessionId:gcExQLjFT7ygsKn5%2Bs6L6A%3D%3D)&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-13"),
+        #         base_request=True,
+                
+        # )
 
-        print(res.text)
+        # print(res.text)
 
-        data = res.json()
+        # data = res.json()
 
-        print(data['data'].keys())
+        # print(data['data'].keys())
+
+        return make_search(keyword, years_of_experience)
 
 

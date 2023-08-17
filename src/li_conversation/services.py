@@ -392,8 +392,8 @@ def detect_time_sensitive_keywords(
                 """,
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
-
-    return
+            return
+    
 
 
 def detect_multithreading_keywords(

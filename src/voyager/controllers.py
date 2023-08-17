@@ -319,12 +319,15 @@ def get_connections(client_sdr_id: int):
 def get_sales_nav(client_sdr_id: int):
     """."""
 
+    keyword = get_request_parameter("keyword", request, json=False, required=True)
+    yoe = get_request_parameter("yoe", request, json=False, required=True)
+
     api = LinkedIn(client_sdr_id)
-    profile = api.get_user_profile(use_cache=False)
+    #profile = api.get_user_profile(use_cache=False)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
     
-    result = api.graphql_get_sales_nav()
+    result = api.graphql_get_sales_nav(keyword, yoe)
 
-    return jsonify({"message": "Success", "data": []}), 200
+    return jsonify({"message": "Success", "data": result}), 200
 
