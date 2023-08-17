@@ -4,6 +4,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 import enum
 from typing import Optional
 from src.email_outbound.email_store.models import EmailStore
+from src.utils.abstract.attr_utils import deep_get
 
 from src.utils.hasher import generate_uuid
 
@@ -515,12 +516,8 @@ class Prospect(db.Model):
         location = None
         company_hq = None
         if research_payload and research_payload.payload:
-            location = research_payload.payload.get("personal", {"location": {"default": None}}).get("location", {"default": None}).get("default", None)
-            company = research_payload.payload.get("company")
-            if company:
-                details = company.get("details")
-                if details:
-                    company_hq = details.get("locations", {"headquarter": {"country": None}}).get("headquarter", {"country": None}).get("country", None)
+            location = deep_get(research_payload.payload, "personal.location.default")
+            company_hq = deep_get(research_payload.payload, "company.details.locations.headquarter.country")
 
         # Check if shallow_data is requested
         if shallow_data:
