@@ -1098,6 +1098,7 @@ def post_update_prospect(client_sdr_id: int, prospect_id: int):
   email = get_request_parameter("email", request, json=True, required=False, parameter_type=str)
   in_icp_sample = get_request_parameter("in_icp_sample", request, json=True, required=False, parameter_type=bool)
   icp_fit_score_override = get_request_parameter("icp_fit_score_override", request, json=True, required=False, parameter_type=int)
+  contract_size = get_request_parameter("contract_size", request, json=True, required=False, parameter_type=int)
 
   prospect: Prospect = Prospect.query.get(prospect_id)
   if not prospect or prospect.client_sdr_id != client_sdr_id:
@@ -1106,6 +1107,7 @@ def post_update_prospect(client_sdr_id: int, prospect_id: int):
   if email is not None: prospect.email = email
   if in_icp_sample is not None: prospect.in_icp_sample = in_icp_sample
   if icp_fit_score_override is not None: prospect.icp_fit_score_override = icp_fit_score_override
+  if contract_size is not None: prospect.contract_size = contract_size
 
   db.session.commit()
 
