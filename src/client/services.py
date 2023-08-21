@@ -1671,6 +1671,7 @@ def update_persona_brain_details(
     updated_persona_fit_reason: Optional[str],
     updated_persona_icp_matching_prompt: Optional[str],
     updated_persona_contact_objective: Optional[str],
+    updated_persona_contract_size: Optional[int],
 ):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
@@ -1684,6 +1685,8 @@ def update_persona_brain_details(
         client_archetype.icp_matching_prompt = updated_persona_icp_matching_prompt
     if updated_persona_contact_objective:
         client_archetype.persona_contact_objective = updated_persona_contact_objective
+    if updated_persona_contract_size:
+        client_archetype.contract_size = updated_persona_contract_size
 
     db.session.add(client_archetype)
     db.session.commit()

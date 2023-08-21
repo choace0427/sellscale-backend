@@ -1559,6 +1559,9 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
     updated_persona_contact_objective = get_request_parameter(
         "updated_persona_contact_objective", request, json=True, required=False
     )
+    updated_persona_contract_size = get_request_parameter(
+        "updated_persona_contract_size", request, json=True, required=False
+    )
 
     success = update_persona_brain_details(
         client_sdr_id=client_sdr_id,
@@ -1567,6 +1570,7 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
         updated_persona_fit_reason=updated_persona_fit_reason,
         updated_persona_icp_matching_prompt=updated_persona_icp_matching_prompt,
         updated_persona_contact_objective=updated_persona_contact_objective,
+        updated_persona_contract_size=updated_persona_contract_size,
     )
 
     if success:
