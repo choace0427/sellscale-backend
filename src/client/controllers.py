@@ -197,6 +197,7 @@ def patch_client(client_sdr_id: int):
     )
     mission = get_request_parameter("mission", request, json=True, required=False)
     case_study = get_request_parameter("case_study", request, json=True, required=False)
+    contract_size = get_request_parameter("contract_size", request, json=True, required=False)
 
     success = update_client_details(
         client_id=client_id,
@@ -207,6 +208,7 @@ def patch_client(client_sdr_id: int):
         tone_attributes=tone_attributes,
         mission=mission,
         case_study=case_study,
+        contract_size=contract_size,
     )
     if not success:
         return "Failed to update client", 404

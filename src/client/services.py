@@ -112,6 +112,7 @@ def update_client_details(
     tone_attributes: Optional[list[str]] = None,
     mission: Optional[str] = None,
     case_study: Optional[str] = None,
+    contract_size: Optional[int] = None,
 ):
     c: Client = Client.query.get(client_id)
     if not c:
@@ -131,6 +132,8 @@ def update_client_details(
         c.mission = mission
     if case_study:
         c.case_study = case_study
+    if contract_size:
+        c.contract_size = contract_size
 
     db.session.add(c)
     db.session.commit()
@@ -2269,6 +2272,7 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.is_unassigned_contact_archetype,
             ClientArchetype.persona_fit_reason,
             ClientArchetype.persona_contact_objective,
+            ClientArchetype.contract_size,
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_outreach_message_id.is_(None))
