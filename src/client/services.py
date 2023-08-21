@@ -305,6 +305,7 @@ def create_client_archetype(
     persona_contact_objective: str = "",
     is_unassigned_contact_archetype: bool = False,
     active: bool = True,
+    persona_contract_size: Optional[int] = None,
 ):
     c: Client = get_client(client_id=client_id)
     if not c:
@@ -329,7 +330,7 @@ def create_client_archetype(
             "Use the objective for a call to action",
             "End with Best, (new line) (My Name) (new line) (Title)",
         ],
-        contract_size=c.contract_size,
+        contract_size=persona_contract_size or c.contract_size,
     )
     db.session.add(client_archetype)
     db.session.commit()
