@@ -851,6 +851,8 @@ def add_prospect(
 
     can_create_prospect = not prospect_exists or not allow_duplicates
     if can_create_prospect:
+        
+        archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
         prospect: Prospect = Prospect(
             client_id=client_id,
             archetype_id=archetype_id,
@@ -871,6 +873,7 @@ def add_prospect(
             li_num_followers=linkedin_num_followers,
             overall_status=overall_status,
             active=True,
+            contract_size=archetype.contract_size,
         )
         db.session.add(prospect)
         db.session.commit()

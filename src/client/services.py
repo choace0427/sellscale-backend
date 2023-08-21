@@ -326,6 +326,7 @@ def create_client_archetype(
             "Use the objective for a call to action",
             "End with Best, (new line) (My Name) (new line) (Title)",
         ],
+        contract_size=c.contract_size,
     )
     db.session.add(client_archetype)
     db.session.commit()

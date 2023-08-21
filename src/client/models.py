@@ -62,6 +62,8 @@ class Client(db.Model):
     analytics_activation_date = db.Column(db.DateTime, nullable=True)
     analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
 
+    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -84,6 +86,7 @@ class Client(db.Model):
             "tone_attributes": self.tone_attributes,
             "mission": self.mission,
             "case_study": self.case_study,
+            "contract_size": self.contract_size,
         }
 
 
@@ -122,6 +125,8 @@ class ClientArchetype(db.Model):
     prospect_filters = db.Column(db.JSON, nullable=True)
     email_blocks_configuration = db.Column(db.ARRAY(db.String), nullable=True)
 
+    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+
     def to_dict(self) -> dict:
 
         from src.message_generation.models import GeneratedMessageCTA
@@ -150,6 +155,7 @@ class ClientArchetype(db.Model):
             "prospect_filters": self.prospect_filters,
             "ctas": [cta.to_dict() for cta in ctas],
             "email_blocks_configuration": self.email_blocks_configuration,
+            "contract_size": self.contract_size,
         }
 
 

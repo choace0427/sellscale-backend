@@ -462,6 +462,8 @@ class Prospect(db.Model):
 
     individual_id = db.Column(db.Integer, db.ForeignKey("individual.id"), nullable=True)
 
+    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
@@ -569,6 +571,7 @@ class Prospect(db.Model):
                 "in_icp_sample": self.in_icp_sample,
                 "icp_fit_score_override": self.icp_fit_score_override,
                 "email_store": email_store_data,
+                "contract_size": self.contract_size,
             }
 
         # Get generated message if it exists and is requested
@@ -712,6 +715,7 @@ class Prospect(db.Model):
             "icp_fit_score_override": self.icp_fit_score_override,
             "email_store": email_store_data,
             "individual_data": individual_data,
+            "contract_size": self.contract_size,
         }
 
 
