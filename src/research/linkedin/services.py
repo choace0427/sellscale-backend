@@ -4,6 +4,7 @@ from app import celery, db
 from src.client.models import Client, ClientArchetype
 from src.prospecting.models import Prospect
 from src.research.models import (
+    AccountResearchPoints,
     ResearchPayload,
     ResearchPoints,
     ResearchPointType,
@@ -404,6 +405,14 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
 
         db.session.delete(research_payload)
         db.session.commit()
+
+        account_research_point: list = AccountResearchPoints.query.filter(
+            AccountResearchPoints.prospect_id == prospect_id
+        ).all()
+
+        for arp in account_research_point:
+            db.session.delete(arp)
+            db.session.commit()
 
 
 @celery.task
