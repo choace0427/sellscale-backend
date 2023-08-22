@@ -49,6 +49,7 @@ from src.prospecting.services import (
     add_existing_contact,
     get_existing_contacts,
     add_existing_contacts_to_persona,
+    get_prospects_for_income_pipeline,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -1162,6 +1163,15 @@ def get_icp_fit_for_archetype(client_sdr_id: int):
         return jsonify({"message": "Archetype not found"}), 404
 
     data = get_prospects_for_icp(archetype_id)
+
+    return jsonify({"message": "Success", "data": data }), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/income_pipeline", methods=["GET"])
+@require_user
+def get_prospects_for_income_pipeline_endpoint(client_sdr_id: int):
+
+    data = get_prospects_for_income_pipeline(client_sdr_id)
 
     return jsonify({"message": "Success", "data": data }), 200
 

@@ -2042,6 +2042,56 @@ def get_prospects_for_icp(archetype_id: int):
     }
 
 
+
+def get_prospects_for_income_pipeline(client_sdr_id: int):
+
+    data = db.session.execute(
+        f"""
+        select
+          
+          array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status)) filter (where prospect.overall_status = 'ACTIVE_CONVO' and prospect.status != 'ACTIVE_CONVO_SCHEDULING' and prospect_email.outreach_status != 'SCHEDULING') "ACTIVE_CONVO",
+          array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status)) filter (where prospect.status = 'ACTIVE_CONVO_SCHEDULING' or prospect_email.outreach_status = 'SCHEDULING') "SCHEDULING",
+          array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status)) filter (where prospect.status = 'DEMO_SET' or prospect_email.outreach_status = 'DEMO_SET') "DEMO_SET",
+          array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status)) filter (where prospect.status = 'DEMO_WON' or prospect_email.outreach_status = 'DEMO_WON') "DEMO_WON",
+          array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status)) filter (where prospect.status = 'DEMO_LOSS' or prospect_email.outreach_status = 'DEMO_LOST' or prospect.status = 'NOT_INTERESTED' or prospect_email.outreach_status = 'NOT_INTERESTED') "NOT_INTERESTED"
+      
+        from 
+          prospect_email
+          join prospect on prospect.id = prospect_email.prospect_id
+        where prospect.client_sdr_id = {client_sdr_id} and prospect.overall_status != 'SENT_OUTREACH' and prospect.overall_status != 'PROSPECTED';
+    """
+    ).fetchone()
+
+    def separate_data(rows):
+        if not rows: return []
+        result = []
+        for row in rows:
+            sep = row.split(' -~- ')
+            result.append({
+                "id": sep[0] or None,
+                "company_name": sep[1] or None,
+                "company_url": sep[2] or None,
+                "full_name": sep[3] or None,
+                "title": sep[4] or None,
+                "img_url": sep[5] or False,
+                "company_img_url": sep[6] or None,
+                "contract_size": sep[7] or None,
+                "li_url": sep[8] or None,
+                "last_updated": sep[9] or None,
+                "email_status": sep[10] or None,
+                "li_status": sep[11] or None,
+            })
+        return result
+
+    return {
+        "active_convo": separate_data(data[0]),
+        "scheduling": separate_data(data[1]),
+        "demo_set": separate_data(data[2]),
+        "demo_won": separate_data(data[3]),
+        "not_interested": separate_data(data[4]),
+    }
+
+
 def add_existing_contact(
     client_sdr_id: int,
     connection_source: str,
