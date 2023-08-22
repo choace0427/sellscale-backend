@@ -5,7 +5,12 @@ from src.client.services import populate_single_prospect_event
 from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
-from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmail, ProspectEmailOutreachStatus
+from src.email_outbound.models import (
+    EmailConversationMessage,
+    EmailConversationThread,
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+)
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
 
@@ -16,7 +21,9 @@ from src.webhooks.nylas.bounce_detection import is_email_bounced
 
 
 @celery.task(bind=True, max_retries=5)
-def process_deltas_message_created(self, deltas: Union[list[dict], dict]) -> tuple[bool, int]:
+def process_deltas_message_created(
+    self, deltas: Union[list[dict], dict]
+) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
     This function processes `message.created` deltas from the `message.created` webhook.
@@ -29,17 +36,13 @@ def process_deltas_message_created(self, deltas: Union[list[dict], dict]) -> tup
     """
     # Process deltas
     if type(deltas) == dict:
-        process_single_message_created.apply_async(
-            args=[deltas]
-        )
+        process_single_message_created.apply_async(args=[deltas])
         return True, 1
 
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        process_single_message_created.apply_async(
-            args=[delta]
-        )
+        process_single_message_created.apply_async(args=[delta])
 
     return True, len(deltas)
 
@@ -54,17 +57,17 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating whether the delta was processed successfully, and a string containing the id of the message that was processed, or an error message.
     """
-    delta_type = delta.get('type')
-    if delta_type != 'message.created':
+    delta_type = delta.get("type")
+    if delta_type != "message.created":
         return False, "Delta type is not 'message.created'"
 
     # Get object data
-    object_data: dict = delta.get('object_data')
+    object_data: dict = delta.get("object_data")
     if not object_data:
         return False, "No object_data in delta"
 
     # Get the ID of the connected email account and the client SDR
-    account_id: str = object_data.get('account_id')
+    account_id: str = object_data.get("account_id")
     if not account_id:
         return False, "No account ID in object data"
     client_sdr: ClientSDR = ClientSDR.query.filter(
@@ -75,15 +78,11 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
     if not client_sdr:
         return False, "No client SDR found"
 
-    # TODO: DELETE THIS - HARDCODE TO SELLSCALE FOR NOW
-    if client_sdr.client_id != 1:
-        return False, "Client is not SellScale"
-
     # Get thread ID - the ID of the thread that the message belongs to
-    attributes: dict = object_data.get('attributes')
+    attributes: dict = object_data.get("attributes")
     if not attributes:
         return False, "No attributes in object data"
-    thread_id: str = attributes.get('thread_id')
+    thread_id: str = attributes.get("thread_id")
     if not thread_id:
         return False, "No thread ID"
 
@@ -94,10 +93,10 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
 
     # Check if participants include a prospect.
     # We only save threads with prospects.
-    participants: list[dict] = thread.get('participants')
+    participants: list[dict] = thread.get("participants")
     if not participants:
         return False, "No participants in thread"
-    participants = [participant.get('email') for participant in participants]
+    participants = [participant.get("email") for participant in participants]
 
     prospect: Prospect = Prospect.query.filter(
         Prospect.client_id == client_sdr.client_id,
@@ -114,12 +113,14 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
     if not result:
         return False, "Failed to save thread"
 
-    messages: list[dict] = nylas_get_messages(client_sdr.id, prospect.id, thread.get("id"))
+    messages: list[dict] = nylas_get_messages(
+        client_sdr.id, prospect.id, thread.get("id")
+    )
     for message in messages:
         # Check if message is bounced
-        email_from: list = message.get("message_from", [{'email': None}])
+        email_from: list = message.get("message_from", [{"email": None}])
         if len(email_from) == 1:
-            email_from: str = email_from[0].get('email')
+            email_from: str = email_from[0].get("email")
             bounced = is_email_bounced(email_from, message.get("body"))
             if bounced:
                 # Update the Prospect's status to "BOUNCED"
@@ -151,7 +152,7 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
                     new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
                     custom_message=" responded to your email! 🙌🏽",
                     metadata={},
-                    last_email_message=message.get("snippet")
+                    last_email_message=message.get("snippet"),
                 )
 
             # Calculate prospect overall status
@@ -161,7 +162,9 @@ def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
 
 
 @celery.task(bind=True, max_retries=5)
-def process_deltas_message_opened(self, deltas: Union[list[dict], dict]) -> tuple[bool, int]:
+def process_deltas_message_opened(
+    self, deltas: Union[list[dict], dict]
+) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
     This function processes `message.opened` deltas from the `message.opened` webhook.
@@ -172,19 +175,15 @@ def process_deltas_message_opened(self, deltas: Union[list[dict], dict]) -> tupl
     Returns:
         tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
     """
-     # Process deltas
+    # Process deltas
     if type(deltas) == dict:
-        process_single_message_opened.apply_async(
-            args=[deltas]
-        )
+        process_single_message_opened.apply_async(args=[deltas])
         return True, 1
 
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        process_single_message_opened.apply_async(
-            args=[delta]
-        )
+        process_single_message_opened.apply_async(args=[delta])
 
     return True, len(deltas)
 
@@ -199,17 +198,17 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating whether the delta was processed successfully, and a string containing the id of the message that was processed, or an error message.
     """
-    delta_type = delta.get('type')
-    if delta_type != 'message.opened':
+    delta_type = delta.get("type")
+    if delta_type != "message.opened":
         return False, "Delta type is not 'message.opened'"
 
     # Get object data
-    object_data: dict = delta.get('object_data')
+    object_data: dict = delta.get("object_data")
     if not object_data:
         return False, "No object_data in delta"
 
     # Get the ID of the connected email account and the client SDR
-    account_id: str = object_data.get('account_id')
+    account_id: str = object_data.get("account_id")
     if not account_id:
         return False, "No account ID in object data"
     client_sdr: ClientSDR = ClientSDR.query.filter(
@@ -220,17 +219,13 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
     if not client_sdr:
         return False, "No client SDR found"
 
-    # TODO: DELETE THIS - HARDCODE TO SELLSCALE FOR NOW
-    if client_sdr.client_id != 1:
-        return False, "Client is not SellScale"
-
     # The metadata should include a payload, which will include Prospect ID and Prospect Email ID
-    metadata: dict = object_data.get('metadata')
+    metadata: dict = object_data.get("metadata")
     if not metadata:
         return False, "No metadata in delta"
 
     # Get the id of the message
-    message_id: str = metadata.get('message_id')
+    message_id: str = metadata.get("message_id")
     convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
         EmailConversationMessage.nylas_message_id == message_id
     ).first()
@@ -242,15 +237,15 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
     if not convo_thread:
         return False, "No conversation thread found"
 
-    payload: dict = metadata.get('payload')
+    payload: dict = metadata.get("payload")
     if not payload:
         return False, "No payload in metadata"
     else:
         payload = json.loads(payload)
 
-    prospect_id: int = payload.get('prospect_id')
-    prospect_email_id: int = payload.get('prospect_email_id')
-    client_sdr_id: int = payload.get('client_sdr_id')
+    prospect_id: int = payload.get("prospect_id")
+    prospect_email_id: int = payload.get("prospect_email_id")
+    client_sdr_id: int = payload.get("client_sdr_id")
 
     # Check that the information is correct:
     # 1. ClientSDR ID in payload matches ClientSDR ID in delta
@@ -280,7 +275,10 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
             prospect=prospect,
             new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
             custom_message=" opened your email! 📧",
-            metadata={"prospect_email": prospect.email, "email_title": convo_thread.subject}
+            metadata={
+                "prospect_email": prospect.email,
+                "email_title": convo_thread.subject,
+            },
         )
 
     # Calculate prospect overall status
@@ -289,9 +287,10 @@ def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
     return True, "Successfully tracked email open"
 
 
-
 @celery.task(bind=True, max_retries=5)
-def process_deltas_event_update(self, deltas: Union[list[dict], dict]) -> tuple[bool, int]:
+def process_deltas_event_update(
+    self, deltas: Union[list[dict], dict]
+) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
     Args:
@@ -300,29 +299,24 @@ def process_deltas_event_update(self, deltas: Union[list[dict], dict]) -> tuple[
     Returns:
         tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
     """
-     # Process deltas
+    # Process deltas
     if type(deltas) == dict:
-        process_single_event_update.apply_async(
-            args=[deltas]
-        )
+        process_single_event_update.apply_async(args=[deltas])
         return True, 1
 
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        process_single_event_update.apply_async(
-            args=[delta]
-        )
+        process_single_event_update.apply_async(args=[delta])
 
     return True, len(deltas)
-
 
 
 @celery.task(bind=True, max_retries=5)
 def process_single_event_update(self, delta: dict) -> tuple[bool, str]:
 
-    account_id = delta.get('object_data', {}).get('account_id')
-    event_id = delta.get('object_data', {}).get('id')
+    account_id = delta.get("object_data", {}).get("account_id")
+    event_id = delta.get("object_data", {}).get("id")
     if not account_id or not event_id:
         return False, "No account ID or event ID in delta"
 
