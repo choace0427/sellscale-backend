@@ -1695,6 +1695,32 @@ def update_persona_brain_details(
     return True
 
 
+def update_sdr_conversion_percentages(
+    client_sdr_id: int,
+    active_convo: float,
+    scheduling: float,
+    demo_set: float,
+    demo_won: float,
+    not_interested: float,
+):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False
+    
+    client_sdr.conversion_percentages = {
+        "active_convo": active_convo,
+        "scheduling": scheduling,
+        "demo_set": demo_set,
+        "demo_won": demo_won,
+        "not_interested": not_interested,
+    }
+
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    return True
+
+
 def predict_persona_fit_reason(
     client_sdr_id: int, client_archetype_id: int
 ) -> tuple[bool, str]:

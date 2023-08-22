@@ -78,6 +78,7 @@ from src.client.services import (
     update_client_product,
     get_persona_setup_status_map_for_persona,
     get_client_sdr_table_info,
+    update_sdr_conversion_percentages,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -378,6 +379,29 @@ def patch_sdr(client_sdr_id: int):
         title=title,
         disable_ai_on_prospect_respond=disable_ai_on_prospect_respond,
         disable_ai_on_message_send=disable_ai_on_message_send,
+    )
+    if not success:
+        return jsonify({"message": "Failed to update client SDR"}), 404
+    return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/conversion_percentages", methods=["PATCH"])
+@require_user
+def patch_sdr_conversion_percentages(client_sdr_id: int):
+    
+    active_convo = get_request_parameter("active_convo", request, json=True, required=True, parameter_type=float)
+    scheduling = get_request_parameter("scheduling", request, json=True, required=True, parameter_type=float)
+    demo_set = get_request_parameter("demo_set", request, json=True, required=True, parameter_type=float)
+    demo_won = get_request_parameter("demo_won", request, json=True, required=True, parameter_type=float)
+    not_interested = get_request_parameter("not_interested", request, json=True, required=True, parameter_type=float)
+
+    success = update_sdr_conversion_percentages(
+        client_sdr_id=client_sdr_id,
+        active_convo=active_convo,
+        scheduling=scheduling,
+        demo_set=demo_set,
+        demo_won=demo_won,
+        not_interested=not_interested,
     )
     if not success:
         return jsonify({"message": "Failed to update client SDR"}), 404
