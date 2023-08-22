@@ -340,6 +340,7 @@ def update_prospect_status_linkedin(
     note: Optional[str] = None,
     manually_send_to_purgatory: bool = False,
     quietly: Optional[bool] = False,
+    override_status: Optional[bool] = False,
 ) -> tuple[bool, str]:
     from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
     from src.daily_notifications.services import create_engagement_feed_item
@@ -448,6 +449,7 @@ def update_prospect_status_linkedin(
         return update_prospect_status_linkedin_multi_step(
             prospect_id=prospect_id,
             statuses=[ProspectStatus.ACCEPTED, ProspectStatus.RESPONDED],
+            override_status=override_status,
         )
 
     if (
@@ -460,6 +462,7 @@ def update_prospect_status_linkedin(
                 ProspectStatus.RESPONDED,
                 ProspectStatus.ACTIVE_CONVO,
             ],
+            override_status=override_status,
         )
 
     if (
@@ -473,6 +476,7 @@ def update_prospect_status_linkedin(
                 ProspectStatus.RESPONDED,
                 ProspectStatus.ACTIVE_CONVO,
             ],
+            override_status=override_status,
         )
 
     if (
@@ -485,6 +489,7 @@ def update_prospect_status_linkedin(
                 ProspectStatus.ACTIVE_CONVO,
                 ProspectStatus.DEMO_SET,
             ],
+            override_status=override_status,
         )
 
     if (
@@ -496,6 +501,7 @@ def update_prospect_status_linkedin(
             statuses=[
                 ProspectStatus.DEMO_SET,
             ],
+            override_status=override_status,
         )
 
     if new_status in (
@@ -508,7 +514,7 @@ def update_prospect_status_linkedin(
 
     try:
         update_prospect_status_linkedin_multi_step(
-            prospect_id=prospect_id, statuses=[new_status]
+            prospect_id=prospect_id, statuses=[new_status], override_status=override_status
         )
     except Exception as err:
         return False, err.message if hasattr(err, "message") else err
@@ -519,12 +525,12 @@ def update_prospect_status_linkedin(
     return True, "Success"
 
 
-def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list):
+def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list, override_status: bool = False):
     success = True
     for status in statuses:
         success = (
             update_prospect_status_linkedin_helper(
-                prospect_id=prospect_id, new_status=status
+                prospect_id=prospect_id, new_status=status, override_status=override_status
             )
             and success
         )
@@ -535,7 +541,7 @@ def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list)
 
 
 def update_prospect_status_linkedin_helper(
-    prospect_id: int, new_status: ProspectStatus
+    prospect_id: int, new_status: ProspectStatus, override_status: bool = False
 ):
     # Status Mapping here: https://excalidraw.com/#json=u5Ynh702JjSM1BNnffooZ,OcIRq8s0Ev--ACW10UP4vQ
     from src.prospecting.models import (
@@ -547,7 +553,7 @@ def update_prospect_status_linkedin_helper(
     if p.status == new_status:
         return True
 
-    if new_status not in VALID_NEXT_LINKEDIN_STATUSES[p.status]:
+    if not override_status and new_status not in VALID_NEXT_LINKEDIN_STATUSES[p.status]:
         raise Exception(f"Invalid status transition from {p.status} to {new_status}")
 
     record: ProspectStatusRecords = ProspectStatusRecords(

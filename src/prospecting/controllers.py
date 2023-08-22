@@ -202,6 +202,9 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
 def update_status(client_sdr_id: int, prospect_id: int):
     """Update prospect status or apply note"""
     # Get parameters
+    override_status = get_request_parameter(
+        "override_status", request, json=True, required=False, parameter_type=bool
+    ) or False
     channel_type = (
         get_request_parameter(
             "channel_type", request, json=True, required=True, parameter_type=str
@@ -236,6 +239,7 @@ def update_status(client_sdr_id: int, prospect_id: int):
             prospect_id=prospect_id,
             new_status=new_status,
             manually_send_to_purgatory=False,
+            override_status=override_status,
         )
         if (len(success) == 2 and success[0]) or (len(success) == 1 and success):
             return (
@@ -248,7 +252,7 @@ def update_status(client_sdr_id: int, prospect_id: int):
             return jsonify({"message": "Failed to update: " + str(success[1])}), 400
     elif channel_type == ProspectChannels.EMAIL.value:
         success = update_prospect_status_email(
-            prospect_id=prospect_id, new_status=new_status, override_status=True
+            prospect_id=prospect_id, new_status=new_status, override_status=override_status
         )
         if success[0]:
             return (
