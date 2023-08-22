@@ -161,9 +161,9 @@ def patch_sequence_step(client_sdr_id: int):
         )
         or None
     )
-    email_blocks = (
+    template = (
         get_request_parameter(
-            "email_blocks", request, json=True, required=False, parameter_type=list
+            "template", request, json=True, required=False, parameter_type=list
         )
         or None
     )
@@ -202,7 +202,7 @@ def patch_sequence_step(client_sdr_id: int):
         sequence_step_id=sequence_step_id,
         overall_status=overall_status,
         title=title,
-        email_blocks=email_blocks,
+        template=template,
         bumped_count=bumped_count,
         default=default,
     )

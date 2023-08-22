@@ -91,7 +91,6 @@ def create_email_sequence_step(
     client_sdr_id: int,
     client_archetype_id: int,
     title: str,
-    email_blocks: list[str],
     template: str,
     overall_status: ProspectOverallStatus,
     bumped_count: int = None,
@@ -106,7 +105,6 @@ def create_email_sequence_step(
         client_sdr_id (int): The id of the SDR
         client_archetype_id (int): The id of the client archetype
         title (str): The title of the email sequence
-        email_blocks (list[str]): The email blocks of the email sequence
         template (str): The template of the email sequence
         overall_status (ProspectOverallStatus): The overall status of the email sequence
         bumped_count (int, optional): The number which corresponds to which bump in the sequence this step appears. Defaults to None.
@@ -140,7 +138,6 @@ def create_email_sequence_step(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         title=title,
-        email_blocks=email_blocks,
         overall_status=overall_status,
         substatus=substatus,
         bumped_count=bumped_count,
@@ -161,7 +158,6 @@ def modify_email_sequence_step(
     client_archetype_id: int,
     sequence_step_id: int,
     title: Optional[str],
-    email_blocks: Optional[list[str]],
     template: Optional[str],
     bumped_count: Optional[int] = None,
     default: Optional[bool] = False,
@@ -173,7 +169,6 @@ def modify_email_sequence_step(
         client_archetype_id(int): The id of the client Archetype
         sequence_step_id (int): The id of the email sequence
         title (Optional[str]): The title of the email sequence
-        email_blocks (Optional[list[str]]): The email blocks of the email sequence
         template (Optional[str]): The template of the email sequence
         bumped_count (Optional[int], optional): The number which corresponds to which bump in the sequence this step appears. Defaults to None.
         default (Optional[bool]): Whether the email sequence is the default
@@ -188,8 +183,6 @@ def modify_email_sequence_step(
 
     if title:
         sequence_step.title = title
-    if email_blocks:
-        sequence_step.email_blocks = email_blocks
     if template:
         sequence_step.template = template
 
