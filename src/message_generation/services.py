@@ -968,8 +968,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
 
         is_first_email = True
         for perm in perms:
-            notes, research_points, _ = get_notes_and_points_from_perm(perm)
-            prompt, _ = generate_prompt(prospect_id=prospect_id, notes=notes)
+            _, research_points, _ = get_notes_and_points_from_perm(perm)
 
             if len(research_points) == 0:
                 update_generated_message_job_queue_status(
@@ -989,7 +988,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 prospect_id=prospect_id,
                 outbound_campaign_id=campaign_id,
                 research_points=research_points,
-                prompt=prompt,
+                prompt=email_generation_prompt,
                 completion=subject,
                 message_status=GeneratedMessageStatus.DRAFT,
                 message_type=GeneratedMessageType.EMAIL,
@@ -1000,7 +999,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 prospect_id=prospect_id,
                 outbound_campaign_id=campaign_id,
                 research_points=research_points,
-                prompt=prompt,
+                prompt=email_generation_prompt,
                 completion=personalized_body,
                 message_status=GeneratedMessageStatus.DRAFT,
                 message_type=GeneratedMessageType.EMAIL,

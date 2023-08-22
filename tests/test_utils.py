@@ -67,6 +67,8 @@ from src.daily_notifications.models import (
 from typing import Optional
 from datetime import datetime, timedelta
 
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+
 
 @pytest.fixture
 def test_app():
@@ -96,6 +98,8 @@ def test_app():
         clear_all_entities(LinkedinConversationEntry)
         clear_all_entities(GeneratedMessageAutoBump)
         clear_all_entities(BumpFramework)
+        clear_all_entities(EmailSequenceStep)
+        clear_all_entities(EmailSubjectLineTemplate)
         clear_all_entities(GeneratedMessageEditRecord)
         clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
@@ -657,6 +661,67 @@ def basic_bump_framework(
     db.session.commit()
 
     return bump_framework
+
+
+# Email Bump Framework
+def basic_email_sequence_step(
+    client_sdr: ClientSDR,
+    client_archetype: ClientArchetype,
+    title: str = "test-title",
+    email_blocks: list[str] = [],
+    active: bool = True,
+    overall_status: ProspectOverallStatus = ProspectOverallStatus.ACTIVE_CONVO,
+    substatus: str = 'ACTIVE_CONVO_NEXT_STEPS',
+    bumped_count: int = 1,
+    default: bool = False,
+    sellscale_default_generated: bool = False,
+    template: str = None,
+):
+    from model_import import EmailSequenceStep
+
+    email_sequence_step = EmailSequenceStep(
+        client_sdr_id=client_sdr.id,
+        client_archetype_id=client_archetype.id,
+        title=title,
+        email_blocks=email_blocks,
+        overall_status=overall_status,
+        substatus=substatus,
+        bumped_count=bumped_count,
+        active=active,
+        default=default,
+        sellscale_default_generated=sellscale_default_generated,
+        template=template,
+    )
+    db.session.add(email_sequence_step)
+    db.session.commit()
+
+    return email_sequence_step
+
+
+def basic_email_subject_line_template(
+    client_sdr: ClientSDR,
+    client_archetype: ClientArchetype,
+    subject_line: str = "test-subject-line",
+    active: bool = True,
+    times_used: int = 0,
+    times_accepted: int = 0,
+    sellscale_generated: bool = False,
+):
+    from model_import import EmailSubjectLineTemplate
+
+    email_subject_line_template = EmailSubjectLineTemplate(
+        client_sdr_id=client_sdr.id,
+        client_archetype_id=client_archetype.id,
+        subject_line=subject_line,
+        active=active,
+        times_used=times_used,
+        times_accepted=times_accepted,
+        sellscale_generated=sellscale_generated,
+    )
+    db.session.add(email_subject_line_template)
+    db.session.commit()
+
+    return email_subject_line_template
 
 
 def basic_generated_message_autobump(

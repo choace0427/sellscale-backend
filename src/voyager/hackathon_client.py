@@ -1,6 +1,6 @@
 import requests
 from requests.exceptions import ConnectionError, Timeout
-from src.voyager.test_exceptions import raise_for_error, LinkedInError, ReadTimeoutError, Server5xxError, LinkedInTooManyRequestsError
+from src.voyager.hackathon_exceptions import raise_for_error, LinkedInError, ReadTimeoutError, Server5xxError, LinkedInTooManyRequestsError
 
 import backoff
 
@@ -12,7 +12,7 @@ class LinkedInClient():
     BASE_URL = "https://www.linkedin.com"
     PEOPLE_URL_PREFIX = "sales-api/salesApiLeadSearch?q=searchQuery&query=(spellCorrectionEnabled:true"
     PEOPLE_URL_SUFFIX = "decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-7"
-    
+
     COMPANY_URL_PREFIX = "sales-api/salesApiCompanies"
     COMPANY_URL_SUFFIX = f"""decoration=%28entityUrn%2Cname%2Cdescription%2Cindustry%2CemployeeCount%2CemployeeDisplayCount%2CemployeeCountRange%2Clocation%2Cheadquarters%2Cwebsite%2Crevenue%2CformattedRevenue%2CemployeesSearchPageUrl%2CflagshipCompanyUrl%29"""
 
@@ -26,12 +26,12 @@ class LinkedInClient():
 
     def __enter__(self):
         self.__verified = self.check_access()
-        
+
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         self.__session.close()
-    
+
     def __headers(self):
         headers = {}
         headers["accept"] = "*/*"
@@ -52,10 +52,10 @@ class LinkedInClient():
         headers["x-li-page-instance"] = "urn:li:page:d_sales2_search_people;h3m149w6RCqmiOtycNuBkA=="
 
         return headers
-    
+
     def get_company_url(self, linkedin_id):
         url = f"{self.BASE_URL}/{self.COMPANY_URL_PREFIX}/{linkedin_id}?{self.COMPANY_URL_SUFFIX}"
-        
+
         return url
 
     def get_people_search_url(self, keyword, company_size, region, years_of_experience, tenure):
@@ -64,9 +64,9 @@ class LinkedInClient():
         url = f"{self.BASE_URL}/{self.PEOPLE_URL_PREFIX},{filters}&{self.PEOPLE_URL_SUFFIX}"
 
         print("URL", url)
-        
+
         return url
-    
+
     @backoff.on_exception(
         backoff.expo,
         (Server5xxError, ReadTimeoutError, ConnectionError, Timeout),
@@ -76,7 +76,7 @@ class LinkedInClient():
 
         if self.__cookie is None:
             raise Exception('Error: Missing cookie in tap config.json.')
-        
+
         url = f"{self.BASE_URL}/sales"
 
         try:
@@ -103,7 +103,7 @@ class LinkedInClient():
                         json=None,
                         stream=False,
                         **kwargs):
-        
+
         try:
             response = self.__session.request(method=method,
                                               url=url,
@@ -120,7 +120,7 @@ class LinkedInClient():
             if response.status_code != 200:
                 print(f'Error status_code = {response.status_code}')
                 raise_for_error(response)
-            
+
             return response
 
         except requests.exceptions.Timeout as err:
@@ -128,7 +128,7 @@ class LinkedInClient():
             raise ReadTimeoutError(err)
 
     def get_request(self, url, params=None, json=None, **kwargs):
-        
+
         if not self.__verified:
             self.__verified = self.check_access()
 

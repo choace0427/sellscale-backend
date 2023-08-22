@@ -1,4 +1,4 @@
-from src.bump_framework_email.models import BumpFrameworkEmail
+from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
@@ -2538,8 +2538,8 @@ def onboarding_setup_completion_report(client_sdr_id: int):
         BumpFramework.client_sdr_id == client_sdr_id
     ).all()
 
-    bump_frameworks_email: List[BumpFrameworkEmail] = BumpFrameworkEmail.query.filter(
-        BumpFrameworkEmail.client_sdr_id == client_sdr_id
+    bump_frameworks_email: List[EmailSequenceStep] = EmailSequenceStep.query.filter(
+        EmailSequenceStep.client_sdr_id == client_sdr_id
     ).all()
 
     voices: List[StackRankedMessageGenerationConfiguration] = (
@@ -2646,13 +2646,13 @@ def get_persona_setup_status_map_for_persona(persona_id: int):
 def get_client_sdr_table_info(client_sdr_id: int):
 
     query = f"""
-      select 
+      select
         client_sdr.name "SDR Name",
         client.company,
         client_sdr.auth_token,
         CONCAT('https://app.sellscale.com/authenticate?stytch_token_type=direct&token=', client_sdr.auth_token,'&redirect=all/inboxes') "SDR Sight Link",
         client_sdr.auto_bump "Autobump Enabled",
-        case 
+        case
           when count(distinct bump_framework.id) filter (where not bump_framework.sellscale_default_generated and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')) >= 4 then TRUE else FALSE end "Bump Frameworks Set Up",
         count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and prospect.archetype_id = client_archetype.id and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement)) "SDR Needs to Clear",
         count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and prospect.archetype_id = client_archetype.id) - (count(distinct prospect.id) filter (where prospect.overall_status = 'ACTIVE_CONVO' and (client_sdr.disable_ai_on_prospect_respond or client_sdr.disable_ai_on_message_send or prospect.deactivate_ai_engagement))) "SellScale Needs to Clear",
@@ -2669,9 +2669,9 @@ def get_client_sdr_table_info(client_sdr_id: int):
         join bump_framework on bump_framework.client_archetype_id = client_archetype.id
         join client on client.id = client_archetype.client_id
         left join demo_feedback on demo_feedback.prospect_id = prospect.id
-      where 
-        prospect.overall_status in ('ACTIVE_CONVO', 'DEMO') and 
-        (prospect.hidden_until < NOW() or prospect.hidden_until is null) and 
+      where
+        prospect.overall_status in ('ACTIVE_CONVO', 'DEMO') and
+        (prospect.hidden_until < NOW() or prospect.hidden_until is null) and
         client_sdr.id = {client_sdr_id}
       group by 1,2,3,4,5,14,15
       order by 6 desc;

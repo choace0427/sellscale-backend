@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 from bs4 import BeautifulSoup
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
-from src.bump_framework_email.models import BumpFrameworkEmail
+from src.email_sequencing.models import EmailSequenceStep
 
 from src.research.models import IScraperPayloadCache, ResearchPoints
 from src.research.models import ResearchPayload
@@ -937,7 +937,7 @@ def ai_email_prompt(
 
     # Followup emails / test emails
     if email_bump_framework_id is not None:
-        bf_email: BumpFrameworkEmail = BumpFrameworkEmail.query.get(
+        bf_email: EmailSequenceStep = EmailSequenceStep.query.get(
             email_bump_framework_id
         )
         block_structure = ""

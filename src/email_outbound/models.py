@@ -247,6 +247,7 @@ class ProspectEmail(db.Model):
     vessel_sequence_payload_str = db.Column(db.String, nullable=True)
 
     nylas_thread_id = db.Column(db.String, nullable=True)
+    times_bumped = db.Column(db.Integer, nullable=True, default=0)
 
     def to_dict(self):
         from src.message_generation.models import GeneratedMessage
@@ -289,6 +290,7 @@ class ProspectEmail(db.Model):
             "vessel_sequence_id": self.vessel_sequence_id,
             "vessel_sequence_payload_str": self.vessel_sequence_payload_str,
             "nylas_thread_id": self.nylas_thread_id,
+            "times_bumped": self.times_bumped,
         }
 
 

@@ -5,7 +5,7 @@ import re
 from typing import Optional
 from bs4 import BeautifulSoup
 from flask import jsonify
-from src.bump_framework_email.models import BumpFrameworkEmail
+from src.email_sequencing.models import EmailSequenceStep
 from src.client.models import ClientSDR
 from src.email_outbound.models import Sequence, SequenceStatus
 
@@ -665,10 +665,10 @@ def generate_email_bump(
         return None, None
 
     # Get Email Bump Framework, if any
-    email_bump_framework: Optional[BumpFrameworkEmail] = None
+    email_bump_framework: Optional[EmailSequenceStep] = None
     email_structure: str = "Write a medium length email that follows the thread."
     if email_bump_framework_id:
-        email_bump_framework = BumpFrameworkEmail.query.get(email_bump_framework_id)
+        email_bump_framework = EmailSequenceStep.query.get(email_bump_framework_id)
         if email_bump_framework:
             blocks = email_bump_framework.email_blocks
 
