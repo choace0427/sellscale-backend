@@ -279,6 +279,9 @@ def patch_prospect_endpoint(client_sdr_id: int, prospect_id: int):
     company_website = get_request_parameter(
         "company_website", request, json=True, required=False, parameter_type=str
     )
+    contract_size = get_request_parameter(
+        "contract_size", request, json=True, required=False, parameter_type=int
+    )
 
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
@@ -293,6 +296,7 @@ def patch_prospect_endpoint(client_sdr_id: int, prospect_id: int):
         linkedin_url=linkedin_url,
         company_name=company_name,
         company_website=company_website,
+        contract_size=contract_size,
     )
     if not success:
         return jsonify({"status": "error", "message": "Failed to update prospect"}), 400

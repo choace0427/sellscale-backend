@@ -249,6 +249,7 @@ def patch_prospect(
     linkedin_url: Optional[str] = None,
     company_name: Optional[str] = None,
     company_website: Optional[str] = None,
+    contract_size: Optional[int] = None,
 ) -> bool:
     """Modifies fields of a prospect
 
@@ -259,7 +260,8 @@ def patch_prospect(
         linkedin_url (Optional[str], optional): The prospect's LinkedIn URL. Defaults to None.
         company_name (Optional[str], optional): The prospect's current company name. Defaults to None.
         company_website (Optional[str], optional): The website of the prospect's current company. Defaults to None.
-
+        contract_size (Optional[int], optional): The prospect's contract size. Defaults to None.
+        
     Returns:
         bool: True if the prospect was modified, False otherwise
     """
@@ -274,6 +276,8 @@ def patch_prospect(
         p.email = email
     if linkedin_url:
         p.linkedin_url = linkedin_url
+    if contract_size:
+        p.contract_size = contract_size
     db.session.commit()
 
     if company_name:
