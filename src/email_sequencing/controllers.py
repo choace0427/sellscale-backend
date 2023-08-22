@@ -31,7 +31,7 @@ EMAIL_SEQUENCING_BLUEPRINT = Blueprint("email_sequence", __name__)
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step", methods=["GET"])
 @require_user
-def get_email_bump_frameworks(client_sdr_id: int):
+def get_email_sequence_steps(client_sdr_id: int):
     """Gets all bump frameworks for a given client SDR and overall status"""
     overall_statuses = (
         get_request_parameter(
@@ -79,13 +79,13 @@ def get_email_bump_frameworks(client_sdr_id: int):
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step", methods=["POST"])
 @require_user
-def post_create_bump_framework(client_sdr_id: int):
+def post_create_sequence_step(client_sdr_id: int):
     """Create a new sequence step"""
     title = get_request_parameter(
         "title", request, json=True, required=True, parameter_type=str
     )
-    email_blocks = get_request_parameter(
-        "email_blocks", request, json=True, required=True, parameter_type=list
+    template = get_request_parameter(
+        "template", request, json=True, required=True, parameter_type=str
     )
     overall_status = get_request_parameter(
         "overall_status", request, json=True, required=True, parameter_type=str
@@ -126,7 +126,7 @@ def post_create_bump_framework(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
         title=title,
-        email_blocks=email_blocks,
+        template=template,
         overall_status=overall_status,
         bumped_count=bumped_count,
         substatus=substatus,
@@ -147,7 +147,7 @@ def post_create_bump_framework(client_sdr_id: int):
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step", methods=["PATCH"])
 @require_user
-def patch_bump_framework(client_sdr_id: int):
+def patch_sequence_step(client_sdr_id: int):
     """Modifies a sequence step"""
     sequence_step_id = get_request_parameter(
         "sequence_step_id", request, json=True, required=True
@@ -212,7 +212,7 @@ def patch_bump_framework(client_sdr_id: int):
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step/deactivate", methods=["POST"])
 @require_user
-def post_deactivate_bump_framework(client_sdr_id: int):
+def post_deactivate_sequence_step(client_sdr_id: int):
     """Deletes a sequence step"""
     sequence_step_id = get_request_parameter(
         "sequence_step_id", request, json=True, required=True
@@ -230,7 +230,7 @@ def post_deactivate_bump_framework(client_sdr_id: int):
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step/activate", methods=["POST"])
 @require_user
-def post_activate_bump_framework(client_sdr_id: int):
+def post_activate_sequence_step(client_sdr_id: int):
     """Activates a sequence step"""
     sequence_step_id = get_request_parameter(
         "sequence_step_id", request, json=True, required=True
