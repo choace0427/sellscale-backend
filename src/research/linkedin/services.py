@@ -33,8 +33,10 @@ from src.research.linkedin.extractors.recommendations import (
 from src.research.website.general_website_transformer import (
     generate_general_website_research_points,
 )
+from src.simulation.models import Simulation, SimulationRecord
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.converters.string_converters import clean_company_name
+from src.voice_builder.models import VoiceBuilderSamples
 from .extractors.current_company import (
     get_current_company_description,
     get_current_company_specialties,
@@ -390,8 +392,6 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
     research_payloads = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
     ).all()
-    if len(research_payloads) == 0:
-        return
 
     for research_payload in research_payloads:
         research_payload_id = research_payload.id
@@ -406,13 +406,35 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
         db.session.delete(research_payload)
         db.session.commit()
 
-        account_research_point: list = AccountResearchPoints.query.filter(
-            AccountResearchPoints.prospect_id == prospect_id
-        ).all()
+    account_research_point: list = AccountResearchPoints.query.filter(
+        AccountResearchPoints.prospect_id == prospect_id
+    ).all()
 
-        for arp in account_research_point:
-            db.session.delete(arp)
+    for arp in account_research_point:
+        db.session.delete(arp)
+        db.session.commit()
+
+    simulations: list = Simulation.query.filter(
+        Simulation.prospect_id == prospect_id
+    ).all()
+    for simulation in simulations:
+        simulation_id = simulation.id
+        simulation_records = SimulationRecord.query.filter(
+            SimulationRecord.simulation_id == simulation_id
+        ).all()
+        for simulation_record in simulation_records:
+            db.session.delete(simulation_record)
             db.session.commit()
+
+        db.session.delete(simulation)
+        db.session.commit()
+
+    voice_builder_samples = VoiceBuilderSamples.query.filter(
+        VoiceBuilderSamples.prospect_id == prospect_id
+    ).all()
+    for voice_builder_sample in voice_builder_samples:
+        db.session.delete(voice_builder_sample)
+        db.session.commit()
 
 
 @celery.task
