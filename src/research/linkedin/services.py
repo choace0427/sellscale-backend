@@ -109,7 +109,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     rp: ResearchPayload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
     ).first()
-    if rp:
+    if rp and p.company_id:
         return rp.payload
 
     personal_info = {}
@@ -154,6 +154,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
         datetime.now() - timedelta(weeks=26)
     ):
         company_info = json.loads(iscraper_company_cache.payload)
+        add_company_cache_to_db(company_info)
     elif company_url:
         # Get iScraper payload
         # delimeter is whatever is after the .com/ in company_url
