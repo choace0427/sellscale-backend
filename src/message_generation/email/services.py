@@ -96,15 +96,15 @@ def ai_initial_email_prompt(
     template = DEFAULT_INITIAL_EMAIL_TEMPLATE
 
     # Get Sequence Step (SDR Created) Template, if it exists
-    # sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
-    #     EmailSequenceStep.client_sdr_id == client_sdr_id,
-    #     EmailSequenceStep.client_archetype_id == client_archetype.id,
-    #     EmailSequenceStep.active == True,
-    #     EmailSequenceStep.default == True,
-    #     EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED
-    # ).first()
-    # if sequence_step is not None:
-    #     template = sequence_step.template
+    sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
+        EmailSequenceStep.client_sdr_id == client_sdr_id,
+        EmailSequenceStep.client_archetype_id == client_archetype.id,
+        EmailSequenceStep.active == True,
+        EmailSequenceStep.default == True,
+        EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED
+    ).first()
+    if sequence_step is not None:
+        template = sequence_step.template
 
     # If we are testing a template, use that instead
     if test_template is not None:

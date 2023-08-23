@@ -58,7 +58,7 @@ def add_company_cache_to_db(json_data) -> bool:
     li_followers = details.get("followers", None)
     li_company_id = details.get("company_id", None)
 
-    phone = (details.get("phone") or {}).get("number", None)
+    phone = details.get("phone")
 
     websites = []
     urls = details.get("urls") or {}
@@ -190,7 +190,9 @@ def find_company_for_prospect(prospect_id: int) -> Company:
     if company:
         prospect.company_id = company.id
         prospect.company = company.name
-        prospect.company_url = company.websites[0] if len(company.websites) > 0 else None
+        prospect.company_url = (
+            company.websites[0] if len(company.websites) > 0 else None
+        )
         prospect.employee_count = company.employees
         db.session.commit()
         return company
@@ -198,7 +200,7 @@ def find_company_for_prospect(prospect_id: int) -> Company:
         return None
 
 
-def find_company(company_name: str, company_url: str = '') -> Optional[int]:
+def find_company(company_name: str, company_url: str = "") -> Optional[int]:
 
     company: Company = Company.query.filter(
         or_(
