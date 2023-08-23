@@ -525,3 +525,19 @@ def update_stack_ranked_configuration_prompt_and_instruction(
     db.session.add(srmgc)
     db.session.commit()
     return True, "OK"
+
+
+def set_active_stack_ranked_configuration_tool(configuration_id: int, set_active: bool):
+    """Set the active stack ranked configuration tool"""
+
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            id=configuration_id
+        ).first()
+    )
+    if not srmgc:
+        return False, "Stack ranked message generation configuration does not exist"
+    srmgc.active = set_active
+    db.session.add(srmgc)
+    db.session.commit()
+    return True, "OK"

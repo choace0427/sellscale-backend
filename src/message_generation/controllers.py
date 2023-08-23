@@ -44,6 +44,7 @@ from src.message_generation.services_stack_ranked_configurations import (
     toggle_stack_ranked_message_configuration_active,
     get_sample_prompt_from_config_details,
     update_stack_ranked_configuration_prompt_and_instruction,
+    set_active_stack_ranked_configuration_tool,
 )
 from src.ml.fine_tuned_models import get_computed_prompt_completion
 from src.message_generation.services_few_shot_generations import (
@@ -683,6 +684,37 @@ def generate_stack_ranked_configuration_tool_sample():
     )
 
     return jsonify({"response": response, "full_prompt": prompt})
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration_tool/set_active", methods=["POST"]
+)
+def set_active_stack_ranked_configuration_tool_endpoint():
+    """
+    Sets whether the stack ranked configuration is active or not
+    """
+    configuration_id = get_request_parameter(
+        "configuration_id", request, json=True, required=True
+    )
+    set_active = get_request_parameter(
+        "set_active", request, json=True, required=True, parameter_type=bool
+    )
+
+    success, msg = set_active_stack_ranked_configuration_tool(
+        configuration_id=configuration_id, set_active=set_active
+    )
+
+    if success:
+        return jsonify({"message": "Successfully updated configuration_tool"}), 200
+    else:
+        return (
+            jsonify(
+                {
+                    "message": "Failed to update. Please try again. Contact engineer if error persists."
+                }
+            ),
+            400,
+        )
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(
