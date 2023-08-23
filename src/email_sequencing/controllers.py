@@ -250,9 +250,9 @@ def post_activate_sequence_step(client_sdr_id: int):
 @require_user
 def get_email_subject_line_templates(client_sdr_id: int):
     """Gets all email subject line templates for a given client SDR"""
-    client_archetype_ids = (
+    client_archetype_id = (
         get_request_parameter(
-            "archetype_ids", request, json=False, required=False, parameter_type=list
+            "archetype_id", request, json=False, required=False, parameter_type=list
         )
         or []
     )
@@ -263,14 +263,9 @@ def get_email_subject_line_templates(client_sdr_id: int):
         or True
     )
 
-    # Convert client_archetype_ids to list of integers
-    if type(client_archetype_ids) == str:
-        client_archetype_ids = [client_archetype_ids]
-    client_archetype_ids = [int(ca_id) for ca_id in client_archetype_ids]
-
     email_subject_line_templates: list[dict] = get_email_subject_line_template(
         client_sdr_id=client_sdr_id,
-        client_archetype_ids=client_archetype_ids,
+        client_archetype_id=client_archetype_id,
         active_only=active_only,
     )
 
