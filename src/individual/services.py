@@ -24,8 +24,9 @@ def backfill_prospects(client_sdr_id):
     total_count = 0
     dupe_count = 0
     for prospect in prospects:
-        success = add_individual_from_prospect(prospect.id)
-        if not success: dupe_count += 1
+        success = add_individual_from_prospect.delay(prospect.id)
+        if not success:
+            dupe_count += 1
         total_count += 1
 
     added_count = total_count - dupe_count
@@ -42,14 +43,15 @@ def backfill_prospects(client_sdr_id):
     }
 
 
+@celery.task
 def add_individual_from_prospect(prospect_id: int) -> bool:
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.individual_id:
         return False
-    
+
     # TODO: Update the individual with updated prospect data
-    
+
     individual_id, created = add_individual(
         full_name=prospect.full_name,
         first_name=prospect.first_name,
@@ -63,7 +65,9 @@ def add_individual_from_prospect(prospect_id: int) -> bool:
         email=prospect.email,
         phone=None,
         address=None,
-        li_public_id=prospect.linkedin_url.split("/in/")[1].split("/")[0] if prospect.linkedin_url else None,
+        li_public_id=prospect.linkedin_url.split("/in/")[1].split("/")[0]
+        if prospect.linkedin_url
+        else None,
         li_urn_id=prospect.li_urn_id,
         img_url=prospect.img_url,
         img_expire=prospect.img_expire,
@@ -91,11 +95,11 @@ def add_individual(
     instagram_url: Optional[str],
     facebook_url: Optional[str],
     twitter_url: Optional[str],
-    email: Optional[str],# Unique
+    email: Optional[str],  # Unique
     phone: Optional[str],
     address: Optional[str],
-    li_public_id: Optional[str],# Unique
-    li_urn_id: Optional[str],# Unique
+    li_public_id: Optional[str],  # Unique
+    li_urn_id: Optional[str],  # Unique
     img_url: Optional[str],
     img_expire: Optional[int],
     industry: Optional[str],
@@ -107,10 +111,10 @@ def add_individual(
     twitter_followers: Optional[int],
 ) -> tuple[Optional[int], bool]:
     """
-      Adds an individual to the database, or updates an existing individual if
-      the email or li_public_id already exists.
+    Adds an individual to the database, or updates an existing individual if
+    the email or li_public_id already exists.
 
-      Returns the individual id and if a new record was created.
+    Returns the individual id and if a new record was created.
     """
 
     # If there's no email, li_public_id, or li_urn_id it will be hard to find so we can't add it
@@ -120,7 +124,6 @@ def add_individual(
             webhook_urls=[URL_MAP["csm-individuals"]],
         )
         return None, False
-    
 
     if email:
         existing_individual_email: Individual = Individual.query.filter(
@@ -136,7 +139,6 @@ def add_individual(
     else:
         existing_individual_li_public_id = None
 
-    
     if existing_individual_email and existing_individual_li_public_id:
         if existing_individual_email.id != existing_individual_li_public_id.id:
             send_slack_message(
@@ -162,32 +164,55 @@ def add_individual(
         full_name = f"{first_name} {last_name}"
 
     if existing_individual:
-        if full_name: existing_individual.full_name = full_name
-        if first_name: existing_individual.first_name = first_name
-        if last_name: existing_individual.last_name = last_name
-        if title: existing_individual.title = title
-        if bio: existing_individual.bio = bio
-        if linkedin_url: existing_individual.linkedin_url = linkedin_url
-        if instagram_url: existing_individual.instagram_url = instagram_url
-        if facebook_url: existing_individual.facebook_url = facebook_url
-        if twitter_url: existing_individual.twitter_url = twitter_url
-        if email: existing_individual.email = email
-        if phone: existing_individual.phone = phone
-        if address: existing_individual.address = address
-        if li_public_id: existing_individual.li_public_id = li_public_id
-        if li_urn_id: existing_individual.li_urn_id = li_urn_id
-        if img_url: existing_individual.img_url = img_url
-        if img_expire: existing_individual.img_expire = img_expire
-        if industry: existing_individual.industry = industry
-        if company_name: existing_individual.company_name = company_name
-        if company_id: existing_individual.company_id = company_id
-        if linkedin_followers: existing_individual.linkedin_followers = linkedin_followers
-        if instagram_followers: existing_individual.instagram_followers = instagram_followers
-        if facebook_followers: existing_individual.facebook_followers = facebook_followers
-        if twitter_followers: existing_individual.twitter_followers = twitter_followers
+        if full_name:
+            existing_individual.full_name = full_name
+        if first_name:
+            existing_individual.first_name = first_name
+        if last_name:
+            existing_individual.last_name = last_name
+        if title:
+            existing_individual.title = title
+        if bio:
+            existing_individual.bio = bio
+        if linkedin_url:
+            existing_individual.linkedin_url = linkedin_url
+        if instagram_url:
+            existing_individual.instagram_url = instagram_url
+        if facebook_url:
+            existing_individual.facebook_url = facebook_url
+        if twitter_url:
+            existing_individual.twitter_url = twitter_url
+        if email:
+            existing_individual.email = email
+        if phone:
+            existing_individual.phone = phone
+        if address:
+            existing_individual.address = address
+        if li_public_id:
+            existing_individual.li_public_id = li_public_id
+        if li_urn_id:
+            existing_individual.li_urn_id = li_urn_id
+        if img_url:
+            existing_individual.img_url = img_url
+        if img_expire:
+            existing_individual.img_expire = img_expire
+        if industry:
+            existing_individual.industry = industry
+        if company_name:
+            existing_individual.company_name = company_name
+        if company_id:
+            existing_individual.company_id = company_id
+        if linkedin_followers:
+            existing_individual.linkedin_followers = linkedin_followers
+        if instagram_followers:
+            existing_individual.instagram_followers = instagram_followers
+        if facebook_followers:
+            existing_individual.facebook_followers = facebook_followers
+        if twitter_followers:
+            existing_individual.twitter_followers = twitter_followers
         db.session.commit()
         return existing_individual.id, False
-    
+
     else:
         individual = Individual(
             full_name=full_name,
@@ -217,5 +242,3 @@ def add_individual(
         db.session.add(individual)
         db.session.commit()
         return individual.id, True
-
-
