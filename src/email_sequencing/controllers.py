@@ -252,9 +252,9 @@ def get_email_subject_line_templates(client_sdr_id: int):
     """Gets all email subject line templates for a given client SDR"""
     client_archetype_id = (
         get_request_parameter(
-            "archetype_id", request, json=False, required=False, parameter_type=list
+            "archetype_id", request, json=False, required=True, parameter_type=int
         )
-        or []
+        or None
     )
     active_only = (
         get_request_parameter(
