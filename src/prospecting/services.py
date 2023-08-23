@@ -2271,3 +2271,41 @@ def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
             added_count += 1
 
     return added_count
+
+
+def prospect_removal_check_from_csv_payload(
+    csv_payload: list, client_sdr_id: int, bulk_remove: bool = False
+):
+
+    import pdb
+
+    pdb.set_trace()
+    total_prospect_ids = [
+        int(x["Id"]) for x in csv_payload if x["Included"].lower() == "false"
+    ]
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(total_prospect_ids),
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.overall_status.notin_(
+            [ProspectOverallStatus.REMOVED, ProspectOverallStatus.DEMO]
+        ),
+    ).all()
+
+    prospect_data = [
+        {"id": x.id, "name": x.full_name, "title": x.title, "company": x.company}
+        for x in prospects
+    ]
+
+    if bulk_remove:
+        bulk_updates = []
+        ids = [x["id"] for x in prospect_data]
+        prospects_for_removal = Prospect.query.filter(Prospect.id.in_(ids)).all()
+        for prospect in prospects_for_removal:
+            prospect.overall_status = ProspectOverallStatus.REMOVED
+            prospect.status = ProspectStatus.NOT_QUALIFIED
+
+            bulk_updates.append(prospect)
+        db.session.bulk_save_objects(bulk_updates)
+        db.session.commit()
+
+    return prospect_data

@@ -1,7 +1,11 @@
 from typing import List
 
 from src.prospecting.models import ExistingContact
-from src.prospecting.services import get_prospect_li_history, patch_prospect
+from src.prospecting.services import (
+    get_prospect_li_history,
+    patch_prospect,
+    prospect_removal_check_from_csv_payload,
+)
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
 from src.prospecting.nylas.services import (
@@ -72,7 +76,9 @@ from src.authentication.decorators import require_user
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
 from src.integrations.vessel import SalesEngagementIntegration
-from src.email_outbound.email_store.hunter import find_hunter_emails_for_prospects_under_archetype
+from src.email_outbound.email_store.hunter import (
+    find_hunter_emails_for_prospects_under_archetype,
+)
 from src.prospecting.services import update_prospect_demo_date
 from src.message_generation.services import add_generated_msg_queue
 
@@ -202,12 +208,18 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
 def update_status(client_sdr_id: int, prospect_id: int):
     """Update prospect status or apply note"""
     # Get parameters
-    override_status = get_request_parameter(
-        "override_status", request, json=True, required=False, parameter_type=bool
-    ) or False
-    quietly = get_request_parameter(
-        "quietly", request, json=True, required=False, parameter_type=bool
-    ) or False
+    override_status = (
+        get_request_parameter(
+            "override_status", request, json=True, required=False, parameter_type=bool
+        )
+        or False
+    )
+    quietly = (
+        get_request_parameter(
+            "quietly", request, json=True, required=False, parameter_type=bool
+        )
+        or False
+    )
 
     channel_type = (
         get_request_parameter(
@@ -257,7 +269,10 @@ def update_status(client_sdr_id: int, prospect_id: int):
             return jsonify({"message": "Failed to update: " + str(success[1])}), 400
     elif channel_type == ProspectChannels.EMAIL.value:
         success = update_prospect_status_email(
-            prospect_id=prospect_id, new_status=new_status, override_status=override_status, quietly=quietly
+            prospect_id=prospect_id,
+            new_status=new_status,
+            override_status=override_status,
+            quietly=quietly,
         )
         if success[0]:
             return (
@@ -634,7 +649,14 @@ def get_prospects_endpoint(client_sdr_id: int):
             {
                 "message": "Success",
                 "total_count": total_count,
-                "prospects": [ (p.to_dict(shallow_data=True) if shallow_data else p.to_dict(return_convo=True)) for p in prospects],
+                "prospects": [
+                    (
+                        p.to_dict(shallow_data=True)
+                        if shallow_data
+                        else p.to_dict(return_convo=True)
+                    )
+                    for p in prospects
+                ],
                 "elapsed_time": elapsed_time,
             }
         ),
@@ -675,15 +697,21 @@ def prospect_from_link(client_sdr_id: int):
         )
     else:
         success, prospect_id = create_prospect_from_linkedin_link(
-            archetype_id=archetype_id,
-            url=url,
-            batch=batch
+            archetype_id=archetype_id, url=url, batch=batch
         )
         if not success:
-            return jsonify({"status": "error", "message": "Failed to create prospect. Please check profile or check for duplicates."}), 400
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "Failed to create prospect. Please check profile or check for duplicates.",
+                    }
+                ),
+                400,
+            )
         run_and_assign_health_score(archetype_id=archetype_id, live=True)
 
-    return jsonify({"status": "success", "data": { "prospect_id": prospect_id }}), 200
+    return jsonify({"status": "success", "data": {"prospect_id": prospect_id}}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link_chain", methods=["POST"])
@@ -804,9 +832,7 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     if len(csv_payload) >= 3000:
         return "Too many rows in CSV", 400
 
-    validated, reason = validate_prospect_json_payload(
-        payload=csv_payload
-    )
+    validated, reason = validate_prospect_json_payload(payload=csv_payload)
     if not validated:
         return reason, 400
 
@@ -919,15 +945,17 @@ def delete_prospect():
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/ai_engagement", methods=["PATCH"])
 @require_user
 def patch_toggle_ai_engagement(client_sdr_id: int, prospect_id: int):
-    success = toggle_ai_engagement(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id
-    )
+    success = toggle_ai_engagement(client_sdr_id=client_sdr_id, prospect_id=prospect_id)
 
     if success:
         return jsonify({"status": "success"}), 200
 
-    return jsonify({"status": "error", "message": "Failed to toggle AI engagement setting"}), 400
+    return (
+        jsonify(
+            {"status": "error", "message": "Failed to toggle AI engagement setting"}
+        ),
+        400,
+    )
 
 
 @PROSPECTING_BLUEPRINT.route("/add_note", methods=["POST"])
@@ -951,7 +979,6 @@ def post_add_note(client_sdr_id: int):
     return jsonify({"message": "Success", "prospect_note_id": prospect_note_id}), 200
 
 
-
 @PROSPECTING_BLUEPRINT.route("/note", methods=["GET"])
 @require_user
 def get_single_note(client_sdr_id: int):
@@ -969,8 +996,10 @@ def get_single_note(client_sdr_id: int):
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
     if len(prospect_notes) == 0:
         # Make sure there's at least one note
-        create_prospect_note(prospect_id=prospect_id, note='')
-        prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
+        create_prospect_note(prospect_id=prospect_id, note="")
+        prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(
+            prospect_id
+        )
 
     return jsonify({"message": "Success", "data": prospect_notes[-1].to_dict()}), 200
 
@@ -1000,7 +1029,6 @@ def update_single_note(client_sdr_id: int):
         db.session.commit()
 
     return jsonify({"message": "Success"}), 200
-
 
 
 @PROSPECTING_BLUEPRINT.route("/batch_mark_as_lead", methods=["POST"])
@@ -1063,9 +1091,21 @@ def remove_from_contact_list(client_sdr_id: int):
 @require_user
 def post_demo_date(client_sdr_id: int, prospect_id: int):
     demo_date = get_request_parameter("demo_date", request, json=True, required=True)
-    send_reminder = get_request_parameter("send_reminder", request, json=True, required=False, parameter_type=bool, default_value=False)
+    send_reminder = get_request_parameter(
+        "send_reminder",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+        default_value=False,
+    )
 
-    success = update_prospect_demo_date(client_sdr_id=client_sdr_id, prospect_id=prospect_id, demo_date=demo_date, send_reminder=send_reminder)
+    success = update_prospect_demo_date(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        demo_date=demo_date,
+        send_reminder=send_reminder,
+    )
 
     date = datetime.fromisoformat(demo_date[:-1])
     hidden_days = (date - datetime.now()).days
@@ -1102,78 +1142,102 @@ def get_li_history(client_sdr_id: int, prospect_id: int):
     return jsonify({"message": "Success", "data": history}), 200
 
 
-
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/update", methods=["POST"])
 @require_user
 def post_update_prospect(client_sdr_id: int, prospect_id: int):
-  """Update prospect details"""
-  # This should really be PATCH at '/<prospect_id>' but that's used for something else
+    """Update prospect details"""
+    # This should really be PATCH at '/<prospect_id>' but that's used for something else
 
-  email = get_request_parameter("email", request, json=True, required=False, parameter_type=str)
-  in_icp_sample = get_request_parameter("in_icp_sample", request, json=True, required=False, parameter_type=bool)
-  icp_fit_score_override = get_request_parameter("icp_fit_score_override", request, json=True, required=False, parameter_type=int)
-  contract_size = get_request_parameter("contract_size", request, json=True, required=False, parameter_type=int)
+    email = get_request_parameter(
+        "email", request, json=True, required=False, parameter_type=str
+    )
+    in_icp_sample = get_request_parameter(
+        "in_icp_sample", request, json=True, required=False, parameter_type=bool
+    )
+    icp_fit_score_override = get_request_parameter(
+        "icp_fit_score_override", request, json=True, required=False, parameter_type=int
+    )
+    contract_size = get_request_parameter(
+        "contract_size", request, json=True, required=False, parameter_type=int
+    )
 
-  prospect: Prospect = Prospect.query.get(prospect_id)
-  if not prospect or prospect.client_sdr_id != client_sdr_id:
-      return jsonify({"message": "Prospect not found"}), 404
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect not found"}), 404
 
-  if email is not None: prospect.email = email
-  if in_icp_sample is not None: prospect.in_icp_sample = in_icp_sample
-  if icp_fit_score_override is not None: prospect.icp_fit_score_override = icp_fit_score_override
-  if contract_size is not None: prospect.contract_size = contract_size
+    if email is not None:
+        prospect.email = email
+    if in_icp_sample is not None:
+        prospect.in_icp_sample = in_icp_sample
+    if icp_fit_score_override is not None:
+        prospect.icp_fit_score_override = icp_fit_score_override
+    if contract_size is not None:
+        prospect.contract_size = contract_size
 
-  db.session.commit()
+    db.session.commit()
 
-  return jsonify({"message": "Success"}), 200
+    return jsonify({"message": "Success"}), 200
 
 
-@PROSPECTING_BLUEPRINT.route("/<prospect_id>/send_outreach_connection", methods=["POST"])
+@PROSPECTING_BLUEPRINT.route(
+    "/<prospect_id>/send_outreach_connection", methods=["POST"]
+)
 @require_user
 def post_send_outreach_connection(client_sdr_id: int, prospect_id: int):
-  """Sends a li outreach connection request to a prospect"""
+    """Sends a li outreach connection request to a prospect"""
 
-  message = get_request_parameter("message", request, json=True, required=True, parameter_type=str)
+    message = get_request_parameter(
+        "message", request, json=True, required=True, parameter_type=str
+    )
 
-  prospect: Prospect = Prospect.query.get(prospect_id)
-  if not prospect or prospect.client_sdr_id != client_sdr_id:
-      return jsonify({"message": "Prospect not found"}), 404
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Prospect not found"}), 404
 
-  success = send_li_referral_outreach_connection(prospect_id, message)
+    success = send_li_referral_outreach_connection(prospect_id, message)
 
-  return jsonify({"message": "Success"}), 200
+    return jsonify({"message": "Success"}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/add_referral", methods=["POST"])
 @require_user
 def post_prospect_add_referral(client_sdr_id: int, prospect_id: int):
-  """Adds a prospect that this prospect referred us to"""
+    """Adds a prospect that this prospect referred us to"""
 
-  referred_id = get_request_parameter("referred_id", request, json=True, required=True, parameter_type=int)
-  meta_data = get_request_parameter("metadata", request, json=True, required=False)
+    referred_id = get_request_parameter(
+        "referred_id", request, json=True, required=True, parameter_type=int
+    )
+    meta_data = get_request_parameter("metadata", request, json=True, required=False)
 
-  prospect: Prospect = Prospect.query.get(prospect_id)
-  referred: Prospect = Prospect.query.get(referred_id)
-  if not prospect or prospect.client_sdr_id != client_sdr_id or not referred or referred.client_sdr_id != client_sdr_id:
-      return jsonify({"message": "Prospect or referred prospect not found"}), 404
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    referred: Prospect = Prospect.query.get(referred_id)
+    if (
+        not prospect
+        or prospect.client_sdr_id != client_sdr_id
+        or not referred
+        or referred.client_sdr_id != client_sdr_id
+    ):
+        return jsonify({"message": "Prospect or referred prospect not found"}), 404
 
-  success = add_prospect_referral(prospect_id, referred_id)# , meta_data)
+    success = add_prospect_referral(prospect_id, referred_id)  # , meta_data)
 
-  return jsonify({"message": "Success"}), 200
+    return jsonify({"message": "Success"}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/icp_fit", methods=["GET"])
 @require_user
 def get_icp_fit_for_archetype(client_sdr_id: int):
 
-    archetype_id = get_request_parameter("archetype_id", request, json=False, required=True, parameter_type=str)
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True, parameter_type=str
+    )
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Archetype not found"}), 404
 
     data = get_prospects_for_icp(archetype_id)
 
-    return jsonify({"message": "Success", "data": data }), 200
+    return jsonify({"message": "Success", "data": data}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/income_pipeline", methods=["GET"])
@@ -1182,15 +1246,19 @@ def get_prospects_for_income_pipeline_endpoint(client_sdr_id: int):
 
     data = get_prospects_for_income_pipeline(client_sdr_id)
 
-    return jsonify({"message": "Success", "data": data }), 200
+    return jsonify({"message": "Success", "data": data}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/existing_contacts", methods=["POST"])
 @require_user
 def post_existing_contacts(client_sdr_id: int):
 
-    existing_contacts = get_request_parameter("data", request, json=True, required=True, parameter_type=list)
-    connection_source = get_request_parameter("connection_source", request, json=True, required=True, parameter_type=str)
+    existing_contacts = get_request_parameter(
+        "data", request, json=True, required=True, parameter_type=list
+    )
+    connection_source = get_request_parameter(
+        "connection_source", request, json=True, required=True, parameter_type=str
+    )
 
     total_count = len(existing_contacts)
     added_count = 0
@@ -1198,62 +1266,102 @@ def post_existing_contacts(client_sdr_id: int):
         contact_id = add_existing_contact(
             client_sdr_id=client_sdr_id,
             connection_source=connection_source,
-            full_name=c.get('full_name', ''),
-            first_name=c.get('first_name', None),
-            last_name=c.get('last_name', None),
-            title=c.get('title', None),
-            bio=c.get('bio', None),
-            linkedin_url=c.get('linkedin_url', None),
-            instagram_url=c.get('instagram_url', None),
-            facebook_url=c.get('facebook_url', None),
-            twitter_url=c.get('twitter_url', None),
-            email=c.get('email', None),
-            phone=c.get('phone', None),
-            address=c.get('address', None),
-            li_public_id=c.get('li_public_id', None),
-            li_urn_id=c.get('li_urn_id', None),
-            img_url=c.get('img_url', None),
-            img_expire=c.get('img_expire', None),
-            industry=c.get('industry', None),
-            company_name=c.get('company_name', None),
-            company_id=c.get('company_id', None),
-            linkedin_followers=c.get('linkedin_followers', None),
-            instagram_followers=c.get('instagram_followers', None),
-            facebook_followers=c.get('facebook_followers', None),
-            twitter_followers=c.get('twitter_followers', None),
-            notes=c.get('notes', None)
+            full_name=c.get("full_name", ""),
+            first_name=c.get("first_name", None),
+            last_name=c.get("last_name", None),
+            title=c.get("title", None),
+            bio=c.get("bio", None),
+            linkedin_url=c.get("linkedin_url", None),
+            instagram_url=c.get("instagram_url", None),
+            facebook_url=c.get("facebook_url", None),
+            twitter_url=c.get("twitter_url", None),
+            email=c.get("email", None),
+            phone=c.get("phone", None),
+            address=c.get("address", None),
+            li_public_id=c.get("li_public_id", None),
+            li_urn_id=c.get("li_urn_id", None),
+            img_url=c.get("img_url", None),
+            img_expire=c.get("img_expire", None),
+            industry=c.get("industry", None),
+            company_name=c.get("company_name", None),
+            company_id=c.get("company_id", None),
+            linkedin_followers=c.get("linkedin_followers", None),
+            instagram_followers=c.get("instagram_followers", None),
+            facebook_followers=c.get("facebook_followers", None),
+            twitter_followers=c.get("twitter_followers", None),
+            notes=c.get("notes", None),
         )
-        if contact_id: added_count += 1
+        if contact_id:
+            added_count += 1
 
-    return jsonify({"message": "Success", "data": {
-        "total_count": total_count,
-        "added_count": added_count
-    } }), 200
-
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {"total_count": total_count, "added_count": added_count},
+            }
+        ),
+        200,
+    )
 
 
 @PROSPECTING_BLUEPRINT.route("/existing_contacts", methods=["GET"])
 @require_user
 def get_existing_contacts_endpoint(client_sdr_id: int):
-    
-    limit = get_request_parameter("limit", request, json=False, required=False, parameter_type=int, default_value=20)
-    offset = get_request_parameter("offset", request, json=False, required=False, parameter_type=int, default_value=0)
-    search = get_request_parameter("search", request, json=False, required=False, parameter_type=str, default_value='')
 
-    existing_contacts, total_rows = get_existing_contacts(client_sdr_id, limit, offset, search)
+    limit = get_request_parameter(
+        "limit",
+        request,
+        json=False,
+        required=False,
+        parameter_type=int,
+        default_value=20,
+    )
+    offset = get_request_parameter(
+        "offset",
+        request,
+        json=False,
+        required=False,
+        parameter_type=int,
+        default_value=0,
+    )
+    search = get_request_parameter(
+        "search",
+        request,
+        json=False,
+        required=False,
+        parameter_type=str,
+        default_value="",
+    )
 
-    return jsonify({"message": "Success", "data": {
-        "total_rows": total_rows,
-        "existing_contacts": existing_contacts
-    } }), 200
+    existing_contacts, total_rows = get_existing_contacts(
+        client_sdr_id, limit, offset, search
+    )
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {
+                    "total_rows": total_rows,
+                    "existing_contacts": existing_contacts,
+                },
+            }
+        ),
+        200,
+    )
 
 
 @PROSPECTING_BLUEPRINT.route("/existing_contacts/add_to_persona", methods=["POST"])
 @require_user
 def post_add_existing_contacts_to_persona(client_sdr_id: int):
 
-    persona_id = get_request_parameter("persona_id", request, json=True, required=True, parameter_type=int)
-    contact_ids = get_request_parameter("contact_ids", request, json=True, required=True, parameter_type=list)
+    persona_id = get_request_parameter(
+        "persona_id", request, json=True, required=True, parameter_type=int
+    )
+    contact_ids = get_request_parameter(
+        "contact_ids", request, json=True, required=True, parameter_type=list
+    )
 
     client_archetype: ClientArchetype = ClientArchetype.query.get(persona_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
@@ -1261,7 +1369,27 @@ def post_add_existing_contacts_to_persona(client_sdr_id: int):
 
     added_count = add_existing_contacts_to_persona(persona_id, contact_ids)
 
-    return jsonify({"message": "Success", "data": {
-        "added_count": added_count
-    } }), 200
+    return jsonify({"message": "Success", "data": {"added_count": added_count}}), 200
 
+
+@PROSPECTING_BLUEPRINT.route("/prospect_removal_check", methods=["POST"])
+@require_user
+def post_prospect_removal_check(client_sdr_id: int):
+    parsed_csvs = get_request_parameter(
+        "parsed_csvs", request, json=True, required=True
+    )
+    bulk_remove = get_request_parameter(
+        "bulk_remove", request, json=True, required=False, parameter_type=bool
+    )
+    parsed_csv = parsed_csvs[0]
+
+    return (
+        jsonify(
+            {
+                "data": prospect_removal_check_from_csv_payload(
+                    parsed_csv, client_sdr_id, bulk_remove
+                )
+            }
+        ),
+        200,
+    )

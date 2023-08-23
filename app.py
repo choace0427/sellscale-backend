@@ -69,31 +69,31 @@ def make_celery(app):
             "message_generation",
             message_generation_exchange,
             routing_key="message_generation",
-        )
+        ),
     )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"
     celery.conf.task_default_routing_key = "default"
     celery.conf.task_default_priority = 5  # 0 is the highest
     celery.conf.task_annotations = {
-        f'src.message_generation.services.research_and_generate_outreaches_for_prospect': {
+        f"src.message_generation.services.research_and_generate_outreaches_for_prospect": {
             "rate_limit": "2/s",
         },
-        f'src.message_generation.services.generate_prospect_email': {
+        f"src.message_generation.services.generate_prospect_email": {
             "rate_limit": "2/s",
         },
-        f'src.ml.services.icp_classify': {
+        f"src.ml.services.icp_classify": {
             "rate_limit": "2/s",
         },
-        f'app.add_together': {
+        f"app.add_together": {
             "rate_limit": "1/s",
         },
-        f'src.ml.services.test_rate_limiter': {
+        f"src.ml.services.test_rate_limiter": {
             "rate_limit": "2/s",
         },
-        f'src.email_outbound.email_store.services.email_store_hunter_verify': {
+        f"src.email_outbound.email_store.services.email_store_hunter_verify": {
             "rate_limit": "2/s",
-        }
+        },
     }
 
     class ContextTask(celery.Task):
@@ -120,12 +120,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Updated on August 11, 2023, previous values were default. (pool size 5, overflow 10)
 # app.config['SQLALCHEMY_POOL_SIZE'] = 20
 # app.config['SQLALCHEMY_MAX_OVERFLOW'] = 40
-sqlalchemy_engine_options = {
-    'max_overflow': 40,
-    'pool_size': 20,
-    'pool_pre_ping': True
-}
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = sqlalchemy_engine_options
+sqlalchemy_engine_options = {"max_overflow": 40, "pool_size": 20, "pool_pre_ping": True}
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = sqlalchemy_engine_options
 
 db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
@@ -176,6 +172,7 @@ def register_blueprints(app):
     from src.simulation.controllers import SIMULATION_BLUEPRINT
     from src.automation.phantom_buster.controllers import PHANTOM_BUSTER_BLUEPRINT
     from src.individual.controllers import INDIVIDUAL_BLUEPRINT
+    from src.prospecting.icp_score.controllers import ICP_SCORING_BLUEPRINT
 
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -210,8 +207,11 @@ def register_blueprints(app):
     app.register_blueprint(COMPANY_BLUEPRINT, url_prefix="/company")
     app.register_blueprint(CALENDLY_BLUEPRINT, url_prefix="/calendly")
     app.register_blueprint(SIMULATION_BLUEPRINT, url_prefix="/simulation")
-    app.register_blueprint(PHANTOM_BUSTER_BLUEPRINT, url_prefix="/automation/phantom_buster")
+    app.register_blueprint(
+        PHANTOM_BUSTER_BLUEPRINT, url_prefix="/automation/phantom_buster"
+    )
     app.register_blueprint(INDIVIDUAL_BLUEPRINT, url_prefix="/individual")
+    app.register_blueprint(ICP_SCORING_BLUEPRINT, url_prefix="/icp_scoring")
 
     db.init_app(app)
 
