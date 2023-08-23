@@ -2,8 +2,8 @@ from app import db
 import enum
 
 
-class GNLPModelFineTuneJobs(db.Model):
-    __tablename__ = "gnlp_models_fine_tune_jobs"
+class ICPScoringRuleset(db.Model):
+    __tablename__ = "icp_scoring_ruleset"
 
     client_archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), primary_key=True

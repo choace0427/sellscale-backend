@@ -98,3 +98,4 @@ from src.email_outbound.models import EmailConversationMessage
 from src.simulation.models import Simulation
 from src.individual.models import Individual
 from src.analytics.models import SDRHealthStats
+from src.prospecting.icp_score.models import ICPScoringRuleset
