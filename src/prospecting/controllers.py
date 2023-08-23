@@ -205,6 +205,10 @@ def update_status(client_sdr_id: int, prospect_id: int):
     override_status = get_request_parameter(
         "override_status", request, json=True, required=False, parameter_type=bool
     ) or False
+    quietly = get_request_parameter(
+        "quietly", request, json=True, required=False, parameter_type=bool
+    ) or False
+
     channel_type = (
         get_request_parameter(
             "channel_type", request, json=True, required=True, parameter_type=str
@@ -240,6 +244,7 @@ def update_status(client_sdr_id: int, prospect_id: int):
             new_status=new_status,
             manually_send_to_purgatory=False,
             override_status=override_status,
+            quietly=quietly,
         )
         if (len(success) == 2 and success[0]) or (len(success) == 1 and success):
             return (
@@ -252,7 +257,7 @@ def update_status(client_sdr_id: int, prospect_id: int):
             return jsonify({"message": "Failed to update: " + str(success[1])}), 400
     elif channel_type == ProspectChannels.EMAIL.value:
         success = update_prospect_status_email(
-            prospect_id=prospect_id, new_status=new_status, override_status=override_status
+            prospect_id=prospect_id, new_status=new_status, override_status=override_status, quietly=quietly
         )
         if success[0]:
             return (

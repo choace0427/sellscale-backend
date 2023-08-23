@@ -580,6 +580,7 @@ def update_prospect_status_email(
     new_status: ProspectEmailOutreachStatus,
     override_status: bool = False,
     manually_send_to_purgatory: bool = False,
+    quietly: Optional[bool] = False,
 ) -> tuple[bool, str]:
     """Updates the prospect email outreach status
 
@@ -587,6 +588,7 @@ def update_prospect_status_email(
         prospect_id (int): ID of the prospect (used for the prospect email)
         new_status (ProspectEmailOutreachStatus): New status to update to
         override_status (bool, optional): _description_. Defaults to False.
+        quietly (Optional[bool], optional): Don't send slack notifs. Defaults to False.
 
     Returns:
         tuple[bool, str]: (success, message)
