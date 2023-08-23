@@ -41,7 +41,12 @@ from src.prospecting.models import (
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.random_string import generate_random_alphanumeric
-from src.utils.slack import URL_MAP, CHANNEL_NAME_MAP, send_slack_message, send_delayed_slack_message
+from src.utils.slack import (
+    URL_MAP,
+    CHANNEL_NAME_MAP,
+    send_slack_message,
+    send_delayed_slack_message,
+)
 from src.utils.converters.string_converters import (
     get_last_name_from_full_name,
     get_first_name_from_full_name,
@@ -261,7 +266,7 @@ def patch_prospect(
         company_name (Optional[str], optional): The prospect's current company name. Defaults to None.
         company_website (Optional[str], optional): The website of the prospect's current company. Defaults to None.
         contract_size (Optional[int], optional): The prospect's contract size. Defaults to None.
-        
+
     Returns:
         bool: True if the prospect was modified, False otherwise
     """
@@ -514,7 +519,9 @@ def update_prospect_status_linkedin(
 
     try:
         update_prospect_status_linkedin_multi_step(
-            prospect_id=prospect_id, statuses=[new_status], override_status=override_status
+            prospect_id=prospect_id,
+            statuses=[new_status],
+            override_status=override_status,
         )
     except Exception as err:
         return False, err.message if hasattr(err, "message") else err
@@ -525,12 +532,16 @@ def update_prospect_status_linkedin(
     return True, "Success"
 
 
-def update_prospect_status_linkedin_multi_step(prospect_id: int, statuses: list, override_status: bool = False):
+def update_prospect_status_linkedin_multi_step(
+    prospect_id: int, statuses: list, override_status: bool = False
+):
     success = True
     for status in statuses:
         success = (
             update_prospect_status_linkedin_helper(
-                prospect_id=prospect_id, new_status=status, override_status=override_status
+                prospect_id=prospect_id,
+                new_status=status,
+                override_status=override_status,
             )
             and success
         )
@@ -863,7 +874,7 @@ def add_prospect(
 
     can_create_prospect = not prospect_exists or not allow_duplicates
     if can_create_prospect:
-        
+
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
         prospect: Prospect = Prospect(
             client_id=client_id,
@@ -1686,7 +1697,9 @@ def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason)
         db.session.commit()
 
 
-def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: str, send_reminder: bool = False):
+def update_prospect_demo_date(
+    client_sdr_id: int, prospect_id: int, demo_date: str, send_reminder: bool = False
+):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.demo_date = demo_date
     db.session.add(prospect)
@@ -1694,7 +1707,7 @@ def update_prospect_demo_date(client_sdr_id: int, prospect_id: int, demo_date: s
 
     date = datetime.datetime.fromisoformat(demo_date[:-1])
     if send_reminder:
-        
+
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
         send_delayed_slack_message(
@@ -2013,20 +2026,23 @@ def get_prospects_for_icp(archetype_id: int):
     ).fetchone()
 
     def separate_data(rows):
-        if not rows: return []
+        if not rows:
+            return []
         result = []
         for row in rows:
-            sep = row.split(' -~- ')
-            result.append({
-                "full_name": sep[0],
-                "company": sep[1],
-                "id": sep[2] or None,
-                "icp_fit_score": sep[3] or None,
-                "icp_fit_score_override": sep[4] or None,
-                "in_icp_sample": sep[5] or False,
-                "title": sep[6],
-                "icp_fit_reason": sep[7],
-            })
+            sep = row.split(" -~- ")
+            result.append(
+                {
+                    "full_name": sep[0],
+                    "company": sep[1],
+                    "id": sep[2] or None,
+                    "icp_fit_score": sep[3] or None,
+                    "icp_fit_score_override": sep[4] or None,
+                    "in_icp_sample": sep[5] or False,
+                    "title": sep[6],
+                    "icp_fit_reason": sep[7],
+                }
+            )
         return result
 
     return {
@@ -2040,7 +2056,6 @@ def get_prospects_for_icp(archetype_id: int):
         "medium_data": separate_data(data[7]),
         "high_data": separate_data(data[8]),
         "very_high_data": separate_data(data[9]),
-
         "queued_count": data[10],
         "calculating_count": data[11],
         "error_count": data[12],
@@ -2048,7 +2063,6 @@ def get_prospects_for_icp(archetype_id: int):
         "calculating_data": separate_data(data[14]),
         "error_data": separate_data(data[15]),
     }
-
 
 
 def get_prospects_for_income_pipeline(client_sdr_id: int):
@@ -2064,31 +2078,34 @@ def get_prospects_for_income_pipeline(client_sdr_id: int):
           array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status)) filter (where prospect.status = 'DEMO_LOSS' or prospect_email.outreach_status = 'DEMO_LOST' or prospect.status = 'NOT_INTERESTED' or prospect_email.outreach_status = 'NOT_INTERESTED') "NOT_INTERESTED"
       
         from 
-          prospect_email
-          join prospect on prospect.id = prospect_email.prospect_id
+          prospect 
+          left join prospect_email on prospect.id = prospect_email.prospect_id
         where prospect.client_sdr_id = {client_sdr_id} and prospect.overall_status != 'SENT_OUTREACH' and prospect.overall_status != 'PROSPECTED';
     """
     ).fetchone()
 
     def separate_data(rows):
-        if not rows: return []
+        if not rows:
+            return []
         result = []
         for row in rows:
-            sep = row.split(' -~- ')
-            result.append({
-                "id": sep[0] or None,
-                "company_name": sep[1] or None,
-                "company_url": sep[2] or None,
-                "full_name": sep[3] or None,
-                "title": sep[4] or None,
-                "img_url": sep[5] or False,
-                "company_img_url": sep[6] or None,
-                "contract_size": sep[7] or None,
-                "li_url": sep[8] or None,
-                "last_updated": sep[9] or None,
-                "email_status": sep[10] or None,
-                "li_status": sep[11] or None,
-            })
+            sep = row.split(" -~- ")
+            result.append(
+                {
+                    "id": sep[0] or None,
+                    "company_name": sep[1] or None,
+                    "company_url": sep[2] or None,
+                    "full_name": sep[3] or None,
+                    "title": sep[4] or None,
+                    "img_url": sep[5] or False,
+                    "company_img_url": sep[6] or None,
+                    "contract_size": sep[7] or None,
+                    "li_url": sep[8] or None,
+                    "last_updated": sep[9] or None,
+                    "email_status": sep[10] or None,
+                    "li_status": sep[11] or None,
+                }
+            )
         return result
 
     return {
@@ -2112,11 +2129,11 @@ def add_existing_contact(
     instagram_url: Optional[str],
     facebook_url: Optional[str],
     twitter_url: Optional[str],
-    email: Optional[str],# Unique
+    email: Optional[str],  # Unique
     phone: Optional[str],
     address: Optional[str],
-    li_public_id: Optional[str],# Unique
-    li_urn_id: Optional[str],# Unique
+    li_public_id: Optional[str],  # Unique
+    li_urn_id: Optional[str],  # Unique
     img_url: Optional[str],
     img_expire: Optional[int],
     industry: Optional[str],
@@ -2129,11 +2146,11 @@ def add_existing_contact(
     notes: Optional[str],
 ) -> Optional[int]:
     """
-      Adds an existing contact to the database.
+    Adds an existing contact to the database.
 
-      Returns the existing contact id.
+    Returns the existing contact id.
     """
-    
+
     from src.individual.services import add_individual
     from src.individual.models import Individual
     from src.prospecting.models import ExistingContact
@@ -2151,7 +2168,9 @@ def add_existing_contact(
         email=email,
         phone=phone,
         address=address,
-        li_public_id=linkedin_url.split("/in/")[1].split("/")[0] if linkedin_url else li_public_id,
+        li_public_id=linkedin_url.split("/in/")[1].split("/")[0]
+        if linkedin_url
+        else li_public_id,
         li_urn_id=li_urn_id,
         img_url=img_url,
         img_expire=img_expire,
@@ -2170,7 +2189,7 @@ def add_existing_contact(
             webhook_urls=[URL_MAP["csm-individuals"]],
         )
         return None
-    
+
     # See if the existing contact already exists
     existing_contact: ExistingContact = ExistingContact.query.filter(
         ExistingContact.client_sdr_id == client_sdr_id,
@@ -2178,7 +2197,7 @@ def add_existing_contact(
     ).first()
     if existing_contact:
         return existing_contact.id
-    
+
     existing_contact = ExistingContact(
         client_sdr_id=client_sdr_id,
         full_name=individual.full_name,
@@ -2196,17 +2215,22 @@ def add_existing_contact(
 
 
 def get_existing_contacts(client_sdr_id: int, limit: int, offset: int, search: str):
-    
+
     from src.prospecting.models import ExistingContact
-    
-    existing_contacts: List[ExistingContact] = ExistingContact.query.filter(
-        ExistingContact.client_sdr_id == client_sdr_id,
-        or_(
-            ExistingContact.company_name.ilike(f"%{search}%"),
-            ExistingContact.full_name.ilike(f"%{search}%"),
-            ExistingContact.title.ilike(f"%{search}%"),
+
+    existing_contacts: List[ExistingContact] = (
+        ExistingContact.query.filter(
+            ExistingContact.client_sdr_id == client_sdr_id,
+            or_(
+                ExistingContact.company_name.ilike(f"%{search}%"),
+                ExistingContact.full_name.ilike(f"%{search}%"),
+                ExistingContact.title.ilike(f"%{search}%"),
+            ),
         )
-    ).limit(limit).offset(offset).all()
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
 
     total_rows: int = ExistingContact.query.filter(
         ExistingContact.client_sdr_id == client_sdr_id,
@@ -2214,30 +2238,32 @@ def get_existing_contacts(client_sdr_id: int, limit: int, offset: int, search: s
             ExistingContact.company_name.ilike(f"%{search}%"),
             ExistingContact.full_name.ilike(f"%{search}%"),
             ExistingContact.title.ilike(f"%{search}%"),
-        )
+        ),
     ).count()
 
     return [c.to_dict() for c in existing_contacts], total_rows
 
 
 def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
-    
+
     from src.prospecting.models import ExistingContact, ProspectStatus
 
     added_count = 0
     for contact_id in contact_ids:
-        
+
         existing_contact: ExistingContact = ExistingContact.query.get(contact_id)
-        if not existing_contact: continue
+        if not existing_contact:
+            continue
         contact_data = existing_contact.to_dict()
-        li_public_id = contact_data.get('individual_data', {}).get('li_public_id', None)
-        if not li_public_id: continue
+        li_public_id = contact_data.get("individual_data", {}).get("li_public_id", None)
+        if not li_public_id:
+            continue
 
         success = create_prospects_from_linkedin_link_list(
-            url_string=f'https://www.linkedin.com/in/{li_public_id}/',
+            url_string=f"https://www.linkedin.com/in/{li_public_id}/",
             archetype_id=persona_id,
             set_status=ProspectStatus.ACCEPTED,
-            set_note=f'Added from existing contact {existing_contact.full_name} ({existing_contact.company_name})',
+            set_note=f"Added from existing contact {existing_contact.full_name} ({existing_contact.company_name})",
         )
         if success:
             existing_contact.used = True
@@ -2245,7 +2271,3 @@ def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
             added_count += 1
 
     return added_count
-
-
-
-
