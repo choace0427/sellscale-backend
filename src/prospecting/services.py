@@ -2276,10 +2276,6 @@ def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
 def prospect_removal_check_from_csv_payload(
     csv_payload: list, client_sdr_id: int, bulk_remove: bool = False
 ):
-
-    import pdb
-
-    pdb.set_trace()
     total_prospect_ids = [
         int(x["Id"]) for x in csv_payload if x["Included"].lower() == "false"
     ]
