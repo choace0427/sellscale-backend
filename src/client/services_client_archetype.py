@@ -331,7 +331,7 @@ def get_email_blocks_configuration(
     Returns:
         list: email blocks configuration
     """
-    from src.bump_framework_email.models import BumpFrameworkEmail
+    from src.email_sequencing.models import EmailSequenceStep
 
     sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     if not sdr:
@@ -351,7 +351,7 @@ def get_email_blocks_configuration(
         )
 
     if email_bump_framework_id:
-        bf_email: BumpFrameworkEmail = BumpFrameworkEmail.query.get(
+        bf_email: EmailSequenceStep = EmailSequenceStep.query.get(
             email_bump_framework_id
         )
         if not bf_email:

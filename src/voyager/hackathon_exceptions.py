@@ -3,7 +3,7 @@ from requests.exceptions import HTTPError, ConnectionError, Timeout
 
 class ReadTimeoutError(Exception):
     pass
-    
+
 class Server5xxError(Exception):
     pass
 
@@ -34,8 +34,8 @@ def get_exception_for_error_code(error_code):
 
 def raise_for_error(response):
     #LOGGER.error(f'{response.status_code}: {response.text}, REASON: {response.reason}')
-    
-    try:    
+
+    try:
         response.raise_for_status()
     except (HTTPError, ConnectionError) as error:
         try:

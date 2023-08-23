@@ -168,7 +168,7 @@ def register_blueprints(app):
     from src.integrations.controllers import INTEGRATION_BLUEPRINT
     from src.voyager.controllers import VOYAGER_BLUEPRINT
     from src.bump_framework.controllers import BUMP_FRAMEWORK_BLUEPRINT
-    from src.bump_framework_email.controllers import BUMP_FRAMEWORK_EMAIL_BLUEPRINT
+    from src.email_sequencing.controllers import EMAIL_SEQUENCING_BLUEPRINT
     from src.personas.controllers import PERSONAS_BLUEPRINT
     from src.voice_builder.controllers import VOICE_BUILDER_BLUEPRINT
     from src.company.controllers import COMPANY_BLUEPRINT
@@ -204,7 +204,7 @@ def register_blueprints(app):
     app.register_blueprint(INTEGRATION_BLUEPRINT, url_prefix="/integration")
     app.register_blueprint(VOYAGER_BLUEPRINT, url_prefix="/voyager")
     app.register_blueprint(BUMP_FRAMEWORK_BLUEPRINT, url_prefix="/bump_framework")
-    app.register_blueprint(BUMP_FRAMEWORK_EMAIL_BLUEPRINT, url_prefix="/bump_framework_email")
+    app.register_blueprint(EMAIL_SEQUENCING_BLUEPRINT, url_prefix="/email_sequence")
     app.register_blueprint(PERSONAS_BLUEPRINT, url_prefix="/personas")
     app.register_blueprint(VOICE_BUILDER_BLUEPRINT, url_prefix="/voice_builder")
     app.register_blueprint(COMPANY_BLUEPRINT, url_prefix="/company")
