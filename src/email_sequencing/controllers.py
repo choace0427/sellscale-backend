@@ -260,7 +260,6 @@ def get_email_subject_line_templates(client_sdr_id: int):
         get_request_parameter(
             "active_only", request, json=False, required=False, parameter_type=bool
         )
-        or True
     )
 
     email_subject_line_templates: list[dict] = get_email_subject_line_template(
