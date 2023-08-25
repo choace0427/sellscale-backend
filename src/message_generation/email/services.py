@@ -49,6 +49,7 @@ def ai_initial_email_prompt(
     client_sdr_id: int,
     prospect_id: int,
     test_template: Optional[str] = None,
+    template_id: Optional[int] = None,
 ) -> str:
     """Generate an AI Email Prompt given a prospect. Uses the prospect's sequence step template, otherwise uses a default SellScale template.
 
@@ -58,6 +59,7 @@ def ai_initial_email_prompt(
         client_sdr_id (int): The client SDR ID
         prospect_id (int): The prospect ID
         test_template (Optional[str], optional): The template to test. Defaults to None.
+        test_template_id (Optional[int], optional): The sequence step ID to use. Defaults to None.
 
     Returns:
         str: The AI Email Prompt
@@ -114,6 +116,12 @@ def ai_initial_email_prompt(
         EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED
     ).first()
     if sequence_step is not None:
+        template = sequence_step.template
+
+    # Get Sequence Step if it is specified
+    if template_id is not None:
+        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
+            template_id)
         template = sequence_step.template
 
     # If we are testing a template, use that instead
