@@ -1,6 +1,6 @@
 import email
 from src.li_conversation.models import LinkedInConvoMessage
-from src.message_generation.email.services import ai_initial_email_prompt, generate_email, generate_subject_line
+from src.message_generation.email.services import ai_initial_email_prompt, ai_subject_line_prompt, generate_email, generate_subject_line
 from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
@@ -955,13 +955,13 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         email_body = email_body.get('body')
 
         # 8a. Get the Subject Line prompt
-        ai_subject_line_prompt = ai_subject_line_prompt(
+        subject_line_prompt = ai_subject_line_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             email_body=email_body,
         )
         # 8b. Generate the subject line
-        subject_line = generate_subject_line(prompt=ai_subject_line_prompt)
+        subject_line = generate_subject_line(prompt=subject_line_prompt)
         subject_line = subject_line.get('subject_line')
 
         # 9. Create the GeneratedMessage objects
