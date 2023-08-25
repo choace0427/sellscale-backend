@@ -298,9 +298,7 @@ def score_one_prospect(
     enriched_prospect_company: EnrichedProspectCompany,
     icp_scoring_ruleset: ICPScoringRuleset,
 ):
-    num_attributes = (
-        count_num_icp_attributes(icp_scoring_ruleset.client_archetype_id) * 2
-    )
+    num_attributes = count_num_icp_attributes(icp_scoring_ruleset.client_archetype_id)
     score = 0
     reasoning = ""
 
