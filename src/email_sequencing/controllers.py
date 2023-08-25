@@ -152,9 +152,6 @@ def patch_sequence_step(client_sdr_id: int):
     sequence_step_id = get_request_parameter(
         "sequence_step_id", request, json=True, required=True
     )
-    overall_status = get_request_parameter(
-        "overall_status", request, json=True, required=True, parameter_type=str
-    )
     title = (
         get_request_parameter(
             "title", request, json=True, required=False, parameter_type=str
@@ -180,16 +177,6 @@ def patch_sequence_step(client_sdr_id: int):
         or None
     )
 
-    # Get the enum value for the overall status
-    found_key = False
-    for key, val in ProspectOverallStatus.__members__.items():
-        if key == overall_status:
-            overall_status = val
-            found_key = True
-            break
-    if not found_key:
-        return jsonify({"error": "Invalid overall status."}), 400
-
     sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(sequence_step_id)
     if not sequence_step:
         return jsonify({"error": "Sequence step not found."}), 404
@@ -200,7 +187,6 @@ def patch_sequence_step(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         client_archetype_id=sequence_step.client_archetype_id,
         sequence_step_id=sequence_step_id,
-        overall_status=overall_status,
         title=title,
         template=template,
         bumped_count=bumped_count,
