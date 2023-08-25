@@ -4,7 +4,10 @@ from src.authentication.decorators import require_user
 from app import db
 
 from flask import Blueprint, jsonify, request
-from src.prospecting.icp_score.services import update_icp_scoring_ruleset
+from src.prospecting.icp_score.services import (
+    update_icp_scoring_ruleset,
+    apply_icp_scoring_ruleset_filters,
+)
 from src.utils.request_helpers import get_request_parameter
 
 ICP_SCORING_BLUEPRINT = Blueprint("icp_scoring", __name__)
@@ -120,3 +123,21 @@ def update_ruleset(client_sdr_id: int):
         return "OK", 200
 
     return "Failed to update ICP Scoring Ruleset", 500
+
+
+@ICP_SCORING_BLUEPRINT.route("/run_on_prospects", methods=["POST"])
+@require_user
+def run_on_prospects(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    success = apply_icp_scoring_ruleset_filters(client_archetype_id=client_archetype_id)
+    if success:
+        return "OK", 200
+    return "Failed to apply ICP Scoring Ruleset", 500

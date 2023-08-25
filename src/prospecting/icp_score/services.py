@@ -5,6 +5,7 @@ from src.prospecting.models import Prospect
 from model_import import ResearchPayload
 from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
+from tqdm import tqdm
 
 
 class EnrichedProspectCompany:
@@ -275,6 +276,10 @@ def get_raw_enriched_prospect_companies_list(client_archetype_id: int):
                 else ""
             )
         )
+        if deep_get(data, "company.details.locations.headquarter.country") == "US":
+            processed[prospect_id].company_location += " United States"
+        elif deep_get(data, "company.details.locations.headquarter.country") == "CA":
+            processed[prospect_id].company_location += " Canada"
         processed[prospect_id].company_employee_count = deep_get(
             data, "company.details.staff.total"
         ) or (employee_count.split("-")[0] if employee_count else None)
@@ -295,40 +300,340 @@ def score_one_prospect(
 ):
     num_attributes = count_num_icp_attributes(icp_scoring_ruleset.client_archetype_id)
     score = 0
-    if (
-        icp_scoring_ruleset.included_individual_title_keywords
-        and enriched_prospect_company.prospect_title
-        and any(
-            keyword in enriched_prospect_company.prospect_title
-            for keyword in icp_scoring_ruleset.included_individual_title_keywords
-        )
-    ):
-        score += 1
+    reasoning = ""
+
+    # Prospect Title
     if (
         icp_scoring_ruleset.excluded_individual_title_keywords
         and enriched_prospect_company.prospect_title
         and any(
-            keyword in enriched_prospect_company.prospect_title
+            keyword.lower() in enriched_prospect_company.prospect_title.lower()
             for keyword in icp_scoring_ruleset.excluded_individual_title_keywords
         )
     ):
         score -= num_attributes
-    return (enriched_prospect_company, score)
+        reasoning += "(❌ title) "
+    elif (
+        icp_scoring_ruleset.included_individual_title_keywords
+        and enriched_prospect_company.prospect_title
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_title.lower()
+            for keyword in icp_scoring_ruleset.included_individual_title_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ title) "
+
+    # Prospect Industry
+    if (
+        icp_scoring_ruleset.excluded_individual_industry_keywords
+        and enriched_prospect_company.prospect_industry
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+            for keyword in icp_scoring_ruleset.excluded_individual_industry_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ industry) "
+    elif (
+        icp_scoring_ruleset.included_individual_industry_keywords
+        and enriched_prospect_company.prospect_industry
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+            for keyword in icp_scoring_ruleset.included_individual_industry_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ industry) "
+
+    # Prospect Years of Experience
+    if (
+        icp_scoring_ruleset.individual_years_of_experience_start
+        and enriched_prospect_company.prospect_years_of_experience
+        and enriched_prospect_company.prospect_years_of_experience
+        >= icp_scoring_ruleset.individual_years_of_experience_start
+        and icp_scoring_ruleset.individual_years_of_experience_end
+        and enriched_prospect_company.prospect_years_of_experience
+        <= icp_scoring_ruleset.individual_years_of_experience_end
+    ):
+        score += 1
+        reasoning += "(✅ years of experience) "
+
+    # Prospect Skills
+    if (
+        icp_scoring_ruleset.excluded_individual_skills_keywords
+        and enriched_prospect_company.prospect_skills
+        and any(
+            keyword.lower() in skill.lower()
+            for skill in enriched_prospect_company.prospect_skills
+            for keyword in icp_scoring_ruleset.excluded_individual_skills_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ skills) "
+    elif (
+        icp_scoring_ruleset.included_individual_skills_keywords
+        and enriched_prospect_company.prospect_skills
+        and any(
+            keyword.lower() in skill.lower()
+            for skill in enriched_prospect_company.prospect_skills
+            for keyword in icp_scoring_ruleset.included_individual_skills_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ skills) "
+
+    # Locations Keywords
+    if (
+        icp_scoring_ruleset.excluded_individual_locations_keywords
+        and enriched_prospect_company.prospect_location
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_location.lower()
+            for keyword in icp_scoring_ruleset.excluded_individual_locations_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ location) "
+    elif (
+        icp_scoring_ruleset.included_individual_locations_keywords
+        and enriched_prospect_company.prospect_location
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_location.lower()
+            for keyword in icp_scoring_ruleset.included_individual_locations_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ location) "
+
+    # Prospect Generalized Keywords
+    if (
+        icp_scoring_ruleset.excluded_individual_generalized_keywords
+        and enriched_prospect_company.prospect_dump
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_dump.lower()
+            for keyword in icp_scoring_ruleset.excluded_individual_generalized_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ general prospect info) "
+    elif (
+        icp_scoring_ruleset.included_individual_generalized_keywords
+        and enriched_prospect_company.prospect_dump
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_dump.lower()
+            for keyword in icp_scoring_ruleset.included_individual_generalized_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ general prospect info) "
+
+    # Company Name
+    if (
+        icp_scoring_ruleset.excluded_company_name_keywords
+        and enriched_prospect_company.company_name
+        and any(
+            keyword.lower() in enriched_prospect_company.company_name.lower()
+            for keyword in icp_scoring_ruleset.excluded_company_name_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ company name) "
+    elif (
+        icp_scoring_ruleset.included_company_name_keywords
+        and enriched_prospect_company.company_name
+        and any(
+            keyword.lower() in enriched_prospect_company.company_name.lower()
+            for keyword in icp_scoring_ruleset.included_company_name_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ company name) "
+
+    # Company Location Keywords
+    if (
+        icp_scoring_ruleset.excluded_company_locations_keywords
+        and enriched_prospect_company.company_location
+        and any(
+            keyword.lower() in enriched_prospect_company.company_location.lower()
+            for keyword in icp_scoring_ruleset.excluded_company_locations_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ company location) "
+    elif (
+        icp_scoring_ruleset.included_company_locations_keywords
+        and enriched_prospect_company.company_location
+        and any(
+            keyword.lower() in enriched_prospect_company.company_location.lower()
+            for keyword in icp_scoring_ruleset.included_company_locations_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ company location) "
+
+    # Company Size
+    if (
+        icp_scoring_ruleset.company_size_start
+        and enriched_prospect_company.company_employee_count
+        and enriched_prospect_company.company_employee_count != "None"
+        and int(enriched_prospect_company.company_employee_count)
+        >= icp_scoring_ruleset.company_size_start
+        and icp_scoring_ruleset.company_size_end
+        and int(enriched_prospect_company.company_employee_count)
+        <= icp_scoring_ruleset.company_size_end
+    ):
+        score += 1
+        reasoning += "(✅ company size) "
+    elif (
+        icp_scoring_ruleset.company_size_start
+        and enriched_prospect_company.company_employee_count
+        and enriched_prospect_company.company_employee_count != "None"
+        and int(enriched_prospect_company.company_employee_count)
+        < icp_scoring_ruleset.company_size_start
+        and icp_scoring_ruleset.company_size_end
+        and int(enriched_prospect_company.company_employee_count)
+        > icp_scoring_ruleset.company_size_end
+    ):
+        score -= num_attributes
+        reasoning += "(❌ company size) "
+
+    # Company Industry
+    if (
+        icp_scoring_ruleset.excluded_company_industries_keywords
+        and enriched_prospect_company.prospect_industry
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+            for keyword in icp_scoring_ruleset.excluded_company_industries_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ company industry) "
+    elif (
+        icp_scoring_ruleset.included_company_industries_keywords
+        and enriched_prospect_company.prospect_industry
+        and any(
+            keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+            for keyword in icp_scoring_ruleset.included_company_industries_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ company industry) "
+
+    # Company Generalized Keywords
+    if (
+        icp_scoring_ruleset.excluded_company_generalized_keywords
+        and enriched_prospect_company.company_dump
+        and any(
+            keyword.lower() in enriched_prospect_company.company_dump.lower()
+            for keyword in icp_scoring_ruleset.excluded_company_generalized_keywords
+        )
+    ):
+        score -= num_attributes
+        reasoning += "(❌ company general info) "
+    elif (
+        icp_scoring_ruleset.included_company_generalized_keywords
+        and enriched_prospect_company.company_dump
+        and any(
+            keyword.lower() in enriched_prospect_company.company_dump.lower()
+            for keyword in icp_scoring_ruleset.included_company_generalized_keywords
+        )
+    ):
+        score += 1
+        reasoning += "(✅ company general info) "
+
+    return (enriched_prospect_company, score, reasoning)
 
 
 def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     num_attributes = count_num_icp_attributes(client_archetype_id)
+
+    # Step 1: Get the raw prospect list with data enriched
+    print("Pulling raw enriched prospect companies list...")
     raw_enriched_prospect_companies_list = get_raw_enriched_prospect_companies_list(
         client_archetype_id
     )
+    print(
+        "Pulled raw enriched prospect companies list with length: "
+        + str(len(raw_enriched_prospect_companies_list))
+    )
+
     icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id
     ).first()
 
+    # Step 2: Score all the prospects
+    print("Scoring prospects...")
+    score_map = {}
+    entries = raw_enriched_prospect_companies_list.items()
+    raw_data = []
     for (
         prospect_id,
         enriched_prospect_company,
-    ) in raw_enriched_prospect_companies_list.items():
-        print(prospect_id)
-        print(enriched_prospect_company)
-        print(score_one_prospect(enriched_prospect_company, icp_scoring_ruleset))
+    ) in tqdm(entries):
+        enriched_prospect_company, score, reasoning = score_one_prospect(
+            enriched_prospect_company, icp_scoring_ruleset
+        )
+
+        if score not in score_map:
+            score_map[score] = 0
+        score_map[score] += 1
+
+        raw_data.append(
+            {
+                "prospect_id": prospect_id,
+                "score": score,
+                "reasoning": reasoning,
+            }
+        )
+
+    # Determine the labels (VERY HIGH -> VERY LOW)
+    sorted_keys = sorted(score_map.keys())
+    minimum_key = min(score_map.keys())
+    mid_minimum_key = minimum_key // 2
+    maximum_key = max(score_map.keys())
+    mid_maximum_key = maximum_key // 2
+
+    label_map = {}
+    for i in range(minimum_key - 1, maximum_key + 1):
+        if minimum_key - 1 < i and i < mid_minimum_key:
+            label_map[i] = 0
+        elif mid_minimum_key <= i and i < 0:
+            label_map[i] = 1
+        elif i == 0:
+            label_map[i] = 2
+        elif 0 < i and i < mid_maximum_key:
+            label_map[i] = 3
+        elif mid_maximum_key <= i and i < maximum_key + 1:
+            label_map[i] = 4
+
+    for key in sorted_keys:
+        # print '#' symbol for every 5 prospects
+        label = str(label_map[key])
+
+        hashtags = "#" * (score_map[key] // 5) + " " + str(score_map[key])
+
+        print(label + ": " + hashtags)
+
+    # Step 4: Batch Update all the prospects
+    update_mappings = []
+    for entry in raw_data:
+        prospect_id = entry["prospect_id"]
+        score = entry["score"]
+        reasoning = entry["reasoning"]
+        if not reasoning:
+            reasoning = "🟨 Nothing detected in prospect's profile that matches the ICP scoring ruleset."
+        label = label_map[score]
+
+        update_mappings.append(
+            {
+                "id": prospect_id,
+                "icp_fit_score": label,
+                "icp_fit_reason": reasoning,
+            }
+        )
+
+    db.session.bulk_update_mappings(Prospect, update_mappings)
+    db.session.commit()
+
+    print("Done!")
+    return True
