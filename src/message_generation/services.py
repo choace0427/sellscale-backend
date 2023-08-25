@@ -1,13 +1,12 @@
 import email
 from src.li_conversation.models import LinkedInConvoMessage
+from src.message_generation.email.services import ai_initial_email_prompt, generate_email, generate_subject_line
 from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
-from src.ml.services import determine_account_research_from_convo_and_bump_framework
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
 from src.research.account_research import generate_prospect_research
 from src.message_generation.models import GeneratedMessageQueue
 from sqlalchemy import nullslast, or_
-from src.ml.rule_engine import get_adversarial_ai_approval
 from src.ml.models import GNLPModelType
 from sqlalchemy import text
 from sqlalchemy.sql.expression import func
@@ -41,7 +40,6 @@ from model_import import (
 )
 from typing import List, Optional, Union
 from src.ml.rule_engine import run_message_rule_engine
-from src.ml.services import ai_email_prompt, generate_email
 from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPointType, ResearchPoints
@@ -910,15 +908,15 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
     try:
         campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
 
-        # Mark the job as in progress
+        # 1. Mark the job as in progress
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
         )
 
-        # Increment the attempts
+        # 2. Increment the attempts
         increment_generated_message_job_queue_attempts(gm_job_id)
 
-        # Check if the prospect exists
+        # 3. Check if the prospect exists
         prospect: Prospect = Prospect.query.get(prospect_id)
         client_sdr_id = prospect.client_sdr_id
         if not prospect:
@@ -929,7 +927,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             )
             return (False, "Prospect does not exist")
 
-        # Check if the prospect already has a prospect_email
+        # 4. Check if the prospect already has a prospect_email
         prospect_email: ProspectEmail = ProspectEmail.query.get(
             prospect.approved_prospect_email_id
         )
@@ -941,98 +939,67 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             )
             return (False, "Prospect already has a prospect_email entry")
 
-        # Perform account research (if needed)
+        # 5. Perform account research (double down)
         generate_prospect_research(prospect.id, False, False)
 
-        # Create research points and payload for the prospect
+        # 6. Create research points and payload for the prospect
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-        # Get the top configuration and research poitn permutations for the prospect
-        NUM_GENERATIONS = 1  # number of ProspectEmail's to make
-        TOP_CONFIGURATION = get_top_stack_ranked_config_ordering(
-            generated_message_type=GeneratedMessageType.EMAIL.value,
+        # 7a. Get the Email Body prompt
+        initial_email_prompt = ai_initial_email_prompt(
+            client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
         )
-        perms = generate_batch_of_research_points_from_config(
-            prospect_id=prospect_id, config=TOP_CONFIGURATION, n=NUM_GENERATIONS
+        # 7b. Generate the email body
+        email_body = generate_email(prompt=initial_email_prompt)
+        email_body = email_body.get('body')
+
+        # 8a. Get the Subject Line prompt
+        ai_subject_line_prompt = ai_subject_line_prompt(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            email_body=email_body,
+        )
+        # 8b. Generate the subject line
+        subject_line = generate_subject_line(prompt=ai_subject_line_prompt)
+        subject_line = subject_line.get('subject_line')
+
+        # 9. Create the GeneratedMessage objects
+        ai_generated_body = GeneratedMessage(
+            prospect_id=prospect_id,
+            outbound_campaign_id=campaign_id,
+            prompt=initial_email_prompt,
+            completion=email_body,
+            message_status=GeneratedMessageStatus.DRAFT,
+            message_type=GeneratedMessageType.EMAIL,
+            priority_rating=campaign.priority_rating if campaign else 0,
+        )
+        ai_generated_subject_line = GeneratedMessage(
+            prospect_id=prospect_id,
+            outbound_campaign_id=campaign_id,
+            prompt=ai_subject_line_prompt,
+            completion=subject_line,
+            message_status=GeneratedMessageStatus.DRAFT,
+            message_type=GeneratedMessageType.EMAIL,
+            priority_rating=campaign.priority_rating if campaign else 0,
+        )
+        db.session.add(ai_generated_body)
+        db.session.add(ai_generated_subject_line)
+        db.session.commit()
+
+        # 10. Create the ProspectEmail object
+        prospect_email: ProspectEmail = create_prospect_email(
+            prospect_id=prospect_id,
+            personalized_subject_line_id=ai_generated_subject_line.id,
+            personalized_body_id=ai_generated_body.id,
+            outbound_campaign_id=campaign_id,
         )
 
-        # If there are no permutations, then fail the job
-        if len(perms) == 0:
-            update_generated_message_job_queue_status(
-                gm_job_id,
-                GeneratedMessageJobStatus.FAILED,
-                "No research point permutations",
-            )
-            return (False, "No research point permutations")
-
-        is_first_email = True
-        for perm in perms:
-            _, research_points, _ = get_notes_and_points_from_perm(perm)
-
-            if len(research_points) == 0:
-                update_generated_message_job_queue_status(
-                    gm_job_id, GeneratedMessageJobStatus.FAILED, "No research points"
-                )
-                return (False, "No research points")
-
-            email_generation_prompt = ai_email_prompt(
-                client_sdr_id=client_sdr_id,
-                prospect_id=prospect_id,
-            )
-            email_data = generate_email(prompt=email_generation_prompt)
-            subject = email_data["subject"]
-            personalized_body = email_data["body"]
-
-            personalized_subject_line = GeneratedMessage(
-                prospect_id=prospect_id,
-                outbound_campaign_id=campaign_id,
-                research_points=research_points,
-                prompt=email_generation_prompt,
-                completion=subject,
-                message_status=GeneratedMessageStatus.DRAFT,
-                message_type=GeneratedMessageType.EMAIL,
-                few_shot_prompt=email_generation_prompt,
-                priority_rating=campaign.priority_rating if campaign else 0,
-            )
-            personalized_body = GeneratedMessage(
-                prospect_id=prospect_id,
-                outbound_campaign_id=campaign_id,
-                research_points=research_points,
-                prompt=email_generation_prompt,
-                completion=personalized_body,
-                message_status=GeneratedMessageStatus.DRAFT,
-                message_type=GeneratedMessageType.EMAIL,
-                few_shot_prompt=email_generation_prompt,
-                priority_rating=campaign.priority_rating if campaign else 0,
-            )
-            db.session.add(personalized_subject_line)
-            db.session.add(personalized_body)
-            db.session.commit()
-
-            # personalized_first_line = get_personalized_first_line_from_prompt(
-            #     archetype_id=archetype_id,
-            #     model_type=GNLPModelType.EMAIL_FIRST_LINE,
-            #     prompt=prompt,
-            #     research_points=research_points,
-            #     prospect_id=prospect_id,
-            #     outbound_campaign_id=campaign_id,
-            #     config=TOP_CONFIGURATION,
-            # )
-
-            prospect_email: ProspectEmail = create_prospect_email(
-                prospect_id=prospect_id,
-                # personalized_first_line_id=personalized_first_line.id,
-                personalized_subject_line_id=personalized_subject_line.id,
-                personalized_body_id=personalized_body.id,
-                outbound_campaign_id=campaign_id,
-            )
-
-            if is_first_email:
-                mark_prospect_email_approved(
-                    prospect_email_id=prospect_email.id,
-                )
-                is_first_email = False
+        # 11. Save the prospect_email_id to the prospect and mark the prospect_email as approved
+        # This also runs rule_engine on the email body and first line
+        mark_prospect_email_approved(
+            prospect_email_id=prospect_email.id,
+        )
     except Exception as e:
         db.session.rollback()
         update_generated_message_job_queue_status(

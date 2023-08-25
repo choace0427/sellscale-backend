@@ -1,10 +1,17 @@
+# Generations for email messages
+# The typicaly flow for generating an email is:
+#   1. Generate an AI Prompt
+#   2. Generate an email using the AI Prompt
+# The intention of this flow is to have both prompt and completion exposed, instead of having 1 function handle both
+# This allows for more flexibility in the future, and lets us experiment more easily with different prompts / models.
+
 import re
 from typing import Optional
 from bs4 import BeautifulSoup
 
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
-from src.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import AccountResearchPoints, ResearchPoints
 
@@ -33,6 +40,9 @@ I just wanted to followup and ask if you saw my previous message. [[Explain why 
 Best,
 [[My name]]
 [[My title]]"""
+
+
+DEFAULT_SUBJECT_LINE_TEMPLATE = """[[Infer a captivating subject line from the email body]]"""
 
 
 def ai_initial_email_prompt(
@@ -391,3 +401,163 @@ def generate_email(prompt: str) -> dict[str, str]:
     response = response if isinstance(response, str) else ""
 
     return {"body": response}
+
+
+def ai_subject_line_prompt(
+    client_sdr_id: int,
+    prospect_id: int,
+    email_body: str,
+    subject_line_template_id: Optional[int] = None,
+    test_template: Optional[str] = None,
+) -> str:
+    """Generate a subject line prompt for a prospect.
+
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        prospect_id (int): ID of the prospect
+        email_body (str): The email body
+        subject_line_template_id (Optional[int], optional): The subject line template ID. Defaults to None.
+        test_template (Optional[str], optional): The template to test. Defaults to None.
+
+    Returns:
+        str: The subject line prompt
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(
+        prospect.archetype_id)
+    account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
+        AccountResearchPoints.prospect_id == prospect.id
+    ).all()
+
+    # Collect company information
+    client_sdr_name = client_sdr.name
+    client_sdr_title = client_sdr.title
+    company_tagline = client.tagline
+    company_description = client.description
+    company_value_prop_key_points = client.value_prop_key_points
+    company_tone_attributes = (
+        ", ".join(client.tone_attributes) if client.tone_attributes else ""
+    )
+
+    # Collect persona information
+    persona_name = client_archetype.archetype
+    persona_buy_reason = client_archetype.persona_fit_reason
+    prospect_contact_objective = client_archetype.persona_contact_objective
+    prospect_name = prospect.full_name
+    prospect_title = prospect.title
+    prospect_bio = prospect.linkedin_bio
+    prospect_company_name = prospect.company
+
+    # Collect research points
+    prospect_research: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    research_points = ""
+    for point in prospect_research:
+        research_points += f"- {point.value}\n"
+    account_points = ""
+    for point in account_research:
+        account_points += f"- {point.title}: {point.reason}\n"
+
+    subject_line = DEFAULT_SUBJECT_LINE_TEMPLATE
+
+    # Get the template using the provided ID
+    if subject_line_template_id is not None:
+        subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(
+            subject_line_template_id
+        )
+        subject_line = subject_line_template.subject_line
+    elif test_template is not None:
+        subject_line = test_template
+
+    prompt = """You are a sales development representative writing on behalf of the salesperson.
+
+Write an email subject line for the following email body. The subject line should be captivating and should entice the recipient to open the email.
+
+Use the following template:
+{subject_line}
+
+Here's the email body:
+--- START EMAIL BODY ---
+{email_body}
+--- END EMAIL BODY ---
+
+The following information is to help you, but is not neccessary to include in the subject line.
+
+SDR info --
+SDR Name: {client_sdr_name}
+Title: {client_sdr_title}
+
+Company info --
+Tagline: {company_tagline}
+Company description: {company_description}
+
+Useful data --
+{value_prop_key_points}
+
+Tone: {company_tone}
+
+Persona info --
+Name: {persona_name}
+
+Why they buy --
+{persona_buy_reason}
+
+Prospect info --
+Prospect Name: {prospect_name}
+Prospect Title: {prospect_title}
+Prospect Bio:
+"{prospect_bio}"
+Prospect Company Name: {prospect_company_name}
+
+More research --
+{prospect_research}
+{research_points}
+
+Generate the email subject line. Do not include the word 'Subject:' in the output.
+
+Output:""".format(
+        subject_line=subject_line,
+        email_body=email_body,
+        client_sdr_name=client_sdr_name,
+        client_sdr_title=client_sdr_title,
+        company_tagline=company_tagline,
+        company_description=company_description,
+        value_prop_key_points=company_value_prop_key_points,
+        company_tone=company_tone_attributes,
+        persona_name=persona_name,
+        persona_buy_reason=persona_buy_reason,
+        prospect_name=prospect_name,
+        prospect_title=prospect_title,
+        prospect_bio=prospect_bio,
+        prospect_company_name=prospect_company_name,
+        prospect_research=account_points,
+        research_points=research_points,
+        persona_contact_objective=prospect_contact_objective,
+    )
+
+    return prompt
+
+
+def generate_subject_line(prompt: str) -> dict[str, str]:
+    """Generate a subject line for a prospect.
+
+    Args:
+        prompt (str): The prompt to generate the subject line with
+
+    Returns:
+        dict[str, str]: The subject line
+    """
+    response = wrapped_chat_gpt_completion(
+        [
+            {"role": "system", "content": prompt},
+        ],
+        temperature=0.7,
+        max_tokens=50,
+        model=OPENAI_CHAT_GPT_4_MODEL,
+    )
+    response = response if isinstance(response, str) else ""
+
+    return {"subject_line": response}

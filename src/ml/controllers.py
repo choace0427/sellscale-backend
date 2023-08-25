@@ -8,7 +8,6 @@ from src.ml.models import GNLPModelType
 from model_import import ClientArchetype
 from src.ml.services import (
     check_statuses_of_fine_tune_jobs,
-    generate_followup_email_with_objective_prompt,
     get_fine_tune_timeline,
     initiate_fine_tune_job,
     get_aree_fix_basic,
@@ -18,8 +17,6 @@ from src.ml.services import (
     patch_icp_classification_prompt,
     trigger_icp_classification,
     edit_text,
-    generate_email,
-    ai_email_prompt,
     trigger_icp_classification_single_prospect,
 )
 from src.ml.fine_tuned_models import get_config_completion
@@ -333,96 +330,96 @@ def post_edit_text(client_sdr_id: int):
     return jsonify({"message": "Success", "data": result}), 200
 
 
-@ML_BLUEPRINT.route("/generate_email", methods=["POST"])
-@require_user
-def post_generate_email(client_sdr_id: int):
+# @ML_BLUEPRINT.route("/generate_email", methods=["POST"])
+# @require_user
+# def post_generate_email(client_sdr_id: int):
 
-    prompt = get_request_parameter(
-        "prompt", request, json=True, required=True, parameter_type=str
-    )
+#     prompt = get_request_parameter(
+#         "prompt", request, json=True, required=True, parameter_type=str
+#     )
 
-    result = generate_email(
-        prompt=prompt,
-    )
+#     result = generate_email(
+#         prompt=prompt,
+#     )
 
-    return jsonify({"message": "Success", "data": result}), 200
-
-
-@ML_BLUEPRINT.route("/generate_email_automatic", methods=["POST"])
-@require_user
-def post_generate_email_automatic(client_sdr_id: int):
-
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True, parameter_type=int
-    )
-    overriden_blocks = get_request_parameter(
-        "email_blocks", request, json=True, required=False, parameter_type=list
-    )
-
-    email_generation_prompt = ai_email_prompt(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        overriden_blocks=overriden_blocks,
-    )
-
-    email_data = generate_email(prompt=email_generation_prompt)
-
-    return jsonify({"message": "success", "data": email_data}), 200
+#     return jsonify({"message": "Success", "data": result}), 200
 
 
-@ML_BLUEPRINT.route("/get_generate_email_prompt", methods=["POST"])
-@require_user
-def get_generate_email_prompt(client_sdr_id: int):
-    """
-    Gets the prompt for generating an email given a value proposition and an archetype.
-    """
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True, parameter_type=int
-    )
-    framework_id = get_request_parameter(
-        "bump_framework_id", request, json=True, required=False, parameter_type=int
-    )
-    prospect: Prospect = Prospect.query.get(prospect_id)
+# @ML_BLUEPRINT.route("/generate_email_automatic", methods=["POST"])
+# @require_user
+# def post_generate_email_automatic(client_sdr_id: int):
 
-    if prospect is None or prospect.client_sdr_id != client_sdr_id:
-        return jsonify({"message": "Prospect not found"}), 404
+#     prospect_id = get_request_parameter(
+#         "prospect_id", request, json=True, required=True, parameter_type=int
+#     )
+#     overriden_blocks = get_request_parameter(
+#         "email_blocks", request, json=True, required=False, parameter_type=list
+#     )
 
-    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-    # generate_prospect_research(prospect.id, False, False)
+#     email_generation_prompt = ai_email_prompt(
+#         client_sdr_id=client_sdr_id,
+#         prospect_id=prospect_id,
+#         overriden_blocks=overriden_blocks,
+#     )
 
-    prompt = ai_email_prompt(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        email_bump_framework_id=framework_id
-    )
-    return jsonify({"prompt": prompt}), 200
+#     email_data = generate_email(prompt=email_generation_prompt)
+
+#     return jsonify({"message": "success", "data": email_data}), 200
 
 
-@ML_BLUEPRINT.route("/get_generate_followup_email_prompt", methods=["POST"])
-@require_user
-def get_generate_followup_email_prompt(client_sdr_id: int):
-    """Gets the prompt for generating a followup email given a value proposition and an archetype
+# @ML_BLUEPRINT.route("/get_generate_email_prompt", methods=["POST"])
+# @require_user
+# def get_generate_email_prompt(client_sdr_id: int):
+#     """
+#     Gets the prompt for generating an email given a value proposition and an archetype.
+#     """
+#     prospect_id = get_request_parameter(
+#         "prospect_id", request, json=True, required=True, parameter_type=int
+#     )
+#     framework_id = get_request_parameter(
+#         "bump_framework_id", request, json=True, required=False, parameter_type=int
+#     )
+#     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    Args:
-        client_sdr_id (int): The client SDR ID
-    """
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True, parameter_type=int
-    )
-    thread_id = get_request_parameter(
-        "thread_id", request, json=True, required=False, parameter_type=str
-    )
-    objective = get_request_parameter(
-        "objective", request, json=True, required=False, parameter_type=str
-    )
+#     if prospect is None or prospect.client_sdr_id != client_sdr_id:
+#         return jsonify({"message": "Prospect not found"}), 404
 
-    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+#     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+#     # generate_prospect_research(prospect.id, False, False)
 
-    followup_email_prompt = generate_followup_email_with_objective_prompt(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        thread_id=thread_id,
-        objective=objective
-    )
+#     prompt = ai_email_prompt(
+#         client_sdr_id=client_sdr_id,
+#         prospect_id=prospect_id,
+#         email_bump_framework_id=framework_id
+#     )
+#     return jsonify({"prompt": prompt}), 200
 
-    return jsonify({"message": "success", "data": followup_email_prompt}), 200
+
+# @ML_BLUEPRINT.route("/get_generate_followup_email_prompt", methods=["POST"])
+# @require_user
+# def get_generate_followup_email_prompt(client_sdr_id: int):
+#     """Gets the prompt for generating a followup email given a value proposition and an archetype
+
+#     Args:
+#         client_sdr_id (int): The client SDR ID
+#     """
+#     prospect_id = get_request_parameter(
+#         "prospect_id", request, json=True, required=True, parameter_type=int
+#     )
+#     thread_id = get_request_parameter(
+#         "thread_id", request, json=True, required=False, parameter_type=str
+#     )
+#     objective = get_request_parameter(
+#         "objective", request, json=True, required=False, parameter_type=str
+#     )
+
+#     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+
+#     followup_email_prompt = generate_followup_email_with_objective_prompt(
+#         client_sdr_id=client_sdr_id,
+#         prospect_id=prospect_id,
+#         thread_id=thread_id,
+#         objective=objective
+#     )
+
+#     return jsonify({"message": "success", "data": followup_email_prompt}), 200
