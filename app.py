@@ -173,6 +173,7 @@ def register_blueprints(app):
     from src.automation.phantom_buster.controllers import PHANTOM_BUSTER_BLUEPRINT
     from src.individual.controllers import INDIVIDUAL_BLUEPRINT
     from src.prospecting.icp_score.controllers import ICP_SCORING_BLUEPRINT
+    from src.message_generation.email.controllers import MESSAGE_GENERATION_EMAIL_BLUEPRINT
 
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -209,6 +210,9 @@ def register_blueprints(app):
     app.register_blueprint(SIMULATION_BLUEPRINT, url_prefix="/simulation")
     app.register_blueprint(
         PHANTOM_BUSTER_BLUEPRINT, url_prefix="/automation/phantom_buster"
+    )
+    app.register_blueprint(
+        MESSAGE_GENERATION_EMAIL_BLUEPRINT, url_prefix="/message_generation/email"
     )
     app.register_blueprint(INDIVIDUAL_BLUEPRINT, url_prefix="/individual")
     app.register_blueprint(ICP_SCORING_BLUEPRINT, url_prefix="/icp_scoring")
