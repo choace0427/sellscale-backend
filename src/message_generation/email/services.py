@@ -524,7 +524,7 @@ More research --
 {prospect_research}
 {research_points}
 
-Generate the email subject line. Do not include the word 'Subject:' in the output.
+Generate the email subject line. Do not include the word 'Subject:' in the output. Do not include quotations around the subject line.
 
 Output:""".format(
         subject_line=subject_line,
