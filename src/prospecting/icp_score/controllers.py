@@ -13,6 +13,29 @@ from src.utils.request_helpers import get_request_parameter
 ICP_SCORING_BLUEPRINT = Blueprint("icp_scoring", __name__)
 
 
+@ICP_SCORING_BLUEPRINT.route("/get_ruleset", methods=["GET"])
+@require_user
+def get_ruleset(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+    if not client_sdr or client_sdr.id != client_archetype.client_sdr_id:
+        return "Unauthorized", 401
+
+    icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=client_archetype_id
+    ).first()
+
+    if not icp_scoring_ruleset:
+        return "No ICP Scoring Ruleset found", 404
+
+    return jsonify(icp_scoring_ruleset.to_dict()), 200
+
+
 @ICP_SCORING_BLUEPRINT.route("/update_ruleset", methods=["POST"])
 @require_user
 def update_ruleset(client_sdr_id: int):
