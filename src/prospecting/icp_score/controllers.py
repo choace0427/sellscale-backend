@@ -9,6 +9,7 @@ from src.prospecting.icp_score.services import (
     apply_icp_scoring_ruleset_filters,
 )
 from src.utils.request_helpers import get_request_parameter
+from src.prospecting.icp_score.models import ICPScoringRuleset
 
 ICP_SCORING_BLUEPRINT = Blueprint("icp_scoring", __name__)
 
