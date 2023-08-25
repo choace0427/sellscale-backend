@@ -1897,13 +1897,14 @@ def send_li_referral_outreach_connection(prospect_id: int, message: str) -> bool
     archetype: ClientArchetype = ClientArchetype.query.get(
         prospect_referring.archetype_id
     )
+    client: Client = Client.query.get(client_sdr.client_id)
 
     # Send a Slack message notifying that a message has been queued for outreach for the referred prospect
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     message_to_referred = gm.completion
     send_slack_message(
         message=f"SellScale just multi-threaded",
-        webhook_urls=[URL_MAP["company-pipeline"]],
+        webhook_urls=[URL_MAP["company-pipeline"], client.pipeline_notifications_webhook_url],
         blocks=[
             {
                 "type": "header",
