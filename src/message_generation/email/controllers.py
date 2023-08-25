@@ -17,6 +17,9 @@ def post_generate_initial_email(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
+    template_id = get_request_parameter(
+        "template_id", request, json=True, required=False, parameter_type=int
+    )
     test_template = get_request_parameter(
         "test_template", request, json=True, required=False, parameter_type=str
     )
@@ -38,10 +41,11 @@ def post_generate_initial_email(client_sdr_id: int):
     prompt = ai_initial_email_prompt(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
-        test_template=test_template
+        test_template=test_template,
+        template_id=template_id
     )
     email_body = generate_email(prompt)
-    email_body = email_body.get('email_body')
+    email_body = email_body.get('body')
 
     # Get the initial email subject prompt and generate the subject line
     prompt = ai_subject_line_prompt(
@@ -49,7 +53,7 @@ def post_generate_initial_email(client_sdr_id: int):
         prospect_id=prospect_id,
         email_body=email_body,
         subject_line_template_id=subject_line_template_id,
-        subject_line_template=subject_line_template
+        test_template=subject_line_template
     )
     subject_line = generate_subject_line(prompt)
     subject_line = subject_line.get('subject_line')
@@ -92,7 +96,7 @@ def post_generate_followup_email(client_sdr_id: int):
         override_sequence_id=override_sequence_id
     )
     email_body = generate_email(prompt)
-    email_body = email_body.get('email_body')
+    email_body = email_body.get('body')
 
     return {
         'status': 'success',
