@@ -601,9 +601,9 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
             label_map[i] = 1
         elif i == 0:
             label_map[i] = 2
-        elif 0 < i and i < mid_maximum_key:
+        elif 0 < i and i < mid_maximum_key + 1:
             label_map[i] = 3
-        elif mid_maximum_key <= i and i < maximum_key + 1:
+        elif mid_maximum_key + 1 <= i and i < maximum_key + 1:
             label_map[i] = 4
 
     for key in sorted_keys:
