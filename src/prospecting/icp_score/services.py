@@ -312,7 +312,7 @@ def score_one_prospect(
         )
     ):
         score -= num_attributes
-        reasoning += "(❌ title) "
+        reasoning += "(❌ prospect title) "
     elif (
         icp_scoring_ruleset.included_individual_title_keywords
         and enriched_prospect_company.prospect_title
@@ -322,7 +322,7 @@ def score_one_prospect(
         )
     ):
         score += 1
-        reasoning += "(✅ title) "
+        reasoning += "(✅ prospect title) "
 
     # Prospect Industry
     if (
@@ -334,7 +334,7 @@ def score_one_prospect(
         )
     ):
         score -= num_attributes
-        reasoning += "(❌ industry) "
+        reasoning += "(❌ prospect industry) "
     elif (
         icp_scoring_ruleset.included_individual_industry_keywords
         and enriched_prospect_company.prospect_industry
@@ -344,7 +344,7 @@ def score_one_prospect(
         )
     ):
         score += 1
-        reasoning += "(✅ industry) "
+        reasoning += "(✅ prospect industry) "
 
     # Prospect Years of Experience
     if (
@@ -357,7 +357,7 @@ def score_one_prospect(
         <= icp_scoring_ruleset.individual_years_of_experience_end
     ):
         score += 1
-        reasoning += "(✅ years of experience) "
+        reasoning += "(✅ prospect years of experience) "
 
     # Prospect Skills
     if (
@@ -370,7 +370,7 @@ def score_one_prospect(
         )
     ):
         score -= num_attributes
-        reasoning += "(❌ skills) "
+        reasoning += "(❌ prospect skills) "
     elif (
         icp_scoring_ruleset.included_individual_skills_keywords
         and enriched_prospect_company.prospect_skills
@@ -381,7 +381,7 @@ def score_one_prospect(
         )
     ):
         score += 1
-        reasoning += "(✅ skills) "
+        reasoning += "(✅ prospect skills) "
 
     # Locations Keywords
     if (
@@ -393,7 +393,7 @@ def score_one_prospect(
         )
     ):
         score -= num_attributes
-        reasoning += "(❌ location) "
+        reasoning += "(❌ prospect location) "
     elif (
         icp_scoring_ruleset.included_individual_locations_keywords
         and enriched_prospect_company.prospect_location
@@ -403,7 +403,7 @@ def score_one_prospect(
         )
     ):
         score += 1
-        reasoning += "(✅ location) "
+        reasoning += "(✅ prospect location) "
 
     # Prospect Generalized Keywords
     if (
