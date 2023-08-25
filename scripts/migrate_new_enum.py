@@ -13,7 +13,10 @@ os.chdir('./migrations')
 result = subprocess.run(f'alembic revision -m "Autogen - Added {new_value} to enum column {column_name} in table {table_name}"', shell=True, capture_output=True)
 
 output = result.stdout.decode()
-print(output)
+if output == '':
+  print('Error: No output from alembic revision command')
+  exit()
+
 file_name = output.replace('\n', '').replace(' ', '').split('/versions/')[1].split('.py')[0]
 
 insert_import = f'from sqlalchemy import Table, MetaData\n'

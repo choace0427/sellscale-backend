@@ -78,6 +78,7 @@ class ProspectOverallStatus(enum.Enum):
     ACTIVE_CONVO = "ACTIVE_CONVO"
     DEMO = "DEMO"
     REMOVED = "REMOVED"
+    NURTURE = "NURTURE"
 
     def get_rank(self):
         ranks = {
@@ -85,6 +86,7 @@ class ProspectOverallStatus(enum.Enum):
             "SENT_OUTREACH": 2,
             "ACCEPTED": 3,
             "BUMPED": 4,
+            "NURTURE": 4.5,
             "ACTIVE_CONVO": 5,
             "REMOVED": 5.5,
             "DEMO": 6,
@@ -100,6 +102,7 @@ class ProspectOverallStatus(enum.Enum):
             ProspectOverallStatus.ACTIVE_CONVO,
             ProspectOverallStatus.DEMO,
             ProspectOverallStatus.REMOVED,
+            ProspectOverallStatus.NURTURE,
         ]
 
     def status_descriptions() -> dict:
@@ -145,6 +148,12 @@ class ProspectOverallStatus(enum.Enum):
                 "description": "The Prospect has been removed from the system for some reason.",
                 "enum_val": ProspectOverallStatus.REMOVED.value,
                 "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
+            },
+            ProspectOverallStatus.NURTURE.value: {
+                "name": "Nurture",
+                "description": "The Prospect will be re-engaged with at a later date.",
+                "enum_val": ProspectOverallStatus.NURTURE.value,
+                "sellscale_enum_val": ProspectOverallStatus.NURTURE.value,
             },
         }
 
@@ -288,7 +297,7 @@ class ProspectStatus(enum.Enum):
                 "name": "Not Interested",
                 "description": "The Prospect is not interested.",
                 "enum_val": ProspectStatus.NOT_INTERESTED.value,
-                "sellscale_enum_val": ProspectOverallStatus.REMOVED.value,
+                "sellscale_enum_val": ProspectOverallStatus.NURTURE.value,
             },
             ProspectStatus.DEMO_SET.value: {
                 "name": "Demo Set",
