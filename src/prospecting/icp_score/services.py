@@ -673,12 +673,25 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     results_queue = queue.Queue()
     max_threads = 32
 
-    def update_prospects(update_mappings, model, queue):
+    def update_prospects(update_mappings, model, queue, tries_remaining=3):
         with app.app_context():
-            db.session.bulk_update_mappings(model, update_mappings)
-            db.session.commit()
+            try:
+                db.session.bulk_update_mappings(model, update_mappings)
+                db.session.commit()
 
-            queue.put(True)
+                queue.put(True)
+            except Exception as e:
+                db.session.rollback()
+                if tries_remaining > 0:
+                    update_prospects(
+                        update_mappings=update_mappings,
+                        model=model,
+                        queue=queue,
+                        tries_remaining=tries_remaining - 1,
+                    )
+                    return
+
+                queue.put(False)
 
     print("Updating prospects...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
