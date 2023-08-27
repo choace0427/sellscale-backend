@@ -671,7 +671,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
         )
 
     results_queue = queue.Queue()
-    max_threads = 10
+    max_threads = 32
 
     def update_prospects(update_mappings, model, queue):
         with app.app_context():
@@ -685,7 +685,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
 
         futures = []
         for batch in tqdm(
-            [update_mappings[i : i + 100] for i in range(0, len(update_mappings), 100)]
+            [update_mappings[i : i + 50] for i in range(0, len(update_mappings), 50)]
         ):
             futures.append(
                 executor.submit(
