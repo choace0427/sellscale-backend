@@ -2,6 +2,7 @@ import datetime
 from multiprocessing import process
 
 from flask import app
+from src.client.models import ClientArchetype
 from src.prospecting.icp_score.models import ICPScoringRuleset
 from app import db, app
 from src.prospecting.models import Prospect
@@ -139,6 +140,9 @@ def update_icp_scoring_ruleset(
 
 
 def count_num_icp_attributes(client_archetype_id: int):
+    """
+    Count the number of ICP attributes.
+    """
     icp_scoring_ruleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id
     ).first()
@@ -203,6 +207,9 @@ def count_num_icp_attributes(client_archetype_id: int):
 
 
 def get_raw_enriched_prospect_companies_list(client_archetype_id: int):
+    """
+    Get the raw enriched prospect companies list.
+    """
     entries = (
         db.session.query(
             Prospect.id.label("prospect_id"),
@@ -308,6 +315,9 @@ def score_one_prospect(
     icp_scoring_ruleset: ICPScoringRuleset,
     queue: queue.Queue,
 ):
+    """
+    Score one prospect based on the ICP scoring ruleset.
+    """
     print("Scoring prospect: " + str(enriched_prospect_company.prospect_id))
     with app.app_context():
         num_attributes = count_num_icp_attributes(
@@ -561,6 +571,9 @@ def score_one_prospect(
 
 
 def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
+    """
+    Apply the ICP scoring ruleset to all prospects in the client archetype.
+    """
     num_attributes = count_num_icp_attributes(client_archetype_id)
 
     # Step 1: Get the raw prospect list with data enriched
@@ -712,4 +725,44 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
         concurrent.futures.wait(futures)
 
     print("Done!")
+    return True
+
+
+def move_low_ranked_prospects_to_unassigned(
+    client_archetype_id: int,
+):
+    """
+    Move all prospects with a score of 0 to the unassigned contact archetype.
+    """
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id, Prospect.icp_fit_score.in_([0, 1])
+    ).all()
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+    client_sdr_id: int = client_archetype.client_sdr_id
+    client_sdr_unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == True,
+    ).first()
+
+    if not client_sdr_unassigned_archetype:
+        return False
+
+    bulk_updates = []
+    for prospect in prospects:
+        prospect.archetype_id = client_sdr_unassigned_archetype.id
+        prospect.icp_fit_score = None
+        prospect.icp_fit_reason = None
+        bulk_updates.append(prospect)
+
+    print(
+        "Moving "
+        + str(len(bulk_updates))
+        + " prospects to unassigned contact archetype..."
+    )
+
+    db.session.bulk_save_objects(bulk_updates)
+    db.session.commit()
+
     return True

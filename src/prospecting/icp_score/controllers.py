@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 from src.prospecting.icp_score.services import (
     update_icp_scoring_ruleset,
     apply_icp_scoring_ruleset_filters,
+    move_low_ranked_prospects_to_unassigned,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.icp_score.models import ICPScoringRuleset
@@ -165,3 +166,20 @@ def run_on_prospects(client_sdr_id: int):
     if success:
         return "OK", 200
     return "Failed to apply ICP Scoring Ruleset", 500
+
+
+@ICP_SCORING_BLUEPRINT.route("/move_low_prospects_to_unassigned", methods=["POST"])
+@require_user
+def move_low_prospects_to_unassigned(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    move_low_ranked_prospects_to_unassigned(client_archetype_id=client_archetype_id)
+
+    return "OK", 200
