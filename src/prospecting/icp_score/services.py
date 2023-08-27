@@ -665,7 +665,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
         update_mappings.append(
             {
                 "id": prospect_id,
-                "icp_fit_score": score,
+                "icp_fit_score": label,
                 "icp_fit_reason": reasoning,
             }
         )
