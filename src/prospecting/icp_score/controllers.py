@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 from src.prospecting.icp_score.services import (
     update_icp_scoring_ruleset,
     apply_icp_scoring_ruleset_filters,
+    move_selected_prospects_to_unassigned,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.icp_score.models import ICPScoringRuleset
@@ -155,13 +156,36 @@ def run_on_prospects(client_sdr_id: int):
     client_archetype_id = get_request_parameter(
         "client_archetype_id", request, json=True, required=True
     )
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=False
+    )
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
         id=client_archetype_id
     ).first()
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return "Unauthorized", 401
 
-    success = apply_icp_scoring_ruleset_filters(client_archetype_id=client_archetype_id)
+    success = apply_icp_scoring_ruleset_filters(
+        client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
+    )
     if success:
         return "OK", 200
     return "Failed to apply ICP Scoring Ruleset", 500
+
+
+@ICP_SCORING_BLUEPRINT.route("/move_selected_prospects_to_unassigned", methods=["POST"])
+@require_user
+def post_move_selected_prospects_to_unassigned(client_sdr_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+    not_client_sdrs_prospects: Prospect = Prospect.query.filter(
+        Prospect.id.in_(prospect_ids),
+        Prospect.client_sdr_id != client_sdr_id,
+    ).all()
+    if not_client_sdrs_prospects:
+        return "Unauthorized - selected prospects do not belong to this user.", 401
+
+    move_selected_prospects_to_unassigned(prospect_ids=prospect_ids)
+
+    return "OK", 200

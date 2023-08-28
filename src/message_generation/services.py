@@ -977,7 +977,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         ai_generated_subject_line = GeneratedMessage(
             prospect_id=prospect_id,
             outbound_campaign_id=campaign_id,
-            prompt=ai_subject_line_prompt,
+            prompt=subject_line_prompt,
             completion=subject_line,
             message_status=GeneratedMessageStatus.DRAFT,
             message_type=GeneratedMessageType.EMAIL,
