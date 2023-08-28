@@ -4,7 +4,7 @@ from multiprocessing import process
 from flask import app
 from src.client.models import ClientArchetype
 from src.prospecting.icp_score.models import ICPScoringRuleset
-from app import db, app
+from app import db, app, celery
 from src.prospecting.models import Prospect
 from model_import import ResearchPayload
 from src.utils.abstract.attr_utils import deep_get
@@ -696,6 +696,8 @@ def score_one_prospect(
 
         queue.put((enriched_prospect_company, score, reasoning))
 
+        db.session.close()
+
         return (enriched_prospect_company, score, reasoning)
 
 
@@ -726,7 +728,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     raw_data = []
 
     results_queue = queue.Queue()
-    max_threads = 5
+    max_threads = 8
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
 
@@ -812,51 +814,24 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
             }
         )
 
-    results_queue = queue.Queue()
-    max_threads = 5
-
-    def update_prospects(update_mappings, model, queue, tries_remaining=3):
-        with app.app_context():
-            try:
-                db.session.bulk_update_mappings(model, update_mappings)
-                db.session.commit()
-                db.session.close()
-
-                queue.put(True)
-            except Exception as e:
-                db.session.rollback()
-                db.session.close()
-                if tries_remaining > 0:
-                    update_prospects(
-                        update_mappings=update_mappings,
-                        model=model,
-                        queue=queue,
-                        tries_remaining=tries_remaining - 1,
-                    )
-                    return
-
-                queue.put(False)
-
     print("Updating prospects...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-
-        futures = []
-        for batch in tqdm(
-            [update_mappings[i : i + 250] for i in range(0, len(update_mappings), 250)]
-        ):
-            futures.append(
-                executor.submit(
-                    update_prospects,
-                    update_mappings=batch,
-                    model=Prospect,
-                    queue=results_queue,
-                )
-            )
-
-        concurrent.futures.wait(futures)
+    for batch in tqdm(
+        [update_mappings[i : i + 50] for i in range(0, len(update_mappings), 50)]
+    ):
+        update_prospects.apply_async(args=[batch], priority=1)
 
     print("Done!")
     return True
+
+
+@celery.task(bind=True, max_retries=3)
+def update_prospects(self, update_mappings):
+    try:
+        db.session.bulk_update_mappings(Prospect, update_mappings)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 def move_selected_prospects_to_unassigned(prospect_ids: list[int]):
