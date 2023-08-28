@@ -711,7 +711,11 @@ def score_one_prospect(
 def apply_icp_scoring_ruleset_filters_task(
     self, client_archetype_id: int, prospect_ids: list[int]
 ):
-    apply_icp_scoring_ruleset_filters(client_archetype_id, prospect_ids)
+    try:
+        apply_icp_scoring_ruleset_filters(client_archetype_id, prospect_ids)
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e)
 
 
 def apply_icp_scoring_ruleset_filters(
