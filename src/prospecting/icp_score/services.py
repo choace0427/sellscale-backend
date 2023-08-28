@@ -728,15 +728,18 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     return True
 
 
-def move_low_ranked_prospects_to_unassigned(
-    client_archetype_id: int,
-):
+def move_selected_prospects_to_unassigned(prospect_ids: list[int]):
     """
-    Move all prospects with a score of 0 to the unassigned contact archetype.
+    Move selected prospects to unassigned contact archetype.
     """
     prospects: list[Prospect] = Prospect.query.filter(
-        Prospect.archetype_id == client_archetype_id, Prospect.icp_fit_score.in_([0, 1])
+        Prospect.id.in_(prospect_ids),
     ).all()
+
+    if not prospects:
+        return False
+
+    client_archetype_id: int = prospects[0].archetype_id
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
         id=client_archetype_id
     ).first()
