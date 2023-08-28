@@ -6,8 +6,8 @@ from app import db
 from flask import Blueprint, jsonify, request
 from src.prospecting.icp_score.services import (
     update_icp_scoring_ruleset,
-    apply_icp_scoring_ruleset_filters,
     move_selected_prospects_to_unassigned,
+    apply_icp_scoring_ruleset_filters_task,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.icp_score.models import ICPScoringRuleset
@@ -165,9 +165,16 @@ def run_on_prospects(client_sdr_id: int):
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return "Unauthorized", 401
 
-    success = apply_icp_scoring_ruleset_filters(
-        client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
-    )
+    if prospect_ids and len(prospect_ids) <= 50:
+        success = True
+        apply_icp_scoring_ruleset_filters_task.delay(
+            client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
+        )
+    else:
+        success = apply_icp_scoring_ruleset_filters_task(
+            client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
+        )
+
     if success:
         return "OK", 200
     return "Failed to apply ICP Scoring Ruleset", 500
