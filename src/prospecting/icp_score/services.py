@@ -728,7 +728,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     raw_data = []
 
     results_queue = queue.Queue()
-    max_threads = 8
+    max_threads = 32
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
 
