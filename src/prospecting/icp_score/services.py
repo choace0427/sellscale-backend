@@ -728,7 +728,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     raw_data = []
 
     results_queue = queue.Queue()
-    max_threads = 32
+    max_threads = 5
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
 
@@ -829,8 +829,10 @@ def update_prospects(self, update_mappings):
     try:
         db.session.bulk_update_mappings(Prospect, update_mappings)
         db.session.commit()
+        db.session.close()
     except Exception as e:
         db.session.rollback()
+        db.session.close()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
@@ -873,5 +875,6 @@ def move_selected_prospects_to_unassigned(prospect_ids: list[int]):
 
     db.session.bulk_save_objects(bulk_updates)
     db.session.commit()
+    db.session.close()
 
     return True
