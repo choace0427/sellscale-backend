@@ -156,13 +156,18 @@ def run_on_prospects(client_sdr_id: int):
     client_archetype_id = get_request_parameter(
         "client_archetype_id", request, json=True, required=True
     )
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=False
+    )
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
         id=client_archetype_id
     ).first()
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return "Unauthorized", 401
 
-    success = apply_icp_scoring_ruleset_filters(client_archetype_id=client_archetype_id)
+    success = apply_icp_scoring_ruleset_filters(
+        client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
+    )
     if success:
         return "OK", 200
     return "Failed to apply ICP Scoring Ruleset", 500

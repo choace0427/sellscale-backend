@@ -206,7 +206,9 @@ def count_num_icp_attributes(client_archetype_id: int):
     return count
 
 
-def get_raw_enriched_prospect_companies_list(client_archetype_id: int):
+def get_raw_enriched_prospect_companies_list(
+    client_archetype_id: int, prospect_ids: list[int]
+):
     """
     Get the raw enriched prospect companies list.
     """
@@ -232,8 +234,12 @@ def get_raw_enriched_prospect_companies_list(client_archetype_id: int):
             Prospect.employee_count,
             Prospect.linkedin_url,
         )
-        .all()
     )
+
+    if prospect_ids:
+        entries = entries.filter(Prospect.id.in_(prospect_ids))
+
+    entries = entries.all()
 
     processed = {}
     for entry in entries:
@@ -701,7 +707,16 @@ def score_one_prospect(
         return (enriched_prospect_company, score, reasoning)
 
 
-def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
+@celery.task(bind=True, max_retries=3)
+def apply_icp_scoring_ruleset_filters_task(
+    self, client_archetype_id: int, prospect_ids: list[int]
+):
+    apply_icp_scoring_ruleset_filters(client_archetype_id, prospect_ids)
+
+
+def apply_icp_scoring_ruleset_filters(
+    client_archetype_id: int, prospect_ids: list[int]
+):
     """
     Apply the ICP scoring ruleset to all prospects in the client archetype.
     """
@@ -710,7 +725,8 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     # Step 1: Get the raw prospect list with data enriched
     print("Pulling raw enriched prospect companies list...")
     raw_enriched_prospect_companies_list = get_raw_enriched_prospect_companies_list(
-        client_archetype_id
+        client_archetype_id=client_archetype_id,
+        prospect_ids=prospect_ids,
     )
     print(
         "Pulled raw enriched prospect companies list with length: "
@@ -728,7 +744,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     raw_data = []
 
     results_queue = queue.Queue()
-    max_threads = 5
+    max_threads = 32
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
 
@@ -818,7 +834,10 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     for batch in tqdm(
         [update_mappings[i : i + 50] for i in range(0, len(update_mappings), 50)]
     ):
-        update_prospects.apply_async(args=[batch], priority=1)
+        if prospect_ids and len(prospect_ids) <= 50:
+            update_prospects(batch)
+        else:
+            update_prospects.apply_async(args=[batch], priority=1)
 
     print("Done!")
     return True
