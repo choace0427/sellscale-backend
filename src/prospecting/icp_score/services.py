@@ -726,7 +726,7 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
     raw_data = []
 
     results_queue = queue.Queue()
-    max_threads = 32
+    max_threads = 5
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
 
@@ -820,10 +820,12 @@ def apply_icp_scoring_ruleset_filters(client_archetype_id: int):
             try:
                 db.session.bulk_update_mappings(model, update_mappings)
                 db.session.commit()
+                db.session.close()
 
                 queue.put(True)
             except Exception as e:
                 db.session.rollback()
+                db.session.close()
                 if tries_remaining > 0:
                     update_prospects(
                         update_mappings=update_mappings,
