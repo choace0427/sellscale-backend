@@ -160,7 +160,7 @@ def patch_sequence_step(client_sdr_id: int):
     )
     template = (
         get_request_parameter(
-            "template", request, json=True, required=False, parameter_type=list
+            "template", request, json=True, required=False, parameter_type=str
         )
         or None
     )
