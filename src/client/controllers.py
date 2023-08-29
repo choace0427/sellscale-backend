@@ -47,6 +47,7 @@ from src.client.services import (
     verify_client_sdr_auth_token,
     update_client_sdr_manual_warning_message,
     update_client_sdr_weekly_li_outbound_target,
+    get_personas_page_campaigns,
     update_client_sdr_weekly_email_outbound_target,
     get_ctas,
     get_client_archetypes,
@@ -334,6 +335,15 @@ def get_archetypes_overview(client_sdr_id: int):
 
     overview = get_personas_page_details(client_sdr_id)
     return jsonify({"message": "Success", "data": overview}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/get_archetypes/campaign_view", methods=["GET"])
+@require_user
+def get_archetypes_campaign_view(client_sdr_id: int):
+    """Gets campaign view of all the archetypes"""
+
+    response = get_personas_page_campaigns(client_sdr_id)
+    return jsonify(response), 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["GET"])

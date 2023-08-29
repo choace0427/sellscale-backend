@@ -2348,6 +2348,55 @@ def get_personas_page_details(client_sdr_id: int):
     return json_results
 
 
+def get_personas_page_campaigns(client_sdr_id: int) -> dict:
+    
+    results = db.session.execute(
+        """
+        select
+          client_archetype.archetype,
+          client_archetype.id,
+          client_archetype.created_at,
+          client_archetype.active,
+          count(distinct prospect.id) filter (where prospect_email.outreach_status in ('SENT_OUTREACH')) "EMAIL-SENT",
+          count(distinct prospect.id) filter (where prospect_email.outreach_status in ('EMAIL_OPENED', 'ACCEPTED')) "EMAIL-OPENED",
+          count(distinct prospect.id) filter (where prospect_email.outreach_status in ('ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) "EMAIL-REPLY",
+          count(distinct prospect.id) filter (where prospect.status in ('SENT_OUTREACH')) "LI-SENT",
+          count(distinct prospect.id) filter (where prospect.status in ('ACCEPTED')) "LI-OPENED",
+          count(distinct prospect.id) filter (where prospect.status not in ('PROSPECTED', 'SENT_OUTREACH', 'ACCEPTED', 'QUEUED_FOR_OUTREACH', 'SEND_OUTREACH_FAILED')) "LI-REPLY"
+        from client_archetype
+          left join prospect on prospect.archetype_id = client_archetype.id
+          left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+        where client_archetype.client_sdr_id = {client_sdr_id}
+            and client_archetype.is_unassigned_contact_archetype != true
+        group by 2;
+        """.format(
+            client_sdr_id=client_sdr_id
+        )
+    ).fetchall()
+
+    # index to column
+    column_map = {
+        0: "name",
+        1: "id",
+        2: "created_at",
+        3: "active",
+        4: "emails_sent",
+        5: "emails_opened",
+        6: "emails_replied",
+        7: "li_sent",
+        8: "li_opened",
+        9: "li_replied",
+    }
+
+    # Convert and format output
+    results = [
+        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        for row in results
+    ]
+
+    return {"message": "Success", "status_code": 200, "data": results}
+
+
 def add_client_product(
     client_sdr_id: int,
     name: str,
