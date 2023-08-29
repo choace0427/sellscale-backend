@@ -18,29 +18,9 @@ from src.research.models import AccountResearchPoints, ResearchPoints
 from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4_MODEL, wrapped_chat_gpt_completion
 
 
-DEFAULT_INITIAL_EMAIL_TEMPLATE = """Hi [[First name]]
+DEFAULT_INITIAL_EMAIL_TEMPLATE = """<p>Hi [[First name]]</p><p></p><p>[[Personalized first line related to them or their company]]</p><p></p><p>[[Mention what we do and offer, and how it can help them based on their background, company, and key details]]</p><p></p><p>[[Include a brief call to action]]</p><p></p><p>Best,</p><p>[[My name]]</p><p>[[My title]]</p>"""
 
-[[Personalized first line related to them or their company]]
-
-[[Mention what we do and offer, and how it can help them based on their background, company, and key details]]
-
-[[Include a brief call to action]]
-
-Best,
-[[My name]]
-[[My title]]"""
-
-
-DEFAULT_FOLLOWUP_EMAIL_TEMPLATE = """Hi [[First name]],
-
-I just wanted to followup and ask if you saw my previous message. [[Explain why I think a meeting would be valuable]].
-
-[[Thank the prospect for taking the time to read your messages]]
-
-Best,
-[[My name]]
-[[My title]]"""
-
+DEFAULT_FOLLOWUP_EMAIL_TEMPLATE = """<p>Hi [[First name]],</p><p></p><p>I just wanted to followup and ask if you saw my previous message. [[Explain why I think a meeting would be valuable]].</p><p></p><p>[[Thank the prospect for taking the time to read your messages]]</p><p></p><p>Best,</p><p>[[My name]]</p><p>[[My title]]</p>"""
 
 DEFAULT_SUBJECT_LINE_TEMPLATE = """[[Infer a captivating subject line from the email body]]"""
 
@@ -484,8 +464,10 @@ def ai_subject_line_prompt(
 
 Write an email subject line for the following email body. The subject line should be captivating and should entice the recipient to open the email.
 
-Use the following template:
+Use the following template. Stick to the template strictly:
+--- START TEMPLATE ---
 {subject_line}
+--- END TEMPLATE ---
 
 Here's the email body:
 --- START EMAIL BODY ---
@@ -524,7 +506,7 @@ More research --
 {prospect_research}
 {research_points}
 
-Generate the email subject line. Do not include the word 'Subject:' in the output. Do not include quotations around the subject line.
+Generate the email subject line. Do not include the word 'Subject:' in the output. Do not put the subject line in quotations.
 
 Output:""".format(
         subject_line=subject_line,

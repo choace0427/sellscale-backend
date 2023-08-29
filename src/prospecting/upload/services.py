@@ -1,6 +1,7 @@
 from src.client.models import ClientSDR
 from src.automation.li_searcher import search_for_li
 from app import db, celery
+from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
 from src.prospecting.models import (
     ProspectUploadsRawCSV,
     ProspectUploads,
@@ -282,6 +283,7 @@ def create_prospect_from_linkedin_link(
         get_iscraper_payload_error,
         research_corporate_profile_details,
     )
+
     try:
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
@@ -301,24 +303,30 @@ def create_prospect_from_linkedin_link(
         # If don't have a li_url but we have an email (and name, company?), search for the li_url
         if not linkedin_url and email:
 
-            company = prospect_upload.csv_row_data.get("company", '')
+            company = prospect_upload.csv_row_data.get("company", "")
 
-            full_name = prospect_upload.csv_row_data.get("full_name", '')
-            first_name = prospect_upload.csv_row_data.get("first_name", '')
-            last_name = prospect_upload.csv_row_data.get("last_name", '')
+            full_name = prospect_upload.csv_row_data.get("full_name", "")
+            first_name = prospect_upload.csv_row_data.get("first_name", "")
+            last_name = prospect_upload.csv_row_data.get("last_name", "")
 
             valid = full_name or (first_name and last_name)
-            if(not valid):
-                raise Exception("Not a valid name found to find email: {}".format(email))
+            if not valid:
+                raise Exception(
+                    "Not a valid name found to find email: {}".format(email)
+                )
 
-            result = search_for_li(email, client_sdr.timezone, str(full_name or first_name + ' ' + last_name).strip(), company)
+            result = search_for_li(
+                email,
+                client_sdr.timezone,
+                str(full_name or first_name + " " + last_name).strip(),
+                company,
+            )
 
             if result:
                 linkedin_url = result
-                #print("Found LinkedIn URL: {}".format(linkedin_url))
+                # print("Found LinkedIn URL: {}".format(linkedin_url))
             else:
                 raise Exception("No LinkedIn URL found for email: {}".format(email))
-
 
         # Get the LinkedIn URL profile id for iScraper.
         if "/in/" in linkedin_url:
@@ -438,7 +446,10 @@ def create_prospect_from_linkedin_link(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def run_and_assign_health_score(
-    self, archetype_id: Optional[int] = None, prospect_id: Optional[int] = None, live: Optional[bool] = False
+    self,
+    archetype_id: Optional[int] = None,
+    prospect_id: Optional[int] = None,
+    live: Optional[bool] = False,
 ):
     """Celery task for running and assigning health scores to prospects.
 
@@ -487,16 +498,25 @@ def run_and_assign_health_score(
             prospect.health_check_score = health_score
             db.session.add(prospect)
             db.session.commit()
+            prospect_id = prospect.id
 
             if not live:
-                icp_classify.apply_async(
-                    args=[prospect.id, client_sdr_id, archetype_id],
-                    queue="ml_prospect_classification",
-                    routing_key="ml_prospect_classification",
-                    priority=3,
+                # icp_classify.apply_async(
+                #     args=[prospect.id, client_sdr_id, archetype_id],
+                #     queue="ml_prospect_classification",
+                #     routing_key="ml_prospect_classification",
+                #     priority=3,
+                # )
+                apply_icp_scoring_ruleset_filters_task(
+                    client_archetype_id=archetype_id,
+                    prospect_ids=[prospect_id],
                 )
             else:
-                icp_classify(prospect_id=prospect.id, client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+                apply_icp_scoring_ruleset_filters_task(
+                    client_archetype_id=archetype_id,
+                    prospect_ids=[prospect_id],
+                )
+                # icp_classify(prospect_id=prospect.id, client_sdr_id=client_sdr_id, archetype_id=archetype_id)
             return
 
         # Regular, archetype-wide health score
@@ -569,6 +589,7 @@ def calculate_health_check_follower_sigmoid(num_followers: int = 0) -> int:
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def refresh_bio_followers_for_prospect(self, prospect_id: int):
     from src.research.linkedin.services import research_personal_profile_details
+
     try:
         p = Prospect.query.get(prospect_id)
         print(p)

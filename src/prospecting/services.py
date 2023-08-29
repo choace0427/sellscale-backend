@@ -21,6 +21,7 @@ from src.email_outbound.models import (
     VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
 from src.research.linkedin.services import (
     get_research_and_bullet_points_new,
     get_research_payload_new,
@@ -917,6 +918,10 @@ def add_prospect(
 
     if set_note:
         create_prospect_note(prospect_id=p_id, note=set_note)
+
+    apply_icp_scoring_ruleset_filters_task(
+        client_archetype_id=archetype_id, prospect_ids=[p_id]
+    )
 
     return p_id
 
@@ -1904,7 +1909,10 @@ def send_li_referral_outreach_connection(prospect_id: int, message: str) -> bool
     message_to_referred = gm.completion
     send_slack_message(
         message=f"SellScale just multi-threaded",
-        webhook_urls=[URL_MAP["company-pipeline"], client.pipeline_notifications_webhook_url],
+        webhook_urls=[
+            URL_MAP["company-pipeline"],
+            client.pipeline_notifications_webhook_url,
+        ],
         blocks=[
             {
                 "type": "header",
