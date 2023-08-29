@@ -506,7 +506,7 @@ More research --
 {prospect_research}
 {research_points}
 
-Generate the email subject line. Do not include the word 'Subject:' in the output. Do not put the subject line in quotations.
+Generate the email subject line. Do not include the word 'Subject:' in the output. Do not include quotations.
 
 Output:""".format(
         subject_line=subject_line,
@@ -549,5 +549,6 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
         model=OPENAI_CHAT_GPT_4_MODEL,
     )
     response = response if isinstance(response, str) else ""
+    response = response.strip('\"')
 
     return {"subject_line": response}
