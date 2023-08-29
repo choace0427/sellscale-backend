@@ -166,12 +166,12 @@ def run_on_prospects(client_sdr_id: int):
         return "Unauthorized", 401
 
     if prospect_ids and len(prospect_ids) <= 50:
-        success = True
-        apply_icp_scoring_ruleset_filters_task.delay(
+        success = apply_icp_scoring_ruleset_filters_task(
             client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
         )
     else:
-        success = apply_icp_scoring_ruleset_filters_task(
+        success = True
+        apply_icp_scoring_ruleset_filters_task.delay(
             client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
         )
 
