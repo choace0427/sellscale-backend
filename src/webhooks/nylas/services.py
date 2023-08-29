@@ -120,10 +120,14 @@ def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[
             db.session.commit()
             return False, "No account ID in object data"
         client_sdr: ClientSDR = ClientSDR.query.filter(
-            ClientSDR.active == True,
             ClientSDR.nylas_account_id == account_id,
             ClientSDR.nylas_active == True,
         ).first()
+        if client_sdr and not client_sdr.active:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "Client SDR is not active"
+            db.session.commit()
+            return False, "Client SDR is not active"
         if not client_sdr:
             payload.processing_status = NylasWebhookProcessingStatus.FAILED
             payload.processing_fail_reason = "No client SDR found"
@@ -314,10 +318,14 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             db.session.commit()
             return False, "No account ID in object data"
         client_sdr: ClientSDR = ClientSDR.query.filter(
-            ClientSDR.active == True,
             ClientSDR.nylas_account_id == account_id,
             ClientSDR.nylas_active == True,
         ).first()
+        if client_sdr and not client_sdr.active:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "Client SDR is not active"
+            db.session.commit()
+            return False, "Client SDR is not active"
         if not client_sdr:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
             nylas_payload.processing_fail_reason = "No client SDR found"
