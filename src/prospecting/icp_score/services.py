@@ -794,9 +794,9 @@ def apply_icp_scoring_ruleset_filters(
 
     # Determine the labels (VERY HIGH -> VERY LOW)
     sorted_keys = sorted(score_map.keys())
-    minimum_key = min(score_map.keys())
+    minimum_key = min(score_map.keys()) if len(score_map.keys()) > 0 else 0
     mid_minimum_key = minimum_key // 2
-    maximum_key = max(score_map.keys())
+    maximum_key = max(score_map.keys()) if len(score_map.keys()) > 0 else 0
     mid_maximum_key = maximum_key // 2
 
     label_map = {}
