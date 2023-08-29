@@ -713,9 +713,13 @@ def apply_icp_scoring_ruleset_filters_task(
 ):
     try:
         apply_icp_scoring_ruleset_filters(client_archetype_id, prospect_ids)
+
+        return True
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e)
+
+    return False
 
 
 def apply_icp_scoring_ruleset_filters(
