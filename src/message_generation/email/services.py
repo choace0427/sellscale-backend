@@ -464,8 +464,10 @@ def ai_subject_line_prompt(
 
 Write an email subject line for the following email body. The subject line should be captivating and should entice the recipient to open the email.
 
-Use the following template:
+Use the following template. Stick to the template strictly:
+--- START TEMPLATE ---
 {subject_line}
+--- END TEMPLATE ---
 
 Here's the email body:
 --- START EMAIL BODY ---
