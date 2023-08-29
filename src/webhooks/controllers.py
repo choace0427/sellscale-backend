@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
+from src.webhooks.models import NylasWebhookProcessingStatus, NylasWebhookType
 from src.webhooks.nylas.services import (
+    create_nylas_webhook_payload_entry,
     process_deltas_message_created,
     process_deltas_message_opened,
     process_deltas_event_update,
@@ -47,9 +49,18 @@ def nylas_webhook_message_created():
     if not is_genuine:
         return "Signature verification failed!", 401
 
+    # Let's save the webhook notification to our database, so that we can
+    # process it later.
+    data = request.get_json()
+    payload_id = create_nylas_webhook_payload_entry(
+        nylas_payload=data,
+        nylas_webhook_type=NylasWebhookType.MESSAGE_CREATED,
+        processing_status=NylasWebhookProcessingStatus.PENDING,
+        processing_fail_reason=None
+    )
+
     # Alright, we have a genuine webhook notification from Nylas!
     # Let's find out what it says...
-    data = request.get_json()
     for delta in data["deltas"]:
         # Processing the data might take awhile, or it might fail.
         # As a result, instead of processing it right now, we'll push a task
@@ -81,6 +92,16 @@ def nylas_webhook_message_opened():
     if not is_genuine:
         return "Signature verification failed!", 401
 
+    # Let's save the webhook notification to our database, so that we can
+    # process it later.
+    data = request.get_json()
+    payload_id = create_nylas_webhook_payload_entry(
+        nylas_payload=data,
+        nylas_webhook_type=NylasWebhookType.MESSAGE_OPENED,
+        processing_status=NylasWebhookProcessingStatus.PENDING,
+        processing_fail_reason=None
+    )
+
     data = request.get_json()
     deltas = data["deltas"]
 
@@ -106,8 +127,22 @@ def nylas_webhook_event_update():
     if not is_genuine:
         return "Signature verification failed!", 401
 
+    # Let's save the webhook notification to our database, so that we can
+    # process it later.
     data = request.get_json()
     deltas = data["deltas"]
+    if deltas[0]["type"] == "event.created":
+        webhook_type = NylasWebhookType.EVENT_CREATED
+    elif deltas[0]["type"] == "event.updated":
+        webhook_type = NylasWebhookType.EVENT_UPDATED
+    else:
+        raise Exception("Invalid webhook type")
+    payload_id = create_nylas_webhook_payload_entry(
+        nylas_payload=data,
+        nylas_webhook_type=webhook_type,
+        processing_status=NylasWebhookProcessingStatus.PENDING,
+        processing_fail_reason=None
+    )
 
     process_deltas_event_update.apply_async(
         args=[deltas]

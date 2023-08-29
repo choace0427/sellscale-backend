@@ -99,3 +99,4 @@ from src.simulation.models import Simulation
 from src.individual.models import Individual
 from src.analytics.models import SDRHealthStats
 from src.prospecting.icp_score.models import ICPScoringRuleset
+from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus, NylasWebhookType
