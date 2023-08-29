@@ -80,6 +80,10 @@ from src.client.services import (
     get_persona_setup_status_map_for_persona,
     get_client_sdr_table_info,
     update_sdr_conversion_percentages,
+    update_sdr_do_not_contact_filters,
+    get_sdr_do_not_contact_filters,
+    list_prospects_caught_by_sdr_client_filters,
+    remove_prospects_caught_by_sdr_client_filters,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -1938,6 +1942,62 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
     if not success:
         return "Failed to remove prospects", 400
     return "OK", 200
+
+
+
+@CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters", methods=["POST"])
+@require_user
+def post_sdr_do_not_contact_filters(client_sdr_id: int):
+    
+    do_not_contact_keywords_in_company_names = get_request_parameter(
+        "do_not_contact_keywords_in_company_names", request, json=True, required=False
+    )
+    do_not_contact_company_names = get_request_parameter(
+        "do_not_contact_company_names", request, json=True, required=False
+    )
+
+    success = update_sdr_do_not_contact_filters(
+        client_sdr_id=client_sdr_id,
+        do_not_contact_keywords_in_company_names=do_not_contact_keywords_in_company_names,
+        do_not_contact_company_names=do_not_contact_company_names,
+    )
+    if not success:
+        return "Failed to update do not contact filters", 400
+
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters", methods=["GET"])
+@require_user
+def get_sdr_do_not_contact_filters_endpoint(client_sdr_id: int):
+
+    data = get_sdr_do_not_contact_filters(
+        client_sdr_id=client_sdr_id,
+    )
+    return jsonify({"data": data}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters/caught_prospects", methods=["GET"])
+@require_user
+def get_sdr_caught_prospects_endpoint(client_sdr_id: int):
+    
+    prospects = list_prospects_caught_by_sdr_client_filters(
+        client_sdr_id=client_sdr_id,
+    )
+    return jsonify({"prospects": prospects}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters/remove_prospects", methods=["POST"])
+@require_user
+def post_sdr_remove_prospects_endpoint(client_sdr_id: int):
+    """Removes prospects from the do not contact filters"""
+    success = remove_prospects_caught_by_sdr_client_filters(
+        client_sdr_id=client_sdr_id,
+    )
+    if not success:
+        return "Failed to remove prospects", 400
+    return "OK", 200
+
 
 
 @CLIENT_BLUEPRINT.route("/product", methods=["POST"])

@@ -1952,6 +1952,57 @@ def get_do_not_contact_filters(client_id: int):
     }
 
 
+
+def update_sdr_do_not_contact_filters(
+    client_sdr_id: int,
+    do_not_contact_keywords_in_company_names: list[str],
+    do_not_contact_company_names: list[str],
+):
+    """Update the do not contact keywords list for a Client SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        do_not_contact_keywords (list[str]): List of do not contact keywords
+
+    Returns:
+        bool: True if successful, None otherwise
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return None
+
+    client_sdr.do_not_contact_keywords_in_company_names = (
+        do_not_contact_keywords_in_company_names
+    )
+    client_sdr.do_not_contact_company_names = do_not_contact_company_names
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    return True
+
+
+def get_sdr_do_not_contact_filters(client_sdr_id: int):
+    """Get the do not contact keywords list for a Client SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+
+    Returns:
+        list[str]: List of do not contact keywords
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return None
+
+    return {
+        "do_not_contact_keywords_in_company_names": client_sdr.do_not_contact_keywords_in_company_names,
+        "do_not_contact_company_names": client_sdr.do_not_contact_company_names,
+    }
+
+
+
+
+
 def submit_demo_feedback(
     client_sdr_id: int,
     client_id: int,
@@ -2267,6 +2318,72 @@ def remove_prospects_caught_by_client_filters(client_sdr_id: int):
     and checks if the company name is not ilike any of the do not contact keywords.
     """
     prospect_dicts = list_prospects_caught_by_client_filters(client_sdr_id)
+    prospect_ids = (
+        [prospect["id"] for prospect in prospect_dicts] if prospect_dicts else []
+    )
+    prospects = Prospect.query.filter(Prospect.id.in_(prospect_ids)).all()
+
+    bulk_updated_prospects = []
+
+    for prospect in prospects:
+        prospect.overall_status = ProspectOverallStatus.REMOVED
+        prospect.status = ProspectStatus.NOT_QUALIFIED
+
+        bulk_updated_prospects.append(prospect)
+
+    db.session.bulk_save_objects(bulk_updated_prospects)
+    db.session.commit()
+
+    return True
+
+
+
+def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
+    """Get the prospects caught by the do not contact filters for a Client SDR.
+    Checks if the prospect's company's name is not ilike any of the do not contact companies
+    and checks if the company name is not ilike any of the do not contact keywords.
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if (
+        not client_sdr.do_not_contact_company_names
+        and not client_sdr.do_not_contact_keywords_in_company_names
+    ):
+        return []
+
+    allStatuses = [status.name for status in ProspectOverallStatus]
+    allStatuses.remove(ProspectOverallStatus.REMOVED.name)
+    allStatuses.remove(ProspectOverallStatus.DEMO.name)
+    prospects: list[Prospect] = (
+        Prospect.query.filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.overall_status.in_(allStatuses),
+            or_(
+                *(
+                    [
+                        Prospect.company.ilike(f"%{company}%")
+                        for company in client_sdr.do_not_contact_company_names
+                    ]
+                    + [
+                        Prospect.company.ilike(f"%{keyword}%")
+                        for keyword in client_sdr.do_not_contact_keywords_in_company_names
+                    ]
+                )
+            ),
+        )
+        .limit(500)
+        .all()
+    )
+
+    return [prospect.to_dict() for prospect in prospects]
+
+
+def remove_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
+    """Remove the prospects caught by the do not contact filters for a Client SDR.
+    Checks if the prospect's company's name is not ilike any of the do not contact companies
+    and checks if the company name is not ilike any of the do not contact keywords.
+    """
+    prospect_dicts = list_prospects_caught_by_sdr_client_filters(client_sdr_id)
     prospect_ids = (
         [prospect["id"] for prospect in prospect_dicts] if prospect_dicts else []
     )

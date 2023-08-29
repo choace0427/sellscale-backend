@@ -259,6 +259,11 @@ class ClientSDR(db.Model):
         nullable=True,
     )
 
+    do_not_contact_keywords_in_company_names = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+    do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
+
     manual_warning_message = db.Column(db.String, nullable=True)
 
     li_at_token = db.Column(db.String)
@@ -355,6 +360,8 @@ class ClientSDR(db.Model):
             "disable_ai_on_message_send": self.disable_ai_on_message_send,
             "blacklisted_words": self.blacklisted_words,
             "conversion_percentages": self.conversion_percentages,
+            "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
+            "do_not_contact_company_names": self.do_not_contact_company_names,
         }
 
 
