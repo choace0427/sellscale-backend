@@ -68,7 +68,7 @@ def nylas_webhook_message_created():
         # we've got the data saved, and we can return a response to the
         # Nylas webhook notification right now.
         process_deltas_message_created.apply_async(
-            args=[delta]
+            args=[delta, payload_id]
         )
 
     # Now that all the `process_delta` tasks have been queued, we can
@@ -106,7 +106,7 @@ def nylas_webhook_message_opened():
     deltas = data["deltas"]
 
     process_deltas_message_opened.apply_async(
-        args=[deltas]
+        args=[deltas, payload_id]
     )
 
     return "Deltas for `message.opened` have been queued", 200
@@ -145,7 +145,7 @@ def nylas_webhook_event_update():
     )
 
     process_deltas_event_update.apply_async(
-        args=[deltas]
+        args=[deltas, payload_id]
     )
 
     return "Deltas for `event.created` or `event.updated` have been queued", 200

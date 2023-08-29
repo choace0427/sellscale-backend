@@ -51,7 +51,7 @@ def create_nylas_webhook_payload_entry(
 
 @celery.task(bind=True, max_retries=5)
 def process_deltas_message_created(
-    self, deltas: Union[list[dict], dict]
+    self, deltas: Union[list[dict], dict], payload_id: int
 ) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
@@ -59,140 +59,193 @@ def process_deltas_message_created(
 
     Args:
         deltas (list[dict]): A list of deltas from a Nylas webhook notification.
+        payload_id (int): The ID of the NylasWebhookPayloads entry that contains the webhook original payload.
 
     Returns:
         tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
     """
     # Process deltas
     if type(deltas) == dict:
-        process_single_message_created.apply_async(args=[deltas])
+        process_single_message_created.apply_async(args=[deltas, payload_id])
         return True, 1
 
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        process_single_message_created.apply_async(args=[delta])
+        process_single_message_created.apply_async(args=[delta, payload_id])
 
     return True, len(deltas)
 
 
 @celery.task(bind=True, max_retries=5)
-def process_single_message_created(self, delta: dict) -> tuple[bool, str]:
+def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[bool, str]:
     """Process a single `message.created` delta from a Nylas webhook notification.
 
     Args:
         delta (dict): A single `message.created` delta from a Nylas webhook notification.
+        payload_id (int): The ID of the NylasWebhookPayloads entry that contains the webhook original payload.
 
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating whether the delta was processed successfully, and a string containing the id of the message that was processed, or an error message.
     """
-    delta_type = delta.get("type")
-    if delta_type != "message.created":
-        return False, "Delta type is not 'message.created'"
+    try:
+        # Get payload and set it to "PROCESSING"
+        payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
+            payload_id)
+        if not payload:
+            return False, "No payload found"
+        payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
+        db.session.commit()
 
-    # Get object data
-    object_data: dict = delta.get("object_data")
-    if not object_data:
-        return False, "No object_data in delta"
+        delta_type = delta.get("type")
+        if delta_type != "message.created":
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "Delta type is not 'message.created'"
+            db.session.commit()
+            return False, "Delta type is not 'message.created'"
 
-    # Get the ID of the connected email account and the client SDR
-    account_id: str = object_data.get("account_id")
-    if not account_id:
-        return False, "No account ID in object data"
-    client_sdr: ClientSDR = ClientSDR.query.filter(
-        ClientSDR.active == True,
-        ClientSDR.nylas_account_id == account_id,
-        ClientSDR.nylas_active == True,
-    ).first()
-    if not client_sdr:
-        return False, "No client SDR found"
+        # Get object data
+        object_data: dict = delta.get("object_data")
+        if not object_data:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "No object_data in delta"
+            db.session.commit()
+            return False, "No object_data in delta"
 
-    # Get thread ID - the ID of the thread that the message belongs to
-    attributes: dict = object_data.get("attributes")
-    if not attributes:
-        return False, "No attributes in object data"
-    thread_id: str = attributes.get("thread_id")
-    if not thread_id:
-        return False, "No thread ID"
+        # Get the ID of the connected email account and the client SDR
+        account_id: str = object_data.get("account_id")
+        if not account_id:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "No account ID in object data"
+            db.session.commit()
+            return False, "No account ID in object data"
+        client_sdr: ClientSDR = ClientSDR.query.filter(
+            ClientSDR.active == True,
+            ClientSDR.nylas_account_id == account_id,
+            ClientSDR.nylas_active == True,
+        ).first()
+        if not client_sdr:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "No client SDR found"
+            db.session.commit()
+            return False, "No client SDR found"
 
-    # Get information about the thread
-    thread: dict = wrapped_nylas_get_single_thread(
-        client_sdr.nylas_auth_code, thread_id
-    )
+        # Get thread ID - the ID of the thread that the message belongs to
+        attributes: dict = object_data.get("attributes")
+        if not attributes:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "No attributes in object data"
+            db.session.commit()
+            return False, "No attributes in object data"
+        thread_id: str = attributes.get("thread_id")
+        if not thread_id:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "No thread ID"
+            db.session.commit()
+            return False, "No thread ID"
 
-    # Check if participants include a prospect.
-    # We only save threads with prospects.
-    participants: list[dict] = thread.get("participants")
-    if not participants:
-        return False, "No participants in thread"
-    participants = [participant.get("email") for participant in participants]
+        # Get information about the thread
+        thread: dict = wrapped_nylas_get_single_thread(
+            client_sdr.nylas_auth_code, thread_id
+        )
 
-    prospect: Prospect = Prospect.query.filter(
-        Prospect.client_id == client_sdr.client_id,
-        Prospect.client_sdr_id == client_sdr.id,
-        Prospect.email.in_(participants),
-    ).first()
-    if not prospect:
-        return False, "No prospect found"
-    prospect_email_id = prospect.approved_prospect_email_id
-    prospect_id = prospect.id
+        # Check if participants include a prospect.
+        # We only save threads with prospects.
+        participants: list[dict] = thread.get("participants")
+        if not participants:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "No participants in thread"
+            db.session.commit()
+            return False, "No participants in thread"
+        participants = [participant.get("email")
+                        for participant in participants]
 
-    # Prospect was found, so we should save the thread and messages.
-    result = nylas_update_threads(client_sdr.id, prospect.id, 5)
-    if not result:
-        return False, "Failed to save thread"
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.client_id == client_sdr.client_id,
+            Prospect.client_sdr_id == client_sdr.id,
+            Prospect.email.in_(participants),
+        ).first()
+        if not prospect:
+            payload.processing_status = NylasWebhookProcessingStatus.INELIGIBLE
+            payload.processing_fail_reason = "No prospect found"
+            db.session.commit()
+            return False, "No prospect found"
+        prospect_email_id = prospect.approved_prospect_email_id
+        prospect_id = prospect.id
 
-    messages: list[dict] = nylas_get_messages(
-        client_sdr.id, prospect.id, thread.get("id")
-    )
-    for message in messages:
-        # Check if message is bounced
-        email_from: list = message.get("message_from", [{"email": None}])
-        if len(email_from) == 1:
-            email_from: str = email_from[0].get("email")
-            bounced = is_email_bounced(email_from, message.get("body"))
-            if bounced:
-                # Update the Prospect's status to "BOUNCED"
+        # Prospect was found, so we should save the thread and messages.
+        result = nylas_update_threads(client_sdr.id, prospect.id, 5)
+        if not result:
+            payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            payload.processing_fail_reason = "Failed to save thread"
+            db.session.commit()
+            return False, "Failed to save thread"
+
+        messages: list[dict] = nylas_get_messages(
+            client_sdr.id, prospect.id, thread.get("id")
+        )
+        for message in messages:
+            # Check if message is bounced
+            email_from: list = message.get("message_from", [{"email": None}])
+            if len(email_from) == 1:
+                email_from: str = email_from[0].get("email")
+                bounced = is_email_bounced(email_from, message.get("body"))
+                if bounced:
+                    # Update the Prospect's status to "BOUNCED"
+                    updated = update_prospect_email_outreach_status(
+                        prospect_email_id=prospect_email_id,
+                        new_status=ProspectEmailOutreachStatus.BOUNCED,
+                    )
+
+                    # Calculate prospect overall status
+                    calculate_prospect_overall_status(prospect.id)
+
+                    payload.processing_status = NylasWebhookProcessingStatus.SUCCEEDED
+                    db.session.commit()
+                    return True, "Successfully saved new thread - Email was BOUNCED"
+
+            # Check if message is from prospect
+            if message.get("from_prospect") == True:
+                # Update the Prospect's status to "ACTIVE CONVO"
                 updated = update_prospect_email_outreach_status(
                     prospect_email_id=prospect_email_id,
-                    new_status=ProspectEmailOutreachStatus.BOUNCED,
+                    new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
                 )
+
+                prospect: Prospect = Prospect.query.get(prospect_id)
+
+                # Send Slack Notification if updated
+                if updated:
+                    send_status_change_slack_block(
+                        outreach_type=ProspectChannels.EMAIL,
+                        prospect=prospect,
+                        new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                        custom_message=" responded to your email! 🙌🏽",
+                        metadata={},
+                        last_email_message=message.get("snippet"),
+                    )
 
                 # Calculate prospect overall status
                 calculate_prospect_overall_status(prospect.id)
 
-                return True, "Successfully saved new thread - Email was BOUNCED"
+        payload.processing_status = NylasWebhookProcessingStatus.SUCCEEDED
+        db.session.commit()
+        return True, "Successfully saved new thread"
+    except Exception as e:
+        payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
+            payload_id)
+        if not payload:
+            return False, "No payload found"
 
-        # Check if message is from prospect
-        if message.get("from_prospect") == True:
-            # Update the Prospect's status to "ACTIVE CONVO"
-            updated = update_prospect_email_outreach_status(
-                prospect_email_id=prospect_email_id,
-                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-            )
-
-            prospect: Prospect = Prospect.query.get(prospect_id)
-
-            # Send Slack Notification if updated
-            if updated:
-                send_status_change_slack_block(
-                    outreach_type=ProspectChannels.EMAIL,
-                    prospect=prospect,
-                    new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                    custom_message=" responded to your email! 🙌🏽",
-                    metadata={},
-                    last_email_message=message.get("snippet"),
-                )
-
-            # Calculate prospect overall status
-            calculate_prospect_overall_status(prospect.id)
-
-    return True, "Successfully saved new thread"
+        payload.processing_status = NylasWebhookProcessingStatus.FAILED
+        payload.processing_fail_reason = str(e)
+        db.session.commit()
+        return False, str(e)
 
 
 @celery.task(bind=True, max_retries=5)
 def process_deltas_message_opened(
-    self, deltas: Union[list[dict], dict]
+    self, deltas: Union[list[dict], dict], payload_id: int
 ) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
@@ -200,157 +253,252 @@ def process_deltas_message_opened(
 
     Args:
         deltas (Union[list[dict], dict]): A list of deltas from a Nylas webhook notification.
+        payload_id (int): The ID of the NylasWebhookPayloads entry that contains the webhook original payload.
 
     Returns:
         tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
     """
     # Process deltas
     if type(deltas) == dict:
-        process_single_message_opened.apply_async(args=[deltas])
+        process_single_message_opened.apply_async(args=[deltas, payload_id])
         return True, 1
 
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        process_single_message_opened.apply_async(args=[delta])
+        process_single_message_opened.apply_async(args=[delta, payload_id])
 
     return True, len(deltas)
 
 
 @celery.task(bind=True, max_retries=5)
-def process_single_message_opened(self, delta: dict) -> tuple[bool, str]:
+def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[bool, str]:
     """Process a single `message.opened` delta from a Nylas webhook notification.
 
     Args:
         delta (dict): A single `message.opened` delta from a Nylas webhook notification.
+        payload_id (int): The ID of the NylasWebhookPayloads entry that contains the webhook original payload.
 
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating whether the delta was processed successfully, and a string containing the id of the message that was processed, or an error message.
     """
-    delta_type = delta.get("type")
-    if delta_type != "message.opened":
-        return False, "Delta type is not 'message.opened'"
+    try:
+        # Get payload and set it to "PROCESSING"
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
+            payload_id)
+        if not payload:
+            return False, "No payload found"
+        nylas_payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
+        db.session.commit()
 
-    # Get object data
-    object_data: dict = delta.get("object_data")
-    if not object_data:
-        return False, "No object_data in delta"
+        delta_type = delta.get("type")
+        if delta_type != "message.opened":
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Delta type is not 'message.opened'"
+            db.session.commit()
+            return False, "Delta type is not 'message.opened'"
 
-    # Get the ID of the connected email account and the client SDR
-    account_id: str = object_data.get("account_id")
-    if not account_id:
-        return False, "No account ID in object data"
-    client_sdr: ClientSDR = ClientSDR.query.filter(
-        ClientSDR.active == True,
-        ClientSDR.nylas_account_id == account_id,
-        ClientSDR.nylas_active == True,
-    ).first()
-    if not client_sdr:
-        return False, "No client SDR found"
+        # Get object data
+        object_data: dict = delta.get("object_data")
+        if not object_data:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No object_data in delta"
+            db.session.commit()
+            return False, "No object_data in delta"
 
-    # The metadata should include a payload, which will include Prospect ID and Prospect Email ID
-    metadata: dict = object_data.get("metadata")
-    if not metadata:
-        return False, "No metadata in delta"
+        # Get the ID of the connected email account and the client SDR
+        account_id: str = object_data.get("account_id")
+        if not account_id:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No account ID in object data"
+            db.session.commit()
+            return False, "No account ID in object data"
+        client_sdr: ClientSDR = ClientSDR.query.filter(
+            ClientSDR.active == True,
+            ClientSDR.nylas_account_id == account_id,
+            ClientSDR.nylas_active == True,
+        ).first()
+        if not client_sdr:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No client SDR found"
+            db.session.commit()
+            return False, "No client SDR found"
 
-    # Get the id of the message
-    message_id: str = metadata.get("message_id")
-    convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
-        EmailConversationMessage.nylas_message_id == message_id
-    ).first()
-    if not convo_message:
-        return False, "No message found"
-    convo_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
-        nylas_thread_id=convo_message.nylas_thread_id
-    )
-    if not convo_thread:
-        return False, "No conversation thread found"
+        # The metadata should include a payload, which will include Prospect ID and Prospect Email ID
+        metadata: dict = object_data.get("metadata")
+        if not metadata:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No metadata in delta"
+            db.session.commit()
+            return False, "No metadata in delta"
 
-    payload: dict = metadata.get("payload")
-    if not payload:
-        return False, "No payload in metadata"
-    else:
-        payload = json.loads(payload)
+        # Get the id of the message
+        message_id: str = metadata.get("message_id")
+        convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
+            EmailConversationMessage.nylas_message_id == message_id
+        ).first()
+        if not convo_message:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No message found"
+            db.session.commit()
+            return False, "No message found"
+        convo_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
+            nylas_thread_id=convo_message.nylas_thread_id
+        )
+        if not convo_thread:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No conversation thread found"
+            db.session.commit()
+            return False, "No conversation thread found"
 
-    prospect_id: int = payload.get("prospect_id")
-    prospect_email_id: int = payload.get("prospect_email_id")
-    client_sdr_id: int = payload.get("client_sdr_id")
+        payload: dict = metadata.get("payload")
+        if not payload:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No payload in metadata"
+            db.session.commit()
+            return False, "No payload in metadata"
+        else:
+            payload = json.loads(payload)
 
-    # Check that the information is correct:
-    # 1. ClientSDR ID in payload matches ClientSDR ID in delta
-    # 2. Prospect belongs to ClientSDR
-    # 3. Prospect Email belongs to Prospect
-    if client_sdr_id != client_sdr.id:
-        return False, "Client SDR ID in payload does not match Client SDR ID in delta"
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect:
-        return False, "No prospect found"
-    if prospect.client_sdr_id != client_sdr.id:
-        return False, "Prospect does not belong to Client SDR"
-    if prospect.approved_prospect_email_id != prospect_email_id:
-        return False, "Prospect Email does not belong to Prospect"
+        prospect_id: int = payload.get("prospect_id")
+        prospect_email_id: int = payload.get("prospect_email_id")
+        client_sdr_id: int = payload.get("client_sdr_id")
 
-    # Update the Prospect's status to "OPENED"
-    updated = update_prospect_email_outreach_status(
-        prospect_email_id=prospect_email_id,
-        new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
-    )
+        # Check that the information is correct:
+        # 1. ClientSDR ID in payload matches ClientSDR ID in delta
+        # 2. Prospect belongs to ClientSDR
+        # 3. Prospect Email belongs to Prospect
+        if client_sdr_id != client_sdr.id:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Client SDR ID in payload does not match Client SDR ID in delta"
+            db.session.commit()
+            return False, "Client SDR ID in payload does not match Client SDR ID in delta"
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No prospect found"
+            db.session.commit()
+            return False, "No prospect found"
+        if prospect.client_sdr_id != client_sdr.id:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Prospect does not belong to Client SDR"
+            db.session.commit()
+            return False, "Prospect does not belong to Client SDR"
+        if prospect.approved_prospect_email_id != prospect_email_id:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Prospect Email does not belong to Prospect"
+            db.session.commit()
+            return False, "Prospect Email does not belong to Prospect"
 
-    # Send Slack Message
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    if updated:
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.EMAIL,
-            prospect=prospect,
+        # Update the Prospect's status to "OPENED"
+        updated = update_prospect_email_outreach_status(
+            prospect_email_id=prospect_email_id,
             new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
-            custom_message=" opened your email! 📧",
-            metadata={
-                "prospect_email": prospect.email,
-                "email_title": convo_thread.subject,
-            },
         )
 
-    # Calculate prospect overall status
-    calculate_prospect_overall_status(prospect_id)
+        # Send Slack Message
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if updated:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=prospect,
+                new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+                custom_message=" opened your email! 📧",
+                metadata={
+                    "prospect_email": prospect.email,
+                    "email_title": convo_thread.subject,
+                },
+            )
 
-    return True, "Successfully tracked email open"
+        # Calculate prospect overall status
+        calculate_prospect_overall_status(prospect_id)
+
+        nylas_payload.processing_status = NylasWebhookProcessingStatus.SUCCEEDED
+        db.session.commit()
+        return True, "Successfully tracked email open"
+    except Exception as e:
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
+            payload_id)
+        if not nylas_payload:
+            return False, "No payload found"
+
+        nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+        nylas_payload.processing_fail_reason = str(e)
+        db.session.commit()
+        return False, str(e)
 
 
 @celery.task(bind=True, max_retries=5)
 def process_deltas_event_update(
-    self, deltas: Union[list[dict], dict]
+    self, deltas: Union[list[dict], dict], payload_id: int
 ) -> tuple[bool, int]:
     """Process a list of deltas from a Nylas webhook notification.
 
     Args:
         deltas (Union[list[dict], dict]): A list of deltas from a Nylas webhook notification.
+        payload_id (int): The ID of the NylasWebhookPayloads entry that contains the webhook original payload.
 
     Returns:
         tuple[bool, int]: A tuple containing a boolean indicating whether the deltas were processed successfully, and an integer indicating the number of deltas that were processed.
     """
     # Process deltas
     if type(deltas) == dict:
-        process_single_event_update.apply_async(args=[deltas])
+        process_single_event_update.apply_async(args=[deltas, payload_id])
         return True, 1
 
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        process_single_event_update.apply_async(args=[delta])
+        process_single_event_update.apply_async(args=[delta, payload_id])
 
     return True, len(deltas)
 
 
 @celery.task(bind=True, max_retries=5)
-def process_single_event_update(self, delta: dict) -> tuple[bool, str]:
+def process_single_event_update(self, delta: dict, payload_id: int) -> tuple[bool, str]:
+    """Process a single `event.updated` delta from a Nylas webhook notification.
 
-    account_id = delta.get("object_data", {}).get("account_id")
-    event_id = delta.get("object_data", {}).get("id")
-    if not account_id or not event_id:
-        return False, "No account ID or event ID in delta"
+    Args:
+        delta (dict): A single `event.updated` delta from a Nylas webhook notification.
+        payload_id (int): The ID of the NylasWebhookPayloads entry that contains the webhook original payload.
 
-    success = populate_single_prospect_event(account_id, event_id)
-    if success:
-        return True, "Successfully populated prospect event"
-    else:
-        return False, "Failed to populate prospect event"
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating whether the delta was processed successfully, and a string containing the id of the event that was processed, or an error message.
+    """
+    try:
+        # Get payload and set it to "PROCESSING"
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
+            payload_id)
+        if not nylas_payload:
+            return False, "No payload found"
+        nylas_payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
+        db.session.commit()
+
+        account_id = delta.get("object_data", {}).get("account_id")
+        event_id = delta.get("object_data", {}).get("id")
+        if not account_id or not event_id:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No account ID or event ID in delta"
+            db.session.commit()
+            return False, "No account ID or event ID in delta"
+
+        success = populate_single_prospect_event(account_id, event_id)
+        if success:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.SUCCEEDED
+            db.session.commit()
+            return True, "Successfully populated prospect event"
+        else:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Failed to populate prospect event"
+            db.session.commit()
+            return False, "Failed to populate prospect event"
+    except Exception as e:
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
+            payload_id)
+        if not nylas_payload:
+            return False, "No payload found"
+
+        nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+        nylas_payload.processing_fail_reason = str(e)
+        db.session.commit()
+        return False, str(e)
