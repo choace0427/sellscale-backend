@@ -1,7 +1,10 @@
 import datetime
 from multiprocessing import process
+from typing import Counter
 
 from flask import app
+import pandas as pd
+from pyparsing import dictOf
 from src.client.models import ClientArchetype
 from src.prospecting.icp_score.models import ICPScoringRuleset
 from app import db, app, celery
@@ -10,6 +13,7 @@ from model_import import ResearchPayload
 from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
 from tqdm import tqdm
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 
 import queue
 import concurrent.futures
@@ -272,6 +276,9 @@ def get_raw_enriched_prospect_companies_list(
             datetime.datetime.now().year
             - deep_get(processed[prospect_id].prospect_positions[-1], "date.start.year")
             if processed[prospect_id].prospect_positions
+            and deep_get(
+                processed[prospect_id].prospect_positions[-1], "date.start.year"
+            )
             else None
         )
 
@@ -967,3 +974,158 @@ def move_selected_prospects_to_unassigned(prospect_ids: list[int]):
     db.session.close()
 
     return True
+
+
+def predict_icp_scoring_filters_from_prospect_id(
+    client_archetype_id: int,
+):
+    enriched_pcs: dict = get_raw_enriched_prospect_companies_list(
+        client_archetype_id=client_archetype_id,
+        prospect_ids=None,
+    )
+
+    all_titles = [enriched_pcs[key].prospect_title for key in enriched_pcs.keys()]
+    # get top 10 titles with highest frequency
+    good_titles = [
+        title
+        for title, count in Counter(all_titles).most_common(10)
+        if title and title != "None"
+    ]
+
+    all_industries = [
+        enriched_pcs[key].prospect_industry for key in enriched_pcs.keys()
+    ]
+    # get top 10 industries with highest frequency
+    good_industries = [
+        industry
+        for industry, count in Counter(all_industries).most_common(10)
+        if industry and industry != "None"
+    ]
+
+    all_companies = [enriched_pcs[key].company_name for key in enriched_pcs.keys()]
+    # get top 10 companies with highest frequency
+    good_companies = [
+        company
+        for company, count in Counter(all_companies).most_common(10)
+        if company and company != "None"
+    ]
+
+    min_years_of_experience = min(
+        [
+            int(enriched_pcs[key].prospect_years_of_experience)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].prospect_years_of_experience
+            and enriched_pcs[key].prospect_years_of_experience != "None"
+        ]
+    )
+    max_years_of_experience = max(
+        [
+            int(enriched_pcs[key].prospect_years_of_experience)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].prospect_years_of_experience
+            and enriched_pcs[key].prospect_years_of_experience != "None"
+        ]
+    )
+    min_company_size = min(
+        [
+            int(enriched_pcs[key].company_employee_count)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].company_employee_count
+            and enriched_pcs[key].company_employee_count != "None"
+        ]
+    )
+    max_company_size = max(
+        [
+            int(enriched_pcs[key].company_employee_count)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].company_employee_count
+            and enriched_pcs[key].company_employee_count != "None"
+        ]
+    )
+
+    return {
+        "good_titles": good_titles,
+        "good_industries": good_industries,
+        "good_companies": good_companies,
+        "min_years_of_experience": min_years_of_experience,
+        "max_years_of_experience": max_years_of_experience,
+        "min_company_size": min_company_size,
+        "max_company_size": max_company_size,
+    }
+
+
+def set_icp_scores_to_predicted_values(client_archetype_id: int):
+    predicted_filters = predict_icp_scoring_filters_from_prospect_id(
+        client_archetype_id=client_archetype_id,
+    )
+
+    good_titles = predicted_filters["good_titles"]
+    good_industries = predicted_filters["good_industries"]
+    good_companies = predicted_filters["good_companies"]
+    min_years_of_experience = predicted_filters["min_years_of_experience"]
+    max_years_of_experience = predicted_filters["max_years_of_experience"]
+    min_company_size = predicted_filters["min_company_size"]
+    max_company_size = predicted_filters["max_company_size"]
+
+    success = update_icp_scoring_ruleset(
+        client_archetype_id=client_archetype_id,
+        included_individual_title_keywords=good_titles,
+        excluded_individual_title_keywords=[],
+        included_individual_industry_keywords=good_industries,
+        excluded_individual_industry_keywords=[],
+        individual_years_of_experience_start=min_years_of_experience,
+        individual_years_of_experience_end=max_years_of_experience,
+        included_individual_skills_keywords=[],
+        excluded_individual_skills_keywords=[],
+        included_individual_locations_keywords=[
+            "United States",
+            "Canada",
+            "US ",
+            "CA ",
+        ],
+        excluded_individual_locations_keywords=[],
+        included_individual_generalized_keywords=[],
+        excluded_individual_generalized_keywords=[],
+        included_company_name_keywords=good_companies,
+        excluded_company_name_keywords=[],
+        included_company_locations_keywords=["United States", "Canada", "US ", "CA "],
+        excluded_company_locations_keywords=[],
+        company_size_start=min_company_size,
+        company_size_end=max_company_size,
+        included_company_industries_keywords=[],
+        excluded_company_industries_keywords=[],
+        included_company_generalized_keywords=[],
+        excluded_company_generalized_keywords=[],
+    )
+
+    return success
+
+
+def clear_icp_ruleset(client_archetype_id: int):
+    success = update_icp_scoring_ruleset(
+        client_archetype_id=client_archetype_id,
+        included_individual_title_keywords=[],
+        excluded_individual_title_keywords=[],
+        included_individual_industry_keywords=[],
+        excluded_individual_industry_keywords=[],
+        individual_years_of_experience_start=None,
+        individual_years_of_experience_end=None,
+        included_individual_skills_keywords=[],
+        excluded_individual_skills_keywords=[],
+        included_individual_locations_keywords=[],
+        excluded_individual_locations_keywords=[],
+        included_individual_generalized_keywords=[],
+        excluded_individual_generalized_keywords=[],
+        included_company_name_keywords=[],
+        excluded_company_name_keywords=[],
+        included_company_locations_keywords=[],
+        excluded_company_locations_keywords=[],
+        company_size_start=None,
+        company_size_end=None,
+        included_company_industries_keywords=[],
+        excluded_company_industries_keywords=[],
+        included_company_generalized_keywords=[],
+        excluded_company_generalized_keywords=[],
+    )
+
+    return success

@@ -8,6 +8,8 @@ from src.prospecting.icp_score.services import (
     update_icp_scoring_ruleset,
     move_selected_prospects_to_unassigned,
     apply_icp_scoring_ruleset_filters_task,
+    clear_icp_ruleset,
+    set_icp_scores_to_predicted_values,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.icp_score.models import ICPScoringRuleset
@@ -196,3 +198,45 @@ def post_move_selected_prospects_to_unassigned(client_sdr_id: int):
     move_selected_prospects_to_unassigned(prospect_ids=prospect_ids)
 
     return "OK", 200
+
+
+@ICP_SCORING_BLUEPRINT.route("/set_icp_scores_to_predicted_values", methods=["POST"])
+@require_user
+def post_set_icp_scores_to_predicted_values(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    success = set_icp_scores_to_predicted_values(
+        client_archetype_id=client_archetype_id
+    )
+
+    if success:
+        return "OK", 200
+    return "Failed to set ICP scores to predicted values", 500
+
+
+@ICP_SCORING_BLUEPRINT.route("/clear_icp_ruleset", methods=["POST"])
+@require_user
+def post_clear_icp_ruleset(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return "Unauthorized", 401
+
+    success = clear_icp_ruleset(client_archetype_id=client_archetype_id)
+
+    if success:
+        return "OK", 200
+    return "Failed to clear ICP ruleset", 500
