@@ -424,8 +424,10 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
+    prospect_email_id = prospect.approved_prospect_email_id
+
     result = nylas_send_email(
-        client_sdr_id, prospect_id, subject, body, reply_to_message_id
+        client_sdr_id, prospect_id, subject, body, reply_to_message_id, prospect_email_id
     )
     nylas_message_id = result.get("id")
     if isinstance(nylas_message_id, str) and ai_generated:

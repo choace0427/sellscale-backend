@@ -116,9 +116,9 @@ def process_single_thread_replied(
             payload = json.loads(payload)
 
         # Parse the payload
-        prospect_id: int = metadata.get("prospect_id")
-        prospect_email_id: int = metadata.get("prospect_email_id")
-        client_sdr_id: int = metadata.get("client_sdr_id")
+        prospect_id: int = payload.get("prospect_id")
+        prospect_email_id: int = payload.get("prospect_email_id")
+        client_sdr_id: int = payload.get("client_sdr_id")
 
         # Check that the information is correct:
         # 1. ClientSDR ID in payload matches ClientSDR ID in delta
