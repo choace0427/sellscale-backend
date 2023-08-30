@@ -446,7 +446,7 @@ def score_one_prospect(
                 + ") "
             )
 
-        # Prospect Skills
+        # Prospect Skillz
         if (
             icp_scoring_ruleset.excluded_individual_skills_keywords
             and enriched_prospect_company.prospect_skills
