@@ -266,7 +266,7 @@ def get_raw_enriched_prospect_companies_list(
         processed[prospect_id].prospect_industry = industry
         processed[prospect_id].prospect_skills = deep_get(data, "personal.skills")
         processed[prospect_id].prospect_positions = deep_get(
-            data, "personal.profile_positions"
+            data, "personal.position_groups.0.profile_positions"
         )
         processed[prospect_id].prospect_years_of_experience = (
             datetime.datetime.now().year
@@ -405,16 +405,50 @@ def score_one_prospect(
 
         # Prospect Years of Experience
         if (
-            icp_scoring_ruleset.individual_years_of_experience_start
-            and enriched_prospect_company.prospect_years_of_experience
-            and enriched_prospect_company.prospect_years_of_experience
-            >= icp_scoring_ruleset.individual_years_of_experience_start
-            and icp_scoring_ruleset.individual_years_of_experience_end
-            and enriched_prospect_company.prospect_years_of_experience
-            <= icp_scoring_ruleset.individual_years_of_experience_end
+            enriched_prospect_company.prospect_years_of_experience
+            and (
+                icp_scoring_ruleset.individual_years_of_experience_start
+                and enriched_prospect_company.prospect_years_of_experience
+                and enriched_prospect_company.prospect_years_of_experience
+                >= icp_scoring_ruleset.individual_years_of_experience_start
+            )
+            and (
+                icp_scoring_ruleset.individual_years_of_experience_end
+                and icp_scoring_ruleset.individual_years_of_experience_end
+                and enriched_prospect_company.prospect_years_of_experience
+                <= icp_scoring_ruleset.individual_years_of_experience_end
+            )
         ):
             score += 1
-            reasoning += "(✅ prospect years of experience) "
+            reasoning += (
+                "(✅ prospect years of experience: "
+                + str(enriched_prospect_company.prospect_years_of_experience)
+                + ") "
+            )
+        elif enriched_prospect_company.prospect_years_of_experience and (
+            (
+                icp_scoring_ruleset.individual_years_of_experience_start
+                and enriched_prospect_company.prospect_years_of_experience
+                and enriched_prospect_company.prospect_years_of_experience
+                < icp_scoring_ruleset.individual_years_of_experience_start
+            )
+            or (
+                icp_scoring_ruleset.individual_years_of_experience_end
+                and icp_scoring_ruleset.individual_years_of_experience_end
+                and enriched_prospect_company.prospect_years_of_experience
+                > icp_scoring_ruleset.individual_years_of_experience_end
+            )
+        ):
+            score -= num_attributes
+            reasoning += (
+                "(❌ prospect years of experience: "
+                + str(enriched_prospect_company.prospect_years_of_experience)
+                + ") "
+            )
+
+        import pdb
+
+        pdb.set_trace()
 
         # Prospect Skills
         if (
@@ -593,15 +627,18 @@ def score_one_prospect(
             reasoning += "(✅ company location: " + valid_company_location + ") "
 
         # Company Size
-        if (
-            icp_scoring_ruleset.company_size_start
-            and enriched_prospect_company.company_employee_count
-            and enriched_prospect_company.company_employee_count != "None"
-            and int(enriched_prospect_company.company_employee_count)
-            >= icp_scoring_ruleset.company_size_start
-            and icp_scoring_ruleset.company_size_end
-            and int(enriched_prospect_company.company_employee_count)
-            <= icp_scoring_ruleset.company_size_end
+        if enriched_prospect_company.company_employee_count != "None" and (
+            (
+                icp_scoring_ruleset.company_size_start
+                and enriched_prospect_company.company_employee_count
+                and int(enriched_prospect_company.company_employee_count)
+                >= icp_scoring_ruleset.company_size_start
+            )
+            and (
+                icp_scoring_ruleset.company_size_end
+                and int(enriched_prospect_company.company_employee_count)
+                <= icp_scoring_ruleset.company_size_end
+            )
         ):
             score += 1
             size = ""
@@ -610,16 +647,23 @@ def score_one_prospect(
             size += "-"
             if icp_scoring_ruleset.company_size_end:
                 size += str(icp_scoring_ruleset.company_size_end)
-            reasoning += "(✅ company size: " + size + ") "
-        elif (
-            icp_scoring_ruleset.company_size_start
-            and enriched_prospect_company.company_employee_count
-            and enriched_prospect_company.company_employee_count != "None"
-            and int(enriched_prospect_company.company_employee_count)
-            < icp_scoring_ruleset.company_size_start
-            and icp_scoring_ruleset.company_size_end
-            and int(enriched_prospect_company.company_employee_count)
-            > icp_scoring_ruleset.company_size_end
+            reasoning += (
+                "(✅ company size: "
+                + str(enriched_prospect_company.company_employee_count)
+                + ") "
+            )
+        elif enriched_prospect_company.company_employee_count != "None" and (
+            (
+                icp_scoring_ruleset.company_size_start
+                and enriched_prospect_company.company_employee_count
+                and int(enriched_prospect_company.company_employee_count)
+                < icp_scoring_ruleset.company_size_start
+            )
+            or (
+                icp_scoring_ruleset.company_size_end
+                and int(enriched_prospect_company.company_employee_count)
+                > icp_scoring_ruleset.company_size_end
+            )
         ):
             score -= num_attributes
             size = ""
@@ -628,7 +672,11 @@ def score_one_prospect(
             size += "-"
             if icp_scoring_ruleset.company_size_end:
                 size += str(icp_scoring_ruleset.company_size_end)
-            reasoning += "(❌ company size: " + size + ") "
+            reasoning += (
+                "(❌ company size: "
+                + str(enriched_prospect_company.company_employee_count)
+                + ") "
+            )
 
         # Company Industry
         if (
