@@ -1,5 +1,4 @@
 import email
-from tkinter.messagebox import QUESTION
 from src.li_conversation.models import LinkedInConvoMessage
 from src.message_generation.email.services import (
     ai_initial_email_prompt,
