@@ -290,7 +290,7 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
         # Get payload and set it to "PROCESSING"
         nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
             payload_id)
-        if not payload:
+        if not nylas_payload:
             return False, "No payload found"
         nylas_payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
         db.session.commit()
