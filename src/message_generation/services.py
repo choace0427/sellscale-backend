@@ -1,6 +1,12 @@
 import email
+from tkinter.messagebox import QUESTION
 from src.li_conversation.models import LinkedInConvoMessage
-from src.message_generation.email.services import ai_initial_email_prompt, ai_subject_line_prompt, generate_email, generate_subject_line
+from src.message_generation.email.services import (
+    ai_initial_email_prompt,
+    ai_subject_line_prompt,
+    generate_email,
+    generate_subject_line,
+)
 from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
@@ -748,7 +754,41 @@ def create_cta(
     db.session.add(cta)
     db.session.commit()
 
+    cta_id = cta.id
+    predict_cta_type(cta_id=cta_id)
+
     return cta
+
+
+def predict_cta_type(cta_id: int):
+    "Predicts the type of call-to-action based on the text value."
+    gm_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+    text_value = gm_cta.text_value
+
+    completion = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": "Given the following call-to-action, what type of call-to-action is it? Options could be Feedback-based, Meeting-based, Problem-based, Help-based, Company-based, Person-based, Role-based, News-based, Event-based etc.\nOnly write the type, do not say anything else.\n\nCall to Action:\n"
+                + text_value
+                + "\n\nType:",
+            }
+        ],
+        max_tokens=10,
+    )
+
+    if "based" not in completion:
+        return None
+
+    # assert it's only one word
+    if len(completion.split(" ")) > 2:
+        return None
+
+    gm_cta.cta_type = completion
+    db.session.add(gm_cta)
+    db.session.commit()
+
+    return completion
 
 
 def update_cta(
@@ -952,7 +992,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         )
         # 7b. Generate the email body
         email_body = generate_email(prompt=initial_email_prompt)
-        email_body = email_body.get('body')
+        email_body = email_body.get("body")
 
         # 8a. Get the Subject Line prompt
         subject_line_prompt = ai_subject_line_prompt(
@@ -962,7 +1002,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         )
         # 8b. Generate the subject line
         subject_line = generate_subject_line(prompt=subject_line_prompt)
-        subject_line = subject_line.get('subject_line')
+        subject_line = subject_line.get("subject_line")
 
         # 9. Create the GeneratedMessage objects
         ai_generated_body = GeneratedMessage(
