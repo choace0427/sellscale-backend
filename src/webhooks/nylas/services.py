@@ -343,7 +343,7 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
         # Get the id of the message
         message_id: str = metadata.get("message_id")
         convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
-            EmailConversationMessage.nylas_message_id == message_id
+            nylas_message_id=message_id
         ).first()
         if not convo_message:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
@@ -352,7 +352,7 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             return False, "No message found"
         convo_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
             nylas_thread_id=convo_message.nylas_thread_id
-        )
+        ).first()
         if not convo_thread:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
             nylas_payload.processing_fail_reason = "No conversation thread found"
