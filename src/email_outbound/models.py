@@ -534,6 +534,8 @@ class EmailConversationThread(db.Model):
     nylas_data_raw = db.Column(db.JSON, nullable=False)
     # <--- Comes from Nylas
 
+    prospect_replied = db.Column(db.Boolean, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -554,6 +556,7 @@ class EmailConversationThread(db.Model):
             "nylas_thread_id": self.nylas_thread_id,
             "nylas_message_ids": self.nylas_message_ids,
             "nylas_data_raw": self.nylas_data_raw,
+            "prospect_replied": self.prospect_replied,
         }
 
 
