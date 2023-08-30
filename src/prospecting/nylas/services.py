@@ -562,8 +562,9 @@ def nylas_send_email(
                 }
             ],
             "reply_to_message_id": reply_to_message_id,
-            "tracking": {  # Track opens
+            "tracking": {  # Track opens and thread replies
                 "opens": True,
+                "thread_replies": True,
                 "payload": tracking_payload_json,
             },
         },
