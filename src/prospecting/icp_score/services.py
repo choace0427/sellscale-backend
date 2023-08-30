@@ -446,10 +446,6 @@ def score_one_prospect(
                 + ") "
             )
 
-        import pdb
-
-        pdb.set_trace()
-
         # Prospect Skills
         if (
             icp_scoring_ruleset.excluded_individual_skills_keywords
