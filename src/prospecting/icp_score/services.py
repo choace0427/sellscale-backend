@@ -274,7 +274,21 @@ def get_raw_enriched_prospect_companies_list(
             if processed[prospect_id].prospect_positions
             else None
         )
-        processed[prospect_id].prospect_dump = str(deep_get(data, "personal"))
+
+        position_title = deep_get(
+            data, "personal.position_groups.0.profile_positions.0.title"
+        )
+        position_description = deep_get(
+            data, "personal.position_groups.0.profile_positions.0.description"
+        )
+        personal_bio = deep_get(data, "personal.bio")
+        processed[prospect_id].prospect_dump = (
+            str(position_title)
+            + " "
+            + str(position_description)
+            + " "
+            + str(personal_bio)
+        )
 
         processed[prospect_id].company_name = company_name
         processed[prospect_id].company_location = (
@@ -311,7 +325,10 @@ def get_raw_enriched_prospect_companies_list(
         processed[prospect_id].company_tagline = deep_get(
             data, "company.details.tagline"
         )
-        processed[prospect_id].company_dump = str(deep_get(data, "company"))
+
+        processed[prospect_id].company_dump = str(
+            deep_get(data, "company.details.description")
+        )
 
     return processed
 
@@ -744,7 +761,8 @@ def score_one_prospect(
                     break
             reasoning += "(✅ company general info: " + valid_generalized + ") "
 
-        queue.put((enriched_prospect_company, score, reasoning))
+        if queue:
+            queue.put((enriched_prospect_company, score, reasoning))
 
         db.session.close()
 
