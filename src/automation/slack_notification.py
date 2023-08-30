@@ -121,9 +121,11 @@ def send_status_change_slack_block(
                 "type": "section",
                 "text": {"type": "mrkdwn", "text": f"Prospect email: {email_address}"},
             },
+        )
+        message_blocks.append(
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": f"Subject: {subject}"},
+                "text": {"type": "mrkdwn", "text": f"Email subject: {subject}"},
             },
         )
 
