@@ -9,6 +9,7 @@ from ..utils.abstract.attr_utils import deep_get
 from src.ml.openai_wrappers import *
 import requests
 from bs4 import BeautifulSoup
+from app import db
 
 CLIENT_ID = 38  # SellScale Scribe client
 CLIENT_ARCHETYPE_ID = 268  # SellScale Scribe archetype
