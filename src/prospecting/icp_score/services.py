@@ -211,7 +211,9 @@ def count_num_icp_attributes(client_archetype_id: int):
 
 
 def get_raw_enriched_prospect_companies_list(
-    client_archetype_id: int, prospect_ids: list[int]
+    client_archetype_id: int,
+    prospect_ids: list[int],
+    is_lookalike_profile_only: bool = False,
 ):
     """
     Get the raw enriched prospect companies list.
@@ -239,6 +241,9 @@ def get_raw_enriched_prospect_companies_list(
             Prospect.linkedin_url,
         )
     )
+
+    if is_lookalike_profile_only:
+        entries = entries.filter(Prospect.is_lookalike_profile == True)
 
     if prospect_ids:
         entries = entries.filter(Prospect.id.in_(prospect_ids))
@@ -982,6 +987,7 @@ def predict_icp_scoring_filters_from_prospect_id(
     enriched_pcs: dict = get_raw_enriched_prospect_companies_list(
         client_archetype_id=client_archetype_id,
         prospect_ids=None,
+        is_lookalike_profile_only=True,
     )
 
     all_titles = [enriched_pcs[key].prospect_title for key in enriched_pcs.keys()]
