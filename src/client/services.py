@@ -2868,3 +2868,14 @@ def get_client_sdr_table_info(client_sdr_id: int):
     ]
 
     return data
+
+
+def update_archetype_emoji(archetype_id: int, emoji: str):
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return False
+
+    archetype.emoji = emoji
+    db.session.add(archetype)
+    db.session.commit()
+    return True

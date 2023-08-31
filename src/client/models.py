@@ -99,6 +99,8 @@ class ClientArchetype(db.Model):
     archetype = db.Column(db.String)
     filters = db.Column(db.JSON, nullable=True)
 
+    emoji = db.Column(db.String, nullable=True, default="👋")
+
     active = db.Column(db.Boolean, nullable=True, default=True)
 
     transformer_blocklist = db.Column(
