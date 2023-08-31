@@ -1,3 +1,4 @@
+import random
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -22,6 +23,7 @@ from datetime import datetime
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
     OPENAI_CHAT_GPT_4_MODEL,
+    wrapped_chat_gpt_completion,
     wrapped_create_completion,
 )
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
@@ -363,6 +365,10 @@ def create_client_archetype(
     create_default_bump_frameworks(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
+    )
+
+    predict_archetype_emoji(
+        archetype_id=archetype_id,
     )
 
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
@@ -2881,3 +2887,91 @@ def update_archetype_emoji(archetype_id: int, emoji: str):
     db.session.add(archetype)
     db.session.commit()
     return True
+
+
+def predict_archetype_emoji(archetype_id: int):
+    emojis = [
+        "✌",
+        "😂",
+        "😝",
+        "😁",
+        "😱",
+        "🙌",
+        "🍻",
+        "🔥",
+        "🌈",
+        "☀",
+        "🎈",
+        "🌹",
+        "💄",
+        "🎀",
+        "⚽",
+        "🎾",
+        "🏁",
+        "😡",
+        "👿",
+        "🐻",
+        "🐶",
+        "🐬",
+        "🐟",
+        "🍀",
+        "👀",
+        "🚗",
+        "🍎",
+        "💝",
+        "💙",
+        "👌",
+        "😉",
+        "😓",
+        "😳",
+        "💪",
+        "🍸",
+        "🔑",
+        "💖",
+        "🌟",
+        "🎉",
+        "🌺",
+        "🎶",
+        "👠",
+        "🏈",
+        "⚾",
+        "🏆",
+        "👽",
+        "💀",
+        "🐵",
+        "🐮",
+        "🐩",
+        "🐎",
+        "💣",
+        "👃",
+        "👂",
+        "🍓",
+        "💘",
+        "💜",
+        "👊",
+        "😜",
+        "😵",
+        "🙏",
+        "👋",
+        "🚽",
+        "💃",
+        "💎",
+        "🚀",
+        "🌙",
+        "🎁",
+        "⛄",
+        "🌊",
+        "⛵",
+        "🏀",
+        "🎱",
+        "💰",
+        "👸",
+        "🐰",
+        "🐷",
+        "🐍",
+        "🐫",
+        "🔫",
+        "🚲",
+        "🍉",
+    ]
+    update_archetype_emoji(archetype_id, random.choice(emojis))
