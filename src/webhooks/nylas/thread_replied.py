@@ -155,7 +155,7 @@ def process_single_thread_replied(
             return False, "No thread ID"
 
         # Update the thread
-        success = nylas_update_threads(client_sdr_id, prospect_id)
+        success = nylas_update_threads(client_sdr_id, prospect_id, 5)
         if not success:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
             nylas_payload.processing_fail_reason = "Failed to update thread"
