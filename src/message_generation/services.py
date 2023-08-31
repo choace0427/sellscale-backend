@@ -736,6 +736,7 @@ def create_cta(
     text_value: str,
     expiration_date: Optional[datetime.datetime],
     active: bool = True,
+    cta_type: str = "Manual",
 ):
     duplicate_cta_exists = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == archetype_id,
@@ -749,6 +750,7 @@ def create_cta(
         text_value=text_value,
         active=active,
         expiration_date=expiration_date,
+        cta_type=cta_type,
     )
     db.session.add(cta)
     db.session.commit()

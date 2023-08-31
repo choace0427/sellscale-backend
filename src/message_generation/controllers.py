@@ -251,11 +251,13 @@ def post_create_cta():
     expiration_date = (
         datetime.datetime.fromisoformat(date_str[:-1]) if date_str else None
     )
+    cta_type = get_request_parameter("cta_type", request, json=True, required=False)
 
     cta = create_cta(
         archetype_id=archetype_id,
         text_value=text_value,
         expiration_date=expiration_date,
+        cta_type=cta_type,
     )
     return jsonify({"cta_id": cta.id})
 
