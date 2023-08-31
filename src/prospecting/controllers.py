@@ -427,7 +427,12 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
     prospect_email_id = prospect.approved_prospect_email_id
 
     result = nylas_send_email(
-        client_sdr_id, prospect_id, subject, body, reply_to_message_id, prospect_email_id
+        client_sdr_id,
+        prospect_id,
+        subject,
+        body,
+        reply_to_message_id,
+        prospect_email_id,
     )
     nylas_message_id = result.get("id")
     if isinstance(nylas_message_id, str) and ai_generated:
@@ -674,6 +679,12 @@ def prospect_from_link(client_sdr_id: int):
     )
     url = get_request_parameter("url", request, json=True, required=True)
     live = get_request_parameter("live", request, json=True, required=False) or False
+    is_lookalike_profile = (
+        get_request_parameter(
+            "is_lookalike_profile", request, json=True, required=False
+        )
+        or False
+    )
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
@@ -699,7 +710,10 @@ def prospect_from_link(client_sdr_id: int):
         )
     else:
         success, prospect_id = create_prospect_from_linkedin_link(
-            archetype_id=archetype_id, url=url, batch=batch
+            archetype_id=archetype_id,
+            url=url,
+            batch=batch,
+            is_lookalike_profile=is_lookalike_profile,
         )
         if not success:
             return (

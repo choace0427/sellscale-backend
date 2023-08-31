@@ -803,6 +803,7 @@ def add_prospect(
     synchronous_research: bool = False,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
+    is_lookalike_profile: bool = False,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -898,6 +899,7 @@ def add_prospect(
             overall_status=overall_status,
             active=True,
             contract_size=archetype.contract_size,
+            is_lookalike_profile=is_lookalike_profile,
         )
         db.session.add(prospect)
         db.session.commit()
@@ -986,6 +988,7 @@ def create_prospect_from_linkedin_link(
     allow_duplicates: bool = True,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
+    is_lookalike_profile: bool = False,
 ):
     from src.research.linkedin.services import research_personal_profile_details
 
@@ -1044,6 +1047,7 @@ def create_prospect_from_linkedin_link(
             allow_duplicates=allow_duplicates,
             set_status=set_status,
             set_note=set_note,
+            is_lookalike_profile=is_lookalike_profile,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
