@@ -336,11 +336,14 @@ def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
     from model_import import Prospect
 
     if archetype_id:
-        return (
+        prospects = (
             Prospect.query.filter_by(client_id=client_id, archetype_id=archetype_id)
-            .order_by(func.random())
-            .first()
+            .order_by(Prospect.icp_fit_score.desc())
+            .limit(30)
+            .all()
         )
+        if len(prospects) > 0:
+            return random.choice(prospects)
 
     return Prospect.query.filter_by(client_id=client_id).order_by(func.random()).first()
 
