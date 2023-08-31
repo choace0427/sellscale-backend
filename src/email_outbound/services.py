@@ -572,6 +572,8 @@ def update_prospect_email_outreach_status(
         prospect_email.outreach_status = new_status
         db.session.add(prospect_email)
         db.session.commit()
+    else:
+        return False
 
     return True
 
