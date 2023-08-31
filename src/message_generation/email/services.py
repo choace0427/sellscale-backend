@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
+from src.email_outbound.services import get_email_messages_with_prospect_transcript_format
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import AccountResearchPoints, ResearchPoints
@@ -183,10 +184,12 @@ def ai_followup_email_prompt(
     client_sdr_id: int,
     prospect_id: int,
     thread_id: str,
-    override_sequence_id: Optional[int],
+    override_sequence_id: Optional[int] = None,
+    override_template: Optional[str] = None,
 ) -> str:
     """Generate an email for a prospect. If override_sequence_id is specified, then that sequence step template will be used in favor of the default.
 
+    Note: If an override template is provided, then the override sequence ID will be ignored.
     Note: This is only applicable to SENT_OUTREACH and BUMPED prospects. ie. No ACTIVE_CONVO, etc. prospects.
 
     Args:
@@ -247,20 +250,12 @@ def ai_followup_email_prompt(
     for point in account_research:
         account_points += f"- {point.title}: {point.reason}\n"
 
-    # Convert past messages to text. Append '>' to each line to make it a quote
-    past_messages = []
-    past_messages_raw = get_email_messages_with_prospect(
-        client_sdr_id, prospect_id, thread_id
+    # Get past messages in a transcript format
+    email_transcript = get_email_messages_with_prospect_transcript_format(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        thread_id=thread_id,
     )
-    if past_messages_raw:
-        for thread in past_messages_raw:
-            body: str = thread.get("body")
-            bs = BeautifulSoup(body, "html.parser")
-            body: str = bs.get_text()
-            body: str = re.sub(r"\n+", "\n", body)
-            body: str = "> " + body
-            body: str = body.strip().replace("\n", "\n> ")
-            past_messages.append(body)
 
     # Use the Default SellScale Template as the template
     template = DEFAULT_FOLLOWUP_EMAIL_TEMPLATE
@@ -291,6 +286,10 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.bumped_count == prospect_email.times_bumped
             ).first()
             template = sequence_step.template
+
+    # If we are testing a template, use that instead
+    if override_template is not None:
+        template = override_template
 
     prompt = """You are a sales development representative writing on behalf of the salesperson.
 
@@ -363,7 +362,7 @@ Output:""".format(
         prospect_research=account_points,
         research_points=research_points,
         persona_contact_objective=prospect_contact_objective,
-        past_threads="\n\n".join(past_messages),
+        past_threads=email_transcript,
     )
 
     return prompt

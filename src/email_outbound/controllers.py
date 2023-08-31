@@ -167,31 +167,3 @@ def get_all_sequences(client_sdr_id: int):
     )
 
     return get_sequences(client_sdr_id, archetype_id)
-
-
-@EMAIL_GENERATION_BLUEPRINT.route("/generate/email_response", methods=["POST"])
-@require_user
-def post_email_generation_generate_email_response(client_sdr_id: int):
-    """Generates a response to an email thread using Email Bump Framework and ChatGPT"""
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True
-    )
-    email_thread_id = get_request_parameter(
-        "email_thread_id", request, json=True, required=True
-    )
-    email_bump_framework_id = get_request_parameter(
-        "email_bump_framework_id", request, json=True, required=False
-    )
-    custom_account_research = get_request_parameter(
-        "custom_account_research", request, json=True, required=False
-    )
-
-    bump, prompt = generate_email_bump(
-        client_sdr_id = client_sdr_id,
-        prospect_id = prospect_id,
-        email_thread_id = email_thread_id,
-        email_bump_framework_id = email_bump_framework_id,
-        custom_account_research = custom_account_research,
-    )
-
-    return jsonify({"status": "success", "data": {"message": bump, "prompt": prompt}})
