@@ -94,11 +94,11 @@ def create_client(
     db.session.commit()
     c.regenerate_uuid()
 
-    create_client_sdr(
-        client_id=c.id,
-        name=contact_name,
-        email=contact_email,
-    )
+    # create_client_sdr(
+    #     client_id=c.id,
+    #     name=contact_name,
+    #     email=contact_email,
+    # )
 
     return {"client_id": c.id}
 
@@ -426,7 +426,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
     result = create_client_archetype(
         client_id=client_id,
         client_sdr_id=sdr.id,
-        archetype='Default Persona',
+        archetype="Default Persona",
         filters=None,
         base_archetype_id=None,
         disable_ai_after_prospect_engaged=False,
@@ -437,7 +437,10 @@ def create_client_sdr(client_id: int, name: str, email: str):
         active=True,
     )
 
-    return {"client_sdr_id": sdr.id, "client_archetype_id": result.get("client_archetype_id")}
+    return {
+        "client_sdr_id": sdr.id,
+        "client_archetype_id": result.get("client_archetype_id"),
+    }
 
 
 def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
@@ -1706,7 +1709,7 @@ def update_sdr_conversion_percentages(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return False
-    
+
     client_sdr.conversion_percentages = {
         "active_convo": active_convo,
         "scheduling": scheduling,
@@ -1952,7 +1955,6 @@ def get_do_not_contact_filters(client_id: int):
     }
 
 
-
 def update_sdr_do_not_contact_filters(
     client_sdr_id: int,
     do_not_contact_keywords_in_company_names: list[str],
@@ -1998,9 +2000,6 @@ def get_sdr_do_not_contact_filters(client_sdr_id: int):
         "do_not_contact_keywords_in_company_names": client_sdr.do_not_contact_keywords_in_company_names,
         "do_not_contact_company_names": client_sdr.do_not_contact_company_names,
     }
-
-
-
 
 
 def submit_demo_feedback(
@@ -2337,7 +2336,6 @@ def remove_prospects_caught_by_client_filters(client_sdr_id: int):
     return True
 
 
-
 def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
     """Get the prospects caught by the do not contact filters for a Client SDR.
     Checks if the prospect's company's name is not ilike any of the do not contact companies
@@ -2466,7 +2464,7 @@ def get_personas_page_details(client_sdr_id: int):
 
 
 def get_personas_page_campaigns(client_sdr_id: int) -> dict:
-    
+
     results = db.session.execute(
         """
         select
