@@ -173,7 +173,9 @@ def process_single_thread_replied(
         # Is the message from me? If not, then a prospect must have replied. Mark the thread as prospect_replied.
         from_self: bool = metadata.get("from_self")
         if not from_self:
-            thread: EmailConversationThread = EmailConversationThread.query.get(thread_id)
+            thread: EmailConversationThread = EmailConversationThread.query.filter_by(
+                nylas_thread_id=thread_id
+            )
             if not thread:
                 nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
                 nylas_payload.processing_fail_reason = "No thread found"
