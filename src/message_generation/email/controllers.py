@@ -75,7 +75,7 @@ def post_generate_followup_email(client_sdr_id: int):
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
     thread_id = get_request_parameter(
-        "thread_id", request, json=True, required=True, parameter_type=str
+        "thread_id", request, json=True, required=False, parameter_type=str
     )
     override_sequence_id = get_request_parameter(
         "override_sequence_id", request, json=True, required=False, parameter_type=int

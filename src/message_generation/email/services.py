@@ -183,7 +183,7 @@ Output:""".format(
 def ai_followup_email_prompt(
     client_sdr_id: int,
     prospect_id: int,
-    thread_id: str,
+    thread_id: Optional[str] = None,
     override_sequence_id: Optional[int] = None,
     override_template: Optional[str] = None,
 ) -> str:
@@ -195,8 +195,9 @@ def ai_followup_email_prompt(
     Args:
         client_sdr_id (int): The id of the client sdr
         prospect_id (int): The id of the prospect
-        thread_id (str): The id of the thread
-        override_sequence_id (int): The id of a sequence step to use. Overrides the default.
+        thread_id (Optional[str], optional): The thread id of the email. Defaults to None.
+        override_sequence_id (Optional[int], optional): The sequence step ID to use. Defaults to None.
+        override_template (Optional[str], optional): The template to test. Defaults to None.
     Returns:
         string: The prompt for the email
     """
@@ -250,12 +251,14 @@ def ai_followup_email_prompt(
     for point in account_research:
         account_points += f"- {point.title}: {point.reason}\n"
 
-    # Get past messages in a transcript format
-    email_transcript = get_email_messages_with_prospect_transcript_format(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        thread_id=thread_id,
-    )
+    # If we have a thread ID, get past messages in a transcript format
+    email_transcript = "NO PAST THREAD AVAILABLE"
+    if thread_id is not None:
+        email_transcript = get_email_messages_with_prospect_transcript_format(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            thread_id=thread_id,
+        )
 
     # Use the Default SellScale Template as the template
     template = DEFAULT_FOLLOWUP_EMAIL_TEMPLATE
