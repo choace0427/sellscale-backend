@@ -429,19 +429,19 @@ def create_client_sdr(client_id: int, name: str, email: str):
     create_unassigned_contacts_archetype(sdr.id)
 
     # Create a default persona for them
-    result = create_client_archetype(
-        client_id=client_id,
-        client_sdr_id=sdr.id,
-        archetype="Default Persona",
-        filters=None,
-        base_archetype_id=None,
-        disable_ai_after_prospect_engaged=False,
-        persona_fit_reason="",
-        icp_matching_prompt="",
-        persona_contact_objective="",
-        is_unassigned_contact_archetype=False,
-        active=True,
-    )
+    # result = create_client_archetype(
+    #     client_id=client_id,
+    #     client_sdr_id=sdr.id,
+    #     archetype="Default Persona",
+    #     filters=None,
+    #     base_archetype_id=None,
+    #     disable_ai_after_prospect_engaged=False,
+    #     persona_fit_reason="",
+    #     icp_matching_prompt="",
+    #     persona_contact_objective="",
+    #     is_unassigned_contact_archetype=False,
+    #     active=True,
+    # )
 
     return {
         "client_sdr_id": sdr.id,
