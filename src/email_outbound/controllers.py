@@ -1,5 +1,5 @@
 from src.client.models import ClientSDR, Client
-from src.email_outbound.services import generate_email_bump, get_sequences, add_sequence
+from src.email_outbound.services import get_sequences, add_sequence
 from src.authentication.decorators import require_user
 from app import db
 from src.prospecting.models import Prospect

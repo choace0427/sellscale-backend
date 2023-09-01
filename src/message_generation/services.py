@@ -756,40 +756,90 @@ def create_cta(
     db.session.commit()
 
     cta_id = cta.id
-    predict_cta_type(cta_id=cta_id)
 
     return cta
 
 
-def predict_cta_type(cta_id: int):
+def backfill_cta_types(cta_id: int):
     "Predicts the type of call-to-action based on the text value."
-    gm_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
-    text_value = gm_cta.text_value
+    entries = db.session.execute(
+        """
+        select 
+            generated_message_cta.id,
+            generated_message_cta.text_value,
+            case 
+                when generated_message_cta.text_value ilike '%the area%' or generated_message_cta.text_value ilike '%coffee%' or generated_message_cta.text_value ilike '%lunch%' or generated_message_cta.text_value ilike '%meet at%' then 'In-Person-based'
+                when generated_message_cta.text_value ilike '%helpful%' then 'Help-Based'
+                when generated_message_cta.text_value ilike '%your thoughts%' then 'Feedback-Based'
+                when generated_message_cta.text_value ilike '%what issues%' then 'Problem-Based'
+                when generated_message_cta.text_value ilike '%priority%' then 'Priority-Based'
+                when generated_message_cta.text_value ilike '%since you%re a%' then 'Persona-Based'
+                when generated_message_cta.text_value ilike '%given how%' and generated_message_cta.text_value ilike '%solution%' then 'Solution-Based'
+                when generated_message_cta.text_value ilike '%have you heard of%' then 'Company-Based'
+                when generated_message_cta.text_value ilike '%recently%' then 'Time-Based'
+                when generated_message_cta.text_value ilike '%demo of%' then 'Demo-Based'
+                when generated_message_cta.text_value ilike '%interested%' then 'Interest-Based'
+                when generated_message_cta.text_value ilike '%testing%' or generated_message_cta.text_value ilike '%test %' then 'Test-Based'
+                when generated_message_cta.text_value ilike '%? %' then 'Question-Based' 
+                when generated_message_cta.text_value ilike '%expert%' then 'Expertise-Based' 
+                when generated_message_cta.text_value ilike '%minutes%' then 'Meeting-Based' 
+                when generated_message_cta.text_value ilike '%best person%' then 'Persona-Based' 
+                when generated_message_cta.text_value ilike '%competitive%' or generated_message_cta.text_value ilike '%roadblock%' or generated_message_cta.text_value ilike '%given the%' then 'Pain-Based' 
+                when generated_message_cta.text_value ilike '%we work with%' or generated_message_cta.text_value ilike '%you%re a%' then 'Persona-Based' 
+                when generated_message_cta.text_value ilike '%others%' then 'FOMO-Based' 
+                when generated_message_cta.text_value ilike '%benchmark%' then 'Competitor-Based' 
+                when generated_message_cta.text_value ilike '%learn%' or generated_message_cta.text_value ilike '%strategy%' then 'Discovery-Based' 
+                when generated_message_cta.text_value ilike '%looking%' then 'Intent-Based' 
+                when generated_message_cta.text_value ilike '%chat%' or generated_message_cta.text_value ilike '%call %' then 'Meeting-Based' 
+                when generated_message_cta.text_value ilike '%\%%' then 'Result-Based' 
+                when generated_message_cta.text_value ilike '%you %' then 'Role-Based' 
+                when generated_message_cta.text_value ilike '%issues %' then 'Pain-Based' 
+                when generated_message_cta.text_value ilike '%check out %' then 'Demo-Based' 
+                when generated_message_cta.text_value ilike '%collab %' then 'Partner-Based' 
+                when generated_message_cta.text_value ilike '%partner %' then 'Partner-Based' 
+                when generated_message_cta.text_value ilike '%how %' then 'Solution-Based' 
+                when generated_message_cta.text_value ilike '%resource %' then 'Resource-Based' 
+                when generated_message_cta.text_value ilike '%feedback%' then 'Feedback-Based' 
+                when generated_message_cta.text_value ilike '% need%' then 'Priority-Based' 
+                when generated_message_cta.text_value ilike '% has worked%' then 'FOMO-Based' 
+                when generated_message_cta.text_value ilike '%worked%' then 'FOMO-Based' 
+                when generated_message_cta.text_value ilike '%enable%' then 'FOMO-Based' 
+                when generated_message_cta.text_value ilike '%good fit%' then 'Company-Based' 
+                when generated_message_cta.text_value ilike '%I can%' then 'Help-Based' 
+                when generated_message_cta.text_value ilike '%event%' or generated_message_cta.text_value ilike '%panel%' then 'Event-Based'
+                when generated_message_cta.text_value ilike '%Hmmmm%' then 'Test-Based' 
+                when generated_message_cta.text_value ilike '%explore%' then 'Partner-Based' 
+                when generated_message_cta.text_value ilike '%a fit%' then 'Company-Based' 
+                when generated_message_cta.text_value ilike '%useful%' then 'Feedback-Based' 
+                when generated_message_cta.text_value ilike '%open to%' then 'Role-Based' 
+                when generated_message_cta.text_value ilike '%connect%' then 'Connection-Based' 
+                when generated_message_cta.text_value ilike '%connect%' then 'Connection-Based' 
+                when generated_message_cta.text_value ilike '%consider%' then 'Feedback-Based' 
+                when generated_message_cta.text_value ilike '%perspective%' then 'Feedback-Based' 
+                when generated_message_cta.text_value ilike '%resource%' then 'Help-Based' 
+                when generated_message_cta.text_value ilike '%goals%' then 'Priority-Based' 
+                when generated_message_cta.text_value ilike '%your time%' then 'Priority-Based' 
+                when generated_message_cta.text_value ilike '%grow%' then 'Priority-Based' 
+                when generated_message_cta.text_value ilike '%sample%' or generated_message_cta.text_value ilike '%wddwdwdwdw%' or generated_message_cta.text_value ilike '%wd d wdwdw w dwd w d%' or generated_message_cta.text_value ilike '%dwwddwdwdw%' then 'Test-Based'
+                
+                when generated_message_cta.text_value ilike '%?%' then 'Question-Based' 
+            else ''
+            end label
+        from generated_message_cta
+        order by 2 asc;                    
+    """
+    ).fetchall()
 
-    completion = wrapped_chat_gpt_completion(
-        messages=[
-            {
-                "role": "user",
-                "content": "Given the following call-to-action, what type of call-to-action is it? Options could be Feedback-based, Meeting-based, Problem-based, Help-based, Company-based, Person-based, Role-based, News-based, Event-based etc.\nOnly write the type, do not say anything else.\n\nCall to Action:\n"
-                + text_value
-                + "\n\nType:",
-            }
-        ],
-        max_tokens=10,
-    )
+    for entry in tqdm(entries):
+        id = entry["id"]
+        label = entry["label"]
 
-    if "based" not in completion:
-        return None
-
-    # assert it's only one word
-    if len(completion.split(" ")) > 2:
-        return None
-
-    gm_cta.cta_type = completion
-    db.session.add(gm_cta)
-    db.session.commit()
-
-    return completion
+        gm: GeneratedMessageCTA = GeneratedMessageCTA.query.get(entry["id"])
+        print(gm.text_value, label)
+        if gm and gm.cta_type != label:
+            gm.cta_type = label
+            db.session.add(gm)
+            db.session.commit()
 
 
 def update_cta(
