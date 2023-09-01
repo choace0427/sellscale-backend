@@ -1135,3 +1135,40 @@ def clear_icp_ruleset(client_archetype_id: int):
     )
 
     return success
+
+
+def clone_icp_ruleset(source_archetype_id: int, target_archetype_id: int):
+    icp_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=source_archetype_id
+    ).first()
+
+    if not icp_ruleset:
+        return False
+
+    success = update_icp_scoring_ruleset(
+        client_archetype_id=target_archetype_id,
+        included_individual_title_keywords=icp_ruleset.included_individual_title_keywords,
+        excluded_individual_title_keywords=icp_ruleset.excluded_individual_title_keywords,
+        included_individual_industry_keywords=icp_ruleset.included_individual_industry_keywords,
+        excluded_individual_industry_keywords=icp_ruleset.excluded_individual_industry_keywords,
+        individual_years_of_experience_start=icp_ruleset.individual_years_of_experience_start,
+        individual_years_of_experience_end=icp_ruleset.individual_years_of_experience_end,
+        included_individual_skills_keywords=icp_ruleset.included_individual_skills_keywords,
+        excluded_individual_skills_keywords=icp_ruleset.excluded_individual_skills_keywords,
+        included_individual_locations_keywords=icp_ruleset.included_individual_locations_keywords,
+        excluded_individual_locations_keywords=icp_ruleset.excluded_individual_locations_keywords,
+        included_individual_generalized_keywords=icp_ruleset.included_individual_generalized_keywords,
+        excluded_individual_generalized_keywords=icp_ruleset.excluded_individual_generalized_keywords,
+        included_company_name_keywords=icp_ruleset.included_company_name_keywords,
+        excluded_company_name_keywords=icp_ruleset.excluded_company_name_keywords,
+        included_company_locations_keywords=icp_ruleset.included_company_locations_keywords,
+        excluded_company_locations_keywords=icp_ruleset.excluded_company_locations_keywords,
+        company_size_start=icp_ruleset.company_size_start,
+        company_size_end=icp_ruleset.company_size_end,
+        included_company_industries_keywords=icp_ruleset.included_company_industries_keywords,
+        excluded_company_industries_keywords=icp_ruleset.excluded_company_industries_keywords,
+        included_company_generalized_keywords=icp_ruleset.included_company_generalized_keywords,
+        excluded_company_generalized_keywords=icp_ruleset.excluded_company_generalized_keywords,
+    )
+
+    return success
