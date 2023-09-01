@@ -217,7 +217,7 @@ def ai_followup_email_prompt(
     # If Prospect is not in SENT_OUTREACH or BUMPED and we are not overriding the sequence step, then we should not be following up with them
     # Example: Prospect is in Active Conversation state, we shouldn't send a bump email
     # TODO: Eventually have intelligent systems that can handle automatically responding to prospect replies.
-    if prospect.overall_status not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED] and override_sequence_id is None:
+    if prospect.overall_status not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED] and override_sequence_id is None and override_template is None:
         raise Exception(
             "Prospect is not in SENT_OUTREACH or BUMPED status and shouldn't be followed up with.")
 
