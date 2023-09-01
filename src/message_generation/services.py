@@ -2528,12 +2528,18 @@ def generate_li_convo_init_msg(prospect_id: int):
     if len(research_points) == 0:
         return None, None
 
+    raw_research_points = ResearchPoints.query.filter(
+        ResearchPoints.id.in_(research_points)
+    ).all()
+    rp_values = [x.value for x in raw_research_points]
+
     completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
 
     return completion, {
         "prompt": few_shot_prompt,
         "cta": cta,
         "research_points": research_points,
+        "notes": rp_values,
     }
 
 
