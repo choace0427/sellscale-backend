@@ -694,7 +694,7 @@ def prospect_from_link(client_sdr_id: int):
 
     batch = generate_random_alphanumeric(32)
     prospect_id = None
-    if not live:
+    if not live and not is_lookalike_profile:
         create_prospect_from_linkedin_link.apply_async(
             args=[archetype_id, url, batch],
             queue="prospecting",
@@ -707,6 +707,13 @@ def prospect_from_link(client_sdr_id: int):
                 priority=3,
                 immutable=True,
             ),
+        )
+    elif not live and is_lookalike_profile:
+        create_prospect_from_linkedin_link.delay(
+            archetype_id=archetype_id,
+            url=url,
+            batch=batch,
+            is_lookalike_profile=is_lookalike_profile,
         )
     else:
         success, prospect_id = create_prospect_from_linkedin_link(
