@@ -235,6 +235,7 @@ class GeneratedMessageCTA(db.Model):
             "text_value": self.text_value,
             "active": is_cta_active(self.id),
             "expiration_date": self.expiration_date,
+            "cta_type": self.cta_type,
         }
 
 
