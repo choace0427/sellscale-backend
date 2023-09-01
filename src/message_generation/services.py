@@ -760,7 +760,7 @@ def create_cta(
     return cta
 
 
-def backfill_cta_types(cta_id: int):
+def backfill_cta_types():
     "Predicts the type of call-to-action based on the text value."
     entries = db.session.execute(
         """
