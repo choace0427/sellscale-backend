@@ -268,6 +268,8 @@ def ai_followup_email_prompt(
         sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
             override_sequence_id)
         template = sequence_step.template
+    elif override_template:
+        template = override_template
     else:
         # Get the template from the sequence step
         if prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH:
@@ -289,10 +291,6 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.bumped_count == prospect_email.times_bumped
             ).first()
             template = sequence_step.template
-
-    # If we are testing a template, use that instead
-    if override_template is not None:
-        template = override_template
 
     prompt = """You are a sales development representative writing on behalf of the salesperson.
 
