@@ -218,7 +218,8 @@ def run_queued_gm_job():
             prospect_id,
             outbound_campaign_id,
             generated_message_cta_id as cta_id,
-            id as gm_job_id
+            id as gm_job_id,
+            generated_message_job_queue.generated_message_type
         from generated_message_job_queue
         where 
             generated_message_job_queue.created_at > NOW() - '1 days'::INTERVAL and
@@ -239,21 +240,31 @@ def run_queued_gm_job():
         outbound_campaign_id = row[1]
         cta_id = row[2]
         gm_job_id = row[3]
+        generated_message_type = row[4]
 
         print("Running job for prospect_id: {}".format(prospect_id))
 
-        # Research and generate outreaches for the prospect
-        research_and_generate_outreaches_for_prospect.apply_async(
-            [
-                prospect_id,
-                outbound_campaign_id,
-                cta_id,
-                gm_job_id,
-            ],
-            queue="message_generation",
-            routing_key="message_generation",
-            priority=10,
-        )
+        if generated_message_type == GeneratedMessageType.LINKEDIN.value:
+            # Research and generate outreaches for the prospect
+            research_and_generate_outreaches_for_prospect.apply_async(
+                [
+                    prospect_id,
+                    outbound_campaign_id,
+                    cta_id,
+                    gm_job_id,
+                ],
+                queue="message_generation",
+                routing_key="message_generation",
+                priority=10,
+            )
+        elif generated_message_type == GeneratedMessageType.EMAIL.value:
+            # Research and generate outreaches for the prospect
+            generate_prospect_email.apply_async(
+                args=[prospect_id, outbound_campaign_id, gm_job_id],
+                queue="message_generation",
+                routing_key="message_generation",
+                priority=10,
+            )
 
 
 def update_generated_message_job_queue_status(
