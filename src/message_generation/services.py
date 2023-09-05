@@ -211,6 +211,7 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
+@celery.task
 def run_queued_gm_job():
     data = db.session.execute(
         """

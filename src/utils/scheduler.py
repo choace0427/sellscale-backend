@@ -263,7 +263,7 @@ def run_queued_gm_jobs():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        run_queued_gm_job()
+        run_queued_gm_job.delay()
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
