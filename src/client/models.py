@@ -1,3 +1,4 @@
+import enum
 from app import db
 from src.prospecting.models import ProspectStatus, Prospect
 from src.research.models import ResearchPointType
@@ -238,6 +239,29 @@ class SDRQuestionaireColumn(sa.types.TypeDecorator):
                 raise ValueError(f"Key {key} is not valid.")
 
 
+class LinkedInWarmupStatus(enum.Enum):
+    WARM_UP_5 = "WARM_UP_5"
+    WARM_UP_25 = "WARM_UP_25"
+    WARM_UP_50 = "WARM_UP_50"
+    WARM_UP_75 = "WARM_UP_75"
+    WARM_UP_90 = "WARM_UP_90"   # Considered "Fully Warmed Up"
+    CUSTOM_WARM_UP = "CUSTOM_WARM_UP"
+
+    def to_sla_value(status) -> int:
+        if status == LinkedInWarmupStatus.WARM_UP_5:
+            return 5
+        elif status == LinkedInWarmupStatus.WARM_UP_25:
+            return 25
+        elif status == LinkedInWarmupStatus.WARM_UP_50:
+            return 50
+        elif status == LinkedInWarmupStatus.WARM_UP_75:
+            return 75
+        elif status == LinkedInWarmupStatus.WARM_UP_90:
+            return 90
+        else:
+            return None
+
+
 class ClientSDR(db.Model):
     __tablename__ = "client_sdr"
 
@@ -320,6 +344,13 @@ class ClientSDR(db.Model):
 
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
+    # For Warmup
+    linkedin_warmup_status = db.Column(
+        sa.Enum(LinkedInWarmupStatus, create_constraint=False),
+        nullable=True,
+        default=LinkedInWarmupStatus.WARM_UP_5,
+    )
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
         self.uuid = uuid_str
@@ -364,6 +395,39 @@ class ClientSDR(db.Model):
             "conversion_percentages": self.conversion_percentages,
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
+            "linkedin_warmup_status": self.linkedin_warmup_status and self.linkedin_warmup_status.value,
+        }
+
+
+class LinkedInWarmupStatusChange(db.Model):
+    __tablename__ = "linkedin_warmup_status_change"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    # Old status and SLA
+    old_status = db.Column(
+        sa.Enum(LinkedInWarmupStatus, create_constraint=False),
+        nullable=True,
+    )
+    old_sla_value = db.Column(db.Integer, nullable=True)
+
+    # New status and SLA
+    new_status = db.Column(
+        sa.Enum(LinkedInWarmupStatus, create_constraint=False),
+        nullable=False,
+    )
+    new_sla_value = db.Column(db.Integer, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "old_status": self.old_status and self.old_status.value,
+            "old_sla_value": self.old_sla_value,
+            "new_status": self.new_status and self.new_status.value,
+            "new_sla_value": self.new_sla_value,
         }
 
 
