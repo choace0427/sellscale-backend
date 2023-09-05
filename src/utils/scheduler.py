@@ -256,6 +256,16 @@ def process_sdr_stats_job():
         process_sdr_stats.delay()
 
 
+def run_queued_gm_jobs():
+    from src.message_generation.services import run_queued_gm_job
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        run_queued_gm_job.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
@@ -272,6 +282,7 @@ scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
 scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
+scheduler.add_job(func=run_queued_gm_jobs, trigger="interval", seconds=30)
 
 # Hourly triggers
 scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)

@@ -243,6 +243,10 @@ def run_queued_gm_job():
         generated_message_type = row[4]
 
         print("Running job for prospect_id: {}".format(prospect_id))
+        send_slack_message(
+            "Running job for prospect_id: {}".format(prospect_id),
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
 
         if generated_message_type == GeneratedMessageType.LINKEDIN.value:
             # Research and generate outreaches for the prospect
@@ -1038,13 +1042,13 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
             db.session.commit()
 
             # Generate the prospect email
-            generate_prospect_email.apply_async(
-                args=[prospect_id, campaign_id, gm_job.id],
-                countdown=i * 10,
-                queue="message_generation",
-                routing_key="message_generation",
-                priority=10,
-            )
+            # generate_prospect_email.apply_async(
+            #     args=[prospect_id, campaign_id, gm_job.id],
+            #     countdown=i * 10,
+            #     queue="message_generation",
+            #     routing_key="message_generation",
+            #     priority=10,
+            # )
     except Exception as e:
         print(e)
         db.session.rollback()
