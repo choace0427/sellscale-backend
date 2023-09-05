@@ -276,6 +276,8 @@ class GeneratedMessageJobQueue(db.Model):
     error_message = db.Column(db.String, nullable=True)
     attempts = db.Column(db.Integer, nullable=True)
 
+    generated_message_type = db.Column(db.Enum(GeneratedMessageType), nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,

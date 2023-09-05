@@ -186,7 +186,9 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
                 prospect_id=prospect_id,
                 outbound_campaign_id=outbound_campaign_id,
                 status=GeneratedMessageJobStatus.PENDING,
+                generated_message_cta_id=cta_id,
                 attempts=0,
+                generated_message_type=GeneratedMessageType.LINKEDIN,
             )
             db.session.add(gm_job)
             db.session.commit()
@@ -974,6 +976,7 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
                 outbound_campaign_id=campaign_id,
                 status=GeneratedMessageJobStatus.PENDING,
                 attempts=0,
+                generated_message_type=GeneratedMessageType.EMAIL,
             )
             db.session.add(gm_job)
             db.session.commit()
@@ -1840,7 +1843,9 @@ def process_generated_msg_queue(
             db.session.commit()
 
             # Make sure that the message is at most 3 days old
-            if (datetime.datetime.utcnow() - li_convo_entry.date > datetime.timedelta(days=3)):
+            if datetime.datetime.utcnow() - li_convo_entry.date > datetime.timedelta(
+                days=3
+            ):
                 return False
 
             # Make sure that this is a SDR message
@@ -1864,7 +1869,10 @@ def process_generated_msg_queue(
             db.session.commit()
 
             # Make sure that the message is at most 3 days old
-            if (datetime.datetime.utcnow() - email_convo_entry.date_received > datetime.timedelta(days=3)):
+            if (
+                datetime.datetime.utcnow() - email_convo_entry.date_received
+                > datetime.timedelta(days=3)
+            ):
                 return False
 
             # Make sure that this is a SDR message
