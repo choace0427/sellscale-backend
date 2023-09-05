@@ -232,7 +232,7 @@ def run_queued_gm_job():
             ) and
             attempts < 3
         order by random()
-        limit 2;
+        limit 1;
     """
     ).fetchall()
 
