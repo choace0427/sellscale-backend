@@ -268,6 +268,10 @@ class GeneratedMessageJobQueue(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     outbound_campaign_id = db.Column(db.Integer, db.ForeignKey("outbound_campaign.id"))
 
+    generated_message_cta_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message_cta.id"), nullable=True
+    )
+
     status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
     error_message = db.Column(db.String, nullable=True)
     attempts = db.Column(db.Integer, nullable=True)
