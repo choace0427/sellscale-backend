@@ -194,21 +194,66 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
             db.session.commit()
 
             # Research and generate outreaches for the prospect
-            research_and_generate_outreaches_for_prospect.apply_async(
-                [
-                    prospect_id,
-                    outbound_campaign_id,
-                    cta_id,
-                    gm_job.id,
-                ],
-                countdown=i * 10,
-                queue="message_generation",
-                routing_key="message_generation",
-                priority=10,
-            )
+            # research_and_generate_outreaches_for_prospect.apply_async(
+            #     [
+            #         prospect_id,
+            #         outbound_campaign_id,
+            #         cta_id,
+            #         gm_job.id,
+            #     ],
+            #     countdown=i * 10,
+            #     queue="message_generation",
+            #     routing_key="message_generation",
+            #     priority=10,
+            # )
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def run_queued_gm_job():
+    data = db.session.execute(
+        """
+        select 
+            prospect_id,
+            outbound_campaign_id,
+            generated_message_cta_id as cta_id,
+            id as gm_job_id
+        from generated_message_job_queue
+        where 
+            generated_message_job_queue.created_at > NOW() - '1 days'::INTERVAL and
+            generated_message_job_queue.status = 'PENDING' and 
+            (
+                generated_message_job_queue.generated_message_type = 'LINKEDIN' and generated_message_cta_id is not null 
+                or
+                generated_message_job_queue.generated_message_type = 'EMAIL'
+            ) and
+            attempts < 3
+        order by random()
+        limit 2;
+    """
+    ).fetchall()
+
+    for row in data:
+        prospect_id = row[0]
+        outbound_campaign_id = row[1]
+        cta_id = row[2]
+        gm_job_id = row[3]
+
+        print("Running job for prospect_id: {}".format(prospect_id))
+
+        # Research and generate outreaches for the prospect
+        research_and_generate_outreaches_for_prospect.apply_async(
+            [
+                prospect_id,
+                outbound_campaign_id,
+                cta_id,
+                gm_job_id,
+            ],
+            queue="message_generation",
+            routing_key="message_generation",
+            priority=10,
+        )
 
 
 def update_generated_message_job_queue_status(
