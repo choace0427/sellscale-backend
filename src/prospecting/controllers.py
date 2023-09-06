@@ -1433,6 +1433,17 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
     return jsonify({"message": "Success", "data": li_msg_id}), 200
 
 
+@PROSPECTING_BLUEPRINT.route("<int:prospect_id>/li_msgs/", methods=["GET"])
+@require_user
+def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
+    
+    from model_import import LinkedinConversationEntry
+
+    convo: List[LinkedinConversationEntry] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+
+    return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
+
+
 @PROSPECTING_BLUEPRINT.route("<int:prospect_id>/msg_feedback/", methods=["POST"])
 @require_user
 def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
