@@ -1420,13 +1420,10 @@ def post_prospect_removal_check(client_sdr_id: int):
     )
 
 
-@PROSPECTING_BLUEPRINT.route("/determine_li_msg_from_content", methods=["POST"])
+@PROSPECTING_BLUEPRINT.route("<int:prospect_id>/determine_li_msg_from_content", methods=["POST"])
 @require_user
-def post_determine_li_msg_from_content(client_sdr_id: int):
+def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
     
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True, parameter_type=int
-    )
     content = get_request_parameter(
         "content", request, json=True, required=True, parameter_type=str
     )
@@ -1436,13 +1433,10 @@ def post_determine_li_msg_from_content(client_sdr_id: int):
     return jsonify({"message": "Success", "data": li_msg_id}), 200
 
 
-@PROSPECTING_BLUEPRINT.route("/msg_feedback/", methods=["POST"])
+@PROSPECTING_BLUEPRINT.route("<int:prospect_id>/msg_feedback/", methods=["POST"])
 @require_user
-def post_add_msg_feedback(client_sdr_id: int):
+def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
     
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True, parameter_type=int
-    )
     li_msg_id = get_request_parameter(
         "li_msg_id", request, json=True, required=False, parameter_type=int
     ) or None
