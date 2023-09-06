@@ -87,7 +87,7 @@ def create_warmup_schedule_linkedin(
 
 
 @celery.task(bind=True, max_retries=3)
-def auto_update_sdr_linkedin_sla_task():
+def auto_update_sdr_linkedin_sla_task(self):
     """Updates the LinkedIn SLA for all active SDRs, if applicable. This task is run every 24 hours."""
     # Get the IDs of all active Clients
     active_client_ids: list[int] = [client.id for client in Client.query.filter_by(active=True).all()]

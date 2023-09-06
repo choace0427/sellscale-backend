@@ -400,8 +400,8 @@ class ClientSDR(db.Model):
             "conversion_percentages": self.conversion_percentages,
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
-            "linkedin_warmup_status": self.warmup_linkedin_complete,
-            "warmup_schedule": warmup_schedule.to_dict() if warmup_schedule else None,
+            "warmup_linkedin_complete"
+            "warmup_linkedin_schedule": warmup_schedule.to_dict() if warmup_schedule else None,
         }
 
 
