@@ -240,12 +240,6 @@ def collect_and_generate_autopilot_campaign_for_sdr(
             [SLACK_CHANNEL],
         )
 
-        # todo(Aakash) FIX THIS
-        # campaign_id = oc.id
-        # generate_campaign(
-        #     campaign_id=campaign_id,
-        # )
-
         return (
             True,
             f"Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})",
