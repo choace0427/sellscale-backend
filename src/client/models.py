@@ -13,7 +13,8 @@ class Client(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
+    company_id = db.Column(
+        db.Integer, db.ForeignKey("company.id"), nullable=True)
     company = db.Column(db.String)
     contact_name = db.Column(db.String)
     contact_email = db.Column(db.String)
@@ -50,7 +51,8 @@ class Client(db.Model):
     do_not_contact_keywords_in_company_names = db.Column(
         db.ARRAY(db.String), nullable=True
     )
-    do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
+    do_not_contact_company_names = db.Column(
+        db.ARRAY(db.String), nullable=True)
 
     value_prop_key_points = db.Column(db.String, nullable=True)
     tone_attributes = db.Column(db.ARRAY(db.String), nullable=True)
@@ -63,7 +65,8 @@ class Client(db.Model):
     analytics_activation_date = db.Column(db.DateTime, nullable=True)
     analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
 
-    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+    contract_size = db.Column(
+        db.Integer, server_default="10000", nullable=False)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
@@ -113,7 +116,8 @@ class ClientArchetype(db.Model):
         db.Boolean, nullable=True, default=False
     )
 
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     persona_fit_reason = db.Column(db.String, nullable=True)
     icp_matching_prompt = db.Column(db.String, nullable=True)
     icp_matching_option_filters = db.Column(db.JSON, nullable=True)
@@ -128,7 +132,8 @@ class ClientArchetype(db.Model):
     prospect_filters = db.Column(db.JSON, nullable=True)
     email_blocks_configuration = db.Column(db.ARRAY(db.String), nullable=True)
 
-    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+    contract_size = db.Column(
+        db.Integer, server_default="10000", nullable=False)
 
     def to_dict(self) -> dict:
 
@@ -239,29 +244,6 @@ class SDRQuestionaireColumn(sa.types.TypeDecorator):
                 raise ValueError(f"Key {key} is not valid.")
 
 
-class LinkedInWarmupStatus(enum.Enum):
-    WARM_UP_5 = "WARM_UP_5"
-    WARM_UP_25 = "WARM_UP_25"
-    WARM_UP_50 = "WARM_UP_50"
-    WARM_UP_75 = "WARM_UP_75"
-    WARM_UP_90 = "WARM_UP_90"   # Considered "Fully Warmed Up"
-    CUSTOM_WARM_UP = "CUSTOM_WARM_UP"
-
-    def to_sla_value(status) -> int:
-        if status == LinkedInWarmupStatus.WARM_UP_5:
-            return 5
-        elif status == LinkedInWarmupStatus.WARM_UP_25:
-            return 25
-        elif status == LinkedInWarmupStatus.WARM_UP_50:
-            return 50
-        elif status == LinkedInWarmupStatus.WARM_UP_75:
-            return 75
-        elif status == LinkedInWarmupStatus.WARM_UP_90:
-            return 90
-        else:
-            return None
-
-
 class ClientSDR(db.Model):
     __tablename__ = "client_sdr"
 
@@ -288,7 +270,8 @@ class ClientSDR(db.Model):
     do_not_contact_keywords_in_company_names = db.Column(
         db.ARRAY(db.String), nullable=True
     )
-    do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
+    do_not_contact_company_names = db.Column(
+        db.ARRAY(db.String), nullable=True)
 
     manual_warning_message = db.Column(db.String, nullable=True)
 
@@ -302,7 +285,8 @@ class ClientSDR(db.Model):
 
     questionnaire = db.Column(SDRQuestionaireColumn, nullable=True)
 
-    client_pod_id = db.Column(db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
+    client_pod_id = db.Column(
+        db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
 
     nylas_auth_code = db.Column(db.String, nullable=True)
     nylas_account_id = db.Column(db.String, nullable=True)
@@ -312,7 +296,8 @@ class ClientSDR(db.Model):
     ml_credits = db.Column(db.Integer, nullable=True, default=5000)
 
     img_url = db.Column(db.String, nullable=True)
-    img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
+    img_expire = db.Column(db.Numeric(
+        20, 0), server_default="0", nullable=False)
 
     scrape_time = db.Column(db.Time, nullable=True)  # in UTC
     next_scrape = db.Column(db.DateTime, nullable=True)  # in UTC
@@ -326,7 +311,8 @@ class ClientSDR(db.Model):
     calendly_access_token = db.Column(db.String, nullable=True)
     calendly_refresh_token = db.Column(db.String, nullable=True)
 
-    auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
+    auto_generate_messages = db.Column(
+        db.Boolean, nullable=True, default=False)
     auto_calendar_sync = db.Column(db.Boolean, nullable=True, default=False)
     auto_bump = db.Column(db.Boolean, nullable=True, default=False)
 
@@ -337,19 +323,44 @@ class ClientSDR(db.Model):
     analytics_activation_date = db.Column(db.DateTime, nullable=True)
     analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
 
-    disable_ai_on_prospect_respond = db.Column(db.Boolean, nullable=True, default=False)
-    disable_ai_on_message_send = db.Column(db.Boolean, nullable=True, default=False)
+    disable_ai_on_prospect_respond = db.Column(
+        db.Boolean, nullable=True, default=False)
+    disable_ai_on_message_send = db.Column(
+        db.Boolean, nullable=True, default=False)
 
     blacklisted_words = db.Column(db.ARRAY(db.String), nullable=True)
 
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
-    # For Warmup
-    linkedin_warmup_status = db.Column(
-        sa.Enum(LinkedInWarmupStatus, create_constraint=False),
-        nullable=True,
-        default=LinkedInWarmupStatus.WARM_UP_5,
-    )
+    # Warmup
+    warmup_linkedin_complete = db.Column(db.Boolean, nullable=True, default=False)
+
+    def update_warmup_status(self) -> bool:
+        """Updates the warmup status for the SDR using the warmup schedule and SLA value
+
+        Returns:
+            bool: The warmup status for the SDR
+        """
+        # Get the warmup schedule
+        if self.warmup_linkedin_complete:
+            return True
+
+        warmup_schedule: WarmupScheduleLinkedIn = WarmupScheduleLinkedIn.query.filter_by(
+            client_sdr_id=self.id
+        ).first()
+
+        # If no warmup schedule exists, create one
+        if not warmup_schedule:
+            warmup_schedule = WarmupScheduleLinkedIn()
+            warmup_schedule.client_sdr_id = self.id
+            warmup_schedule.set_conservative_schedule()
+
+        # Check if the SDR is warm
+        is_warm = warmup_schedule.is_warm(self.weekly_li_outbound_target)
+        self.warmup_linkedin_complete = is_warm
+        db.session.commit()
+
+        return is_warm
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
@@ -360,6 +371,11 @@ class ClientSDR(db.Model):
 
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
+
+        # Get the warmup schedule
+        warmup_schedule: WarmupScheduleLinkedIn = WarmupScheduleLinkedIn.query.filter_by(
+            client_sdr_id=self.id
+        ).first()
 
         return {
             "id": self.id,
@@ -396,37 +412,141 @@ class ClientSDR(db.Model):
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "linkedin_warmup_status": self.linkedin_warmup_status and self.linkedin_warmup_status.value,
+            "warmup_schedule": warmup_schedule.to_dict() if warmup_schedule else None,
         }
 
 
-class LinkedInWarmupStatusChange(db.Model):
-    __tablename__ = "linkedin_warmup_status_change"
+class WarmupScheduleLinkedIn(db.Model):
+    __tablename__ = "warmup_schedule_linkedin"
 
     id = db.Column(db.Integer, primary_key=True)
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
 
-    # Old status and SLA
-    old_status = db.Column(
-        sa.Enum(LinkedInWarmupStatus, create_constraint=False),
-        nullable=True,
-    )
-    old_sla_value = db.Column(db.Integer, nullable=True)
+    week_0_sla = db.Column(db.Integer, nullable=False, default=5)
+    week_1_sla = db.Column(db.Integer, nullable=False, default=25)
+    week_2_sla = db.Column(db.Integer, nullable=False, default=50)
+    week_3_sla = db.Column(db.Integer, nullable=False, default=75)
+    week_4_sla = db.Column(db.Integer, nullable=False, default=90)
 
-    # New status and SLA
-    new_status = db.Column(
-        sa.Enum(LinkedInWarmupStatus, create_constraint=False),
-        nullable=False,
-    )
+    def is_warm(self, sla: int) -> bool:
+        """Checks if the SDR is warm based on the SLA value. Needs to be greater than or equal to last warmup step.
+
+        Args:
+            sla (int): The SLA value to check against
+
+        Returns:
+            bool: True if the SDR is warm, False otherwise
+        """
+        if self.week_4_sla and sla >= self.week_4_sla:
+            return True
+        elif self.week_3_sla and sla >= self.week_3_sla:
+            return True
+        elif self.week_2_sla and sla >= self.week_2_sla:
+            return True
+        elif self.week_1_sla and sla >= self.week_1_sla:
+            return True
+        elif self.week_0_sla and sla >= self.week_0_sla:
+            return True
+
+        return False
+
+    def set_conservative_schedule(self) -> bool:
+        """Sets the conservative schedule for the SDR. This is the default schedule
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        self.week_0_sla = 5
+        self.week_1_sla = 25
+        self.week_2_sla = 50
+        self.week_3_sla = 75
+        self.week_4_sla = 90
+        db.session.commit()
+
+        return True
+
+    def set_custom_schedule(
+        self,
+        week_0_sla: int = None,
+        week_1_sla: int = None,
+        week_2_sla: int = None,
+        week_3_sla: int = None,
+        week_4_sla: int = None,
+    ) -> bool:
+        """Sets a custom schedule for the SDR. If a value is not provided, the
+        existent value will be used. If no value exists, the conservative value will be used.
+
+        Args:
+            week_0_sla (int, optional): The SLA for week 0. Defaults to None.
+            week_1_sla (int, optional): The SLA for week 1. Defaults to None.
+            week_2_sla (int, optional): The SLA for week 2. Defaults to None.
+            week_3_sla (int, optional): The SLA for week 3. Defaults to None.
+            week_4_sla (int, optional): The SLA for week 4. Defaults to None.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        self.week_0_sla = week_0_sla or self.week_0_sla or 5
+        self.week_1_sla = week_1_sla or self.week_1_sla or 25
+        self.week_2_sla = week_2_sla or self.week_2_sla or 50
+        self.week_3_sla = week_3_sla or self.week_3_sla or 75
+        self.week_4_sla = week_4_sla or self.week_4_sla or 90
+        db.session.commit()
+
+        return True
+
+    def get_next_sla(self, sla: int) -> int:
+        """Gets the next SLA value for the SDR, or the current one.
+
+        Args:
+            sla (int): The current SLA value
+
+        Returns:
+            int: The next SLA value
+        """
+        if self.week_4_sla and sla >= self.week_4_sla:
+            return sla
+        elif self.week_3_sla and sla >= self.week_3_sla:
+            return self.week_4_sla
+        elif self.week_2_sla and sla >= self.week_2_sla:
+            return self.week_3_sla
+        elif self.week_1_sla and sla >= self.week_1_sla:
+            return self.week_2_sla
+        elif self.week_0_sla and sla >= self.week_0_sla:
+            return self.week_1_sla
+
+        return self.week_0_sla
+
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "week_0_sla": self.week_0_sla,
+            "week_1_sla": self.week_1_sla,
+            "week_2_sla": self.week_2_sla,
+            "week_3_sla": self.week_3_sla,
+            "week_4_sla": self.week_4_sla,
+        }
+
+
+class LinkedInSLAChange(db.Model):
+    __tablename__ = "warmup_linkedin_sla_change"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    # SLA values
+    old_sla_value = db.Column(db.Integer, nullable=True)
     new_sla_value = db.Column(db.Integer, nullable=False)
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
             "client_sdr_id": self.client_sdr_id,
-            "old_status": self.old_status and self.old_status.value,
             "old_sla_value": self.old_sla_value,
-            "new_status": self.new_status and self.new_status.value,
             "new_sla_value": self.new_sla_value,
         }
 

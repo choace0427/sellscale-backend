@@ -1,4 +1,5 @@
 import random
+from src.client.services_client_sdr import create_warmup_schedule_linkedin, update_sdr_linkedin_sla
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -399,11 +400,13 @@ def create_client_sdr(client_id: int, name: str, email: str):
     if not c:
         return None
 
+    DEFAULT_LINKEDIN_SLA = 5
+
     sdr = ClientSDR(
         client_id=client_id,
         name=name,
         email=email,
-        weekly_li_outbound_target=25,
+        weekly_li_outbound_target=DEFAULT_LINKEDIN_SLA,
         weekly_email_outbound_target=0,
         notification_allowlist=[
             ProspectStatus.SCHEDULING,
@@ -427,6 +430,11 @@ def create_client_sdr(client_id: int, name: str, email: str):
 
     create_sight_onboarding(sdr.id)
     create_unassigned_contacts_archetype(sdr.id)
+
+    # LINKEDIN: Create warmup schedule and set the SLA
+    # Is set to conservative by default
+    create_warmup_schedule_linkedin(sdr.id)
+    update_sdr_linkedin_sla(sdr.id, DEFAULT_LINKEDIN_SLA)
 
     # Create a default persona for them
     # result = create_client_archetype(
@@ -467,7 +475,7 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
         return False
 
     sdr.active = False
-    sdr.weekly_li_outbound_target = 0
+    update_sdr_linkedin_sla(sdr.id, 0)
     sdr.weekly_email_outbound_target = 0
     sdr.autopilot_enabled = False
 
@@ -840,11 +848,7 @@ def update_client_sdr_weekly_li_outbound_target(
     if not csdr:
         return None
 
-    csdr.weekly_li_outbound_target = weekly_li_outbound_target
-    db.session.add(csdr)
-    db.session.commit()
-
-    update_phantom_buster_launch_schedule(client_sdr_id)
+    update_sdr_linkedin_sla(client_sdr_id, weekly_li_outbound_target)
 
     return True
 

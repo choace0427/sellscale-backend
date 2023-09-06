@@ -36,6 +36,7 @@ URL_MAP = {
     "csm-individuals": "https://hooks.slack.com/services/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",
     "prospect-demo-soon": "https://hooks.slack.com/services/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",
     "eng-icp-errors": "https://hooks.slack.com/services/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",
+    "operations-sla-updater": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {
@@ -64,7 +65,7 @@ def send_delayed_slack_message(message: str, channel_name: str, delay_date: date
         and os.environ.get("FLASK_ENV") != "celery-production"
     ):
         return
-    
+
     zapier_slack_hook = 'https://hooks.zapier.com/hooks/catch/13803519/39efpuo/'
 
     response = requests.post(

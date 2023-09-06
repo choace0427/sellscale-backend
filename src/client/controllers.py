@@ -111,7 +111,7 @@ from src.client.services_client_pod import (
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.client.models import ClientArchetype, ClientSDR, Client, DemoFeedback
+from src.client.models import ClientArchetype, ClientSDR, Client, DemoFeedback, WarmupScheduleLinkedIn
 from app import db
 import os
 
@@ -554,6 +554,47 @@ def activate_sdr_endpoint():
         return "Failed to activate", 404
 
     return jsonify({"message": "Activated SDR"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/sla/linkedin/schedule", methods=["PATCH"])
+def patch_sdr_sla_linkedin_schedule():
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True, parameter_type=int
+    )
+    week_0_sla = get_request_parameter(
+        "week_0_sla", request, json=True, required=True, parameter_type=int
+    )
+    week_1_sla = get_request_parameter(
+        "week_1_sla", request, json=True, required=True, parameter_type=int
+    )
+    week_2_sla = get_request_parameter(
+        "week_2_sla", request, json=True, required=True, parameter_type=int
+    )
+    week_3_sla = get_request_parameter(
+        "week_3_sla", request, json=True, required=True, parameter_type=int
+    )
+    week_4_sla = get_request_parameter(
+        "week_4_sla", request, json=True, required=True, parameter_type=int
+    )
+
+    # Get the schedule
+    warmup_schedule: WarmupScheduleLinkedIn = WarmupScheduleLinkedIn.query.filter(
+        WarmupScheduleLinkedIn.client_sdr_id == client_sdr_id
+    ).first()
+    if not warmup_schedule:
+        return "Failed to find warmup schedule", 404
+
+    success = warmup_schedule.set_custom_schedule(
+        week_0_sla=week_0_sla,
+        week_1_sla=week_1_sla,
+        week_2_sla=week_2_sla,
+        week_3_sla=week_3_sla,
+        week_4_sla=week_4_sla,
+    )
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to update schedule"}), 404
+
+    return jsonify({"status": "success", "data": "Updated schedule"}), 200
 
 
 @CLIENT_BLUEPRINT.route("/reset_client_sdr_auth_token", methods=["POST"])

@@ -266,6 +266,16 @@ def run_queued_gm_jobs():
         run_queued_gm_job.delay()
 
 
+def run_auto_update_sdr_linkedin_sla_jobs():
+    from src.client.services_client_sdr import auto_update_sdr_linkedin_sla_task
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        auto_update_sdr_linkedin_sla_task.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
@@ -304,6 +314,7 @@ scheduler.add_job(
 )
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
+scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=daily_trigger)
 
 # Monthly triggers
 scheduler.add_job(func=replenish_sdr_credits, trigger=monthly_trigger)
