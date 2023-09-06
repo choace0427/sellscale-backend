@@ -13,8 +13,7 @@ class Client(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    company_id = db.Column(
-        db.Integer, db.ForeignKey("company.id"), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     company = db.Column(db.String)
     contact_name = db.Column(db.String)
     contact_email = db.Column(db.String)
@@ -51,8 +50,7 @@ class Client(db.Model):
     do_not_contact_keywords_in_company_names = db.Column(
         db.ARRAY(db.String), nullable=True
     )
-    do_not_contact_company_names = db.Column(
-        db.ARRAY(db.String), nullable=True)
+    do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
 
     value_prop_key_points = db.Column(db.String, nullable=True)
     tone_attributes = db.Column(db.ARRAY(db.String), nullable=True)
@@ -65,8 +63,7 @@ class Client(db.Model):
     analytics_activation_date = db.Column(db.DateTime, nullable=True)
     analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
 
-    contract_size = db.Column(
-        db.Integer, server_default="10000", nullable=False)
+    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
@@ -116,8 +113,7 @@ class ClientArchetype(db.Model):
         db.Boolean, nullable=True, default=False
     )
 
-    client_sdr_id = db.Column(
-        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     persona_fit_reason = db.Column(db.String, nullable=True)
     icp_matching_prompt = db.Column(db.String, nullable=True)
     icp_matching_option_filters = db.Column(db.JSON, nullable=True)
@@ -132,8 +128,7 @@ class ClientArchetype(db.Model):
     prospect_filters = db.Column(db.JSON, nullable=True)
     email_blocks_configuration = db.Column(db.ARRAY(db.String), nullable=True)
 
-    contract_size = db.Column(
-        db.Integer, server_default="10000", nullable=False)
+    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
 
     def to_dict(self) -> dict:
 
@@ -270,8 +265,7 @@ class ClientSDR(db.Model):
     do_not_contact_keywords_in_company_names = db.Column(
         db.ARRAY(db.String), nullable=True
     )
-    do_not_contact_company_names = db.Column(
-        db.ARRAY(db.String), nullable=True)
+    do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
 
     manual_warning_message = db.Column(db.String, nullable=True)
 
@@ -285,8 +279,7 @@ class ClientSDR(db.Model):
 
     questionnaire = db.Column(SDRQuestionaireColumn, nullable=True)
 
-    client_pod_id = db.Column(
-        db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
+    client_pod_id = db.Column(db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
 
     nylas_auth_code = db.Column(db.String, nullable=True)
     nylas_account_id = db.Column(db.String, nullable=True)
@@ -296,8 +289,7 @@ class ClientSDR(db.Model):
     ml_credits = db.Column(db.Integer, nullable=True, default=5000)
 
     img_url = db.Column(db.String, nullable=True)
-    img_expire = db.Column(db.Numeric(
-        20, 0), server_default="0", nullable=False)
+    img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
     scrape_time = db.Column(db.Time, nullable=True)  # in UTC
     next_scrape = db.Column(db.DateTime, nullable=True)  # in UTC
@@ -311,8 +303,7 @@ class ClientSDR(db.Model):
     calendly_access_token = db.Column(db.String, nullable=True)
     calendly_refresh_token = db.Column(db.String, nullable=True)
 
-    auto_generate_messages = db.Column(
-        db.Boolean, nullable=True, default=False)
+    auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_calendar_sync = db.Column(db.Boolean, nullable=True, default=False)
     auto_bump = db.Column(db.Boolean, nullable=True, default=False)
 
@@ -323,10 +314,8 @@ class ClientSDR(db.Model):
     analytics_activation_date = db.Column(db.DateTime, nullable=True)
     analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
 
-    disable_ai_on_prospect_respond = db.Column(
-        db.Boolean, nullable=True, default=False)
-    disable_ai_on_message_send = db.Column(
-        db.Boolean, nullable=True, default=False)
+    disable_ai_on_prospect_respond = db.Column(db.Boolean, nullable=True, default=False)
+    disable_ai_on_message_send = db.Column(db.Boolean, nullable=True, default=False)
 
     blacklisted_words = db.Column(db.ARRAY(db.String), nullable=True)
 
@@ -345,9 +334,9 @@ class ClientSDR(db.Model):
         if self.warmup_linkedin_complete:
             return True
 
-        warmup_schedule: WarmupScheduleLinkedIn = WarmupScheduleLinkedIn.query.filter_by(
-            client_sdr_id=self.id
-        ).first()
+        warmup_schedule: WarmupScheduleLinkedIn = (
+            WarmupScheduleLinkedIn.query.filter_by(client_sdr_id=self.id).first()
+        )
 
         # If no warmup schedule exists, create one
         if not warmup_schedule:
@@ -373,9 +362,9 @@ class ClientSDR(db.Model):
         client: Client = Client.query.get(self.client_id)
 
         # Get the warmup schedule
-        warmup_schedule: WarmupScheduleLinkedIn = WarmupScheduleLinkedIn.query.filter_by(
-            client_sdr_id=self.id
-        ).first()
+        warmup_schedule: WarmupScheduleLinkedIn = (
+            WarmupScheduleLinkedIn.query.filter_by(client_sdr_id=self.id).first()
+        )
 
         return {
             "id": self.id,
@@ -411,7 +400,7 @@ class ClientSDR(db.Model):
             "conversion_percentages": self.conversion_percentages,
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
-            "linkedin_warmup_status": self.linkedin_warmup_status and self.linkedin_warmup_status.value,
+            "linkedin_warmup_status": self.warmup_linkedin_complete,
             "warmup_schedule": warmup_schedule.to_dict() if warmup_schedule else None,
         }
 
@@ -517,7 +506,6 @@ class WarmupScheduleLinkedIn(db.Model):
             return self.week_1_sla
 
         return self.week_0_sla
-
 
     def to_dict(self) -> dict:
         return {
