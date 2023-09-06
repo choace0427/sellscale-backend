@@ -1105,3 +1105,26 @@ class ExistingContact(db.Model):
             "notes": self.notes,
             "used": self.used,
         }
+
+
+class ProspectMessageFeedback(db.Model):
+    __tablename__ = "prospect_message_feedback"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
+    li_msg_id = db.Column(db.Integer, db.ForeignKey("linkedin_conversation_entry.id"), nullable=True)
+    email_msg_id = db.Column(db.Integer, db.ForeignKey("email_conversation_message.id"), nullable=True)
+    rating = db.Column(db.Integer, nullable=False)
+    feedback = db.Column(db.String, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "prospect_id": self.prospect_id,
+            "li_msg_id": self.li_msg_id,
+            "email_msg_id": self.email_msg_id,
+            "rating": self.rating,
+            "feedback": self.feedback,
+        }
