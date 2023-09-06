@@ -147,6 +147,6 @@ def send_editor_assignments_notification():
 
     send_slack_message(
         message="",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
+        webhook_urls=[URL_MAP["messages-ops"]],
         blocks=STARTING_BLOCKS + MIDDLE_BLOCKS + ENDING_BLOCKS,
     )
