@@ -1420,7 +1420,7 @@ def post_prospect_removal_check(client_sdr_id: int):
     )
 
 
-@PROSPECTING_BLUEPRINT.route("<int:prospect_id>/determine_li_msg_from_content", methods=["POST"])
+@PROSPECTING_BLUEPRINT.route("<int:prospect_id>/determine_li_msg_from_content/", methods=["POST"])
 @require_user
 def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
     
