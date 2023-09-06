@@ -1,5 +1,8 @@
 import random
-from src.client.services_client_sdr import create_warmup_schedule_linkedin, update_sdr_linkedin_sla
+from src.client.services_client_sdr import (
+    create_warmup_schedule_linkedin,
+    update_sdr_linkedin_sla,
+)
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -2479,19 +2482,21 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         """
         select
           client_archetype.archetype,
-          client_archetype.id,
-          client_archetype.created_at,
-          client_archetype.active,
-          count(distinct prospect.id) filter (where prospect_email.outreach_status in ('SENT_OUTREACH')) "EMAIL-SENT",
-          count(distinct prospect.id) filter (where prospect_email.outreach_status in ('EMAIL_OPENED', 'ACCEPTED')) "EMAIL-OPENED",
-          count(distinct prospect.id) filter (where prospect_email.outreach_status in ('ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) "EMAIL-REPLY",
-          count(distinct prospect.id) filter (where prospect.status in ('SENT_OUTREACH')) "LI-SENT",
-          count(distinct prospect.id) filter (where prospect.status in ('ACCEPTED')) "LI-OPENED",
-          count(distinct prospect.id) filter (where prospect.status not in ('PROSPECTED', 'SENT_OUTREACH', 'ACCEPTED', 'QUEUED_FOR_OUTREACH', 'SEND_OUTREACH_FAILED')) "LI-REPLY",
-          client_archetype.emoji
-        from client_archetype
-          left join prospect on prospect.archetype_id = client_archetype.id
-          left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+            client_archetype.id,
+            client_archetype.created_at,
+            client_archetype.active,
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "LI-SENT",
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
+            client_archetype.emoji
+            from client_archetype
+            left join prospect on prospect.archetype_id = client_archetype.id
+            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
         where client_archetype.client_sdr_id = {client_sdr_id}
             and client_archetype.is_unassigned_contact_archetype != true
         group by 2;
