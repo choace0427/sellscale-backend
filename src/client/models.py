@@ -343,6 +343,8 @@ class ClientSDR(db.Model):
             warmup_schedule = WarmupScheduleLinkedIn()
             warmup_schedule.client_sdr_id = self.id
             warmup_schedule.set_conservative_schedule()
+            db.session.add(warmup_schedule)
+            db.session.commit()
 
         # Check if the SDR is warm
         is_warm = warmup_schedule.is_warm(self.weekly_li_outbound_target)
@@ -427,16 +429,16 @@ class WarmupScheduleLinkedIn(db.Model):
         Returns:
             bool: True if the SDR is warm, False otherwise
         """
-        if self.week_4_sla and sla >= self.week_4_sla:
-            return True
-        elif self.week_3_sla and sla >= self.week_3_sla:
-            return True
-        elif self.week_2_sla and sla >= self.week_2_sla:
-            return True
-        elif self.week_1_sla and sla >= self.week_1_sla:
-            return True
-        elif self.week_0_sla and sla >= self.week_0_sla:
-            return True
+        if self.week_4_sla:
+            return sla >= self.week_4_sla
+        elif self.week_3_sla:
+            return sla >= self.week_3_sla
+        elif self.week_2_sla:
+            return sla >= self.week_2_sla
+        elif self.week_1_sla:
+            return sla >= self.week_1_sla
+        elif self.week_0_sla:
+            return sla >= self.week_0_sla
 
         return False
 
