@@ -37,6 +37,7 @@ URL_MAP = {
     "prospect-demo-soon": "https://hooks.slack.com/services/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",
     "eng-icp-errors": "https://hooks.slack.com/services/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",
     "operations-sla-updater": "https://hooks.slack.com/services/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",
+    "messages-ops": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {
@@ -59,14 +60,16 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
     return True
 
 
-def send_delayed_slack_message(message: str, channel_name: str, delay_date: datetime) -> bool:
+def send_delayed_slack_message(
+    message: str, channel_name: str, delay_date: datetime
+) -> bool:
     if (
         os.environ.get("FLASK_ENV") != "production"
         and os.environ.get("FLASK_ENV") != "celery-production"
     ):
         return
 
-    zapier_slack_hook = 'https://hooks.zapier.com/hooks/catch/13803519/39efpuo/'
+    zapier_slack_hook = "https://hooks.zapier.com/hooks/catch/13803519/39efpuo/"
 
     response = requests.post(
         zapier_slack_hook,
@@ -74,13 +77,12 @@ def send_delayed_slack_message(message: str, channel_name: str, delay_date: date
             "Content-Type": "application/json",
         },
         json={
-            "delay_date": delay_date.strftime('%a %b %d %Y'),
+            "delay_date": delay_date.strftime("%a %b %d %Y"),
             "message": message,
             "channel_name": channel_name,
         },
     )
     return response.status_code == 200
-
 
 
 def exception_to_str():
