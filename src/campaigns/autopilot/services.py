@@ -240,10 +240,11 @@ def collect_and_generate_autopilot_campaign_for_sdr(
             [SLACK_CHANNEL],
         )
 
-        campaign_id = oc.id
-        generate_campaign(
-            campaign_id=campaign_id,
-        )
+        # todo(Aakash) FIX THIS
+        # campaign_id = oc.id
+        # generate_campaign(
+        #     campaign_id=campaign_id,
+        # )
 
         return (
             True,
