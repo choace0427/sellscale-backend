@@ -37,6 +37,7 @@ from src.prospecting.models import (
     ProspectOverallStatus,
     ProspectHiddenReason,
     ProspectReferral,
+    ProspectMessageFeedback,
     VALID_NEXT_LINKEDIN_STATUSES,
 )
 from app import db, celery
@@ -2319,3 +2320,34 @@ def prospect_removal_check_from_csv_payload(
         db.session.commit()
 
     return prospect_data
+
+
+def get_li_message_from_contents(client_sdr_id: int, prospect_id: int, message: str) -> Optional[int]:
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id: return None
+    msg: LinkedinConversationEntry = LinkedinConversationEntry.query.filter(
+        LinkedinConversationEntry.first_name == prospect.first_name,
+        LinkedinConversationEntry.last_name == prospect.last_name,
+        LinkedinConversationEntry.connection_degree == '1st',
+        LinkedinConversationEntry.message == message.strip(),
+    ).first()
+    if not msg: return None
+    return msg.id
+
+
+def add_prospect_message_feedback(client_sdr_id: int, prospect_id: int, li_msg_id: Optional[int], email_msg_id: Optional[int], rating: int, feedback: str) -> int:
+    
+    feedback = ProspectMessageFeedback(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        li_msg_id=li_msg_id,
+        email_msg_id=email_msg_id,
+        rating=rating,
+        feedback=feedback,
+    )
+    db.session.add(feedback)
+    db.session.commit()
+
+    return feedback.id
+
+

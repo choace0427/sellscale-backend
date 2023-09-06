@@ -54,6 +54,8 @@ from src.prospecting.services import (
     get_existing_contacts,
     add_existing_contacts_to_persona,
     get_prospects_for_income_pipeline,
+    get_li_message_from_contents,
+    add_prospect_message_feedback,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -1416,3 +1418,44 @@ def post_prospect_removal_check(client_sdr_id: int):
         ),
         200,
     )
+
+
+@PROSPECTING_BLUEPRINT.route("/determine_li_msg_from_content", methods=["POST"])
+@require_user
+def post_determine_li_msg_from_content(client_sdr_id: int):
+    
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    content = get_request_parameter(
+        "content", request, json=True, required=True, parameter_type=str
+    )
+
+    li_msg_id = get_li_message_from_contents(client_sdr_id, prospect_id, content)
+
+    return jsonify({"message": "Success", "data": li_msg_id}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/msg_feedback/", methods=["POST"])
+@require_user
+def post_add_msg_feedback(client_sdr_id: int):
+    
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    li_msg_id = get_request_parameter(
+        "li_msg_id", request, json=True, required=False, parameter_type=int
+    ) or None
+    email_msg_id = get_request_parameter(
+        "email_msg_id", request, json=True, required=False, parameter_type=int
+    ) or None
+    rating = get_request_parameter(
+        "rating", request, json=True, required=True, parameter_type=int
+    )
+    feedback = get_request_parameter(
+        "feedback", request, json=True, required=True, parameter_type=str
+    )
+
+    feedback_id = add_prospect_message_feedback(client_sdr_id, prospect_id, li_msg_id, email_msg_id, rating, feedback)
+
+    return jsonify({"message": "Success", "data": feedback_id}), 200
