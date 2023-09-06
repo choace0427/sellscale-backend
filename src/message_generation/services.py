@@ -1,6 +1,11 @@
 import email
 from src.li_conversation.models import LinkedInConvoMessage
-from src.message_generation.email.services import ai_initial_email_prompt, ai_subject_line_prompt, generate_email, generate_subject_line
+from src.message_generation.email.services import (
+    ai_initial_email_prompt,
+    ai_subject_line_prompt,
+    generate_email,
+    generate_subject_line,
+)
 from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
@@ -181,27 +186,90 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
                 prospect_id=prospect_id,
                 outbound_campaign_id=outbound_campaign_id,
                 status=GeneratedMessageJobStatus.PENDING,
+                generated_message_cta_id=cta_id,
                 attempts=0,
+                generated_message_type=GeneratedMessageType.LINKEDIN,
             )
             db.session.add(gm_job)
             db.session.commit()
 
+            # Research and generate outreaches for the prospect
+            # research_and_generate_outreaches_for_prospect.apply_async(
+            #     [
+            #         prospect_id,
+            #         outbound_campaign_id,
+            #         cta_id,
+            #         gm_job.id,
+            #     ],
+            #     countdown=i * 10,
+            #     queue="message_generation",
+            #     routing_key="message_generation",
+            #     priority=10,
+            # )
+    except Exception as e:
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+@celery.task
+def run_queued_gm_job():
+    data = db.session.execute(
+        """
+        select 
+            prospect_id,
+            outbound_campaign_id,
+            generated_message_cta_id as cta_id,
+            id as gm_job_id,
+            generated_message_job_queue.generated_message_type
+        from generated_message_job_queue
+        where 
+            generated_message_job_queue.created_at > NOW() - '1 days'::INTERVAL and
+            generated_message_job_queue.status = 'PENDING' and 
+            (
+                generated_message_job_queue.generated_message_type = 'LINKEDIN' and generated_message_cta_id is not null 
+                or
+                generated_message_job_queue.generated_message_type = 'EMAIL'
+            ) and
+            attempts < 3
+        order by random()
+        limit 3;
+    """
+    ).fetchall()
+
+    for row in data:
+        prospect_id = row[0]
+        outbound_campaign_id = row[1]
+        cta_id = row[2]
+        gm_job_id = row[3]
+        generated_message_type = row[4]
+
+        print("Running job for prospect_id: {}".format(prospect_id))
+        send_slack_message(
+            "Running job for prospect_id: {}".format(prospect_id),
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
+
+        if generated_message_type == GeneratedMessageType.LINKEDIN.value:
             # Research and generate outreaches for the prospect
             research_and_generate_outreaches_for_prospect.apply_async(
                 [
                     prospect_id,
                     outbound_campaign_id,
                     cta_id,
-                    gm_job.id,
+                    gm_job_id,
                 ],
-                countdown=i * 10,
                 queue="message_generation",
                 routing_key="message_generation",
                 priority=10,
             )
-    except Exception as e:
-        db.session.rollback()
-        raise self.retry(exc=e, countdown=2**self.request.retries)
+        elif generated_message_type == GeneratedMessageType.EMAIL.value:
+            # Research and generate outreaches for the prospect
+            generate_prospect_email.apply_async(
+                args=[prospect_id, outbound_campaign_id, gm_job_id],
+                queue="message_generation",
+                routing_key="message_generation",
+                priority=10,
+            )
 
 
 def update_generated_message_job_queue_status(
@@ -731,6 +799,7 @@ def create_cta(
     text_value: str,
     expiration_date: Optional[datetime.datetime],
     active: bool = True,
+    cta_type: str = "Manual",
 ):
     duplicate_cta_exists = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == archetype_id,
@@ -744,11 +813,96 @@ def create_cta(
         text_value=text_value,
         active=active,
         expiration_date=expiration_date,
+        cta_type=cta_type,
     )
     db.session.add(cta)
     db.session.commit()
 
+    cta_id = cta.id
+
     return cta
+
+
+def backfill_cta_types():
+    "Predicts the type of call-to-action based on the text value."
+    entries = db.session.execute(
+        """
+        select
+            generated_message_cta.id,
+            generated_message_cta.text_value,
+            case
+                when generated_message_cta.text_value ilike '%the area%' or generated_message_cta.text_value ilike '%coffee%' or generated_message_cta.text_value ilike '%lunch%' or generated_message_cta.text_value ilike '%meet at%' then 'In-Person-based'
+                when generated_message_cta.text_value ilike '%helpful%' then 'Help-Based'
+                when generated_message_cta.text_value ilike '%your thoughts%' then 'Feedback-Based'
+                when generated_message_cta.text_value ilike '%what issues%' then 'Problem-Based'
+                when generated_message_cta.text_value ilike '%priority%' then 'Priority-Based'
+                when generated_message_cta.text_value ilike '%since you%re a%' then 'Persona-Based'
+                when generated_message_cta.text_value ilike '%given how%' and generated_message_cta.text_value ilike '%solution%' then 'Solution-Based'
+                when generated_message_cta.text_value ilike '%have you heard of%' then 'Company-Based'
+                when generated_message_cta.text_value ilike '%recently%' then 'Time-Based'
+                when generated_message_cta.text_value ilike '%demo of%' then 'Demo-Based'
+                when generated_message_cta.text_value ilike '%interested%' then 'Interest-Based'
+                when generated_message_cta.text_value ilike '%testing%' or generated_message_cta.text_value ilike '%test %' then 'Test-Based'
+                when generated_message_cta.text_value ilike '%? %' then 'Question-Based'
+                when generated_message_cta.text_value ilike '%expert%' then 'Expertise-Based'
+                when generated_message_cta.text_value ilike '%minutes%' then 'Meeting-Based'
+                when generated_message_cta.text_value ilike '%best person%' then 'Persona-Based'
+                when generated_message_cta.text_value ilike '%competitive%' or generated_message_cta.text_value ilike '%roadblock%' or generated_message_cta.text_value ilike '%given the%' then 'Pain-Based'
+                when generated_message_cta.text_value ilike '%we work with%' or generated_message_cta.text_value ilike '%you%re a%' then 'Persona-Based'
+                when generated_message_cta.text_value ilike '%others%' then 'FOMO-Based'
+                when generated_message_cta.text_value ilike '%benchmark%' then 'Competitor-Based'
+                when generated_message_cta.text_value ilike '%learn%' or generated_message_cta.text_value ilike '%strategy%' then 'Discovery-Based'
+                when generated_message_cta.text_value ilike '%looking%' then 'Intent-Based'
+                when generated_message_cta.text_value ilike '%chat%' or generated_message_cta.text_value ilike '%call %' then 'Meeting-Based'
+                when generated_message_cta.text_value ilike '%\%%' then 'Result-Based'
+                when generated_message_cta.text_value ilike '%you %' then 'Role-Based'
+                when generated_message_cta.text_value ilike '%issues %' then 'Pain-Based'
+                when generated_message_cta.text_value ilike '%check out %' then 'Demo-Based'
+                when generated_message_cta.text_value ilike '%collab %' then 'Partner-Based'
+                when generated_message_cta.text_value ilike '%partner %' then 'Partner-Based'
+                when generated_message_cta.text_value ilike '%how %' then 'Solution-Based'
+                when generated_message_cta.text_value ilike '%resource %' then 'Resource-Based'
+                when generated_message_cta.text_value ilike '%feedback%' then 'Feedback-Based'
+                when generated_message_cta.text_value ilike '% need%' then 'Priority-Based'
+                when generated_message_cta.text_value ilike '% has worked%' then 'FOMO-Based'
+                when generated_message_cta.text_value ilike '%worked%' then 'FOMO-Based'
+                when generated_message_cta.text_value ilike '%enable%' then 'FOMO-Based'
+                when generated_message_cta.text_value ilike '%good fit%' then 'Company-Based'
+                when generated_message_cta.text_value ilike '%I can%' then 'Help-Based'
+                when generated_message_cta.text_value ilike '%event%' or generated_message_cta.text_value ilike '%panel%' then 'Event-Based'
+                when generated_message_cta.text_value ilike '%Hmmmm%' then 'Test-Based'
+                when generated_message_cta.text_value ilike '%explore%' then 'Partner-Based'
+                when generated_message_cta.text_value ilike '%a fit%' then 'Company-Based'
+                when generated_message_cta.text_value ilike '%useful%' then 'Feedback-Based'
+                when generated_message_cta.text_value ilike '%open to%' then 'Role-Based'
+                when generated_message_cta.text_value ilike '%connect%' then 'Connection-Based'
+                when generated_message_cta.text_value ilike '%connect%' then 'Connection-Based'
+                when generated_message_cta.text_value ilike '%consider%' then 'Feedback-Based'
+                when generated_message_cta.text_value ilike '%perspective%' then 'Feedback-Based'
+                when generated_message_cta.text_value ilike '%resource%' then 'Help-Based'
+                when generated_message_cta.text_value ilike '%goals%' then 'Priority-Based'
+                when generated_message_cta.text_value ilike '%your time%' then 'Priority-Based'
+                when generated_message_cta.text_value ilike '%grow%' then 'Priority-Based'
+                when generated_message_cta.text_value ilike '%sample%' or generated_message_cta.text_value ilike '%wddwdwdwdw%' or generated_message_cta.text_value ilike '%wd d wdwdw w dwd w d%' or generated_message_cta.text_value ilike '%dwwddwdwdw%' then 'Test-Based'
+
+                when generated_message_cta.text_value ilike '%?%' then 'Question-Based'
+            else ''
+            end label
+        from generated_message_cta
+        order by 2 asc;
+    """
+    ).fetchall()
+
+    for entry in tqdm(entries):
+        id = entry["id"]
+        label = entry["label"]
+
+        gm: GeneratedMessageCTA = GeneratedMessageCTA.query.get(entry["id"])
+        print(gm.text_value, label)
+        if gm and gm.cta_type != label:
+            gm.cta_type = label
+            db.session.add(gm)
+            db.session.commit()
 
 
 def update_cta(
@@ -883,18 +1037,19 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
                 outbound_campaign_id=campaign_id,
                 status=GeneratedMessageJobStatus.PENDING,
                 attempts=0,
+                generated_message_type=GeneratedMessageType.EMAIL,
             )
             db.session.add(gm_job)
             db.session.commit()
 
             # Generate the prospect email
-            generate_prospect_email.apply_async(
-                args=[prospect_id, campaign_id, gm_job.id],
-                countdown=i * 10,
-                queue="message_generation",
-                routing_key="message_generation",
-                priority=10,
-            )
+            # generate_prospect_email.apply_async(
+            #     args=[prospect_id, campaign_id, gm_job.id],
+            #     countdown=i * 10,
+            #     queue="message_generation",
+            #     routing_key="message_generation",
+            #     priority=10,
+            # )
     except Exception as e:
         print(e)
         db.session.rollback()
@@ -952,7 +1107,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         )
         # 7b. Generate the email body
         email_body = generate_email(prompt=initial_email_prompt)
-        email_body = email_body.get('body')
+        email_body = email_body.get("body")
 
         # 8a. Get the Subject Line prompt
         subject_line_prompt = ai_subject_line_prompt(
@@ -962,7 +1117,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         )
         # 8b. Generate the subject line
         subject_line = generate_subject_line(prompt=subject_line_prompt)
-        subject_line = subject_line.get('subject_line')
+        subject_line = subject_line.get("subject_line")
 
         # 9. Create the GeneratedMessage objects
         ai_generated_body = GeneratedMessage(
@@ -1748,6 +1903,12 @@ def process_generated_msg_queue(
             li_convo_entry.ai_generated = False
             db.session.commit()
 
+            # Make sure that the message is at most 3 days old
+            if datetime.datetime.utcnow() - li_convo_entry.date > datetime.timedelta(
+                days=3
+            ):
+                return False
+
             # Make sure that this is a SDR message
             if li_convo_entry.connection_degree != "You":
                 return False
@@ -1767,6 +1928,13 @@ def process_generated_msg_queue(
             )
             email_convo_entry.ai_generated = False
             db.session.commit()
+
+            # Make sure that the message is at most 3 days old
+            if (
+                datetime.datetime.utcnow() - email_convo_entry.date_received
+                > datetime.timedelta(days=3)
+            ):
+                return False
 
             # Make sure that this is a SDR message
             if not email_convo_entry.from_sdr:
@@ -2437,12 +2605,18 @@ def generate_li_convo_init_msg(prospect_id: int):
     if len(research_points) == 0:
         return None, None
 
+    raw_research_points = ResearchPoints.query.filter(
+        ResearchPoints.id.in_(research_points)
+    ).all()
+    rp_values = [x.value for x in raw_research_points]
+
     completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
 
     return completion, {
         "prompt": few_shot_prompt,
         "cta": cta,
         "research_points": research_points,
+        "notes": rp_values,
     }
 
 

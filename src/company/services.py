@@ -41,7 +41,6 @@ def company_backfill(c_min: int, c_max: int):
 
 @celery.task
 def add_company_cache_to_db(json_data) -> bool:
-
     details = json_data.get("details", None)
     if not details:
         print(f"No details for company...")

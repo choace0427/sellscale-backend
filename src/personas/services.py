@@ -21,6 +21,7 @@ from model_import import (
     StackRankedMessageGenerationConfiguration,
 )
 from src.ml.services import mark_queued_and_classify
+from src.prospecting.icp_score.services import clone_icp_ruleset
 from src.prospecting.services import get_prospect_details
 from app import db, celery
 import json
@@ -83,8 +84,7 @@ def create_persona_split_request(
     ).all()
     for index, task in enumerate(tasks):
         process_persona_split_request_task.apply_async(
-            args=[task.id, index],
-            countdown=index
+            args=[task.id, index], countdown=index
         )
 
     return True, "OK"
@@ -365,7 +365,7 @@ Output:""",
                 client_sdr_id=client_sdr_id,
                 archetype_id=archetype_id_number,
                 prospect_id=prospect_id,
-                countdown=countdown
+                countdown=countdown,
             )
             generate_prospect_research(prospect_id, False, True)
 
@@ -376,8 +376,10 @@ Output:""",
         raise self.retry(exc=e, countdown=10**self.request.retries)
 
 
-def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_archetype_id: int) -> tuple[list[int], list[dict], int]:
-    """ Gets a list of prospects that should be unassigned from a persona using the ICP heuristic
+def get_unassignable_prospects_using_icp_heuristic(
+    client_sdr_id: int, client_archetype_id: int
+) -> tuple[list[int], list[dict], int]:
+    """Gets a list of prospects that should be unassigned from a persona using the ICP heuristic
 
     ICP Heuristic: Unassign prospects that are LOW or VERY_LOW
 
@@ -399,7 +401,7 @@ def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_ar
     prospects_to_unassign: list[Prospect] = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.archetype_id == client_archetype_id,
-        Prospect.icp_fit_score.in_([0, 1])
+        Prospect.icp_fit_score.in_([0, 1]),
     )
 
     # Get the count
@@ -408,12 +410,22 @@ def get_unassignable_prospects_using_icp_heuristic(client_sdr_id: int, client_ar
     if len(prospects_to_unassign) == 0:
         return [], [], total_count
 
-    return [prospect.id for prospect in prospects_to_unassign], [prospect.to_dict(shallow_data=True) for prospect in prospects_to_unassign], total_count
+    return (
+        [prospect.id for prospect in prospects_to_unassign],
+        [prospect.to_dict(shallow_data=True) for prospect in prospects_to_unassign],
+        total_count,
+    )
 
 
 @celery.task(bind=True, max_retries=3)
-def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_icp_heuristic: bool = True,  manual_unassign_list: Optional[list] = []) -> bool:
-    """ Unassigns prospects from a persona, placing them into the Unassigned persona
+def unassign_prospects(
+    self,
+    client_sdr_id: int,
+    client_archetype_id: int,
+    use_icp_heuristic: bool = True,
+    manual_unassign_list: Optional[list] = [],
+) -> bool:
+    """Unassigns prospects from a persona, placing them into the Unassigned persona
 
     Args:
         client_sdr_id (int): ID of the SDR
@@ -435,7 +447,7 @@ def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_i
     # Get the unassigned archetype
     unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
-        ClientArchetype.is_unassigned_contact_archetype == True
+        ClientArchetype.is_unassigned_contact_archetype == True,
     ).first()
     unassigned_archetype_id = unassigned_archetype.id
     if unassigned_archetype is None:
@@ -457,7 +469,7 @@ def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_i
         low_icp_prospects = Prospect.query.filter(
             Prospect.client_sdr_id == client_sdr_id,
             Prospect.archetype_id == target_archetype.id,
-            Prospect.icp_fit_score.in_([0, 1])
+            Prospect.icp_fit_score.in_([0, 1]),
         ).all()
         unassign_prospects.extend(low_icp_prospects)
 
@@ -471,28 +483,48 @@ def unassign_prospects(self, client_sdr_id: int, client_archetype_id: int, use_i
 
         # IF the prospect has a generated message, delete the message and clear the ID
         if prospect.approved_outreach_message_id is not None:
-            prospect_message: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+            prospect_message: GeneratedMessage = GeneratedMessage.query.get(
+                prospect.approved_outreach_message_id
+            )
             if prospect_message is not None:
                 prospect_message.message_status = GeneratedMessageStatus.BLOCKED
             prospect.approved_outreach_message_id = None
         if prospect.approved_prospect_email_id is not None:
-            prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+            prospect_email: ProspectEmail = ProspectEmail.query.get(
+                prospect.approved_prospect_email_id
+            )
             if prospect_email is not None:
                 prospect_email.date_scheduled_to_send = None
                 if prospect_email.personalized_body is not None:
-                    personalized_body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
+                    personalized_body: GeneratedMessage = GeneratedMessage.query.get(
+                        prospect_email.personalized_body
+                    )
                     if personalized_body is not None:
-                        personalized_body.message_status = GeneratedMessageStatus.BLOCKED
+                        personalized_body.message_status = (
+                            GeneratedMessageStatus.BLOCKED
+                        )
                     prospect_email.personalized_body = None
                 if prospect_email.personalized_first_line is not None:
-                    personalized_first_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_first_line)
+                    personalized_first_line: GeneratedMessage = (
+                        GeneratedMessage.query.get(
+                            prospect_email.personalized_first_line
+                        )
+                    )
                     if personalized_first_line is not None:
-                        personalized_first_line.message_status = GeneratedMessageStatus.BLOCKED
+                        personalized_first_line.message_status = (
+                            GeneratedMessageStatus.BLOCKED
+                        )
                     prospect_email.personalized_first_line = None
                 if prospect_email.personalized_subject_line is not None:
-                    personalized_subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
+                    personalized_subject_line: GeneratedMessage = (
+                        GeneratedMessage.query.get(
+                            prospect_email.personalized_subject_line
+                        )
+                    )
                     if personalized_subject_line is not None:
-                        personalized_subject_line.message_status = GeneratedMessageStatus.BLOCKED
+                        personalized_subject_line.message_status = (
+                            GeneratedMessageStatus.BLOCKED
+                        )
                     prospect_email.personalized_subject_line = None
             prospect.approved_prospect_email_id = None
 
@@ -512,13 +544,16 @@ def clone_persona(
     option_bump_frameworks: bool,
     option_voices: bool,
     option_email_blocks: bool,
+    option_icp_filters: bool,
 ):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if sdr is None: return None
+    if sdr is None:
+        return None
 
     original_persona: ClientArchetype = ClientArchetype.query.get(original_persona_id)
-    if original_persona is None: return None
-    
+    if original_persona is None:
+        return None
+
     result = create_client_archetype(
         client_id=sdr.client_id,
         client_sdr_id=client_sdr_id,
@@ -530,7 +565,7 @@ def clone_persona(
         icp_matching_prompt=persona_icp_matching_instructions,
         persona_contact_objective=persona_contact_objective,
     )
-    new_persona_id = result.get('client_archetype_id')
+    new_persona_id: int = result.get("client_archetype_id") or -1
 
     if option_ctas:
         original_ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter_by(
@@ -552,11 +587,13 @@ def clone_persona(
             new_id = clone_bump_framework(
                 client_sdr_id=client_sdr_id,
                 bump_framework_id=original_bump_framework.id,
-                target_archetype_id=new_persona_id
+                target_archetype_id=new_persona_id,
             )
 
     if option_voices:
-        original_voices: list[StackRankedMessageGenerationConfiguration] = StackRankedMessageGenerationConfiguration.query.filter_by(
+        original_voices: list[
+            StackRankedMessageGenerationConfiguration
+        ] = StackRankedMessageGenerationConfiguration.query.filter_by(
             archetype_id=original_persona_id
         ).all()
         for original_voice in original_voices:
@@ -592,8 +629,16 @@ def clone_persona(
 
     if option_email_blocks:
         persona: ClientArchetype = ClientArchetype.query.get(new_persona_id)
-        original_persona: ClientArchetype = ClientArchetype.query.get(original_persona_id)
+        original_persona: ClientArchetype = ClientArchetype.query.get(
+            original_persona_id
+        )
         persona.email_blocks_configuration = original_persona.email_blocks_configuration
         db.session.commit()
+
+    if option_icp_filters:
+        clone_icp_ruleset(
+            source_archetype_id=original_persona_id,
+            target_archetype_id=new_persona_id,
+        )
 
     return persona

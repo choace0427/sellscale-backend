@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
+from src.email_outbound.services import get_email_messages_with_prospect_transcript_format
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import AccountResearchPoints, ResearchPoints
@@ -182,18 +183,21 @@ Output:""".format(
 def ai_followup_email_prompt(
     client_sdr_id: int,
     prospect_id: int,
-    thread_id: str,
-    override_sequence_id: Optional[int],
+    thread_id: Optional[str] = None,
+    override_sequence_id: Optional[int] = None,
+    override_template: Optional[str] = None,
 ) -> str:
     """Generate an email for a prospect. If override_sequence_id is specified, then that sequence step template will be used in favor of the default.
 
+    Note: If an override template is provided, then the override sequence ID will be ignored.
     Note: This is only applicable to SENT_OUTREACH and BUMPED prospects. ie. No ACTIVE_CONVO, etc. prospects.
 
     Args:
         client_sdr_id (int): The id of the client sdr
         prospect_id (int): The id of the prospect
-        thread_id (str): The id of the thread
-        override_sequence_id (int): The id of a sequence step to use. Overrides the default.
+        thread_id (Optional[str], optional): The thread id of the email. Defaults to None.
+        override_sequence_id (Optional[int], optional): The sequence step ID to use. Defaults to None.
+        override_template (Optional[str], optional): The template to test. Defaults to None.
     Returns:
         string: The prompt for the email
     """
@@ -213,7 +217,7 @@ def ai_followup_email_prompt(
     # If Prospect is not in SENT_OUTREACH or BUMPED and we are not overriding the sequence step, then we should not be following up with them
     # Example: Prospect is in Active Conversation state, we shouldn't send a bump email
     # TODO: Eventually have intelligent systems that can handle automatically responding to prospect replies.
-    if prospect.overall_status not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED] and override_sequence_id is None:
+    if prospect.overall_status not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED] and override_sequence_id is None and override_template is None:
         raise Exception(
             "Prospect is not in SENT_OUTREACH or BUMPED status and shouldn't be followed up with.")
 
@@ -247,20 +251,14 @@ def ai_followup_email_prompt(
     for point in account_research:
         account_points += f"- {point.title}: {point.reason}\n"
 
-    # Convert past messages to text. Append '>' to each line to make it a quote
-    past_messages = []
-    past_messages_raw = get_email_messages_with_prospect(
-        client_sdr_id, prospect_id, thread_id
-    )
-    if past_messages_raw:
-        for thread in past_messages_raw:
-            body: str = thread.get("body")
-            bs = BeautifulSoup(body, "html.parser")
-            body: str = bs.get_text()
-            body: str = re.sub(r"\n+", "\n", body)
-            body: str = "> " + body
-            body: str = body.strip().replace("\n", "\n> ")
-            past_messages.append(body)
+    # If we have a thread ID, get past messages in a transcript format
+    email_transcript = "NO PAST THREAD AVAILABLE"
+    if thread_id is not None:
+        email_transcript = get_email_messages_with_prospect_transcript_format(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            thread_id=thread_id,
+        )
 
     # Use the Default SellScale Template as the template
     template = DEFAULT_FOLLOWUP_EMAIL_TEMPLATE
@@ -270,6 +268,8 @@ def ai_followup_email_prompt(
         sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
             override_sequence_id)
         template = sequence_step.template
+    elif override_template:
+        template = override_template
     else:
         # Get the template from the sequence step
         if prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH:
@@ -363,7 +363,7 @@ Output:""".format(
         prospect_research=account_points,
         research_points=research_points,
         persona_contact_objective=prospect_contact_objective,
-        past_threads="\n\n".join(past_messages),
+        past_threads=email_transcript,
     )
 
     return prompt

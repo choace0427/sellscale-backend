@@ -1,16 +1,18 @@
 from flask import Blueprint, jsonify, request
 from src.webhooks.models import NylasWebhookProcessingStatus, NylasWebhookType
+from src.webhooks.nylas.event_update import process_deltas_event_update
+from src.webhooks.nylas.message_created import process_deltas_message_created
+from src.webhooks.nylas.message_opened import process_deltas_message_opened
 from src.webhooks.nylas.services import (
     create_nylas_webhook_payload_entry,
-    process_deltas_message_created,
-    process_deltas_message_opened,
-    process_deltas_event_update,
 )
 from app import app, db
 
 import hmac
 import hashlib
 import os
+
+from src.webhooks.nylas.thread_replied import process_deltas_thread_replied
 
 WEBHOOKS_BLUEPRINT = Blueprint('webhooks', __name__)
 
@@ -68,7 +70,7 @@ def nylas_webhook_message_created():
         # we've got the data saved, and we can return a response to the
         # Nylas webhook notification right now.
         process_deltas_message_created.apply_async(
-            args=[delta]
+            args=[delta, payload_id]
         )
 
     # Now that all the `process_delta` tasks have been queued, we can
@@ -106,7 +108,7 @@ def nylas_webhook_message_opened():
     deltas = data["deltas"]
 
     process_deltas_message_opened.apply_async(
-        args=[deltas]
+        args=[deltas, payload_id]
     )
 
     return "Deltas for `message.opened` have been queued", 200
@@ -145,7 +147,42 @@ def nylas_webhook_event_update():
     )
 
     process_deltas_event_update.apply_async(
-        args=[deltas]
+        args=[deltas, payload_id]
     )
 
     return "Deltas for `event.created` or `event.updated` have been queued", 200
+
+
+@WEBHOOKS_BLUEPRINT.route('/nylas/thread_replied', methods=['GET', 'POST'])
+def nylas_webhook_thread_replied():
+    """Webhook for Nylas thread replied event."""
+
+    if request.method == 'GET' and "challenge" in request.args:
+        return request.args["challenge"]
+
+    is_genuine = verify_signature(
+        message=request.data,
+        key=NYLAS_CLIENT_SECRET.encode("utf8"),
+        signature=request.headers.get("X-Nylas-Signature"),
+    )
+    if not is_genuine:
+        return "Signature verification failed!", 401
+
+    # Let's save the webhook notification to our database, so that we can
+    # process it later.
+    data = request.get_json()
+    payload_id = create_nylas_webhook_payload_entry(
+        nylas_payload=data,
+        nylas_webhook_type=NylasWebhookType.THREAD_REPLIED,
+        processing_status=NylasWebhookProcessingStatus.PENDING,
+        processing_fail_reason=None
+    )
+
+    data = request.get_json()
+    deltas = data["deltas"]
+
+    process_deltas_thread_replied.apply_async(
+        args=[deltas, payload_id]
+    )
+
+    return "Deltas for `thread.replied` have been queued", 200

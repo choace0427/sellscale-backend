@@ -572,6 +572,8 @@ def update_prospect_email_outreach_status(
         prospect_email.outreach_status = new_status
         db.session.add(prospect_email)
         db.session.commit()
+    else:
+        return False
 
     return True
 
@@ -638,92 +640,6 @@ def get_sequences(client_sdr_id: int, archetype_id: int):
                 s.to_dict() for s in sequences]}),
         200,
     )
-
-
-def generate_email_bump(
-    client_sdr_id: int,
-    prospect_id: int,
-    email_thread_id: str,
-    email_bump_framework_id: Optional[int] = None,
-    custom_account_research: Optional[list[str]] = None,
-    max_attempts: Optional[int] = 3,
-) -> (str, str):
-    """Generates a response to an email thread using Bump Frameworks.
-
-    Args:
-
-
-    Returns:
-        (str, str): The response and the GPT-3 prompt.
-    """
-    # Get SDR
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-
-    # Get Prospect
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect:
-        return None, None
-
-    # Get Email Bump Framework, if any
-    email_bump_framework: Optional[EmailSequenceStep] = None
-    email_structure: str = "Write a medium length email that follows the thread."
-    if email_bump_framework_id:
-        email_bump_framework = EmailSequenceStep.query.get(email_bump_framework_id)
-        if email_bump_framework:
-            blocks = email_bump_framework.email_blocks
-
-            # Join the blocks with a number and newline
-            for i, block in enumerate(blocks):
-                blocks[i] = f"{i+1}. {block}"
-            email_structure = "\n".join(blocks)
-
-    # Get Email Thread transcript
-    email_thread_transcript: list[dict] = get_email_messages_with_prospect_transcript_format(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        thread_id=email_thread_id
-    )
-    if len(email_thread_transcript) == 0:
-        return None, None
-
-    prompt = """You are {sdr_name} who is writing an email as part of an email thread. Keep responses friendly and concise.
-
-Use the following email structure when composing the email:
-{email_structure}
-
-Use the following custom personalization points when composing the email:
-{custom_personalization_points}
-
-Here is a transcript of the email thread so far:
-=== EMAIL THREAD TRANSCRIPT ===
-{email_thread_transcript}
-=== END EMAIL THREAD TRANSCRIPT ===
-
-Do not include a subject line. Just return the body.
-
-""".format(
-    sdr_name=sdr.name,
-    email_structure=email_structure,
-    custom_personalization_points="\n".join(custom_account_research) if custom_account_research else "",
-    email_thread_transcript="\n\n".join(email_thread_transcript)
-)
-
-    for i in range(max_attempts):
-        try:
-            # Get response from Chat
-            response = wrapped_chat_gpt_completion(
-                [
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=500,
-                model=OPENAI_CHAT_GPT_4_MODEL
-            )
-
-            return response, prompt
-        except:
-            pass
-
-    return "Generation failed after 3 attempts", prompt
 
 
 def get_email_messages_with_prospect_transcript_format(

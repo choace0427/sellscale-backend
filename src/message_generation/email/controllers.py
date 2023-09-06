@@ -75,10 +75,13 @@ def post_generate_followup_email(client_sdr_id: int):
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
     thread_id = get_request_parameter(
-        "thread_id", request, json=True, required=True, parameter_type=str
+        "thread_id", request, json=True, required=False, parameter_type=str
     )
     override_sequence_id = get_request_parameter(
         "override_sequence_id", request, json=True, required=False, parameter_type=int
+    )
+    override_template = get_request_parameter(
+        "override_template", request, json=True, required=False, parameter_type=str
     )
 
     # Validate
@@ -93,7 +96,8 @@ def post_generate_followup_email(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         thread_id=thread_id,
-        override_sequence_id=override_sequence_id
+        override_sequence_id=override_sequence_id,
+        override_template=override_template
     )
     email_body = generate_email(prompt)
     email_body = email_body.get('body')

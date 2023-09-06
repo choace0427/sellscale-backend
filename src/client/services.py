@@ -1,3 +1,4 @@
+import random
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -22,6 +23,7 @@ from datetime import datetime
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
     OPENAI_CHAT_GPT_4_MODEL,
+    wrapped_chat_gpt_completion,
     wrapped_create_completion,
 )
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
@@ -94,11 +96,11 @@ def create_client(
     db.session.commit()
     c.regenerate_uuid()
 
-    create_client_sdr(
-        client_id=c.id,
-        name=contact_name,
-        email=contact_email,
-    )
+    # create_client_sdr(
+    #     client_id=c.id,
+    #     name=contact_name,
+    #     email=contact_email,
+    # )
 
     return {"client_id": c.id}
 
@@ -365,6 +367,10 @@ def create_client_archetype(
         client_archetype_id=archetype_id,
     )
 
+    predict_archetype_emoji(
+        archetype_id=archetype_id,
+    )
+
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
 
     return {"client_archetype_id": client_archetype.id}
@@ -423,21 +429,24 @@ def create_client_sdr(client_id: int, name: str, email: str):
     create_unassigned_contacts_archetype(sdr.id)
 
     # Create a default persona for them
-    result = create_client_archetype(
-        client_id=client_id,
-        client_sdr_id=sdr.id,
-        archetype='Default Persona',
-        filters=None,
-        base_archetype_id=None,
-        disable_ai_after_prospect_engaged=False,
-        persona_fit_reason="",
-        icp_matching_prompt="",
-        persona_contact_objective="",
-        is_unassigned_contact_archetype=False,
-        active=True,
-    )
+    # result = create_client_archetype(
+    #     client_id=client_id,
+    #     client_sdr_id=sdr.id,
+    #     archetype="Default Persona",
+    #     filters=None,
+    #     base_archetype_id=None,
+    #     disable_ai_after_prospect_engaged=False,
+    #     persona_fit_reason="",
+    #     icp_matching_prompt="",
+    #     persona_contact_objective="",
+    #     is_unassigned_contact_archetype=False,
+    #     active=True,
+    # )
 
-    return {"client_sdr_id": sdr.id, "client_archetype_id": result.get("client_archetype_id")}
+    return {
+        "client_sdr_id": sdr.id,
+        "client_archetype_id": result.get("client_archetype_id"),
+    }
 
 
 def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
@@ -1706,7 +1715,7 @@ def update_sdr_conversion_percentages(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return False
-    
+
     client_sdr.conversion_percentages = {
         "active_convo": active_convo,
         "scheduling": scheduling,
@@ -1952,7 +1961,6 @@ def get_do_not_contact_filters(client_id: int):
     }
 
 
-
 def update_sdr_do_not_contact_filters(
     client_sdr_id: int,
     do_not_contact_keywords_in_company_names: list[str],
@@ -1998,9 +2006,6 @@ def get_sdr_do_not_contact_filters(client_sdr_id: int):
         "do_not_contact_keywords_in_company_names": client_sdr.do_not_contact_keywords_in_company_names,
         "do_not_contact_company_names": client_sdr.do_not_contact_company_names,
     }
-
-
-
 
 
 def submit_demo_feedback(
@@ -2337,7 +2342,6 @@ def remove_prospects_caught_by_client_filters(client_sdr_id: int):
     return True
 
 
-
 def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
     """Get the prospects caught by the do not contact filters for a Client SDR.
     Checks if the prospect's company's name is not ilike any of the do not contact companies
@@ -2466,7 +2470,7 @@ def get_personas_page_details(client_sdr_id: int):
 
 
 def get_personas_page_campaigns(client_sdr_id: int) -> dict:
-    
+
     results = db.session.execute(
         """
         select
@@ -2479,7 +2483,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
           count(distinct prospect.id) filter (where prospect_email.outreach_status in ('ACTIVE_CONVO', 'SCHEDULING', 'NOT_INTERESTED', 'DEMO_SET', 'DEMO_WON', 'DEMO_LOST')) "EMAIL-REPLY",
           count(distinct prospect.id) filter (where prospect.status in ('SENT_OUTREACH')) "LI-SENT",
           count(distinct prospect.id) filter (where prospect.status in ('ACCEPTED')) "LI-OPENED",
-          count(distinct prospect.id) filter (where prospect.status not in ('PROSPECTED', 'SENT_OUTREACH', 'ACCEPTED', 'QUEUED_FOR_OUTREACH', 'SEND_OUTREACH_FAILED')) "LI-REPLY"
+          count(distinct prospect.id) filter (where prospect.status not in ('PROSPECTED', 'SENT_OUTREACH', 'ACCEPTED', 'QUEUED_FOR_OUTREACH', 'SEND_OUTREACH_FAILED')) "LI-REPLY",
+          client_archetype.emoji
         from client_archetype
           left join prospect on prospect.archetype_id = client_archetype.id
           left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
@@ -2503,6 +2508,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         7: "li_sent",
         8: "li_opened",
         9: "li_replied",
+        10: "emoji",
     }
 
     # Convert and format output
@@ -2870,3 +2876,102 @@ def get_client_sdr_table_info(client_sdr_id: int):
     ]
 
     return data
+
+
+def update_archetype_emoji(archetype_id: int, emoji: str):
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return False
+
+    archetype.emoji = emoji
+    db.session.add(archetype)
+    db.session.commit()
+    return True
+
+
+def predict_archetype_emoji(archetype_id: int):
+    emojis = [
+        "✌",
+        "😂",
+        "😝",
+        "😁",
+        "😱",
+        "🙌",
+        "🍻",
+        "🔥",
+        "🌈",
+        "☀",
+        "🎈",
+        "🌹",
+        "💄",
+        "🎀",
+        "⚽",
+        "🎾",
+        "🏁",
+        "😡",
+        "👿",
+        "🐻",
+        "🐶",
+        "🐬",
+        "🐟",
+        "🍀",
+        "👀",
+        "🚗",
+        "🍎",
+        "💝",
+        "💙",
+        "👌",
+        "😉",
+        "😓",
+        "😳",
+        "💪",
+        "🍸",
+        "🔑",
+        "💖",
+        "🌟",
+        "🎉",
+        "🌺",
+        "🎶",
+        "👠",
+        "🏈",
+        "⚾",
+        "🏆",
+        "👽",
+        "💀",
+        "🐵",
+        "🐮",
+        "🐩",
+        "🐎",
+        "💣",
+        "👃",
+        "👂",
+        "🍓",
+        "💘",
+        "💜",
+        "👊",
+        "😜",
+        "😵",
+        "🙏",
+        "👋",
+        "🚽",
+        "💃",
+        "💎",
+        "🚀",
+        "🌙",
+        "🎁",
+        "⛄",
+        "🌊",
+        "⛵",
+        "🏀",
+        "🎱",
+        "💰",
+        "👸",
+        "🐰",
+        "🐷",
+        "🐍",
+        "🐫",
+        "🔫",
+        "🚲",
+        "🍉",
+    ]
+    update_archetype_emoji(archetype_id, random.choice(emojis))

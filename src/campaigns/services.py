@@ -21,6 +21,7 @@ from model_import import (
     ClientArchetype,
 )
 from sqlalchemy.sql.expression import func
+from src.editor.models import Editor, EditorTypes
 from src.email_outbound.services import get_approved_prospect_email_by_id
 from src.integrations.vessel import SalesEngagementIntegration
 from tqdm import tqdm
@@ -811,6 +812,30 @@ def generate_campaign(campaign_id: int) -> True:
         generate_outreaches_for_prospect_list_from_multiple_ctas.apply_async(
             args=[campaign.prospect_ids, campaign.ctas, campaign_id]
         )
+
+    assign_random_editor_to_campaign(campaign_id)
+
+    return True
+
+
+def assign_random_editor_to_campaign(campaign_id: int) -> True:
+    active_random_editor: Editor = (
+        Editor.query.filter(
+            Editor.active == True,
+            Editor.editor_type == EditorTypes.SELLSCALE_EDITING_TEAM,
+        )
+        .order_by(func.random())
+        .first()
+    )
+
+    if not active_random_editor:
+        raise Exception("No active random editor found")
+
+    editor_id: int = active_random_editor.id
+    assign_editor_to_campaign(
+        editor_id=editor_id,
+        campaign_id=campaign_id,
+    )
 
     return True
 

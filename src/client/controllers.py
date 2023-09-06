@@ -1,6 +1,7 @@
 from crypt import methods
 from typing import Optional
 from flask import Blueprint, request, jsonify
+from numpy import require
 from src.client.services_client_sdr import update_sdr_blacklist_words
 from src.personas.services import (
     clone_persona,
@@ -84,6 +85,7 @@ from src.client.services import (
     get_sdr_do_not_contact_filters,
     list_prospects_caught_by_sdr_client_filters,
     remove_prospects_caught_by_sdr_client_filters,
+    update_archetype_emoji,
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -203,7 +205,9 @@ def patch_client(client_sdr_id: int):
     )
     mission = get_request_parameter("mission", request, json=True, required=False)
     case_study = get_request_parameter("case_study", request, json=True, required=False)
-    contract_size = get_request_parameter("contract_size", request, json=True, required=False)
+    contract_size = get_request_parameter(
+        "contract_size", request, json=True, required=False
+    )
 
     success = update_client_details(
         client_id=client_id,
@@ -283,15 +287,42 @@ def get_archetype_prospects_endpoint(client_sdr_id: int, archetype_id: int):
 @require_user
 def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
 
-    persona_name = get_request_parameter("persona_name", request, json=True, required=True, parameter_type=str)
-    persona_fit_reason = get_request_parameter("persona_fit_reason", request, json=True, required=True, parameter_type=str)
-    persona_icp_matching_instructions = get_request_parameter("persona_icp_matching_instructions", request, json=True, required=True, parameter_type=str)
-    persona_contact_objective = get_request_parameter("persona_contact_objective", request, json=True, required=True, parameter_type=str)
+    persona_name = get_request_parameter(
+        "persona_name", request, json=True, required=True, parameter_type=str
+    )
+    persona_fit_reason = get_request_parameter(
+        "persona_fit_reason", request, json=True, required=True, parameter_type=str
+    )
+    persona_icp_matching_instructions = get_request_parameter(
+        "persona_icp_matching_instructions",
+        request,
+        json=True,
+        required=True,
+        parameter_type=str,
+    )
+    persona_contact_objective = get_request_parameter(
+        "persona_contact_objective",
+        request,
+        json=True,
+        required=True,
+        parameter_type=str,
+    )
 
-    option_ctas = get_request_parameter("option_ctas", request, json=True, required=True, parameter_type=bool)
-    option_bump_frameworks = get_request_parameter("option_bump_frameworks", request, json=True, required=True, parameter_type=bool)
-    option_voices = get_request_parameter("option_voices", request, json=True, required=True, parameter_type=bool)
-    option_email_blocks = get_request_parameter("option_email_blocks", request, json=True, required=True, parameter_type=bool)
+    option_ctas = get_request_parameter(
+        "option_ctas", request, json=True, required=True, parameter_type=bool
+    )
+    option_bump_frameworks = get_request_parameter(
+        "option_bump_frameworks", request, json=True, required=True, parameter_type=bool
+    )
+    option_voices = get_request_parameter(
+        "option_voices", request, json=True, required=True, parameter_type=bool
+    )
+    option_email_blocks = get_request_parameter(
+        "option_email_blocks", request, json=True, required=True, parameter_type=bool
+    )
+    option_icp_filters = get_request_parameter(
+        "option_icp_filters", request, json=True, required=True, parameter_type=bool
+    )
 
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
@@ -308,13 +339,22 @@ def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
         option_bump_frameworks=option_bump_frameworks,
         option_voices=option_voices,
         option_email_blocks=option_email_blocks,
+        option_icp_filters=option_icp_filters,
     )
     if not persona:
         return "Failed to clone archetype", 500
 
-    return jsonify({"message": "Success", "data": {
-        "archetype": persona.to_dict(),
-    }}), 200
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {
+                    "archetype": persona.to_dict(),
+                },
+            }
+        ),
+        200,
+    )
 
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes", methods=["GET"])
@@ -402,12 +442,22 @@ def patch_sdr(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/conversion_percentages", methods=["PATCH"])
 @require_user
 def patch_sdr_conversion_percentages(client_sdr_id: int):
-    
-    active_convo = get_request_parameter("active_convo", request, json=True, required=True, parameter_type=float)
-    scheduling = get_request_parameter("scheduling", request, json=True, required=True, parameter_type=float)
-    demo_set = get_request_parameter("demo_set", request, json=True, required=True, parameter_type=float)
-    demo_won = get_request_parameter("demo_won", request, json=True, required=True, parameter_type=float)
-    not_interested = get_request_parameter("not_interested", request, json=True, required=True, parameter_type=float)
+
+    active_convo = get_request_parameter(
+        "active_convo", request, json=True, required=True, parameter_type=float
+    )
+    scheduling = get_request_parameter(
+        "scheduling", request, json=True, required=True, parameter_type=float
+    )
+    demo_set = get_request_parameter(
+        "demo_set", request, json=True, required=True, parameter_type=float
+    )
+    demo_won = get_request_parameter(
+        "demo_won", request, json=True, required=True, parameter_type=float
+    )
+    not_interested = get_request_parameter(
+        "not_interested", request, json=True, required=True, parameter_type=float
+    )
 
     success = update_sdr_conversion_percentages(
         client_sdr_id=client_sdr_id,
@@ -616,7 +666,10 @@ def post_archetype_bulk_action_move_prospects(client_sdr_id: int):
     )
 
     if len(prospect_ids) > 100:
-        return jsonify({"status": "error", "message": "Too many prospects. Limit 100."}), 400
+        return (
+            jsonify({"status": "error", "message": "Too many prospects. Limit 100."}),
+            400,
+        )
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     target_archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
@@ -626,13 +679,15 @@ def post_archetype_bulk_action_move_prospects(client_sdr_id: int):
     success = move_prospects_to_archetype(
         client_sdr_id=client_sdr_id,
         target_archetype_id=target_archetype_id,
-        prospect_ids=prospect_ids
+        prospect_ids=prospect_ids,
     )
     if success:
-        return jsonify({"status": "success", "data": {"message": "Moved prospects"}}), 200
+        return (
+            jsonify({"status": "success", "data": {"message": "Moved prospects"}}),
+            200,
+        )
 
     return jsonify({"status": "error", "message": "Failed to move prospects"}), 400
-
 
 
 @CLIENT_BLUEPRINT.route("/prospect_upload/<upload_id>/stats", methods=["GET"])
@@ -1868,7 +1923,10 @@ def patch_demo_feedback(client_sdr_id: int):
 
     df: DemoFeedback = DemoFeedback.query.get(feedback_id)
     if df.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "Feedback does not belong to you"}), 403
+        return (
+            jsonify({"status": "error", "message": "Feedback does not belong to you"}),
+            403,
+        )
 
     result = edit_demo_feedback(
         client_sdr_id=client_sdr_id,
@@ -1879,7 +1937,12 @@ def patch_demo_feedback(client_sdr_id: int):
         next_demo_date=next_demo_date,
     )
     if not result:
-        return jsonify({"status": "error", "message": "Demo feedback could not be edited"}), 400
+        return (
+            jsonify(
+                {"status": "error", "message": "Demo feedback could not be edited"}
+            ),
+            400,
+        )
 
     return jsonify({"status": "success", "data": {"message": "Success"}}), 200
 
@@ -1944,11 +2007,10 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
     return "OK", 200
 
 
-
 @CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters", methods=["POST"])
 @require_user
 def post_sdr_do_not_contact_filters(client_sdr_id: int):
-    
+
     do_not_contact_keywords_in_company_names = get_request_parameter(
         "do_not_contact_keywords_in_company_names", request, json=True, required=False
     )
@@ -1980,14 +2042,16 @@ def get_sdr_do_not_contact_filters_endpoint(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters/caught_prospects", methods=["GET"])
 @require_user
 def get_sdr_caught_prospects_endpoint(client_sdr_id: int):
-    
+
     prospects = list_prospects_caught_by_sdr_client_filters(
         client_sdr_id=client_sdr_id,
     )
     return jsonify({"prospects": prospects}), 200
 
 
-@CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters/remove_prospects", methods=["POST"])
+@CLIENT_BLUEPRINT.route(
+    "/sdr/do_not_contact_filters/remove_prospects", methods=["POST"]
+)
 @require_user
 def post_sdr_remove_prospects_endpoint(client_sdr_id: int):
     """Removes prospects from the do not contact filters"""
@@ -1997,7 +2061,6 @@ def post_sdr_remove_prospects_endpoint(client_sdr_id: int):
     if not success:
         return "Failed to remove prospects", 400
     return "OK", 200
-
 
 
 @CLIENT_BLUEPRINT.route("/product", methods=["POST"])
@@ -2168,5 +2231,25 @@ def patch_sdr_blacklist_words(client_sdr_id: int):
 
     if not success:
         return jsonify({"message": "Failed to update blacklist words"}), 400
+
+    return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/persona/update_emoji", methods=["POST"])
+@require_user
+def post_update_persona_emoji(client_sdr_id: int):
+    """Updates the emoji for a persona"""
+
+    persona_id = get_request_parameter("persona_id", request, json=True, required=True)
+    emoji = get_request_parameter("emoji", request, json=True, required=True)
+
+    persona: ClientArchetype = ClientArchetype.query.get(persona_id)
+    if not persona or client_sdr_id != persona.client_sdr_id:
+        return "Unauthorized or persona not found", 403
+
+    success = update_archetype_emoji(persona_id, emoji)
+
+    if not success:
+        return jsonify({"message": "Failed to update persona emoji"}), 400
 
     return jsonify({"message": "Success"}), 200

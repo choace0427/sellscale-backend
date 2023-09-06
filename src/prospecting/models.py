@@ -473,6 +473,8 @@ class Prospect(db.Model):
 
     contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
 
+    is_lookalike_profile = db.Column(db.Boolean, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
@@ -521,14 +523,16 @@ class Prospect(db.Model):
 
         # Get Prospect location information
         research_payload: ResearchPayload = ResearchPayload.query.filter_by(
-            prospect_id=self.id,
-            research_type=ResearchType.LINKEDIN_ISCRAPER.value
+            prospect_id=self.id, research_type=ResearchType.LINKEDIN_ISCRAPER.value
         ).first()
         location = None
         company_hq = None
         if research_payload and research_payload.payload:
             location = deep_get(research_payload.payload, "personal.location.default")
-            company_hq = deep_get(research_payload.payload, "company.details.locations.headquarter.country")
+            company_hq = deep_get(
+                research_payload.payload,
+                "company.details.locations.headquarter.country",
+            )
 
         # Check if shallow_data is requested
         if shallow_data:
@@ -538,10 +542,8 @@ class Prospect(db.Model):
                 "first_name": self.first_name,
                 "last_name": self.last_name,
                 "location": location,
-
                 "company": self.company,
                 "company_hq": company_hq,
-
                 "title": self.title,
                 "email": self.email,
                 "icp_fit_score": self.icp_fit_score,
@@ -558,11 +560,9 @@ class Prospect(db.Model):
                 "demo_date": self.demo_date,
                 "deactivate_ai_engagement": self.deactivate_ai_engagement,
                 "is_lead": self.is_lead,
-
                 "overall_status": self.overall_status.value,
                 "linkedin_status": self.status.value,
                 "email_status": p_email_status,
-
                 "li_urn_id": self.li_urn_id,
                 "li_conversation_urn_id": self.li_conversation_urn_id,
                 "li_last_message_timestamp": self.li_last_message_timestamp,
@@ -570,7 +570,6 @@ class Prospect(db.Model):
                 "li_last_message_from_prospect": self.li_last_message_from_prospect,
                 "li_last_message_from_sdr": self.li_last_message_from_sdr,
                 "li_unread_messages": self.li_unread_messages,
-
                 "email_last_message_timestamp": self.email_last_message_timestamp,
                 "email_is_last_message_from_sdr": self.email_is_last_message_from_sdr,
                 "email_last_message_from_prospect": self.email_last_message_from_prospect,
@@ -581,6 +580,7 @@ class Prospect(db.Model):
                 "icp_fit_score_override": self.icp_fit_score_override,
                 "email_store": email_store_data,
                 "contract_size": self.contract_size,
+                "is_lookalike_profile": self.is_lookalike_profile,
             }
 
         # Get generated message if it exists and is requested
@@ -644,7 +644,6 @@ class Prospect(db.Model):
                         .all()
                     ]
 
-
         if self.individual_id:
             individual: Individual = Individual.query.get(self.individual_id)
             individual_data = individual.to_dict()
@@ -657,11 +656,9 @@ class Prospect(db.Model):
             "archetype_id": self.archetype_id,
             "archetype_name": archetype_name,
             "location": location,
-
             "company": self.company,
             "company_url": self.company_url,
             "company_hq": company_hq,
-
             "employee_count": self.employee_count,
             "first_name": self.first_name,
             "last_name": self.last_name,
@@ -1057,8 +1054,8 @@ VALID_NEXT_LINKEDIN_STATUSES = {
 class ProspectReferral(db.Model):
     __tablename__ = "prospect_referral"
 
-    referral_id = db.Column(db.Integer, db.ForeignKey('prospect.id'), primary_key=True)
-    referred_id = db.Column(db.Integer, db.ForeignKey('prospect.id'), primary_key=True)
+    referral_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), primary_key=True)
+    referred_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), primary_key=True)
 
     meta_data = db.Column(db.JSON, nullable=True)
 
@@ -1108,4 +1105,3 @@ class ExistingContact(db.Model):
             "notes": self.notes,
             "used": self.used,
         }
-

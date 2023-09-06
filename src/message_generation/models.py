@@ -217,6 +217,8 @@ class GeneratedMessageCTA(db.Model):
     text_value = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True)
 
+    cta_type = db.Column(db.String, nullable=True)
+
     expiration_date = db.Column(db.DateTime, nullable=True)  # in UTC
 
     def get_active_ctas_for_archetype(archetype_id):
@@ -233,6 +235,7 @@ class GeneratedMessageCTA(db.Model):
             "text_value": self.text_value,
             "active": is_cta_active(self.id),
             "expiration_date": self.expiration_date,
+            "cta_type": self.cta_type,
         }
 
 
@@ -265,9 +268,15 @@ class GeneratedMessageJobQueue(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     outbound_campaign_id = db.Column(db.Integer, db.ForeignKey("outbound_campaign.id"))
 
+    generated_message_cta_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message_cta.id"), nullable=True
+    )
+
     status = db.Column(db.Enum(GeneratedMessageJobStatus), nullable=False)
     error_message = db.Column(db.String, nullable=True)
     attempts = db.Column(db.Integer, nullable=True)
+
+    generated_message_type = db.Column(db.Enum(GeneratedMessageType), nullable=True)
 
     def to_dict(self) -> dict:
         return {

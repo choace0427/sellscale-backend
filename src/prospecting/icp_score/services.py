@@ -1,7 +1,10 @@
 import datetime
 from multiprocessing import process
+from typing import Counter
 
 from flask import app
+import pandas as pd
+from pyparsing import dictOf
 from src.client.models import ClientArchetype
 from src.prospecting.icp_score.models import ICPScoringRuleset
 from app import db, app, celery
@@ -10,6 +13,7 @@ from model_import import ResearchPayload
 from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
 from tqdm import tqdm
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 
 import queue
 import concurrent.futures
@@ -207,7 +211,9 @@ def count_num_icp_attributes(client_archetype_id: int):
 
 
 def get_raw_enriched_prospect_companies_list(
-    client_archetype_id: int, prospect_ids: list[int]
+    client_archetype_id: int,
+    prospect_ids: list[int],
+    is_lookalike_profile_only: bool = False,
 ):
     """
     Get the raw enriched prospect companies list.
@@ -235,6 +241,9 @@ def get_raw_enriched_prospect_companies_list(
             Prospect.linkedin_url,
         )
     )
+
+    if is_lookalike_profile_only:
+        entries = entries.filter(Prospect.is_lookalike_profile == True)
 
     if prospect_ids:
         entries = entries.filter(Prospect.id.in_(prospect_ids))
@@ -266,15 +275,32 @@ def get_raw_enriched_prospect_companies_list(
         processed[prospect_id].prospect_industry = industry
         processed[prospect_id].prospect_skills = deep_get(data, "personal.skills")
         processed[prospect_id].prospect_positions = deep_get(
-            data, "personal.profile_positions"
+            data, "personal.position_groups.0.profile_positions"
         )
         processed[prospect_id].prospect_years_of_experience = (
             datetime.datetime.now().year
             - deep_get(processed[prospect_id].prospect_positions[-1], "date.start.year")
             if processed[prospect_id].prospect_positions
+            and deep_get(
+                processed[prospect_id].prospect_positions[-1], "date.start.year"
+            )
             else None
         )
-        processed[prospect_id].prospect_dump = str(deep_get(data, "personal"))
+
+        position_title = deep_get(
+            data, "personal.position_groups.0.profile_positions.0.title"
+        )
+        position_description = deep_get(
+            data, "personal.position_groups.0.profile_positions.0.description"
+        )
+        personal_bio = deep_get(data, "personal.bio")
+        processed[prospect_id].prospect_dump = (
+            str(position_title)
+            + " "
+            + str(position_description)
+            + " "
+            + str(personal_bio)
+        )
 
         processed[prospect_id].company_name = company_name
         processed[prospect_id].company_location = (
@@ -311,7 +337,10 @@ def get_raw_enriched_prospect_companies_list(
         processed[prospect_id].company_tagline = deep_get(
             data, "company.details.tagline"
         )
-        processed[prospect_id].company_dump = str(deep_get(data, "company"))
+
+        processed[prospect_id].company_dump = str(
+            deep_get(data, "company.details.description")
+        )
 
     return processed
 
@@ -405,18 +434,48 @@ def score_one_prospect(
 
         # Prospect Years of Experience
         if (
-            icp_scoring_ruleset.individual_years_of_experience_start
-            and enriched_prospect_company.prospect_years_of_experience
-            and enriched_prospect_company.prospect_years_of_experience
-            >= icp_scoring_ruleset.individual_years_of_experience_start
-            and icp_scoring_ruleset.individual_years_of_experience_end
-            and enriched_prospect_company.prospect_years_of_experience
-            <= icp_scoring_ruleset.individual_years_of_experience_end
+            enriched_prospect_company.prospect_years_of_experience
+            and (
+                icp_scoring_ruleset.individual_years_of_experience_start
+                and enriched_prospect_company.prospect_years_of_experience
+                and enriched_prospect_company.prospect_years_of_experience
+                >= icp_scoring_ruleset.individual_years_of_experience_start
+            )
+            and (
+                icp_scoring_ruleset.individual_years_of_experience_end
+                and icp_scoring_ruleset.individual_years_of_experience_end
+                and enriched_prospect_company.prospect_years_of_experience
+                <= icp_scoring_ruleset.individual_years_of_experience_end
+            )
         ):
             score += 1
-            reasoning += "(✅ prospect years of experience) "
+            reasoning += (
+                "(✅ prospect years of experience: "
+                + str(enriched_prospect_company.prospect_years_of_experience)
+                + ") "
+            )
+        elif enriched_prospect_company.prospect_years_of_experience and (
+            (
+                icp_scoring_ruleset.individual_years_of_experience_start
+                and enriched_prospect_company.prospect_years_of_experience
+                and enriched_prospect_company.prospect_years_of_experience
+                < icp_scoring_ruleset.individual_years_of_experience_start
+            )
+            or (
+                icp_scoring_ruleset.individual_years_of_experience_end
+                and icp_scoring_ruleset.individual_years_of_experience_end
+                and enriched_prospect_company.prospect_years_of_experience
+                > icp_scoring_ruleset.individual_years_of_experience_end
+            )
+        ):
+            score -= num_attributes
+            reasoning += (
+                "(❌ prospect years of experience: "
+                + str(enriched_prospect_company.prospect_years_of_experience)
+                + ") "
+            )
 
-        # Prospect Skills
+        # Prospect Skillz
         if (
             icp_scoring_ruleset.excluded_individual_skills_keywords
             and enriched_prospect_company.prospect_skills
@@ -593,15 +652,18 @@ def score_one_prospect(
             reasoning += "(✅ company location: " + valid_company_location + ") "
 
         # Company Size
-        if (
-            icp_scoring_ruleset.company_size_start
-            and enriched_prospect_company.company_employee_count
-            and enriched_prospect_company.company_employee_count != "None"
-            and int(enriched_prospect_company.company_employee_count)
-            >= icp_scoring_ruleset.company_size_start
-            and icp_scoring_ruleset.company_size_end
-            and int(enriched_prospect_company.company_employee_count)
-            <= icp_scoring_ruleset.company_size_end
+        if enriched_prospect_company.company_employee_count != "None" and (
+            (
+                icp_scoring_ruleset.company_size_start
+                and enriched_prospect_company.company_employee_count
+                and int(enriched_prospect_company.company_employee_count)
+                >= icp_scoring_ruleset.company_size_start
+            )
+            and (
+                icp_scoring_ruleset.company_size_end
+                and int(enriched_prospect_company.company_employee_count)
+                <= icp_scoring_ruleset.company_size_end
+            )
         ):
             score += 1
             size = ""
@@ -610,16 +672,23 @@ def score_one_prospect(
             size += "-"
             if icp_scoring_ruleset.company_size_end:
                 size += str(icp_scoring_ruleset.company_size_end)
-            reasoning += "(✅ company size: " + size + ") "
-        elif (
-            icp_scoring_ruleset.company_size_start
-            and enriched_prospect_company.company_employee_count
-            and enriched_prospect_company.company_employee_count != "None"
-            and int(enriched_prospect_company.company_employee_count)
-            < icp_scoring_ruleset.company_size_start
-            and icp_scoring_ruleset.company_size_end
-            and int(enriched_prospect_company.company_employee_count)
-            > icp_scoring_ruleset.company_size_end
+            reasoning += (
+                "(✅ company size: "
+                + str(enriched_prospect_company.company_employee_count)
+                + ") "
+            )
+        elif enriched_prospect_company.company_employee_count != "None" and (
+            (
+                icp_scoring_ruleset.company_size_start
+                and enriched_prospect_company.company_employee_count
+                and int(enriched_prospect_company.company_employee_count)
+                < icp_scoring_ruleset.company_size_start
+            )
+            or (
+                icp_scoring_ruleset.company_size_end
+                and int(enriched_prospect_company.company_employee_count)
+                > icp_scoring_ruleset.company_size_end
+            )
         ):
             score -= num_attributes
             size = ""
@@ -628,7 +697,11 @@ def score_one_prospect(
             size += "-"
             if icp_scoring_ruleset.company_size_end:
                 size += str(icp_scoring_ruleset.company_size_end)
-            reasoning += "(❌ company size: " + size + ") "
+            reasoning += (
+                "(❌ company size: "
+                + str(enriched_prospect_company.company_employee_count)
+                + ") "
+            )
 
         # Company Industry
         if (
@@ -700,7 +773,8 @@ def score_one_prospect(
                     break
             reasoning += "(✅ company general info: " + valid_generalized + ") "
 
-        queue.put((enriched_prospect_company, score, reasoning))
+        if queue:
+            queue.put((enriched_prospect_company, score, reasoning))
 
         db.session.close()
 
@@ -794,9 +868,9 @@ def apply_icp_scoring_ruleset_filters(
 
     # Determine the labels (VERY HIGH -> VERY LOW)
     sorted_keys = sorted(score_map.keys())
-    minimum_key = min(score_map.keys())
+    minimum_key = min(score_map.keys()) if len(score_map.keys()) > 0 else 0
     mid_minimum_key = minimum_key // 2
-    maximum_key = max(score_map.keys())
+    maximum_key = max(score_map.keys()) if len(score_map.keys()) > 0 else 0
     mid_maximum_key = maximum_key // 2
 
     label_map = {}
@@ -905,3 +979,196 @@ def move_selected_prospects_to_unassigned(prospect_ids: list[int]):
     db.session.close()
 
     return True
+
+
+def predict_icp_scoring_filters_from_prospect_id(
+    client_archetype_id: int,
+):
+    enriched_pcs: dict = get_raw_enriched_prospect_companies_list(
+        client_archetype_id=client_archetype_id,
+        prospect_ids=None,
+        is_lookalike_profile_only=True,
+    )
+
+    all_titles = [enriched_pcs[key].prospect_title for key in enriched_pcs.keys()]
+    # get top 10 titles with highest frequency
+    good_titles = [
+        title
+        for title, count in Counter(all_titles).most_common(10)
+        if title and title != "None"
+    ]
+
+    all_industries = [
+        enriched_pcs[key].prospect_industry for key in enriched_pcs.keys()
+    ]
+    # get top 10 industries with highest frequency
+    good_industries = [
+        industry
+        for industry, count in Counter(all_industries).most_common(10)
+        if industry and industry != "None"
+    ]
+
+    all_companies = [enriched_pcs[key].company_name for key in enriched_pcs.keys()]
+    # get top 10 companies with highest frequency
+    good_companies = [
+        company
+        for company, count in Counter(all_companies).most_common(10)
+        if company and company != "None"
+    ]
+
+    min_years_of_experience = min(
+        [
+            int(enriched_pcs[key].prospect_years_of_experience)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].prospect_years_of_experience
+            and enriched_pcs[key].prospect_years_of_experience != "None"
+        ]
+    )
+    max_years_of_experience = max(
+        [
+            int(enriched_pcs[key].prospect_years_of_experience)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].prospect_years_of_experience
+            and enriched_pcs[key].prospect_years_of_experience != "None"
+        ]
+    )
+    min_company_size = min(
+        [
+            int(enriched_pcs[key].company_employee_count)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].company_employee_count
+            and enriched_pcs[key].company_employee_count != "None"
+        ]
+    )
+    max_company_size = max(
+        [
+            int(enriched_pcs[key].company_employee_count)
+            for key in enriched_pcs.keys()
+            if enriched_pcs[key].company_employee_count
+            and enriched_pcs[key].company_employee_count != "None"
+        ]
+    )
+
+    return {
+        "good_titles": good_titles,
+        "good_industries": good_industries,
+        "good_companies": good_companies,
+        "min_years_of_experience": min_years_of_experience,
+        "max_years_of_experience": max_years_of_experience,
+        "min_company_size": min_company_size,
+        "max_company_size": max_company_size,
+    }
+
+
+def set_icp_scores_to_predicted_values(client_archetype_id: int):
+    predicted_filters = predict_icp_scoring_filters_from_prospect_id(
+        client_archetype_id=client_archetype_id,
+    )
+
+    good_titles = predicted_filters["good_titles"]
+    good_industries = predicted_filters["good_industries"]
+    good_companies = predicted_filters["good_companies"]
+    min_years_of_experience = predicted_filters["min_years_of_experience"]
+    max_years_of_experience = predicted_filters["max_years_of_experience"]
+    min_company_size = predicted_filters["min_company_size"]
+    max_company_size = predicted_filters["max_company_size"]
+
+    success = update_icp_scoring_ruleset(
+        client_archetype_id=client_archetype_id,
+        included_individual_title_keywords=good_titles,
+        excluded_individual_title_keywords=[],
+        included_individual_industry_keywords=good_industries,
+        excluded_individual_industry_keywords=[],
+        individual_years_of_experience_start=min_years_of_experience,
+        individual_years_of_experience_end=max_years_of_experience,
+        included_individual_skills_keywords=[],
+        excluded_individual_skills_keywords=[],
+        included_individual_locations_keywords=[
+            "United States",
+            "Canada",
+            "US ",
+            "CA ",
+        ],
+        excluded_individual_locations_keywords=[],
+        included_individual_generalized_keywords=[],
+        excluded_individual_generalized_keywords=[],
+        included_company_name_keywords=good_companies,
+        excluded_company_name_keywords=[],
+        included_company_locations_keywords=["United States", "Canada", "US ", "CA "],
+        excluded_company_locations_keywords=[],
+        company_size_start=min_company_size,
+        company_size_end=max_company_size,
+        included_company_industries_keywords=[],
+        excluded_company_industries_keywords=[],
+        included_company_generalized_keywords=[],
+        excluded_company_generalized_keywords=[],
+    )
+
+    return success
+
+
+def clear_icp_ruleset(client_archetype_id: int):
+    success = update_icp_scoring_ruleset(
+        client_archetype_id=client_archetype_id,
+        included_individual_title_keywords=[],
+        excluded_individual_title_keywords=[],
+        included_individual_industry_keywords=[],
+        excluded_individual_industry_keywords=[],
+        individual_years_of_experience_start=None,
+        individual_years_of_experience_end=None,
+        included_individual_skills_keywords=[],
+        excluded_individual_skills_keywords=[],
+        included_individual_locations_keywords=[],
+        excluded_individual_locations_keywords=[],
+        included_individual_generalized_keywords=[],
+        excluded_individual_generalized_keywords=[],
+        included_company_name_keywords=[],
+        excluded_company_name_keywords=[],
+        included_company_locations_keywords=[],
+        excluded_company_locations_keywords=[],
+        company_size_start=None,
+        company_size_end=None,
+        included_company_industries_keywords=[],
+        excluded_company_industries_keywords=[],
+        included_company_generalized_keywords=[],
+        excluded_company_generalized_keywords=[],
+    )
+
+    return success
+
+
+def clone_icp_ruleset(source_archetype_id: int, target_archetype_id: int):
+    icp_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=source_archetype_id
+    ).first()
+
+    if not icp_ruleset:
+        return False
+
+    success = update_icp_scoring_ruleset(
+        client_archetype_id=target_archetype_id,
+        included_individual_title_keywords=icp_ruleset.included_individual_title_keywords,
+        excluded_individual_title_keywords=icp_ruleset.excluded_individual_title_keywords,
+        included_individual_industry_keywords=icp_ruleset.included_individual_industry_keywords,
+        excluded_individual_industry_keywords=icp_ruleset.excluded_individual_industry_keywords,
+        individual_years_of_experience_start=icp_ruleset.individual_years_of_experience_start,
+        individual_years_of_experience_end=icp_ruleset.individual_years_of_experience_end,
+        included_individual_skills_keywords=icp_ruleset.included_individual_skills_keywords,
+        excluded_individual_skills_keywords=icp_ruleset.excluded_individual_skills_keywords,
+        included_individual_locations_keywords=icp_ruleset.included_individual_locations_keywords,
+        excluded_individual_locations_keywords=icp_ruleset.excluded_individual_locations_keywords,
+        included_individual_generalized_keywords=icp_ruleset.included_individual_generalized_keywords,
+        excluded_individual_generalized_keywords=icp_ruleset.excluded_individual_generalized_keywords,
+        included_company_name_keywords=icp_ruleset.included_company_name_keywords,
+        excluded_company_name_keywords=icp_ruleset.excluded_company_name_keywords,
+        included_company_locations_keywords=icp_ruleset.included_company_locations_keywords,
+        excluded_company_locations_keywords=icp_ruleset.excluded_company_locations_keywords,
+        company_size_start=icp_ruleset.company_size_start,
+        company_size_end=icp_ruleset.company_size_end,
+        included_company_industries_keywords=icp_ruleset.included_company_industries_keywords,
+        excluded_company_industries_keywords=icp_ruleset.excluded_company_industries_keywords,
+        included_company_generalized_keywords=icp_ruleset.included_company_generalized_keywords,
+        excluded_company_generalized_keywords=icp_ruleset.excluded_company_generalized_keywords,
+    )
+
+    return success

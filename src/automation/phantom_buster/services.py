@@ -5,7 +5,12 @@ import os
 import json
 from datetime import datetime, timedelta
 from typing import Optional
-from src.automation.models import PhantomBusterAgent, PhantomBusterSalesNavigatorConfig, PhantomBusterSalesNavigatorLaunch, SalesNavigatorLaunchStatus
+from src.automation.models import (
+    PhantomBusterAgent,
+    PhantomBusterSalesNavigatorConfig,
+    PhantomBusterSalesNavigatorLaunch,
+    SalesNavigatorLaunchStatus,
+)
 
 from src.client.models import Client, ClientSDR
 
@@ -13,7 +18,7 @@ from src.client.models import Client, ClientSDR
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 DAILY_AGENT_TRIGGER_LIMIT = 4
 DAILY_PROSPECT_SCRAPE_LIMIT = 600
-MAXIMUM_SCRAPE_PER_LAUNCH = 400
+MAXIMUM_SCRAPE_PER_LAUNCH = 1000
 
 
 @celery.task
@@ -23,7 +28,9 @@ def reset_sales_navigator_config_counts() -> None:
     Returns:
         None
     """
-    configs: list[PhantomBusterSalesNavigatorConfig] = PhantomBusterSalesNavigatorConfig.query.all()
+    configs: list[
+        PhantomBusterSalesNavigatorConfig
+    ] = PhantomBusterSalesNavigatorConfig.query.all()
     for config in configs:
         config.daily_trigger_count = 0
         config.daily_prospect_count = 0
@@ -39,16 +46,22 @@ def get_sales_navigator_launches(client_sdr_id: int) -> list[dict]:
     Returns:
         list[dict]: List of dictionaries corresponding to the launches
     """
-    launches: list[PhantomBusterSalesNavigatorLaunch] = PhantomBusterSalesNavigatorLaunch.query.filter(
-        PhantomBusterSalesNavigatorLaunch.client_sdr_id == client_sdr_id,
-    ).order_by(
-        PhantomBusterSalesNavigatorLaunch.created_at.desc(),
-    ).all()
+    launches: list[PhantomBusterSalesNavigatorLaunch] = (
+        PhantomBusterSalesNavigatorLaunch.query.filter(
+            PhantomBusterSalesNavigatorLaunch.client_sdr_id == client_sdr_id,
+        )
+        .order_by(
+            PhantomBusterSalesNavigatorLaunch.created_at.desc(),
+        )
+        .all()
+    )
 
     return [launch.to_dict() for launch in launches]
 
 
-def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> tuple[list, list]:
+def get_sales_navigator_launch_result(
+    client_sdr_id: int, launch_id: int
+) -> tuple[list, list]:
     """Returns the JSON result (to be returned as CSV) corresponding to the launch
 
     Args:
@@ -58,14 +71,18 @@ def get_sales_navigator_launch_result(client_sdr_id: int, launch_id: int) -> tup
     Returns:
         tuple[list, list]: Tuple of the raw and processed results
     """
-    launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+    launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+    )
     if launch.client_sdr_id != client_sdr_id:
         return None
 
     return launch.result_raw, launch.result_processed
 
 
-def create_phantom_buster_sales_navigator_config(linkedin_session_cookie: str, client_sdr_id: Optional[int]) -> int:
+def create_phantom_buster_sales_navigator_config(
+    linkedin_session_cookie: str, client_sdr_id: Optional[int]
+) -> int:
     """Creates a PhantomBusterSalesNavigatorConfig entry
 
     Args:
@@ -90,12 +107,12 @@ def create_phantom_buster_sales_navigator_config(linkedin_session_cookie: str, c
             client_sdr_id=None,
             client_id=None,
         ).count()
-        phantom_name = "LinkedIn Sales Navigator - Common Pool #{count}".format(count=common_pool_count)
+        phantom_name = "LinkedIn Sales Navigator - Common Pool #{count}".format(
+            count=common_pool_count
+        )
 
     # Create the PhantomBuster agent
-    payload = json.dumps(
-        {}
-    )
+    payload = json.dumps({})
     headers = {
         "X-Phantombuster-Key": PHANTOMBUSTER_API_KEY,
         "accept": "application/json",
@@ -124,7 +141,9 @@ def create_phantom_buster_sales_navigator_config(linkedin_session_cookie: str, c
     return config.id
 
 
-def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape_count: int, client_sdr_id: int, scrape_name: str) -> tuple[bool, str]:
+def register_phantom_buster_sales_navigator_url(
+    sales_navigator_url: str, scrape_count: int, client_sdr_id: int, scrape_name: str
+) -> tuple[bool, str]:
     """Registers a Sales Navigator URL to a PhantomBusterSalesNavigatorConfig entry
 
     Args:
@@ -144,25 +163,34 @@ def register_phantom_buster_sales_navigator_url(sales_navigator_url: str, scrape
     scrape_count = min(scrape_count, MAXIMUM_SCRAPE_PER_LAUNCH)
 
     # Grab the PhantomBusterSalesNavigatorConfig that may belong to this sdr
-    config: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.filter(
-        PhantomBusterSalesNavigatorConfig.client_sdr_id == client_sdr_id,
-        PhantomBusterSalesNavigatorConfig.daily_trigger_count < DAILY_AGENT_TRIGGER_LIMIT,
-        PhantomBusterSalesNavigatorConfig.daily_prospect_count < DAILY_PROSPECT_SCRAPE_LIMIT,
-    ).first()
+    config: PhantomBusterSalesNavigatorConfig = (
+        PhantomBusterSalesNavigatorConfig.query.filter(
+            PhantomBusterSalesNavigatorConfig.client_sdr_id == client_sdr_id,
+            PhantomBusterSalesNavigatorConfig.daily_trigger_count
+            < DAILY_AGENT_TRIGGER_LIMIT,
+            PhantomBusterSalesNavigatorConfig.daily_prospect_count
+            < DAILY_PROSPECT_SCRAPE_LIMIT,
+        ).first()
+    )
 
     # If there is no Agent dedicated to this SDR, grab a random Common Pool agent
     if not config:
-        config: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.filter(
-            PhantomBusterSalesNavigatorConfig.common_pool == True,
-            PhantomBusterSalesNavigatorConfig.client_id == None,
-            PhantomBusterSalesNavigatorConfig.client_sdr_id == None,
-            PhantomBusterSalesNavigatorConfig.linkedin_session_cookie != None,
-            PhantomBusterSalesNavigatorConfig.phantom_uuid != None,
-            PhantomBusterSalesNavigatorConfig.daily_trigger_count < DAILY_AGENT_TRIGGER_LIMIT,
-            PhantomBusterSalesNavigatorConfig.daily_prospect_count < DAILY_PROSPECT_SCRAPE_LIMIT,
-        ).order_by(PhantomBusterSalesNavigatorConfig.daily_trigger_count.asc()
-        ).order_by(PhantomBusterSalesNavigatorConfig.daily_prospect_count.asc()
-        ).first()
+        config: PhantomBusterSalesNavigatorConfig = (
+            PhantomBusterSalesNavigatorConfig.query.filter(
+                PhantomBusterSalesNavigatorConfig.common_pool == True,
+                PhantomBusterSalesNavigatorConfig.client_id == None,
+                PhantomBusterSalesNavigatorConfig.client_sdr_id == None,
+                PhantomBusterSalesNavigatorConfig.linkedin_session_cookie != None,
+                PhantomBusterSalesNavigatorConfig.phantom_uuid != None,
+                PhantomBusterSalesNavigatorConfig.daily_trigger_count
+                < DAILY_AGENT_TRIGGER_LIMIT,
+                PhantomBusterSalesNavigatorConfig.daily_prospect_count
+                < DAILY_PROSPECT_SCRAPE_LIMIT,
+            )
+            .order_by(PhantomBusterSalesNavigatorConfig.daily_trigger_count.asc())
+            .order_by(PhantomBusterSalesNavigatorConfig.daily_prospect_count.asc())
+            .first()
+        )
 
     # If there is no Agent available, return
     if not config:
@@ -196,31 +224,38 @@ def collect_and_load_sales_navigator_results(self) -> None:
 
     This function is triggered by a webhook from PhantomBuster.
     """
+
     def process_phantom_result_raw(result_raw: list[dict]) -> list[dict]:
         if type(result_raw) != list:
             # Most likely the PB Payload is different than expected.
-            jsonUrl = result_raw.get('jsonUrl')
+            jsonUrl = result_raw.get("jsonUrl")
             result_raw = requests.get(jsonUrl).json()
         result_processed = []
         for raw_dict in result_raw:
             processed_dict: dict = dict(raw_dict)
             url = processed_dict.get("profileUrl")
             if url:
-                processed_url = url.replace('/sales/lead/', '/in/').split(',')[0]
+                processed_url = url.replace("/sales/lead/", "/in/").split(",")[0]
                 processed_dict["profileUrl"] = processed_url
             result_processed.append(processed_dict)
 
         return result_processed
 
     # Find all SalesNavigatorLaunch entries with status=RUNNING and pb_container_id set
-    launches: list[PhantomBusterSalesNavigatorLaunch] = PhantomBusterSalesNavigatorLaunch.query.filter(
+    launches: list[
+        PhantomBusterSalesNavigatorLaunch
+    ] = PhantomBusterSalesNavigatorLaunch.query.filter(
         PhantomBusterSalesNavigatorLaunch.status == SalesNavigatorLaunchStatus.RUNNING,
         PhantomBusterSalesNavigatorLaunch.pb_container_id != None,
     ).all()
 
     for launch in launches:
         # Query the PhantomBuster API for the results of each pb_container_id
-        agent: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.get(launch.sales_navigator_config_id)
+        agent: PhantomBusterSalesNavigatorConfig = (
+            PhantomBusterSalesNavigatorConfig.query.get(
+                launch.sales_navigator_config_id
+            )
+        )
         phantom: PhantomBusterAgent = PhantomBusterAgent(agent.phantom_uuid)
         result_raw = phantom.get_output_by_container_id(launch.pb_container_id)
         result_processed = process_phantom_result_raw(result_raw)
@@ -246,22 +281,29 @@ def collect_and_load_sales_navigator_results(self) -> None:
 
 @celery.task
 def collect_and_trigger_phantom_buster_sales_navigator_launches() -> None:
-    """Collects and triggers PhantomBusterSalesNavigatorLaunch entries
-    """
+    """Collects and triggers PhantomBusterSalesNavigatorLaunch entries"""
     # Find all available SalesNavigator Agents
-    agents: list[PhantomBusterSalesNavigatorConfig] = PhantomBusterSalesNavigatorConfig.query.filter(
+    agents: list[
+        PhantomBusterSalesNavigatorConfig
+    ] = PhantomBusterSalesNavigatorConfig.query.filter(
         PhantomBusterSalesNavigatorConfig.in_use == False,
     ).all()
     agent_ids = [agent.id for agent in agents]
 
     # Collect all queued PhantomBusterSalesNavigatorLaunch on available agents
-    launches: list[PhantomBusterSalesNavigatorLaunch] = PhantomBusterSalesNavigatorLaunch.query.filter(
+    launches: list[
+        PhantomBusterSalesNavigatorLaunch
+    ] = PhantomBusterSalesNavigatorLaunch.query.filter(
         PhantomBusterSalesNavigatorLaunch.sales_navigator_config_id.in_(agent_ids),
         PhantomBusterSalesNavigatorLaunch.status == SalesNavigatorLaunchStatus.QUEUED,
     ).all()
     for launch in launches:
         # Mark agents as in use
-        agent: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.get(launch.sales_navigator_config_id)
+        agent: PhantomBusterSalesNavigatorConfig = (
+            PhantomBusterSalesNavigatorConfig.query.get(
+                launch.sales_navigator_config_id
+            )
+        )
         agent.in_use = True
         db.session.commit()
 
@@ -275,8 +317,14 @@ def collect_and_trigger_phantom_buster_sales_navigator_launches() -> None:
 def run_phantom_buster_sales_navigator(self, launch_id: int) -> tuple[bool, str]:
     try:
         # Get Launch entry
-        launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
-        pb_sales_navigator: PhantomBusterSalesNavigatorConfig = PhantomBusterSalesNavigatorConfig.query.get(launch.sales_navigator_config_id)
+        launch: PhantomBusterSalesNavigatorLaunch = (
+            PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+        )
+        pb_sales_navigator: PhantomBusterSalesNavigatorConfig = (
+            PhantomBusterSalesNavigatorConfig.query.get(
+                launch.sales_navigator_config_id
+            )
+        )
 
         phantom_uuid = pb_sales_navigator.phantom_uuid
         phantom: PhantomBusterAgent = PhantomBusterAgent(phantom_uuid)
@@ -301,7 +349,11 @@ def run_phantom_buster_sales_navigator(self, launch_id: int) -> tuple[bool, str]
         # Get PhantomBuster agent's output container_id
         container_id = result.get("data", {}).get("containerId")
         if not container_id:
-            raise Exception("PhantomBuster agent failed to launch. Result: {payload}".format(payload=result))
+            raise Exception(
+                "PhantomBuster agent failed to launch. Result: {payload}".format(
+                    payload=result
+                )
+            )
 
         # Update Launch entry
         launch.pb_container_id = container_id
