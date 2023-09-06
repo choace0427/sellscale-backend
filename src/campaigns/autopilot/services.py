@@ -7,14 +7,14 @@ from model_import import (
     GeneratedMessageType,
     GeneratedMessageCTA,
     OutboundCampaign,
-    OutboundCampaignStatus
+    OutboundCampaignStatus,
 )
 from src.utils.slack import send_slack_message, URL_MAP
 from src.utils.datetime.dateutils import get_next_next_monday_sunday
 from src.campaigns.services import (
     create_outbound_campaign,
     generate_campaign,
-    smart_get_prospects_for_campaign
+    smart_get_prospects_for_campaign,
 )
 from typing import Optional
 from datetime import datetime, timedelta
@@ -29,27 +29,27 @@ def collect_and_generate_all_autopilot_campaigns():
     # Get all active clients
     active_clients = Client.query.filter_by(
         active=True,
-        id=17,
     ).all()
 
     # Get all SDRs for each client that has autopilot_enabled
     sdrs: list[ClientSDR] = []
     for client in active_clients:
         client_sdrs: list[ClientSDR] = ClientSDR.query.filter(
-            ClientSDR.client_id == client.id,
-            ClientSDR.autopilot_enabled == True
+            ClientSDR.client_id == client.id, ClientSDR.autopilot_enabled == True
         ).all()
         sdrs.extend(client_sdrs)
 
     # Generate campaigns for SDRs, using another function
     for i, sdr in enumerate(sdrs):
         sdr_id = sdr.id
-        ten_minutes = 60 * 10
-        collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id], countdown=i * ten_minutes)
+
+        collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id])
 
 
 @celery.task(bind=True, max_retries=1)
-def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) -> tuple[bool, str]:
+def collect_and_generate_autopilot_campaign_for_sdr(
+    self, client_sdr_id: int
+) -> tuple[bool, str]:
     try:
         # Get SDR
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -57,25 +57,41 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
         # Get active archetypes for SDR. If more than one, block and send slack message
         archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
             ClientArchetype.client_sdr_id == client_sdr.id,
-            ClientArchetype.active == True
+            ClientArchetype.active == True,
         ).all()
         if len(archetypes) > 1:
-            send_slack_message(f"🤖 ❌ 👥 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Too many active archetypes.", [SLACK_CHANNEL])
-            return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Too many active archetypes"
+            send_slack_message(
+                f"🤖 ❌ 👥 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Too many active archetypes.",
+                [SLACK_CHANNEL],
+            )
+            return (
+                False,
+                f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Too many active archetypes",
+            )
         elif len(archetypes) == 0:
-            send_slack_message(f"🤖 ❌ 👤 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active archetypes.", [SLACK_CHANNEL])
-            return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active archetypes"
+            send_slack_message(
+                f"🤖 ❌ 👤 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active archetypes.",
+                [SLACK_CHANNEL],
+            )
+            return (
+                False,
+                f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active archetypes",
+            )
 
         # Get date of next next monday, and next next sunday (campaign timespan)
         next_next_monday, next_next_sunday = get_next_next_monday_sunday(
-            datetime.today())
+            datetime.today()
+        )
 
         # Generated types stores the campaign types which were generated
         generated_types = []
 
         # Generate campaign for LinkedIn given SLAs for the SDR
-        if client_sdr.weekly_li_outbound_target is not None and client_sdr.weekly_li_outbound_target > 0:       # LinkedIn
-            
+        if (
+            client_sdr.weekly_li_outbound_target is not None
+            and client_sdr.weekly_li_outbound_target > 0
+        ):  # LinkedIn
+
             # Don't use CTAs that will expire in the next 10 days
             current_date = datetime.utcnow()
             in_10_days = current_date + timedelta(days=10)
@@ -87,19 +103,35 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                 or_(
                     GeneratedMessageCTA.expiration_date == None,
                     GeneratedMessageCTA.expiration_date > in_10_days,
-                )
+                ),
             ).all()
             if len(ctas) == 0:
-                send_slack_message(f"🤖 ❌ 🖊️ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active CTAs for LinkedIn.", [SLACK_CHANNEL])
-                return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active CTAs for LinkedIn"
+                send_slack_message(
+                    f"🤖 ❌ 🖊️ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No active CTAs for LinkedIn.",
+                    [SLACK_CHANNEL],
+                )
+                return (
+                    False,
+                    f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active CTAs for LinkedIn",
+                )
 
             # Check that SLA has not been filled and generate campaign if not
             sla_count = get_sla_count(
-                client_sdr_id, archetypes[0].id, GeneratedMessageType.LINKEDIN, datetime.today())
+                client_sdr_id,
+                archetypes[0].id,
+                GeneratedMessageType.LINKEDIN,
+                datetime.today(),
+            )
             if sla_count < client_sdr.weekly_li_outbound_target:
                 num_can_generate = client_sdr.weekly_li_outbound_target - sla_count
                 # Check that there are enough prospects to generate the campaign
-                num_available_prospects = len(smart_get_prospects_for_campaign(archetypes[0].id, num_can_generate, GeneratedMessageType.LINKEDIN))
+                num_available_prospects = len(
+                    smart_get_prospects_for_campaign(
+                        archetypes[0].id,
+                        num_can_generate,
+                        GeneratedMessageType.LINKEDIN,
+                    )
+                )
                 print(num_available_prospects)
                 if num_can_generate <= num_available_prospects:
                     # Create the campaign
@@ -114,28 +146,51 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                         ctas=[cta.id for cta in ctas],
                     )
                     if not oc:
-                        send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.", [SLACK_CHANNEL])
+                        send_slack_message(
+                            f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating LINKEDIN campaign.",
+                            [SLACK_CHANNEL],
+                        )
                     # Generate the campaign
                     else:
                         generating = generate_campaign(oc.id)
                         if not generating:
-                            send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.", [SLACK_CHANNEL])
+                            send_slack_message(
+                                f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing LINKEDIN messages for generation.",
+                                [SLACK_CHANNEL],
+                            )
                         else:
                             generated_types.append(GeneratedMessageType.LINKEDIN.value)
                 else:
-                    send_slack_message(f"🤖 ❌ 🧑‍🤝‍🧑 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate LINKEDIN campaign.", [SLACK_CHANNEL])
+                    send_slack_message(
+                        f"🤖 ❌ 🧑‍🤝‍🧑 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate LINKEDIN campaign.",
+                        [SLACK_CHANNEL],
+                    )
             else:
-                send_slack_message(f"🤖 ✅ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for LinkedIn has been filled.", [SLACK_CHANNEL])
+                send_slack_message(
+                    f"🤖 ✅ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for LinkedIn has been filled.",
+                    [SLACK_CHANNEL],
+                )
 
         # Generate campaign for Email given SLAs for the SDR
-        if client_sdr.weekly_email_outbound_target is not None and client_sdr.weekly_email_outbound_target > 0:   # Email
+        if (
+            client_sdr.weekly_email_outbound_target is not None
+            and client_sdr.weekly_email_outbound_target > 0
+        ):  # Email
             # Check that SLA has not been filled:
             sla_count = get_sla_count(
-                client_sdr_id, archetypes[0].id, GeneratedMessageType.EMAIL, datetime.today())
+                client_sdr_id,
+                archetypes[0].id,
+                GeneratedMessageType.EMAIL,
+                datetime.today(),
+            )
             if sla_count < client_sdr.weekly_email_outbound_target:
                 num_can_generate = client_sdr.weekly_email_outbound_target - sla_count
                 # Check that there are enough prospects to generate the campaign
-                num_available_prospects = len(smart_get_prospects_for_campaign(archetypes[0].id, num_can_generate, GeneratedMessageType.EMAIL))
+                num_available_prospects = len(
+                    smart_get_prospects_for_campaign(
+                        archetypes[0].id, num_can_generate, GeneratedMessageType.EMAIL
+                    )
+                )
                 if num_can_generate <= num_available_prospects:
                     # Create the campaign
                     oc = create_outbound_campaign(
@@ -149,30 +204,62 @@ def collect_and_generate_autopilot_campaign_for_sdr(self, client_sdr_id: int) ->
                         ctas=[cta.id for cta in ctas],
                     )
                     if not oc:
-                        send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.", [SLACK_CHANNEL])
+                        send_slack_message(
+                            f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error creating EMAIL campaign.",
+                            [SLACK_CHANNEL],
+                        )
                     # Generate the campaign
                     else:
                         generating = generate_campaign(oc.id)
                         if not generating:
-                            send_slack_message(f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.", [SLACK_CHANNEL])
+                            send_slack_message(
+                                f"🤖 ❌ ❓ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Error queuing EMAIL messages for generation.",
+                                [SLACK_CHANNEL],
+                            )
                         else:
                             generated_types.append(GeneratedMessageType.EMAIL.value)
                 else:
-                    send_slack_message(f"🤖 ❌ 🧑‍🤝‍🧑 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate EMAIL campaign.", [SLACK_CHANNEL])
+                    send_slack_message(
+                        f"🤖 ❌ 🧑‍🤝‍🧑 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). Not enough prospects to generate EMAIL campaign.",
+                        [SLACK_CHANNEL],
+                    )
             else:
-                send_slack_message(f"🤖 ✅ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.", [SLACK_CHANNEL])
+                send_slack_message(
+                    f"🤖 ✅ Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). SLA for Email has been filled.",
+                    [SLACK_CHANNEL],
+                )
 
         if len(generated_types) == 0:
-            return False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Neither Email nor LinkedIn generated."
+            return (
+                False,
+                f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Neither Email nor LinkedIn generated.",
+            )
 
-        send_slack_message(f"🤖 ✅ Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})", [SLACK_CHANNEL])
-        return True, f"Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})"
+        send_slack_message(
+            f"🤖 ✅ Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})",
+            [SLACK_CHANNEL],
+        )
+
+        campaign_id = oc.id
+        generate_campaign(
+            campaign_id=campaign_id,
+        )
+
+        return (
+            True,
+            f"Autopilot Campaign successfully queued for {generated_types} generation: {client_sdr.name} (#{client_sdr.id})",
+        )
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-def get_sla_count(client_sdr_id: int, client_archetype_id: int, campaign_type: GeneratedMessageType, autopilot_trigger_date: Optional[datetime]) -> int:
+def get_sla_count(
+    client_sdr_id: int,
+    client_archetype_id: int,
+    campaign_type: GeneratedMessageType,
+    autopilot_trigger_date: Optional[datetime],
+) -> int:
     """Gets the SLA count.
 
     We get the SLA count by counting the number of Prospects in campaigns that are marked as starting
@@ -195,8 +282,7 @@ def get_sla_count(client_sdr_id: int, client_archetype_id: int, campaign_type: G
     autopilot_trigger_date = autopilot_trigger_date or datetime.today()
 
     # Calculate next next monday
-    next_next_monday, sunday = get_next_next_monday_sunday(
-        autopilot_trigger_date)
+    next_next_monday, sunday = get_next_next_monday_sunday(autopilot_trigger_date)
 
     # Get campaigns that are marked as starting on next next monday
     campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter(
@@ -204,7 +290,7 @@ def get_sla_count(client_sdr_id: int, client_archetype_id: int, campaign_type: G
         OutboundCampaign.campaign_type == campaign_type,
         OutboundCampaign.client_archetype_id == client_archetype_id,
         OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
-        func.date(OutboundCampaign.campaign_start_date) == next_next_monday
+        func.date(OutboundCampaign.campaign_start_date) == next_next_monday,
     ).all()
 
     # Count the number of prospects in each campaign
