@@ -411,6 +411,9 @@ def patch_sdr(client_sdr_id: int):
     email = get_request_parameter("email", request, json=True, required=False)
     title = get_request_parameter("title", request, json=True, required=False)
 
+    ai_outreach = get_request_parameter("ai_outreach", request, json=True, required=False, parameter_type=bool)
+    browser_extension_ui_overlay = get_request_parameter("browser_extension_ui_overlay", request, json=True, required=False, parameter_type=bool)
+
     disable_ai_on_prospect_respond = get_request_parameter(
         "disable_ai_on_prospect_respond",
         request,
@@ -433,6 +436,8 @@ def patch_sdr(client_sdr_id: int):
         title=title,
         disable_ai_on_prospect_respond=disable_ai_on_prospect_respond,
         disable_ai_on_message_send=disable_ai_on_message_send,
+        ai_outreach=ai_outreach,
+        browser_extension_ui_overlay=browser_extension_ui_overlay,
     )
     if not success:
         return jsonify({"message": "Failed to update client SDR"}), 404
