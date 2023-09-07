@@ -455,10 +455,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
     #     active=True,
     # )
 
-    return {
-        "client_sdr_id": sdr.id,
-        "client_archetype_id": result.get("client_archetype_id"),
-    }
+    return {"client_sdr_id": sdr.id}
 
 
 def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
