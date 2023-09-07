@@ -96,7 +96,7 @@ def backfill_analytics_information(client_sdr_id: int):
 @celery.task
 def backfill_analytics_for_sdrs():
     query = """
-    select 
+    select
         array_agg(distinct client_sdr_id) client_sdr_ids
     from outbound_campaign
         join client_sdr on client_sdr.id = outbound_campaign.client_sdr_id
@@ -122,7 +122,7 @@ def backfill_analytics_for_sdrs():
 @celery.task
 def scrape_campaigns_for_day():
     query = """
-    select 
+    select
         array_agg(distinct outbound_campaign.id) campaign_ids
     from outbound_campaign
         join client_sdr on client_sdr.id = outbound_campaign.client_sdr_id

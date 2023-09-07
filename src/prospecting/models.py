@@ -448,9 +448,6 @@ class Prospect(db.Model):
 
     is_lead = db.Column(db.Boolean, nullable=True)
 
-    vessel_contact_id = db.Column(db.String, nullable=True)
-    vessel_crm_id = db.Column(db.String, nullable=True)
-
     icp_fit_score = db.Column(db.Integer, nullable=True)
     icp_fit_reason = db.Column(db.String, nullable=True)
     icp_fit_prompt_data = db.Column(db.String, nullable=True)
@@ -698,8 +695,6 @@ class Prospect(db.Model):
             "times_bumped": self.times_bumped,
             "deactivate_ai_engagement": self.deactivate_ai_engagement,
             "is_lead": self.is_lead,
-            "vessel_contact_id": self.vessel_contact_id,
-            "vessel_crm_id": self.vessel_crm_id,
             "generated_message_info": generated_message_info,
             "icp_fit_score": self.icp_fit_score,
             "icp_fit_reason": self.icp_fit_reason,

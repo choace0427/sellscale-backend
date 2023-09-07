@@ -34,16 +34,6 @@ class Client(db.Model):
     monthly_revenue = db.Column(db.Integer, nullable=True)
     seat_expansion_opportunity = db.Column(db.Integer, nullable=True)
 
-    vessel_access_token = db.Column(
-        db.String, nullable=True
-    )  # access token for sales engagement
-    vessel_sales_engagement_connection_id = db.Column(
-        db.String, nullable=True
-    )  # connection id for sales engagement connection
-
-    vessel_crm_access_token = db.Column(db.String, nullable=True)
-    vessel_personalization_field_name = db.Column(db.String, nullable=True)
-
     tagline = db.Column(db.String, nullable=True)
     description = db.Column(db.String, nullable=True)
 
@@ -119,8 +109,6 @@ class ClientArchetype(db.Model):
     icp_matching_option_filters = db.Column(db.JSON, nullable=True)
     persona_contact_objective = db.Column(db.String, nullable=True)
 
-    vessel_sequence_id = db.Column(db.String, nullable=True)
-
     is_unassigned_contact_archetype = db.Column(
         db.Boolean, nullable=True, default=False
     )  # if true, this archetype will be used for unassigned contacts
@@ -153,7 +141,6 @@ class ClientArchetype(db.Model):
             "persona_contact_objective": self.persona_contact_objective,
             "icp_matching_prompt": self.icp_matching_prompt,
             "icp_matching_option_filters": self.icp_matching_option_filters,
-            "vessel_sequence_id": self.vessel_sequence_id,
             "is_unassigned_contact_archetype": self.is_unassigned_contact_archetype,
             "prospect_filters": self.prospect_filters,
             "ctas": [cta.to_dict() for cta in ctas],
@@ -273,8 +260,6 @@ class ClientSDR(db.Model):
     last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
     li_cookies = db.Column(db.String)
 
-    vessel_mailbox = db.Column(db.String, nullable=True)
-
     autopilot_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
     questionnaire = db.Column(SDRQuestionaireColumn, nullable=True)
@@ -390,7 +375,6 @@ class ClientSDR(db.Model):
             "ml_credits": self.ml_credits,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
-            "vessel_mailbox": self.vessel_mailbox,
             "timezone": self.timezone,
             "onboarded": self.onboarded,
             "calendly_connected": self.calendly_access_token is not None,

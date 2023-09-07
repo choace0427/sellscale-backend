@@ -79,12 +79,6 @@ from src.daily_notifications.models import (
     NotificationStatus,
     EngagementFeedItem,
 )
-from src.integrations.models import (
-    VesselMailboxes,
-    VesselSequences,
-    VesselAPICachedResponses,
-)
-from src.integrations.vessel_analytics_job import get_emails_for_contact_async
 from src.bump_framework.models import BumpFramework
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.personas.models import (

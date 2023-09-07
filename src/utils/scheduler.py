@@ -74,40 +74,6 @@ def run_next_client_sdr_li_conversation_scraper_job():
         )
 
 
-def run_backfill_analytics_for_sdrs_job():
-    from src.integrations.vessel_analytics_job import (
-        backfill_analytics_for_sdrs,
-    )
-
-    if (
-        os.environ.get("FLASK_ENV") == "production"
-        and os.environ.get("SCHEDULING_INSTANCE") == "true"
-    ):
-        backfill_analytics_for_sdrs.delay()
-
-
-def run_scrape_campaigns_for_day_job():
-    from src.integrations.vessel_analytics_job import (
-        scrape_campaigns_for_day,
-    )
-
-    if (
-        os.environ.get("FLASK_ENV") == "production"
-        and os.environ.get("SCHEDULING_INSTANCE") == "true"
-    ):
-        scrape_campaigns_for_day.delay()
-
-
-def run_sync_vessel_mailboxes_and_sequences_job():
-    from src.integrations.vessel import sync_vessel_mailboxes_and_sequences
-
-    if (
-        os.environ.get("FLASK_ENV") == "production"
-        and os.environ.get("SCHEDULING_INSTANCE") == "true"
-    ):
-        sync_vessel_mailboxes_and_sequences()
-
-
 # Using Voyager!
 def scrape_li_inboxes():
     from src.li_conversation.services import scrape_conversations_inbox
@@ -311,17 +277,12 @@ scheduler.add_job(
     func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
 )
 scheduler.add_job(auto_run_daily_revival_cleanup_job, trigger="interval", hours=1)
-scheduler.add_job(func=run_backfill_analytics_for_sdrs_job, trigger="interval", hours=1)
 scheduler.add_job(
     func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1
 )
-scheduler.add_job(func=run_scrape_campaigns_for_day_job, trigger="interval", hours=6)
 scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 
 # Daily triggers
-scheduler.add_job(
-    func=run_sync_vessel_mailboxes_and_sequences_job, trigger=daily_trigger
-)
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=daily_trigger)
