@@ -321,6 +321,8 @@ class ClientSDR(db.Model):
 
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
+    browser_extension_ui_overlay = db.Column(db.Boolean, nullable=True, default=False)
+
     # Warmup
     warmup_linkedin_complete = db.Column(db.Boolean, nullable=True, default=False)
 
@@ -404,6 +406,7 @@ class ClientSDR(db.Model):
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
             "warmup_linkedin_schedule": warmup_schedule.to_dict() if warmup_schedule else None,
+            "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
         }
 
 
