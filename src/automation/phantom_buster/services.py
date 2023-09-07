@@ -298,6 +298,9 @@ def trigger_upload_job_from_linkedin_sales_nav_scrape(
     client_archetype_id = pb_launch.client_archetype_id
     processed_result = pb_launch.result_processed
 
+    client_sdr: ClientSDR = ClientSDR.query.get(pb_launch.client_sdr_id)
+    userToken = client_sdr.auth_token
+
     payload = []
     for result in processed_result:
         payload.append(
@@ -305,6 +308,24 @@ def trigger_upload_job_from_linkedin_sales_nav_scrape(
                 "linkedin_url": result.get("profileUrl"),
             }
         )
+
+    api_url = os.environ.get("SELLSCALE_API_URL")
+    url = "{api_url}/prospect/add_prospect_from_csv_payload".format(api_url=api_url)
+    payload = json.dumps(
+        {
+            "archetype_id": client_archetype_id,
+            "csv_payload": payload,
+            "allow_duplicates": False,
+        }
+    )
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {userToken}".format(userToken=userToken),
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    print(response)
 
 
 @celery.task
