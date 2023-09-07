@@ -16,13 +16,11 @@ import mock
 import json
 from src.ml.services import (
     chat_ai_classify_active_convo,
-    chat_ai_verify_scheduling_convo,
     create_upload_jsonl_file,
     initiate_fine_tune_job,
     check_statuses_of_fine_tune_jobs,
     get_aree_fix_basic,
     get_sequence_value_props,
-    get_sequence_draft,
     get_icp_classification_prompt_by_archetype_id,
     patch_icp_classification_prompt,
     icp_classify,
@@ -115,27 +113,6 @@ def test_get_sequence_value_props(create_completion_mock):
     response = get_sequence_value_props("Test", "Test", "Test", 1)
     assert create_completion_mock.call_count == 1
     assert response == ["test"]
-
-
-@use_app_context
-@mock.patch(
-    "src.ml.services.wrapped_create_completion",
-    return_value='[{"subject_line": "this is a subject line"}, {"email": "Hi Julie,\n\nThis is personalization\n\nFrom JZ"}]',
-)
-def test_get_sequence_draft(create_completion_mock):
-    client = basic_client()
-    sdr = basic_client_sdr(client)
-    archetype = basic_archetype(client, sdr)
-
-    # No problems
-    response = get_sequence_draft(["Test", "Test"], sdr.id, archetype.id)
-    assert create_completion_mock.call_count == 1
-    assert response == [
-        {
-            "subject_line": '[{"subject_line": "this is a subject line"}, {"email": "Hi Julie,',
-            "email": 'This is personalization\n\nFrom JZ"}]',
-        }
-    ]
 
 
 @use_app_context

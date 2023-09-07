@@ -243,9 +243,6 @@ class ProspectEmail(db.Model):
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
 
-    vessel_sequence_id = db.Column(db.String, nullable=True)
-    vessel_sequence_payload_str = db.Column(db.String, nullable=True)
-
     nylas_thread_id = db.Column(db.String, nullable=True)
     times_bumped = db.Column(db.Integer, nullable=True, default=0)
 
@@ -287,8 +284,6 @@ class ProspectEmail(db.Model):
             "date_scheduled_to_send": self.date_scheduled_to_send,
             "date_sent": self.date_sent,
             "batch_id": self.batch_id,
-            "vessel_sequence_id": self.vessel_sequence_id,
-            "vessel_sequence_payload_str": self.vessel_sequence_payload_str,
             "nylas_thread_id": self.nylas_thread_id,
             "times_bumped": self.times_bumped,
         }
@@ -355,12 +350,10 @@ class SalesEngagementInteractionSource(enum.Enum):
     """
     - OUTREACH: outreach interaction (from CSV)
     - SALESLOFT: salesloft interaction (from CSV)
-    - VESSEL: vessel integration interaction
     """
 
     OUTREACH = "OUTREACH"
     SALESLOFT = "SALESLOFT"
-    VESSEL = "VESSEL"
 
 
 class SalesEngagementInteractionRaw(db.Model):

@@ -26,7 +26,6 @@ from src.campaigns.services import (
     get_outbound_campaign_analytics,
     update_campaign_cost,
     update_campaign_receipt_link,
-    send_email_campaign_from_sales_engagement,
     wipe_campaign_generations,
     email_analytics,
 )
@@ -509,20 +508,6 @@ def get_campaign_analytics() -> tuple[dict, int]:
     campaign_analytics = get_outbound_campaign_analytics(campaign_id)
 
     return campaign_analytics, 200
-
-
-@CAMPAIGN_BLUEPRINT.route("/send_via_sales_engagement", methods=["POST"])
-def post_send_campaign_via_sales_engagement():
-    campaign_id = get_request_parameter(
-        "campaign_id", request, json=True, required=True
-    )
-    sequence_id = get_request_parameter(
-        "sequence_id", request, json=True, required=False
-    )
-    send_email_campaign_from_sales_engagement(
-        campaign_id=campaign_id, sequence_id=sequence_id
-    )
-    return "OK", 200
 
 
 @CAMPAIGN_BLUEPRINT.route("/<campaign_id>/reset", methods=["POST"])

@@ -23,7 +23,6 @@ from model_import import (
 from sqlalchemy.sql.expression import func
 from src.editor.models import Editor, EditorTypes
 from src.email_outbound.services import get_approved_prospect_email_by_id
-from src.integrations.vessel import SalesEngagementIntegration
 from tqdm import tqdm
 from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
@@ -1129,7 +1128,6 @@ def email_analytics(client_sdr_id: int) -> dict:
         """
         select
           count(distinct prospect.company) filter (where prospect.overall_status in ('DEMO')) num_demos,
-          max(vessel_sequences.name) sequence_name,
           outbound_campaign.id campaign_id,
           outbound_campaign.campaign_start_date,
           outbound_campaign.campaign_end_date,
@@ -1145,11 +1143,9 @@ def email_analytics(client_sdr_id: int) -> dict:
           left join client_archetype on client_archetype.id = prospect.archetype_id
           left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
           left join client on client.id = prospect.client_id
-          left join vessel_sequences on vessel_sequences.sequence_id = cast(prospect_email.vessel_sequence_id as varchar)
         where outbound_campaign.client_sdr_id = {client_sdr_id}
             and outbound_campaign.campaign_type = 'EMAIL'
           and outbound_campaign.status = 'COMPLETE'
-          and vessel_sequences.id is not null
         group by 3,4,5,6
         order by count(distinct prospect.company) filter (where prospect_email.outreach_status in ('DEMO_SET', 'DEMO_LOST', 'DEMO_WON')) desc;
         """.format(
@@ -1700,59 +1696,6 @@ def wipe_campaign_generations(campaign_id: int):
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
         for p_id in tqdm(prospect_ids):
             reset_prospect_research_and_messages.delay(p_id)
-
-
-@celery.task
-def personalize_and_enroll_in_sequence(
-    client_id: int, prospect_id: int, mailbox_id: int, sequence_id: Optional[int] = None
-):
-    sei: SalesEngagementIntegration = SalesEngagementIntegration(client_id=client_id)
-    contact = sei.create_or_update_contact_by_prospect_id(prospect_id=prospect_id)
-    if sequence_id:
-        contact_id = contact["id"]
-        sei.add_contact_to_sequence(
-            mailbox_id=mailbox_id,
-            sequence_id=sequence_id,
-            contact_id=contact_id,
-            prospect_id=prospect_id,
-        )
-
-
-def send_email_campaign_from_sales_engagement(
-    campaign_id: int, sequence_id: Optional[int] = None
-):
-    """
-    Sends an email campaign from a connected sales engagement tool
-    """
-    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    if not campaign:
-        raise Exception("Campaign not found")
-    if campaign.campaign_type != GeneratedMessageType.EMAIL:
-        raise Exception("Campaign is not an email campaign")
-
-    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
-    client: Client = Client.query.get(sdr.client_id)
-    if not client:
-        raise Exception("Client not found")
-    if not client.vessel_access_token:
-        raise Exception("Client does not have a connected sales engagement tool")
-    if not sdr.vessel_mailbox:
-        raise Exception("SDR does not have a connected sales engagement tool")
-
-    for prospect_id in campaign.prospect_ids:
-        prospect_email: ProspectEmail = get_approved_prospect_email_by_id(prospect_id)
-        if (
-            prospect_email
-            and prospect_email.email_status == ProspectEmailStatus.APPROVED
-        ):
-            personalize_and_enroll_in_sequence(
-                client_id=client.id,
-                prospect_id=prospect_id,
-                mailbox_id=sdr.vessel_mailbox,
-                sequence_id=sequence_id,
-            )
-
-    return True
 
 
 def remove_prospect_from_campaign(campaign_id: int, prospect_id: int):

@@ -77,7 +77,6 @@ from src.utils.random_string import generate_random_alphanumeric
 from src.authentication.decorators import require_user
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
-from src.integrations.vessel import SalesEngagementIntegration
 from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
@@ -460,37 +459,6 @@ def post_send_to_purgatory(client_sdr_id: int, prospect_id: int):
     send_to_purgatory(prospect_id, int(days), ProspectHiddenReason.MANUAL)
 
     return jsonify({"message": "Success"}), 200
-
-
-@PROSPECTING_BLUEPRINT.route("<prospect_id>/email/<email_id>", methods=["GET"])
-@require_user
-def get_email(client_sdr_id: int, prospect_id: int, email_id: int):
-
-    prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
-    if not prospect:
-        return jsonify({"message": "Prospect not found"}), 404
-    elif prospect.client_sdr_id != client_sdr_id:
-        return jsonify({"message": "Prospect does not belong to user"}), 403
-
-    prospect_email: ProspectEmail = ProspectEmail.query.get(
-        prospect.approved_prospect_email_id
-    )
-    if not prospect_email:
-        return jsonify({"message": "No prospect email data found"}), 404
-
-    try:
-        sei = SalesEngagementIntegration(prospect.client_id)
-
-        data = sei.get_email_by_id(email_id=email_id)
-    except:
-        data = {}
-
-    return (
-        jsonify(
-            {"message": "Success", "data": data["email"] if data.get("email") else None}
-        ),
-        200,
-    )
 
 
 @PROSPECTING_BLUEPRINT.route(
@@ -1423,7 +1391,7 @@ def post_prospect_removal_check(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("<int:prospect_id>/determine_li_msg_from_content/", methods=["POST"])
 @require_user
 def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
-    
+
     content = get_request_parameter(
         "content", request, json=True, required=True, parameter_type=str
     )
@@ -1436,7 +1404,7 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<int:prospect_id>/li_msgs/", methods=["GET"])
 @require_user
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
-    
+
     from model_import import LinkedinConversationEntry
 
     convo: List[LinkedinConversationEntry] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
@@ -1447,7 +1415,7 @@ def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<int:prospect_id>/msg_feedback/", methods=["POST"])
 @require_user
 def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
-    
+
     li_msg_id = get_request_parameter(
         "li_msg_id", request, json=True, required=False, parameter_type=int
     ) or None
