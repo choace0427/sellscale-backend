@@ -57,8 +57,6 @@ class PhantomBusterSalesNavigatorConfig(db.Model):
     last_run_date = db.Column(db.DateTime, nullable=True)
     error_message = db.Column(db.String, nullable=True)
 
-    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
-
 
 class SalesNavigatorLaunchStatus(enum.Enum):
     NEEDS_AGENT = "NEEDS_AGENT"
@@ -92,6 +90,8 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
     error_message = db.Column(db.String, nullable=True)
 
     name = db.Column(db.String, nullable=True)
+
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
 
     def to_dict(self) -> dict:
         # Result is too large and should not be returned in the frontend unless during download

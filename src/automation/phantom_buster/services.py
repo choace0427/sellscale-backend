@@ -279,6 +279,34 @@ def collect_and_load_sales_navigator_results(self) -> None:
     return
 
 
+def trigger_upload_job_from_linkedin_sales_nav_scrape(
+    phantom_buster_sales_navigator_launch_id: int,
+):
+    pb_launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(
+            phantom_buster_sales_navigator_launch_id
+        )
+    )
+
+    if (
+        not pb_launch
+        or not pb_launch.status == SalesNavigatorLaunchStatus.SUCCESS
+        or not pb_launch.client_archetype_id
+    ):
+        return False, "Invalid PhantomBusterSalesNavigatorLaunch entry"
+
+    client_archetype_id = pb_launch.client_archetype_id
+    processed_result = pb_launch.result_processed
+
+    payload = []
+    for result in processed_result:
+        payload.append(
+            {
+                "linkedin_url": result.get("profileUrl"),
+            }
+        )
+
+
 @celery.task
 def collect_and_trigger_phantom_buster_sales_navigator_launches() -> None:
     """Collects and triggers PhantomBusterSalesNavigatorLaunch entries"""
