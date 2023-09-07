@@ -1,6 +1,6 @@
 from email.policy import default
 
-from src.client.models import ClientSDR
+from src.client.models import ClientArchetype, ClientSDR
 from app import db
 import sqlalchemy as sa
 import enum
@@ -91,6 +91,8 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
 
     name = db.Column(db.String, nullable=True)
 
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
+
     def to_dict(self) -> dict:
         # Result is too large and should not be returned in the frontend unless during download
         # instead we will return a boolean to determine if the result is available to download
@@ -108,6 +110,10 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             else False,
             "launch_date": self.launch_date,
             "name": self.name,
+            "client_archetype_id": self.client_archetype_id,
+            "archetype": ClientArchetype.query.get(self.client_archetype_id).archetype
+            if self.client_archetype_id
+            else None,
         }
 
 

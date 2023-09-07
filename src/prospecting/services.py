@@ -845,10 +845,20 @@ def add_prospect(
     prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
     )
-    if (
-        prospect_exists and not prospect_exists.email and email
-    ):  # If we are adding an email to an existing prospect, this is allowed
-        prospect_exists.email = email
+    prospect_persona: ClientArchetype = None
+    if prospect_exists:
+        prospect_persona = ClientArchetype.query.filter_by(
+            id=prospect_exists.archetype_id
+        ).first()
+        if (
+            prospect_exists.archetype_id != archetype_id
+            and prospect_persona.is_unassigned_contact_archetype
+        ):
+            prospect_exists.archetype_id = archetype_id
+        if (
+            not prospect_exists.email and email
+        ):  # If we are adding an email to an existing prospect, this is allowed
+            prospect_exists.email = email
         db.session.add(prospect_exists)
         db.session.commit()
         return prospect_exists.id
@@ -2322,21 +2332,32 @@ def prospect_removal_check_from_csv_payload(
     return prospect_data
 
 
-def get_li_message_from_contents(client_sdr_id: int, prospect_id: int, message: str) -> Optional[int]:
+def get_li_message_from_contents(
+    client_sdr_id: int, prospect_id: int, message: str
+) -> Optional[int]:
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect or prospect.client_sdr_id != client_sdr_id: return None
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return None
     msg: LinkedinConversationEntry = LinkedinConversationEntry.query.filter(
         LinkedinConversationEntry.first_name == prospect.first_name,
         LinkedinConversationEntry.last_name == prospect.last_name,
-        LinkedinConversationEntry.connection_degree == '1st',
+        LinkedinConversationEntry.connection_degree == "1st",
         LinkedinConversationEntry.message == message.strip(),
     ).first()
-    if not msg: return None
+    if not msg:
+        return None
     return msg.id
 
 
-def add_prospect_message_feedback(client_sdr_id: int, prospect_id: int, li_msg_id: Optional[int], email_msg_id: Optional[int], rating: int, feedback: str) -> int:
-    
+def add_prospect_message_feedback(
+    client_sdr_id: int,
+    prospect_id: int,
+    li_msg_id: Optional[int],
+    email_msg_id: Optional[int],
+    rating: int,
+    feedback: str,
+) -> int:
+
     feedback = ProspectMessageFeedback(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
@@ -2349,5 +2370,3 @@ def add_prospect_message_feedback(client_sdr_id: int, prospect_id: int, li_msg_i
     db.session.commit()
 
     return feedback.id
-
-

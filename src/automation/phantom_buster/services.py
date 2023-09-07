@@ -37,7 +37,9 @@ def reset_sales_navigator_config_counts() -> None:
         db.session.commit()
 
 
-def get_sales_navigator_launches(client_sdr_id: int) -> list[dict]:
+def get_sales_navigator_launches(
+    client_sdr_id: int, client_archetype_id: Optional[int] = None
+) -> list[dict]:
     """Returns all Sales Navigator launches belonging to this SDR
 
     Args:
@@ -46,15 +48,19 @@ def get_sales_navigator_launches(client_sdr_id: int) -> list[dict]:
     Returns:
         list[dict]: List of dictionaries corresponding to the launches
     """
-    launches: list[PhantomBusterSalesNavigatorLaunch] = (
-        PhantomBusterSalesNavigatorLaunch.query.filter(
-            PhantomBusterSalesNavigatorLaunch.client_sdr_id == client_sdr_id,
-        )
-        .order_by(
-            PhantomBusterSalesNavigatorLaunch.created_at.desc(),
-        )
-        .all()
+    query = PhantomBusterSalesNavigatorLaunch.query.filter(
+        PhantomBusterSalesNavigatorLaunch.client_sdr_id == client_sdr_id,
     )
+
+    if client_archetype_id:
+        query = query.filter(
+            PhantomBusterSalesNavigatorLaunch.client_archetype_id
+            == client_archetype_id,
+        )
+
+    launches: list[PhantomBusterSalesNavigatorLaunch] = query.order_by(
+        PhantomBusterSalesNavigatorLaunch.created_at.desc(),
+    ).all()
 
     return [launch.to_dict() for launch in launches]
 
@@ -142,7 +148,11 @@ def create_phantom_buster_sales_navigator_config(
 
 
 def register_phantom_buster_sales_navigator_url(
-    sales_navigator_url: str, scrape_count: int, client_sdr_id: int, scrape_name: str
+    sales_navigator_url: str,
+    scrape_count: int,
+    client_sdr_id: int,
+    scrape_name: str,
+    client_archetype_id: Optional[int] = None,
 ) -> tuple[bool, str]:
     """Registers a Sales Navigator URL to a PhantomBusterSalesNavigatorConfig entry
 
@@ -209,6 +219,7 @@ def register_phantom_buster_sales_navigator_url(
         status=SalesNavigatorLaunchStatus.QUEUED,
         scrape_count=scrape_count,
         name=scrape_name,
+        client_archetype_id=client_archetype_id,
     )
     db.session.add(launch)
     db.session.commit()
@@ -276,7 +287,59 @@ def collect_and_load_sales_navigator_results(self) -> None:
             agent.in_use = False
             db.session.commit()
 
+            launch_id = launch.id
+            trigger_upload_job_from_linkedin_sales_nav_scrape(launch_id)
+
     return
+
+
+def trigger_upload_job_from_linkedin_sales_nav_scrape(
+    phantom_buster_sales_navigator_launch_id: int,
+):
+    pb_launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(
+            phantom_buster_sales_navigator_launch_id
+        )
+    )
+
+    if (
+        not pb_launch
+        or not pb_launch.status == SalesNavigatorLaunchStatus.SUCCESS
+        or not pb_launch.client_archetype_id
+    ):
+        return False, "Invalid PhantomBusterSalesNavigatorLaunch entry"
+
+    client_archetype_id = pb_launch.client_archetype_id
+    processed_result = pb_launch.result_processed
+
+    client_sdr: ClientSDR = ClientSDR.query.get(pb_launch.client_sdr_id)
+    userToken = client_sdr.auth_token
+
+    payload = []
+    for result in processed_result:
+        payload.append(
+            {
+                "linkedin_url": result.get("profileUrl"),
+            }
+        )
+
+    api_url = os.environ.get("SELLSCALE_API_URL")
+    url = "{api_url}/prospect/add_prospect_from_csv_payload".format(api_url=api_url)
+    payload = json.dumps(
+        {
+            "archetype_id": client_archetype_id,
+            "csv_payload": payload,
+            "allow_duplicates": False,
+        }
+    )
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {userToken}".format(userToken=userToken),
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    print(response)
 
 
 @celery.task
