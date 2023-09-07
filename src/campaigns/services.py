@@ -873,38 +873,38 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
     campaign_name = campaign.name.split(",")[0]
     campaign_type = campaign.campaign_type.value
 
-    if status == OutboundCampaignStatus.COMPLETE.value:
-        send_slack_message(
-            message="{} - {}'s Campaign #{} is complete! :tada::tada::tada:".format(
-                client_company, sdr_name, campaign_id
-            ),
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "{} - {}'s Campaign #{} is `{}`! :tada::tada::tada:".format(
-                            client_company, sdr_name, campaign_id, status
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Campaign Name:* {}".format(campaign_name),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Campaign Type #:* {}".format(campaign_type),
-                    },
-                },
-            ],
-            webhook_urls=[URL_MAP["operations-ready-campaigns"]],
-        )
+    # if status == OutboundCampaignStatus.COMPLETE.value:
+    #     send_slack_message(
+    #         message="{} - {}'s Campaign #{} is complete! :tada::tada::tada:".format(
+    #             client_company, sdr_name, campaign_id
+    #         ),
+    #         blocks=[
+    #             {
+    #                 "type": "header",
+    #                 "text": {
+    #                     "type": "plain_text",
+    #                     "text": "{} - {}'s Campaign #{} is `{}`! :tada::tada::tada:".format(
+    #                         client_company, sdr_name, campaign_id, status
+    #                     ),
+    #                 },
+    #             },
+    #             {
+    #                 "type": "section",
+    #                 "text": {
+    #                     "type": "mrkdwn",
+    #                     "text": "*Campaign Name:* {}".format(campaign_name),
+    #                 },
+    #             },
+    #             {
+    #                 "type": "section",
+    #                 "text": {
+    #                     "type": "mrkdwn",
+    #                     "text": "*Campaign Type #:* {}".format(campaign_type),
+    #                 },
+    #             },
+    #         ],
+    #         webhook_urls=[URL_MAP["operations-ready-campaigns"]],
+    #     )
 
     return True
 
@@ -930,80 +930,80 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
     start_date = campaign.campaign_start_date.strftime("%b %d, %Y")
     end_date = campaign.campaign_end_date.strftime("%b %d, %Y")
 
-    send_slack_message(
-        message="{} - {}'s Campaign #{} is ready to send! :tada:".format(
-            client_company, sdr_name, campaign_id
-        ),
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "{} - {}'s Campaign #{} is ready to send! :tada:".format(
-                        client_company, sdr_name, campaign_id
-                    ),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "SellScale operations team has read and verified this campaign.",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Campaign Name:* {}".format(campaign_name),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Prospect #:* {} prospects".format(prospect_count),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Campaign Type #:* {}".format(campaign_type),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Date Range #:* {} - {}".format(start_date, end_date),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Next steps: Go to {}'s Sight and send campaign".format(
-                        sdr_name
-                    ),
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Go to {}'s Sight".format(sdr_name),
-                        "emoji": True,
-                    },
-                    "value": "https://sight.sellscale.com/?token={}".format(sdr_auth)
-                    or "https://sight.sellscale.com/sight",
-                    "url": "https://sight.sellscale.com/?token={}".format(sdr_auth)
-                    or "https://sight.sellscale.com/sight",
-                    "action_id": "button-action,",
-                },
-            },
-        ],
-        webhook_urls=[URL_MAP["operations-ready-campaigns"]],
-    )
+    # send_slack_message(
+    #     message="{} - {}'s Campaign #{} is ready to send! :tada:".format(
+    #         client_company, sdr_name, campaign_id
+    #     ),
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": "{} - {}'s Campaign #{} is ready to send! :tada:".format(
+    #                     client_company, sdr_name, campaign_id
+    #                 ),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "SellScale operations team has read and verified this campaign.",
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Campaign Name:* {}".format(campaign_name),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Prospect #:* {} prospects".format(prospect_count),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Campaign Type #:* {}".format(campaign_type),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Date Range #:* {} - {}".format(start_date, end_date),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "Next steps: Go to {}'s Sight and send campaign".format(
+    #                     sdr_name
+    #                 ),
+    #             },
+    #             "accessory": {
+    #                 "type": "button",
+    #                 "text": {
+    #                     "type": "plain_text",
+    #                     "text": "Go to {}'s Sight".format(sdr_name),
+    #                     "emoji": True,
+    #                 },
+    #                 "value": "https://sight.sellscale.com/?token={}".format(sdr_auth)
+    #                 or "https://sight.sellscale.com/sight",
+    #                 "url": "https://sight.sellscale.com/?token={}".format(sdr_auth)
+    #                 or "https://sight.sellscale.com/sight",
+    #                 "action_id": "button-action,",
+    #             },
+    #         },
+    #     ],
+    #     webhook_urls=[URL_MAP["operations-ready-campaigns"]],
+    # )
 
     return True
 
