@@ -57,6 +57,8 @@ class PhantomBusterSalesNavigatorConfig(db.Model):
     last_run_date = db.Column(db.DateTime, nullable=True)
     error_message = db.Column(db.String, nullable=True)
 
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
+
 
 class SalesNavigatorLaunchStatus(enum.Enum):
     NEEDS_AGENT = "NEEDS_AGENT"
