@@ -845,15 +845,16 @@ def add_prospect(
     prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
     )
-    prospect_persona: ClientArchetype = ClientArchetype.query.filter_by(
-        id=prospect_exists.archetype_id
-    ).first()
-    if (
-        prospect_exists
-        and prospect_exists.archetype_id != archetype_id
-        and prospect_persona.is_unassigned_contact_archetype
-    ):
-        prospect_exists.archetype_id = archetype_id
+    prospect_persona: ClientArchetype = None
+    if prospect_exists:
+        prospect_persona = ClientArchetype.query.filter_by(
+            id=prospect_exists.archetype_id
+        ).first()
+        if (
+            prospect_exists.archetype_id != archetype_id
+            and prospect_persona.is_unassigned_contact_archetype
+        ):
+            prospect_exists.archetype_id = archetype_id
         if (
             not prospect_exists.email and email
         ):  # If we are adding an email to an existing prospect, this is allowed
