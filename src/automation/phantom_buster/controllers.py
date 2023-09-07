@@ -2,7 +2,13 @@ from flask import Blueprint, jsonify, request
 from src.utils.csv import send_csv
 from src.authentication.decorators import require_user
 from src.automation.models import PhantomBusterSalesNavigatorLaunch
-from src.automation.phantom_buster.services import collect_and_load_sales_navigator_results, create_phantom_buster_sales_navigator_config, get_sales_navigator_launch_result, get_sales_navigator_launches, register_phantom_buster_sales_navigator_url
+from src.automation.phantom_buster.services import (
+    collect_and_load_sales_navigator_results,
+    create_phantom_buster_sales_navigator_config,
+    get_sales_navigator_launch_result,
+    get_sales_navigator_launches,
+    register_phantom_buster_sales_navigator_url,
+)
 from src.utils.converters.dictionary_converters import dictionary_normalization
 
 from src.utils.request_helpers import get_request_parameter
@@ -18,9 +24,7 @@ def index():
 
 @PHANTOM_BUSTER_BLUEPRINT.route("/sales_navigator/", methods=["POST"])
 def create_phantom_buster_sales_navigator():
-    client_sdr_id: int = get_request_parameter(
-        "client_sdr_id", request, json=True
-    )
+    client_sdr_id: int = get_request_parameter("client_sdr_id", request, json=True)
     linkedin_session_cookie = get_request_parameter(
         "linkedin_session_cookie", request, json=True, required=True
     )
@@ -36,7 +40,13 @@ def create_phantom_buster_sales_navigator():
 @require_user
 def get_sales_navigator_launches_endpoint(client_sdr_id: int):
     """Gets the sales navigator launches for the Client SDR"""
-    launches = get_sales_navigator_launches(client_sdr_id=client_sdr_id)
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=False, required=False
+    )
+
+    launches = get_sales_navigator_launches(
+        client_sdr_id=client_sdr_id, client_archetype_id=client_archetype_id
+    )
 
     return jsonify({"status": "success", "data": {"launches": launches}}), 200
 
@@ -54,38 +64,54 @@ def post_sales_navigator_launch(client_sdr_id):
     name = get_request_parameter(
         "name", request, json=True, required=True, parameter_type=str
     )
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=False, parameter_type=int
+    )
 
     success, _ = register_phantom_buster_sales_navigator_url(
         sales_navigator_url=sales_navigator_url,
         scrape_count=scrape_count,
         client_sdr_id=client_sdr_id,
-        scrape_name=name
+        scrape_name=name,
+        client_archetype_id=client_archetype_id,
     )
     if not success:
-        return jsonify({"status": "error", "message": "Launch not available. Try again."}), 404
+        return (
+            jsonify({"status": "error", "message": "Launch not available. Try again."}),
+            404,
+        )
 
     return jsonify({"status": "success", "message": "Launch registered"}), 200
 
 
-@PHANTOM_BUSTER_BLUEPRINT.route("/sales_navigator/launch/<int:launch_id>", methods=["GET"])
+@PHANTOM_BUSTER_BLUEPRINT.route(
+    "/sales_navigator/launch/<int:launch_id>", methods=["GET"]
+)
 @require_user
 def get_sales_navigator_launch_endpoint(client_sdr_id: int, launch_id: int):
     """Gets the specific launch data for a given launch ID"""
-    launch: PhantomBusterSalesNavigatorLaunch = PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+    launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+    )
     if launch.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
     launch_raw, launch_processed = get_sales_navigator_launch_result(
-        client_sdr_id=client_sdr_id,
-        launch_id=launch_id
+        client_sdr_id=client_sdr_id, launch_id=launch_id
     )
     if not launch_raw:
         return jsonify({"status": "error", "message": "Launch not available"}), 404
 
     # Only pull specific columns from the dictionary
-    selected_keys = ['fullName', 'title', 'companyName', 'linkedInProfileUrl']
-    renamed_keys = ['full_name', 'title', 'company', 'linkedin_url']
-    condensed_csv = [{new_key: item[old_key] for old_key, new_key in zip(selected_keys, renamed_keys)} for item in launch_processed]
+    selected_keys = ["fullName", "title", "companyName", "linkedInProfileUrl"]
+    renamed_keys = ["full_name", "title", "company", "linkedin_url"]
+    condensed_csv = [
+        {
+            new_key: item[old_key]
+            for old_key, new_key in zip(selected_keys, renamed_keys)
+        }
+        for item in launch_processed
+    ]
     headers = set(renamed_keys)
 
     # Normalize dictionary data
