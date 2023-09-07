@@ -241,6 +241,7 @@ def get_client_archetype_prospects(
             Prospect.archetype_id == archetype_id,
             Prospect.full_name.ilike(f"%{query}%"),
         )
+        .order_by(Prospect.icp_fit_score.desc())
         .limit(10)
         .all()
     )
