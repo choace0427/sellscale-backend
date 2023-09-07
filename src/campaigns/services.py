@@ -1028,6 +1028,7 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     client_company = get_client(client_id).company
 
     campaign_name = campaign.name.split(",")[0]
+    campaign_uuid = campaign.uuid
     prospect_count = len(campaign.prospect_ids)
     campaign_type = campaign.campaign_type.value
     start_date = campaign.campaign_start_date.strftime("%b %d, %Y")
@@ -1092,15 +1093,9 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
                 },
                 "accessory": {
                     "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Go to {}'s Sight".format(sdr_name),
-                        "emoji": True,
-                    },
-                    "value": "https://sight.sellscale.com/?token={}".format(sdr_auth)
-                    or "https://sight.sellscale.com/sight",
-                    "url": "https://sight.sellscale.com/?token={}".format(sdr_auth)
-                    or "https://sight.sellscale.com/sight",
+                    "text": "Edit Campaign in Admin Tool",
+                    "value": "https://sellscale.retool.com/apps/2b24b894-c513-11ed-bcd9-af1af2d4669d/Editing%20Engine/Campaign%20Editor%20Portal%20V2%20(Admin)#campaign_uuid="
+                    + campaign_uuid,
                     "action_id": "button-action,",
                 },
             },
