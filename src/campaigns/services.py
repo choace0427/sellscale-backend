@@ -1720,3 +1720,16 @@ def remove_prospect_from_campaign(campaign_id: int, prospect_id: int):
     db.session.commit()
 
     return True
+
+
+def payout_campaigns(campaign_ids: list):
+    campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter(
+        OutboundCampaign.id.in_(campaign_ids)
+    ).all()
+
+    for campaign in campaigns:
+        campaign.calculate_cost()
+        db.session.add(campaign)
+        db.session.commit()
+
+    return True
