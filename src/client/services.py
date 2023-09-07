@@ -154,6 +154,8 @@ def update_client_sdr_details(
     title: Optional[str] = None,
     disable_ai_on_prospect_respond: Optional[bool] = None,
     disable_ai_on_message_send: Optional[bool] = None,
+    ai_outreach: Optional[bool] = None,
+    browser_extension_ui_overlay: Optional[bool] = None,
 ):
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
@@ -169,6 +171,10 @@ def update_client_sdr_details(
         csdr.disable_ai_on_prospect_respond = disable_ai_on_prospect_respond
     if disable_ai_on_message_send is not None:
         csdr.disable_ai_on_message_send = disable_ai_on_message_send
+    if ai_outreach is not None:
+        csdr.active = ai_outreach
+    if browser_extension_ui_overlay is not None:
+        csdr.browser_extension_ui_overlay = browser_extension_ui_overlay
 
     db.session.add(csdr)
     db.session.commit()
