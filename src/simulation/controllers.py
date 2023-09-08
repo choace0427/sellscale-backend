@@ -43,10 +43,23 @@ def post_li_convo_create(client_sdr_id: int):
 def get_li_convo(client_sdr_id: int):
 
     simulation_id = get_request_parameter(
-        "simulation_id", request, json=False, required=True, parameter_type=int
+        "simulation_id", request, json=False, required=False, parameter_type=int
+    )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=False, parameter_type=int
     )
 
-    simulation: Simulation = Simulation.query.get(simulation_id)
+    if simulation_id:
+        simulation: Simulation = Simulation.query.get(simulation_id)
+    elif prospect_id:
+        simulation: Simulation = (
+            Simulation.query.filter_by(prospect_id=prospect_id)
+            .order_by(Simulation.id.desc())
+            .first()
+        )
+    else:
+        return jsonify({"message": "Invalid request"}), 400
+
     if not simulation or simulation.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Invalid simulation"}), 400
 
