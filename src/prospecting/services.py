@@ -1710,6 +1710,10 @@ def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
 def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason):
     prospect: Prospect = Prospect.query.get(prospect_id)
     new_hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+
+    if prospect.overall_status == ProspectOverallStatus.ACCEPTED:
+        return
+
     if prospect.hidden_until is None or new_hidden_until > prospect.hidden_until:
         prospect.hidden_until = new_hidden_until
         prospect.hidden_reason = reason
