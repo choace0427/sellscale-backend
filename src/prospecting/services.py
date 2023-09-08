@@ -1771,7 +1771,7 @@ def auto_mark_uninterested_bumped_prospects():
         prospect_name = prospect[1]
         client_sdr_name = prospect[2]
         prospect_count = prospect[3]
-        message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `not interested`."
+        message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `nurturing mode`."
         send_slack_message(message=message, webhook_urls=[URL_MAP["csm-convo-sorter"]])
 
         update_prospect_status_linkedin(
