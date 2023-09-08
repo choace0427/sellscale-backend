@@ -12,6 +12,7 @@ from src.email_outbound.models import (
     ProspectEmail,
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
+    ProspectEmailStatusRecords,
 )
 from src.prospecting.models import Prospect
 from src.prospecting.services import calculate_prospect_overall_status
@@ -582,6 +583,15 @@ def nylas_send_email(
     prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
     prospect_email.email_status = ProspectEmailStatus.SENT
     db.session.add(prospect_email)
+    db.session.commit()
+
+    # Create a ProspectEmailStatusRecord
+    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords(
+        prospect_email_id=prospect_email_id,
+        from_status=ProspectEmailOutreachStatus.NOT_SENT,
+        to_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+    )
+    db.session.add(prospect_email_status_record)
     db.session.commit()
 
     # Calculate overall status
