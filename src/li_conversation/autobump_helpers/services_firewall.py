@@ -116,7 +116,7 @@ def rule_no_stale_message(autobump_id: int, violations: list) -> tuple[bool, str
         violations.append("Message is stale (generated more than 3 days ago)")
         return False, "Message is stale (generated more than 3 days ago)"
 
-    return
+    return True, "Success"
 
 
 def rule_no_sdr_name_in_message(autobump_id: int, violations: list) -> tuple[bool, str]:

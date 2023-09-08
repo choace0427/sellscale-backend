@@ -28,6 +28,7 @@ from src.campaigns.services import (
     update_campaign_receipt_link,
     wipe_campaign_generations,
     email_analytics,
+    payout_campaigns,
 )
 from src.campaigns.autopilot.services import (
     collect_and_generate_all_autopilot_campaigns,
@@ -562,3 +563,20 @@ def delete_prospect_from_campaign(prospect_id: int):
     if success:
         return "OK", 200
     return "Failed to remove prospect from campaign", 400
+
+
+@CAMPAIGN_BLUEPRINT.route("/payout_campaigns", methods=["POST"])
+def post_payout_campaigns():
+    """
+    Mark the campaigns as paid out by marking receipt and cost
+    """
+    campaign_ids = get_request_parameter(
+        "campaign_ids", request, json=True, required=True
+    )
+
+    success = payout_campaigns(campaign_ids=campaign_ids)
+
+    if success:
+        return "OK", 200
+
+    return "Failed to payout campaigns", 400
