@@ -6,6 +6,7 @@ from src.client.models import ClientSDR
 from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
+from src.prospecting.nylas.services import nylas_update_messages, nylas_update_threads
 from src.prospecting.services import calculate_prospect_overall_status
 from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus
 
@@ -57,6 +58,7 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
         nylas_payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
         db.session.commit()
 
+        delta = delta or nylas_payload.nylas_payload.get('deltas')[0]
         delta_type = delta.get("type")
         if delta_type != "message.opened":
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
@@ -102,6 +104,54 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             db.session.commit()
             return False, "No metadata in delta"
 
+        # Get the payload so we can update the thread and messages
+        # This will help us avoid race conditions
+        payload: dict = metadata.get("payload")
+        if not payload:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No payload in metadata"
+            db.session.commit()
+            return False, "No payload in metadata"
+        else:
+            payload = json.loads(payload)
+
+        prospect_id: int = payload.get("prospect_id")
+        prospect_email_id: int = payload.get("prospect_email_id")
+        client_sdr_id: int = payload.get("client_sdr_id")
+
+        # Update and get the thread
+        success = nylas_update_threads(
+            client_sdr_id=client_sdr.id,
+            prospect_id=prospect_id,
+            limit=5
+        )
+        if not success:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Failed to update thread"
+            db.session.commit()
+            return False, "Failed to update thread"
+        convo_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
+            client_sdr_id=client_sdr.id,
+            prospect_id=prospect_id,
+        ).first()
+        if not convo_thread:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "No conversation thread found"
+            db.session.commit()
+            return False, "No conversation thread found"
+
+        # Update and get the messages
+        success = nylas_update_messages(
+            client_sdr_id=client_sdr.id,
+            prospect_id=prospect_id,
+            thread_id=convo_thread.nylas_thread_id,
+        )
+        if not success:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Failed to update messages"
+            db.session.commit()
+            return False, "Failed to update messages"
+
         # Get the id of the message
         message_id: str = metadata.get("message_id")
         convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
@@ -120,19 +170,6 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             nylas_payload.processing_fail_reason = "No conversation thread found"
             db.session.commit()
             return False, "No conversation thread found"
-
-        payload: dict = metadata.get("payload")
-        if not payload:
-            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "No payload in metadata"
-            db.session.commit()
-            return False, "No payload in metadata"
-        else:
-            payload = json.loads(payload)
-
-        prospect_id: int = payload.get("prospect_id")
-        prospect_email_id: int = payload.get("prospect_email_id")
-        client_sdr_id: int = payload.get("client_sdr_id")
 
         # Check that the information is correct:
         # 1. ClientSDR ID in payload matches ClientSDR ID in delta

@@ -572,6 +572,15 @@ def update_prospect_email_outreach_status(
         prospect_email.outreach_status = new_status
         db.session.add(prospect_email)
         db.session.commit()
+
+        # Create a status record
+        prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords(
+            prospect_email_id=prospect_email_id,
+            from_status=old_status,
+            to_status=new_status,
+        )
+        db.session.add(prospect_email_status_record)
+        db.session.commit()
     else:
         return False
 
