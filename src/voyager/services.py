@@ -644,7 +644,8 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         return
     if (
         last_msg_from_prospect
-        and prospect.overall_status != ProspectOverallStatus.ACCEPTED
+        and prospect.status != ProspectStatus.ACCEPTED
+        and prospect.status != ProspectStatus.PROSPECTED
     ):
         prospect.hidden_until = dt.datetime.now()
         db.session.add(prospect)
