@@ -690,7 +690,7 @@ def test_client_pipeline_notification_webhook(client_id: int):
         return None
 
     send_slack_message(
-        message="Elon Musk accepted your LinkedIn invitation!",
+        message="(Example message): Elon Musk accepted your LinkedIn invitation!",
         webhook_urls=[c.pipeline_notifications_webhook_url],
     )
 
@@ -736,7 +736,7 @@ def test_client_sdr_pipeline_notification_webhook(client_sdr_id: int):
         return None
 
     send_slack_message(
-        message="Elon Musk accepted your LinkedIn invitation!",
+        message="(Example message): Elon Musk accepted your LinkedIn invitation!",
         webhook_urls=[csdr.pipeline_notifications_webhook_url],
     )
 
