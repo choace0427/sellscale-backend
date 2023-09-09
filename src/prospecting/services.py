@@ -1712,8 +1712,9 @@ def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason)
     new_hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 
     if (
-        prospect.status == ProspectStatus.ACCEPTED
-        or prospect.status == ProspectStatus.PROSPECTED
+        prospect.overall_status == ProspectOverallStatus.ACCEPTED
+        or prospect.overall_status == ProspectOverallStatus.PROSPECTED
+        or prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
     ):
         return
 
