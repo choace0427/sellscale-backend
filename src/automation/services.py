@@ -550,6 +550,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
     joined_prospect_message = (
         joined_prospect_message.order_by(OutboundCampaign.priority_rating.desc())
         .order_by(nullslast(GeneratedMessage.priority_rating.desc()))
+        .order_by(nullslast(Prospect.icp_fit_score.desc()))
         .order_by(nullslast(GeneratedMessage.created_at.desc()))
         .limit(csv_limit)
         .all()
