@@ -269,9 +269,9 @@ def load_sla_alert(
     # Construct the slack message
     blocks = [
         {
-            "type": "section",
+            "type": "header",
             "text": {
-                "type": "mrkdwn",
+                "type": "plain_text",
                 "text": "SLA schedules automatically created for *{}*.".format(client_sdr.name)
             }
         }
@@ -286,7 +286,7 @@ def load_sla_alert(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*{}* - *{}* (**Week {}**): {} LinkedIn | {} Email".format(
+                    "text": "*{}* - *{}* (Week {}): {} LinkedIn | {} Email".format(
                         schedule.start_date.date().strftime("%B %d, %Y"),
                         schedule.end_date.date().strftime("%B %d, %Y"),
                         week_num,
