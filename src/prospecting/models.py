@@ -928,6 +928,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.RESPONDED,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.NOT_INTERESTED,
     ],
     ProspectStatus.RESPONDED: [
         ProspectStatus.ACTIVE_CONVO,
@@ -1108,8 +1109,12 @@ class ProspectMessageFeedback(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
-    li_msg_id = db.Column(db.Integer, db.ForeignKey("linkedin_conversation_entry.id"), nullable=True)
-    email_msg_id = db.Column(db.Integer, db.ForeignKey("email_conversation_message.id"), nullable=True)
+    li_msg_id = db.Column(
+        db.Integer, db.ForeignKey("linkedin_conversation_entry.id"), nullable=True
+    )
+    email_msg_id = db.Column(
+        db.Integer, db.ForeignKey("email_conversation_message.id"), nullable=True
+    )
     rating = db.Column(db.Integer, nullable=False)
     feedback = db.Column(db.String, nullable=False)
 
