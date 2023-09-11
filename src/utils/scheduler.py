@@ -233,13 +233,13 @@ def run_queued_gm_jobs():
 
 
 def run_auto_update_sdr_linkedin_sla_jobs():
-    from src.client.services_client_sdr import auto_update_sdr_linkedin_sla_task
+    from src.client.services_client_sdr import automatic_sla_schedule_loader
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        auto_update_sdr_linkedin_sla_task.delay()
+        automatic_sla_schedule_loader.delay()
 
 
 def run_daily_editor_assignments():
@@ -253,6 +253,7 @@ def run_daily_editor_assignments():
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
+weekly_trigger = CronTrigger(day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles"))
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
 # Add all jobs to scheduler
@@ -285,8 +286,10 @@ scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 # Daily triggers
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
-scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=daily_trigger)
 scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
+
+# Weekly triggers
+scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
 
 # Monthly triggers
 scheduler.add_job(func=replenish_sdr_credits, trigger=monthly_trigger)

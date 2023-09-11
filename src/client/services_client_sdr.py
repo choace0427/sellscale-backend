@@ -1,10 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from app import db, celery
 from sqlalchemy import or_
 
-from src.client.models import Client, ClientSDR, LinkedInSLAChange, WarmupScheduleLinkedIn
+from src.client.models import Client, ClientSDR, LinkedInSLAChange, WarmupScheduleLinkedIn, SLASchedule
+from src.utils.datetime.dateutils import get_current_monday_friday
 from src.utils.slack import send_slack_message, URL_MAP
+
+
+LINKEDIN_WARUMP_CONSERVATIVE = [5, 25, 50, 75, 90]
+
+EMAIL_WARMUP_CONSERVATIVE = [10, 25, 50, 100, 150]
+
 
 def update_sdr_blacklist_words(client_sdr_id: int, blacklist_words: list[str]) -> bool:
     """Updates the blacklist_words field for a Client SDR
@@ -41,6 +48,318 @@ def get_sdr_blacklist_words(client_sdr_id: int) -> list[str]:
     return sdr.blacklisted_words
 
 
+def get_sla_schedules_for_sdr(
+    client_sdr_id: int,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+) -> list[dict]:
+    """Gets all the SLA schedules for a Client SDR. If timeframes are specified, then returns the SLA schedules in the timeframe.
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        start_date (Optional[datetime], optional): The start date of the timeframe. Defaults to None.
+        end_date (Optional[datetime], optional): The end date of the timeframe. Defaults to None.
+
+    Returns:
+        list[dict]: The SLA schedules for the Client SDR
+    """
+    # Get all SLA schedules for the Client SDR
+    schedule: SLASchedule = SLASchedule.query.filter_by(
+        client_sdr_id=client_sdr_id
+    )
+
+    # If timeframes are specified, then filter by the timeframes
+    if start_date:
+        schedule = schedule.filter(SLASchedule.start_date >= start_date)
+    if end_date:
+        schedule = schedule.filter(SLASchedule.end_date <= end_date)
+
+    # Order by most recent first
+    schedule = schedule.order_by(
+        SLASchedule.created_at.desc()
+    ).all()
+
+    # Convert to dicts
+    schedule_dicts = []
+    for entry in schedule:
+        schedule_dicts.append(entry.to_dict())
+
+    return schedule_dicts
+
+
+def create_sla_schedule(
+    client_sdr_id: int,
+    start_date: datetime,
+    end_date: Optional[datetime] = None,
+    linkedin_volume: Optional[int] = 5,
+    linkedin_special_notes: Optional[str] = None,
+    email_volume: Optional[int] = 5,
+    email_special_notes: Optional[str] = None,
+) -> int:
+    """Creates an SLA schedule for a Client SDR.
+
+    The start dates will automatically adjust to be the Monday of the specified week, and the Friday of the same week.
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        start_date (datetime): The start date of the timeframe
+        end_date (datetime): The end date of the timeframe
+        linkedin_volume (Optional[int], optional): Volume of LinkedIn outbound during this range. Defaults to 5.
+        linkedin_special_notes (Optional[str], optional): Special notes regarding the reason for the volume. Defaults to None.
+        email_volume (Optional[int], optional): Volume of email outbound during this range. Defaults to 5.
+        email_special_notes (Optional[str], optional): Special notes regarding the reason for the volume. Defaults to None.
+
+    Returns:
+        int: The id of the SLA schedule
+    """
+    # Get the monday of the start date's given week
+    start_date, end_date = get_current_monday_friday(start_date)
+
+    # Create the SLA schedule
+    sla_schedule: SLASchedule = SLASchedule(
+        client_sdr_id=client_sdr_id,
+        start_date=start_date,
+        end_date=end_date,
+        linkedin_volume=linkedin_volume,
+        linkedin_special_notes=linkedin_special_notes,
+        email_volume=email_volume,
+        email_special_notes=email_special_notes,
+    )
+    db.session.add(sla_schedule)
+    db.session.commit()
+
+    return sla_schedule.id
+
+
+@celery.task(bind=True, max_retries=3)
+def automatic_sla_schedule_loader(self):
+    """Loads SLA schedules for all active SDRs, if applicable. This task is run every Monday at 9AM PST."""
+
+    # Get the IDs of all active Clients
+    active_client_ids: list[int] = [
+        client.id for client in Client.query.filter_by(active=True).all()]
+
+    # Get all active SDRs
+    sdrs: list[ClientSDR] = ClientSDR.query.filter(
+        ClientSDR.active == True,
+        ClientSDR.client_id.in_(active_client_ids)
+    ).all()
+
+    # Update the SLA for each SDR
+    for sdr in sdrs:
+        load_sla_schedules(sdr.id)
+
+    send_slack_message(
+        message="All Active SDRs have had their SLA schedules (attempted to) updated.",
+        webhook_urls=[URL_MAP["operations-sla-updater"]]
+    )
+    return True
+
+
+def load_sla_schedules(
+    client_sdr_id: int
+) -> tuple[bool, list[int]]:
+    """'Loads' SLA schedules. This function will check for 3 weeks worth of SLA schedules into the future for a given
+    SDR, and if there are not 3 weeks worth of SLA schedules, it will create them.
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+
+    Returns:
+        tuple[bool, list[int]]: A boolean indicating whether the load was successful and a list of the SLA schedule ids
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Get the furthest into the future SLA schedule
+    furthest_sla_schedule: SLASchedule = SLASchedule.query.filter_by(
+        client_sdr_id=client_sdr_id
+    ).order_by(
+        SLASchedule.start_date.desc()
+    ).first()
+
+    # If there are no SLA schedules, then we create 3 weeks worth of SLA schedules
+    if not furthest_sla_schedule:
+        week_0_id = create_sla_schedule(
+            client_sdr_id=client_sdr_id,
+            start_date=datetime.utcnow(),
+            linkedin_volume=LINKEDIN_WARUMP_CONSERVATIVE[0]
+        )
+        week_1_id = create_sla_schedule(
+            client_sdr_id=client_sdr_id,
+            start_date=datetime.utcnow() + timedelta(days=7),
+            linkedin_volume=LINKEDIN_WARUMP_CONSERVATIVE[1]
+        )
+        week_2_id = create_sla_schedule(
+            client_sdr_id=client_sdr_id,
+            start_date=datetime.utcnow() + timedelta(days=14),
+            linkedin_volume=LINKEDIN_WARUMP_CONSERVATIVE[2]
+        )
+
+        load_sla_alert(client_sdr_id, [week_0_id, week_1_id, week_2_id])
+        return True, [week_0_id, week_1_id, week_2_id]
+
+    # Determine how many schedules we should have
+    # We determine by taking today's date, finding the Monday of this week, and calculating 2 weeks from that Monday
+    monday, _ = get_current_monday_friday(datetime.utcnow())
+    two_weeks_from_monday = monday + timedelta(days=14)
+    weeks_needed = (two_weeks_from_monday -
+                    furthest_sla_schedule.start_date.date()).days // 7
+
+    # If there are less than 3 weeks between the furthest SLA schedule and today, then we create the missing SLA schedules
+    if weeks_needed > 0:
+        new_schedule_ids = []
+
+        # TODO: Add Email volume in the future
+        li_volume = furthest_sla_schedule.linkedin_volume
+        email_volume = furthest_sla_schedule.email_volume
+        for i in range(weeks_needed):
+            # LINKEDIN: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we keep the volume
+            if li_volume > LINKEDIN_WARUMP_CONSERVATIVE[0] and li_volume < LINKEDIN_WARUMP_CONSERVATIVE[-1]:
+                for schedule_li_volume in enumerate(LINKEDIN_WARUMP_CONSERVATIVE):
+                    if schedule_li_volume > li_volume:
+                        li_volume = schedule_li_volume
+                        break
+
+            # EMAIL: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we keep the volume
+            if email_volume > EMAIL_WARMUP_CONSERVATIVE[0] and email_volume < EMAIL_WARMUP_CONSERVATIVE[-1]:
+                for schedule_email_volume in enumerate(EMAIL_WARMUP_CONSERVATIVE):
+                    if schedule_email_volume > email_volume:
+                        email_volume = schedule_email_volume
+                        break
+
+            schedule_id = create_sla_schedule(
+                client_sdr_id=client_sdr_id,
+                start_date=datetime.utcnow() + timedelta(days=7 * (i+1)),
+                linkedin_volume=li_volume,
+                email_volume=email_volume
+            )
+            new_schedule_ids.append(schedule_id)
+
+        load_sla_alert(client_sdr_id, new_schedule_ids)
+        return True, new_schedule_ids
+
+    send_slack_message(
+        message="No SLA schedules created for {}. Schedules are up to date.".format(client_sdr.name),
+        webhook_urls=[URL_MAP["operations-sla-updater"]]
+    )
+    return True, []
+
+
+def load_sla_alert(
+    client_sdr_id: int,
+    new_schedule_ids: list[int]
+) -> bool:
+    """Helps `load_sla_schedules` by sending a slack alert
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        new_schedule_ids (list[int]): The ids of the new SLA schedules
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the client SDR
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Get the schedules
+    schedules: list[SLASchedule] = SLASchedule.query.filter(
+        SLASchedule.id.in_(new_schedule_ids)
+    ).all()
+
+    # Construct the slack message
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "SLA schedules automatically created for *{}*.".format(client_sdr.name)
+            }
+        }
+    ]
+
+    # Add the schedules to the slack message
+    for schedule in schedules:
+        week_num = (schedule.start_date.date() -
+                    client_sdr.created_at.date()).days // 7
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*{}* - *{}* (Week {}): {} LinkedIn | {} Email".format(
+                        schedule.start_date.date().strftime("%B %d, %Y"),
+                        schedule.end_date.date().strftime("%B %d, %Y"),
+                        week_num,
+                        schedule.linkedin_volume,
+                        schedule.email_volume
+                    )
+                }
+            }
+        )
+
+    send_slack_message(
+        message="SLA schedules created for {}.".format(client_sdr_id),
+        webhook_urls=[URL_MAP["operations-sla-updater"]],
+        blocks=blocks
+    )
+
+    return True
+
+
+def update_sla_schedule(
+    client_sdr_id: int,
+    sla_schedule_id: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    linkedin_volume: Optional[int] = None,
+    linkedin_special_notes: Optional[str] = None,
+    email_volume: Optional[int] = None,
+    email_special_notes: Optional[str] = None,
+) -> tuple[bool, str]:
+    """Updates an SLA schedule for a Client SDR. Note that time frames cannot be updated.
+
+    If no SLA schedule id is specified, then the start date must be specified.
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        sla_schedule_id (int): The id of the SLA schedule
+        start_date (Optional[datetime], optional): The start date of the timeframe. Defaults to None.
+        linkedin_volume (Optional[int], optional): Volume of LinkedIn outbound during this range. Defaults to None.
+        linkedin_special_notes (Optional[str], optional): Special notes regarding the reason for the volume. Defaults to None.
+        email_volume (Optional[int], optional): Volume of email outbound during this range. Defaults to None.
+        email_special_notes (Optional[str], optional): Special notes regarding the reason for the volume. Defaults to None.
+
+    Returns:
+        tuple[bool, str]: A boolean indicating whether the update was successful and a message
+    """
+    # Get the SLA schedule, if applicable
+    if sla_schedule_id:
+        sla_schedule: SLASchedule = SLASchedule.query.get(sla_schedule_id)
+    else:
+        if not start_date:
+            return False, "If no SLA schedule id is specified, then the start date must be specified."
+        sla_schedule: SLASchedule = SLASchedule.query.filter(
+            SLASchedule.client_sdr_id == client_sdr_id,
+            SLASchedule.start_date <= start_date,
+            SLASchedule.end_date >= start_date,
+        ).first()
+
+    if not sla_schedule:
+        return False, "No SLA schedule found."
+
+    # Update the SLA schedule
+    if linkedin_volume:
+        sla_schedule.linkedin_volume = linkedin_volume
+    if linkedin_special_notes:
+        sla_schedule.linkedin_special_notes = linkedin_special_notes
+    if email_volume:
+        sla_schedule.email_volume = email_volume
+    if email_special_notes:
+        sla_schedule.email_special_notes = email_special_notes
+
+    return True, "Success"
+
+
+# DEPRECATED
 def create_warmup_schedule_linkedin(
     client_sdr_id: int,
     week_0_sla: int = None,
@@ -85,19 +404,22 @@ def create_warmup_schedule_linkedin(
 
     return warmup_schedule.id
 
+# DEPRECATED
+
 
 @celery.task(bind=True, max_retries=3)
 def auto_update_sdr_linkedin_sla_task(self):
     """Updates the LinkedIn SLA for all active SDRs, if applicable. This task is run every 24 hours."""
     # Get the IDs of all active Clients
-    active_client_ids: list[int] = [client.id for client in Client.query.filter_by(active=True).all()]
+    active_client_ids: list[int] = [
+        client.id for client in Client.query.filter_by(active=True).all()]
 
     # Get all active SDRs that do not have warmup LinkedIn complete
     sdrs: list[ClientSDR] = ClientSDR.query.filter(
-        ClientSDR.active==True,
+        ClientSDR.active == True,
         or_(
-            ClientSDR.warmup_linkedin_complete==False,
-            ClientSDR.warmup_linkedin_complete==None
+            ClientSDR.warmup_linkedin_complete == False,
+            ClientSDR.warmup_linkedin_complete == None
         ),
         ClientSDR.client_id.in_(active_client_ids)
     ).all()
@@ -146,7 +468,8 @@ def auto_update_sdr_linkedin_sla_task(self):
 
         # Send a slack notification
         send_slack_message(
-            message="SLA for {} has been updated from {} (#{}) to {}.".format(sdr.name, sdr.id, old_sla, next_sla),
+            message="SLA for {} has been updated from {} (#{}) to {}.".format(
+                sdr.name, sdr.id, old_sla, next_sla),
             webhook_urls=[URL_MAP["operations-sla-updater"]]
         )
 
@@ -157,6 +480,7 @@ def auto_update_sdr_linkedin_sla_task(self):
     return True
 
 
+# DEPRECATED
 def update_sdr_linkedin_sla(
     client_sdr_id: int,
     new_sla_value: int,
@@ -200,6 +524,7 @@ def update_sdr_linkedin_sla(
     return True, new_status_change.id
 
 
+# DEPRECATED
 def get_linkedin_sla_records(client_sdr_id: int) -> list[LinkedInSLAChange]:
     """Gets the LinkedIn SLA change records for a Client SDR
 
