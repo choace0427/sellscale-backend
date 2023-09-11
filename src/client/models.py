@@ -528,6 +528,37 @@ class LinkedInSLAChange(db.Model):
         }
 
 
+class SLASchedule(db.Model):
+    __tablename__ = "sla_schedule"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    # Start and end date to create a range during which the SLA is valid
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+
+    # SLA values for LinkedIn
+    linkedin_volume = db.Column(db.Integer, nullable=False)
+    linkedin_special_notes = db.Column(db.String, nullable=True)
+
+    # SLA values for email
+    email_volume = db.Column(db.Integer, nullable=False)
+    email_special_notes = db.Column(db.String, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "linkedin_volume": self.linkedin_volume,
+            "linkedin_special_notes": self.linkedin_special_notes,
+            "email_volume": self.email_volume,
+            "email_special_notes": self.email_special_notes,
+        }
+
+
 class DemoFeedback(db.Model):
     __tablename__ = "demo_feedback"
 
