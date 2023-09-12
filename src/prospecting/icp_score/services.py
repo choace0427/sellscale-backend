@@ -386,13 +386,12 @@ def score_one_prospect(
                 for keyword in icp_scoring_ruleset.included_individual_title_keywords
             )
         ):
-            score += 1
             valid_title = ""
             for keyword in icp_scoring_ruleset.included_individual_title_keywords:
                 if keyword.lower() in enriched_prospect_company.prospect_title.lower():
                     valid_title = keyword
-                    break
-            reasoning += "(✅ prospect title: " + valid_title + ") "
+                    score += 1
+                    reasoning += "(✅ prospect title: " + valid_title + ") "
 
         # Prospect Industry
         if (
@@ -548,6 +547,12 @@ def score_one_prospect(
                     valid_location = keyword
                     break
             reasoning += "(✅ prospect location: " + valid_location + ") "
+        elif (
+            icp_scoring_ruleset.included_individual_locations_keywords
+            and not enriched_prospect_company.prospect_location
+        ):
+            score -= num_attributes
+            reasoning += "(❌ prospect location: None) "
 
         # Prospect Generalized Keywords
         if (
@@ -650,6 +655,12 @@ def score_one_prospect(
                     valid_company_location = keyword
                     break
             reasoning += "(✅ company location: " + valid_company_location + ") "
+        elif (
+            icp_scoring_ruleset.included_company_locations_keywords
+            and not enriched_prospect_company.company_location
+        ):
+            score -= num_attributes
+            reasoning += "(❌ company location: No Match) "
 
         # Company Size
         if enriched_prospect_company.company_employee_count != "None" and (
