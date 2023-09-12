@@ -969,39 +969,52 @@ def post_generate_bump_li_message(client_sdr_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 400
-    
+
     from src.li_conversation.services import (
         generate_chat_gpt_response_to_conversation_thread,
     )
     from src.li_conversation.models import LinkedInConvoMessage
-    
+
     research_str = ""
     points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
     random_sample_points = random.sample(points, min(len(points), 3))
     for point in random_sample_points:
         research_str += f"{point.value}\n"
 
-
     convo_history = []
     # Populate the array with hardcoded messages
+    if bump_count >= 0:
+        convo_history.append(
+            LinkedInConvoMessage(
+                message="""Hello, you clearly are a very impressive person. I'd love to connect and discuss our work with people like yourself. Are you open to a chat?""",
+                connection_degree="You",
+                author="You",
+            )
+        )
     if bump_count >= 1:
-        convo_history.append(LinkedInConvoMessage(
-            message="""Hello, you clearly are a very impressive person. I'd love to connect and discuss our work with people like yourself. Are you open to a chat?""",
-            connection_degree='You',
-            author='You',
-        ))
+        convo_history.append(
+            LinkedInConvoMessage(
+                message="""Hey, thank you for accepting my connection request. I'd love to arrange a meeting to discuss, perhaps even a lunch & learn for your team. Looking forward to hearing your thoughts.""",
+                connection_degree="You",
+                author="You",
+            )
+        )
     if bump_count >= 2:
-        convo_history.append(LinkedInConvoMessage(
-            message="""Hey, thank you for accepting my connection request. I'd love to arrange a meeting to discuss, perhaps even a lunch & learn for your team. Looking forward to hearing your thoughts.""",
-            connection_degree='You',
-            author='You',
-        ))
+        convo_history.append(
+            LinkedInConvoMessage(
+                message="""I hope this message finds you well. If your schedule allows, I believe a quick coffee chat could be valuable for us. Let me know.""",
+                connection_degree="You",
+                author="You",
+            )
+        )
     if bump_count >= 3:
-        convo_history.append(LinkedInConvoMessage(
-            message="""I hope this message finds you well. If your schedule allows, I believe a quick coffee chat could be valuable for us. Let me know.""",
-            connection_degree='You',
-            author='You',
-        ))
+        convo_history.append(
+            LinkedInConvoMessage(
+                message="""Hi, I hope you're doing well. Just wanted to circle back one more time to see if you'd be open to a quick chat.""",
+                connection_degree="You",
+                author="You",
+            )
+        )
 
     response, prompt = generate_chat_gpt_response_to_conversation_thread(
         prospect_id=prospect_id,
@@ -1011,9 +1024,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
     )
 
     return (
-        jsonify(
-            {"message": "Success", "data": {"message": response, "metadata": {}}}
-        ),
+        jsonify({"message": "Success", "data": {"message": response, "metadata": {}}}),
         200,
     )
 
