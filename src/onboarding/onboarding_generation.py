@@ -1,3 +1,4 @@
+from src.ml.services import get_text_generation
 from src.prospecting.models import Prospect
 from src.prospecting.services import (
     create_prospect_from_linkedin_link,
@@ -65,8 +66,8 @@ def get_summary_from_website(url, max_retries=3):
         else:
             print("Failed to retrieve the page:", response.status_code)
 
-        completion = wrapped_chat_gpt_completion(
-            messages=[
+        completion = get_text_generation(
+            [
                 {
                     "role": "user",
                     "content": "Here is a bunch of HTML data from a website: \n"
@@ -76,6 +77,7 @@ def get_summary_from_website(url, max_retries=3):
             ],
             model="gpt-4",
             max_tokens=300,
+            type="MISC_SUMMARIZE",
         )
         return completion
     except requests.RequestException as e:
@@ -90,8 +92,8 @@ def determine_persona_from_prospect_ids(prospect_ids):
     ).all()
     titles = [prospect.title for prospect in prospects]
 
-    completion = wrapped_chat_gpt_completion(
-        messages=[
+    completion = get_text_generation(
+        [
             {
                 "role": "user",
                 "content": "Here are the titles of the prospects: \n"
@@ -101,7 +103,9 @@ def determine_persona_from_prospect_ids(prospect_ids):
         ],
         model="gpt-4",
         max_tokens=20,
+        type="MISC_CLASSIFY",
     )
+
     return completion
 
 
@@ -120,8 +124,8 @@ def determine_icp_filters(prospect_ids, company_description):
 
     blurbs = [get_blurb_for_prospect(prospect) for prospect in prospects]
 
-    completion = wrapped_chat_gpt_completion(
-        messages=[
+    completion = get_text_generation(
+        [
             {
                 "role": "user",
                 "content": "Here is the company description: \n"
@@ -133,7 +137,9 @@ def determine_icp_filters(prospect_ids, company_description):
         ],
         model="gpt-4",
         max_tokens=300,
+        type="ICP_CLASSIFY",
     )
+
     return completion
 
 
@@ -145,8 +151,8 @@ def make_sample_ctas(persona, website_summary):
         "Saw you’ve explored outdoor advertising in the past. We’ve launched a new solution in outdoor ad attribution - would love to connect.",
         "Since you’re a leader in your health system, would love to see if Curative is helpful for physician staffing.",
     ]
-    completion = wrapped_chat_gpt_completion(
-        messages=[
+    completion = get_text_generation(
+        [
             {
                 "role": "user",
                 "content": "Here is the persona: \n"
@@ -160,7 +166,9 @@ def make_sample_ctas(persona, website_summary):
         ],
         model="gpt-4",
         max_tokens=300,
+        type="LI_CTA",
     )
+
     return completion
 
 

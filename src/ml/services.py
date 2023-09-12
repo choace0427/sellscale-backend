@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from bs4 import BeautifulSoup
+from src.ml.openai_wrappers import DEFAULT_TEMPERATURE
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
 from src.email_sequencing.models import EmailSequenceStep
@@ -21,6 +22,7 @@ from src.ml.models import (
     GNLPModelFineTuneJobs,
     GNLPModelType,
     ModelProvider,
+    TextGeneration,
 )
 import traceback
 
@@ -643,15 +645,18 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
             {prospect_company_description}
             '''\n\n"""
 
-        print(prompt)
+        #print(prompt)
 
         prompt += HARD_CODE_ICP_PROMPT
 
         # Generate Completion
-        completion = wrapped_chat_gpt_completion(
-            messages=[{"role": "user", "content": prompt}],
+        completion = get_text_generation(
+            [{"role": "user", "content": prompt}],
             max_tokens=100,
             model=OPENAI_CHAT_GPT_4_MODEL,
+            type="ICP_CLASSIFY",
+            prospect_id=prospect_id,
+            client_sdr_id=client_sdr_id,
         )
         fit = completion.split("Fit:")[1].split("Reason:")[0].strip()
         fit = int(fit)
@@ -734,12 +739,14 @@ Make the requested edits.
 Edited Text:""".format(
         initial_text=initial_text, edit_prompt=edit_prompt
     )
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
         max_tokens=int(len(initial_text) / 4) + 100,
+        model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+        type="TEXT_EDITOR",
     )
     return response
 
@@ -1061,11 +1068,12 @@ Seller: {seller_name}
         seller_name=seller, transcript=transcript
     )
 
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         [{"role": "user", "content": prompt}],
         temperature=0,
         max_tokens=10,
         model=OPENAI_CHAT_GPT_4_MODEL,
+        type="MISC_CLASSIFY",
     )
 
     match = re.search(r"\d+", response)
@@ -1110,16 +1118,12 @@ Seller: {seller_name}
         seller_name=seller, transcript=transcript
     )
 
-    response = wrapped_chat_gpt_completion(
-        [
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
+    response = get_text_generation(
+        [{"role": "user", "content": prompt}],
         temperature=0,
         max_tokens=10,
         model=OPENAI_CHAT_GPT_4_MODEL,
+        type="MISC_CLASSIFY",
     )
 
     match = re.search(r"\d+", response)
@@ -1184,11 +1188,12 @@ def determine_account_research_from_convo_and_bump_framework(
         }
     )
 
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         messages,
         temperature=0.7,
         max_tokens=240,
         model="gpt-3.5-turbo-16k",
+        type="MISC_CLASSIFY",
     )
 
     # Extract the numbers from the response & convert to index
@@ -1250,11 +1255,12 @@ def determine_best_bump_framework_from_convo(
         }
     )
 
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         messages,
         temperature=0.7,
         max_tokens=240,
         model="gpt-3.5-turbo-16k",
+        type="MISC_CLASSIFY",
     )
 
     match = re.search(r"\d+", response)
@@ -1273,3 +1279,57 @@ def test_rate_limiter(self, rate: str):
         + str(datetime.utcnow()),
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
+
+    
+
+def get_text_generation(messages: list, type: str, model: str, max_tokens: int, prospect_id: Optional[int], client_sdr_id: Optional[int], temperature: Optional[float] = DEFAULT_TEMPERATURE) -> Optional[str]:
+    # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY" | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA"
+
+    try:
+        json_msgs = json.dumps(messages)
+    except Exception as e:
+        json_msgs = None
+
+    text_gen = None
+    # Don't use caching for now
+    # text_gen: TextGeneration = TextGeneration.query.filter_by(
+    #     prompt=json_msgs,
+    #     type=type,
+    #     model_provider=model
+    # ).first()
+
+    if json_msgs and text_gen:
+        return text_gen.completion
+    else:
+        response = wrapped_chat_gpt_completion(
+            messages,
+            max_tokens=max_tokens,
+            model=model,
+            temperature=temperature,
+        )
+        if not json_msgs: return response
+
+        if isinstance(response, str):
+            
+            text_gen = TextGeneration(
+                prompt=json_msgs,
+                completion=response,
+                type=type,
+                model_provider=model,
+                prospect_id=prospect_id,
+                client_sdr_id=client_sdr_id,
+                human_edited=False,
+                status="GENERATED",
+            )
+
+            db.session.add(text_gen)
+            db.session.commit()
+
+            return response
+        
+        else:
+            return ""
+
+
+    
+

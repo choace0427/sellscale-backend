@@ -67,3 +67,32 @@ class ProfaneWords(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     words = db.Column(db.String, nullable=False)
+
+
+class TextGeneration(db.Model):
+    __tablename__ = "text_generation"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey('prospect.id'), nullable=False)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+
+    prompt = db.Column(db.String, nullable=False)
+    completion = db.Column(db.String, nullable=False)
+    status = db.Column(db.String, nullable=False)
+    type = db.Column(db.String, nullable=False)
+
+    human_edited = db.Column(db.Boolean, nullable=False, default=False)
+    model_provider = db.Column(db.String, nullable=False)
+
+    def to_dict(self):
+      return {
+        "prompt": self.prompt,
+        "completion": self.completion,
+        "status": self.status,
+        "type": self.type,
+        "human_edited": self.human_edited,
+        "model_provider": self.model_provider,
+        "prospect_id": self.prospect_id,
+        "client_sdr_id": self.client_sdr_id,
+      }
+

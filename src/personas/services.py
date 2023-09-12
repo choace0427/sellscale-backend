@@ -1,5 +1,9 @@
 from typing import Optional
 
+from src.ml.services import get_text_generation
+
+from src.ml.openai_wrappers import OPENAI_CHAT_GPT_3_5_TURBO_MODEL
+
 from src.bump_framework.services import clone_bump_framework
 from src.message_generation.services import create_cta
 
@@ -314,8 +318,8 @@ def process_persona_split_request_task(self, task_id: int, countdown: int = 0):
             prospect_company_description=company.description if company else "",
         )
 
-        output = wrapped_chat_gpt_completion(
-            messages=[
+        output = get_text_generation(
+            [
                 {
                     "role": "system",
                     "content": task.prompt,
@@ -330,7 +334,9 @@ Output a JSON object with two fields: "archetype_id" and "persona_id".
 Output:""",
                 },
             ],
+            model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
             max_tokens=100,
+            type="MISC_CLASSIFY",
         )
 
         task.raw_completion = output

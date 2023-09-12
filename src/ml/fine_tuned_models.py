@@ -2,6 +2,8 @@ import requests
 import json
 import os
 
+from src.ml.services import get_text_generation
+
 from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from model_import import ClientArchetype, StackRankedMessageGenerationConfiguration
 from app import db
@@ -155,13 +157,14 @@ def get_config_completion(
     if not config:
         raise ValueError("No config provided")
     few_shot_prompt: str = config.computed_prompt.format(prompt=prompt)
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         [
             {"role": "system", "content": few_shot_prompt},
         ],
         temperature=0.7,
         max_tokens=240,
         model=OPENAI_CHAT_GPT_4_MODEL,
+        type="VOICE_MSG",
     )
     # todo(Aakash) delete this
     # response = wrapped_create_completion(
@@ -178,13 +181,14 @@ def get_computed_prompt_completion(
     prompt: str,
 ):
     few_shot_prompt: str = computed_prompt.format(prompt=prompt)
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         [
             {"role": "system", "content": few_shot_prompt},
         ],
         temperature=0.7,
         max_tokens=100,
         model=OPENAI_CHAT_GPT_4_MODEL,
+        type="VOICE_MSG",
     )
     return (response, few_shot_prompt)
 

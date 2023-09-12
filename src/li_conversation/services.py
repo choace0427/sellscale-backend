@@ -1,5 +1,7 @@
 from typing import List, Union, Optional
 
+from src.ml.services import get_text_generation
+
 from src.client.models import ClientArchetype
 from src.li_conversation.autobump_helpers.services_firewall import (
     rule_no_stale_message,
@@ -43,7 +45,6 @@ from src.utils.slack import URL_MAP
 from src.utils.slack import send_slack_message
 from datetime import datetime, timedelta
 from tqdm import tqdm
-from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message
 from model_import import BumpFramework
 from sqlalchemy.sql.expression import func
@@ -626,7 +627,7 @@ Transcript:
         content=content,
     )
 
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         [
             {
                 "role": "user",
@@ -635,6 +636,9 @@ Transcript:
         ],
         max_tokens=200,
         model="gpt-4",
+        type="LI_MSG_OTHER",
+        prospect_id=prospect_id,
+        client_sdr_id=prospect.client_sdr_id,
     )
 
     return response
@@ -742,13 +746,16 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     #         + f"\n\nThe goal of this conversation of chatting with this person is the following: `{archetype.persona_contact_objective}`"
     #     )
 
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         [
             {"role": "system", "content": message_content},
             {"role": "user", "content": content},
         ],
         max_tokens=200,
         model="gpt-4",
+        type="LI_MSG_OTHER",
+        prospect_id=prospect_id,
+        client_sdr_id=prospect.client_sdr_id,
     )
 
     if client_sdr.message_generation_captivate_mode:
@@ -767,7 +774,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
 
 Ensure the length is similar.
             """
-        response = wrapped_chat_gpt_completion(
+        response = get_text_generation(
             [
                 {
                     "role": "user",
@@ -777,6 +784,9 @@ Ensure the length is similar.
             ],
             max_tokens=200,
             model="gpt-4",
+            type="LI_MSG_OTHER",
+            prospect_id=prospect_id,
+            client_sdr_id=prospect.client_sdr_id,
         )
 
     return response, content

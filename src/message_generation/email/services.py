@@ -8,6 +8,7 @@
 import re
 from typing import Optional
 from bs4 import BeautifulSoup
+from src.ml.services import get_text_generation
 
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
@@ -378,15 +379,15 @@ def generate_email(prompt: str) -> dict[str, str]:
     Returns:
         dict[str, str]: The subject and body of the email
     """
-    response = wrapped_chat_gpt_completion(
+    response = get_text_generation(
         [
             {"role": "system", "content": prompt},
         ],
-        temperature=0.7,
         max_tokens=400,
+        temperature=0.7,
         model=OPENAI_CHAT_GPT_4_MODEL,
+        type="EMAIL",
     )
-    response = response if isinstance(response, str) else ""
 
     return {"body": response}
 
@@ -539,16 +540,16 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
 
     Returns:
         dict[str, str]: The subject line
-    """
-    response = wrapped_chat_gpt_completion(
+    """    
+    response = get_text_generation(
         [
             {"role": "system", "content": prompt},
         ],
-        temperature=0.7,
         max_tokens=50,
+        temperature=0.7,
         model=OPENAI_CHAT_GPT_4_MODEL,
+        type="EMAIL",
     )
-    response = response if isinstance(response, str) else ""
     response = response.strip('\"')
 
     return {"subject_line": response}
