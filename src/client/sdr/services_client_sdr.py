@@ -117,6 +117,12 @@ def create_sla_schedule(
     # Get the monday of the start date's given week
     start_date, end_date = get_current_monday_friday(start_date)
 
+    # Calculate the week number
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    week = (start_date - sdr.created_at.date()).days // 7
+    if week < 0:
+        week = 0
+
     # Create the SLA schedule
     sla_schedule: SLASchedule = SLASchedule(
         client_sdr_id=client_sdr_id,
@@ -126,6 +132,7 @@ def create_sla_schedule(
         linkedin_special_notes=linkedin_special_notes,
         email_volume=email_volume,
         email_special_notes=email_special_notes,
+        week=week
     )
     db.session.add(sla_schedule)
     db.session.commit()
