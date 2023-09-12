@@ -38,6 +38,7 @@ URL_MAP = {
     "eng-icp-errors": "https://hooks.slack.com/services/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",
     "operations-sla-updater": "https://hooks.slack.com/services/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",
     "messages-ops": "https://hooks.slack.com/services/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",
+    "ops-email-detected": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {

@@ -251,6 +251,18 @@ def run_daily_editor_assignments():
         send_editor_assignments_notification.delay()
 
 
+def run_hourly_email_finder_job():
+    from src.li_conversation.conversation_analyzer.li_email_finder import (
+        update_all_outstanding_prospect_emails,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        update_all_outstanding_prospect_emails.delay()
+
+
 # def run_weekday_phantom_buster_updater():
 #     from src.client.services import daily_pb_launch_schedule_update
 
@@ -262,8 +274,12 @@ def run_daily_editor_assignments():
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
-weekly_trigger = CronTrigger(day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles"))
-weekday_trigger = CronTrigger(day_of_week="mon-fri", hour=5, timezone=timezone("America/Los_Angeles"))
+weekly_trigger = CronTrigger(
+    day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
+)
+weekday_trigger = CronTrigger(
+    day_of_week="mon-fri", hour=5, timezone=timezone("America/Los_Angeles")
+)
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
 # Add all jobs to scheduler
@@ -292,6 +308,7 @@ scheduler.add_job(
     func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1
 )
 scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
+scheduler.add_job(func=run_hourly_email_finder_job, trigger="interval", hours=1)
 
 # Daily triggers
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
