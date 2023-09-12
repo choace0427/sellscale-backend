@@ -8,6 +8,7 @@ from model_import import Prospect, LinkedinConversationEntry
 from datetime import datetime, timedelta
 from src.bump_framework.models import BumpLength
 from src.li_conversation.services import (
+    generate_smart_response,
     update_linkedin_conversation_entries,
     update_li_conversation_extractor_phantom,
     generate_chat_gpt_response_to_conversation_thread,
@@ -70,6 +71,23 @@ def post_client_sdr_li_conversation_arguments(client_sdr_id):
     return message, status_code
 
 
+@LI_CONVERASTION_BLUEPRINT.route("/prospect/generate_smart_response", methods=["POST"])
+@require_user
+def post_prospect_li_conversation_smart(client_sdr_id: int):
+    """Generates a smart response using client, persona, and SDR brain"""
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    response: str = generate_smart_response(prospect_id)
+
+    return jsonify({"message": response}), 200
+
+
 @LI_CONVERASTION_BLUEPRINT.route("/prospect/generate_response", methods=["POST"])
 def get_prospect_li_conversation():
     """Returns a prospect's LinkedIn conversation data."""
@@ -108,7 +126,7 @@ def get_prospect_li_conversation():
         bump_framework_id=bump_framework_id,
         account_research_copy=account_research_copy,
         override_bump_length=bump_length,
-    ) # type: ignore
+    )  # type: ignore
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200
     else:
@@ -147,9 +165,14 @@ def post_prospect_read_messages(client_sdr_id: int):
     prospect.li_unread_messages = 0
     db.session.commit()
 
-    return jsonify({"message": 'Success', "data": {
-        "updated": updated,
-    }})
+    return jsonify(
+        {
+            "message": "Success",
+            "data": {
+                "updated": updated,
+            },
+        }
+    )
 
 
 @LI_CONVERASTION_BLUEPRINT.route("/processed", methods=["POST"])
