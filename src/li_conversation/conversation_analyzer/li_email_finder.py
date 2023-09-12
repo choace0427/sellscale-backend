@@ -88,7 +88,6 @@ def update_prospect_email(prospect_id, new_email, message):
     return True
 
 
-@celery.task
 def update_all_outstanding_prospect_emails():
     data: list[LiEmailFinder] = get_raw_email_data()
     for row in data[0:1]:
