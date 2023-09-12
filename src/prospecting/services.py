@@ -1739,7 +1739,7 @@ def update_prospect_demo_date(
               Please send a reminder to engage with prospect and confirm they'll be meeting.
             """,
             channel_name=CHANNEL_NAME_MAP["prospect-demo-soon"],
-            delay_date=(date - timedelta(days=1)),
+            delay_date=(date - timedelta(days=2)),
         )
 
     return True

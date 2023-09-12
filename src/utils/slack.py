@@ -68,6 +68,8 @@ def send_delayed_slack_message(
         and os.environ.get("FLASK_ENV") != "celery-production"
     ):
         return
+    if delay_date < datetime.datetime.now():
+        return
 
     zapier_slack_hook = "https://hooks.zapier.com/hooks/catch/13803519/39efpuo/"
 
