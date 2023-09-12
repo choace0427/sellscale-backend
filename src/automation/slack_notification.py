@@ -62,11 +62,11 @@ def send_status_change_slack_block(
 
     # Add webhook url regardless of allowlist if channel type is email
     # todo(Aakash) remove this!
-    # if outreach_type == ProspectChannels.EMAIL:
-    #     if client_sdr and client_sdr.pipeline_notifications_webhook_url:
-    #         webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
-    #     if client and client.pipeline_notifications_webhook_url:
-    #         webhook_urls.append(client.pipeline_notifications_webhook_url)
+    if outreach_type == ProspectChannels.EMAIL and prospect.client_id == 19:
+        if client_sdr and client_sdr.pipeline_notifications_webhook_url:
+            webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
+        if client and client.pipeline_notifications_webhook_url:
+            webhook_urls.append(client.pipeline_notifications_webhook_url)
 
     # Get last messages using URN ID
     has_messages = False
@@ -121,7 +121,10 @@ def send_status_change_slack_block(
             message_blocks.append(
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": f"Prospect email: {email_address}"},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Prospect email: {email_address}",
+                    },
                 },
             )
         if subject:
@@ -135,7 +138,10 @@ def send_status_change_slack_block(
             message_blocks.append(
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": f"Email body:\n```{email_snippet}...```"},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Email body:\n```{email_snippet}...```",
+                    },
                 },
             )
 

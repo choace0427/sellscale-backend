@@ -1,7 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
-import time
 import os
 
 from pytz import timezone
@@ -233,7 +232,7 @@ def run_queued_gm_jobs():
 
 
 def run_auto_update_sdr_linkedin_sla_jobs():
-    from src.client.services_client_sdr import automatic_sla_schedule_loader
+    from src.client.sdr.services_client_sdr import automatic_sla_schedule_loader
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -252,8 +251,19 @@ def run_daily_editor_assignments():
         send_editor_assignments_notification.delay()
 
 
+# def run_weekday_phantom_buster_updater():
+#     from src.client.services import daily_pb_launch_schedule_update
+
+#     if (
+#         os.environ.get("FLASK_ENV") == "production"
+#         and os.environ.get("SCHEDULING_INSTANCE") == "true"
+#     ):
+#         daily_pb_launch_schedule_update.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles"))
+weekday_trigger = CronTrigger(day_of_week="mon-fri", hour=5, timezone=timezone("America/Los_Angeles"))
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
 # Add all jobs to scheduler
@@ -290,6 +300,9 @@ scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
+
+# Weekday triggers
+# scheduler.add_job(run_weekday_phantom_buster_updater, trigger=weekday_trigger)
 
 # Monthly triggers
 scheduler.add_job(func=replenish_sdr_credits, trigger=monthly_trigger)

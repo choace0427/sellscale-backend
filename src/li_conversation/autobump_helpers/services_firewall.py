@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import re
 from src.bump_framework.models import BumpFramework
 from src.client.models import ClientSDR
-from src.client.services_client_sdr import get_sdr_blacklist_words
+from src.client.sdr.services_client_sdr import get_sdr_blacklist_words
 from src.message_generation.models import GeneratedMessageAutoBump
 
 # This MUST be changed when the relative path of the csv's changes.

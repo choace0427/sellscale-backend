@@ -10,6 +10,9 @@ import json
 import os
 import math
 
+from src.client.sdr.services_client_sdr import LINKEDIN_WARM_THRESHOLD, get_sla_schedules_for_sdr
+from src.utils.datetime.dateutils import get_current_monday_friday
+
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 
 
@@ -258,8 +261,23 @@ class PhantomBusterAgent:
         ).first()
         client_sdr: ClientSDR = ClientSDR.query.get(config.client_sdr_id)
 
+        # Get SLA schedule
+        monday, friday = get_current_monday_friday(datetime.datetime.now())
+        schedules: list[dict] = get_sla_schedules_for_sdr(
+            client_sdr_id = client_sdr.id,
+            start_date = monday,
+            end_date = friday
+        )
+        schedule = schedules[0]
+
         ADDS_PER_LAUNCH = 2
-        target = math.ceil(client_sdr.weekly_li_outbound_target / ADDS_PER_LAUNCH)
+        target = math.ceil(schedule.get("linkedin_volume", client_sdr.weekly_li_outbound_target)/ ADDS_PER_LAUNCH)
+
+        if target >= LINKEDIN_WARM_THRESHOLD:
+            client_sdr.warmup_linkedin_complete = True
+        else:
+            client_sdr.warmup_linkedin_complete = False
+        db.session.commit()
 
         dows = ["mon", "tue", "wed", "thu", "fri"]
 

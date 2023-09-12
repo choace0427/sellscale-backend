@@ -141,6 +141,7 @@ def add_together(a, b):
 
 
 def register_blueprints(app):
+    from src.client.sdr.controllers import CLIENT_SDR_BLUEPRINT
     from src.webhooks.controllers import WEBHOOKS_BLUEPRINT
     from src.echo.controllers import ECHO_BLUEPRINT
     from src.prospecting.controllers import PROSPECTING_BLUEPRINT
@@ -180,6 +181,7 @@ def register_blueprints(app):
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
     app.register_blueprint(RESEARCH_BLUEPRINT, url_prefix="/research")
     app.register_blueprint(CLIENT_BLUEPRINT, url_prefix="/client")
+    app.register_blueprint(CLIENT_SDR_BLUEPRINT, url_prefix="/client/sdr")
     app.register_blueprint(
         MESSAGE_GENERATION_BLUEPRINT, url_prefix="/message_generation"
     )
