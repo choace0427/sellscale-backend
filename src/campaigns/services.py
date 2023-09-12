@@ -806,10 +806,14 @@ def generate_campaign(campaign_id: int) -> True:
     db.session.commit()
 
     if campaign.campaign_type == GeneratedMessageType.EMAIL:
-        create_and_start_email_generation_jobs.apply_async(args=[campaign_id])
+        create_and_start_email_generation_jobs(
+            campaign_id=campaign_id,
+        )
     elif campaign.campaign_type == GeneratedMessageType.LINKEDIN:
-        generate_outreaches_for_prospect_list_from_multiple_ctas.apply_async(
-            args=[campaign.prospect_ids, campaign.ctas, campaign_id]
+        generate_outreaches_for_prospect_list_from_multiple_ctas(
+            prospect_ids=campaign.prospect_ids,
+            cta_ids=campaign.ctas,
+            outbound_campaign_id=campaign_id,
         )
 
     assign_random_editor_to_campaign(campaign_id)
