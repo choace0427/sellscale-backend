@@ -9,8 +9,10 @@ from src.utils.slack import send_slack_message, URL_MAP
 
 
 LINKEDIN_WARUMP_CONSERVATIVE = [5, 25, 50, 75, 90]
+LINKEDIN_WARM_THRESHOLD = 90
 
 EMAIL_WARMUP_CONSERVATIVE = [10, 25, 50, 100, 150]
+EMAIL_WARM_THRESHOLD = 150
 
 
 def update_sdr_blacklist_words(client_sdr_id: int, blacklist_words: list[str]) -> bool:
