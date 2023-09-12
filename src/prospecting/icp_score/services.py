@@ -386,11 +386,11 @@ def score_one_prospect(
                 for keyword in icp_scoring_ruleset.included_individual_title_keywords
             )
         ):
+            score += 1
             valid_title = ""
             for keyword in icp_scoring_ruleset.included_individual_title_keywords:
                 if keyword.lower() in enriched_prospect_company.prospect_title.lower():
                     valid_title = keyword
-                    score += 1
                     reasoning += "(✅ prospect title: " + valid_title + ") "
 
         # Prospect Industry
