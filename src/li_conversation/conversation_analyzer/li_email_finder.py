@@ -71,31 +71,27 @@ def get_raw_email_data() -> list[LiEmailFinder]:
     return formatted_data
 
 
-@celery.task(bind=True, max_retries=3)
-def update_prospect_email(self, prospect_id, new_email, message):
-    try:
-        prospect: Prospect = Prospect.query.get(prospect_id)
-        if not prospect:
-            return
+def update_prospect_email(prospect_id, new_email, message):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return
 
-        old_email = prospect.email
-        prospect.email = new_email
-        db.session.add(prospect)
-        db.session.commit()
+    old_email = prospect.email
+    prospect.email = new_email
+    db.session.add(prospect)
+    db.session.commit()
 
-        send_slack_message(
-            f"📧🔎 *Email Update from LI Conversation*\nUpdated prospect *{prospect.full_name}* (#{prospect.id}) email from `{old_email}` to `{new_email}`.\nFound email in Linkedin convo from this message:\n```{message}```",
-            webhook_urls=[URL_MAP["ops-email-detected"]],
-        )
-        return True
-    except Exception as e:
-        self.retry(exc=e, countdown=5)
+    send_slack_message(
+        f"📧🔎 *Email Update from LI Conversation*\nUpdated prospect *{prospect.full_name}* (#{prospect.id}) email from `{old_email}` to `{new_email}`.\nFound email in Linkedin convo from this message:\n```{message}```",
+        webhook_urls=[URL_MAP["ops-email-detected"]],
+    )
+    return True
 
 
 @celery.task
 def update_all_outstanding_prospect_emails():
     data: list[LiEmailFinder] = get_raw_email_data()
     for row in data[0:1]:
-        update_prospect_email.delay(
+        update_prospect_email(
             row.prospect_id, row.prospect_extracted_email, row.prospect_message
         )
