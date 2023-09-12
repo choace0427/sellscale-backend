@@ -9,6 +9,7 @@ from model_import import (
     OutboundCampaign,
     OutboundCampaignStatus,
 )
+from src.client.models import SLASchedule
 from src.utils.slack import send_slack_message, URL_MAP
 from src.utils.datetime.dateutils import get_next_next_monday_sunday
 from src.campaigns.services import (
@@ -83,13 +84,27 @@ def collect_and_generate_autopilot_campaign_for_sdr(
             datetime.today()
         )
 
+        # Get the SLA Schedule entry for this date range
+        sla_schedule: SLASchedule = SLASchedule.query.filter(
+            SLASchedule.client_sdr_id == client_sdr.id,
+            SLASchedule.start_date == next_next_monday,
+        ).first()
+        if not sla_schedule:
+            send_slack_message(
+                f"🤖 ❌ 📅 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No SLA Schedule entry for {next_next_monday}.",
+                [SLACK_CHANNEL],
+            )
+            return (
+                False,
+                f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No SLA Schedule entry for {next_next_monday}",
+            )
+
         # Generated types stores the campaign types which were generated
         generated_types = []
 
         # Generate campaign for LinkedIn given SLAs for the SDR
         if (
-            client_sdr.weekly_li_outbound_target is not None
-            and client_sdr.weekly_li_outbound_target > 0
+            sla_schedule.linkedin_volume > 0
         ):  # LinkedIn
 
             # Don't use CTAs that will expire in the next 10 days
@@ -122,8 +137,8 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                 GeneratedMessageType.LINKEDIN,
                 datetime.today(),
             )
-            if sla_count < client_sdr.weekly_li_outbound_target:
-                num_can_generate = client_sdr.weekly_li_outbound_target - sla_count
+            if sla_count < sla_schedule.linkedin_volume:
+                num_can_generate = sla_schedule.linkedin_volume - sla_count
                 # Check that there are enough prospects to generate the campaign
                 num_available_prospects = len(
                     smart_get_prospects_for_campaign(
@@ -173,8 +188,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
 
         # Generate campaign for Email given SLAs for the SDR
         if (
-            client_sdr.weekly_email_outbound_target is not None
-            and client_sdr.weekly_email_outbound_target > 0
+            sla_schedule.email_volume > 0
         ):  # Email
             # Check that SLA has not been filled:
             sla_count = get_sla_count(
@@ -183,8 +197,8 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                 GeneratedMessageType.EMAIL,
                 datetime.today(),
             )
-            if sla_count < client_sdr.weekly_email_outbound_target:
-                num_can_generate = client_sdr.weekly_email_outbound_target - sla_count
+            if sla_count < sla_schedule.email_volume:
+                num_can_generate = sla_schedule.email_volume - sla_count
                 # Check that there are enough prospects to generate the campaign
                 num_available_prospects = len(
                     smart_get_prospects_for_campaign(

@@ -2,7 +2,7 @@ from datetime import datetime
 from app import app, db
 from decorators import use_app_context
 from src.client.models import SLASchedule
-from src.client.services_client_sdr import create_sla_schedule, get_sdr_blacklist_words, get_sla_schedules_for_sdr, load_sla_schedules, update_sdr_blacklist_words, update_sla_schedule
+from src.client.sdr.services_client_sdr import create_sla_schedule, get_sdr_blacklist_words, get_sla_schedules_for_sdr, load_sla_schedules, update_sdr_blacklist_words, update_sla_schedule
 from test_utils import (
     test_app,
     basic_client,

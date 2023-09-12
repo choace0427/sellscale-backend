@@ -356,7 +356,40 @@ def update_sla_schedule(
     if email_special_notes:
         sla_schedule.email_special_notes = email_special_notes
 
+    db.session.commit()
+
     return True, "Success"
+
+
+def deactivate_sla_schedules(
+    client_sdr_id: int,
+) -> bool:
+    """Deactives all SLA schedules (current week and future weeks) for an SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the SLA schedules that start after this Monday
+    monday, _ = get_current_monday_friday(datetime.utcnow())
+    sla_schedules: list[SLASchedule] = SLASchedule.query.filter(
+        SLASchedule.client_sdr_id == client_sdr_id,
+        SLASchedule.start_date >= monday
+    ).all()
+
+    # Deactivate the SLA schedules
+    now = datetime.utcnow()
+    for schedule in sla_schedules:
+        schedule.linkedin_volume = 0
+        schedule.email_volume = 0
+        schedule.linkedin_special_notes = "SDR Deactivated on {}".format(now)
+        schedule.email_special_notes = "SDR Deactivated on {}".format(now)
+
+    db.session.commit()
+
+    return True
 
 
 # DEPRECATED

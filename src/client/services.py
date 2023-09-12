@@ -1,7 +1,7 @@
 import random
-from src.client.services_client_sdr import (
-    create_warmup_schedule_linkedin,
-    update_sdr_linkedin_sla,
+from src.client.sdr.services_client_sdr import (
+    deactivate_sla_schedules,
+    load_sla_schedules,
 )
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
@@ -442,10 +442,8 @@ def create_client_sdr(client_id: int, name: str, email: str):
     create_sight_onboarding(sdr.id)
     create_unassigned_contacts_archetype(sdr.id)
 
-    # LINKEDIN: Create warmup schedule and set the SLA
-    # Is set to conservative by default
-    create_warmup_schedule_linkedin(sdr.id)
-    update_sdr_linkedin_sla(sdr.id, DEFAULT_LINKEDIN_SLA)
+    # Load SLA schedules (will be generated with warmup SLA values)
+    load_sla_schedules(sdr.id)
 
     # Create a default persona for them
     # result = create_client_archetype(
@@ -483,7 +481,8 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
         return False
 
     sdr.active = False
-    update_sdr_linkedin_sla(sdr.id, 0)
+    deactivate_sla_schedules(sdr.id)
+    sdr.weekly_li_outbound_target = 0
     sdr.weekly_email_outbound_target = 0
     sdr.autopilot_enabled = False
 
@@ -839,49 +838,50 @@ def update_client_sdr_manual_warning_message(client_sdr_id: int, manual_warning:
 
     return True
 
+# DEPRECATED: THIS IS NOT HOW SLAS WORK ANYMORE
+# def update_client_sdr_weekly_li_outbound_target(
+#     client_sdr_id: int, weekly_li_outbound_target: int
+# ):
+#     """Update the weekly LinkedIn outbound target for a Client SDR
 
-def update_client_sdr_weekly_li_outbound_target(
-    client_sdr_id: int, weekly_li_outbound_target: int
-):
-    """Update the weekly LinkedIn outbound target for a Client SDR
+#     Args:
+#         client_sdr_id (int): ID of the Client SDR
+#         weekly_li_outbound_target (int): Weekly LinkedIn outbound target
 
-    Args:
-        client_sdr_id (int): ID of the Client SDR
-        weekly_li_outbound_target (int): Weekly LinkedIn outbound target
+#     Returns:
+#         bool: True if successful, None otherwise
+#     """
+#     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+#     if not csdr:
+#         return None
 
-    Returns:
-        bool: True if successful, None otherwise
-    """
-    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not csdr:
-        return None
+#     update_sdr_linkedin_sla(client_sdr_id, weekly_li_outbound_target)
 
-    update_sdr_linkedin_sla(client_sdr_id, weekly_li_outbound_target)
-
-    return True
+#     return True
 
 
-def update_client_sdr_weekly_email_outbound_target(
-    client_sdr_id: int, weekly_email_outbound_target: int
-):
-    """Update the weekly email outbound target for a Client SDR
+# DEPRECATED: THIS IS NOT HOW SLAS WORK ANYMORE
+# def update_client_sdr_weekly_email_outbound_target(
+#     client_sdr_id: int, weekly_email_outbound_target: int
+# ):
+#     """Update the weekly email outbound target for a Client SDR
 
-    Args:
-        client_sdr_id (int): ID of the Client SDR
-        weekly_email_outbound_target (int): Weekly email outbound target
+#     Args:
+#         client_sdr_id (int): ID of the Client SDR
+#         weekly_email_outbound_target (int): Weekly email outbound target
 
-    Returns:
-        bool: True if successful, None otherwise
-    """
-    csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not csdr:
-        return None
+#     Returns:
+#         bool: True if successful, None otherwise
+#     """
+#     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+#     if not csdr:
+#         return None
 
-    csdr.weekly_email_outbound_target = weekly_email_outbound_target
-    db.session.add(csdr)
-    db.session.commit()
+#     csdr.weekly_email_outbound_target = weekly_email_outbound_target
+#     db.session.add(csdr)
+#     db.session.commit()
 
-    return True
+#     return True
 
 
 def get_ctas(client_archetype_id: int):
@@ -1908,6 +1908,28 @@ def generate_persona_icp_matching_prompt(
     return ""
 
 
+
+@celery.task()
+def daily_pb_launch_schedule_update():
+    # Get the IDs of all active Clients
+    active_client_ids: list[int] = [
+        client.id for client in Client.query.filter_by(active=True).all()]
+
+    # Get all active SDRs
+    sdrs: list[ClientSDR] = ClientSDR.query.filter(
+        ClientSDR.active == True,
+        ClientSDR.client_id.in_(active_client_ids)
+    ).all()
+    sdr_ids = [sdr.id for sdr in sdrs]
+
+    # Update PB launch schedule for each SDR
+    for sdr_id in sdr_ids:
+        update_phantom_buster_launch_schedule.delay(sdr_id)
+
+    return
+
+
+@celery.task()
 def update_phantom_buster_launch_schedule(client_sdr_id: int):
 
     # Update the PhantomBuster to reflect the new SLA target
@@ -2500,7 +2522,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             from client_archetype
             left join prospect on prospect.archetype_id = client_archetype.id
             left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
-            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
             left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
         where client_archetype.client_sdr_id = {client_sdr_id}
             and client_archetype.is_unassigned_contact_archetype != true
