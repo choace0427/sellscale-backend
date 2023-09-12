@@ -225,7 +225,7 @@ def send_status_change_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Next steps: Respond",
+                    "text": " ",
                 },
                 "accessory": {
                     "type": "button",
@@ -342,7 +342,7 @@ def send_slack_block(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Next steps: Respond",
+                    "text": " ",
                 },
                 "accessory": {
                     "type": "button",
