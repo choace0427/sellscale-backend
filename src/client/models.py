@@ -546,6 +546,9 @@ class SLASchedule(db.Model):
     email_volume = db.Column(db.Integer, nullable=False)
     email_special_notes = db.Column(db.String, nullable=True)
 
+    # Which week
+    week = db.Column(db.Integer, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -556,6 +559,7 @@ class SLASchedule(db.Model):
             "linkedin_special_notes": self.linkedin_special_notes,
             "email_volume": self.email_volume,
             "email_special_notes": self.email_special_notes,
+            "week": self.week,
         }
 
 

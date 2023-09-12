@@ -53,6 +53,7 @@ def test_create_sla_schedule():
     assert schedule.client_sdr_id == sdr.id
     assert schedule.start_date == monday
     assert schedule.end_date == friday
+    assert schedule.week == 0
 
 
 @use_app_context
