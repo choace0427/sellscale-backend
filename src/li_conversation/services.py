@@ -664,13 +664,11 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
-    details = ""
-    if random.random() < 0.5:
-        details = "\nFor some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
-            first_name=prospect.first_name,
-            title=prospect.title,
-            company=prospect.company,
-        )
+    details = "\nFor some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
+        first_name=prospect.first_name,
+        title=prospect.title,
+        company=prospect.company,
+    )
 
     message_content = (
         "You are "
