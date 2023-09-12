@@ -140,6 +140,7 @@ def update_client_details(
         c.case_study = case_study
     if contract_size:
         c.contract_size = contract_size
+        propagate_contract_value(client_id, contract_size)
 
     db.session.add(c)
     db.session.commit()
@@ -2988,3 +2989,22 @@ def predict_archetype_emoji(archetype_id: int):
         "🍉",
     ]
     update_archetype_emoji(archetype_id, random.choice(emojis))
+
+
+def propagate_contract_value(client_id: int, new_value: int):
+  # Update all archetypes and prospects with the new contract value
+    
+  client: Client = Client.query.get(client_id)
+  if not client: return
+  archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(client_id=client_id).all()
+  prospects: list[Prospect] = Prospect.query.filter_by(client_id=client_id).all()
+
+  for archetype in archetypes:
+    archetype.contract_size = new_value
+    db.session.add(archetype)
+
+  for prospect in prospects:
+    prospect.contract_size = new_value
+    db.session.add(prospect)
+
+  db.session.commit()
