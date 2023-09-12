@@ -55,3 +55,15 @@ def get_next_next_monday_sunday(date: Optional[datetime]) -> tuple[datetime.date
     next_next_sunday = next_next_monday + timedelta(days=6)
 
     return next_next_monday.date(), next_next_sunday.date()
+
+
+def get_current_monday_friday(date: Optional[datetime]) -> tuple[datetime.date, datetime.date]:
+    date = date or datetime.today()
+
+    # Get the monday of the current week
+    start_date = date - timedelta(days=date.weekday())
+
+    # Get the friday of the current week
+    end_date = start_date + timedelta(days=4)
+
+    return start_date.date(), end_date.date()

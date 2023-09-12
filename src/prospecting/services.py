@@ -1710,6 +1710,14 @@ def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
 def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason):
     prospect: Prospect = Prospect.query.get(prospect_id)
     new_hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+
+    if (
+        prospect.overall_status == ProspectOverallStatus.ACCEPTED
+        or prospect.overall_status == ProspectOverallStatus.PROSPECTED
+        or prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH
+    ):
+        return
+
     if prospect.hidden_until is None or new_hidden_until > prospect.hidden_until:
         prospect.hidden_until = new_hidden_until
         prospect.hidden_reason = reason
@@ -1767,7 +1775,7 @@ def auto_mark_uninterested_bumped_prospects():
         prospect_name = prospect[1]
         client_sdr_name = prospect[2]
         prospect_count = prospect[3]
-        message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `not interested`."
+        message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `nurturing mode`."
         send_slack_message(message=message, webhook_urls=[URL_MAP["csm-convo-sorter"]])
 
         update_prospect_status_linkedin(

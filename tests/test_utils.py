@@ -59,6 +59,7 @@ from model_import import (
 )
 from src.automation.models import PhantomBusterSalesNavigatorConfig, PhantomBusterSalesNavigatorLaunch, SalesNavigatorLaunchStatus
 from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
+from src.client.models import SLASchedule
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
@@ -92,6 +93,7 @@ def test_app():
             db.session.add(prospect)
             db.session.commit()
         clear_all_entities(PhantomBusterPayload)
+        clear_all_entities(SLASchedule)
         clear_all_entities(IScraperPayloadCache)
         clear_all_entities(PersonaSplitRequestTask)
         clear_all_entities(PersonaSplitRequest)

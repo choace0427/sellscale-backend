@@ -1,6 +1,10 @@
 from typing import List, Union, Optional
+
 from src.client.models import ClientArchetype
-from src.li_conversation.autobump_helpers.services_firewall import rule_no_stale_message, run_autobump_firewall
+from src.li_conversation.autobump_helpers.services_firewall import (
+    rule_no_stale_message,
+    run_autobump_firewall,
+)
 from src.message_generation.models import (
     GeneratedMessage,
     GeneratedMessageAutoBump,
@@ -8,6 +12,7 @@ from src.message_generation.models import (
     SendStatus,
     StackRankedMessageGenerationConfiguration,
 )
+from src.message_generation.services import get_li_convo_history
 from src.prospecting.models import (
     ProspectHiddenReason,
     ProspectOverallStatus,
@@ -397,7 +402,6 @@ def detect_time_sensitive_keywords(
             return
 
 
-
 def detect_multithreading_keywords(
     message: str, client_sdr_id: int, author: str, direct_link: str
 ) -> None:
@@ -530,6 +534,112 @@ def generate_chat_gpt_response_to_conversation_thread(
             continue
 
 
+def generate_smart_response(
+    prospect_id: int,
+):
+    from model_import import Prospect, Client
+
+    convo_history = get_li_convo_history(
+        prospect_id=prospect_id,
+    )
+
+    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
+    if not msg:
+        raise Exception("No message from SDR found in convo_history")
+    sender = msg.author
+
+    transcript = "\n\n".join(
+        [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
+    )
+    content = transcript + "\n\n" + sender + " (" + str(datetime.now())[0:10] + "):"
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    client: Client = Client.query.get(prospect.client_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+
+    prospect_name = prospect.full_name
+    prospect_title = prospect.title
+    prospect_company = prospect.company
+
+    client_sdr_name = client_sdr.name
+    company_name = client
+    archetype_name = archetype.archetype
+    archetype_fit_reason = archetype.persona_fit_reason
+    archetype_contact_objective = archetype.persona_contact_objective
+
+    company_mission = client.mission
+    company_tagline = client.tagline
+    company_description = client.description
+    company_value_props = client.value_prop_key_points
+
+    research_points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    research_points_str = "\n".join(
+        [
+            "• " + rp.value
+            for rp in research_points
+            if rp.value and rp.value.strip() != ""
+        ]
+    )
+
+    prompt = """I'm responding to a client on LinkedIn. 
+
+My contact objective is: {archetype_contact_objective}
+
+# Here is information about my company:
+Name: {company_name}
+Tagline: {company_tagline}
+Description: {company_description}
+Mission: {company_mission}
+Value props: {company_value_props}
+
+# Here is information about the persona I'm reaching out to
+Persona name: {archetype_name}
+Why do they buy our product?: {archetype_fit_reason}
+
+# Here is information about the prospect:
+Title: {prospect_title}
+Company: {prospect_company}
+Name: {prospect_name}
+Account research: 
+{research_points_str}
+
+----
+Instruction:
+Type a personalized response to this Debbie - using account resaerch where relevant - that is efficient and fast to read on a phone.
+
+Transcript:
+{content}""".format(
+        prospect_name=prospect_name,
+        prospect_title=prospect_title,
+        prospect_company=prospect_company,
+        client_sdr_name=client_sdr_name,
+        company_name=company_name,
+        company_tagline=company_tagline,
+        company_description=company_description,
+        company_mission=company_mission,
+        company_value_props=company_value_props,
+        archetype_name=archetype_name,
+        archetype_fit_reason=archetype_fit_reason,
+        archetype_contact_objective=archetype_contact_objective,
+        research_points_str=research_points_str,
+        content=content,
+    )
+
+    response = wrapped_chat_gpt_completion(
+        [
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        max_tokens=200,
+        model="gpt-4",
+    )
+
+    return response
+
+
 def generate_chat_gpt_response_to_conversation_thread_helper(
     prospect_id: int,
     convo_history: List[LinkedInConvoMessage],
@@ -562,13 +672,6 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             company=prospect.company,
         )
 
-    # message_content = (
-    #     "You are a helpful assistant helping the user write their next reply in a message thread. Keep responses friendly and concise while also adding personalization from the first message. Write from the perspective of "
-    #     + sender
-    #     + "."
-    #     + "\n------\n"
-    #     + details
-    # )
     message_content = (
         "You are "
         + sender
@@ -1280,7 +1383,9 @@ def send_autogenerated_bump(
         bump_delay_seconds = (
             bump.bump_delay_days * 60 * 60 if bump.bump_delay_days else 48 * 60 * 60
         )
-        if (now - last_message_date).total_seconds() < bump_delay_seconds:
+        if (
+            now - last_message_date
+        ).total_seconds() < bump_delay_seconds and prospect.status != ProspectStatus.ACCEPTED:
             formatted_last_message_date = last_message_date.strftime(
                 "%m/%d/%Y %H:%M:%S"
             )
@@ -1329,10 +1434,15 @@ def send_autogenerated_bump(
                 ],
             )
             # Delete the message and remark Prospect hidden until
-            prospect.hidden_until = last_message_date + timedelta(days=2)
-            prospect.hidden_reason = ProspectHiddenReason.RECENTLY_BUMPED
-            db.session.delete(message)
-            db.session.commit()
+            if (
+                prospect.overall_status != ProspectOverallStatus.ACCEPTED
+                and prospect.overall_status != ProspectOverallStatus.PROSPECTED
+                and prospect.overall_status != ProspectOverallStatus.SENT_OUTREACH
+            ):
+                prospect.hidden_until = last_message_date + timedelta(days=2)
+                prospect.hidden_reason = ProspectHiddenReason.RECENTLY_BUMPED
+                db.session.delete(message)
+                db.session.commit()
             return False
 
         # 7. Send message

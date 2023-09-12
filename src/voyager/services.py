@@ -1,3 +1,4 @@
+from http.client import ACCEPTED
 import json
 import time
 import datetime as dt
@@ -11,7 +12,10 @@ from src.message_generation.services import process_generated_msg_queue
 
 from src.utils.slack import send_slack_message, URL_MAP
 
-from src.ml.services import chat_ai_classify_active_convo, chat_ai_verify_scheduling_convo
+from src.ml.services import (
+    chat_ai_classify_active_convo,
+    chat_ai_verify_scheduling_convo,
+)
 
 from src.automation.services import (
     create_new_auto_connect_phantom,
@@ -100,7 +104,7 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
     sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not sdr:
         return "No client sdr found with this id", 400
-    
+
     # Remove extra quotes
     cookies = cookies.replace(':""', ':"').replace('"",', '",')
 
@@ -180,9 +184,8 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
         prospect: Prospect = Prospect.query.get(prospect_id)
         if prospect.li_conversation_urn_id:
             # Removing this saves us about ~5 seconds in prod
-            #update_prospect_status(prospect_id=prospect_id, convo_urn_id=prospect.li_conversation_urn_id)
+            # update_prospect_status(prospect_id=prospect_id, convo_urn_id=prospect.li_conversation_urn_id)
             return get_convo_entries(prospect.li_conversation_urn_id), "NO_UPDATE"
-
 
     prospect_urn_id = get_profile_urn_id(prospect_id, api)
 
@@ -639,7 +642,12 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         db.session.add(prospect)
         db.session.commit()
         return
-    if last_msg_from_prospect:
+    if (
+        last_msg_from_prospect
+        and prospect.overall_status != ProspectOverallStatus.ACCEPTED
+        and prospect.overall_status != ProspectStatus.PROSPECTED
+        and prospect.overall_status != ProspectStatus.SENT_OUTREACH
+    ):
         prospect.hidden_until = dt.datetime.now()
         db.session.add(prospect)
         db.session.commit()
@@ -732,7 +740,9 @@ def classify_active_convo(prospect_id: int, messages):
     )
 
 
-def get_prospect_status_from_convo(messages: list[str], client_sdr_id: int) -> ProspectStatus:
+def get_prospect_status_from_convo(
+    messages: list[str], client_sdr_id: int
+) -> ProspectStatus:
     """Determines what a prospect status should be based on the state of their convo
 
     Args:
@@ -746,7 +756,21 @@ def get_prospect_status_from_convo(messages: list[str], client_sdr_id: int) -> P
     # Short circuit by using our own heuristics
     def get_prospect_status_from_convo_heuristics(messages):
         most_recent_message = messages[-1]
-        scheduling_key_words = ["today", "tomorrow", "@", "week", "month", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "hear more"]
+        scheduling_key_words = [
+            "today",
+            "tomorrow",
+            "@",
+            "week",
+            "month",
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+            "hear more",
+        ]
 
         # If the most recent message is from the prospect, run our heuristics
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -814,8 +838,12 @@ def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    if len(convo) == 0: return
-    if time.time() * 1000 <= int(prospect.img_expire) and time.time() * 1000 <= int(sdr.img_expire): return
+    if len(convo) == 0:
+        return
+    if time.time() * 1000 <= int(prospect.img_expire) and time.time() * 1000 <= int(
+        sdr.img_expire
+    ):
+        return
 
     sdr_updated = False
     prospect_updated = False
@@ -875,4 +903,5 @@ def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
             db.session.commit()
             sdr_updated = True
 
-        if sdr_updated and prospect_updated: return
+        if sdr_updated and prospect_updated:
+            return
