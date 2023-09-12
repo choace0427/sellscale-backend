@@ -547,12 +547,9 @@ def score_one_prospect(
                     valid_location = keyword
                     break
             reasoning += "(✅ prospect location: " + valid_location + ") "
-        elif (
-            icp_scoring_ruleset.included_individual_locations_keywords
-            and not enriched_prospect_company.prospect_location
-        ):
+        elif icp_scoring_ruleset.included_individual_locations_keywords:
             score -= num_attributes
-            reasoning += "(❌ prospect location: None) "
+            reasoning += "(❌ prospect location: No Match) "
 
         # Prospect Generalized Keywords
         if (
@@ -655,12 +652,9 @@ def score_one_prospect(
                     valid_company_location = keyword
                     break
             reasoning += "(✅ company location: " + valid_company_location + ") "
-        elif (
-            icp_scoring_ruleset.included_company_locations_keywords
-            and not enriched_prospect_company.company_location
-        ):
+        elif icp_scoring_ruleset.included_company_locations_keywords:
             score -= num_attributes
-            reasoning += "(❌ company location: No Match) "
+            reasoning += "(❌ company location: No Match)"
 
         # Company Size
         if enriched_prospect_company.company_employee_count != "None" and (
