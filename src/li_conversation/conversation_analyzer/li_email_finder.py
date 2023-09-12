@@ -90,7 +90,7 @@ def update_prospect_email(prospect_id, new_email, message):
 
 def update_all_outstanding_prospect_emails():
     data: list[LiEmailFinder] = get_raw_email_data()
-    for row in data[0:1]:
+    for row in data:
         update_prospect_email(
             row.prospect_id, row.prospect_extracted_email, row.prospect_message
         )
