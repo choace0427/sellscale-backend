@@ -263,14 +263,14 @@ def run_hourly_email_finder_job():
         update_all_outstanding_prospect_emails.delay()
 
 
-# def run_weekday_phantom_buster_updater():
-#     from src.client.services import daily_pb_launch_schedule_update
+def run_weekday_phantom_buster_updater():
+    from src.client.services import daily_pb_launch_schedule_update
 
-#     if (
-#         os.environ.get("FLASK_ENV") == "production"
-#         and os.environ.get("SCHEDULING_INSTANCE") == "true"
-#     ):
-#         daily_pb_launch_schedule_update.delay()
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        daily_pb_launch_schedule_update.delay()
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
@@ -319,7 +319,7 @@ scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
 
 # Weekday triggers
-# scheduler.add_job(run_weekday_phantom_buster_updater, trigger=weekday_trigger)
+scheduler.add_job(run_weekday_phantom_buster_updater, trigger=weekday_trigger)
 
 # Monthly triggers
 scheduler.add_job(func=replenish_sdr_credits, trigger=monthly_trigger)
