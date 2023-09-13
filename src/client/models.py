@@ -98,6 +98,11 @@ class ClientArchetype(db.Model):
         db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
+    transformer_blocklist_initial = db.Column(
+        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        nullable=True,
+    )  # use this list to blocklist transformers during initial message generation
+    # child layer of transformer_blocklist
 
     disable_ai_after_prospect_engaged = db.Column(
         db.Boolean, nullable=True, default=False
@@ -134,6 +139,9 @@ class ClientArchetype(db.Model):
             "active": self.active,
             "transformer_blocklist": [t.value for t in self.transformer_blocklist]
             if self.transformer_blocklist
+            else [],
+            "transformer_blocklist_initial": [t.value for t in self.transformer_blocklist_initial]
+            if self.transformer_blocklist_initial
             else [],
             "disable_ai_after_prospect_engaged": self.disable_ai_after_prospect_engaged,
             "client_sdr_id": self.client_sdr_id,

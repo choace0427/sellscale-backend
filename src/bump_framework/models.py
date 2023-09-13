@@ -1,6 +1,8 @@
 from app import db
 import enum
 from src.client.models import ClientArchetype
+from src.research.models import ResearchPointType
+import sqlalchemy as sa
 
 from src.prospecting.models import ProspectOverallStatus
 
@@ -42,6 +44,11 @@ class BumpFramework(db.Model):
     etl_num_times_used = db.Column(db.Integer, nullable=True, default=0)
     etl_num_times_converted = db.Column(db.Integer, nullable=True, default=0)
 
+    transformer_blocklist = db.Column(
+        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        nullable=True,
+    )  # use this list to blocklist transformer durings message generation
+
     def to_dict(self):
         archetype: ClientArchetype = ClientArchetype.query.get(
             self.client_archetype_id
@@ -65,6 +72,9 @@ class BumpFramework(db.Model):
             "use_account_research": self.use_account_research,
             "etl_num_times_used": self.etl_num_times_used,
             "etl_num_times_converted": self.etl_num_times_converted,
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            if self.transformer_blocklist
+            else [],
         }
 
 
