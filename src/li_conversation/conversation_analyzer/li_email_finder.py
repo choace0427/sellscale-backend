@@ -89,6 +89,10 @@ def update_prospect_email(prospect_id, new_email, message):
 
 
 def update_all_outstanding_prospect_emails():
+    send_slack_message(
+        f"📧🔎 *Email Update from LI Conversation*\nUpdating all outstanding prospect emails from LI conversations.",
+        webhook_urls=[URL_MAP["ops-email-detected"]],
+    )
     data: list[LiEmailFinder] = get_raw_email_data()
     for row in data:
         update_prospect_email(
