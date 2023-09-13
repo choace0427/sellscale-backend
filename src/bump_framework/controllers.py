@@ -244,6 +244,11 @@ def patch_bump_framework(client_sdr_id: int):
             "use_account_research", request, json=True, required=False, parameter_type=bool
         )
     )
+    blocklist = (
+        get_request_parameter(
+            "blocklist", request, json=True, required=False, parameter_type=list
+        )
+    )
     bump_delay_days = (
         get_request_parameter(
             "bump_delay_days", request, json=True, required=False, parameter_type=int
@@ -291,6 +296,7 @@ def patch_bump_framework(client_sdr_id: int):
         bump_delay_days=bump_delay_days,
         use_account_research=use_account_research,
         default=default,
+        blocklist=blocklist,
     )
 
     return jsonify({"status": "success", "data": {}}), 200 if modified else 400

@@ -206,6 +206,7 @@ def modify_bump_framework(
     bump_delay_days: Optional[int] = None,
     use_account_research: Optional[bool] = None,
     default: Optional[bool] = False,
+    blocklist: Optional[list] = None,
 ) -> bool:
     """Modify a bump framework
 
@@ -221,6 +222,7 @@ def modify_bump_framework(
         bump_delay_days (Optional[int], optional): The number of days to wait before bumping. Defaults to 2.
         default (Optional[bool]): Whether the bump framework is the default
         use_account_research (Optional[bool]): Whether the bump framework uses account research
+        blocklist (Optional[list]): The transformer blocklist for the bump framework
 
     Returns:
         bool: Whether the bump framework was modified
@@ -248,6 +250,9 @@ def modify_bump_framework(
 
     if use_account_research is not None:
         bump_framework.use_account_research = use_account_research
+    
+    if blocklist:
+        bump_framework.transformer_blocklist = blocklist
 
     if default:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
