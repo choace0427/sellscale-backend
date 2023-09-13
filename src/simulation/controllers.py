@@ -54,7 +54,7 @@ def get_li_convo(client_sdr_id: int):
     elif prospect_id:
         simulation: Simulation = (
             Simulation.query.filter_by(prospect_id=prospect_id)
-            .order_by(Simulation.updated_at.desc())
+            .order_by(Simulation.created_at.desc())
             .first()
         )
     else:
