@@ -977,8 +977,8 @@ def post_generate_bump_li_message(client_sdr_id: int):
 
     research_str = ""
     points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    random_sample_points = random.sample(points, min(len(points), 3))
-    for point in random_sample_points:
+    #random_sample_points = random.sample(points, min(len(points), 3))
+    for point in points:
         research_str += f"{point.value}\n"
 
     convo_history = []
@@ -1021,6 +1021,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
         convo_history=convo_history,
         bump_framework_id=bump_framework_id,
         account_research_copy=research_str,
+        use_cache=True,
     )
 
     return (

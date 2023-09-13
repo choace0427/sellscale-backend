@@ -1282,21 +1282,25 @@ def test_rate_limiter(self, rate: str):
 
     
 
-def get_text_generation(messages: list, type: str, model: str, max_tokens: int, prospect_id: Optional[int], client_sdr_id: Optional[int], temperature: Optional[float] = DEFAULT_TEMPERATURE) -> Optional[str]:
+def get_text_generation(messages: list, type: str, model: str, max_tokens: int, prospect_id: Optional[int], client_sdr_id: Optional[int], temperature: Optional[float] = DEFAULT_TEMPERATURE, use_cache: bool = False) -> Optional[str]:
     # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY" | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA"
 
+    def normalize_string(string: str) -> str:
+        string = re.sub(r'\\n', ' ', string)
+        string = string.strip()  # Remove leading/trailing whitespace
+        string = ' '.join(string.split())
+        return string
+
     try:
-        json_msgs = json.dumps(messages)
+        json_msgs = normalize_string(json.dumps(messages))
     except Exception as e:
         json_msgs = None
 
     text_gen = None
-    # Don't use caching for now
-    # text_gen: TextGeneration = TextGeneration.query.filter_by(
-    #     prompt=json_msgs,
-    #     type=type,
-    #     model_provider=model
-    # ).first()
+    if use_cache:
+        text_gen: TextGeneration = TextGeneration.query.filter(
+            TextGeneration.prompt == json_msgs,
+        ).first()
 
     if json_msgs and text_gen:
         return text_gen.completion

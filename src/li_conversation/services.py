@@ -520,6 +520,7 @@ def generate_chat_gpt_response_to_conversation_thread(
     account_research_copy: str = "",
     override_bump_length: Optional[BumpLength] = None,
     max_retries: int = 3,
+    use_cache: bool = False,
 ):
     for _ in range(max_retries):
         try:
@@ -529,6 +530,7 @@ def generate_chat_gpt_response_to_conversation_thread(
                 bump_framework_id=bump_framework_id,
                 account_research_copy=account_research_copy,
                 override_bump_length=override_bump_length,
+                use_cache=use_cache,
             )
         except Exception as e:
             time.sleep(2)
@@ -650,6 +652,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     bump_framework_id: Optional[int] = None,
     account_research_copy: str = "",
     override_bump_length: Optional[BumpLength] = None,
+    use_cache: bool = False,
 ):
     from model_import import Prospect
 
@@ -756,6 +759,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         type="LI_MSG_OTHER",
         prospect_id=prospect_id,
         client_sdr_id=prospect.client_sdr_id,
+        use_cache=use_cache,
     )
 
     if client_sdr.message_generation_captivate_mode:
@@ -787,6 +791,7 @@ Ensure the length is similar.
             type="LI_MSG_OTHER",
             prospect_id=prospect_id,
             client_sdr_id=prospect.client_sdr_id,
+            use_cache=use_cache,
         )
 
     return response, content
