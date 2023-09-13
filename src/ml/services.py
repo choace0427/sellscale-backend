@@ -1282,7 +1282,16 @@ def test_rate_limiter(self, rate: str):
 
     
 
-def get_text_generation(messages: list, type: str, model: str, max_tokens: int, prospect_id: Optional[int], client_sdr_id: Optional[int], temperature: Optional[float] = DEFAULT_TEMPERATURE, use_cache: bool = False) -> Optional[str]:
+def get_text_generation(
+        messages: list,
+        type: str,
+        model: str,
+        max_tokens: int,
+        prospect_id: Optional[int] = None,
+        client_sdr_id: Optional[int] = None,
+        temperature: Optional[float] = DEFAULT_TEMPERATURE,
+        use_cache: bool = False
+    ) -> Optional[str]:
     # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY" | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA"
 
     def normalize_string(string: str) -> str:
