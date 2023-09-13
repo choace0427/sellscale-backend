@@ -317,11 +317,14 @@ class ClientSDR(db.Model):
     linkedin_url = db.Column(db.String, nullable=True)
     title = db.Column(db.String)
     li_health = db.Column(db.Float, nullable=True)
+    li_health_good_title = db.Column(db.Boolean, nullable=True)
+    li_health_cover_image = db.Column(db.Boolean, nullable=True)
+    li_health_profile_photo = db.Column(db.Boolean, nullable=True)
+    li_health_premium = db.Column(db.Boolean, nullable=True)
     li_at_token = db.Column(db.String, nullable=True)
     last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
     li_cookies = db.Column(db.String, nullable=True)
     li_cover_img_url = db.Column(db.String, nullable=True)
-    li_premium = db.Column(db.Boolean, nullable=True, default=False)
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
@@ -407,8 +410,11 @@ class ClientSDR(db.Model):
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
             "linkedin_url": self.linkedin_url,
             "li_health": self.li_health,
+            "li_health_good_title": self.li_health_good_title,
+            "li_health_cover_image": self.li_health_cover_image,
+            "li_health_profile_photo": self.li_health_profile_photo,
+            "li_health_premium": self.li_health_premium,
             "li_cover_img_url": self.li_cover_img_url,
-            "li_premium": self.li_premium,
         }
 
 
