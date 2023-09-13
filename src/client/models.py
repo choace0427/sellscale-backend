@@ -241,7 +241,6 @@ class ClientSDR(db.Model):
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     name = db.Column(db.String)
-    title = db.Column(db.String)
     email = db.Column(db.String)
     active = db.Column(db.Boolean, nullable=True, default=True)
 
@@ -264,25 +263,20 @@ class ClientSDR(db.Model):
 
     manual_warning_message = db.Column(db.String, nullable=True)
 
-    li_at_token = db.Column(db.String)
-    last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
-    li_cookies = db.Column(db.String)
-
     autopilot_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
     questionnaire = db.Column(SDRQuestionaireColumn, nullable=True)
 
     client_pod_id = db.Column(db.Integer, db.ForeignKey("client_pod.id"), nullable=True)
 
+    # Nylas (Email)
     nylas_auth_code = db.Column(db.String, nullable=True)
     nylas_account_id = db.Column(db.String, nullable=True)
     nylas_active = db.Column(db.Boolean, nullable=True, default=False)
 
+    # Credits and limits
     email_fetching_credits = db.Column(db.Integer, nullable=True, default=2000)
     ml_credits = db.Column(db.Integer, nullable=True, default=5000)
-
-    img_url = db.Column(db.String, nullable=True)
-    img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
     scrape_time = db.Column(db.Time, nullable=True)  # in UTC
     next_scrape = db.Column(db.DateTime, nullable=True)  # in UTC
@@ -318,6 +312,18 @@ class ClientSDR(db.Model):
 
     # Warmup
     warmup_linkedin_complete = db.Column(db.Boolean, nullable=True, default=False)
+
+    # LinkedIn Profile Information
+    linkedin_url = db.Column(db.String, nullable=True)
+    title = db.Column(db.String)
+    li_health = db.Column(db.Float, nullable=True)
+    li_at_token = db.Column(db.String, nullable=True)
+    last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
+    li_cookies = db.Column(db.String, nullable=True)
+    li_cover_img_url = db.Column(db.String, nullable=True)
+    li_premium = db.Column(db.Boolean, nullable=True, default=False)
+    img_url = db.Column(db.String, nullable=True)
+    img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
     def update_warmup_status(self) -> bool:
         """Updates the warmup status for the SDR using the warmup schedule and SLA value
@@ -399,6 +405,10 @@ class ClientSDR(db.Model):
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
             "warmup_linkedin_schedule": warmup_schedule.to_dict() if warmup_schedule else None,
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
+            "linkedin_url": self.linkedin_url,
+            "li_health": self.li_health,
+            "li_cover_img_url": self.li_cover_img_url,
+            "li_premium": self.li_premium,
         }
 
 
