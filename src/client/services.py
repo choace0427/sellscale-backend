@@ -2458,6 +2458,8 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.persona_fit_reason,
             ClientArchetype.persona_contact_objective,
             ClientArchetype.contract_size,
+            ClientArchetype.transformer_blocklist,
+            ClientArchetype.transformer_blocklist_initial,
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_outreach_message_id.is_(None))
