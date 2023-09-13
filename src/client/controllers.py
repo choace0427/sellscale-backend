@@ -99,6 +99,7 @@ from src.client.services_client_archetype import (
     patch_archetype_email_blocks_configuration,
     update_transformer_blocklist,
     replicate_transformer_blocklist,
+    update_transformer_blocklist_initial,
     get_archetype_details_for_sdr,
 )
 from src.client.services_client_pod import (
@@ -1051,6 +1052,25 @@ def post_archetype_set_transformer_blocklist():
     )
 
     success, message = update_transformer_blocklist(
+        client_archetype_id=client_archetype_id, new_blocklist=new_blocklist
+    )
+
+    if success:
+        return "OK", 200
+
+    return "400", message
+
+
+@CLIENT_BLUEPRINT.route("/archetype/set_transformer_blocklist_initial", methods=["POST"])
+def post_archetype_set_transformer_blocklist_initial():
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    new_blocklist: list = get_request_parameter(
+        "new_blocklist", request, json=True, required=True
+    )
+
+    success, message = update_transformer_blocklist_initial(
         client_archetype_id=client_archetype_id, new_blocklist=new_blocklist
     )
 
