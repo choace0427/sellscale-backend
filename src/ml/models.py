@@ -73,8 +73,8 @@ class TextGeneration(db.Model):
     __tablename__ = "text_generation"
 
     id = db.Column(db.Integer, primary_key=True)
-    prospect_id = db.Column(db.Integer, db.ForeignKey('prospect.id'), nullable=False)
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    prospect_id = db.Column(db.Integer, db.ForeignKey('prospect.id'), nullable=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
 
     prompt = db.Column(db.String, nullable=False)
     completion = db.Column(db.String, nullable=False)
