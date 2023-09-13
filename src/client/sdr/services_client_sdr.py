@@ -40,13 +40,17 @@ def compute_sdr_linkedin_health(
 
     # Get the user profile
     profile = voyager.get_user_profile()
+    if not profile:
+        return False, None, None
 
     # Get "mini_profile" details
-    mini_profile = profile.get("mini_profile", None)
+    mini_profile = profile.get("miniProfile", None)
+    title_fail_reason = ""
     if mini_profile:
         # Title
         title = mini_profile.get("occupation")
         sdr.title = title
+        sdr.li_health_good_title = True
         for word in bad_title_words:
             if word in title.lower():
                 title_fail_reason = "Your title contains the word '{}'. Avoid sales-y words in your title.".format(word)
@@ -82,7 +86,7 @@ def compute_sdr_linkedin_health(
                 "expiresAt") if last_artifact else None
             sdr.img_url = profile_picture_url
             sdr.img_expire = profile_picture_expire
-            sdr.li_health_profile_picture = True
+            sdr.li_health_profile_photo = True
 
     # Get premium subscriber details
     premium_subscriber = profile.get("premiumSubscriber", None)
@@ -101,7 +105,7 @@ def compute_sdr_linkedin_health(
         li_health += 10
 
     # Update the SDR
-    sdr.li_health = li_health / HEALTH_MAX
+    sdr.li_health = (li_health / HEALTH_MAX) * 100
     db.session.commit()
 
     details = {
@@ -123,7 +127,7 @@ def compute_sdr_linkedin_health(
         }
     }
 
-    return True, li_health, details
+    return True, sdr.li_health, details
 
 
 def update_sdr_blacklist_words(client_sdr_id: int, blacklist_words: list[str]) -> bool:
