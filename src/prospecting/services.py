@@ -108,6 +108,7 @@ def get_prospects(
     ordering: list[dict[str, int]] = [],
     bumped: str = "all",
     show_purgatory: Union[bool, str] = False,
+    prospect_id: int = -1,
 ) -> dict[int, list[Prospect]]:
     """Gets prospects belonging to the SDR, with optional query and ordering.
 
@@ -229,6 +230,9 @@ def get_prospects(
 
     if bumped != "all":
         prospects = prospects.filter(Prospect.times_bumped == int(bumped))
+
+    if prospect_id != -1 and prospect_id:
+        prospects = prospects.filter(Prospect.id == prospect_id)
 
     if show_purgatory != "ALL":
         if not show_purgatory:

@@ -590,6 +590,15 @@ def get_prospects_endpoint(client_sdr_id: int):
             )
             or False
         )
+        prospect_id = (
+            get_request_parameter(
+                "prospect_id",
+                request,
+                json=True,
+                required=False,
+            )
+            or None
+        )
     except Exception as e:
         return e.args[0], 400
 
@@ -613,6 +622,7 @@ def get_prospects_endpoint(client_sdr_id: int):
         ordering,
         bumped,
         show_purgatory,
+        prospect_id or -1,
     )
 
     end_time = time.time()
@@ -1388,7 +1398,9 @@ def post_prospect_removal_check(client_sdr_id: int):
     )
 
 
-@PROSPECTING_BLUEPRINT.route("<int:prospect_id>/determine_li_msg_from_content/", methods=["POST"])
+@PROSPECTING_BLUEPRINT.route(
+    "<int:prospect_id>/determine_li_msg_from_content/", methods=["POST"]
+)
 @require_user
 def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 
@@ -1407,7 +1419,9 @@ def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
 
     from model_import import LinkedinConversationEntry
 
-    convo: List[LinkedinConversationEntry] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 
@@ -1416,12 +1430,18 @@ def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
 @require_user
 def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
 
-    li_msg_id = get_request_parameter(
-        "li_msg_id", request, json=True, required=False, parameter_type=int
-    ) or None
-    email_msg_id = get_request_parameter(
-        "email_msg_id", request, json=True, required=False, parameter_type=int
-    ) or None
+    li_msg_id = (
+        get_request_parameter(
+            "li_msg_id", request, json=True, required=False, parameter_type=int
+        )
+        or None
+    )
+    email_msg_id = (
+        get_request_parameter(
+            "email_msg_id", request, json=True, required=False, parameter_type=int
+        )
+        or None
+    )
     rating = get_request_parameter(
         "rating", request, json=True, required=True, parameter_type=int
     )
@@ -1429,6 +1449,8 @@ def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
         "feedback", request, json=True, required=True, parameter_type=str
     )
 
-    feedback_id = add_prospect_message_feedback(client_sdr_id, prospect_id, li_msg_id, email_msg_id, rating, feedback)
+    feedback_id = add_prospect_message_feedback(
+        client_sdr_id, prospect_id, li_msg_id, email_msg_id, rating, feedback
+    )
 
     return jsonify({"message": "Success", "data": feedback_id}), 200
