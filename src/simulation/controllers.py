@@ -66,7 +66,7 @@ def get_li_convo(client_sdr_id: int):
     if simulation.type.value != "LI_CONVERSATION":
         return jsonify({"message": "Simulation is not of a LinkedIn conversation"}), 400
 
-    msgs: List[LinkedInConvoMessage] = get_sim_li_convo_history(simulation_id, True)
+    msgs: List[LinkedInConvoMessage] = get_sim_li_convo_history(simulation.id, True)
 
     return (
         jsonify(
