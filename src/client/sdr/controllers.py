@@ -1,11 +1,31 @@
 from app import db
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
-from src.client.sdr.services_client_sdr import create_sla_schedule, get_sla_schedules_for_sdr, update_sla_schedule
+from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health, create_sla_schedule, get_sla_schedules_for_sdr, update_sla_schedule
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
 
 CLIENT_SDR_BLUEPRINT = Blueprint("client/sdr", __name__)
+
+
+@CLIENT_SDR_BLUEPRINT.route("/linkedin/health", methods=["GET"])
+@require_user
+def get_linkedin_health(client_sdr_id: int):
+
+    success, health, details = compute_sdr_linkedin_health(client_sdr_id)
+    if not success:
+        return jsonify({"status": "error", "message": "Could not compute LinkedIn health"}), 400
+
+    return jsonify(
+        {
+            "status": "success",
+            "data":
+            {
+                "health": health,
+                "details": details
+            }
+        }
+    ), 200
 
 
 @CLIENT_SDR_BLUEPRINT.route("/sla/schedule", methods=["GET"])

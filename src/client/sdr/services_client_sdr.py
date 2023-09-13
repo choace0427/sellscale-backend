@@ -6,6 +6,7 @@ from sqlalchemy import or_
 from src.client.models import Client, ClientSDR, LinkedInSLAChange, WarmupScheduleLinkedIn, SLASchedule
 from src.utils.datetime.dateutils import get_current_monday_friday
 from src.utils.slack import send_slack_message, URL_MAP
+from src.voyager.linkedin import LinkedIn
 
 
 LINKEDIN_WARUMP_CONSERVATIVE = [5, 25, 50, 75, 90]
@@ -13,6 +14,95 @@ LINKEDIN_WARM_THRESHOLD = 90
 
 EMAIL_WARMUP_CONSERVATIVE = [10, 25, 50, 100, 150]
 EMAIL_WARM_THRESHOLD = 150
+
+
+def compute_sdr_linkedin_health(
+    client_sdr_id: int,
+) -> tuple[bool, float, dict]:
+    """Computes the LinkedIn health for a Client SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+
+    Returns:
+        tuple[bool, float, dict]: A boolean indicating whether the computation was successful, the LinkedIn health, and the LinkedIn health details
+    """
+    # Get the SDR
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Get the Voyager client
+    voyager: LinkedIn = LinkedIn(sdr.id)
+    is_valid = voyager.is_valid()
+    if not is_valid:
+        return False, None, None
+
+    # Get the user profile
+    profile = voyager.get_user_profile()
+
+    # Get "mini_profile" details
+    mini_profile = profile.get("mini_profile", None)
+    if mini_profile:
+        # Title
+        title = mini_profile.get("occupation")
+        sdr.title = title
+
+        # Cover photo
+        background_image = mini_profile.get("backgroundImage")
+        background_image = background_image.get(
+            "com.linkedin.common.VectorImage") if background_image else None
+        if background_image:
+            root_url = background_image.get("rootUrl")
+            artifacts = background_image.get("artifacts")
+            last_artifact = artifacts[-1] if artifacts else None
+            background_image_url = root_url + \
+                last_artifact.get(
+                    "fileIdentifyingUrlPathSegment") if last_artifact else None
+            sdr.li_cover_img_url = background_image_url
+
+        # Profile picture
+        profile_picture = mini_profile.get("picture")
+        profile_picture = profile_picture.get(
+            "com.linkedin.common.VectorImage") if profile_picture else None
+        if profile_picture:
+            root_url = profile_picture.get("rootUrl")
+            artifacts = profile_picture.get("artifacts")
+            last_artifact = artifacts[-1] if artifacts else None
+            profile_picture_url = root_url + \
+                last_artifact.get(
+                    "fileIdentifyingUrlPathSegment") if last_artifact else None
+            profile_picture_expire = last_artifact.get(
+                "expiresAt") if last_artifact else None
+            sdr.img_url = profile_picture_url
+            sdr.img_expire = profile_picture_expire
+
+    # Get premium subscriber details
+    premium_subscriber = profile.get("premiumSubscriber", None)
+    sdr.li_premium = premium_subscriber if premium_subscriber else False
+
+    # Calulate the LinkedIn health
+    HEALTH_MAX = 40
+    li_health = 0
+    if sdr.li_premium:
+        li_health += 10
+    if sdr.img_url:
+        li_health += 10
+    if sdr.li_cover_img_url:
+        li_health += 10
+    if sdr.title:
+        li_health += 10
+
+    # Update the SDR
+    sdr.li_health = li_health
+    db.session.commit()
+
+    details = {
+        "li_premium": sdr.li_premium,
+        "img_url": sdr.img_url,
+        "li_cover_img_url": sdr.li_cover_img_url,
+        "title": sdr.title
+    }
+
+    return True, li_health, details
 
 
 def update_sdr_blacklist_words(client_sdr_id: int, blacklist_words: list[str]) -> bool:
@@ -248,7 +338,8 @@ def load_sla_schedules(
         return True, new_schedule_ids
 
     send_slack_message(
-        message="No SLA schedules created for {}. Schedules are up to date.".format(client_sdr.name),
+        message="No SLA schedules created for {}. Schedules are up to date.".format(
+            client_sdr.name),
         webhook_urls=[URL_MAP["operations-sla-updater"]]
     )
     return True, []

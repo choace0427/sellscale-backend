@@ -7,6 +7,7 @@ import os
 
 from tomlkit import datetime
 from src.bump_framework.models import BumpFramework
+from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health
 
 from src.message_generation.services import process_generated_msg_queue
 
@@ -131,6 +132,9 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
             message=f"🚨 URGENT ALERT 🚨: Failed to create phantom buster agent for client sdr id #{str(client_sdr_id)}",
             webhook_urls=[URL_MAP["user-errors"]],
         )
+
+    # Run a health check
+    success, health, details = compute_sdr_linkedin_health(client_sdr_id)
 
     return "Updated cookies", 200
 
