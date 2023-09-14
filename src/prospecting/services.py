@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Union
+from sqlalchemy import nullslast
 
 from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
@@ -173,9 +174,9 @@ def get_prospects(
                 ordering_arr.append(Prospect.updated_at.desc())
         elif order_name == "icp_fit_score":
             if order_direction == 1:
-                ordering_arr.append(Prospect.icp_fit_score.asc())
+                ordering_arr.append(nullslast(Prospect.icp_fit_score.asc()))
             elif order_direction == -1:
-                ordering_arr.append(Prospect.icp_fit_score.desc())
+                ordering_arr.append(nullslast(Prospect.icp_fit_score.desc()))
 
     # Pad ordering array with None values, set to number of ordering options: 4
     while len(ordering_arr) < 4:
