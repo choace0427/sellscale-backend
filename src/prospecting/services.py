@@ -2385,11 +2385,11 @@ def add_prospect_message_feedback(
     if li_msg_id: 
         li_msg: LinkedinConversationEntry = LinkedinConversationEntry.query.get(li_msg_id)
         message = li_msg.message
-        message_id = li_msg.id+', LinkedIn'
+        message_id = str(li_msg.id)+', LinkedIn'
     elif email_msg_id:
         email_msg: EmailConversationMessage = EmailConversationMessage.query.get(email_msg_id)
         message = email_msg.body
-        message_id = email_msg.id+', Email'
+        message_id = str(email_msg.id)+', Email'
 
     ratingEmoji = "👍" if rating >= 2 else "👎"
     
