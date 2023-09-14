@@ -2400,7 +2400,7 @@ def add_prospect_message_feedback(
             "type": "section",
             "text": {
               "type": "mrkdwn",
-              "text": "*Message Feedback*: Rating {ratingEmoji} from SDR '{client_sdr.name}'"
+              "text": f"*Message Feedback*: Rating {ratingEmoji} from SDR '{client_sdr.name}'"
             }
           },
           {
