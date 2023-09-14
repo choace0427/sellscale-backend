@@ -25,6 +25,7 @@ URL_MAP = {
     "operations-persona-filters": "https://hooks.slack.com/services/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",
     "operations-autobump": "https://hooks.slack.com/services/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",
     "csm-demo-feedback": "https://hooks.slack.com/services/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",
+    "csm-msg-feedback": "https://hooks.slack.com/services/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",
     "csm-convo-sorter": "https://hooks.slack.com/services/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",
     "csm-human-response": "https://hooks.slack.com/services/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",
     "csm-urgent-alerts": "https://hooks.slack.com/services/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",
