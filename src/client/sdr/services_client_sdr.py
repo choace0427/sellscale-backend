@@ -27,7 +27,8 @@ def compute_sdr_linkedin_health(
     Returns:
         tuple[bool, float, dict]: A boolean indicating whether the computation was successful, the LinkedIn health, and the LinkedIn health details
     """
-    bad_title_words = ['sales', 'sale', 'sdr', 'bdr', 'account executive', 'account exec', 'business development', 'sales development']
+    bad_title_words = ['sales', 'sale', 'sdr', 'bdr', 'account executive',
+                       'account exec', 'business development', 'sales development']
 
     # Get the SDR
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -53,7 +54,8 @@ def compute_sdr_linkedin_health(
         sdr.li_health_good_title = True
         for word in bad_title_words:
             if word in title.lower():
-                title_fail_reason = "Your title contains the word '{}'. Avoid sales-y words in your title.".format(word)
+                title_fail_reason = "Your title contains the word '{}'. Avoid sales-y words in your title.".format(
+                    word)
                 sdr.li_health_good_title = False
                 break
 
@@ -108,24 +110,28 @@ def compute_sdr_linkedin_health(
     sdr.li_health = (li_health / HEALTH_MAX) * 100
     db.session.commit()
 
-    details = {
-        "li_health_good_title": {
+    details = [
+        {
+            "criteria": "Good Title",
             "status": sdr.li_health_good_title,
             "message": "Good LinkedIn title" if sdr.li_health_good_title else (title_fail_reason if title_fail_reason else "Your title may appear sales-y. Avoid sales-y words in your title.")
         },
-        "li_health_premium": {
+        {
+            "criteria": "Premium Account",
             "status": sdr.li_health_premium,
             "message": "Premium LinkedIn account" if sdr.li_health_premium else "You do not have a premium LinkedIn account. Consider upgrading to a premium account.",
         },
-        "li_health_profile_photo": {
+        {
+            "criteria": "Profile Picture",
             "status": sdr.li_health_profile_photo,
             "message": "Profile picture found" if sdr.li_health_profile_photo else "You do not have a profile picture. Consider adding one.",
         },
-        "li_health_cover_image": {
+        {
+            "criteria": "Cover Photo",
             "status": sdr.li_health_cover_image,
             "message": "Cover photo found" if sdr.li_health_cover_image else "You do not have a cover photo. Consider adding one.",
         }
-    }
+    ]
 
     return True, sdr.li_health, details
 
