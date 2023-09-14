@@ -1,3 +1,4 @@
+from enum import Enum
 import random
 from src.client.sdr.services_client_sdr import (
     deactivate_sla_schedules,
@@ -2500,7 +2501,11 @@ def get_personas_page_details(client_sdr_id: int):
 
     json_results = []
     for row in results:
-        json_results.append(row._asdict())
+        row_dict = row._asdict()
+        for key, value in row_dict.items():
+            if isinstance(value, Enum):
+                row_dict[key] = value.value
+        json_results.append(row_dict)
 
     return json_results
 
