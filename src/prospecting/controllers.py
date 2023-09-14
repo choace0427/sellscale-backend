@@ -703,11 +703,12 @@ def prospect_from_link(client_sdr_id: int):
             is_lookalike_profile=is_lookalike_profile,
         )
         if not success:
+            # This is bad, but if success was false then prospect_id is a string. :/
             return (
                 jsonify(
                     {
                         "status": "error",
-                        "message": "Failed to create prospect. Please check profile or check for duplicates.",
+                        "message": prospect_id,
                     }
                 ),
                 400,

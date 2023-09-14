@@ -846,6 +846,7 @@ def add_prospect(
     if company and needs_title_casing(company):
         company = company.title()
 
+    # Check for duplicates
     prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
     )
@@ -859,13 +860,19 @@ def add_prospect(
             and prospect_persona.is_unassigned_contact_archetype
         ):
             prospect_exists.archetype_id = archetype_id
+            db.session.add(prospect_exists)
+            db.session.commit()
+            return prospect_exists.id
         if (
             not prospect_exists.email and email
         ):  # If we are adding an email to an existing prospect, this is allowed
             prospect_exists.email = email
-        db.session.add(prospect_exists)
-        db.session.commit()
-        return prospect_exists.id
+            db.session.add(prospect_exists)
+            db.session.commit()
+            return prospect_exists.id
+
+        # No good reason to have duplicate. Return None
+        return None
 
     if linkedin_url and len(linkedin_url) > 0:
         linkedin_url = linkedin_url.replace("https://www.", "")
@@ -1004,7 +1011,7 @@ def create_prospect_from_linkedin_link(
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
     is_lookalike_profile: bool = False,
-):
+) -> tuple[bool, int or str]:
     from src.research.linkedin.services import research_personal_profile_details
 
     try:
@@ -1018,7 +1025,7 @@ def create_prospect_from_linkedin_link(
         if payload.get("detail") == "Profile data cannot be retrieved." or not deep_get(
             payload, "first_name"
         ):
-            return False
+            return False, "Profile data cannot be retrieved."
 
         client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
         client: Client = Client.query.get(client_archetype.client_id)
@@ -1071,7 +1078,7 @@ def create_prospect_from_linkedin_link(
                 payload_type=IScraperPayloadType.PERSONAL,
             )
             return True, new_prospect_id
-        return False, None
+        return False, "Prospect already exists"
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
@@ -2040,13 +2047,13 @@ def get_prospects_for_icp(archetype_id: int):
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 2) "MEDIUM",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 3) "HIGH",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = 4) "VERY HIGH",
-          
+
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 0) "VERY LOW - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 1) "LOW - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 2) "MEDIUM - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 3) "HIGH - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = 4) "VERY HIGH - IDS",
-        
+
           count(distinct prospect.id) filter (where prospect.icp_fit_score = -3) "QUEUED",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = -2) "CALCULATING",
           count(distinct prospect.id) filter (where prospect.icp_fit_score = -1) "ERROR",
@@ -2054,7 +2061,7 @@ def get_prospects_for_icp(archetype_id: int):
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = -3) "QUEUED - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = -2) "CALCULATING - IDS",
           array_agg(concat(prospect.full_name, ' -~- ', prospect.company, ' -~- ', prospect.id, ' -~- ', prospect.icp_fit_score, ' -~- ', prospect.icp_fit_score_override, ' -~- ', prospect.in_icp_sample, ' -~- ', prospect.title, ' -~- ', prospect.icp_fit_reason)) filter (where prospect.icp_fit_score = -1) "ERROR - IDS"
-        from 
+        from
           client_archetype
           join prospect on prospect.archetype_id = client_archetype.id
         where client_archetype.id = {archetype_id} and prospect.overall_status != 'REMOVED';
@@ -2106,14 +2113,14 @@ def get_prospects_for_income_pipeline(client_sdr_id: int):
     data = db.session.execute(
         f"""
         select
-          
+
           array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status, ' -~- ', prospect.deactivate_ai_engagement)) filter (where prospect.overall_status = 'ACTIVE_CONVO' and prospect.status != 'ACTIVE_CONVO_SCHEDULING' and (prospect_email.outreach_status != 'SCHEDULING' or prospect_email.outreach_status is null)) "ACTIVE_CONVO",
           array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status, ' -~- ', prospect.deactivate_ai_engagement)) filter (where prospect.status = 'ACTIVE_CONVO_SCHEDULING' or prospect_email.outreach_status = 'SCHEDULING') "SCHEDULING",
           array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status, ' -~- ', prospect.deactivate_ai_engagement)) filter (where prospect.status = 'DEMO_SET' or prospect_email.outreach_status = 'DEMO_SET') "DEMO_SET",
           array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status, ' -~- ', prospect.deactivate_ai_engagement)) filter (where prospect.status = 'DEMO_WON' or prospect_email.outreach_status = 'DEMO_WON') "DEMO_WON",
           array_agg(concat(prospect.id, ' -~- ', prospect.company, ' -~- ', prospect.company_url, ' -~- ', prospect.full_name, ' -~- ', prospect.title, ' -~- ', prospect.img_url, ' -~- ', 'company_img_url', ' -~- ', prospect.contract_size, ' -~- ', prospect.linkedin_url, ' -~- ', prospect.updated_at, ' -~- ', prospect_email.outreach_status, ' -~- ', prospect.status, ' -~- ', prospect.deactivate_ai_engagement)) filter (where prospect.status = 'DEMO_LOSS' or prospect_email.outreach_status = 'DEMO_LOST' or prospect.status = 'NOT_INTERESTED' or prospect_email.outreach_status = 'NOT_INTERESTED') "NOT_INTERESTED"
-      
-        from 
+
+        from
           prospect
           left join prospect_email on prospect.id = prospect_email.prospect_id
         where prospect.client_sdr_id = {client_sdr_id} and prospect.overall_status != 'SENT_OUTREACH' and prospect.overall_status != 'PROSPECTED';
