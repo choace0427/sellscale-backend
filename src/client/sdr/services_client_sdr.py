@@ -27,6 +27,8 @@ def compute_sdr_linkedin_health(
     Returns:
         tuple[bool, float, dict]: A boolean indicating whether the computation was successful, the LinkedIn health, and the LinkedIn health details
     """
+    bad_title_words = ['sales', 'sale', 'sdr', 'bdr', 'account executive', 'account exec', 'business development', 'sales development']
+
     # Get the SDR
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -38,13 +40,22 @@ def compute_sdr_linkedin_health(
 
     # Get the user profile
     profile = voyager.get_user_profile()
+    if not profile:
+        return False, None, None
 
     # Get "mini_profile" details
-    mini_profile = profile.get("mini_profile", None)
+    mini_profile = profile.get("miniProfile", None)
+    title_fail_reason = ""
     if mini_profile:
         # Title
         title = mini_profile.get("occupation")
         sdr.title = title
+        sdr.li_health_good_title = True
+        for word in bad_title_words:
+            if word in title.lower():
+                title_fail_reason = "Your title contains the word '{}'. Avoid sales-y words in your title.".format(word)
+                sdr.li_health_good_title = False
+                break
 
         # Cover photo
         background_image = mini_profile.get("backgroundImage")
@@ -58,6 +69,7 @@ def compute_sdr_linkedin_health(
                 last_artifact.get(
                     "fileIdentifyingUrlPathSegment") if last_artifact else None
             sdr.li_cover_img_url = background_image_url
+            sdr.li_health_cover_image = True
 
         # Profile picture
         profile_picture = mini_profile.get("picture")
@@ -74,35 +86,48 @@ def compute_sdr_linkedin_health(
                 "expiresAt") if last_artifact else None
             sdr.img_url = profile_picture_url
             sdr.img_expire = profile_picture_expire
+            sdr.li_health_profile_photo = True
 
     # Get premium subscriber details
     premium_subscriber = profile.get("premiumSubscriber", None)
-    sdr.li_premium = premium_subscriber if premium_subscriber else False
+    sdr.li_health_premium = premium_subscriber if premium_subscriber else False
 
     # Calulate the LinkedIn health
     HEALTH_MAX = 40
     li_health = 0
-    if sdr.li_premium:
+    if sdr.li_health_good_title:
         li_health += 10
-    if sdr.img_url:
+    if sdr.li_health_cover_image:
         li_health += 10
-    if sdr.li_cover_img_url:
+    if sdr.li_health_profile_photo:
         li_health += 10
-    if sdr.title:
+    if sdr.li_health_premium:
         li_health += 10
 
     # Update the SDR
-    sdr.li_health = li_health
+    sdr.li_health = (li_health / HEALTH_MAX) * 100
     db.session.commit()
 
     details = {
-        "li_premium": sdr.li_premium,
-        "img_url": sdr.img_url,
-        "li_cover_img_url": sdr.li_cover_img_url,
-        "title": sdr.title
+        "li_health_good_title": {
+            "status": sdr.li_health_good_title,
+            "message": "Good LinkedIn title" if sdr.li_health_good_title else (title_fail_reason if title_fail_reason else "Your title may appear sales-y. Avoid sales-y words in your title.")
+        },
+        "li_health_premium": {
+            "status": sdr.li_health_premium,
+            "message": "Premium LinkedIn account" if sdr.li_health_premium else "You do not have a premium LinkedIn account. Consider upgrading to a premium account.",
+        },
+        "li_health_profile_photo": {
+            "status": sdr.li_health_profile_photo,
+            "message": "Profile picture found" if sdr.li_health_profile_photo else "You do not have a profile picture. Consider adding one.",
+        },
+        "li_health_cover_image": {
+            "status": sdr.li_health_cover_image,
+            "message": "Cover photo found" if sdr.li_health_cover_image else "You do not have a cover photo. Consider adding one.",
+        }
     }
 
-    return True, li_health, details
+    return True, sdr.li_health, details
 
 
 def update_sdr_blacklist_words(client_sdr_id: int, blacklist_words: list[str]) -> bool:
