@@ -2439,6 +2439,17 @@ def add_prospect_message_feedback(
             "text": {
               "type": "mrkdwn",
               "text": f"Sent to '{prospect.full_name}' (#{prospect.id}, msg ID #{message_id})"
+            },
+            "accessory": {
+              "type": "button",
+              "text": {
+                "type": "plain_text",
+                "text": "Dashboard",
+                "emoji": True
+              },
+              "value": "dashboard_url_link",
+              "url": f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={client_sdr.auth_token}&redirect=all/contacts/{prospect.id}",
+              "action_id": "button-action"
             }
           }
         ],
