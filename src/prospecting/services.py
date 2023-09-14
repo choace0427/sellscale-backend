@@ -846,6 +846,7 @@ def add_prospect(
     if company and needs_title_casing(company):
         company = company.title()
 
+    # Check for duplicates
     prospect_exists: Prospect = prospect_exists_for_client(
         full_name=full_name, client_id=client_id
     )
@@ -859,13 +860,19 @@ def add_prospect(
             and prospect_persona.is_unassigned_contact_archetype
         ):
             prospect_exists.archetype_id = archetype_id
+            db.session.add(prospect_exists)
+            db.session.commit()
+            return prospect_exists.id
         if (
             not prospect_exists.email and email
         ):  # If we are adding an email to an existing prospect, this is allowed
             prospect_exists.email = email
-        db.session.add(prospect_exists)
-        db.session.commit()
-        return prospect_exists.id
+            db.session.add(prospect_exists)
+            db.session.commit()
+            return prospect_exists.id
+
+        # No good reason to have duplicate. Return None
+        return None
 
     if linkedin_url and len(linkedin_url) > 0:
         linkedin_url = linkedin_url.replace("https://www.", "")
@@ -1004,7 +1011,7 @@ def create_prospect_from_linkedin_link(
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
     is_lookalike_profile: bool = False,
-):
+) -> tuple[bool, int or str]:
     from src.research.linkedin.services import research_personal_profile_details
 
     try:
