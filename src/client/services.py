@@ -839,6 +839,7 @@ def update_client_sdr_manual_warning_message(client_sdr_id: int, manual_warning:
 
     return True
 
+
 # DEPRECATED: THIS IS NOT HOW SLAS WORK ANYMORE
 # def update_client_sdr_weekly_li_outbound_target(
 #     client_sdr_id: int, weekly_li_outbound_target: int
@@ -1909,17 +1910,16 @@ def generate_persona_icp_matching_prompt(
     return ""
 
 
-
 @celery.task()
 def daily_pb_launch_schedule_update():
     # Get the IDs of all active Clients
     active_client_ids: list[int] = [
-        client.id for client in Client.query.filter_by(active=True).all()]
+        client.id for client in Client.query.filter_by(active=True).all()
+    ]
 
     # Get all active SDRs
     sdrs: list[ClientSDR] = ClientSDR.query.filter(
-        ClientSDR.active == True,
-        ClientSDR.client_id.in_(active_client_ids)
+        ClientSDR.active == True, ClientSDR.client_id.in_(active_client_ids)
     ).all()
     sdr_ids = [sdr.id for sdr in sdrs]
 
@@ -2503,8 +2503,8 @@ def get_personas_page_details(client_sdr_id: int):
     for row in results:
         row_dict = row._asdict()
         for key, value in row_dict.items():
-            if isinstance(value, Enum):
-                row_dict[key] = value.value
+            if isinstance(value, list):
+                row_dict[key] = [x.value if isinstance(x, Enum) else x for x in value]
         json_results.append(row_dict)
 
     return json_results
@@ -3021,19 +3021,22 @@ def predict_archetype_emoji(archetype_id: int):
 
 
 def propagate_contract_value(client_id: int, new_value: int):
-  # Update all archetypes and prospects with the new contract value
-    
-  client: Client = Client.query.get(client_id)
-  if not client: return
-  archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(client_id=client_id).all()
-  prospects: list[Prospect] = Prospect.query.filter_by(client_id=client_id).all()
+    # Update all archetypes and prospects with the new contract value
 
-  for archetype in archetypes:
-    archetype.contract_size = new_value
-    db.session.add(archetype)
+    client: Client = Client.query.get(client_id)
+    if not client:
+        return
+    archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
+        client_id=client_id
+    ).all()
+    prospects: list[Prospect] = Prospect.query.filter_by(client_id=client_id).all()
 
-  for prospect in prospects:
-    prospect.contract_size = new_value
-    db.session.add(prospect)
+    for archetype in archetypes:
+        archetype.contract_size = new_value
+        db.session.add(archetype)
 
-  db.session.commit()
+    for prospect in prospects:
+        prospect.contract_size = new_value
+        db.session.add(prospect)
+
+    db.session.commit()
