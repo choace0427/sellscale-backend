@@ -27,7 +27,7 @@ def compute_sdr_linkedin_health(
     Returns:
         tuple[bool, float, dict]: A boolean indicating whether the computation was successful, the LinkedIn health, and the LinkedIn health details
     """
-    bad_title_words = ['sales', 'sale', 'sdr', 'bdr', 'account executive',
+    bad_title_words = ['sdr', 'bdr', 'account executive', 'sales executive'
                        'account exec', 'business development', 'sales development']
 
     # Get the SDR
