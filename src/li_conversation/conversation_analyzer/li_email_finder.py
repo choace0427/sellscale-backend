@@ -88,6 +88,7 @@ def update_prospect_email(prospect_id, new_email, message):
     return True
 
 
+@celery.task
 def update_all_outstanding_prospect_emails():
     send_slack_message(
         f"📧🔎 *Email Update from LI Conversation*\nUpdating all outstanding prospect emails from LI conversations.",

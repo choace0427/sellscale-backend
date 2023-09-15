@@ -260,7 +260,7 @@ def run_hourly_email_finder_job():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        update_all_outstanding_prospect_emails()
+        update_all_outstanding_prospect_emails.delay()
 
 
 def run_weekday_phantom_buster_updater():
