@@ -965,6 +965,9 @@ def post_generate_bump_li_message(client_sdr_id: int):
     bump_count = get_request_parameter(
         "bump_count", request, json=True, required=True, parameter_type=int
     )
+    use_cache = get_request_parameter(
+        "use_cache", request, json=True, required=False, parameter_type=bool
+    ) or True
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
@@ -1021,7 +1024,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
         convo_history=convo_history,
         bump_framework_id=bump_framework_id,
         account_research_copy=research_str,
-        use_cache=True,
+        use_cache=use_cache,
     )
 
     return (
