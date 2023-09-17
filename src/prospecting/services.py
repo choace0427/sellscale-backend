@@ -1153,7 +1153,7 @@ def mark_prospects_as_queued_for_outreach(
 
         # Calculate campaign cost
         campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-        campaign.calculate_cost()
+        # campaign.calculate_cost()
 
     # Commit
     db.session.bulk_save_objects(updated_messages)
@@ -2377,87 +2377,63 @@ def add_prospect_message_feedback(
     rating: int,
     feedback: str,
 ) -> int:
-    
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     message = ""
-    message_id = 'Unknown'
-    if li_msg_id: 
-        li_msg: LinkedinConversationEntry = LinkedinConversationEntry.query.get(li_msg_id)
+    message_id = "Unknown"
+    if li_msg_id:
+        li_msg: LinkedinConversationEntry = LinkedinConversationEntry.query.get(
+            li_msg_id
+        )
         message = li_msg.message
-        message_id = str(li_msg.id)+', LinkedIn'
+        message_id = str(li_msg.id) + ", LinkedIn"
     elif email_msg_id:
-        email_msg: EmailConversationMessage = EmailConversationMessage.query.get(email_msg_id)
+        email_msg: EmailConversationMessage = EmailConversationMessage.query.get(
+            email_msg_id
+        )
         message = email_msg.body
-        message_id = str(email_msg.id)+', Email'
+        message_id = str(email_msg.id) + ", Email"
 
     ratingEmoji = "👍" if rating >= 2 else "👎"
-    
+
     send_slack_message(
         message=f"Message Feedback: Rating {ratingEmoji} from SDR '{client_sdr.name}'",
         blocks=[
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": f"*Message Feedback*: Rating {ratingEmoji} from SDR '{client_sdr.name}'"
-            }
-          },
-          {
-            "type": "divider"
-          },
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": "*Feedback*"
-            }
-          },
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": f"```{feedback}```"
-            }
-          },
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": "*Message*"
-            }
-          },
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": f"```{message}```"
-            }
-          },
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": f"Sent to '{prospect.full_name}' (#{prospect.id}, msg ID #{message_id})"
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Message Feedback*: Rating {ratingEmoji} from SDR '{client_sdr.name}'",
+                },
             },
-            "accessory": {
-              "type": "button",
-              "text": {
-                "type": "plain_text",
-                "text": "Dashboard",
-                "emoji": True
-              },
-              "value": "dashboard_url_link",
-              "url": f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={client_sdr.auth_token}&redirect=all/contacts/{prospect.id}",
-              "action_id": "button-action"
-            }
-          }
+            {"type": "divider"},
+            {"type": "section", "text": {"type": "mrkdwn", "text": "*Feedback*"}},
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"```{feedback}```"},
+            },
+            {"type": "section", "text": {"type": "mrkdwn", "text": "*Message*"}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": f"```{message}```"}},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Sent to '{prospect.full_name}' (#{prospect.id}, msg ID #{message_id})",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "Dashboard", "emoji": True},
+                    "value": "dashboard_url_link",
+                    "url": f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={client_sdr.auth_token}&redirect=all/contacts/{prospect.id}",
+                    "action_id": "button-action",
+                },
+            },
         ],
         webhook_urls=[URL_MAP["csm-msg-feedback"]],
     )
 
-    
     feedback = ProspectMessageFeedback(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
