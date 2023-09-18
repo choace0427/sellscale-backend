@@ -2542,26 +2542,30 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
 
     results = db.session.execute(
         """
-        select
-          client_archetype.archetype,
+        SELECT
+            client_archetype.archetype,
             client_archetype.id,
             client_archetype.created_at,
             client_archetype.active,
-            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
-            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
-            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "LI-SENT",
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SENT_OUTREACH') "LI-SENT",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON')) "LI-DEMO",
             client_archetype.emoji
-            from client_archetype
-            left join prospect on prospect.archetype_id = client_archetype.id
-            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
-            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
-            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-        where client_archetype.client_sdr_id = {client_sdr_id}
-            and client_archetype.is_unassigned_contact_archetype != true
-        group by 2;
+        FROM
+            client_archetype
+            LEFT JOIN prospect ON prospect.archetype_id = client_archetype.id
+            LEFT JOIN prospect_email ON prospect_email.id = prospect.approved_prospect_email_id
+            LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
+            LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
+        WHERE
+            client_archetype.client_sdr_id = 1
+            AND client_archetype.is_unassigned_contact_archetype != TRUE
+        GROUP BY
+            2;
         """.format(
             client_sdr_id=client_sdr_id
         )
