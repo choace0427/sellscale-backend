@@ -3095,4 +3095,4 @@ def write_client_pre_onboarding_survey(
                 client_id, key, value, retries_left - 1
             )
         else:
-            raise e
+            return False
