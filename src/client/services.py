@@ -24,6 +24,7 @@ from flask import jsonify
 import time
 import json
 from datetime import datetime
+from sqlalchemy.orm.attributes import flag_modified
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -3078,6 +3079,8 @@ def write_client_pre_onboarding_survey(
     client: Client = Client.query.get(client_id)
     client.pre_onboarding_survey = client.pre_onboarding_survey or {}
     client.pre_onboarding_survey[key] = value
+    flag_modified(client, "pre_onboarding_survey")
+
     db.session.add(client)
     db.session.commit()
 
