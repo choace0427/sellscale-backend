@@ -2583,7 +2583,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         7: "li_sent",
         8: "li_opened",
         9: "li_replied",
-        10: "emoji",
+        10: "li_demo",
+        11: "emoji",
     }
 
     # Convert and format output
