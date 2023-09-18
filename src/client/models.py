@@ -371,9 +371,9 @@ class ClientSDR(db.Model):
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
 
-        # Get the warmup schedule
-        warmup_schedule: WarmupScheduleLinkedIn = (
-            WarmupScheduleLinkedIn.query.filter_by(client_sdr_id=self.id).first()
+        # Get the SLA schedule
+        sla_schedule: SLASchedule = (
+            SLASchedule.query.filter_by(client_sdr_id=self.id).first()
         )
 
         return {
@@ -410,7 +410,7 @@ class ClientSDR(db.Model):
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
-            "warmup_linkedin_schedule": warmup_schedule.to_dict()
+            "sla_schedule": sla_schedule.to_dict()
             if warmup_schedule
             else None,
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
@@ -580,7 +580,16 @@ class SLASchedule(db.Model):
     week = db.Column(db.Integer, nullable=True)
 
     def to_dict(self) -> dict:
+        from datetime import datetime
+
+        # If the current date is within the date range, return is_current_week True
+        # Otherwise, return is_current_week False
+        is_current_week = (
+            self.start_date <= datetime.utcnow() <= self.end_date
+        ) if self.start_date and self.end_date else False
+
         return {
+            "is_current_week": is_current_week,
             "id": self.id,
             "client_sdr_id": self.client_sdr_id,
             "start_date": self.start_date,
