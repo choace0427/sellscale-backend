@@ -55,6 +55,8 @@ class Client(db.Model):
 
     contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
 
+    pre_onboarding_survey = db.Column(db.JSON, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -140,7 +142,9 @@ class ClientArchetype(db.Model):
             "transformer_blocklist": [t.value for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
-            "transformer_blocklist_initial": [t.value for t in self.transformer_blocklist_initial]
+            "transformer_blocklist_initial": [
+                t.value for t in self.transformer_blocklist_initial
+            ]
             if self.transformer_blocklist_initial
             else [],
             "disable_ai_after_prospect_engaged": self.disable_ai_after_prospect_engaged,
@@ -406,7 +410,9 @@ class ClientSDR(db.Model):
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
-            "warmup_linkedin_schedule": warmup_schedule.to_dict() if warmup_schedule else None,
+            "warmup_linkedin_schedule": warmup_schedule.to_dict()
+            if warmup_schedule
+            else None,
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
             "linkedin_url": self.linkedin_url,
             "li_health": self.li_health,

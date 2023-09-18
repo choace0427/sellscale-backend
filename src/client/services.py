@@ -3067,3 +3067,18 @@ def propagate_contract_value(client_id: int, new_value: int):
         db.session.add(prospect)
 
     db.session.commit()
+
+
+def write_client_pre_onboarding_survey(
+    client_id: int,
+    key: str,
+    value: str,
+):
+    """Writes a client pre-onboarding survey response to the database"""
+    client: Client = Client.query.get(client_id)
+    client.pre_onboarding_survey = client.pre_onboarding_survey or {}
+    client.pre_onboarding_survey[key] = value
+    db.session.add(client)
+    db.session.commit()
+
+    return True
