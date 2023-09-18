@@ -371,9 +371,9 @@ class ClientSDR(db.Model):
     def to_dict(self) -> dict:
         client: Client = Client.query.get(self.client_id)
 
-        # Get the SLA schedule
-        sla_schedule: SLASchedule = (
-            SLASchedule.query.filter_by(client_sdr_id=self.id).first()
+        # Get the SLA schedules
+        sla_schedules: list[SLASchedule] = (
+            SLASchedule.query.filter_by(client_sdr_id=self.id).all()
         )
 
         return {
@@ -410,8 +410,8 @@ class ClientSDR(db.Model):
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
-            "sla_schedule": sla_schedule.to_dict()
-            if sla_schedule
+            "sla_schedules": [sla_schedule.to_dict() for sla_schedule in sla_schedules]
+            if sla_schedules
             else None,
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
             "linkedin_url": self.linkedin_url,
