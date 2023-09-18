@@ -411,7 +411,7 @@ class ClientSDR(db.Model):
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
             "sla_schedule": sla_schedule.to_dict()
-            if warmup_schedule
+            if sla_schedule
             else None,
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
             "linkedin_url": self.linkedin_url,
