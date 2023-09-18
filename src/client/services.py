@@ -1946,7 +1946,7 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
                 client_sdr.name,
                 client_sdr.id,
             ),
-            webhook_urls=[URL_MAP["operations-sla-updater"]]
+            webhook_urls=[URL_MAP["operations-sla-updater"]],
         )
         return False, "PhantomBuster config not found"
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=config.phantom_uuid)
@@ -1955,21 +1955,17 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
     if result:
         send_slack_message(
             message="The PhantomBuster for *{}* (#{}) has been updated according to the SLA schedule. Outbound: {}".format(
-                client_sdr.name,
-                client_sdr.id,
-                result.get("actual_target")
+                client_sdr.name, client_sdr.id, result.get("actual_target")
             ),
-            webhook_urls=[URL_MAP["operations-sla-updater"]]
+            webhook_urls=[URL_MAP["operations-sla-updater"]],
         )
         return True, "PhantomBuster launch schedule updated"
 
     send_slack_message(
         message="🚨 The PhantomBuster for *{}* (#{}) failed to update. Investigate.".format(
-            client_sdr.name,
-            client_sdr.id,
-            result.get("actual_target")
+            client_sdr.name, client_sdr.id, result.get("actual_target")
         ),
-        webhook_urls=[URL_MAP["operations-sla-updater"]]
+        webhook_urls=[URL_MAP["operations-sla-updater"]],
     )
     return False, "PhantomBuster launch schedule failed to update"
 
@@ -2478,6 +2474,7 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.id,
             ClientArchetype.archetype.label("name"),
             ClientArchetype.active,
+            ClientArchetype.emoji,
             ClientArchetype.icp_matching_prompt,
             ClientArchetype.icp_matching_option_filters,
             ClientArchetype.is_unassigned_contact_archetype,
@@ -2487,6 +2484,11 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.transformer_blocklist,
             ClientArchetype.transformer_blocklist_initial,
             func.count(distinct(Prospect.id)).label("num_prospects"),
+            func.avg(Prospect.icp_fit_score)
+            .filter(Prospect.icp_fit_score.isnot(None))
+            .filter(Prospect.icp_fit_score >= 0)
+            .filter(Prospect.overall_status == "PROSPECTED")
+            .label("avg_icp_fit_score"),
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_outreach_message_id.is_(None))
             .filter(
