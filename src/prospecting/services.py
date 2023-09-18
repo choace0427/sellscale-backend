@@ -235,18 +235,18 @@ def get_prospects(
     if prospect_id != -1 and prospect_id:
         prospects = prospects.filter(Prospect.id == prospect_id)
 
-    if show_purgatory != "ALL":
-        if not show_purgatory:
-            prospects = prospects.filter(
-                or_(
-                    Prospect.hidden_until == None,
-                    Prospect.hidden_until < datetime.datetime.utcnow(),
-                )
-            )
-        else:
-            prospects = prospects.filter(
-                Prospect.hidden_until >= datetime.datetime.utcnow()
-            )
+    # if show_purgatory != "ALL":
+    #     if not show_purgatory:
+    #         prospects = prospects.filter(
+    #             or_(
+    #                 Prospect.hidden_until == None,
+    #                 Prospect.hidden_until < datetime.datetime.utcnow(),
+    #             )
+    #         )
+    #     else:
+    #         prospects = prospects.filter(
+    #             Prospect.hidden_until >= datetime.datetime.utcnow()
+    #         )
 
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
