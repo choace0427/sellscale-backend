@@ -1932,6 +1932,8 @@ def daily_pb_launch_schedule_update():
 
 @celery.task()
 def update_phantom_buster_launch_schedule(client_sdr_id: int):
+    # Get the ClientSDR
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     # Update the PhantomBuster to reflect the new SLA target
     config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
@@ -1939,13 +1941,36 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
         PhantomBusterConfig.pb_type == PhantomBusterType.OUTBOUND_ENGINE,
     ).first()
     if not config:
+        send_slack_message(
+            message="PhantomBuster config not found for *{}* (#{})".format(
+                client_sdr.name,
+                client_sdr.id,
+            ),
+            webhook_urls=[URL_MAP["operations-sla-updater"]]
+        )
         return False, "PhantomBuster config not found"
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=config.phantom_uuid)
     result = pb_agent.update_launch_schedule()
 
     if result:
+        send_slack_message(
+            message="The PhantomBuster for *{}* (#{}) has been updated according to the SLA schedule. Outbound: {}".format(
+                client_sdr.name,
+                client_sdr.id,
+                result.get("actual_target")
+            ),
+            webhook_urls=[URL_MAP["operations-sla-updater"]]
+        )
         return True, "PhantomBuster launch schedule updated"
 
+    send_slack_message(
+        message="🚨 The PhantomBuster for *{}* (#{}) failed to update. Investigate.".format(
+            client_sdr.name,
+            client_sdr.id,
+            result.get("actual_target")
+        ),
+        webhook_urls=[URL_MAP["operations-sla-updater"]]
+    )
     return False, "PhantomBuster launch schedule failed to update"
 
 

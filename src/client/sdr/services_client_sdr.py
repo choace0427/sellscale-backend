@@ -345,14 +345,14 @@ def load_sla_schedules(
         for i in range(weeks_needed):
             # LINKEDIN: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we keep the volume
             if li_volume > LINKEDIN_WARUMP_CONSERVATIVE[0] and li_volume < LINKEDIN_WARUMP_CONSERVATIVE[-1]:
-                for schedule_li_volume in enumerate(LINKEDIN_WARUMP_CONSERVATIVE):
+                for schedule_li_volume in LINKEDIN_WARUMP_CONSERVATIVE:
                     if schedule_li_volume > li_volume:
                         li_volume = schedule_li_volume
                         break
 
             # EMAIL: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we keep the volume
             if email_volume > EMAIL_WARMUP_CONSERVATIVE[0] and email_volume < EMAIL_WARMUP_CONSERVATIVE[-1]:
-                for schedule_email_volume in enumerate(EMAIL_WARMUP_CONSERVATIVE):
+                for schedule_email_volume in EMAIL_WARMUP_CONSERVATIVE:
                     if schedule_email_volume > email_volume:
                         email_volume = schedule_email_volume
                         break
