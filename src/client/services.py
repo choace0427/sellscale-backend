@@ -3071,17 +3071,23 @@ def propagate_contract_value(client_id: int, new_value: int):
 
 
 def write_client_pre_onboarding_survey(
-    client_id: int,
-    key: str,
-    value: str,
+    client_id: int, key: str, value: str, retries_left: int = 3
 ):
     """Writes a client pre-onboarding survey response to the database"""
-    client: Client = Client.query.get(client_id)
-    client.pre_onboarding_survey = client.pre_onboarding_survey or {}
-    client.pre_onboarding_survey[key] = value
-    flag_modified(client, "pre_onboarding_survey")
+    try:
+        client: Client = Client.query.get(client_id)
+        client.pre_onboarding_survey = client.pre_onboarding_survey or {}
+        client.pre_onboarding_survey[key] = value
+        flag_modified(client, "pre_onboarding_survey")
 
-    db.session.add(client)
-    db.session.commit()
+        db.session.add(client)
+        db.session.commit()
 
-    return True
+        return True
+    except Exception as e:
+        if retries_left > 0:
+            return write_client_pre_onboarding_survey(
+                client_id, key, value, retries_left - 1
+            )
+        else:
+            raise e
