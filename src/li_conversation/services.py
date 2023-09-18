@@ -20,6 +20,9 @@ from src.prospecting.models import (
     ProspectOverallStatus,
     ProspectStatus,
 )
+from src.li_conversation.conversation_analyzer.li_email_finder import (
+    update_all_outstanding_prospect_emails,
+)
 
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpLength
