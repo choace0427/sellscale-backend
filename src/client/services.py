@@ -2562,7 +2562,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
             LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
         WHERE
-            client_archetype.client_sdr_id = 1
+            client_archetype.client_sdr_id = {client_sdr_id}
             AND client_archetype.is_unassigned_contact_archetype != TRUE
         GROUP BY
             2;
