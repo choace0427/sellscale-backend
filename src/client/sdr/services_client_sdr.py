@@ -335,13 +335,14 @@ def load_sla_schedules(
     weeks_needed = (two_weeks_from_monday -
                     furthest_sla_schedule.start_date.date()).days // 7
 
+
     # If there are less than 3 weeks between the furthest SLA schedule and today, then we create the missing SLA schedules
     if weeks_needed > 0:
         new_schedule_ids = []
 
-        # TODO: Add Email volume in the future
         li_volume = furthest_sla_schedule.linkedin_volume
         email_volume = furthest_sla_schedule.email_volume
+
         for i in range(weeks_needed):
             # LINKEDIN: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we keep the volume
             if li_volume > LINKEDIN_WARUMP_CONSERVATIVE[0] and li_volume < LINKEDIN_WARUMP_CONSERVATIVE[-1]:
@@ -359,7 +360,7 @@ def load_sla_schedules(
 
             schedule_id = create_sla_schedule(
                 client_sdr_id=client_sdr_id,
-                start_date=datetime.utcnow() + timedelta(days=7 * (i+1)),
+                start_date=furthest_sla_schedule.start_date + timedelta(days=7 * (i + 1)),
                 linkedin_volume=li_volume,
                 email_volume=email_volume
             )
