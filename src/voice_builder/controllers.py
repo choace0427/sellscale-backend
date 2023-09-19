@@ -159,9 +159,9 @@ def post_convert_to_pattern():
     voice_builder_onboarding_id: int = get_request_parameter(
         "voice_builder_onboarding_id", request, json=True, required=True
     )
-    srmc = convert_voice_builder_onboarding_to_stack_ranked_message_config(
+    srmc_dict = convert_voice_builder_onboarding_to_stack_ranked_message_config(
         voice_builder_onboarding_id=voice_builder_onboarding_id
     )
-    if srmc:
-        return jsonify({ "config_id": srmc.id, }), 200
+    if srmc_dict:
+        return jsonify(srmc_dict), 200
     return "Failed to convert voice builder onboarding to pattern.", 400

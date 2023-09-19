@@ -344,8 +344,23 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     db.session.add(srmc)
     db.session.commit()
 
+    srmc_dict = srmc.to_dict()
+
     voice_builder_onboarding.stack_ranked_message_generation_configuration_id = srmc.id
     db.session.add(voice_builder_onboarding)
     db.session.commit()
 
-    return srmc
+    # Make this the only active voice
+    other_srmcs: list[StackRankedMessageGenerationConfiguration] = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            archetype_id=voice_builder_onboarding.client_archetype_id
+        )
+        .filter(StackRankedMessageGenerationConfiguration.id != srmc.id)
+        .all()
+    )
+    for o_srmc in other_srmcs:
+        o_srmc.active = False
+        db.session.add(o_srmc)
+    db.session.commit()
+
+    return srmc_dict
