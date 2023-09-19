@@ -333,7 +333,7 @@ def load_sla_schedules(
     client_sdr_id: int
 ) -> tuple[bool, list[int]]:
     """'Loads' SLA schedules. This function will check for 3 weeks worth of SLA schedules into the future for a given
-    SDR, and if there are not 3 weeks worth of SLA schedules, it will create them.
+    SDR, and if there are not 5 weeks worth of SLA schedules, it will create them.
 
     Args:
         client_sdr_id (int): The id of the Client SDR
@@ -367,19 +367,28 @@ def load_sla_schedules(
             start_date=datetime.utcnow() + timedelta(days=14),
             linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[2], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
         )
+        week_3_id = create_sla_schedule(
+            client_sdr_id=client_sdr_id,
+            start_date=datetime.utcnow() + timedelta(days=21),
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[3], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+        )
+        week_4_id = create_sla_schedule(
+            client_sdr_id=client_sdr_id,
+            start_date=datetime.utcnow() + timedelta(days=28),
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[4], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+        )
 
-        load_sla_alert(client_sdr_id, [week_0_id, week_1_id, week_2_id])
-        return True, [week_0_id, week_1_id, week_2_id]
+        load_sla_alert(client_sdr_id, [week_0_id, week_1_id, week_2_id, week_3_id, week_4_id])
+        return True, [week_0_id, week_1_id, week_2_id, week_3_id, week_4_id]
 
     # Determine how many schedules we should have
-    # We determine by taking today's date, finding the Monday of this week, and calculating 2 weeks from that Monday
+    # We determine by taking today's date, finding the Monday of this week, and calculating 4 weeks from that Monday
     monday, _ = get_current_monday_friday(datetime.utcnow())
-    two_weeks_from_monday = monday + timedelta(days=14)
-    weeks_needed = (two_weeks_from_monday -
+    four_weeks_from_monday = monday + timedelta(days=28)
+    weeks_needed = (four_weeks_from_monday -
                     furthest_sla_schedule.start_date.date()).days // 7
 
-
-    # If there are less than 3 weeks between the furthest SLA schedule and today, then we create the missing SLA schedules
+    # If there are less than 5 weeks between the furthest SLA schedule and today, then we create the missing SLA schedules
     if weeks_needed > 0:
         new_schedule_ids = []
 
