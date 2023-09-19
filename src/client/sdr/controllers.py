@@ -1,7 +1,7 @@
 from app import db
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
-from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health, create_sla_schedule, get_sla_schedules_for_sdr, update_sla_schedule
+from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health, create_sla_schedule, get_sla_schedules_for_sdr, update_sdr_sla_targets, update_sla_schedule
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
 
@@ -26,6 +26,28 @@ def get_linkedin_health(client_sdr_id: int):
             }
         }
     ), 200
+
+
+@CLIENT_SDR_BLUEPRINT.route("/sla/targets", methods=["PATCH"])
+@require_user
+def patch_sla_target(client_sdr_id: int):
+    weekly_linkedin_target = get_request_parameter(
+        "weekly_linkedin_target", request, json=True, required=False, parameter_type=int
+    )
+    weekly_email_target = get_request_parameter(
+        "weekly_email_target", request, json=True, required=False, parameter_type=int
+    )
+
+    success, message = update_sdr_sla_targets(
+        client_sdr_id=client_sdr_id,
+        weekly_linkedin_target=weekly_linkedin_target,
+        weekly_email_target=weekly_email_target
+    )
+
+    if not success:
+        return jsonify({"status": "error", "message": message}), 400
+
+    return jsonify({"status": "success"}), 200
 
 
 @CLIENT_SDR_BLUEPRINT.route("/sla/schedule", methods=["GET"])

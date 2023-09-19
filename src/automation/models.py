@@ -269,11 +269,13 @@ class PhantomBusterAgent:
             end_date = friday
         )
         schedule = schedules[0]
+        volume = schedule.get("linkedin_volume", client_sdr.weekly_li_outbound_target)
 
         ADDS_PER_LAUNCH = 2
-        target = math.ceil(schedule.get("linkedin_volume", client_sdr.weekly_li_outbound_target)/ ADDS_PER_LAUNCH)
+        target = math.ceil(volume / ADDS_PER_LAUNCH)
 
-        if target >= LINKEDIN_WARM_THRESHOLD:
+        # Check if the schedule qualifies the SDR to be "fully warm"
+        if volume >= client_sdr.weekly_li_outbound_target:
             client_sdr.warmup_linkedin_complete = True
         else:
             client_sdr.warmup_linkedin_complete = False

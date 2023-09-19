@@ -171,6 +171,49 @@ def get_sdr_blacklist_words(client_sdr_id: int) -> list[str]:
     return sdr.blacklisted_words
 
 
+def update_sdr_sla_targets(
+        client_sdr_id: int,
+        weekly_linkedin_target: int,
+        weekly_email_target: int
+) -> tuple[bool, str]:
+    """Updates the SLA targets for a Client SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        weekly_linkedin_target (int): The weekly LinkedIn target
+        weekly_email_target (int): The weekly email target
+
+    Returns:
+        tuple[bool, str]: A boolean indicating whether the update was successful and a message
+    """
+    # Get the Client SDR
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False, "Client SDR not found."
+
+    # Update the Client SDR
+    sdr.weekly_li_outbound_target = weekly_linkedin_target
+    sdr.weekly_email_outbound_target = weekly_email_target
+    db.session.commit()
+
+    # Check if the current week's SLA schedule hits warmup, and adjust warmup status accordingly
+    monday, _ = get_current_monday_friday(datetime.utcnow())
+    sla_schedule: SLASchedule = SLASchedule.query.filter(
+        SLASchedule.client_sdr_id == client_sdr_id,
+        SLASchedule.start_date <= monday,
+        SLASchedule.end_date >= monday
+    ).first()
+    if sla_schedule:
+        if sla_schedule.linkedin_volume >= LINKEDIN_WARM_THRESHOLD:
+            sdr.warmup_linkedin_complete = True
+        # TODO: Bring in an email warmup complete check
+        # if sla_schedule.email_volume >= EMAIL_WARM_THRESHOLD:
+        #     sdr.warmup_status_email = True
+        db.session.commit()
+
+    return True, "Success"
+
+
 def get_sla_schedules_for_sdr(
     client_sdr_id: int,
     start_date: Optional[datetime] = None,
@@ -312,17 +355,17 @@ def load_sla_schedules(
         week_0_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow(),
-            linkedin_volume=LINKEDIN_WARUMP_CONSERVATIVE[0]
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[0], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
         )
         week_1_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=7),
-            linkedin_volume=LINKEDIN_WARUMP_CONSERVATIVE[1]
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[1], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
         )
         week_2_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=14),
-            linkedin_volume=LINKEDIN_WARUMP_CONSERVATIVE[2]
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[2], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
         )
 
         load_sla_alert(client_sdr_id, [week_0_id, week_1_id, week_2_id])
@@ -344,19 +387,27 @@ def load_sla_schedules(
         email_volume = furthest_sla_schedule.email_volume
 
         for i in range(weeks_needed):
-            # LINKEDIN: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we keep the volume
+            # LINKEDIN: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we bump to the weekly target
             if li_volume > LINKEDIN_WARUMP_CONSERVATIVE[0] and li_volume < LINKEDIN_WARUMP_CONSERVATIVE[-1]:
                 for schedule_li_volume in LINKEDIN_WARUMP_CONSERVATIVE:
                     if schedule_li_volume > li_volume:
-                        li_volume = schedule_li_volume
+                        li_volume = min(schedule_li_volume, client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
                         break
 
-            # EMAIL: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we keep the volume
+            # LINKEDIN: If we are at the end of the conservative schedule, then we should bump to the weekly target
+            if li_volume >= LINKEDIN_WARUMP_CONSERVATIVE[-1]:
+                li_volume = client_sdr.weekly_li_outbound_target
+
+            # EMAIL: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we bump to the weekly target
             if email_volume > EMAIL_WARMUP_CONSERVATIVE[0] and email_volume < EMAIL_WARMUP_CONSERVATIVE[-1]:
                 for schedule_email_volume in EMAIL_WARMUP_CONSERVATIVE:
                     if schedule_email_volume > email_volume:
-                        email_volume = schedule_email_volume
+                        email_volume = min(schedule_email_volume, client_sdr.weekly_email_outbound_target) # Take the minimum in case the target is less than the conservative schedule
                         break
+
+            # EMAIL: If we are at the end of the conservative schedule, then we should bump to the weekly target
+            if email_volume >= EMAIL_WARMUP_CONSERVATIVE[-1]:
+                email_volume = client_sdr.weekly_email_outbound_target
 
             schedule_id = create_sla_schedule(
                 client_sdr_id=client_sdr_id,
@@ -522,189 +573,3 @@ def deactivate_sla_schedules(
     db.session.commit()
 
     return True
-
-
-# DEPRECATED
-def create_warmup_schedule_linkedin(
-    client_sdr_id: int,
-    week_0_sla: int = None,
-    week_1_sla: int = None,
-    week_2_sla: int = None,
-    week_3_sla: int = None,
-    week_4_sla: int = None,
-) -> int:
-    """ Creates a Warmup Schedule for LinkedIn
-
-    Args:
-        client_sdr_id (int): The id of the Client SDR
-        week_0_sla (int, optional): The SLA for week 0 . Defaults to None.
-        week_1_sla (int, optional): The SLA for week 1 . Defaults to None.
-        week_2_sla (int, optional): The SLA for week 2 . Defaults to None.
-        week_3_sla (int, optional): The SLA for week 3 . Defaults to None.
-        week_4_sla (int, optional): The SLA for week 4 . Defaults to None.
-
-    Returns:
-        int: The id of the Warmup Schedule
-    """
-    # Get the SDR
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not sdr:
-        return None
-
-    # Create the Warmup Schedule
-    warmup_schedule: WarmupScheduleLinkedIn = WarmupScheduleLinkedIn(
-        client_sdr_id=client_sdr_id,
-        week_0_sla=week_0_sla,
-        week_1_sla=week_1_sla,
-        week_2_sla=week_2_sla,
-        week_3_sla=week_3_sla,
-        week_4_sla=week_4_sla,
-    )
-    db.session.add(warmup_schedule)
-    db.session.commit()
-
-    # IF all the SLAs are None, then we set the SLAs to the conservative schedule
-    if not any([week_0_sla, week_1_sla, week_2_sla, week_3_sla, week_4_sla]):
-        warmup_schedule.set_conservative_schedule()
-
-    return warmup_schedule.id
-
-# DEPRECATED
-
-
-@celery.task(bind=True, max_retries=3)
-def auto_update_sdr_linkedin_sla_task(self):
-    """Updates the LinkedIn SLA for all active SDRs, if applicable. This task is run every 24 hours."""
-    # Get the IDs of all active Clients
-    active_client_ids: list[int] = [
-        client.id for client in Client.query.filter_by(active=True).all()]
-
-    # Get all active SDRs that do not have warmup LinkedIn complete
-    sdrs: list[ClientSDR] = ClientSDR.query.filter(
-        ClientSDR.active == True,
-        or_(
-            ClientSDR.warmup_linkedin_complete == False,
-            ClientSDR.warmup_linkedin_complete == None
-        ),
-        ClientSDR.client_id.in_(active_client_ids)
-    ).all()
-
-    # Update the LinkedIn SLA for each SDR
-    for sdr in sdrs:
-        old_sla = sdr.weekly_li_outbound_target
-
-        # Get the most recent LinkedIn warmup status change record
-        most_recent_sla_change: LinkedInSLAChange = LinkedInSLAChange.query.filter_by(
-            client_sdr_id=sdr.id
-        ).order_by(LinkedInSLAChange.created_at.desc()).first()
-
-        # If there are no status change records, we create one from 0 to whatever the current SLA is
-        if not most_recent_sla_change:
-            new_sla_change = LinkedInSLAChange(
-                client_sdr_id=sdr.id,
-                old_sla_value=0,
-                new_sla_value=sdr.weekly_li_outbound_target,
-            )
-            db.session.add(new_sla_change)
-            db.session.commit()
-            most_recent_sla_change = new_sla_change
-
-        # If the most recent warmup status change record is within 7 days, then do nothing
-        if most_recent_sla_change and (datetime.utcnow() - most_recent_sla_change.created_at).days < 7:
-            continue
-
-        # Get the SLA warmup schedule
-        warmup_schedule: WarmupScheduleLinkedIn = WarmupScheduleLinkedIn.query.filter_by(
-            client_sdr_id=sdr.id
-        ).first()
-
-        # If there is no warmup schedule, we create one with the conservative schedule
-        if not warmup_schedule:
-            create_warmup_schedule_linkedin(sdr.id)
-
-        # Get the next SLA
-        next_sla = warmup_schedule.get_next_sla(sdr.weekly_li_outbound_target)
-
-        # Update the SLA
-        update_sdr_linkedin_sla(
-            client_sdr_id=sdr.id,
-            new_sla_value=next_sla
-        )
-
-        # Send a slack notification
-        send_slack_message(
-            message="SLA for {} has been updated from {} (#{}) to {}.".format(
-                sdr.name, sdr.id, old_sla, next_sla),
-            webhook_urls=[URL_MAP["operations-sla-updater"]]
-        )
-
-    send_slack_message(
-        message="LinkedIn SLA update task complete.",
-        webhook_urls=[URL_MAP["operations-sla-updater"]]
-    )
-    return True
-
-
-# DEPRECATED
-def update_sdr_linkedin_sla(
-    client_sdr_id: int,
-    new_sla_value: int,
-) -> tuple[bool, int]:
-    """Updates the LinkedIn SLA for a Client SDR
-
-    Args:
-        client_sdr_id (int): _description_
-        new_sla_value (int): _description_
-
-    Returns:
-        tuple[bool, int]: A boolean indicating whether the update was successful and the
-        ID of the new status change record
-    """
-    from src.client.services import update_phantom_buster_launch_schedule
-
-    # Get the SDR
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not sdr:
-        return False, None
-
-    # Create the new status change record
-    new_status_change = LinkedInSLAChange(
-        client_sdr_id=client_sdr_id,
-        old_sla_value=sdr.weekly_li_outbound_target,
-        new_sla_value=new_sla_value
-    )
-    db.session.add(new_status_change)
-    db.session.commit()
-
-    # Update the SDR
-    sdr.weekly_li_outbound_target = new_sla_value
-    db.session.commit()
-
-    # Update the warmup status
-    sdr.update_warmup_status()
-
-    # Update the Phantom Buster launch schedule
-    update_phantom_buster_launch_schedule(client_sdr_id)
-
-    return True, new_status_change.id
-
-
-# DEPRECATED
-def get_linkedin_sla_records(client_sdr_id: int) -> list[LinkedInSLAChange]:
-    """Gets the LinkedIn SLA change records for a Client SDR
-
-    Args:
-        client_sdr_id (int): The id of the Client SDR
-
-    Returns:
-        list[LinkedInSLAChange]: The LinkedIn warmup status change records for the Client SDR
-    """
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not sdr:
-        return None
-
-    status_changes: list[LinkedInSLAChange] = LinkedInSLAChange.query.filter_by(
-        client_sdr_id=client_sdr_id
-    ).all()
-
-    return status_changes

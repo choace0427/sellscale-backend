@@ -1,6 +1,7 @@
 from enum import Enum
 import random
 from src.client.sdr.services_client_sdr import (
+    LINKEDIN_WARM_THRESHOLD,
     deactivate_sla_schedules,
     load_sla_schedules,
 )
@@ -413,13 +414,11 @@ def create_client_sdr(client_id: int, name: str, email: str):
     if not c:
         return None
 
-    DEFAULT_LINKEDIN_SLA = 5
-
     sdr = ClientSDR(
         client_id=client_id,
         name=name,
         email=email,
-        weekly_li_outbound_target=DEFAULT_LINKEDIN_SLA,
+        weekly_li_outbound_target=LINKEDIN_WARM_THRESHOLD,
         weekly_email_outbound_target=0,
         notification_allowlist=[
             ProspectStatus.SCHEDULING,
@@ -1955,15 +1954,19 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
 
     if result:
         send_slack_message(
-            message="The PhantomBuster for *{}* (#{}) has been updated according to the SLA schedule. Outbound: {}".format(
-                client_sdr.name, client_sdr.id, result.get("actual_target")
+            message="PhantomBuster *{}* (#{}) updated according to SLA schedule. Outbound: {}. Warmup target {}: {}".format(
+                client_sdr.name,
+                client_sdr.id,
+                result.get("actual_target"),
+                "✅" if result.get("actual_target") >= client_sdr.weekly_li_outbound_target else "❌",
+                client_sdr.weekly_li_outbound_target
             ),
             webhook_urls=[URL_MAP["operations-sla-updater"]],
         )
         return True, "PhantomBuster launch schedule updated"
 
     send_slack_message(
-        message="🚨 The PhantomBuster for *{}* (#{}) failed to update. Investigate.".format(
+        message="🚨 PhantomBuster *{}* (#{}) failed to update. Investigate.".format(
             client_sdr.name, client_sdr.id, result.get("actual_target")
         ),
         webhook_urls=[URL_MAP["operations-sla-updater"]],
