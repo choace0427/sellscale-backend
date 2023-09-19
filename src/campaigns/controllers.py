@@ -303,6 +303,79 @@ def create_new_campaign(client_sdr_id: int):
         return jsonify({"campaign_id": campaign.id}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+    
+
+@CAMPAIGN_BLUEPRINT.route("/instant", methods=["POST"])
+@require_user
+def create_new_instant_campaign(client_sdr_id: int):
+    from model_import import GeneratedMessageType, OutboundCampaignStatus
+    from src.prospecting.services import send_li_outreach_connection
+
+    campaign_type = get_request_parameter(
+        "campaign_type", request, json=True, required=True, parameter_type=str
+    )
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    campaign_start_date = get_request_parameter(
+        "campaign_start_date", request, json=True, required=True, parameter_type=str
+    )
+    campaign_end_date = get_request_parameter(
+        "campaign_end_date", request, json=True, required=True, parameter_type=str
+    )
+    priority_rating = get_request_parameter(
+        "priority_rating", request, json=True, required=True, parameter_type=int
+    )
+    config_id = get_request_parameter(
+        "config_id", request, json=True, required=True, parameter_type=int
+    )
+
+    # messages type: { prospect_id: int, message: str, cta_id: str, }[]
+    messages = get_request_parameter(
+        "messages", request, json=True, required=True, parameter_type=list
+    )
+
+    # Turn campaign type from string to enum
+    if campaign_type == "EMAIL":
+        campaign_type = GeneratedMessageType.EMAIL
+    elif campaign_type == "LINKEDIN":
+        campaign_type = GeneratedMessageType.LINKEDIN
+
+    prospect_ids = list(set([message["prospect_id"] for message in messages]))
+    ctas = list(set([message["cta_id"] for message in messages]))
+
+    try:
+        campaign: OutboundCampaign = create_outbound_campaign(
+            prospect_ids=prospect_ids,
+            num_prospects=len(prospect_ids),
+            campaign_type=campaign_type,
+            ctas=ctas,
+            client_archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
+            campaign_start_date=campaign_start_date,
+            campaign_end_date=campaign_end_date,
+            priority_rating=priority_rating,
+        )
+        campaign_id = campaign.id
+
+        change_campaign_status(campaign_id = campaign_id, status = OutboundCampaignStatus.COMPLETE)
+
+        msg_ids = []
+        for message in messages:
+            msg_id = send_li_outreach_connection(message["prospect_id"], message["message"], campaign_id, config_id)
+            msg_ids.append(msg_id)
+
+        return jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "campaign_id": campaign_id,
+                    "message_ids": msg_ids,
+                },
+            }
+        ), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @CAMPAIGN_BLUEPRINT.route("/", methods=["PATCH"])

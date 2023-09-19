@@ -1,3 +1,4 @@
+from src.prospecting.models import ProspectOverallStatus
 from model_import import (
     StackRankedMessageGenerationConfiguration,
     ResearchPointType,
@@ -332,12 +333,12 @@ def get_stack_ranked_configuration_details(client_sdr_id: int, config_id: int):
     return config.to_dict(), "OK"
 
 
-def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
+def get_random_prospect(client_id: int, overall_status: ProspectOverallStatus, archetype_id: Optional[int] = None):
     from model_import import Prospect
 
     if archetype_id:
         prospects = (
-            Prospect.query.filter_by(client_id=client_id, archetype_id=archetype_id)
+            Prospect.query.filter_by(client_id=client_id, archetype_id=archetype_id, overall_status=overall_status)
             .order_by(Prospect.icp_fit_score.desc())
             .limit(30)
             .all()
@@ -345,7 +346,7 @@ def get_random_prospect(client_id: int, archetype_id: Optional[int] = None):
         if len(prospects) > 0:
             return random.choice(prospects)
 
-    return Prospect.query.filter_by(client_id=client_id).order_by(func.random()).first()
+    return Prospect.query.filter_by(client_id=client_id, overall_status=overall_status).order_by(func.random()).first()
 
 
 def get_random_research_point(
@@ -412,7 +413,7 @@ def get_sample_prompt_from_config_details(
 
     if not override_prospect_id:
         random_prospect = get_random_prospect(
-            client_id=client_id, archetype_id=archetype_id
+            client_id=client_id, archetype_id=archetype_id, overall_status=ProspectOverallStatus.PROSPECTED
         )
         if not random_prospect:
             return "", None, [], None, {}, None
