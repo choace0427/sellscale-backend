@@ -149,6 +149,63 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
     return list_of_archetypes
 
 
+def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dict:
+
+    results = db.session.execute(
+        """
+        SELECT
+            client_archetype.archetype,
+            client_archetype.id,
+            client_archetype.created_at,
+            client_archetype.active,
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SENT_OUTREACH') "LI-SENT",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON')) "LI-DEMO",
+            client_archetype.emoji
+        FROM
+            client_archetype
+            LEFT JOIN prospect ON prospect.archetype_id = client_archetype.id
+            LEFT JOIN prospect_email ON prospect_email.id = prospect.approved_prospect_email_id
+            LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
+            LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
+        WHERE
+            client_archetype.id = {archetype_id}
+            AND client_archetype.client_sdr_id = {client_sdr_id}
+            AND client_archetype.is_unassigned_contact_archetype != TRUE
+        GROUP BY
+            2;
+        """.format(
+            archetype_id=archetype_id,
+            client_sdr_id=client_sdr_id
+        )
+    ).fetchone()
+
+    # index to column
+    column_map = {
+        0: "name",
+        1: "id",
+        2: "created_at",
+        3: "active",
+        4: "emails_sent",
+        5: "emails_opened",
+        6: "emails_replied",
+        7: "li_sent",
+        8: "li_opened",
+        9: "li_replied",
+        10: "li_demo",
+        11: "emoji",
+    }
+
+    # Convert and format output
+    result = {column_map.get(i, "unknown"): value for i, value in enumerate(results)}
+
+    return result
+
+
 def create_empty_archetype_prospect_filters(
     client_sdr_id: int, archetype_id: int
 ) -> bool:

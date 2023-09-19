@@ -93,6 +93,7 @@ from src.client.services_client_archetype import (
     activate_client_archetype,
     create_empty_archetype_prospect_filters,
     deactivate_client_archetype,
+    get_archetype_conversion_rates,
     get_email_blocks_configuration,
     hard_deactivate_client_archetype,
     modify_archetype_prospect_filters,
@@ -376,6 +377,20 @@ def get_archetypes(client_sdr_id: int):
 
     archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
     return jsonify({"message": "Success", "archetypes": archetypes}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/get_archetype", methods=["GET"])
+@require_user
+def get_archetype(client_sdr_id: int):
+    """Gets a single archetype for a client SDR, with indepth details"""
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True, parameter_type=int
+    )
+
+    archetype = get_archetype_conversion_rates(
+        client_sdr_id=client_sdr_id, archetype_id=archetype_id
+    )
+    return jsonify({"message": "Success", "archetype": archetype}), 200
 
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes/overview", methods=["GET"])
