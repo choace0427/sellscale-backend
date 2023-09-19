@@ -1,5 +1,6 @@
 from typing import List, Union, Optional
 
+
 from src.ml.services import get_text_generation
 
 from src.client.models import ClientArchetype
@@ -41,6 +42,7 @@ from model_import import (
     ClientSDR,
     Prospect,
     LinkedinConversationScrapeQueue,
+    Client,
 )
 from src.automation.models import PhantomBusterAgent
 from src.ml.openai_wrappers import wrapped_create_completion
@@ -672,6 +674,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    user_title = client_sdr.title or "sales rep"
+    company = client.company
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     details = "\nFor some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
@@ -683,7 +688,11 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     message_content = (
         "You are "
         + sender
-        + " who is writing a follow up response to a message thread. Keep responses friendly and concise while also adding personalization where relevant.\n"
+        + " who is writing a follow up response to a message thread. You are messaging as a "
+        + user_title
+        + " from "
+        + company
+        + ". Keep responses friendly and concise while also adding personalization where relevant.\n"
         + "\n------\n"
         + details
     )
@@ -723,6 +732,13 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         message_content = message_content + (
             "\n\nYou will be using the bump framework below to construct the message - follow the instructions carefully to construct the message:\nBump Framework:\n----\n "
             + bump_framework.description
+            + "\n-----"
+        )
+
+    if bump_framework and bump_framework.additional_context:
+        message_content = message_content + (
+            "\n\nHere is some additional context to keep in mind when writing the message:\n-----\n"
+            + bump_framework.additional_context
             + "\n-----"
         )
 

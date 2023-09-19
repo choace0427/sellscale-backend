@@ -965,13 +965,19 @@ def post_generate_bump_li_message(client_sdr_id: int):
     bump_count = get_request_parameter(
         "bump_count", request, json=True, required=True, parameter_type=int
     )
-    use_cache = get_request_parameter(
-        "use_cache", request, json=True, required=False, parameter_type=bool
-    ) or True
+    use_cache = (
+        get_request_parameter(
+            "use_cache", request, json=True, required=False, parameter_type=bool
+        )
+        or True
+    )
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 400
+
+    client_sdr = ClientSDR.query.get(client_sdr_id)
+    name = client_sdr.name.split(" ")[0]
 
     from src.li_conversation.services import (
         generate_chat_gpt_response_to_conversation_thread,
@@ -980,7 +986,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
 
     research_str = ""
     points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    #random_sample_points = random.sample(points, min(len(points), 3))
+    # random_sample_points = random.sample(points, min(len(points), 3))
     for point in points:
         research_str += f"{point.value}\n"
 
@@ -991,7 +997,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
             LinkedInConvoMessage(
                 message="""Hello, you clearly are a very impressive person. I'd love to connect and discuss our work with people like yourself. Are you open to a chat?""",
                 connection_degree="You",
-                author="You",
+                author=name,
             )
         )
     if bump_count >= 1:
@@ -999,7 +1005,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
             LinkedInConvoMessage(
                 message="""Hey, thank you for accepting my connection request. I'd love to arrange a meeting to discuss, perhaps even a lunch & learn for your team. Looking forward to hearing your thoughts.""",
                 connection_degree="You",
-                author="You",
+                author=name,
             )
         )
     if bump_count >= 2:
@@ -1007,7 +1013,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
             LinkedInConvoMessage(
                 message="""I hope this message finds you well. If your schedule allows, I believe a quick coffee chat could be valuable for us. Let me know.""",
                 connection_degree="You",
-                author="You",
+                author=name,
             )
         )
     if bump_count >= 3:
@@ -1015,7 +1021,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
             LinkedInConvoMessage(
                 message="""Hi, I hope you're doing well. Just wanted to circle back one more time to see if you'd be open to a quick chat.""",
                 connection_degree="You",
-                author="You",
+                author=name,
             )
         )
 

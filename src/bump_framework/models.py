@@ -43,6 +43,8 @@ class BumpFramework(db.Model):
     etl_num_times_used = db.Column(db.Integer, nullable=True, default=0)
     etl_num_times_converted = db.Column(db.Integer, nullable=True, default=0)
 
+    bump_framework_template_name = db.Column(db.String, nullable=True)
+    bump_framework_human_readable_prompt = db.Column(db.String, nullable=True)
     additional_context = db.Column(db.String, nullable=True, default="")
 
     transformer_blocklist = db.Column(
@@ -76,6 +78,7 @@ class BumpFramework(db.Model):
             "transformer_blocklist": [t.value for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
+            "additional_context": self.additional_context,
         }
 
 

@@ -207,6 +207,7 @@ def modify_bump_framework(
     use_account_research: Optional[bool] = None,
     default: Optional[bool] = False,
     blocklist: Optional[list] = None,
+    additional_context: Optional[dict] = None,
 ) -> bool:
     """Modify a bump framework
 
@@ -250,9 +251,12 @@ def modify_bump_framework(
 
     if use_account_research is not None:
         bump_framework.use_account_research = use_account_research
-    
+
     if blocklist:
         bump_framework.transformer_blocklist = blocklist
+
+    if additional_context:
+        bump_framework.additional_context = additional_context
 
     if default:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(

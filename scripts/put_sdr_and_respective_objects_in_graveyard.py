@@ -5,7 +5,8 @@
 #  - This is also useful for when a client SDR is no longer working on a client archetype
 
 
-exec("""
+exec(
+    """
 def refresh_sdr():
     try:
         from model_import import Prospect, ClientArchetype, ClientSDR, PhantomBusterConfig, DemoFeedback, StackRankedMessageGenerationConfiguration, ProspectUploadsRawCSV, ProspectUploads, VoiceBuilderOnboarding
@@ -98,7 +99,7 @@ def refresh_sdr():
         print("Updating voice builder onboardings...")
         for voice_builder_onboarding in tqdm(voice_builder_onboardings):
             voice_builder_onboarding.client_id = NEW_CLIENT_ID
-            db.session.add(voice_builder_onboarding)
+            db.session.add(voice_builder_onboarding)w
             db.session.commit()
      
         client_sdr.client_id = NEW_CLIENT_ID
@@ -112,4 +113,5 @@ def refresh_sdr():
 continue_loop = True
 while continue_loop:
     continue_loop = refresh_sdr()
-""")
+"""
+)

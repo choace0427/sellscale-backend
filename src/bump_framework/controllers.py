@@ -255,6 +255,13 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or None
     )
+    additional_context = (
+        get_request_parameter(
+            "additional_context", request, json=True, required=False, parameter_type=str
+        )
+        or None
+    )
+    
     if bump_delay_days < 2:
         return jsonify({"status": "error", "message": "Bump delay must be at least 2 days."}), 400
 
@@ -297,6 +304,7 @@ def patch_bump_framework(client_sdr_id: int):
         use_account_research=use_account_research,
         default=default,
         blocklist=blocklist,
+        additional_context=additional_context
     )
 
     return jsonify({"status": "success", "data": {}}), 200 if modified else 400
