@@ -8,9 +8,9 @@ from src.prospecting.models import ProspectOverallStatus
 
 
 class BumpLength(enum.Enum):
-    SHORT = 'SHORT'
-    MEDIUM = 'MEDIUM'
-    LONG = 'LONG'
+    SHORT = "SHORT"
+    MEDIUM = "MEDIUM"
+    LONG = "LONG"
 
 
 class BumpFramework(db.Model):
@@ -21,28 +21,29 @@ class BumpFramework(db.Model):
     description = db.Column(db.String(4000), nullable=True)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
-    client_sdr_id = db.Column(
-        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True)
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
 
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
     substatus = db.Column(db.String(255), nullable=True)
 
     default = db.Column(db.Boolean, nullable=False, default=False)
 
-    bump_length = db.Column(db.Enum(BumpLength),
-                            nullable=True, default=BumpLength.MEDIUM)
+    bump_length = db.Column(
+        db.Enum(BumpLength), nullable=True, default=BumpLength.MEDIUM
+    )
     bumped_count = db.Column(db.Integer, nullable=True, default=0)
     bump_delay_days = db.Column(db.Integer, nullable=True, default=2)
 
-    sellscale_default_generated = db.Column(
-        db.Boolean, nullable=True, default=False)
-    use_account_research = db.Column(
-        db.Boolean, nullable=True, default=True)
+    sellscale_default_generated = db.Column(db.Boolean, nullable=True, default=False)
+    use_account_research = db.Column(db.Boolean, nullable=True, default=True)
 
     etl_num_times_used = db.Column(db.Integer, nullable=True, default=0)
     etl_num_times_converted = db.Column(db.Integer, nullable=True, default=0)
+
+    additional_context = db.Column(db.String, nullable=True, default="")
 
     transformer_blocklist = db.Column(
         db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
@@ -50,9 +51,7 @@ class BumpFramework(db.Model):
     )  # use this list to blocklist transformer durings message generation
 
     def to_dict(self):
-        archetype: ClientArchetype = ClientArchetype.query.get(
-            self.client_archetype_id
-        )
+        archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
 
         return {
             "id": self.id,
@@ -62,7 +61,9 @@ class BumpFramework(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "client_archetype_archetype": archetype.archetype if archetype else None,
-            "overall_status": self.overall_status.value if self.overall_status else None,
+            "overall_status": self.overall_status.value
+            if self.overall_status
+            else None,
             "substatus": self.substatus,
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
@@ -82,7 +83,9 @@ class JunctionBumpFrameworkClientArchetype(db.Model):
     __tablename__ = "junction_bump_framework_client_archetype"
 
     id = db.Column(db.Integer, primary_key=True)
-    bump_framework_id = db.Column(db.Integer, db.ForeignKey(
-        "bump_framework.id"), nullable=False)
-    client_archetype_id = db.Column(db.Integer, db.ForeignKey(
-        "client_archetype.id"), nullable=False)
+    bump_framework_id = db.Column(
+        db.Integer, db.ForeignKey("bump_framework.id"), nullable=False
+    )
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
