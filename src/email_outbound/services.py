@@ -80,8 +80,7 @@ def batch_update_emails(
 
         prospect: Prospect = Prospect.query.get(prospect_id_payload)
         prospect_email_id: int = prospect.approved_prospect_email_id
-        prospect_email: ProspectEmail = ProspectEmail.query.get(
-            prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
 
         if not prospect_email:
             continue
@@ -99,12 +98,11 @@ def batch_update_emails(
 
 
 def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
-    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(
-        campaign_id)
+    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     if not outbound_campaign:
         return False, "Campaign not found"
     outbound_campaign.status = OutboundCampaignStatus.COMPLETE
-    outbound_campaign.calculate_cost()
+    # outbound_campaign.calculate_cost()
     db.session.add(outbound_campaign)
 
     prospects: list[Prospect] = Prospect.query.filter(
@@ -114,7 +112,8 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     time_index = datetime.datetime.utcnow()
     for prospect in prospects:
         prospect_email: ProspectEmail = ProspectEmail.query.get(
-            prospect.approved_prospect_email_id)
+            prospect.approved_prospect_email_id
+        )
         prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
         prospect_email.email_status = ProspectEmailStatus.SENT
 
@@ -247,8 +246,7 @@ def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) ->
 
     """
     for prospect_id in prospect_ids:
-        update_prospect_email_flow_statuses.apply_async(
-            args=[prospect_id, campaign_id])
+        update_prospect_email_flow_statuses.apply_async(args=[prospect_id, campaign_id])
 
     return True
 
@@ -290,14 +288,13 @@ def update_prospect_email_flow_statuses(
             personalized_first_line.message_status = GeneratedMessageStatus.SENT
 
             # Updates to outbound_campaign
-            campaign: OutboundCampaign = OutboundCampaign.query.get(
-                campaign_id)
+            campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
             if campaign and campaign.campaign_type == GeneratedMessageType.LINKEDIN:
                 return "Campaign {} is not an email campaign".format(campaign.id), False
             campaign.status = OutboundCampaignStatus.COMPLETE
 
             # Calculate the cost
-            campaign.calculate_cost()
+            # campaign.calculate_cost()
 
             # Commit
             db.session.add(campaign)
@@ -574,10 +571,12 @@ def update_prospect_email_outreach_status(
         db.session.commit()
 
         # Create a status record
-        prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords(
-            prospect_email_id=prospect_email_id,
-            from_status=old_status,
-            to_status=new_status,
+        prospect_email_status_record: ProspectEmailStatusRecords = (
+            ProspectEmailStatusRecords(
+                prospect_email_id=prospect_email_id,
+                from_status=old_status,
+                to_status=new_status,
+            )
         )
         db.session.add(prospect_email_status_record)
         db.session.commit()
@@ -645,8 +644,7 @@ def get_sequences(client_sdr_id: int, archetype_id: int):
         Sequence.client_sdr_id == client_sdr_id,
     ).all()
     return (
-        jsonify({"message": "Success", "data": [
-                s.to_dict() for s in sequences]}),
+        jsonify({"message": "Success", "data": [s.to_dict() for s in sequences]}),
         200,
     )
 
@@ -694,31 +692,33 @@ def get_email_messages_with_prospect_transcript_format(
 
     transcript: list[str] = []
     for message in messages:
-        date_received = message.get('date_received')
-        sender_name = ''
-        sender_class = ''
-        body = ''
+        date_received = message.get("date_received")
+        sender_name = ""
+        sender_class = ""
+        body = ""
 
         # Parse the email body
-        body: str = message.get('body')
-        bs = BeautifulSoup(body, 'html.parser')
+        body: str = message.get("body")
+        bs = BeautifulSoup(body, "html.parser")
         body: str = bs.get_text()
         body: str = re.sub(r"\n+", "\n", body)
         body: str = "> " + body
         body: str = body.strip().replace("\n", "\n> ")
 
-        from_sdr = message.get('from_sdr')
-        from_prospect = message.get('from_prospect')
+        from_sdr = message.get("from_sdr")
+        from_prospect = message.get("from_prospect")
         if from_sdr:
             sender_name = sdr_name
-            sender_class = 'SDR'
+            sender_class = "SDR"
         elif from_prospect:
             sender_name = prospect_name
-            sender_class = 'Prospect'
+            sender_class = "Prospect"
         else:
-            sender_name = message.get('message_from', [{'name': ''}])[0].get('name')
-            sender_class = 'Other'
+            sender_name = message.get("message_from", [{"name": ""}])[0].get("name")
+            sender_class = "Other"
 
-        transcript.append(f"({sender_name}) ({sender_class}) ({date_received}):\n{body}")
+        transcript.append(
+            f"({sender_name}) ({sender_class}) ({date_received}):\n{body}"
+        )
 
     return transcript

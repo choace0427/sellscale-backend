@@ -7,6 +7,7 @@ from model_import import (
     Client,
     ClientSDR,
 )
+from src.client.models import ClientArchetype
 from src.li_conversation.models import LinkedinConversationEntry
 from src.utils.slack import send_slack_message
 from src.utils.slack import URL_MAP
@@ -40,6 +41,8 @@ def send_status_change_slack_block(
             raise ValueError("Invalid status")
 
     client: Client = Client.query.get(prospect.client_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    persona = client_archetype.archetype
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     # Find available webhook urls
@@ -96,6 +99,19 @@ def send_status_change_slack_block(
             },
         }
     )
+
+    message_blocks.append(
+        {  # Add persona
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Persona:* {persona}".format(
+                    persona=persona if persona else "-"
+                ),
+            },
+        }
+    )
+
     message_blocks.append(
         {  # Add prospect title and (optional) last message
             "type": "section",
@@ -274,6 +290,8 @@ def send_slack_block(
     new_status: ProspectStatus = None,
 ):
     client: Client = Client.query.get(prospect.client_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    persona = client_archetype.archetype
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     li_last_message_from_prospect = prospect.li_last_message_from_prospect
@@ -305,6 +323,15 @@ def send_slack_block(
                     + str(prospect.id)
                     + message_suffix,
                     "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Persona:* {persona}\n".format(
+                        persona=persona if persona else "-"
+                    ),
                 },
             },
             {

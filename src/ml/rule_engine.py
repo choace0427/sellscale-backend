@@ -165,6 +165,12 @@ def run_message_rule_engine(message_id: int):
         )
         highlighted_words.append("stealth")
 
+    if "fancy a chat" in completion:
+        problems.append(
+            "Contains 'fancy a chat'. Do not use this phrase in the completions."
+        )
+        highlighted_words.append("fancy a")
+
     highlighted_words = list(filter(lambda x: x != ".", highlighted_words))
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)

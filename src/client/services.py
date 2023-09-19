@@ -24,6 +24,7 @@ from flask import jsonify
 import time
 import json
 from datetime import datetime
+from sqlalchemy.orm.attributes import flag_modified
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -1932,6 +1933,8 @@ def daily_pb_launch_schedule_update():
 
 @celery.task()
 def update_phantom_buster_launch_schedule(client_sdr_id: int):
+    # Get the ClientSDR
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     # Update the PhantomBuster to reflect the new SLA target
     config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
@@ -1939,13 +1942,32 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
         PhantomBusterConfig.pb_type == PhantomBusterType.OUTBOUND_ENGINE,
     ).first()
     if not config:
+        send_slack_message(
+            message="PhantomBuster config not found for *{}* (#{})".format(
+                client_sdr.name,
+                client_sdr.id,
+            ),
+            webhook_urls=[URL_MAP["operations-sla-updater"]],
+        )
         return False, "PhantomBuster config not found"
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=config.phantom_uuid)
     result = pb_agent.update_launch_schedule()
 
     if result:
+        send_slack_message(
+            message="The PhantomBuster for *{}* (#{}) has been updated according to the SLA schedule. Outbound: {}".format(
+                client_sdr.name, client_sdr.id, result.get("actual_target")
+            ),
+            webhook_urls=[URL_MAP["operations-sla-updater"]],
+        )
         return True, "PhantomBuster launch schedule updated"
 
+    send_slack_message(
+        message="🚨 The PhantomBuster for *{}* (#{}) failed to update. Investigate.".format(
+            client_sdr.name, client_sdr.id, result.get("actual_target")
+        ),
+        webhook_urls=[URL_MAP["operations-sla-updater"]],
+    )
     return False, "PhantomBuster launch schedule failed to update"
 
 
@@ -2453,6 +2475,7 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.id,
             ClientArchetype.archetype.label("name"),
             ClientArchetype.active,
+            ClientArchetype.emoji,
             ClientArchetype.icp_matching_prompt,
             ClientArchetype.icp_matching_option_filters,
             ClientArchetype.is_unassigned_contact_archetype,
@@ -2462,6 +2485,11 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.transformer_blocklist,
             ClientArchetype.transformer_blocklist_initial,
             func.count(distinct(Prospect.id)).label("num_prospects"),
+            func.avg(Prospect.icp_fit_score)
+            .filter(Prospect.icp_fit_score.isnot(None))
+            .filter(Prospect.icp_fit_score >= 0)
+            .filter(Prospect.overall_status == "PROSPECTED")
+            .label("avg_icp_fit_score"),
             func.count(distinct(Prospect.id))
             .filter(Prospect.approved_outreach_message_id.is_(None))
             .filter(
@@ -2514,26 +2542,30 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
 
     results = db.session.execute(
         """
-        select
-          client_archetype.archetype,
+        SELECT
+            client_archetype.archetype,
             client_archetype.id,
             client_archetype.created_at,
             client_archetype.active,
-            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
-            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
-            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "LI-SENT",
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SENT_OUTREACH') "LI-SENT",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON')) "LI-DEMO",
             client_archetype.emoji
-            from client_archetype
-            left join prospect on prospect.archetype_id = client_archetype.id
-            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
-            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
-            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-        where client_archetype.client_sdr_id = {client_sdr_id}
-            and client_archetype.is_unassigned_contact_archetype != true
-        group by 2;
+        FROM
+            client_archetype
+            LEFT JOIN prospect ON prospect.archetype_id = client_archetype.id
+            LEFT JOIN prospect_email ON prospect_email.id = prospect.approved_prospect_email_id
+            LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
+            LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
+        WHERE
+            client_archetype.client_sdr_id = {client_sdr_id}
+            AND client_archetype.is_unassigned_contact_archetype != TRUE
+        GROUP BY
+            2;
         """.format(
             client_sdr_id=client_sdr_id
         )
@@ -2551,7 +2583,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         7: "li_sent",
         8: "li_opened",
         9: "li_replied",
-        10: "emoji",
+        10: "li_demo",
+        11: "emoji",
     }
 
     # Convert and format output
@@ -3040,3 +3073,26 @@ def propagate_contract_value(client_id: int, new_value: int):
         db.session.add(prospect)
 
     db.session.commit()
+
+
+def write_client_pre_onboarding_survey(
+    client_id: int, key: str, value: str, retries_left: int = 3
+):
+    """Writes a client pre-onboarding survey response to the database"""
+    try:
+        client: Client = Client.query.get(client_id)
+        client.pre_onboarding_survey = client.pre_onboarding_survey or {}
+        client.pre_onboarding_survey[key] = value
+        flag_modified(client, "pre_onboarding_survey")
+
+        db.session.add(client)
+        db.session.commit()
+
+        return True
+    except Exception as e:
+        if retries_left > 0:
+            return write_client_pre_onboarding_survey(
+                client_id, key, value, retries_left - 1
+            )
+        else:
+            return False

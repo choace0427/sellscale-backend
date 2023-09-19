@@ -298,8 +298,8 @@ scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
 scheduler.add_job(func=run_queued_gm_jobs, trigger="interval", seconds=30)
 
 # Hourly triggers
-scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
-scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
+# scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
+# scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
 scheduler.add_job(
     func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
 )

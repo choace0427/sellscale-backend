@@ -14,6 +14,7 @@ from src.client.services import (
     get_demo_feedback,
     get_demo_feedback_for_client,
     toggle_client_sdr_auto_bump,
+    write_client_pre_onboarding_survey,
 )
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
@@ -92,6 +93,7 @@ from src.client.services_client_archetype import (
     activate_client_archetype,
     create_empty_archetype_prospect_filters,
     deactivate_client_archetype,
+    get_archetype_conversion_rates,
     get_email_blocks_configuration,
     hard_deactivate_client_archetype,
     modify_archetype_prospect_filters,
@@ -110,7 +112,13 @@ from src.client.services_client_pod import (
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.client.models import ClientArchetype, ClientSDR, Client, DemoFeedback, WarmupScheduleLinkedIn
+from src.client.models import (
+    ClientArchetype,
+    ClientSDR,
+    Client,
+    DemoFeedback,
+    WarmupScheduleLinkedIn,
+)
 from app import db
 import os
 
@@ -371,6 +379,20 @@ def get_archetypes(client_sdr_id: int):
     return jsonify({"message": "Success", "archetypes": archetypes}), 200
 
 
+@CLIENT_BLUEPRINT.route("/archetype/get_archetype", methods=["GET"])
+@require_user
+def get_archetype(client_sdr_id: int):
+    """Gets a single archetype for a client SDR, with indepth details"""
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True, parameter_type=int
+    )
+
+    archetype = get_archetype_conversion_rates(
+        client_sdr_id=client_sdr_id, archetype_id=archetype_id
+    )
+    return jsonify({"message": "Success", "archetype": archetype}), 200
+
+
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes/overview", methods=["GET"])
 @require_user
 def get_archetypes_overview(client_sdr_id: int):
@@ -410,8 +432,16 @@ def patch_sdr(client_sdr_id: int):
     email = get_request_parameter("email", request, json=True, required=False)
     title = get_request_parameter("title", request, json=True, required=False)
 
-    ai_outreach = get_request_parameter("ai_outreach", request, json=True, required=False, parameter_type=bool)
-    browser_extension_ui_overlay = get_request_parameter("browser_extension_ui_overlay", request, json=True, required=False, parameter_type=bool)
+    ai_outreach = get_request_parameter(
+        "ai_outreach", request, json=True, required=False, parameter_type=bool
+    )
+    browser_extension_ui_overlay = get_request_parameter(
+        "browser_extension_ui_overlay",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+    )
 
     disable_ai_on_prospect_respond = get_request_parameter(
         "disable_ai_on_prospect_respond",
@@ -1061,7 +1091,9 @@ def post_archetype_set_transformer_blocklist():
     return "400", message
 
 
-@CLIENT_BLUEPRINT.route("/archetype/set_transformer_blocklist_initial", methods=["POST"])
+@CLIENT_BLUEPRINT.route(
+    "/archetype/set_transformer_blocklist_initial", methods=["POST"]
+)
 def post_archetype_set_transformer_blocklist_initial():
     client_archetype_id: int = get_request_parameter(
         "client_archetype_id", request, json=True, required=True
@@ -2315,5 +2347,46 @@ def post_update_persona_emoji(client_sdr_id: int):
 
     if not success:
         return jsonify({"message": "Failed to update persona emoji"}), 400
+
+    return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/pre_onboarding_survey", methods=["GET"])
+@require_user
+def get_pre_onboarding_survey(client_sdr_id: int):
+    """Gets the pre onboarding survey for an SDR"""
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return jsonify({"message": "Invalid SDR"}), 400
+
+    client: Client = Client.query.get(client_sdr.client_id)
+    if not client:
+        return jsonify({"message": "Invalid Client"}), 400
+
+    pre_onboarding_survey = client.pre_onboarding_survey or {}
+
+    return jsonify(pre_onboarding_survey), 200
+
+
+@CLIENT_BLUEPRINT.route("/pre_onboarding_survey", methods=["POST"])
+@require_user
+def post_pre_onboarding_survey(client_sdr_id: int):
+    """Writes a key value pair to the pre onboarding survey for a client"""
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return jsonify({"message": "Invalid SDR"}), 400
+
+    key = get_request_parameter("key", request, json=True, required=True)
+    value = get_request_parameter("value", request, json=True, required=True)
+
+    success = write_client_pre_onboarding_survey(
+        client_id=client_sdr.client_id,
+        key=key,
+        value=value,
+    )
+    if not success:
+        return jsonify({"message": "Failed to write to pre onboarding survey"}), 400
 
     return jsonify({"message": "Success"}), 200
