@@ -1868,7 +1868,12 @@ def get_prospect_li_history(prospect_id: int):
     }
 
 
-def send_li_outreach_connection(prospect_id: int, message: str, campaign_id: Optional[int] = None, config_id: Optional[int] = None) -> int:
+def send_li_outreach_connection(
+    prospect_id: int,
+    message: str,
+    campaign_id: Optional[int] = None,
+    config_id: Optional[int] = None,
+) -> int:
     """Sends a LinkedIn outreach connection message to a prospect. This is very async, it will happen eventually
     based on our PhantomBuster schedule.
 
@@ -1884,7 +1889,7 @@ def send_li_outreach_connection(prospect_id: int, message: str, campaign_id: Opt
     # Create a new GeneratedMessage
     outreach_msg = GeneratedMessage(
         prospect_id=prospect_id,
-        outbound_campaign_id=None,
+        # outbound_campaign_id=None,
         research_points=[],
         prompt="",
         completion=message,
