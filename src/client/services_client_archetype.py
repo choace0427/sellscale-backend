@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy import update
 from app import db
 from model_import import ResearchPointType, ClientArchetype
@@ -75,7 +76,8 @@ def replicate_transformer_blocklist(
     Returns:
         tuple[bool, str]: success & message
     """
-    source_ca: ClientArchetype = ClientArchetype.query.get(source_client_archetype_id)
+    source_ca: ClientArchetype = ClientArchetype.query.get(
+        source_client_archetype_id)
     if not source_ca:
         return False, "Source client archetype not found"
     destination_ca: ClientArchetype = ClientArchetype.query.get(
@@ -149,6 +151,57 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
     return list_of_archetypes
 
 
+def get_archetype_activity(
+    client_sdr_id: int,
+    archetype_id: Optional[int] = None,
+    aggregate: Optional[bool] = True,
+    custom_start_date: Optional[datetime] = None,
+    custom_end_date: Optional[datetime] = None,
+) -> list[dict]:
+    # TODO: Use the archetype_id to filter the results
+    # TODO: Use the aggregate flag to determine if we should aggregate the results or not.
+    # TODO: Use the custom_start_date and custom_end_date to filter the results
+
+    interval = '1 day'
+
+    results = db.session.execute(
+        """
+        SELECT
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SENT_OUTREACH'
+                AND prospect_status_records.created_at > now() - '{interval}'::interval) "messages_sent",
+            count(DISTINCT linkedin_conversation_entry.id) FILTER (WHERE linkedin_conversation_entry.date > now() - '{interval}'::interval
+                AND linkedin_conversation_entry.ai_generated
+                AND prospect.overall_status IN ('ACCEPTED', 'BUMPED')) "bumps_sent",
+            count(DISTINCT linkedin_conversation_entry.id) FILTER (WHERE linkedin_conversation_entry.date > now() - '{interval}'::interval
+                AND linkedin_conversation_entry.ai_generated
+                AND prospect.overall_status IN ('ACTIVE_CONVO')) "replies_sent"
+        FROM
+            prospect
+            LEFT JOIN linkedin_conversation_entry ON linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
+            LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
+                AND client_sdr_id = {client_sdr_id};
+        """.format(
+            interval=interval,
+            client_sdr_id=client_sdr_id
+        )
+    ).fetchall()
+
+    # Index to column
+    column_map = {
+        0: "messages_sent",
+        1: "bumps_sent",
+        2: "replies_sent",
+    }
+
+    # Convert and format output
+    results = [
+        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        for row in results
+    ]
+
+    return results
+
+
 def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dict:
 
     results = db.session.execute(
@@ -201,7 +254,8 @@ def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dic
     }
 
     # Convert and format output
-    result = {column_map.get(i, "unknown"): value for i, value in enumerate(results)}
+    result = {column_map.get(i, "unknown"): value for i,
+              value in enumerate(results)}
 
     return result
 
@@ -672,7 +726,8 @@ def move_prospects_to_archetype(
     if not sdr:
         return False
 
-    target_archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
+    target_archetype: ClientArchetype = ClientArchetype.query.get(
+        target_archetype_id)
     if not target_archetype:
         return False
     if target_archetype.client_sdr_id != sdr.id:
