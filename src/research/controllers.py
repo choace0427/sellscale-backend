@@ -14,6 +14,7 @@ from src.research.services import (
     flag_research_point,
     get_all_research_point_types,
     run_create_custom_research_entries,
+    research_point_acceptance_rate,
 )
 
 from .linkedin.services import (
@@ -235,3 +236,12 @@ def post_create_custom_research_points(client_sdr_id: int):
         jsonify({"message": "Upload jobs successfully scheduled."}),
         200,
     )
+
+
+@RESEARCH_BLUEPRINT.route("/acceptance_rates", methods=["GET"])
+@require_user
+def get_research_point_acceptance_rates(client_sdr_id: int):
+
+    data = research_point_acceptance_rate()
+
+    return jsonify({"message": "Success", "data": data}), 200

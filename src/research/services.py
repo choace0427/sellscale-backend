@@ -2,6 +2,7 @@ from app import db
 from app import db, celery
 from model_import import ResearchPayload, ResearchPoints, ResearchType
 from src.research.models import ResearchPointType, IScraperPayloadCache, IScraperPayloadType
+from sqlalchemy import text
 
 import json
 
@@ -222,3 +223,23 @@ def get_all_research_point_types():
             "deprecated": False,
         }
     ]
+
+
+def research_point_acceptance_rate():
+
+    data = db.session.execute(
+        text(
+            """
+            select 
+	research_point.research_point_type,
+	cast(count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'ACCEPTED') as float) / count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "avg. acceptance %"
+from generated_message
+	join research_point on research_point.id = any(generated_message.research_points)
+	join prospect on prospect.approved_outreach_message_id = generated_message.id
+	join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+group by 1;
+        """
+        )
+    ).fetchall()
+
+    print(data)
