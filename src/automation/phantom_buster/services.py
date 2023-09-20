@@ -371,7 +371,7 @@ def collect_and_trigger_phantom_buster_sales_navigator_launches() -> None:
         db.session.commit()
 
         # Trigger PhantomBusterSalesNavigatorLaunch entry
-        run_phantom_buster_sales_navigator.delay(launch.id)
+        run_phantom_buster_sales_navigator(launch.id)
 
     return
 
