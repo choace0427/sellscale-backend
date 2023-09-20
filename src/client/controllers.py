@@ -422,7 +422,7 @@ def get_archetypes_activity(client_sdr_id: int):
         custom_start_date=custom_start_date,
         custom_end_date=custom_end_date,
     )
-    return jsonify({"message": "Success", "activities": activities}), 200
+    return jsonify({"message": "Success", "data": {"activities": activities}}), 200
 
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes/overview", methods=["GET"])
