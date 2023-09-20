@@ -191,6 +191,9 @@ def update_sdr_sla_targets(
     if not sdr:
         return False, "Client SDR not found."
 
+    old_weekly_linkedin_target = sdr.weekly_li_outbound_target
+    old_weekly_email_target = sdr.weekly_email_outbound_target
+
     # Update the Client SDR
     sdr.weekly_li_outbound_target = weekly_linkedin_target
     sdr.weekly_email_outbound_target = weekly_email_target
@@ -210,6 +213,18 @@ def update_sdr_sla_targets(
         # if sla_schedule.email_volume >= EMAIL_WARM_THRESHOLD:
         #     sdr.warmup_status_email = True
         db.session.commit()
+
+    # Adjust future week's SLA schedules, if they are at MAX then bump it up to the new target
+    sla_schedules: list[SLASchedule] = SLASchedule.query.filter(
+        SLASchedule.client_sdr_id == client_sdr_id,
+        SLASchedule.start_date > monday
+    ).all()
+    for schedule in sla_schedules:
+        if schedule.linkedin_volume == old_weekly_linkedin_target:
+            schedule.linkedin_volume = weekly_linkedin_target
+        if schedule.email_volume == old_weekly_email_target:
+            schedule.email_volume = weekly_email_target
+    db.session.commit()
 
     return True, "Success"
 
