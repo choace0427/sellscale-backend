@@ -241,5 +241,4 @@ group by 1;
         """
         )
     ).fetchall()
-
-    return data
+    return [dict(row) for row in data]
