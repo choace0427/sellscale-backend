@@ -242,4 +242,4 @@ group by 1;
         )
     ).fetchall()
 
-    print(data)
+    return data
