@@ -207,7 +207,9 @@ def modify_bump_framework(
     use_account_research: Optional[bool] = None,
     default: Optional[bool] = False,
     blocklist: Optional[list] = None,
-    additional_context: Optional[dict] = None,
+    additional_context: Optional[str] = None,
+    bump_framework_template_name: Optional[str] = None,
+    bump_framework_human_readable_prompt: Optional[str] = None,
 ) -> bool:
     """Modify a bump framework
 
@@ -255,8 +257,16 @@ def modify_bump_framework(
     if blocklist:
         bump_framework.transformer_blocklist = blocklist
 
-    if additional_context:
+    if additional_context != None:
         bump_framework.additional_context = additional_context
+
+    if bump_framework_template_name != None:
+        bump_framework.bump_framework_template_name = bump_framework_template_name
+
+    if bump_framework_human_readable_prompt != None:
+        bump_framework.bump_framework_human_readable_prompt = (
+            bump_framework_human_readable_prompt
+        )
 
     if default:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(

@@ -79,6 +79,8 @@ class BumpFramework(db.Model):
             if self.transformer_blocklist
             else [],
             "additional_context": self.additional_context,
+            "bump_framework_template_name": self.bump_framework_template_name,
+            "bump_framework_human_readable_prompt": self.bump_framework_human_readable_prompt,
         }
 
 

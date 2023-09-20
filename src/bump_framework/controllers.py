@@ -1,3 +1,4 @@
+from httpx import get
 from app import db, app
 
 from flask import Blueprint, request, jsonify
@@ -50,13 +51,21 @@ def get_bump_frameworks(client_sdr_id: int):
     )
     exclude_client_archetype_ids = (
         get_request_parameter(
-            "exclude_client_archetype_ids", request, json=False, required=False, parameter_type=list
+            "exclude_client_archetype_ids",
+            request,
+            json=False,
+            required=False,
+            parameter_type=list,
         )
         or []
     )
     exclude_ss_default = (
         get_request_parameter(
-            "exclude_ss_default", request, json=False, required=False, parameter_type=bool
+            "exclude_ss_default",
+            request,
+            json=False,
+            required=False,
+            parameter_type=bool,
         )
         or False
     )
@@ -69,7 +78,8 @@ def get_bump_frameworks(client_sdr_id: int):
     bumped_count = (
         get_request_parameter(
             "bumped_count", request, json=False, required=False, parameter_type=int
-        ) or None
+        )
+        or None
     )
 
     overall_statuses_enumed = []
@@ -147,10 +157,8 @@ def post_create_bump_framework(client_sdr_id: int):
         )
         or None
     )
-    use_account_research = (
-        get_request_parameter(
-            "use_account_research", request, json=True, required=False, parameter_type=bool
-        )
+    use_account_research = get_request_parameter(
+        "use_account_research", request, json=True, required=False, parameter_type=bool
     )
 
     # Get the enum value for the overall status
@@ -239,15 +247,11 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or None
     )
-    use_account_research = (
-        get_request_parameter(
-            "use_account_research", request, json=True, required=False, parameter_type=bool
-        )
+    use_account_research = get_request_parameter(
+        "use_account_research", request, json=True, required=False, parameter_type=bool
     )
-    blocklist = (
-        get_request_parameter(
-            "blocklist", request, json=True, required=False, parameter_type=list
-        )
+    blocklist = get_request_parameter(
+        "blocklist", request, json=True, required=False, parameter_type=list
     )
     bump_delay_days = (
         get_request_parameter(
@@ -255,15 +259,31 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or None
     )
-    additional_context = (
-        get_request_parameter(
-            "additional_context", request, json=True, required=False, parameter_type=str
-        )
-        or None
+    additional_context = get_request_parameter(
+        "additional_context", request, json=True, required=False, parameter_type=str
     )
-    
+    bump_framework_template_name = get_request_parameter(
+        "bump_framework_template_name",
+        request,
+        json=True,
+        required=False,
+        parameter_type=str,
+    )
+    bump_framework_human_readable_prompt = get_request_parameter(
+        "bump_framework_human_readable_prompt",
+        request,
+        json=True,
+        required=False,
+        parameter_type=str,
+    )
+
     if bump_delay_days < 2:
-        return jsonify({"status": "error", "message": "Bump delay must be at least 2 days."}), 400
+        return (
+            jsonify(
+                {"status": "error", "message": "Bump delay must be at least 2 days."}
+            ),
+            400,
+        )
 
     # Get the enum value for the overall status
     found_key = False
@@ -289,7 +309,15 @@ def patch_bump_framework(client_sdr_id: int):
     if not bump_framework:
         return jsonify({"status": "error", "message": "Bump framework not found."}), 404
     elif bump_framework.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "This bump framework does not belong to you."}), 401
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "This bump framework does not belong to you.",
+                }
+            ),
+            401,
+        )
 
     modified = modify_bump_framework(
         client_sdr_id=client_sdr_id,
@@ -304,7 +332,9 @@ def patch_bump_framework(client_sdr_id: int):
         use_account_research=use_account_research,
         default=default,
         blocklist=blocklist,
-        additional_context=additional_context
+        additional_context=additional_context,
+        bump_framework_template_name=bump_framework_template_name,
+        bump_framework_human_readable_prompt=bump_framework_human_readable_prompt,
     )
 
     return jsonify({"status": "success", "data": {}}), 200 if modified else 400
@@ -318,9 +348,22 @@ def get_bump_framework(client_sdr_id: int, bump_id: int):
     if not bump_framework:
         return jsonify({"status": "error", "message": "Bump framework not found."}), 404
     elif bump_framework.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "This bump framework does not belong to you."}), 401
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "This bump framework does not belong to you.",
+                }
+            ),
+            401,
+        )
 
-    return jsonify({"status": "success", "data": {"bump_framework": bump_framework.to_dict()}}), 200
+    return (
+        jsonify(
+            {"status": "success", "data": {"bump_framework": bump_framework.to_dict()}}
+        ),
+        200,
+    )
 
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump/deactivate", methods=["POST"])
@@ -445,9 +488,15 @@ def post_clone_bump_framework(client_sdr_id: int):
     new_id = clone_bump_framework(
         client_sdr_id=client_sdr_id,
         bump_framework_id=existent_bump_framework_id,
-        target_archetype_id=new_archetype_id
+        target_archetype_id=new_archetype_id,
     )
     if new_id != -1:
-        return jsonify({"status": "success", "data": {"bump_framework_id": new_id}}), 200
+        return (
+            jsonify({"status": "success", "data": {"bump_framework_id": new_id}}),
+            200,
+        )
     else:
-        return jsonify({"status": "error", "message": "Could not import bump framework"}), 400
+        return (
+            jsonify({"status": "error", "message": "Could not import bump framework"}),
+            400,
+        )
