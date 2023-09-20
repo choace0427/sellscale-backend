@@ -378,11 +378,11 @@ def collect_and_trigger_phantom_buster_sales_navigator_launches() -> None:
 
 @celery.task(bind=True, max_retries=3)
 def run_phantom_buster_sales_navigator(self, launch_id: int) -> tuple[bool, str]:
+    launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+    )
     try:
         # Get Launch entry
-        launch: PhantomBusterSalesNavigatorLaunch = (
-            PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
-        )
         pb_sales_navigator: PhantomBusterSalesNavigatorConfig = (
             PhantomBusterSalesNavigatorConfig.query.get(
                 launch.sales_navigator_config_id

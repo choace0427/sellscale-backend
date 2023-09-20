@@ -3,7 +3,7 @@ from model_import import (
     EmailSchema,
     ProspectEmail,
     StackRankedMessageGenerationConfiguration,
-    ClientSDR
+    ClientSDR,
 )
 from src.research.models import ResearchPayload, ResearchPoints
 from model_import import Prospect, GNLPModelType
@@ -134,7 +134,7 @@ def generate_few_shot_generation_completion(prospect_id, notes):
     response = openai.Completion.create(
         model="text-davinci-003",
         prompt=few_shot_prompt,
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=100,
         top_p=1,
         best_of=8,
@@ -162,9 +162,12 @@ def can_generate_with_patterns(client_sdr_id: int):
     """
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = sdr.client_id
-    return StackRankedMessageGenerationConfiguration.query.filter(
-        StackRankedMessageGenerationConfiguration.client_id == client_id,
-    ).count() > 0
+    return (
+        StackRankedMessageGenerationConfiguration.query.filter(
+            StackRankedMessageGenerationConfiguration.client_id == client_id,
+        ).count()
+        > 0
+    )
 
 
 def clear_all_good_messages_by_archetype_id(archetype_id: int):

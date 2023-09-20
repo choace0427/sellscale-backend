@@ -2861,7 +2861,7 @@ Keep the whole message 1-2 sentences and 1 paragraph long. Keep it short!""",
             [
                 {"role": "system", "content": prompt},
             ],
-            temperature=0.7,
+            temperature=0.65,
             max_tokens=240,
             model=OPENAI_CHAT_GPT_4_MODEL,
         )

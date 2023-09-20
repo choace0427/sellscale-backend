@@ -161,7 +161,7 @@ def get_config_completion(
         [
             {"role": "system", "content": few_shot_prompt},
         ],
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=240,
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="VOICE_MSG",
@@ -185,7 +185,7 @@ def get_computed_prompt_completion(
         [
             {"role": "system", "content": few_shot_prompt},
         ],
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=100,
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="VOICE_MSG",
@@ -216,7 +216,7 @@ def get_personalized_first_line_for_client(
     response = openai.Completion.create(
         model="text-davinci-003",
         prompt=few_shot_prompt,
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=256,
         top_p=1,
         frequency_penalty=0,
