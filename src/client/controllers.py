@@ -16,6 +16,7 @@ from src.client.services import (
     toggle_client_sdr_auto_bump,
     write_client_pre_onboarding_survey,
 )
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
 from model_import import ClientPod
@@ -93,6 +94,7 @@ from src.client.services_client_archetype import (
     activate_client_archetype,
     create_empty_archetype_prospect_filters,
     deactivate_client_archetype,
+    get_archetype_activity,
     get_archetype_conversion_rates,
     get_email_blocks_configuration,
     hard_deactivate_client_archetype,
@@ -391,6 +393,36 @@ def get_archetype(client_sdr_id: int):
         client_sdr_id=client_sdr_id, archetype_id=archetype_id
     )
     return jsonify({"message": "Success", "archetype": archetype}), 200
+
+
+@CLIENT_BLUEPRINT.route("/archetype/get_archetypes/activity", methods=["GET"])
+@require_user
+def get_archetypes_activity(client_sdr_id: int):
+    """Gets all the archetypes for a client SDR, with option to search filter by archetype name"""
+    archeytpe_id = get_request_parameter(
+        "archetype_id", request, json=False, required=False, parameter_type=int
+    )
+    aggregate = get_request_parameter(
+        "aggregate", request, json=False, required=False, parameter_type=bool
+    )
+    custom_start_date = get_request_parameter(
+        "custom_start_date", request, json=False, required=False, parameter_type=str
+    )
+    custom_end_date = get_request_parameter(
+        "custom_end_date", request, json=False, required=False, parameter_type=str
+    )
+
+    custom_start_date = convert_string_to_datetime(custom_start_date) if custom_start_date else None
+    custom_end_date = convert_string_to_datetime(custom_end_date) if custom_end_date else None
+
+    activities = get_archetype_activity(
+        client_sdr_id=client_sdr_id,
+        archetype_id=archeytpe_id,
+        aggregate=aggregate,
+        custom_start_date=custom_start_date,
+        custom_end_date=custom_end_date,
+    )
+    return jsonify({"message": "Success", "data": {"activities": activities}}), 200
 
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes/overview", methods=["GET"])
