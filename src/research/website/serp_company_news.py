@@ -36,7 +36,7 @@ def create_company_news_summary_point(
     response = openai.Completion.create(
         engine="davinci",
         prompt=fewshots + prompt,
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=150,
         stop=["--"],
     )

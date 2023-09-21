@@ -355,7 +355,10 @@ def send_icp_classification_change_message(
 
 
 def patch_icp_classification_prompt(
-    archetype_id: int, prompt: str, send_slack_message: Optional[bool] = False, option_filters: Optional[dict] = None
+    archetype_id: int,
+    prompt: str,
+    send_slack_message: Optional[bool] = False,
+    option_filters: Optional[dict] = None,
 ) -> bool:
     """Modifies the ICP Classification Prompt for a given archetype id.
 
@@ -645,7 +648,7 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
             {prospect_company_description}
             '''\n\n"""
 
-        #print(prompt)
+        # print(prompt)
 
         prompt += HARD_CODE_ICP_PROMPT
 
@@ -680,6 +683,7 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
     except Exception as e:
 
         from src.utils.slack import send_slack_message, URL_MAP
+
         stack_trace = traceback.format_exc()
         send_slack_message(
             message=f"Error when classifying prospect {prospect_id} for archetype {archetype_id}: {str(e)}\n{stack_trace}",
@@ -1190,7 +1194,7 @@ def determine_account_research_from_convo_and_bump_framework(
 
     response = get_text_generation(
         messages,
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=240,
         model="gpt-3.5-turbo-16k",
         type="MISC_CLASSIFY",
@@ -1257,7 +1261,7 @@ def determine_best_bump_framework_from_convo(
 
     response = get_text_generation(
         messages,
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=240,
         model="gpt-3.5-turbo-16k",
         type="MISC_CLASSIFY",
@@ -1280,24 +1284,23 @@ def test_rate_limiter(self, rate: str):
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
 
-    
 
 def get_text_generation(
-        messages: list,
-        type: str,
-        model: str,
-        max_tokens: int,
-        prospect_id: Optional[int] = None,
-        client_sdr_id: Optional[int] = None,
-        temperature: Optional[float] = DEFAULT_TEMPERATURE,
-        use_cache: bool = False
-    ) -> Optional[str]:
+    messages: list,
+    type: str,
+    model: str,
+    max_tokens: int,
+    prospect_id: Optional[int] = None,
+    client_sdr_id: Optional[int] = None,
+    temperature: Optional[float] = DEFAULT_TEMPERATURE,
+    use_cache: bool = False,
+) -> Optional[str]:
     # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY" | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA"
 
     def normalize_string(string: str) -> str:
-        string = re.sub(r'\\n', ' ', string)
+        string = re.sub(r"\\n", " ", string)
         string = string.strip()  # Remove leading/trailing whitespace
-        string = ' '.join(string.split())
+        string = " ".join(string.split())
         return string
 
     try:
@@ -1320,10 +1323,11 @@ def get_text_generation(
             model=model,
             temperature=temperature,
         )
-        if not json_msgs: return response
+        if not json_msgs:
+            return response
 
         if isinstance(response, str):
-            
+
             text_gen = TextGeneration(
                 prompt=json_msgs,
                 completion=response,
@@ -1339,10 +1343,6 @@ def get_text_generation(
             db.session.commit()
 
             return response
-        
+
         else:
             return ""
-
-
-    
-

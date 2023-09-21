@@ -25,7 +25,7 @@ def get_current_company_description(data):
         response = wrapped_create_completion(
             model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
             prompt=prompt,
-            temperature=0.7,
+            temperature=0.65,
             max_tokens=30,
         )
 

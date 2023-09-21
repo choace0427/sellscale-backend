@@ -12,7 +12,9 @@ from src.ml.services import get_text_generation
 
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
-from src.email_outbound.services import get_email_messages_with_prospect_transcript_format
+from src.email_outbound.services import (
+    get_email_messages_with_prospect_transcript_format,
+)
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import AccountResearchPoints, ResearchPoints
@@ -24,7 +26,9 @@ DEFAULT_INITIAL_EMAIL_TEMPLATE = """<p>Hi [[First name]]</p><p></p><p>[[Personal
 
 DEFAULT_FOLLOWUP_EMAIL_TEMPLATE = """<p>Hi [[First name]],</p><p></p><p>I just wanted to followup and ask if you saw my previous message. [[Explain why I think a meeting would be valuable]].</p><p></p><p>[[Thank the prospect for taking the time to read your messages]]</p><p></p><p>Best,</p><p>[[My name]]</p><p>[[My title]]</p>"""
 
-DEFAULT_SUBJECT_LINE_TEMPLATE = """[[Infer a captivating subject line from the email body]]"""
+DEFAULT_SUBJECT_LINE_TEMPLATE = (
+    """[[Infer a captivating subject line from the email body]]"""
+)
 
 
 def ai_initial_email_prompt(
@@ -50,8 +54,7 @@ def ai_initial_email_prompt(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
         AccountResearchPoints.prospect_id == prospect.id
     ).all()
@@ -95,15 +98,14 @@ def ai_initial_email_prompt(
         EmailSequenceStep.client_archetype_id == client_archetype.id,
         EmailSequenceStep.active == True,
         EmailSequenceStep.default == True,
-        EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED
+        EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
     ).first()
     if sequence_step is not None:
         template = sequence_step.template
 
     # Get Sequence Step if it is specified
     if template_id is not None:
-        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
-            template_id)
+        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
         template = sequence_step.template
 
     # If we are testing a template, use that instead
@@ -208,9 +210,9 @@ def ai_followup_email_prompt(
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_email: ProspectEmail = ProspectEmail.query.get(
-        prospect.approved_prospect_email_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+        prospect.approved_prospect_email_id
+    )
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
         AccountResearchPoints.prospect_id == prospect.id
     ).all()
@@ -218,9 +220,15 @@ def ai_followup_email_prompt(
     # If Prospect is not in SENT_OUTREACH or BUMPED and we are not overriding the sequence step, then we should not be following up with them
     # Example: Prospect is in Active Conversation state, we shouldn't send a bump email
     # TODO: Eventually have intelligent systems that can handle automatically responding to prospect replies.
-    if prospect.overall_status not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED] and override_sequence_id is None and override_template is None:
+    if (
+        prospect.overall_status
+        not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED]
+        and override_sequence_id is None
+        and override_template is None
+    ):
         raise Exception(
-            "Prospect is not in SENT_OUTREACH or BUMPED status and shouldn't be followed up with.")
+            "Prospect is not in SENT_OUTREACH or BUMPED status and shouldn't be followed up with."
+        )
 
     # Collect company information
     client_sdr_name = client_sdr.name
@@ -267,7 +275,8 @@ def ai_followup_email_prompt(
     # Get the template from the sequence step
     if override_sequence_id:
         sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
-            override_sequence_id)
+            override_sequence_id
+        )
         template = sequence_step.template
     elif override_template:
         template = override_template
@@ -279,7 +288,7 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.client_archetype_id == client_archetype.id,
                 EmailSequenceStep.active == True,
                 EmailSequenceStep.default == True,
-                EmailSequenceStep.overall_status == ProspectOverallStatus.SENT_OUTREACH
+                EmailSequenceStep.overall_status == ProspectOverallStatus.SENT_OUTREACH,
             ).first()
             template = sequence_step.template
         elif prospect.overall_status == ProspectOverallStatus.BUMPED:
@@ -289,7 +298,7 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.active == True,
                 EmailSequenceStep.default == True,
                 EmailSequenceStep.overall_status == ProspectOverallStatus.BUMPED,
-                EmailSequenceStep.bumped_count == prospect_email.times_bumped
+                EmailSequenceStep.bumped_count == prospect_email.times_bumped,
             ).first()
             template = sequence_step.template
 
@@ -384,7 +393,7 @@ def generate_email(prompt: str) -> dict[str, str]:
             {"role": "system", "content": prompt},
         ],
         max_tokens=400,
-        temperature=0.7,
+        temperature=0.65,
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="EMAIL",
     )
@@ -414,8 +423,7 @@ def ai_subject_line_prompt(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
         AccountResearchPoints.prospect_id == prospect.id
     ).all()
@@ -454,8 +462,8 @@ def ai_subject_line_prompt(
 
     # Get the template using the provided ID
     if subject_line_template_id is not None:
-        subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(
-            subject_line_template_id
+        subject_line_template: EmailSubjectLineTemplate = (
+            EmailSubjectLineTemplate.query.get(subject_line_template_id)
         )
         subject_line = subject_line_template.subject_line
     elif test_template is not None:
@@ -540,16 +548,16 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
 
     Returns:
         dict[str, str]: The subject line
-    """    
+    """
     response = get_text_generation(
         [
             {"role": "system", "content": prompt},
         ],
         max_tokens=50,
-        temperature=0.7,
+        temperature=0.65,
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="EMAIL",
     )
-    response = response.strip('\"')
+    response = response.strip('"')
 
     return {"subject_line": response}

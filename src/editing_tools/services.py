@@ -29,7 +29,7 @@ def get_edited_options(instruction: str, message_copy: str):
         prompt="instruction:\n{instruction}\n\ninput:\n{message_copy}\n\noutput:".format(
             instruction=instruction, message_copy=message_copy
         ),
-        temperature=0.7,
+        temperature=0.65,
         max_tokens=256,
         top_p=1,
         frequency_penalty=0,
