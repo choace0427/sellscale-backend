@@ -332,6 +332,12 @@ class ClientSDR(db.Model):
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
+    # Conversion goals
+    conversion_sent_pct = db.Column(db.Float, nullable=True)
+    conversion_open_pct = db.Column(db.Float, nullable=True)
+    conversion_reply_pct = db.Column(db.Float, nullable=True)
+    conversion_demo_pct = db.Column(db.Float, nullable=True)
+
     def update_warmup_status(self) -> bool:
         """Updates the warmup status for the SDR using the warmup schedule and SLA value
 
@@ -421,6 +427,11 @@ class ClientSDR(db.Model):
             "li_health_profile_photo": self.li_health_profile_photo,
             "li_health_premium": self.li_health_premium,
             "li_cover_img_url": self.li_cover_img_url,
+
+            "conversion_sent_pct": self.conversion_sent_pct,
+            "conversion_open_pct": self.conversion_open_pct,
+            "conversion_reply_pct": self.conversion_reply_pct,
+            "conversion_demo_pct": self.conversion_demo_pct,
         }
 
 

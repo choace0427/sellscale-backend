@@ -1,7 +1,7 @@
 from app import db
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
-from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health, create_sla_schedule, get_sla_schedules_for_sdr, update_sdr_sla_targets, update_sla_schedule
+from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health, create_sla_schedule, get_sla_schedules_for_sdr, update_custom_conversion_pct, update_sdr_sla_targets, update_sla_schedule
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
 
@@ -151,3 +151,33 @@ def post_sla_schedule(client_sdr_id: int):
     )
 
     return jsonify({"status": "success", "data": {"schedule_id": schedule_id}}), 200
+
+
+@CLIENT_SDR_BLUEPRINT.route("/conversions/", methods=["PATCH"])
+@require_user
+def patch_custom_conversion_rates(client_sdr_id: int):
+    conversion_sent_pct = get_request_parameter(
+        "conversion_sent_pct", request, json=True, required=False, parameter_type=float
+    )
+    conversion_open_pct = get_request_parameter(
+        "conversion_open_pct", request, json=True, required=False, parameter_type=float
+    )
+    conversion_reply_pct = get_request_parameter(
+        "conversion_reply_pct", request, json=True, required=False, parameter_type=float
+    )
+    conversion_demo_pct = get_request_parameter(
+        "conversion_demo_pct", request, json=True, required=False, parameter_type=float
+    )
+
+    success, message = update_custom_conversion_pct(
+        client_sdr_id=client_sdr_id,
+        conversion_sent_pct=conversion_sent_pct,
+        conversion_open_pct=conversion_open_pct,
+        conversion_reply_pct=conversion_reply_pct,
+        conversion_demo_pct=conversion_demo_pct
+    )
+
+    if not success:
+        return jsonify({"status": "error", "message": message}), 400
+
+    return jsonify({"status": "success"}), 200

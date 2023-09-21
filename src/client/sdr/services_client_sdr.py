@@ -293,12 +293,16 @@ def create_sla_schedule(
     Returns:
         int: The id of the SLA schedule
     """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
     # Get the monday of the start date's given week
     start_date, end_date = get_current_monday_friday(start_date)
 
+    # Get the monday of the SDR creation week
+    sdr_monday, _ = get_current_monday_friday(sdr.created_at)
+
     # Calculate the week number
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    week = (start_date - sdr.created_at.date()).days // 7
+    week = (start_date - sdr_monday).days // 7
     if week < 0:
         week = 0
 
@@ -370,27 +374,27 @@ def load_sla_schedules(
         week_0_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow(),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[0], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[0], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
         )
         week_1_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=7),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[1], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[1], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
         )
         week_2_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=14),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[2], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[2], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
         )
         week_3_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=21),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[3], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[3], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
         )
         week_4_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=28),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[4], client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[4], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
         )
 
         load_sla_alert(client_sdr_id, [week_0_id, week_1_id, week_2_id, week_3_id, week_4_id])
@@ -597,3 +601,42 @@ def deactivate_sla_schedules(
     db.session.commit()
 
     return True
+
+
+def update_custom_conversion_pct(
+    client_sdr_id: int,
+    conversion_sent_pct: Optional[float] = None,
+    conversion_open_pct: Optional[float] = None,
+    conversion_reply_pct: Optional[float] = None,
+    conversion_demo_pct: Optional[float] = None,
+) -> tuple[bool, str]:
+    """Updates the custom conversion percentages for a Client SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        conversion_sent_pct (Optional[float], optional): The custom conversion percentage for sent. Defaults to None.
+        conversion_open_pct (Optional[float], optional): The custom conversion percentage for open. Defaults to None.
+        conversion_reply_pct (Optional[float], optional): The custom conversion percentage for reply. Defaults to None.
+        conversion_demo_pct (Optional[float], optional): The custom conversion percentage for demo. Defaults to None.
+
+    Returns:
+        tuple[bool, str]: A boolean indicating whether the update was successful and a message
+    """
+    # Get the Client SDR
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False, "Client SDR not found."
+
+    # Update the Client SDR
+    if conversion_sent_pct:
+        sdr.conversion_sent_pct = conversion_sent_pct
+    if conversion_open_pct:
+        sdr.conversion_open_pct = conversion_open_pct
+    if conversion_reply_pct:
+        sdr.conversion_reply_pct = conversion_reply_pct
+    if conversion_demo_pct:
+        sdr.conversion_demo_pct = conversion_demo_pct
+
+    db.session.commit()
+
+    return True, "Success"
