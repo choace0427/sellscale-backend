@@ -525,7 +525,8 @@ def create_outbound_campaign(
         top_prospects = smart_get_prospects_for_campaign(
             client_archetype_id=client_archetype_id,
             num_prospects=num_prospects - len(prospect_ids),
-            campaign_type=campaign_type
+            campaign_type=campaign_type,
+            warm_emails=warm_emails
         )
         prospect_ids.extend(top_prospects)
         # Add a check that the number of prospects is correct
