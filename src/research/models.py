@@ -119,6 +119,13 @@ class ResearchPoints(db.Model):
                 ResearchPoints.query.filter_by(research_payload_id=payload.id).all()
             )
 
+        # Filter out points that are in the bump framework blocklist
+        if bump_framework_id:
+            bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+            if bump_framework:
+                research_points = [p for p in research_points if p.research_point_type not in bump_framework.transformer_blocklist]
+
+        # Filter out points that are in the archetype blocklist
         if not transformer_blocklist:
             return research_points
 
@@ -127,12 +134,6 @@ class ResearchPoints(db.Model):
             for point in research_points
             if point.research_point_type not in transformer_blocklist
         ]
-
-        # Filter out points that are in the bump framework blocklist
-        if bump_framework_id:
-            bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
-            if bump_framework:
-                research_points = [p for p in research_points if p.research_point_type not in bump_framework.transformer_blocklist]
 
         return research_points
 
