@@ -1,3 +1,9 @@
+from src.client.models import ClientSDR, Client
+from src.ml.openai_wrappers import (
+    NEWEST_CHAT_GP_MODEL,
+    wrapped_chat_gpt_completion,
+    wrapped_create_completion,
+)
 from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user
 from app import db
@@ -152,10 +158,10 @@ def get_icp_classification_prompt_by_archetype_id_endpoint(
 
     prompt, filters = get_icp_classification_prompt_by_archetype_id(archetype_id)
 
-    return jsonify({"message": "Success", "data": {
-        "prompt": prompt,
-        "filters": filters
-    }}), 200
+    return (
+        jsonify({"message": "Success", "data": {"prompt": prompt, "filters": filters}}),
+        200,
+    )
 
 
 # @ML_BLUEPRINT.route(
@@ -300,3 +306,56 @@ def post_edit_text(client_sdr_id: int):
     result = edit_text(initial_text=initial_text, edit_prompt=edit_prompt)
 
     return jsonify({"message": "Success", "data": result}), 200
+
+
+@ML_BLUEPRINT.route("/fill_prompt_from_brain", methods=["POST"])
+@require_user
+def fill_prompt_from_brain(client_sdr_id: int):
+    """
+    Enable user to fill a prompt from brain
+    """
+    prompt = get_request_parameter(
+        "prompt", request, json=True, required=True, parameter_type=str
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if client_archetype is None or client_archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Archetype not found"}), 404
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    company_name = client.company
+    company_description = client.description
+    company_value_props = client.value_prop_key_points
+    persona = client_archetype.archetype
+    persona_buy_reason = client_archetype.persona_fit_reason
+
+    result = wrapped_create_completion(
+        model=NEWEST_CHAT_GP_MODEL,
+        prompt="""You are a sales researcher for {company_name}. Your company does the following:
+{company_description}.
+Your company's value props are:
+{company_value_props}
+
+This is the persona you're reaching out to: 
+{persona}
+The reason this persona would buy your product is:
+{persona_buy_reason}
+
+Use this information to complete the following prompt in a way that would be compelling to the persona. Keep the answer concise and to the point.:
+{prompt}""".format(
+            company_name=company_name,
+            company_description=company_description,
+            persona=persona,
+            persona_buy_reason=persona_buy_reason,
+            prompt=prompt,
+            company_value_props=company_value_props,
+        ),
+        max_tokens=100,
+    )
+
+    return jsonify({"message": "Success", "data": prompt + result}), 200
