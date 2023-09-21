@@ -493,6 +493,7 @@ def create_outbound_campaign(
     campaign_end_date: datetime,
     ctas: Optional[list] = None,
     priority_rating: Optional[int] = 0,
+    warm_emails: Optional[bool] = False,
 ) -> OutboundCampaign:
     """Creates a new outbound campaign
 
@@ -510,6 +511,7 @@ def create_outbound_campaign(
         campaign_end_date (datetime): End date of the campaign
         status (OutboundCampaignStatus): Status of the campaign
         priority_rating (int): Priority level of the campaign
+        warm_emails (bool): Whether to send emails to warm prospects or not
 
     Returns:
         OutboundCampaign: The newly created outbound campaign
@@ -521,7 +523,9 @@ def create_outbound_campaign(
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
         top_prospects = smart_get_prospects_for_campaign(
-            client_archetype_id, num_prospects - len(prospect_ids), campaign_type
+            client_archetype_id=client_archetype_id,
+            num_prospects=num_prospects - len(prospect_ids),
+            campaign_type=campaign_type
         )
         prospect_ids.extend(top_prospects)
         # Add a check that the number of prospects is correct
@@ -576,7 +580,10 @@ def create_outbound_campaign(
 
 
 def smart_get_prospects_for_campaign(
-    client_archetype_id: int, num_prospects: int, campaign_type: GeneratedMessageType
+    client_archetype_id: int,
+    num_prospects: int,
+    campaign_type: GeneratedMessageType,
+    warm_emails: Optional[bool] = False,
 ) -> list[int]:
     """Smartly gets prospects for a campaign
 
@@ -584,16 +591,41 @@ def smart_get_prospects_for_campaign(
     Second priority: Health check
     Third priority: random
 
+    If warm_emails is True, then the top priority are Prospects that have ACCEPTED or BUMPED for LinkedIn status.
+
     Args:
         client_archetype_id (int): Client archetype id
         num_prospects (int): Number of prospects to get
+        campaign_type (GeneratedMessageType): Type of campaign
+        warm_emails (bool): Whether to send emails to warm prospects or not
 
     Returns:
         list[int]: List of prospect ids
     """
+    remaining_num_prospects = num_prospects
+
+    # If warm_emails is True and campaign_type is EMAIL, get warmed prospects
+    warmed_prospects = []
+    if warm_emails and campaign_type == GeneratedMessageType.EMAIL:
+        warmed_prospects = get_warmed_prospects(
+            client_archetype_id=client_archetype_id,
+            num_prospects=num_prospects,
+            campaign_type=campaign_type,
+        )
+        remaining_num_prospects = num_prospects - len(warmed_prospects)
+        if remaining_num_prospects < 0:
+            raise Exception(
+                "Incorrect number of prospects returned from get_warmed_prospects"
+            )
+
+        # Since we are targeting warmed prospects, we can return early
+        return warmed_prospects
+
     # Get prospects with highest ICP intent score
     top_intent_prospects = get_top_intent_prospects(
-        client_archetype_id, num_prospects, campaign_type
+        client_archetype_id=client_archetype_id,
+        num_prospects=remaining_num_prospects,
+        campaign_type=campaign_type,
     )
     remaining_num_prospects = num_prospects - len(top_intent_prospects)
     if remaining_num_prospects < 0:
@@ -630,6 +662,42 @@ def smart_get_prospects_for_campaign(
     prospect_ids: list[int] = (
         top_intent_prospects + top_healthscore_prospects + random_prospects
     )
+    return prospect_ids
+
+
+def get_warmed_prospects(
+    client_archetype_id: int,
+    num_prospects: int,
+    campaign_type: GeneratedMessageType,
+) -> list[int]:
+    """Gets warmed prospects for a campaign
+
+    Top priority: Prospects that have ACCEPTED or BUMPED for LinkedIn status.
+
+    Args:
+        client_archetype_id (int): Client archetype id
+        num_prospects (int): Number of prospects to get
+        campaign_type (GeneratedMessageType): Type of campaign
+
+    Returns:
+        list[int]: List of prospect ids
+    """
+    if campaign_type != GeneratedMessageType.EMAIL:
+        return False
+
+    # Get prospects that have a status in either ACCEPTED or BUMPED
+    warmed_prospects = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.approved_prospect_email_id == None,
+        Prospect.status.in_(
+            [ProspectStatus.ACCEPTED.value, ProspectStatus.RESPONDED.value]
+        ),
+        Prospect.overall_status.in_(
+            [ProspectOverallStatus.ACCEPTED.value, ProspectOverallStatus.BUMPED.value]
+        )
+    ).limit(num_prospects).all()
+
+    prospect_ids: list[int] = [p.id for p in warmed_prospects]
     return prospect_ids
 
 

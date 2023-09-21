@@ -281,6 +281,9 @@ def create_new_campaign(client_sdr_id: int):
     priority_rating = get_request_parameter(
         "priority_rating", request, json=True, required=False, parameter_type=int
     )
+    warm_emails = get_request_parameter(
+        "warm_emails", request, json=True, required=False, parameter_type=bool
+    )
 
     # Turn campaign type from string to enum
     if campaign_type == "EMAIL":
@@ -299,11 +302,12 @@ def create_new_campaign(client_sdr_id: int):
             campaign_start_date=campaign_start_date,
             campaign_end_date=campaign_end_date,
             priority_rating=priority_rating,
+            warm_emails=warm_emails
         )
         return jsonify({"campaign_id": campaign.id}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-    
+
 
 @CAMPAIGN_BLUEPRINT.route("/instant", methods=["POST"])
 @require_user
