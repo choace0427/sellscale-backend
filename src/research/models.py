@@ -1,3 +1,5 @@
+from typing import Optional
+
 from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -96,8 +98,9 @@ class ResearchPoints(db.Model):
     def get_by_payload_id(payload_id: int) -> list:
         return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()
 
-    def get_research_points_by_prospect_id(prospect_id: int) -> list:
+    def get_research_points_by_prospect_id(prospect_id: int, bump_framework_id: Optional[int] = None) -> list:
         from model_import import ClientArchetype, Prospect
+        from src.bump_framework.models import BumpFramework
 
         prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         if not prospect:
@@ -124,6 +127,12 @@ class ResearchPoints(db.Model):
             for point in research_points
             if point.research_point_type not in transformer_blocklist
         ]
+
+        # Filter out points that are in the bump framework blocklist
+        if bump_framework_id:
+            bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+            if bump_framework:
+                research_points = [p for p in research_points if p.research_point_type not in bump_framework.transformer_blocklist]
 
         return research_points
 

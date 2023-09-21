@@ -1,6 +1,6 @@
 from calendar import c
 
-from httpx import Client
+from src.bump_framework.models import BumpFramework
 from src.client.models import ClientSDR
 from src.message_generation.models import StackRankedMessageGenerationConfiguration
 from src.message_generation.services import (
@@ -985,8 +985,10 @@ def post_generate_bump_li_message(client_sdr_id: int):
     from src.li_conversation.models import LinkedInConvoMessage
 
     research_str = ""
-    points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect_id, bump_framework_id)
     # random_sample_points = random.sample(points, min(len(points), 3))
+
+    # Convert points to string
     for point in points:
         research_str += f"{point.value}\n"
 
