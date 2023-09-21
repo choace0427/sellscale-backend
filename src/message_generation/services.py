@@ -2648,7 +2648,7 @@ def generate_li_convo_init_msg(prospect_id: int):
     raw_research_points = ResearchPoints.query.filter(
         ResearchPoints.id.in_(research_points)
     ).all()
-    rp_values = [x.value for x in raw_research_points]
+    rp_values = [x.value for x in raw_research_points] if raw_research_points else []
 
     completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
 
