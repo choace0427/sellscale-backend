@@ -137,8 +137,7 @@ def get_messages_queued_for_outreach(
     total_count = joined_prospect_message.count()
 
     joined_prospect_message = (
-        joined_prospect_message.order_by(
-            OutboundCampaign.priority_rating.desc())
+        joined_prospect_message.order_by(OutboundCampaign.priority_rating.desc())
         .order_by(nullslast(GeneratedMessage.priority_rating.desc()))
         .order_by(nullslast(Prospect.icp_fit_score.desc()))
         .order_by(nullslast(GeneratedMessage.created_at.desc()))
@@ -291,8 +290,7 @@ def update_generated_message_job_queue_status(
     """
     if not gm_job_id:
         return True
-    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(
-        gm_job_id)
+    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
     if gm_job:
         gm_job.status = status.value
         gm_job.error_message = error_message
@@ -311,8 +309,7 @@ def increment_generated_message_job_queue_attempts(gm_job_id: int) -> bool:
     Returns:
         bool: True if the job was updated, False otherwise
     """
-    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(
-        gm_job_id)
+    gm_job: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
     if gm_job:
         if gm_job.attempts:
             gm_job.attempts += 1
@@ -354,8 +351,7 @@ def research_and_generate_outreaches_for_prospect(  # THIS IS A PROTECTED TASK. 
             return (False, "Prospect does not exist")
 
         # Create research payload and bullet points for the Prospect
-        get_research_and_bullet_points_new(
-            prospect_id=prospect_id, test_mode=False)
+        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         # Generate outreaches for the Prospect
         generate_linkedin_outreaches_with_configurations(
@@ -365,8 +361,7 @@ def research_and_generate_outreaches_for_prospect(  # THIS IS A PROTECTED TASK. 
         )
 
         # Run auto approval
-        batch_approve_message_generations_by_heuristic(
-            prospect_ids=[prospect_id])
+        batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
 
         # Mark the job as completed
         update_generated_message_job_queue_status(
@@ -397,8 +392,7 @@ def generate_prompt(prospect_id: int, notes: str = ""):
         **bio_data
     )
     prompt = (
-        prompt.replace('"', "").replace("\\", "").replace(
-            "\n", "\\n").replace("\r", "")
+        prompt.replace('"', "").replace("\\", "").replace("\n", "\\n").replace("\r", "")
     )
 
     return prompt, bio_data
@@ -409,8 +403,7 @@ def generate_batches_of_research_points(
 ):
     perms = []
     for i in range(n):
-        sample = [x for x in random.sample(
-            points, min(len(points), num_per_perm))]
+        sample = [x for x in random.sample(points, min(len(points), num_per_perm))]
         if ResearchPointType.CUSTOM in [x.research_point_type for x in points]:
             custom_point = [
                 x for x in points if x.research_point_type == ResearchPointType.CUSTOM
@@ -439,8 +432,7 @@ def generate_batch_of_research_points_from_config(
         return generate_batches_of_research_points(
             points=all_research_points, n=n, num_per_perm=2
         )
-    allowed_research_point_types_in_config = [
-        x for x in config.research_point_types]
+    allowed_research_point_types_in_config = [x for x in config.research_point_types]
 
     research_points = [
         x
@@ -491,8 +483,7 @@ def has_any_linkedin_messages(prospect_id: int):
 def generate_linkedin_outreaches_with_configurations(
     prospect_id: int, outbound_campaign_id: int, cta_id: str = None
 ):
-    campaign: OutboundCampaign = OutboundCampaign.query.get(
-        outbound_campaign_id)
+    campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
     if has_any_linkedin_messages(prospect_id=prospect_id):
         return None
@@ -565,23 +556,20 @@ def generate_linkedin_outreaches(
     if has_any_linkedin_messages(prospect_id=prospect_id):
         return None
 
-    campaign: OutboundCampaign = OutboundCampaign.query.get(
-        outbound_campaign_id)
+    campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
     research_points_list: list[
         ResearchPoints
     ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
-    perms = generate_batches_of_research_points(
-        points=research_points_list, n=4)
+    perms = generate_batches_of_research_points(points=research_points_list, n=4)
 
     if not perms or len(perms) == 0:
         raise ValueError("No research point permutations")
 
     outreaches = []
     for perm in perms:
-        notes, research_points, cta = get_notes_and_points_from_perm(
-            perm, cta_id)
+        notes, research_points, cta = get_notes_and_points_from_perm(perm, cta_id)
 
         able_to_generate_with_few_shot = can_generate_with_few_shot(
             prospect_id=prospect_id
@@ -961,8 +949,7 @@ def is_cta_active(cta_id: int):
             db.session.add(cta)
             db.session.commit()
 
-            archetype: ClientArchetype = ClientArchetype.query.get(
-                cta.archetype_id)
+            archetype: ClientArchetype = ClientArchetype.query.get(cta.archetype_id)
             sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
 
             send_slack_message(
@@ -994,8 +981,7 @@ def get_personalized_first_line_from_prompt(
     outbound_campaign_id: int,
     config: Optional[StackRankedMessageGenerationConfiguration],
 ):
-    campaign: OutboundCampaign = OutboundCampaign.query.get(
-        outbound_campaign_id)
+    campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
     if not config:
         completion, few_shot_prompt = get_personalized_first_line_for_client(
@@ -1113,8 +1099,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         generate_prospect_research(prospect.id, False, False)
 
         # 6. Create research points and payload for the prospect
-        get_research_and_bullet_points_new(
-            prospect_id=prospect_id, test_mode=False)
+        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         # 7a. Get the Email Body prompt
         initial_email_prompt = ai_initial_email_prompt(
@@ -1333,8 +1318,7 @@ def mark_prospect_email_approved(prospect_email_id: int, ai_approved: bool = Fal
         ai_approved=ai_approved,
     )
 
-    run_message_rule_engine(
-        message_id=prospect_email.personalized_subject_line)
+    run_message_rule_engine(message_id=prospect_email.personalized_subject_line)
     run_message_rule_engine(message_id=prospect_email.personalized_body)
 
     return success
@@ -1442,8 +1426,7 @@ def wipe_prospect_email_and_generations_and_research(prospect_id: int):
         db.session.commit()
 
     if prospect.approved_outreach_message_id == None:
-        delete_research_points_and_payload_by_prospect_id(
-            prospect_id=prospect_id)
+        delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
 
     return True
 
@@ -1573,13 +1556,11 @@ def get_named_entities(string: str):
     fewshot_1_entities = (
         "entities: David // Aakash // Gusto // Naropa University // Stratosphere"
     )
-    fewshot_1 = fewshot_1_message + "\n\n" + \
-        instruction + "\n\n" + fewshot_1_entities
+    fewshot_1 = fewshot_1_message + "\n\n" + instruction + "\n\n" + fewshot_1_entities
 
     fewshot_2_message = "message: I'd like to commend you for being in the industry for 16+ years. That is no small feat!"
     fewshot_2_entities = "entities: NONE"
-    fewshot_2 = fewshot_2_message + "\n\n" + \
-        instruction + "\n\n" + fewshot_2_entities
+    fewshot_2 = fewshot_2_message + "\n\n" + instruction + "\n\n" + fewshot_2_entities
 
     target = "message: " + message + "\n\n" + instruction + "\n\n" + "entities:"
 
@@ -1598,8 +1579,7 @@ def get_named_entities(string: str):
                 temperature=0,
             )
             entities_clean = (
-                response["choices"][0]["text"].strip().replace(
-                    "\n", "").split(" // ")
+                response["choices"][0]["text"].strip().replace("\n", "").split(" // ")
             )
             break
         except:
@@ -1672,8 +1652,7 @@ def run_check_message_has_bad_entities(message_id: int):
         ):
             flagged_entities.append(entity)
 
-    generated_message: GeneratedMessage = GeneratedMessage.query.get(
-        message_id)
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     generated_message.unknown_named_entities = flagged_entities
     db.session.add(generated_message)
     db.session.commit()
@@ -2046,8 +2025,7 @@ def process_generated_msg_queue(
         li_convo_msg.account_research_points = msg_queue.account_research_points
 
         if msg_queue.bump_framework_id:
-            bf: BumpFramework = BumpFramework.query.get(
-                msg_queue.bump_framework_id)
+            bf: BumpFramework = BumpFramework.query.get(msg_queue.bump_framework_id)
             if bf:
                 bf.etl_num_times_used = bf.etl_num_times_used or 0
                 bf.etl_num_times_used += 1
@@ -2237,8 +2215,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         bump_msg.message = data.get("response")
         bump_msg.bump_framework_id = data.get("bump_framework_id")
         bump_msg.bump_framework_title = data.get("bump_framework_title")
-        bump_msg.bump_framework_description = data.get(
-            "bump_framework_description")
+        bump_msg.bump_framework_description = data.get("bump_framework_description")
         bump_msg.bump_framework_length = data.get("bump_framework_length")
         bump_msg.account_research_points = data.get("account_research_points")
 
@@ -2290,8 +2267,7 @@ def generate_followup_response(
         bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
             client_sdr_id=client_sdr_id,
             overall_statuses=[overall_status],
-            substatuses=[
-                li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
+            substatuses=[li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
             client_archetype_ids=[prospect.archetype_id],
         )
 
@@ -2323,8 +2299,7 @@ def generate_followup_response(
             else:
                 framework_index = determine_best_bump_framework_from_convo(
                     convo_history=convo_history,
-                    bump_framework_ids=[bf.get("id", -1)
-                                        for bf in bump_frameworks],
+                    bump_framework_ids=[bf.get("id", -1) for bf in bump_frameworks],
                 )
 
             if show_slack_messages:
@@ -2358,8 +2333,7 @@ def generate_followup_response(
 
         # Only include account research points if bump framework allows it
         use_account_research = (
-            best_framework.get(
-                "use_account_research") if best_framework else True
+            best_framework.get("use_account_research") if best_framework else True
         )
         if use_account_research:
             for point in random_sample_points:
@@ -2376,8 +2350,7 @@ def generate_followup_response(
         response, prompt = generate_chat_gpt_response_to_conversation_thread(
             prospect_id=prospect_id,
             convo_history=convo_history,
-            bump_framework_id=best_framework.get(
-                "id") if best_framework else None,
+            bump_framework_id=best_framework.get("id") if best_framework else None,
             account_research_copy=research_str,
         )  # type: ignore
 
@@ -2575,6 +2548,36 @@ def update_stack_ranked_configuration_data(
     return True
 
 
+def refresh_computed_prompt_for_stack_ranked_configuration(configuration_id: int):
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.get(configuration_id)
+    )
+
+    if not srmgc:
+        return False
+
+    new_computed_prompt = srmgc.instruction + "\n------\n"
+    for i in range(1, 8):
+        prompt_attr_key = "prompt_" + str(i)
+        completion_attr_key = "completion_" + str(i)
+
+        prompt = getattr(srmgc, prompt_attr_key)
+        completion = getattr(srmgc, completion_attr_key)
+
+        if prompt and completion:
+            new_computed_prompt += (
+                "prompt: " + prompt + "\ncompletion: " + completion + "\n------\n"
+            )
+
+    new_computed_prompt += "prompt: {prompt}\ncompletion:"
+    srmgc.computed_prompt = new_computed_prompt
+
+    db.session.add(srmgc)
+    db.session.commit()
+
+    return True
+
+
 def generate_li_convo_init_msg(prospect_id: int):
     """Generates the initial message for a linkedin conversation
 
@@ -2611,8 +2614,7 @@ def generate_li_convo_init_msg(prospect_id: int):
     )
 
     if not perms or len(perms) == 0:
-        get_research_and_bullet_points_new(
-            prospect_id=prospect_id, test_mode=False)
+        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         TOP_CONFIGURATION: Optional[
             StackRankedMessageGenerationConfiguration
@@ -2628,8 +2630,7 @@ def generate_li_convo_init_msg(prospect_id: int):
     perm = perms[0]
 
     cta, cta_id = random_cta_for_prospect(prospect_id=prospect_id)
-    notes, research_points, _ = get_notes_and_points_from_perm(
-        perm, cta_id=cta_id)
+    notes, research_points, _ = get_notes_and_points_from_perm(perm, cta_id=cta_id)
     prompt, _ = generate_prompt(prospect_id=prospect_id, notes=notes)
 
     if len(research_points) == 0:
@@ -2640,8 +2641,7 @@ def generate_li_convo_init_msg(prospect_id: int):
     ).all()
     rp_values = [x.value for x in raw_research_points]
 
-    completion, few_shot_prompt = get_config_completion(
-        TOP_CONFIGURATION, prompt)
+    completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
 
     return completion, {
         "prompt": few_shot_prompt,
@@ -2755,16 +2755,14 @@ Keep the whole message 1-2 sentences and 1 paragraph long. Keep it short!""",
             message=f"[{USER_EMAIL} {random_code}] Finding prospect ({PROSPECT_LINKEDIN}) on LinkedIn ...",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
-        prospect = get_indiduals_prospect_id_from_linkedin_url(
-            PROSPECT_LINKEDIN)
+        prospect = get_indiduals_prospect_id_from_linkedin_url(PROSPECT_LINKEDIN)
         send_slack_message(
             message=f"[{USER_EMAIL} {random_code}] Finding user ({USER_LINKEDIN}) on LinkedIn ...",
             webhook_urls=[URL_MAP["ops-scribe-submissions"]],
         )
         user = get_indiduals_prospect_id_from_linkedin_url(USER_LINKEDIN)
 
-        prospect_rp = ResearchPayload.query.filter_by(
-            prospect_id=prospect).first()
+        prospect_rp = ResearchPayload.query.filter_by(prospect_id=prospect).first()
         user_rp = ResearchPayload.query.filter_by(prospect_id=user).first()
 
         if prospect_rp:
@@ -2783,10 +2781,8 @@ Keep the whole message 1-2 sentences and 1 paragraph long. Keep it short!""",
         sdr_company_name = deep_get(
             user_rp, "personal.position_groups.0.company.name", ""
         )
-        sdr_company_description = deep_get(
-            user_rp, "company.details.description") or ""
-        sdr_company_tagline = deep_get(
-            user_rp, "company.details.tagline") or ""
+        sdr_company_description = deep_get(user_rp, "company.details.description") or ""
+        sdr_company_tagline = deep_get(user_rp, "company.details.tagline") or ""
         prospect_name = (
             deep_get(prospect_rp, "personal.first_name", "")
             + " "

@@ -6,6 +6,7 @@ from src.message_generation.models import StackRankedMessageGenerationConfigurat
 from src.message_generation.services import (
     delete_prospect_bump,
     get_prospect_bump,
+    refresh_computed_prompt_for_stack_ranked_configuration,
     scribe_sample_email_generation,
     update_stack_ranked_configuration_data,
 )
@@ -1077,6 +1078,42 @@ def post_generate_scribe_completion():
     scribe_sample_email_generation.apply_async(
         args=[USER_LINKEDIN, USER_EMAIL, PROSPECT_LINKEDIN, BLOCK_KEY],
         priority=1,
+    )
+
+    return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_config/delete_sample", methods=["DELETE"]
+)
+@require_user
+def delete_stack_ranked_configuration_sample(client_sdr_id: int):
+    stack_ranked_configuration_id = get_request_parameter(
+        "stack_ranked_configuration_id", request, json=True, required=True
+    )
+    prompt_to_delete = get_request_parameter(
+        "prompt_to_delete", request, json=True, required=True
+    )
+    completion_to_delete = get_request_parameter(
+        "completion_to_delete", request, json=True, required=True
+    )
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.get(
+            stack_ranked_configuration_id
+        )
+    )
+    if srmgc.client_id != client_sdr.client_id:
+        return "Unauthorized", 401
+
+    setattr(srmgc, prompt_to_delete, None)
+    setattr(srmgc, completion_to_delete, None)
+    db.session.add(srmgc)
+    db.session.commit()
+
+    refresh_computed_prompt_for_stack_ranked_configuration(
+        configuration_id=stack_ranked_configuration_id
     )
 
     return "OK", 200

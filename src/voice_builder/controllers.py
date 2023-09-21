@@ -35,7 +35,9 @@ def get_account_research_points():
 
 @VOICE_BUILDER_BLUEPRINT.route("/create_onboarding", methods=["POST"])
 def create_onboarding():
-    client_id = get_request_parameter("client_id", request, json=True, required=False, parameter_type=int)
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=False, parameter_type=int
+    )
     generated_message_type = get_request_parameter(
         "generated_message_type", request, json=True, required=True
     )
@@ -87,7 +89,7 @@ def get_details():
     )
     if not voice_builder_onboarding:
         return "Voice builder onboarding not found.", 400
-    
+
     voice_builder_onboarding_info = voice_builder_onboarding.to_dict()
     sample_info = get_voice_builder_samples(
         voice_builder_onboarding_id=voice_builder_onboarding_id
