@@ -1037,7 +1037,11 @@ def post_generate_bump_li_message(client_sdr_id: int):
     )
 
     return (
-        jsonify({"message": "Success", "data": {"message": response, "metadata": {}}}),
+        jsonify({"message": "Success", "data": {"message": response, "metadata": {
+            "prompt": prompt,
+            "research_str": research_str,
+            "convo_history": convo_history,
+        }}}),
         200,
     )
 
