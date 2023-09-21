@@ -993,7 +993,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
     for point in points:
         research_str += f"{point.value}\n"
 
-    convo_history = []
+    convo_history: list[LinkedInConvoMessage] = []
     # Populate the array with hardcoded messages
     if bump_count >= 0:
         convo_history.append(
@@ -1040,7 +1040,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
         jsonify({"message": "Success", "data": {"message": response, "metadata": {
             "prompt": prompt,
             "research_str": research_str,
-            "convo_history": convo_history,
+            "convo_history": [c.to_dict() for c in convo_history],
         }}}),
         200,
     )
