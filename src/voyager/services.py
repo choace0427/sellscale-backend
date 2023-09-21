@@ -438,11 +438,14 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 #     return len(convo_urn_ids)
 
 
-def run_conversation_bump_analytics(convo_urn_id: int) -> bool:
+def run_conversation_bump_analytics(convo_urn_id: str) -> bool:
     convo_entries: list[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.query.filter_by(
-            conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
-            bump_analytics_processed=or_(None, False),
+        LinkedinConversationEntry.query.filter(
+            LinkedinConversationEntry.conversation_url==f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
+            or_(
+                LinkedinConversationEntry.bump_analytics_processed==None,
+                LinkedinConversationEntry.bump_analytics_processed==False,
+            )
         )
         .order_by(LinkedinConversationEntry.date.asc())
         .all()
