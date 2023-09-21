@@ -134,6 +134,7 @@ def post_li_convo_generate_initial_message(client_sdr_id: int):
 
     tries = 0
     success = False
+    error_msg = ""
     while tries < 3:
         tries = tries + 1
         try:
@@ -142,10 +143,11 @@ def post_li_convo_generate_initial_message(client_sdr_id: int):
                 break
         except Exception as e:
             print("Failed to generate initial message for simulation: ", str(e))
+            error_msg = str(e)
             continue
 
     if not success:
-        return jsonify({"message": "Failed to generate initial message"}), 400
+        return jsonify({"message": "Failed to generate initial message", "error": error_msg}), 400
 
     return jsonify({"message": "Success"}), 200
 
