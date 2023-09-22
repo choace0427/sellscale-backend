@@ -4,6 +4,7 @@ from src.bump_framework.models import BumpFramework, BumpLength
 from src.bump_framework.services import create_bump_framework
 from src.client.models import ClientArchetype
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
+from src.research.models import ResearchPointType
 
 
 def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int) -> int:
@@ -41,6 +42,22 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
             substatus=default_bump_framework["substatus"],
             default=True,
             sellscale_default_generated=True,
+            bump_framework_template_name=default_bump_framework[
+                "bump_framework_template_name"
+            ]
+            if "bump_framework_template_name" in default_bump_framework
+            else None,
+            bump_framework_human_readable_prompt=default_bump_framework[
+                "bump_framework_human_readable_prompt"
+            ]
+            if "bump_framework_human_readable_prompt" in default_bump_framework
+            else None,
+            additional_context=default_bump_framework["additional_context"]
+            if "additional_context" in default_bump_framework
+            else None,
+            transformer_blocklist=default_bump_framework["transformer_blocklist"]
+            if "transformer_blocklist" in default_bump_framework
+            else [],
         )
 
     return len(DEFAULT_BUMP_FRAMEWORKS)
@@ -48,37 +65,57 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
 
 DEFAULT_BUMP_FRAMEWORKS = [
     {
-        "title": "Introduction",
-        "description": "Introduce ourself and explain why we can help them.",
+        "title": "Pain Points Opener",
+        "description": "1. Thank them for connecting\n2. Connect with their role and any pain points that they have in their role based on what our company does\n3. How is it going with pain points they my face in their role?",
         "overall_status": ProspectOverallStatus.ACCEPTED,
         "substatus": None,
         "bump_length": BumpLength.MEDIUM,
         "bumped_count": 0,
+        "bump_framework_template_name": "pain_points_opener",
+        "bump_framework_human_readable_prompt": "Tap into a potential pain point that they may have in their role and connect with them on that",
+        "additional_context": "What pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
+        "transformer_blocklist": [
+            x.value
+            for x in ResearchPointType
+            if x.value
+            not in ["CURRENT_EXPERIENCE_DESCRIPTION", "CURRENT_JOB_DESCRIPTION"]
+        ],
     },
     {
-        "title": "Follow Up #2",
-        "description": "Write a short, 1-2 sentence bump. Do not use the word 'bump'.",
-        "overall_status": ProspectOverallStatus.BUMPED,
-        "substatus": None,
-        "bump_length": BumpLength.SHORT,
-        "bumped_count": 1,
-
-    },
-    {
-        "title": "Follow Up #3",
-        "description": "Write a longer follow up about their company and how we can help.",
+        "title": "Introduction to Us",
+        "description": "1. Introduce what [our company] does\n2. Connect with them using [their profile]\n3. Ask if they're open to chat for 15 minutes",
         "overall_status": ProspectOverallStatus.BUMPED,
         "substatus": None,
         "bump_length": BumpLength.MEDIUM,
-        "bumped_count": 2,
+        "bumped_count": 1,
+        "bump_framework_template_name": "introduction_to_us",
+        "bump_framework_human_readable_prompt": "Introduce what our company does and connect with them using their profile",
+        "additional_context": "",
+        "transformer_blocklist": [],
     },
     {
-        "title": "Follow Up #4",
-        "description": "Write one, final short follow up.",
+        "title": "Short Follow Up Related to Role",
+        "description": "Do a short follow-up acknowledging they're busy using their role description - and that we'd love to chat about any [relevant painpoints their role may face]",
+        "overall_status": ProspectOverallStatus.BUMPED,
+        "substatus": None,
+        "bump_length": BumpLength.SHORT,
+        "bumped_count": 2,
+        "bump_framework_template_name": "short_follow_up_related_to_role",
+        "bump_framework_human_readable_prompt": "Do a short follow-up acknowledging they're busy using their role description - and that we'd love to chat about any relevant painpoints their role may face",
+        "additional_context": "Which pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
+        "transformer_blocklist": [],
+    },
+    {
+        "title": "Any other person?",
+        "description": "Ask if there's another better person to connect with regarding their market research needs.",
         "overall_status": ProspectOverallStatus.BUMPED,
         "substatus": None,
         "bump_length": BumpLength.SHORT,
         "bumped_count": 3,
+        "bump_framework_template_name": "any_other_person",
+        "bump_framework_human_readable_prompt": "Ask if there's another better person to connect with regarding their market research needs",
+        "additional_context": "",
+        "transformer_blocklist": [],
     },
     {
         "title": "Scheduling",

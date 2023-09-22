@@ -133,6 +133,10 @@ def create_bump_framework(
     default: Optional[bool] = False,
     sellscale_default_generated: Optional[bool] = False,
     use_account_research: Optional[bool] = True,
+    bump_framework_template_name: Optional[str] = None,
+    bump_framework_human_readable_prompt: Optional[str] = None,
+    additional_context: Optional[str] = None,
+    transformer_blocklist: Optional[list] = [],
 ) -> int:
     """Create a new bump framework, if default is True, set all other bump frameworks to False
 
@@ -186,6 +190,10 @@ def create_bump_framework(
         default=default,
         sellscale_default_generated=sellscale_default_generated,
         use_account_research=use_account_research,
+        bump_framework_template_name=bump_framework_template_name,
+        bump_framework_human_readable_prompt=bump_framework_human_readable_prompt,
+        additional_context=additional_context,
+        transformer_blocklist=transformer_blocklist,
     )
     db.session.add(bump_framework)
     db.session.commit()
