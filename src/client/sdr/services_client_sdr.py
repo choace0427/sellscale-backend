@@ -554,6 +554,17 @@ def update_sla_schedule(
             SLASchedule.end_date >= start_date,
         ).first()
 
+        if not sla_schedule:
+            sla_schedule: SLASchedule = SLASchedule.query.filter(
+                SLASchedule.client_sdr_id == client_sdr_id,
+                SLASchedule.start_date <= start_date,
+            ).order_by(SLASchedule.start_date.desc()).first()
+
+    # Make sure that the schedule is not for a past week (current week OK)
+    monday, _ = get_current_monday_friday(datetime.utcnow())
+    if sla_schedule.start_date.date() < monday:
+        return False, "Cannot update an SLA schedule for a past week."
+
     if not sla_schedule:
         return False, "No SLA schedule found."
 

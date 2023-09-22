@@ -153,7 +153,7 @@ def post_sla_schedule(client_sdr_id: int):
     return jsonify({"status": "success", "data": {"schedule_id": schedule_id}}), 200
 
 
-@CLIENT_SDR_BLUEPRINT.route("/conversions/", methods=["PATCH"])
+@CLIENT_SDR_BLUEPRINT.route("/conversions", methods=["PATCH"])
 @require_user
 def patch_custom_conversion_rates(client_sdr_id: int):
     conversion_sent_pct = get_request_parameter(

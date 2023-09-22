@@ -131,9 +131,22 @@ def test_update_sla_schedule():
 
     nine_four = datetime(2023, 9, 4)
 
+    # Can't update a past week
     schedule_id = create_sla_schedule(
         client_sdr_id=sdr.id,
         start_date=nine_four,
+    )
+    success, _ = update_sla_schedule(
+        client_sdr_id=sdr.id,
+        sla_schedule_id=schedule_id,
+        linkedin_volume=100,
+        email_volume=200,
+    )
+    assert not success
+
+    schedule_id = create_sla_schedule(
+        client_sdr_id=sdr.id,
+        start_date=datetime.now(),
     )
 
     # Update the schedule, using the Schedule ID
@@ -151,7 +164,7 @@ def test_update_sla_schedule():
     # Update the schedule, using the start date
     success, _ = update_sla_schedule(
         client_sdr_id=sdr.id,
-        start_date=nine_four,
+        start_date=datetime.now(),
         linkedin_volume=300,
         email_volume=400,
     )
