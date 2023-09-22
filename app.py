@@ -175,7 +175,9 @@ def register_blueprints(app):
     from src.individual.controllers import INDIVIDUAL_BLUEPRINT
     from src.prospecting.icp_score.controllers import ICP_SCORING_BLUEPRINT
     from src.message_generation.email.controllers import MESSAGE_GENERATION_EMAIL_BLUEPRINT
+    from src.client.archetype.controllers import CLIENT_ARCHETYPE_BLUEPRINT
 
+    app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
     app.register_blueprint(PROSPECTING_BLUEPRINT, url_prefix="/prospect")
