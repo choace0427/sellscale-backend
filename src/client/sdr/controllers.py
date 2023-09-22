@@ -181,3 +181,17 @@ def patch_custom_conversion_rates(client_sdr_id: int):
         return jsonify({"status": "error", "message": message}), 400
 
     return jsonify({"status": "success"}), 200
+
+
+@CLIENT_SDR_BLUEPRINT.route("/sdrs_from_emails", methods=["POST"])
+# Unprotected route on purpose
+def get_sdrs_from_emails_request():
+    from src.client.services import get_all_sdrs_from_emails
+
+    emails = get_request_parameter(
+        "emails", request, json=True, required=True, parameter_type=list
+    )
+
+    results = get_all_sdrs_from_emails(emails=emails)
+    
+    return jsonify({"status": "Success", "data": results}), 200

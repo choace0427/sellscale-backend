@@ -223,7 +223,8 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
 
     client_archetype_dicts = []
     for ca in client_archetypes:
-        performance = get_client_archetype_performance(client_sdr_id, ca.id, False)
+        performance = get_client_archetype_performance(
+            client_sdr_id, ca.id, False)
         merged_dicts = {**ca.to_dict(), **{"performance": performance}}
         client_archetype_dicts.append(merged_dicts)
 
@@ -300,7 +301,8 @@ def get_client_archetype_performance(
             status_map[p.overall_status.value] = 1
     total_prospects = len(archetype_prospects)
 
-    performance = {"total_prospects": total_prospects, "status_map": status_map}
+    performance = {"total_prospects": total_prospects,
+                   "status_map": status_map}
 
     return performance
 
@@ -354,7 +356,8 @@ def create_client_archetype(
     archetype_id = client_archetype.id
 
     if base_archetype_id:
-        _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
+        _, model_id = get_latest_custom_model(
+            base_archetype_id, GNLPModelType.OUTREACH)
         base_model: GNLPModel = GNLPModel.query.get(model_id)
         model = GNLPModel(
             model_provider=base_model.model_provider,
@@ -801,10 +804,12 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
     if not email_found:
         return jsonify({"message": "Email not found in Stytch response"}), 400
 
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(
+        email=client_sdr_email).first()
     reset_client_sdr_sight_auth_token(client_sdr.id)
 
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(email=client_sdr_email).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(
+        email=client_sdr_email).first()
     token = client_sdr.auth_token
 
     return jsonify({"message": "Success", "token": token}), 200
@@ -812,7 +817,8 @@ def approve_stytch_client_sdr_token(client_sdr_email: str, token: str):
 
 def verify_client_sdr_auth_token(auth_token: str):
     """Verify a Client SDR auth token"""
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(auth_token=auth_token).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(
+        auth_token=auth_token).first()
     if not client_sdr:
         return None
 
@@ -895,7 +901,8 @@ def get_ctas(client_archetype_id: int):
     Returns:
         list: List of CTAs
     """
-    ctas = GeneratedMessageCTA.query.filter_by(archetype_id=client_archetype_id).all()
+    ctas = GeneratedMessageCTA.query.filter_by(
+        archetype_id=client_archetype_id).all()
     return ctas
 
 
@@ -1056,7 +1063,8 @@ def get_transformers_by_archetype_id(
 
     # Convert and format output
     transformer_stats = [
-        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        {column_map.get(i, "unknown"): value for i,
+         value in enumerate(tuple(row))}
         for row in transformer_stats
     ]
 
@@ -1626,7 +1634,8 @@ def convert_nylas_date(event):
     start_time = event.get("when", {}).get("start_time", 0)
     end_time = event.get("when", {}).get("end_time", 0)
     if event.get("when", {}).get("date"):
-        date_object = datetime.strptime(event.get("when", {}).get("date"), "%Y-%m-%d")
+        date_object = datetime.strptime(
+            event.get("when", {}).get("date"), "%Y-%m-%d")
         start_time = int(date_object.timestamp())
         end_time = start_time
 
@@ -1697,7 +1706,8 @@ def update_persona_brain_details(
     updated_persona_contact_objective: Optional[str],
     updated_persona_contract_size: Optional[int],
 ):
-    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(
+        client_archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return False
 
@@ -1755,7 +1765,8 @@ def predict_persona_fit_reason(
         (success: bool, message: str)
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(
+        client_archetype_id)
     client: Client = Client.query.get(client_sdr.client_id)
     if (
         not client_sdr
@@ -1821,7 +1832,8 @@ def generate_persona_buy_reason(
     """
     for _ in range(retries):
         try:
-            buy_reason = generate_persona_buy_reason_helper(client_sdr_id, persona_name)
+            buy_reason = generate_persona_buy_reason_helper(
+                client_sdr_id, persona_name)
             if buy_reason:
                 return buy_reason
         except:
@@ -1958,7 +1970,8 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
                 client_sdr.name,
                 client_sdr.id,
                 result.get("actual_target"),
-                "✅" if result.get("actual_target") >= client_sdr.weekly_li_outbound_target else "❌",
+                "✅" if result.get(
+                    "actual_target") >= client_sdr.weekly_li_outbound_target else "❌",
                 client_sdr.weekly_li_outbound_target
             ),
             webhook_urls=[URL_MAP["operations-sla-updater"]],
@@ -2270,7 +2283,8 @@ def scrape_for_demos() -> int:
 
         # Send message to Slack
         send_slack_message(
-            message="📅 {sdr_name} - Demo feedback missing".format(sdr_name=sdr.name),
+            message="📅 {sdr_name} - Demo feedback missing".format(
+                sdr_name=sdr.name),
             webhook_urls=[URL_MAP["csm-demo-date"]],
             blocks=[
                 {
@@ -2312,7 +2326,8 @@ def scrape_for_demos() -> int:
                         {
                             "type": "mrkdwn",
                             "text": "Scheduled demo date: *{demo_date}*".format(
-                                demo_date=prospect.demo_date.strftime("%b %d, %Y")
+                                demo_date=prospect.demo_date.strftime(
+                                    "%b %d, %Y")
                             ),
                         },
                     ],
@@ -2535,7 +2550,8 @@ def get_personas_page_details(client_sdr_id: int):
         row_dict = row._asdict()
         for key, value in row_dict.items():
             if isinstance(value, list):
-                row_dict[key] = [x.value if isinstance(x, Enum) else x for x in value]
+                row_dict[key] = [x.value if isinstance(
+                    x, Enum) else x for x in value]
         json_results.append(row_dict)
 
     return json_results
@@ -2592,7 +2608,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
 
     # Convert and format output
     results = [
-        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        {column_map.get(i, "unknown"): value for i,
+         value in enumerate(tuple(row))}
         for row in results
     ]
 
@@ -2814,7 +2831,8 @@ def onboarding_setup_completion_report(client_sdr_id: int):
     )
     sdr_info = bool(sdr.name and sdr.title)
     scheduling_info = bool(sdr.scheduling_link or sdr.calendly_access_token)
-    email_integration = bool(sdr.nylas_account_id is not None and sdr.nylas_active)
+    email_integration = bool(
+        sdr.nylas_account_id is not None and sdr.nylas_active)
     linkedin_integration = bool(
         sdr.li_cookies is not None and sdr.li_cookies != "INVALID"
     )
@@ -2950,7 +2968,8 @@ def get_client_sdr_table_info(client_sdr_id: int):
 
     # Convert and format output
     data = [
-        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        {column_map.get(i, "unknown"): value for i,
+         value in enumerate(tuple(row))}
         for row in data
     ]
 
@@ -3065,7 +3084,8 @@ def propagate_contract_value(client_id: int, new_value: int):
     archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
         client_id=client_id
     ).all()
-    prospects: list[Prospect] = Prospect.query.filter_by(client_id=client_id).all()
+    prospects: list[Prospect] = Prospect.query.filter_by(
+        client_id=client_id).all()
 
     for archetype in archetypes:
         archetype.contract_size = new_value
@@ -3099,3 +3119,20 @@ def write_client_pre_onboarding_survey(
             )
         else:
             return False
+
+
+def get_all_sdrs_from_emails(emails: list[str]):
+    """Gets all SDRs from a list of emails"""
+
+    sdrs: list[ClientSDR] = ClientSDR.query.filter(
+        ClientSDR.email.in_(emails)).all()
+
+    # Public info, don't include auth token!
+    return [{
+        'id': sdr.id,
+        'name': sdr.name,
+        'email': sdr.email,
+        'title': sdr.title,
+        'client_id': sdr.client_id,
+        'timezone': sdr.timezone,
+    } for sdr in sdrs]
