@@ -38,7 +38,9 @@ def update_transformer_blocklist(client_archetype_id: int, new_blocklist: list) 
     return True, "OK"
 
 
-def update_transformer_blocklist_initial(client_archetype_id: int, new_blocklist: list) -> any:
+def update_transformer_blocklist_initial(
+    client_archetype_id: int, new_blocklist: list
+) -> any:
     """
     Set's the client archetype's initial transformer blocker
 
@@ -76,8 +78,7 @@ def replicate_transformer_blocklist(
     Returns:
         tuple[bool, str]: success & message
     """
-    source_ca: ClientArchetype = ClientArchetype.query.get(
-        source_client_archetype_id)
+    source_ca: ClientArchetype = ClientArchetype.query.get(source_client_archetype_id)
     if not source_ca:
         return False, "Source client archetype not found"
     destination_ca: ClientArchetype = ClientArchetype.query.get(
@@ -162,7 +163,7 @@ def get_archetype_activity(
     # TODO: Use the aggregate flag to determine if we should aggregate the results or not.
     # TODO: Use the custom_start_date and custom_end_date to filter the results
 
-    interval = '1 day'
+    interval = "1 day"
 
     results = db.session.execute(
         """
@@ -179,10 +180,9 @@ def get_archetype_activity(
             prospect
             LEFT JOIN linkedin_conversation_entry ON linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
             LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
-                AND client_sdr_id = {client_sdr_id};
+        WHERE client_sdr_id = {client_sdr_id};
         """.format(
-            interval=interval,
-            client_sdr_id=client_sdr_id
+            interval=interval, client_sdr_id=client_sdr_id
         )
     ).fetchall()
 
@@ -232,8 +232,7 @@ def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dic
         GROUP BY
             2;
         """.format(
-            archetype_id=archetype_id,
-            client_sdr_id=client_sdr_id
+            archetype_id=archetype_id, client_sdr_id=client_sdr_id
         )
     ).fetchone()
 
@@ -254,8 +253,7 @@ def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dic
     }
 
     # Convert and format output
-    result = {column_map.get(i, "unknown"): value for i,
-              value in enumerate(results)}
+    result = {column_map.get(i, "unknown"): value for i, value in enumerate(results)}
 
     return result
 
