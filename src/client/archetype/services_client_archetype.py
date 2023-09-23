@@ -135,4 +135,4 @@ def bulk_action_withdraw_prospect_invitations(
         ]
     )
 
-    return True
+    return True, "Success"
