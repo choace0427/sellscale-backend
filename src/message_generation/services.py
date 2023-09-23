@@ -432,15 +432,16 @@ def generate_batch_of_research_points_from_config(
         return generate_batches_of_research_points(
             points=all_research_points, n=n, num_per_perm=2
         )
-    allowed_research_point_types_in_config = [
-        x for x in config.research_point_types]
+    allowed_research_point_types_in_config = [x for x in config.research_point_types]
     archetype: ClientArchetype = ClientArchetype.query.get(config.archetype_id)
 
     # Remove the research point types that are in the blocklists
-    if archetype:
+    if archetype and archetype.transformer_blocklist:
         allowed_research_point_types_in_config = [
-            item for item in allowed_research_point_types_in_config 
-            if item not in archetype.transformer_blocklist_initial and item not in archetype.transformer_blocklist
+            item
+            for item in allowed_research_point_types_in_config
+            if item not in archetype.transformer_blocklist_initial
+            and item not in archetype.transformer_blocklist
         ]
 
     research_points = [
@@ -2328,7 +2329,10 @@ def generate_followup_response(
             best_framework = None
 
         # Determine the best account research
-        points = ResearchPoints.get_research_points_by_prospect_id(prospect_id, bump_framework_id=best_framework.get('id') if best_framework else None)
+        points = ResearchPoints.get_research_points_by_prospect_id(
+            prospect_id,
+            bump_framework_id=best_framework.get("id") if best_framework else None,
+        )
         random_sample_points = random.sample(points, min(len(points), 3))
 
         if show_slack_messages:
