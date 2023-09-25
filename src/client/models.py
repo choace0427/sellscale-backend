@@ -57,6 +57,11 @@ class Client(db.Model):
 
     pre_onboarding_survey = db.Column(db.JSON, nullable=True)
 
+    # Survey questions
+    example_outbound_copy = db.Column(db.String, nullable=True)
+    existing_clients = db.Column(db.String, nullable=True)
+    impressive_facts = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -80,6 +85,10 @@ class Client(db.Model):
             "mission": self.mission,
             "case_study": self.case_study,
             "contract_size": self.contract_size,
+
+            "example_outbound_copy": self.example_outbound_copy,
+            "existing_clients": self.existing_clients,
+            "impressive_facts": self.impressive_facts,
         }
 
 
