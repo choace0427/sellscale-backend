@@ -124,6 +124,7 @@ class ClientArchetype(db.Model):
     email_blocks_configuration = db.Column(db.ARRAY(db.String), nullable=True)
 
     contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+    first_message_delay_days = db.Column(db.Integer, nullable=True)
 
     def to_dict(self) -> dict:
 
@@ -158,6 +159,7 @@ class ClientArchetype(db.Model):
             "ctas": [cta.to_dict() for cta in ctas],
             "email_blocks_configuration": self.email_blocks_configuration,
             "contract_size": self.contract_size,
+            "first_message_delay_days": self.first_message_delay_days,
         }
 
 

@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from app import db
 
 from src.authentication.decorators import require_user
 from src.client.archetype.services_client_archetype import bulk_action_move_prospects_to_archetype, bulk_action_withdraw_prospect_invitations
@@ -61,5 +62,27 @@ def post_archetype_bulk_action_withdraw_invitations(client_sdr_id: int):
             jsonify({"status": "error", "message": "Failed to withdraw invitations"}),
             400,
         )
+
+    return jsonify({"status": "success"}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/message_delay", methods=["PATCH"])
+@require_user
+def patch_archetype_message_delay(client_sdr_id: int, archetype_id: int):
+    delay_days = get_request_parameter(
+        "delay_days", request, json=True, required=True, parameter_type=int
+    )
+
+    if delay_days < 0:
+        return jsonify({"status": "error", "message": "Delay days cannot be negative"}), 400
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
+
+    archetype.first_message_delay_days = delay_days
+    db.session.commit()
 
     return jsonify({"status": "success"}), 200

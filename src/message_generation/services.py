@@ -216,18 +216,18 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
 def run_queued_gm_job():
     data = db.session.execute(
         """
-        select 
+        select
             prospect_id,
             outbound_campaign_id,
             generated_message_cta_id as cta_id,
             id as gm_job_id,
             generated_message_job_queue.generated_message_type
         from generated_message_job_queue
-        where 
+        where
             generated_message_job_queue.created_at > NOW() - '1 days'::INTERVAL and
-            generated_message_job_queue.status = 'PENDING' and 
+            generated_message_job_queue.status = 'PENDING' and
             (
-                generated_message_job_queue.generated_message_type = 'LINKEDIN' and generated_message_cta_id is not null 
+                generated_message_job_queue.generated_message_type = 'LINKEDIN' and generated_message_cta_id is not null
                 or
                 generated_message_job_queue.generated_message_type = 'EMAIL'
             ) and
@@ -2103,11 +2103,40 @@ def generate_message_bumps():
         # print(f"Generating bumps for {len(prospects)} prospects...")
 
         for prospect in prospects:
+
+            # CHECK: If the prospect is in ACCEPTED stage and the message delay on the archetype is not quite up
+            #      then we don't generate a bump
+            if prospect.status == ProspectStatus.ACCEPTED:
+                # Get the archetype
+                archetype: ClientArchetype = ClientArchetype.query.get(
+                    prospect.archetype_id
+                )
+                # If the archetype has a message delay, check if it's been long enough by referencing status records
+                if archetype and archetype.first_message_delay_days:
+                    # Get the first status record
+                    status_record: ProspectStatusRecords = (
+                        ProspectStatusRecords.query.filter(
+                            ProspectStatusRecords.prospect_id == prospect.id,
+                            ProspectStatusRecords.to_status == ProspectStatus.ACCEPTED,
+                        )
+                        .order_by(ProspectStatusRecords.created_at.asc())
+                        .first()
+                    )
+                    if status_record:
+                        # If the first status record is less than the delay, then we don't generate a bump
+                        if (
+                            datetime.datetime.utcnow()
+                            - status_record.created_at
+                        ).days < archetype.first_message_delay_days:
+                            continue
+
+            # Generate the bump
             success = generate_prospect_bump(
                 client_sdr_id=prospect.client_sdr_id,
                 prospect_id=prospect.id,
             )
-            # important: this short circuits this loop if we successfully generate a bump
+
+            # IMPORTANT: this short circuits this loop if we successfully generate a bump
             #       that way it only generates a bump once every 2 minutes
             if success == True:
                 return
