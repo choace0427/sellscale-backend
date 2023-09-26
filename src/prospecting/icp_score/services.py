@@ -980,6 +980,13 @@ def apply_icp_scoring_ruleset_filters(
                 update_prospects.apply_async(args=[batch], priority=1)
 
         print("Done!")
+
+        # Get the scoring job, mark it as complete
+        icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+            id=icp_scoring_job_id).first()
+        icp_scoring_job.run_status = ICPScoringJobQueueStatus.COMPLETED
+        db.session.commit()
+
         return True
     except Exception as e:
         db.session.rollback()
