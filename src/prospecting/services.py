@@ -1188,10 +1188,6 @@ def mark_prospects_as_queued_for_outreach(
     if campaign_id is not None:
         change_campaign_status(campaign_id, OutboundCampaignStatus.COMPLETE)
 
-        # Calculate campaign cost
-        campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-        # campaign.calculate_cost()
-
     # Commit
     db.session.bulk_save_objects(updated_messages)
     db.session.commit()
