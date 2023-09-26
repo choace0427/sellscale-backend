@@ -14,6 +14,7 @@ from src.client.services import (
     get_demo_feedback,
     get_demo_feedback_for_client,
     toggle_client_sdr_auto_bump,
+    toggle_client_sdr_auto_send_campaigns_enabled,
     write_client_pre_onboarding_survey,
 )
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
@@ -411,8 +412,12 @@ def get_archetypes_activity(client_sdr_id: int):
         "custom_end_date", request, json=False, required=False, parameter_type=str
     )
 
-    custom_start_date = convert_string_to_datetime(custom_start_date) if custom_start_date else None
-    custom_end_date = convert_string_to_datetime(custom_end_date) if custom_end_date else None
+    custom_start_date = (
+        convert_string_to_datetime(custom_start_date) if custom_start_date else None
+    )
+    custom_end_date = (
+        convert_string_to_datetime(custom_end_date) if custom_end_date else None
+    )
 
     activities = get_archetype_activity(
         client_sdr_id=client_sdr_id,
@@ -1436,6 +1441,18 @@ def post_toggle_client_sdr_auto_bump():
     success = toggle_client_sdr_auto_bump(client_sdr_id=client_sdr_id)
     if not success:
         return "Failed to toggle auto bump", 400
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/toggle_auto_send_campaigns_enabled", methods=["POST"])
+def post_toggle_client_sdr_auto_send_campaigns_enabled():
+    """Toggles auto send campaigns enabled for a client SDR"""
+    client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+    success = toggle_client_sdr_auto_send_campaigns_enabled(client_sdr_id=client_sdr_id)
+    if not success:
+        return "Failed to toggle auto send campaigns enabled", 400
     return "OK", 200
 
 

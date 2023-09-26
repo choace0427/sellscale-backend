@@ -85,7 +85,6 @@ class Client(db.Model):
             "mission": self.mission,
             "case_study": self.case_study,
             "contract_size": self.contract_size,
-
             "example_outbound_copy": self.example_outbound_copy,
             "existing_clients": self.existing_clients,
             "impressive_facts": self.impressive_facts,
@@ -308,6 +307,7 @@ class ClientSDR(db.Model):
     auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_calendar_sync = db.Column(db.Boolean, nullable=True, default=False)
     auto_bump = db.Column(db.Boolean, nullable=True, default=False)
+    auto_send_campaigns_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
     message_generation_captivate_mode = db.Column(
         db.Boolean, nullable=True, default=False
@@ -389,9 +389,9 @@ class ClientSDR(db.Model):
         client: Client = Client.query.get(self.client_id)
 
         # Get the SLA schedules
-        sla_schedules: list[SLASchedule] = (
-            SLASchedule.query.filter_by(client_sdr_id=self.id).all()
-        )
+        sla_schedules: list[SLASchedule] = SLASchedule.query.filter_by(
+            client_sdr_id=self.id
+        ).all()
 
         return {
             "id": self.id,
@@ -438,7 +438,6 @@ class ClientSDR(db.Model):
             "li_health_profile_photo": self.li_health_profile_photo,
             "li_health_premium": self.li_health_premium,
             "li_cover_img_url": self.li_cover_img_url,
-
             "conversion_sent_pct": self.conversion_sent_pct,
             "conversion_open_pct": self.conversion_open_pct,
             "conversion_reply_pct": self.conversion_reply_pct,
@@ -607,8 +606,10 @@ class SLASchedule(db.Model):
         # If the current date is within the date range, return is_current_week True
         # Otherwise, return is_current_week False
         is_current_week = (
-            self.start_date <= datetime.utcnow() <= self.end_date
-        ) if self.start_date and self.end_date else False
+            (self.start_date <= datetime.utcnow() <= self.end_date)
+            if self.start_date and self.end_date
+            else False
+        )
 
         return {
             "is_current_week": is_current_week,
