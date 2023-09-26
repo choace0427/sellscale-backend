@@ -19,6 +19,11 @@ def create_email_store(
     Returns:
         int: _description_
     """
+    # Make sure we aren't creating duplicates
+    email_store: EmailStore = EmailStore.query.filter_by(email=email).first()
+    if email_store:
+        return email_store.id
+
     email_store = EmailStore(
         email=email,
         first_name=first_name,
