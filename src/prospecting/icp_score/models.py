@@ -20,7 +20,7 @@ class ICPScoringJobQueue(db.Model):
     )
     prospect_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
 
-    status = db.Column(db.String, nullable=False, default=ICPScoringJobQueueStatus.PENDING.value)
+    run_status = db.Column(db.Enum(ICPScoringJobQueueStatus), nullable=False, default=ICPScoringJobQueueStatus.PENDING.value)
     error_message = db.Column(db.String, nullable=True)
     attempts = db.Column(db.Integer, nullable=False, default=0)
 
@@ -30,7 +30,7 @@ class ICPScoringJobQueue(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "prospect_ids": self.prospect_ids,
-            "status": self.status,
+            "run_status": self.run_status,
             "error_message": self.error_message,
             "attempts": self.attempts,
         }
