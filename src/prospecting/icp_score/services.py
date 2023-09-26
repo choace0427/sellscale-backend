@@ -859,6 +859,7 @@ def apply_icp_scoring_ruleset_filters(
         icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
             id=icp_scoring_job_id).first()
         icp_scoring_job.run_status = ICPScoringJobQueueStatus.IN_PROGRESS
+        icp_scoring_job.attempts = icp_scoring_job.attempts + 1 if icp_scoring_job.attempts else 1
         db.session.commit()
 
         # Step 1: Get the raw prospect list with data enriched
@@ -985,6 +986,7 @@ def apply_icp_scoring_ruleset_filters(
         icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
             id=icp_scoring_job_id).first()
         icp_scoring_job.run_status = ICPScoringJobQueueStatus.COMPLETED
+        icp_scoring_job.error_message = None
         db.session.commit()
 
         return True
