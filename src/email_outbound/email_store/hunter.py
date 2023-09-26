@@ -4,7 +4,11 @@ from model_import import Prospect, ClientSDR
 from app import db, celery
 import time
 
-from src.email_outbound.email_store.services import create_email_store, email_store_hunter_verify
+from src.email_outbound.email_store.services import (
+    create_email_store,
+    email_store_hunter_verify,
+)
+from src.utils.slack import URL_MAP, send_slack_message
 
 HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY")
 DEFAULT_MONTHLY_EMAIL_FETCHING_CREDITS = (
@@ -55,7 +59,9 @@ def verify_email_from_hunter(email_address: str) -> (bool, dict):
 
 
 @celery.task
-def find_hunter_email_from_prospect_id(prospect_id: int):
+def find_hunter_email_from_prospect_id(
+    prospect_id: int, trigger_from: str = "manually triggered"
+):
     p: Prospect = Prospect.query.get(prospect_id)
     print("\nProcessesing prospect: ", p.id)
 
@@ -88,16 +94,21 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     score = data["score"]
     p.email = email
     p.hunter_email_score = score
+    p_id = p.id
+    full_name = p.full_name
+    overall_status = p.overall_status.value
 
     # Verify the email
-    email_store_id = create_email_store(
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        company_name=company_name,
-    )
-    p.email_store_id = email_store_id
-    email_store_hunter_verify.delay(email_store_id=email_store_id)
+    print("Verifying email: ", email)
+    if email:
+        email_store_id = create_email_store(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            company_name=company_name,
+        )
+        p.email_store_id = email_store_id
+        email_store_hunter_verify.delay(email_store_id=email_store_id)
 
     client_sdr_id = p.client_sdr_id
     db.session.add(p)
@@ -108,11 +119,25 @@ def find_hunter_email_from_prospect_id(prospect_id: int):
     db.session.add(client_sdr)
     db.session.commit()
 
+    send_slack_message(
+        "🦊 Found email for {name} (#{id}) - {overall_status}\n{email} - Score: {score}\nTriggered reason: {trigger_from}".format(
+            name=str(full_name),
+            id=str(p_id),
+            email=str(email),
+            score=str(score),
+            overall_status=str(overall_status),
+            trigger_from=trigger_from,
+        ),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
     return p
 
 
 @celery.task(bind=True, max_retries=3)
-def find_hunter_emails_for_prospects_under_archetype(self, client_sdr_id: int, archetype_id: int) -> bool:
+def find_hunter_emails_for_prospects_under_archetype(
+    self, client_sdr_id: int, archetype_id: int
+) -> bool:
     """Finds hunter emails for all prospects under an archetype
 
     Args:

@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Union
 from sqlalchemy import nullslast
+from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
 
 from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
@@ -589,6 +590,11 @@ def update_prospect_status_linkedin_helper(
 
     db.session.add(p)
     db.session.commit()
+
+    if new_status == ProspectStatus.ACTIVE_CONVO:
+        find_hunter_email_from_prospect_id.delay(
+            prospect_id=prospect_id, trigger_from="status change"
+        )
 
     return True
 
