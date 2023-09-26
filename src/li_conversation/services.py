@@ -386,6 +386,12 @@ def detect_time_sensitive_keywords(
             "available dates",
             "a conversation",
             "discuss",
+            "next year",
+            "later",
+            "next week",
+            "next month",
+            "2023",
+            "2024",
         ]
     )
     for keyword in time_sensitive_keywords:
