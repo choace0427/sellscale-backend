@@ -1,12 +1,12 @@
 import datetime
 from multiprocessing import process
-from typing import Counter
+from typing import Counter, Optional
 
 from flask import app
 import pandas as pd
 from pyparsing import dictOf
 from src.client.models import ClientArchetype
-from src.prospecting.icp_score.models import ICPScoringRuleset
+from src.prospecting.icp_score.models import ICPScoringJobQueue, ICPScoringJobQueueStatus, ICPScoringRuleset
 from app import db, app, celery
 from src.prospecting.models import Prospect
 from model_import import ResearchPayload
@@ -212,7 +212,7 @@ def count_num_icp_attributes(client_archetype_id: int):
 
 def get_raw_enriched_prospect_companies_list(
     client_archetype_id: int,
-    prospect_ids: list[int],
+    prospect_ids: Optional[list[int]] = None,
     is_lookalike_profile_only: bool = False,
 ):
     """
@@ -273,7 +273,8 @@ def get_raw_enriched_prospect_companies_list(
             deep_get(data, "personal.location")
         )
         processed[prospect_id].prospect_industry = industry
-        processed[prospect_id].prospect_skills = deep_get(data, "personal.skills")
+        processed[prospect_id].prospect_skills = deep_get(
+            data, "personal.skills")
         processed[prospect_id].prospect_positions = deep_get(
             data, "personal.position_groups.0.profile_positions"
         )
@@ -311,7 +312,8 @@ def get_raw_enriched_prospect_companies_list(
             )
             + ", "
             + (
-                deep_get(data, "company.details.locations.headquarter.geographic_area")
+                deep_get(
+                    data, "company.details.locations.headquarter.geographic_area")
                 if deep_get(
                     data, "company.details.locations.headquarter.geographic_area"
                 )
@@ -566,7 +568,8 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.prospect_dump.lower():
                     invalid_generalized = keyword
                     break
-            reasoning += "(❌ general prospect info: " + invalid_generalized + ") "
+            reasoning += "(❌ general prospect info: " + \
+                invalid_generalized + ") "
         elif (
             icp_scoring_ruleset.included_individual_generalized_keywords
             and enriched_prospect_company.prospect_dump
@@ -581,7 +584,8 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.prospect_dump.lower():
                     valid_generalized = keyword
                     break
-            reasoning += "(✅ general prospect info: " + valid_generalized + ") "
+            reasoning += "(✅ general prospect info: " + \
+                valid_generalized + ") "
 
         # Company Name
         if (
@@ -633,7 +637,8 @@ def score_one_prospect(
                 ):
                     invalid_company_location = keyword
                     break
-            reasoning += "(❌ company location: " + invalid_company_location + ") "
+            reasoning += "(❌ company location: " + \
+                invalid_company_location + ") "
         elif (
             icp_scoring_ruleset.included_company_locations_keywords
             and enriched_prospect_company.company_location
@@ -651,7 +656,8 @@ def score_one_prospect(
                 ):
                     valid_company_location = keyword
                     break
-            reasoning += "(✅ company location: " + valid_company_location + ") "
+            reasoning += "(✅ company location: " + \
+                valid_company_location + ") "
         elif icp_scoring_ruleset.included_company_locations_keywords:
             score -= num_attributes
             reasoning += "(❌ company location: No Match)"
@@ -761,7 +767,8 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.company_dump.lower():
                     invalid_generalized = keyword
                     break
-            reasoning += "(❌ company general info: " + invalid_generalized + ") "
+            reasoning += "(❌ company general info: " + \
+                invalid_generalized + ") "
         elif (
             icp_scoring_ruleset.included_company_generalized_keywords
             and enriched_prospect_company.company_dump
@@ -786,148 +793,203 @@ def score_one_prospect(
         return (enriched_prospect_company, score, reasoning)
 
 
-@celery.task(bind=True, max_retries=3)
 def apply_icp_scoring_ruleset_filters_task(
-    self, client_archetype_id: int, prospect_ids: list[int]
-):
-    try:
-        apply_icp_scoring_ruleset_filters(client_archetype_id, prospect_ids)
+    client_archetype_id: int,
+    icp_scoring_job_queue_id: Optional[int] = None,
+    prospect_ids: Optional[list[int]] = None
+) -> bool:
+    """Creates an ICPScoringJobQueue object and begins the icp_scoring job
+
+    Args:
+        client_archetype_id (int): ID of the ClientArchetype object
+        icp_scoring_job_queue_id (Optional[int], optional): ID of the ICPScoringJobQueue object. Defaults to None.
+        prospect_ids (Optional[list[int]], optional): List of prospect IDs to score. Defaults to None.
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the ClientArchetype
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id).first()
+    # Get the ClientSDR ID
+    client_sdr_id = client_archetype.client_sdr_id
+
+    # If there is already an ICPScoringJobQueue object, trigger the job
+    if icp_scoring_job_queue_id:
+        apply_icp_scoring_ruleset_filters.apply_async(
+            args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
+            queue="icp_scoring",
+            routing_key="icp_scoring",
+        )
 
         return True
-    except Exception as e:
-        db.session.rollback()
-        raise self.retry(exc=e)
 
-    return False
-
-
-def apply_icp_scoring_ruleset_filters(
-    client_archetype_id: int, prospect_ids: list[int]
-):
-    """
-    Apply the ICP scoring ruleset to all prospects in the client archetype.
-    """
-    num_attributes = count_num_icp_attributes(client_archetype_id)
-
-    # Step 1: Get the raw prospect list with data enriched
-    print("Pulling raw enriched prospect companies list...")
-    raw_enriched_prospect_companies_list = get_raw_enriched_prospect_companies_list(
+    # Create ICPScoringJobQueue object
+    icp_scoring_job = ICPScoringJobQueue(
+        client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         prospect_ids=prospect_ids,
     )
-    print(
-        "Pulled raw enriched prospect companies list with length: "
-        + str(len(raw_enriched_prospect_companies_list))
+
+    apply_icp_scoring_ruleset_filters.apply_async(
+        args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
+        queue="icp_scoring",
+        routing_key="icp_scoring",
     )
 
-    icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
-        client_archetype_id=client_archetype_id
-    ).first()
+    return True
 
-    # Step 2: Score all the prospects
-    print("Scoring prospects...")
-    score_map = {}
-    entries = raw_enriched_prospect_companies_list.items()
-    raw_data = []
 
-    results_queue = queue.Queue()
-    max_threads = 5
+@celery.task(bind=True, max_retries=3)
+def apply_icp_scoring_ruleset_filters(
+    self,
+    icp_scoring_job_id: int,
+    client_archetype_id: int,
+    prospect_ids: Optional[list[int]] = None
+):
+    try:
+        """
+        Apply the ICP scoring ruleset to all prospects in the client archetype.
+        """
+        num_attributes = count_num_icp_attributes(client_archetype_id)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+        # Get the scoring job, mark it as in progress
+        icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+            id=icp_scoring_job_id).first()
+        icp_scoring_job.status = ICPScoringJobQueueStatus.IN_PROGRESS
+        db.session.commit()
 
-        futures = []
-        for (
-            prospect_id,
-            enriched_prospect_company,
-        ) in tqdm(entries):
-            futures.append(
-                executor.submit(
-                    score_one_prospect,
-                    enriched_prospect_company=enriched_prospect_company,
-                    icp_scoring_ruleset=icp_scoring_ruleset,
-                    queue=results_queue,
+        # Step 1: Get the raw prospect list with data enriched
+        print("Pulling raw enriched prospect companies list...")
+        raw_enriched_prospect_companies_list = get_raw_enriched_prospect_companies_list(
+            client_archetype_id=client_archetype_id,
+            prospect_ids=prospect_ids,
+        )
+        print(
+            "Pulled raw enriched prospect companies list with length: "
+            + str(len(raw_enriched_prospect_companies_list))
+        )
+
+        icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+            client_archetype_id=client_archetype_id
+        ).first()
+
+        # Step 2: Score all the prospects
+        print("Scoring prospects...")
+        score_map = {}
+        entries = raw_enriched_prospect_companies_list.items()
+        raw_data = []
+
+        results_queue = queue.Queue()
+        max_threads = 5
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+
+            futures = []
+            for (
+                prospect_id,
+                enriched_prospect_company,
+            ) in tqdm(entries):
+                futures.append(
+                    executor.submit(
+                        score_one_prospect,
+                        enriched_prospect_company=enriched_prospect_company,
+                        icp_scoring_ruleset=icp_scoring_ruleset,
+                        queue=results_queue,
+                    )
                 )
+
+            concurrent.futures.wait(futures)
+
+        while not results_queue.empty():
+            result = results_queue.get()
+            enriched_company: EnrichedProspectCompany = result[0]
+            score = result[1]
+            reasoning = result[2]
+
+            prospect_id = enriched_company.prospect_id
+
+            if score not in score_map:
+                score_map[score] = 0
+            score_map[score] += 1
+
+            raw_data.append(
+                {
+                    "prospect_id": prospect_id,
+                    "score": score,
+                    "reasoning": reasoning,
+                }
             )
 
-        concurrent.futures.wait(futures)
+        # Determine the labels (VERY HIGH -> VERY LOW)
+        sorted_keys = sorted(score_map.keys())
+        minimum_key = min(score_map.keys()) if len(score_map.keys()) > 0 else 0
+        mid_minimum_key = minimum_key // 2
+        maximum_key = max(score_map.keys()) if len(score_map.keys()) > 0 else 0
+        mid_maximum_key = maximum_key // 2
 
-    while not results_queue.empty():
-        result = results_queue.get()
-        enriched_company: EnrichedProspectCompany = result[0]
-        score = result[1]
-        reasoning = result[2]
+        label_map = {}
+        for i in range(minimum_key - 1, maximum_key + 1):
+            if minimum_key - 1 < i and i < mid_minimum_key:
+                label_map[i] = 0
+            elif mid_minimum_key <= i and i < 0:
+                label_map[i] = 1
+            elif i == 0:
+                label_map[i] = 2
+            elif 0 < i and i < mid_maximum_key + 1:
+                label_map[i] = 3
+            elif mid_maximum_key + 1 <= i and i < maximum_key + 1:
+                label_map[i] = 4
 
-        prospect_id = enriched_company.prospect_id
+        for key in sorted_keys:
+            # print '#' symbol for every 5 prospects
+            label = str(label_map[key])
 
-        if score not in score_map:
-            score_map[score] = 0
-        score_map[score] += 1
+            hashtags = "#" * (score_map[key] // 5) + " " + str(score_map[key])
 
-        raw_data.append(
-            {
-                "prospect_id": prospect_id,
-                "score": score,
-                "reasoning": reasoning,
-            }
-        )
+            print(label + ": " + hashtags)
 
-    # Determine the labels (VERY HIGH -> VERY LOW)
-    sorted_keys = sorted(score_map.keys())
-    minimum_key = min(score_map.keys()) if len(score_map.keys()) > 0 else 0
-    mid_minimum_key = minimum_key // 2
-    maximum_key = max(score_map.keys()) if len(score_map.keys()) > 0 else 0
-    mid_maximum_key = maximum_key // 2
+        # Step 4: Batch Update all the prospects
+        update_mappings = []
+        for entry in raw_data:
+            prospect_id = entry["prospect_id"]
+            score = entry["score"]
+            reasoning = entry["reasoning"]
+            if not reasoning:
+                reasoning = "🟨 Nothing detected in prospect's profile that matches the ICP scoring ruleset."
+            label = label_map[score]
 
-    label_map = {}
-    for i in range(minimum_key - 1, maximum_key + 1):
-        if minimum_key - 1 < i and i < mid_minimum_key:
-            label_map[i] = 0
-        elif mid_minimum_key <= i and i < 0:
-            label_map[i] = 1
-        elif i == 0:
-            label_map[i] = 2
-        elif 0 < i and i < mid_maximum_key + 1:
-            label_map[i] = 3
-        elif mid_maximum_key + 1 <= i and i < maximum_key + 1:
-            label_map[i] = 4
+            update_mappings.append(
+                {
+                    "id": prospect_id,
+                    "icp_fit_score": label,
+                    "icp_fit_reason": reasoning,
+                }
+            )
 
-    for key in sorted_keys:
-        # print '#' symbol for every 5 prospects
-        label = str(label_map[key])
+        print("Updating prospects...")
+        for batch in tqdm(
+            [update_mappings[i: i + 50]
+                for i in range(0, len(update_mappings), 50)]
+        ):
+            if prospect_ids and len(prospect_ids) <= 50:
+                update_prospects(batch)
+            else:
+                update_prospects.apply_async(args=[batch], priority=1)
 
-        hashtags = "#" * (score_map[key] // 5) + " " + str(score_map[key])
+        print("Done!")
+        return True
+    except Exception as e:
+        db.session.rollback()
 
-        print(label + ": " + hashtags)
+        # Get the scoring job, mark it as failed
+        icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+            id=icp_scoring_job_id).first()
+        icp_scoring_job.status = ICPScoringJobQueueStatus.FAILED
+        icp_scoring_job.error_message = str(e)
+        db.session.commit()
 
-    # Step 4: Batch Update all the prospects
-    update_mappings = []
-    for entry in raw_data:
-        prospect_id = entry["prospect_id"]
-        score = entry["score"]
-        reasoning = entry["reasoning"]
-        if not reasoning:
-            reasoning = "🟨 Nothing detected in prospect's profile that matches the ICP scoring ruleset."
-        label = label_map[score]
-
-        update_mappings.append(
-            {
-                "id": prospect_id,
-                "icp_fit_score": label,
-                "icp_fit_reason": reasoning,
-            }
-        )
-
-    print("Updating prospects...")
-    for batch in tqdm(
-        [update_mappings[i : i + 50] for i in range(0, len(update_mappings), 50)]
-    ):
-        if prospect_ids and len(prospect_ids) <= 50:
-            update_prospects(batch)
-        else:
-            update_prospects.apply_async(args=[batch], priority=1)
-
-    print("Done!")
-    return True
+        raise self.retry(exc=e)
 
 
 @celery.task(bind=True, max_retries=3)
@@ -995,7 +1057,8 @@ def predict_icp_scoring_filters_from_prospect_id(
         is_lookalike_profile_only=True,
     )
 
-    all_titles = [enriched_pcs[key].prospect_title for key in enriched_pcs.keys()]
+    all_titles = [
+        enriched_pcs[key].prospect_title for key in enriched_pcs.keys()]
     # get top 10 titles with highest frequency
     good_titles = [
         title
@@ -1013,7 +1076,8 @@ def predict_icp_scoring_filters_from_prospect_id(
         if industry and industry != "None"
     ]
 
-    all_companies = [enriched_pcs[key].company_name for key in enriched_pcs.keys()]
+    all_companies = [
+        enriched_pcs[key].company_name for key in enriched_pcs.keys()]
     # get top 10 companies with highest frequency
     good_companies = [
         company
@@ -1099,7 +1163,8 @@ def set_icp_scores_to_predicted_values(client_archetype_id: int):
         excluded_individual_generalized_keywords=[],
         included_company_name_keywords=good_companies,
         excluded_company_name_keywords=[],
-        included_company_locations_keywords=["United States", "Canada", "US ", "CA "],
+        included_company_locations_keywords=[
+            "United States", "Canada", "US ", "CA "],
         excluded_company_locations_keywords=[],
         company_size_start=min_company_size,
         company_size_end=max_company_size,

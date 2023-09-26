@@ -463,8 +463,6 @@ def run_and_assign_health_score(
     Raises:
         self.retry: If the task fails, it will retry, up to the max_retries limit.
     """
-    from src.ml.services import icp_classify
-
     # Get the prospects for the archetype
     try:
         # Add a short_circuit which will use prospect_id
