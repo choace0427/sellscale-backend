@@ -830,6 +830,8 @@ def apply_icp_scoring_ruleset_filters_task(
         client_archetype_id=client_archetype_id,
         prospect_ids=prospect_ids,
     )
+    db.session.add(icp_scoring_job)
+    db.session.commit()
 
     apply_icp_scoring_ruleset_filters.apply_async(
         args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
