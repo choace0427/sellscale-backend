@@ -403,7 +403,7 @@ def detect_time_sensitive_keywords(
                 ```
                 {message}
                 ```
-                ⏰ Time-sensitive keyword was detected.
+                ⏰ Time-sensitive keyword was detected: {keyword}
 
                 Take appropriate action then mark this message as ✅
 
