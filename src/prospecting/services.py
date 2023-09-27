@@ -283,7 +283,7 @@ def get_prospects_for_icp_table(
                 prospect.icp_fit_score,
                 prospect.icp_fit_reason,
                 prospect.industry,
-                prospect.id,
+                prospect.id
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
             where prospect.archetype_id = {client_archetype_id}
