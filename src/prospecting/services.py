@@ -231,7 +231,7 @@ def get_prospects(
         .order_by(ordering_arr[2])
         .order_by(ordering_arr[3])
     )
-    if not persona_id:
+    if persona_id:
         prospects = prospects.filter(Prospect.archetype_id == persona_id)
     if bumped != "all":
         prospects = prospects.filter(Prospect.times_bumped == int(bumped))
