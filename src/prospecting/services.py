@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import List, Optional, Union
 from sqlalchemy import nullslast
+from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
+from src.email_outbound.email_store.services import create_email_store, email_store_hunter_verify
 
 from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
@@ -284,14 +286,26 @@ def patch_prospect(
 
     if title:
         p.title = title
-    if email:
-        p.email = email
     if linkedin_url:
         p.linkedin_url = linkedin_url
     if contract_size:
         p.contract_size = contract_size
     db.session.commit()
 
+    # If email is changed, we add to email store and try to verify
+    if email:
+        p.email = email
+        email_store_id = create_email_store(
+            email=email,
+            first_name=p.first_name,
+            last_name=p.last_name,
+            company_name=p.company,
+        )
+        if email_store_id:
+            p.email_store_id = email_store_id
+            email_store_hunter_verify.delay(email_store_id=email_store_id)
+
+    # If the company has changed, we try to find the company
     if company_name:
         p.company = company_name
         find_company_for_prospect(p.id)
@@ -589,6 +603,11 @@ def update_prospect_status_linkedin_helper(
 
     db.session.add(p)
     db.session.commit()
+
+    if new_status == ProspectStatus.ACTIVE_CONVO:
+        find_hunter_email_from_prospect_id.delay(
+            prospect_id=prospect_id, trigger_from="status change"
+        )
 
     return True
 
@@ -930,6 +949,7 @@ def add_prospect(
         prospect: Prospect = Prospect.query.get(p_id)
         prospect.regenerate_uuid()
 
+        # Get research and bullet points for the prospect (synchronous OR asynchronous)
         if synchronous_research:
             get_research_and_bullet_points_new(prospect_id=p_id, test_mode=False)
         else:
@@ -937,13 +957,30 @@ def add_prospect(
     else:
         return None
 
+    # Verify the email if it exists
+    if email:
+        email_store_id = create_email_store(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            company_name=company
+        )
+        if email_store_id:
+            email_store_hunter_verify.delay(email_store_id=email_store_id)
+
+    # Get research payload
     get_research_payload_new(prospect_id=p_id, test_mode=False)
+
+    # Find the company details for the prospect
     find_company_for_prospect(p_id)
+
+    # Store the prospect as an Individual
     add_individual_from_prospect(p_id)
 
     if set_note:
         create_prospect_note(prospect_id=p_id, note=set_note)
 
+    # Apply ICP Scoring Ruleset filters
     apply_icp_scoring_ruleset_filters_task(
         client_archetype_id=archetype_id, prospect_ids=[p_id]
     )
@@ -1150,10 +1187,6 @@ def mark_prospects_as_queued_for_outreach(
     # Mark campaign as complete
     if campaign_id is not None:
         change_campaign_status(campaign_id, OutboundCampaignStatus.COMPLETE)
-
-        # Calculate campaign cost
-        campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-        # campaign.calculate_cost()
 
     # Commit
     db.session.bulk_save_objects(updated_messages)

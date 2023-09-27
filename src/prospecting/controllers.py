@@ -833,8 +833,13 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     )
     allow_duplicates = True if allow_duplicates is None else allow_duplicates
 
-    if len(csv_payload) >= 3000:
-        return "Too many rows in CSV", 400
+    if len(csv_payload) >= 5000:
+        return (
+            "Too many rows in CSV. The max row limit is 5,000. Your CSV has {} rows.".format(
+                len(csv_payload)
+            ),
+            400,
+        )
 
     validated, reason = validate_prospect_json_payload(payload=csv_payload)
     if not validated:

@@ -2,6 +2,40 @@ from app import db
 import enum
 
 
+class ICPScoringJobQueueStatus(enum.Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class ICPScoringJobQueue(db.Model):
+    __tablename__ = "icp_scoring_job_queue"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
+    prospect_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
+
+    run_status = db.Column(db.Enum(ICPScoringJobQueueStatus), nullable=False, default=ICPScoringJobQueueStatus.PENDING.value)
+    error_message = db.Column(db.String, nullable=True)
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "client_archetype_id": self.client_archetype_id,
+            "prospect_ids": self.prospect_ids,
+            "run_status": self.run_status,
+            "error_message": self.error_message,
+            "attempts": self.attempts,
+        }
+
+
 class ICPScoringRuleset(db.Model):
     __tablename__ = "icp_scoring_ruleset"
 

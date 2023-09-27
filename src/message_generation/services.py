@@ -2103,14 +2103,19 @@ def generate_message_bumps():
         # print(f"Generating bumps for {len(prospects)} prospects...")
 
         for prospect in prospects:
+            # Get the archetype
+            archetype: ClientArchetype = ClientArchetype.query.get(
+                prospect.archetype_id
+            )
+
+            # If the archetype is unassigned contact, then we don't generate a bump
+            if archetype.is_unassigned_contact_archetype:
+                continue
 
             # CHECK: If the prospect is in ACCEPTED stage and the message delay on the archetype is not quite up
             #      then we don't generate a bump
             if prospect.status == ProspectStatus.ACCEPTED:
-                # Get the archetype
-                archetype: ClientArchetype = ClientArchetype.query.get(
-                    prospect.archetype_id
-                )
+
                 # If the archetype has a message delay, check if it's been long enough by referencing status records
                 if archetype and archetype.first_message_delay_days:
                     # Get the first status record
@@ -2125,8 +2130,7 @@ def generate_message_bumps():
                     if status_record:
                         # If the first status record is less than the delay, then we don't generate a bump
                         if (
-                            datetime.datetime.utcnow()
-                            - status_record.created_at
+                            datetime.datetime.utcnow() - status_record.created_at
                         ).days < archetype.first_message_delay_days:
                             continue
 

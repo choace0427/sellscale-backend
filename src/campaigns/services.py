@@ -29,6 +29,7 @@ from src.message_generation.services import (
     generate_outreaches_for_prospect_list_from_multiple_ctas,
     create_and_start_email_generation_jobs,
 )
+from src.prospecting.services import mark_prospects_as_queued_for_outreach
 from src.research.linkedin.services import reset_prospect_research_and_messages
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_patterns,
@@ -526,7 +527,7 @@ def create_outbound_campaign(
             client_archetype_id=client_archetype_id,
             num_prospects=num_prospects - len(prospect_ids),
             campaign_type=campaign_type,
-            warm_emails=warm_emails
+            warm_emails=warm_emails,
         )
         prospect_ids.extend(top_prospects)
         # Add a check that the number of prospects is correct
@@ -687,16 +688,23 @@ def get_warmed_prospects(
         return False
 
     # Get prospects that have a status in either ACCEPTED or BUMPED
-    warmed_prospects = Prospect.query.filter(
-        Prospect.archetype_id == client_archetype_id,
-        Prospect.approved_prospect_email_id == None,
-        Prospect.status.in_(
-            [ProspectStatus.ACCEPTED.value, ProspectStatus.RESPONDED.value]
-        ),
-        Prospect.overall_status.in_(
-            [ProspectOverallStatus.ACCEPTED.value, ProspectOverallStatus.BUMPED.value]
+    warmed_prospects = (
+        Prospect.query.filter(
+            Prospect.archetype_id == client_archetype_id,
+            Prospect.approved_prospect_email_id == None,
+            Prospect.status.in_(
+                [ProspectStatus.ACCEPTED.value, ProspectStatus.RESPONDED.value]
+            ),
+            Prospect.overall_status.in_(
+                [
+                    ProspectOverallStatus.ACCEPTED.value,
+                    ProspectOverallStatus.BUMPED.value,
+                ]
+            ),
         )
-    ).limit(num_prospects).all()
+        .limit(num_prospects)
+        .all()
+    )
 
     prospect_ids: list[int] = [p.id for p in warmed_prospects]
     return prospect_ids
@@ -1107,6 +1115,9 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     start_date = campaign.campaign_start_date.strftime("%b %d, %Y")
     end_date = campaign.campaign_end_date.strftime("%b %d, %Y")
 
+    prospect_ids = campaign.prospect_ids
+    client_sdr_id = campaign.client_sdr_id
+
     send_slack_message(
         message="{} - {}'s Campaign #{} has been reviewed by an editor! :black_joker:".format(
             client_company, sdr_name, campaign_id
@@ -1175,6 +1186,13 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
         ],
         webhook_urls=[URL_MAP["operations-ready-campaigns"]],
     )
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if client_sdr.auto_send_campaigns_enabled:
+        mark_prospects_as_queued_for_outreach(
+            prospect_ids=prospect_ids,
+            client_sdr_id=client_sdr_id,
+        )
 
     return True
 

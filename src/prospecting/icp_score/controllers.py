@@ -12,9 +12,50 @@ from src.prospecting.icp_score.services import (
     set_icp_scores_to_predicted_values,
 )
 from src.utils.request_helpers import get_request_parameter
-from src.prospecting.icp_score.models import ICPScoringRuleset
+from src.prospecting.icp_score.models import ICPScoringJobQueue, ICPScoringRuleset
 
 ICP_SCORING_BLUEPRINT = Blueprint("icp_scoring", __name__)
+
+
+@ICP_SCORING_BLUEPRINT.route("/runs", methods=["GET"])
+@require_user
+def get_runs(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return {"status": "error", "message": "Unauthorized"}, 401
+
+    jobs: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+        client_archetype_id=client_archetype_id
+    ).order_by(ICPScoringJobQueue.id.desc()).all()
+
+    jobs_dicts = [job.to_dict() for job in jobs]
+
+    return {"status": "success", "data": {"icp_runs": jobs_dicts}}, 200
+
+
+@ICP_SCORING_BLUEPRINT.route("/runs", methods=["POST"])
+@require_user
+def post_manual_trigger_rerun(client_sdr_id: int):
+    icp_scoring_job_queue_id = get_request_parameter(
+        "icp_scoring_job_queue_id", request, json=True, required=True
+    )
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+
+    apply_icp_scoring_ruleset_filters_task(
+        client_archetype_id=client_archetype_id,
+        icp_scoring_job_queue_id=icp_scoring_job_queue_id
+    )
+
+    return {"status": "success"}, 200
+
 
 
 @ICP_SCORING_BLUEPRINT.route("/get_ruleset", methods=["GET"])
@@ -167,15 +208,9 @@ def run_on_prospects(client_sdr_id: int):
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return "Unauthorized", 401
 
-    if prospect_ids and len(prospect_ids) <= 50:
-        success = apply_icp_scoring_ruleset_filters_task(
-            client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
-        )
-    else:
-        success = True
-        apply_icp_scoring_ruleset_filters_task.delay(
-            client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
-        )
+    success = apply_icp_scoring_ruleset_filters_task(
+        client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
+    )
 
     if success:
         return "OK", 200
