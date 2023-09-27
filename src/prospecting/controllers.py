@@ -3,6 +3,7 @@ from typing import List
 from src.prospecting.models import ExistingContact
 from src.prospecting.services import (
     get_prospect_li_history,
+    get_prospects_for_icp_table,
     patch_prospect,
     prospect_removal_check_from_csv_payload,
 )
@@ -660,6 +661,24 @@ def get_prospects_endpoint(client_sdr_id: int):
         200,
     )
 
+
+@PROSPECTING_BLUEPRINT.route("/get_prospect_for_icp", methods=["POST"])
+@require_user
+def get_prospects_for_icp(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+    get_sample = get_request_parameter(
+        "get_sample", request, json=True, required=False
+    )
+
+    prospects = get_prospects_for_icp_table(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=client_archetype_id,
+        get_sample=get_sample,
+    )
+
+    return jsonify({"message": "Success", "data": {"prospects": prospects}}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])

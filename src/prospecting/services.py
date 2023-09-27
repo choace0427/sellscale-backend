@@ -259,6 +259,60 @@ def get_prospects(
     return {"total_count": total_count, "prospects": prospects}
 
 
+def get_prospects_for_icp_table(
+    client_sdr_id: int,
+    client_archetype_id: int,
+    get_sample: Optional[bool] = False,
+) -> list[dict]:
+    """Gets prospects belonging to the SDR, focusing on the ICP
+
+    Args:
+        client_sdr_id (int): ID of the SDR, supplied by the require_user decorator
+        client_archetype_id (int): ID of the Client Archetype
+
+    Returns:
+        list[Prospect]: List of prospects
+    """
+    result = db.session.execute(
+        '''
+            select
+                prospect.full_name,
+                prospect.title,
+                prospect.company,
+                prospect.linkedin_url,
+                prospect.icp_fit_reason,
+                prospect.industry,
+                prospect.id
+            from prospect
+                join client_sdr on client_sdr.id = prospect.client_sdr_id
+            where prospect.archetype_id = {client_archetype_id}
+                and client_sdr.id = {client_sdr_id}
+                and prospect.overall_status <> 'REMOVED'
+            order by 1 asc
+        '''.format(
+                client_archetype_id=client_archetype_id,
+                client_sdr_id=client_sdr_id,
+        )
+    ).fetchall()
+
+    prospects = []
+    if get_sample:
+        result = result[:50]
+
+    for r in result:
+        prospects.append({
+            "full_name": r[0],
+            "title": r[1],
+            "company": r[2],
+            "linkedin_url": r[3],
+            "icp_fit_reason": r[4],
+            "industry": r[5],
+            "id": r[6],
+        })
+
+    return prospects
+
+
 def patch_prospect(
     prospect_id: int,
     title: Optional[str] = None,
