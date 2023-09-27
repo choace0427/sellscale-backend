@@ -280,9 +280,11 @@ def get_prospects_for_icp_table(
                 prospect.title,
                 prospect.company,
                 prospect.linkedin_url,
+                prospect.icp_fit_score,
                 prospect.icp_fit_reason,
                 prospect.industry,
-                prospect.id
+                prospect.id,
+                prospect.linkedin_url
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
             where prospect.archetype_id = {client_archetype_id}
@@ -305,9 +307,11 @@ def get_prospects_for_icp_table(
             "title": r[1],
             "company": r[2],
             "linkedin_url": r[3],
-            "icp_fit_reason": r[4],
-            "industry": r[5],
-            "id": r[6],
+            "icp_score": r[4],
+            "icp_fit_reason": r[5],
+            "industry": r[6],
+            "id": r[7],
+            "linkedin_url": r[8],
         })
 
     return prospects
