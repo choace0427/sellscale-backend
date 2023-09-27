@@ -2,7 +2,10 @@ from datetime import datetime
 from typing import List, Optional, Union
 from sqlalchemy import nullslast
 from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
-from src.email_outbound.email_store.services import create_email_store, email_store_hunter_verify
+from src.email_outbound.email_store.services import (
+    create_email_store,
+    email_store_hunter_verify,
+)
 
 from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
@@ -231,7 +234,7 @@ def get_prospects(
         .order_by(ordering_arr[2])
         .order_by(ordering_arr[3])
     )
-    if persona_id:
+    if persona_id and persona_id != -1:
         prospects = prospects.filter(Prospect.archetype_id == persona_id)
     if bumped != "all":
         prospects = prospects.filter(Prospect.times_bumped == int(bumped))
@@ -274,7 +277,7 @@ def get_prospects_for_icp_table(
         list[Prospect]: List of prospects
     """
     result = db.session.execute(
-        '''
+        """
             select
                 prospect.full_name,
                 prospect.title,
@@ -290,9 +293,9 @@ def get_prospects_for_icp_table(
                 and client_sdr.id = {client_sdr_id}
                 and prospect.overall_status <> 'REMOVED'
             order by 1 asc
-        '''.format(
-                client_archetype_id=client_archetype_id,
-                client_sdr_id=client_sdr_id,
+        """.format(
+            client_archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
         )
     ).fetchall()
 
@@ -301,16 +304,18 @@ def get_prospects_for_icp_table(
         result = result[:50]
 
     for r in result:
-        prospects.append({
-            "full_name": r[0],
-            "title": r[1],
-            "company": r[2],
-            "linkedin_url": r[3],
-            "icp_fit_score": r[4],
-            "icp_fit_reason": r[5],
-            "industry": r[6],
-            "id": r[7],
-        })
+        prospects.append(
+            {
+                "full_name": r[0],
+                "title": r[1],
+                "company": r[2],
+                "linkedin_url": r[3],
+                "icp_fit_score": r[4],
+                "icp_fit_reason": r[5],
+                "industry": r[6],
+                "id": r[7],
+            }
+        )
 
     return prospects
 
@@ -1022,7 +1027,7 @@ def add_prospect(
             email=email,
             first_name=first_name,
             last_name=last_name,
-            company_name=company
+            company_name=company,
         )
         if email_store_id:
             email_store_hunter_verify.delay(email_store_id=email_store_id)
