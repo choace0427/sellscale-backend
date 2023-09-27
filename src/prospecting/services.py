@@ -1889,7 +1889,6 @@ def send_li_outreach_connection(
     # Create a new GeneratedMessage
     outreach_msg = GeneratedMessage(
         prospect_id=prospect_id,
-        # outbound_campaign_id=None,
         research_points=[],
         prompt="",
         completion=message,
@@ -1899,6 +1898,7 @@ def send_li_outreach_connection(
         outbound_campaign_id=campaign_id,
         few_shot_prompt="",
         priority_rating=10,
+        ai_approved=True,
     )
     db.session.add(outreach_msg)
     db.session.commit()
