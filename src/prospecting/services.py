@@ -105,13 +105,14 @@ def get_prospects(
     query: str = "",
     channel: str = ProspectChannels.LINKEDIN.value,
     status: list[str] = None,
-    persona_id: int = -1,
+    persona_id: int = None,
     limit: int = 50,
     offset: int = 0,
     ordering: list[dict[str, int]] = [],
     bumped: str = "all",
     show_purgatory: Union[bool, str] = False,
-    prospect_id: int = -1,
+    prospect_id: int = None,
+    icp_fit_score: int = None,
 ) -> dict[int, list[Prospect]]:
     """Gets prospects belonging to the SDR, with optional query and ordering.
 
@@ -128,6 +129,8 @@ def get_prospects(
         ordering (list, optional): Ordering to apply. See below. Defaults to [].
         bumped (str, optional): Filter by bumped status. Defaults to 'all'.
         show_purgatory (bool, optional): Whether to show purgatory prospects. Defaults to False.
+        prospect_id (int, optional): Filter by prospect ID. Defaults to None.
+        icp_fit_score (int, optional): Filter by ICP fit score. Defaults to None.
 
     Ordering logic is as follows
         The ordering list should have the following tuples:
@@ -228,14 +231,14 @@ def get_prospects(
         .order_by(ordering_arr[2])
         .order_by(ordering_arr[3])
     )
-    if persona_id != -1:
+    if not persona_id:
         prospects = prospects.filter(Prospect.archetype_id == persona_id)
-
     if bumped != "all":
         prospects = prospects.filter(Prospect.times_bumped == int(bumped))
-
-    if prospect_id != -1 and prospect_id:
+    if prospect_id:
         prospects = prospects.filter(Prospect.id == prospect_id)
+    if icp_fit_score:
+        prospects = prospects.filter(Prospect.icp_fit_score == icp_fit_score)
 
     # if show_purgatory != "ALL":
     #     if not show_purgatory:

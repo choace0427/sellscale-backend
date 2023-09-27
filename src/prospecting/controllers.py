@@ -599,6 +599,15 @@ def get_prospects_endpoint(client_sdr_id: int):
             )
             or None
         )
+        icp_fit_score = (
+            get_request_parameter(
+                "icp_fit_score",
+                request,
+                json=True,
+                required=False,
+            ) or None
+        )
+
     except Exception as e:
         return e.args[0], 400
 
@@ -612,17 +621,18 @@ def get_prospects_endpoint(client_sdr_id: int):
     start_time = time.time()
 
     prospects_info: dict[int, list[Prospect]] = get_prospects(
-        client_sdr_id,
-        query,
-        channel,
-        status,
-        persona_id,
-        limit,
-        offset,
-        ordering,
-        bumped,
-        show_purgatory,
-        prospect_id or -1,
+        client_sdr_id=client_sdr_id,
+        query=query,
+        channel=channel,
+        status=status,
+        persona_id=persona_id,
+        limit=limit,
+        offset=offset,
+        ordering=ordering,
+        bumped=bumped,
+        show_purgatory=show_purgatory,
+        prospect_id=prospect_id,
+        icp_fit_score=icp_fit_score,
     )
 
     end_time = time.time()
@@ -649,6 +659,7 @@ def get_prospects_endpoint(client_sdr_id: int):
         ),
         200,
     )
+
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])
