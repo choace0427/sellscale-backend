@@ -56,6 +56,7 @@ class Client(db.Model):
     contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
 
     pre_onboarding_survey = db.Column(db.JSON, nullable=True)
+    is_pre_onboarding_survey_imported = db.Column(db.Boolean, nullable=True)
 
     # Survey questions
     example_outbound_copy = db.Column(db.String, nullable=True)
