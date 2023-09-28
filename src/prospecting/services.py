@@ -286,7 +286,8 @@ def get_prospects_for_icp_table(
                 prospect.icp_fit_score,
                 prospect.icp_fit_reason,
                 prospect.industry,
-                prospect.id
+                prospect.id,
+                prospect.status
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
             where prospect.archetype_id = {client_archetype_id}
@@ -304,18 +305,17 @@ def get_prospects_for_icp_table(
         result = result[:50]
 
     for r in result:
-        prospects.append(
-            {
-                "full_name": r[0],
-                "title": r[1],
-                "company": r[2],
-                "linkedin_url": r[3],
-                "icp_fit_score": r[4],
-                "icp_fit_reason": r[5],
-                "industry": r[6],
-                "id": r[7],
-            }
-        )
+        prospects.append({
+            "full_name": r[0],
+            "title": r[1],
+            "company": r[2],
+            "linkedin_url": r[3],
+            "icp_fit_score": r[4],
+            "icp_fit_reason": r[5],
+            "industry": r[6],
+            "id": r[7],
+            "status": r[8],
+        })
 
     return prospects
 
