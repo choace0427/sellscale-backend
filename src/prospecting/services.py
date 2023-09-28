@@ -266,12 +266,15 @@ def get_prospects_for_icp_table(
     client_sdr_id: int,
     client_archetype_id: int,
     get_sample: Optional[bool] = False,
+    invited_on_linkedin: Optional[bool] = False,
 ) -> list[dict]:
     """Gets prospects belonging to the SDR, focusing on the ICP
 
     Args:
         client_sdr_id (int): ID of the SDR, supplied by the require_user decorator
         client_archetype_id (int): ID of the Client Archetype
+        get_sample (Optional[bool], optional): Whether to get a sample of prospects. Defaults to False.
+        invited_on_linkedin (Optional[bool], optional): Whether to get prospects that can be withdrawn. Defaults to False.
 
     Returns:
         list[Prospect]: List of prospects
@@ -286,7 +289,8 @@ def get_prospects_for_icp_table(
                 prospect.icp_fit_score,
                 prospect.icp_fit_reason,
                 prospect.industry,
-                prospect.id
+                prospect.id,
+                prospect.status
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
             where prospect.archetype_id = {client_archetype_id}
@@ -303,19 +307,21 @@ def get_prospects_for_icp_table(
     if get_sample:
         result = result[:50]
 
+    if invited_on_linkedin:
+        result = [r for r in result if r[8] == ProspectStatus.SENT_OUTREACH]
+
     for r in result:
-        prospects.append(
-            {
-                "full_name": r[0],
-                "title": r[1],
-                "company": r[2],
-                "linkedin_url": r[3],
-                "icp_fit_score": r[4],
-                "icp_fit_reason": r[5],
-                "industry": r[6],
-                "id": r[7],
-            }
-        )
+        prospects.append({
+            "full_name": r[0],
+            "title": r[1],
+            "company": r[2],
+            "linkedin_url": r[3],
+            "icp_fit_score": r[4],
+            "icp_fit_reason": r[5],
+            "industry": r[6],
+            "id": r[7],
+            "status": r[8],
+        })
 
     return prospects
 

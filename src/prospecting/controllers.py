@@ -671,11 +671,15 @@ def get_prospects_for_icp(client_sdr_id: int):
     get_sample = get_request_parameter(
         "get_sample", request, json=True, required=False
     )
+    invited_on_linkedin = get_request_parameter(
+        "invited_on_linkedin", request, json=True, required=False
+    )
 
     prospects = get_prospects_for_icp_table(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         get_sample=get_sample,
+        invited_on_linkedin=invited_on_linkedin,
     )
 
     return jsonify({"message": "Success", "data": {"prospects": prospects}}), 200

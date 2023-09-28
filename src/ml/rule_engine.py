@@ -133,6 +133,7 @@ def run_message_rule_engine(message_id: int):
         rule_address_doctor(
             prompt, completion, problems, highlighted_words, prospect_name
         )
+    rule_no_brackets(completion, problems, highlighted_words)
 
     # Warnings
     rule_no_cookies(completion, problems, highlighted_words)
@@ -657,3 +658,19 @@ def rule_no_ampersand(completion: str, problems: list, highlighted_words: list):
             "Contains an ampersand (&). Please double check that this is correct."
         )
         highlighted_words.append("&")
+
+
+def rule_no_brackets(completion: str, problems: list, highlighted_words: list):
+    """Rule: No Brackets
+
+    No brackets allowed in the completion.
+    """
+    if "[" in completion or "]" in completion or "{" in completion or "}" in completion:
+        # problems.append("Contains brackets. Please remove all brackets or replace value in brackets with appropriate value.")
+        problems.append("Contains brackets.")
+        highlighted_words.append("[")
+        highlighted_words.append("]")
+        highlighted_words.append("{")
+        highlighted_words.append("}")
+
+    return

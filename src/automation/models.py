@@ -1,4 +1,5 @@
 from email.policy import default
+from typing import Optional
 
 from src.client.models import ClientArchetype, ClientSDR
 from app import db
@@ -254,7 +255,7 @@ class PhantomBusterAgent:
             return result
         return None
 
-    def update_launch_schedule(self):
+    def update_launch_schedule(self, custom_volume: Optional[int] = None):
 
         config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
             PhantomBusterConfig.phantom_uuid == self.id
@@ -270,6 +271,10 @@ class PhantomBusterAgent:
         )
         schedule = schedules[0]
         volume = schedule.get("linkedin_volume", client_sdr.weekly_li_outbound_target)
+
+        # If custom volume is provided, use that instead
+        if custom_volume != None:
+            volume = custom_volume
 
         ADDS_PER_LAUNCH = 2
         target = math.ceil(volume / ADDS_PER_LAUNCH)

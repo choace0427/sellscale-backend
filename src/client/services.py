@@ -483,21 +483,24 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
         return False
 
     sdr.active = False
-    deactivate_sla_schedules(sdr.id)
-    sdr.weekly_li_outbound_target = 0
-    sdr.weekly_email_outbound_target = 0
     sdr.autopilot_enabled = False
+    deactivate_sla_schedules(sdr.id)
+    # sdr.weekly_li_outbound_target = 0
+    # sdr.weekly_email_outbound_target = 0
 
-    db.session.add(sdr)
     db.session.commit()
 
-    update_phantom_buster_launch_schedule(client_sdr_id)
+    # Set the launch volume to 0 (stop sending outreach)
+    update_phantom_buster_launch_schedule(
+        client_sdr_id=client_sdr_id,
+        custom_volume=0
+    )
 
     return True
 
 
 def activate_client_sdr(
-    client_sdr_id: int, li_target: Optional[int] = 0, email_target: Optional[int] = 0
+    client_sdr_id: int, li_target: Optional[int] = None, email_target: Optional[int] = None
 ) -> bool:
     """Activates a Client SDR and sets their SLAs
 
@@ -514,11 +517,15 @@ def activate_client_sdr(
         return False
 
     sdr.active = True
-    sdr.weekly_li_outbound_target = li_target
-    sdr.weekly_email_outbound_target = email_target
+    if li_target:
+        sdr.weekly_li_outbound_target = li_target
+    if email_target:
+        sdr.weekly_email_outbound_target = email_target
 
     db.session.add(sdr)
     db.session.commit()
+
+    load_sla_schedules(sdr.id)
 
     update_phantom_buster_launch_schedule(client_sdr_id)
 
@@ -1944,7 +1951,7 @@ def daily_pb_launch_schedule_update():
 
 
 @celery.task()
-def update_phantom_buster_launch_schedule(client_sdr_id: int):
+def update_phantom_buster_launch_schedule(client_sdr_id: int, custom_volume: Optional[int] = None):
     # Get the ClientSDR
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1963,7 +1970,7 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
         )
         return False, "PhantomBuster config not found"
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=config.phantom_uuid)
-    result = pb_agent.update_launch_schedule()
+    result = pb_agent.update_launch_schedule(custom_volume=custom_volume)
 
     if result:
         send_slack_message(
@@ -3136,65 +3143,13 @@ def get_all_sdrs_from_emails(emails: list[str]):
 
 
 def import_pre_onboarding(
-    client_id: int,
+    client_sdr_id: int,
 ):
-    client: Client = Client.query.get(client_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    client_id = client.id
 
-    # {
-    #     "company_name":"Design Match",
-    #     "company_url":"https://www.designmatch.io/",
-    #     "poc_full_name":"Danielle Thompson",
-    #     "poc_email":"danielle@designmatch.io",
-    #     "user_full_name":"Danielle Thompson",
-    #     "user_email":"danielle@designmatch.io",
-    #     "user_linkedin_url":"https://www.linkedin.com/in/daniellecthompson/",
-    #     "company_tagline":"We match companies and inventors with freelance design talent.",
-    #     "company_mission":"We empower startups to find and collaborate with designers who bring talent and passion to the table - no upfront cost and long-term commitment.",
-    #     "company_description":"Design Match is an AI-driven marketplace that provides a pool of designers for founders to choose from. We empower startups to find and collaborate with designers who bring talent and passion to the table - no upfront cost and long-term commitment. We match startups with the perfect freelancer designer in minutes, using AI. All candidates are pre-interviewed. We help companies build and improve both physical products and digital products. No upfront costs or long term contracts.\n\n",
-    #     "company_value_prop":"- Pool of vetted designers for founders to choose from\n- No upfront cost and long-term commitment\n- Match companies and inventors with freelance design talent",
-    #     "persona_name":"Startup founders",
-    #     "persona_buy_reason":"Speed - candidates are pre-interviewed so you don't have to spend time guessing what a candidate will be like, you can just watch a short video of the talent\n\nCosts - Cheaper than full-time\n\nFlexibility - we bill weekly so you can stop and start whenever \n\nQuality / Support - you're matched by another designer who understands/takes the time to really understand what you're trying to build",
-    #     "cta_blanks":"We match startups with the perfect freelancer designer in minutes, using AI. Interested to chat?",
-    #     "common_use_cases":"It's product design, ux research, fintech, physical product design like in EV, Automotives etc \n\nImproving app, improving conversions, improving brand, creating MVP, crafting pitch deck",
-    #     "persona_filters":"Target persona will be someone who is in a leadership role within an early-stage startup, preferably Seed to Series A. \n\nTitles: - Founders\n- Cofounders\n- Marketing Managers\n- Product Owners\n- Product Managers\nCompany location: Europe and America \nCompany Size: 3 -50 (1M+ Revenue) employees\n\n",
-    #     "persona_lookalike_1":"https://www.linkedin.com/in/sam-miller-1969237/",
-    #     "persona_lookalike_2":"https://www.linkedin.com/in/sameermadan/",
-    #     "persona_lookalike_3":"https://www.linkedin.com/in/lauraymond/",
-    #     "persona_lookalike_4":"https://www.linkedin.com/in/aroraangad/",
-    #     "persona_lookalike_5":"https://www.linkedin.com/in/morgan-siffert-a76845108/",
-    #     "initial_contact_list":"https://docs.google.com/spreadsheets/d/1GYYchL5p2znxW8CpaE_qYAo5Eyw10H_mHcSW4Ux1ki0/edit?usp=sharing\n\n",
-    #     "example_copy":"Hi Osahon,\n\nIt's impressive to see the work Aja is doing in creating plastic-free synthetic fibers. We understand how important it is to work with the best designers to maintain a high level of quality.\n\nAt Design Match, we are the perfect matchmaker for you. We connect you with experienced UX/UI designers, product designers, UX researchers, mechanical engineers and more who specialize in the sustainability space.\n\nWould you like to learn more about how Design Match can help you?\n\n",
-    #     "company_case_studies":"https://www.designmatch.io/clients/",
-    #     "existing_clients":"Rice Alliance - \nTavus - raise 6M led by Sequoia \nReading Re-Imagined (Gov project) \nSingsaver - \nStandard Charter bank \nSimublade - Agency \nGovernment of Rwanda\nBill Gates Foundation - Improving Student Access to Counselling\nInsure.io - M&A Insurance for SMBs \nChegg\nStandard Charter Bank   ",
-    #     "impressive_facts":"- A success rate of 98% once engagement starts - people are very happy with their designers\n- Less than 2 weeks to produce first meaningful deliverable (on average) \n",
-    #     "messaging_tone":"knowledgable, understanding, clear",
-    #     "persona_contact_objective":"To schedule discover call. ",
-    #     "user_scheduling_link":"https://savvycal.com/designmatch/introcall",
-    #     "do_not_contact":"Employees from Toptal\nUpwork from upwork\nCurrent Customers\nPeople on our email list"
-    #     }
-
-    # {
-    #     "company_url":"n/a",
-    #     "company_name":"Ulisse",
-    #     "poc_full_name":"Vincenzo Di Pietro",
-    #     "poc_email":"vincenzo@affluentdigital.com",
-    #     "user_full_name":"Vincenzo Di Pietro",
-    #     "sequence_open_rate":0.8,
-    #     "user_email":"vincenzo@affluentdigital.com",
-    #     "sequence_reply_rate":0.3,
-    #     "sequence_demo_rate":0.17,
-    #     "example_copy":"Hi Ryan,\n\nI\u2019m Vincenzo, founder of an Artificial Intelligence startup. I'm reaching out to you given your extensive experience in the legal sector because it would be interesting to have your opinion regarding the AI project we are developing.\n\nThe product is an AI Copilot for professionals in various sectors (Legal, Finance, and Consulting), and it\u2019s useful to improve efficiency and quality in activities such as Due Diligence, Litigation, Compliance and Legal Research.\n\nIn particular allows users to engage in conversations and ask semantic questions via a Chat interface (similar to ChatGPT) or Search interface (similar to Google) across large volumes of private documents and data like: Contracts, Regulations, Judgments, Company Filings, Papers, Audio Transcriptions, etc.\n\nFor example, it is possible to upload the documents of an entire litigation case or a data room and then ask semantic questions and obtain answers in seconds with precise citations to the specific source pages.\n\nIf this interests you, I\u2019d like to ask just 15-20 minutes of your time to give you a demo and get your valuable feedback.\n\n\nThank you in advance,\nVDP",
-    #     "user_scheduling_link":"",
-    #     "user_linkedin_url":"https://www.linkedin.com/in/vincenzodipietro/",
-    #     "company_description":"Ulisse is an Artificial Intelligence startup that has developed an AI Copilot for professionals in various sectors such as legal, finance, and consulting. Their product aims to enhance efficiency and quality in activities like Due Diligence, Litigation, Compliance, Legal Research and Market Research. The AI Copilot allows users to engage in conversations and ask semantic questions through a Chat or Search interface across large volumes of private documents and data. Users can upload documents related to litigation cases or data rooms and obtain precise answers with citations to specific source pages in just seconds. ",
-    #     "company_tagline":"Ulisse - The AI Copilot Knowledge Professionals",
-    #     "persona_name":"Lawyers",
-    #     "persona_buy_reason":"This person, who is a lawyer, would buy Ulisse's product because it offers an AI Copilot specifically designed for professionals in the legal sector. The product aims to enhance efficiency and quality in activities such as Due Diligence, Litigation, Compliance, and Legal Research. It allows lawyers to engage in conversations and ask semantic questions across large volumes of private documents and data, such as contracts, regulations, judgments, and company filings. The AI Copilot can quickly provide precise answers with citations to specific source pages, saving lawyers valuable time and effort in their work.",
-    #     "cta_blanks":"Ulisse helps lawyers with saving time and unbilled inefficiency.",
-    #     "common_use_cases":"- Due Diligence: Lawyers can use the AI Copilot to quickly analyze and review large volumes of documents related to due diligence processes in mergers and acquisitions, saving time and improving efficiency.\n- Litigation: The AI Copilot can assist lawyers in preparing for litigation cases by allowing them to upload and analyze documents related to the case, ask semantic questions, and obtain precise answers with citations to specific source pages.\n- Legal Research: The AI Copilot can be a valuable tool for legal research, as lawyers can ask semantic questions and obtain quick and precise answers from large volumes of legal documents, judgments, and papers.",
-    #     "persona_lookalike_1":"https://www.linkedin.com/in/oliverfairhurst",
-    #     "persona_lookalike_2":"https://www.linkedin.com/in/tommaso-faelli-b6642030/"
-    #     }
+    client_sdr_id = client_sdr.id
 
     persona_name = client.pre_onboarding_survey.get("persona_name")
     persona_buy_reason = client.pre_onboarding_survey.get("persona_buy_reason")
@@ -3247,7 +3202,63 @@ def import_pre_onboarding(
         ("messaging_tone", messaging_tone, False),
     ]
 
+    missing_required_variables = []
+    missing_variables = []
     for variable, value, required in all_variables:
         if required and not value:
-            raise Exception(f"Missing required variable: {variable}")
+            missing_required_variables.append(variable)
+        if not value:
+            missing_variables.append(variable)
         print(f"Setting {variable} to {value}")
+
+    if len(missing_required_variables) > 0:
+        return False, "Missing required variables: {}".format(
+            missing_required_variables
+        )
+
+    client_archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id
+    ).all()
+    if not client_archetypes:
+        create_client_archetype(
+            client_id=client_id,
+            client_sdr_id=client_sdr_id,
+            archetype=persona_name,
+            filters={},
+            persona_fit_reason=persona_buy_reason,
+            persona_contact_objective=persona_contact_objective,
+        )
+
+    client: Client = Client.query.get(client_id)
+    client.mission = company_mission_statement
+    client.tagline = company_tagline
+    client.description = company_description
+    client.value_prop_key_points = company_value_proposition
+    client.do_not_contact_company_names = company_do_not_contact_list
+    client.example_outbound_copy = messaging_outbound_copy
+    client.existing_clients = messaging_existing_clients
+    client.case_study = messaging_link_to_case_studies
+    client.impressive_facts = messaging_impressive_facts
+    client.tone_attributes = messaging_tone.split(",")
+    db.session.add(client)
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sdr.conversion_open_pct = company_open_percent
+    client_sdr.conversion_reply_pct = company_reply_percent
+    client_sdr.conversion_demo_pct = company_demo_percent
+    client_sdr.linkedin_url = user_linkedin_link
+    client_sdr.scheduling_link = user_calendly_link
+    client_sdr.email = user_email_address
+    db.session.add(client_sdr)
+
+    db.session.commit()
+
+    if len(missing_variables) > 0:
+        return (
+            True,
+            "Imported what we could but client has missing variables: {}".format(
+                missing_variables
+            ),
+        )
+
+    return True, "Successfully imported pre-onboarding survey"

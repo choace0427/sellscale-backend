@@ -816,11 +816,18 @@ def apply_icp_scoring_ruleset_filters_task(
 
     # If there is already an ICPScoringJobQueue object, trigger the job
     if icp_scoring_job_queue_id:
-        apply_icp_scoring_ruleset_filters.apply_async(
-            args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
-            queue="icp_scoring",
-            routing_key="icp_scoring",
-        )
+        if prospect_ids and len(prospect_ids) <= 50:
+            apply_icp_scoring_ruleset_filters(
+                icp_scoring_job_id=icp_scoring_job_queue_id,
+                client_archetype_id=client_archetype_id,
+                prospect_ids=prospect_ids,
+            )
+        else:
+            apply_icp_scoring_ruleset_filters.apply_async(
+                args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
+                queue="icp_scoring",
+                routing_key="icp_scoring",
+            )
 
         return True
 
@@ -833,11 +840,18 @@ def apply_icp_scoring_ruleset_filters_task(
     db.session.add(icp_scoring_job)
     db.session.commit()
 
-    apply_icp_scoring_ruleset_filters.apply_async(
-        args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
-        queue="icp_scoring",
-        routing_key="icp_scoring",
-    )
+    if prospect_ids and len(prospect_ids) <= 50:
+        apply_icp_scoring_ruleset_filters(
+            icp_scoring_job_id=icp_scoring_job.id,
+            client_archetype_id=client_archetype_id,
+            prospect_ids=prospect_ids,
+        )
+    else:
+        apply_icp_scoring_ruleset_filters.apply_async(
+            args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
+            queue="icp_scoring",
+            routing_key="icp_scoring",
+        )
 
     return True
 
