@@ -9,6 +9,7 @@ from test_utils import (
 )
 from decorators import use_app_context
 from src.ml.rule_engine import (
+    rule_no_brackets,
     run_message_rule_engine,
     wipe_problems,
     format_entities,
@@ -643,3 +644,22 @@ def test_rule_no_ampersand():
     rule_no_ampersand("McKinsey & Company", problems, highlighted_words)
     assert problems == ["Contains an ampersand (&). Please double check that this is correct."]
     assert highlighted_words == ["&"]
+
+
+@use_app_context
+def test_rule_no_brackets():
+    problems = []
+    highlighted_words = []
+    rule_no_brackets("pass", problems, highlighted_words)
+    assert problems == []
+    assert highlighted_words == []
+
+    rule_no_brackets("I'm a (recruiter)", problems, highlighted_words)
+    assert problems == []
+    assert highlighted_words == []
+
+    problems = []
+    highlighted_words = []
+    rule_no_brackets("McKinsey [Company]", problems, highlighted_words)
+    assert problems == ["Contains brackets."]
+    assert highlighted_words == ["[", "]", "{", "}"]
