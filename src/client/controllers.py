@@ -2415,8 +2415,7 @@ def post_sync_pre_onboarding_data(client_sdr_id: int):
     if not client_sdr:
         return jsonify({"message": "Invalid SDR"}), 400
 
-    client_id: int = client_sdr.id
-    success, message = import_pre_onboarding(client_id)
+    success, message = import_pre_onboarding(client_sdr_id)
 
     if not success:
         return jsonify({"message": message}), 400

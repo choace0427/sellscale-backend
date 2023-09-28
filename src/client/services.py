@@ -3136,18 +3136,13 @@ def get_all_sdrs_from_emails(emails: list[str]):
 
 
 def import_pre_onboarding(
-    client_id: int,
+    client_sdr_id: int,
 ):
-    client: Client = Client.query.get(client_id)
-    client_sdr: ClientSDR = (
-        ClientSDR.query.filter_by(client_id=client_id, active=True)
-        .order_by(ClientSDR.id.asc())
-        .first()
-    )
-    client_sdr_id = client_sdr.id
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    client_id = client.id
 
-    if not client_sdr:
-        return False, "No active SDR for client"
+    client_sdr_id = client_sdr.id
 
     persona_name = client.pre_onboarding_survey.get("persona_name")
     persona_buy_reason = client.pre_onboarding_survey.get("persona_buy_reason")
