@@ -11,21 +11,23 @@ from model_import import (
 )
 from src.client.models import SLASchedule
 from src.utils.slack import send_slack_message, URL_MAP
-from src.utils.datetime.dateutils import get_next_next_monday_sunday
+from src.utils.datetime.dateutils import get_current_monday_sunday, get_next_next_monday_sunday
 from src.campaigns.services import (
     create_outbound_campaign,
     generate_campaign,
     smart_get_prospects_for_campaign,
 )
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy import and_, or_, not_
 
 SLACK_CHANNEL = URL_MAP["operations-campaign-generation"]
 
 
-def collect_and_generate_all_autopilot_campaigns():
+def collect_and_generate_all_autopilot_campaigns(
+    start_date: Optional[datetime] = None,
+):
 
     # Get all active clients
     active_clients = Client.query.filter_by(
@@ -44,12 +46,12 @@ def collect_and_generate_all_autopilot_campaigns():
     for i, sdr in enumerate(sdrs):
         sdr_id = sdr.id
 
-        collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id])
+        collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id, start_date])
 
 
 @celery.task(bind=True, max_retries=1)
 def collect_and_generate_autopilot_campaign_for_sdr(
-    self, client_sdr_id: int
+    self, client_sdr_id: int, custom_start_date: Optional[datetime] = None
 ) -> tuple[bool, str]:
     try:
         # Get SDR
@@ -79,24 +81,28 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                 f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No active archetypes",
             )
 
-        # Get date of next next monday, and next next sunday (campaign timespan)
-        next_next_monday, next_next_sunday = get_next_next_monday_sunday(
+        # Default to Getting date of next next monday, and next next sunday (campaign timespan)
+        start_date, end_date = get_next_next_monday_sunday(
             datetime.today()
         )
+
+        # If custom_start_date is provided, then use the monday and sunday of that week
+        if custom_start_date:
+            start_date, end_date = get_current_monday_sunday(custom_start_date)
 
         # Get the SLA Schedule entry for this date range
         sla_schedule: SLASchedule = SLASchedule.query.filter(
             SLASchedule.client_sdr_id == client_sdr.id,
-            SLASchedule.start_date == next_next_monday,
+            func.date(SLASchedule.start_date) == start_date,
         ).first()
         if not sla_schedule:
             send_slack_message(
-                f"🤖 ❌ 📅 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No SLA Schedule entry for {next_next_monday}.",
+                f"🤖 ❌ 📅 Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}). No SLA Schedule entry for {start_date}.",
                 [SLACK_CHANNEL],
             )
             return (
                 False,
-                f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No SLA Schedule entry for {next_next_monday}",
+                f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): No SLA Schedule entry for {start_date}",
             )
 
         # Generated types stores the campaign types which were generated
@@ -135,7 +141,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                 client_sdr_id,
                 archetypes[0].id,
                 GeneratedMessageType.LINKEDIN,
-                datetime.today(),
+                start_date=start_date,
             )
             if sla_count < sla_schedule.linkedin_volume:
                 num_can_generate = sla_schedule.linkedin_volume - sla_count
@@ -147,7 +153,6 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                         GeneratedMessageType.LINKEDIN,
                     )
                 )
-                print(num_available_prospects)
                 if num_can_generate <= num_available_prospects:
                     # Create the campaign
                     oc = create_outbound_campaign(
@@ -156,8 +161,8 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                         campaign_type=GeneratedMessageType.LINKEDIN,
                         client_archetype_id=archetypes[0].id,
                         client_sdr_id=client_sdr.id,
-                        campaign_start_date=next_next_monday,
-                        campaign_end_date=next_next_sunday,
+                        campaign_start_date=start_date,
+                        campaign_end_date=end_date,
                         ctas=[cta.id for cta in ctas],
                     )
                     if not oc:
@@ -195,8 +200,9 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                 client_sdr_id,
                 archetypes[0].id,
                 GeneratedMessageType.EMAIL,
-                datetime.today(),
+                start_date=start_date,
             )
+            print(sla_count, sla_schedule.email_volume)
             if sla_count < sla_schedule.email_volume:
                 num_can_generate = sla_schedule.email_volume - sla_count
                 # Check that there are enough prospects to generate the campaign
@@ -213,8 +219,8 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                         campaign_type=GeneratedMessageType.EMAIL,
                         client_archetype_id=archetypes[0].id,
                         client_sdr_id=client_sdr.id,
-                        campaign_start_date=next_next_monday,
-                        campaign_end_date=next_next_sunday,
+                        campaign_start_date=start_date,
+                        campaign_end_date=end_date,
                         ctas=[cta.id for cta in ctas],
                     )
                     if not oc:
@@ -267,7 +273,7 @@ def get_sla_count(
     client_sdr_id: int,
     client_archetype_id: int,
     campaign_type: GeneratedMessageType,
-    autopilot_trigger_date: Optional[datetime],
+    start_date: Optional[date],
 ) -> int:
     """Gets the SLA count.
 
@@ -283,23 +289,20 @@ def get_sla_count(
         client_sdr_id (int): The ID of the SDR
         client_archetype_id (int): The ID of the archetype
         campaign_type (GeneratedMessageType): The type of campaign
-        autopilot_trigger_date (Optional[datetime.date], optional): The start date. Defaults to datetime.date.today().
+        start_date (Optional[datetime.date], optional): The start date. Defaults to datetime.date.today().
 
     Returns:
         int: The number of prospects in campaigns that are marked as starting on the next next monday
     """
-    autopilot_trigger_date = autopilot_trigger_date or datetime.today()
+    start_date = start_date or datetime.today()
 
-    # Calculate next next monday
-    next_next_monday, sunday = get_next_next_monday_sunday(autopilot_trigger_date)
-
-    # Get campaigns that are marked as starting on next next monday
+    # Get campaigns that are marked as starting on the provided date
     campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter(
         OutboundCampaign.client_sdr_id == client_sdr_id,
         OutboundCampaign.campaign_type == campaign_type,
         OutboundCampaign.client_archetype_id == client_archetype_id,
         OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
-        func.date(OutboundCampaign.campaign_start_date) == next_next_monday,
+        func.date(OutboundCampaign.campaign_start_date) == start_date,
     ).all()
 
     # Count the number of prospects in each campaign

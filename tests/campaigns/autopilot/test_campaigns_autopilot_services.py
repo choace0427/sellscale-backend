@@ -6,6 +6,7 @@ from test_utils import (
     basic_client_sdr,
     basic_prospect,
     basic_prospect_email,
+    basic_sla_schedule,
     basic_generated_message_cta,
     basic_outbound_campaign,
 )
@@ -45,6 +46,12 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(
     oc = basic_outbound_campaign(
         [prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr
     )
+    schedule = basic_sla_schedule(
+        client_sdr, oc.campaign_start_date + timedelta(days=7), 1, '', 1
+    )
+    schedule_2 = basic_sla_schedule(
+        client_sdr, oc.campaign_start_date, 1, '', 1
+    )
     campaign_start_date = oc.campaign_start_date
     archetype.active = True
     archetype_id = archetype.id
@@ -61,7 +68,6 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(
     archetype_2.active = False
     db.session.add(archetype_2)
     db.session.commit()
-    client_sdr.weekly_li_outbound_target = 75
     status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr.id)
     assert status == (
         False,
@@ -72,14 +78,12 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(
     cta = basic_generated_message_cta(ClientArchetype.query.get(archetype_id))
     with freeze_time(campaign_start_date - timedelta(days=14)):
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr.id)
-        # assert status == (False, f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): SLA for LinkedIn has been filled")
         campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).all()
         assert len(campaigns) == 2
 
         # Constraint: Must have SLA space for Email
-        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        sdr.weekly_li_outbound_target = 2
-        db.session.add(sdr)
+        schedule_2.email_volume = 1
+        schedule_2.linkedin_volume = 2
         db.session.commit()
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
         assert status == (
@@ -94,10 +98,7 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(
             assert campaign.campaign_start_date.date() == campaign_start_date.date()
 
         # Works. Should generate a campaign for email. The previous test should have generated a campaign for LinkedIn
-        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        sdr.weekly_email_outbound_target = 2
-        sdr.weekly_li_outbound_target = 2
-        db.session.add(sdr)
+        schedule_2.email_volume = 2
         db.session.commit()
         status = collect_and_generate_autopilot_campaign_for_sdr(client_sdr_id)
         assert status == (
@@ -111,6 +112,23 @@ def test_collect_and_generate_autopilot_campaign_for_sdr(
             assert campaign.campaign_end_date.weekday() == 6  # Sunday
             assert campaign.campaign_start_date.date() == campaign_start_date.date()
 
+    # Give a custom date to generate the campaign
+    status = collect_and_generate_autopilot_campaign_for_sdr(
+        client_sdr.id, schedule.start_date
+    )
+    assert status == (
+        True,
+        f"Autopilot Campaign successfully queued for ['LINKEDIN', 'EMAIL'] generation: {client_sdr.name} (#{client_sdr.id})",
+    )
+    campaigns = OutboundCampaign.query.filter_by(client_sdr_id=client_sdr_id).order_by(OutboundCampaign.created_at.desc()).all()
+    assert len(campaigns) == 6
+    assert campaigns[0].campaign_start_date == schedule.start_date
+    assert campaigns[1].campaign_start_date == schedule.start_date
+    assert campaigns[2].campaign_start_date.date() == schedule_2.start_date.date()
+    assert campaigns[3].campaign_start_date.date() == schedule_2.start_date.date()
+    assert campaigns[4].campaign_start_date.date() == schedule_2.start_date.date()
+    assert campaigns[5].campaign_start_date.date() == schedule_2.start_date.date()
+
 
 @use_app_context
 def test_get_sla_count():
@@ -122,16 +140,15 @@ def test_get_sla_count():
         [prospect.id], GeneratedMessageType.EMAIL, archetype, client_sdr
     )
 
-    # Last monday is 2 weeks before the campaign start date, which is set to next monday.
-    last_monday = oc.campaign_start_date - timedelta(days=14)
+    # Get SLA of the campaign's week
     sla_count = get_sla_count(
-        client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, last_monday
+        client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, oc.campaign_start_date.date()
     )
     assert sla_count == 1
 
     # Next monday is 1 week before the campaign start date, which is set to next monday.
     this_monday = oc.campaign_start_date - timedelta(days=7)
     sla_count = get_sla_count(
-        client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, this_monday
+        client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, this_monday.date()
     )
     assert sla_count == 0
