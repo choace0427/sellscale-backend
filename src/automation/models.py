@@ -273,7 +273,7 @@ class PhantomBusterAgent:
         volume = schedule.get("linkedin_volume", client_sdr.weekly_li_outbound_target)
 
         # If custom volume is provided, use that instead
-        if custom_volume:
+        if custom_volume != None:
             volume = custom_volume
 
         ADDS_PER_LAUNCH = 2
