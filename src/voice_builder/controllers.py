@@ -110,6 +110,23 @@ def get_details():
     )
 
 
+@VOICE_BUILDER_BLUEPRINT.route("/onboardings", methods=["GET"])
+@require_user
+def get_onboardings_endpoint(client_sdr_id: int):
+    
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    
+    onboardings: list[VoiceBuilderOnboarding] = VoiceBuilderOnboarding.query.filter_by(
+        client_archetype_id=client_archetype_id,
+    ).all()
+
+    return jsonify({"message": "Success", "data": 
+      [onboarding.to_dict() for onboarding in onboardings]
+    }), 200
+
+
 @VOICE_BUILDER_BLUEPRINT.route("/update_instruction", methods=["POST"])
 def update_voice_builder_instruction():
     voice_builder_onboarding_id: int = get_request_parameter(

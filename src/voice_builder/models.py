@@ -25,6 +25,7 @@ class VoiceBuilderOnboarding(db.Model):
             "generated_message_type": self.generated_message_type.value,
             "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
             "instruction": self.instruction,
+            "created_at": str(self.created_at),
         }
 
 
