@@ -266,12 +266,15 @@ def get_prospects_for_icp_table(
     client_sdr_id: int,
     client_archetype_id: int,
     get_sample: Optional[bool] = False,
+    get_withdrawable: Optional[bool] = False,
 ) -> list[dict]:
     """Gets prospects belonging to the SDR, focusing on the ICP
 
     Args:
         client_sdr_id (int): ID of the SDR, supplied by the require_user decorator
         client_archetype_id (int): ID of the Client Archetype
+        get_sample (Optional[bool], optional): Whether to get a sample of prospects. Defaults to False.
+        get_withdrawable (Optional[bool], optional): Whether to get prospects that can be withdrawn. Defaults to False.
 
     Returns:
         list[Prospect]: List of prospects
@@ -303,6 +306,9 @@ def get_prospects_for_icp_table(
     prospects = []
     if get_sample:
         result = result[:50]
+
+    if get_withdrawable:
+        result = [r for r in result if r[8] == ProspectStatus.SENT_OUTREACH]
 
     for r in result:
         prospects.append({
