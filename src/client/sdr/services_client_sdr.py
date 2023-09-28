@@ -594,21 +594,17 @@ def deactivate_sla_schedules(
     Returns:
         bool: True if successful, False otherwise
     """
-    # Get the SLA schedules that start after this Monday
+    # Get the SLA schedules that starts on this Monday
     monday, _ = get_current_monday_friday(datetime.utcnow())
-    sla_schedules: list[SLASchedule] = SLASchedule.query.filter(
+    sla_schedule: SLASchedule = SLASchedule.query.filter(
         SLASchedule.client_sdr_id == client_sdr_id,
-        SLASchedule.start_date >= monday
-    ).all()
+        SLASchedule.start_date == monday
+    ).first()
 
-    # Deactivate the SLA schedules
+    # Make note that the SDR was deactivated
     now = datetime.utcnow()
-    for schedule in sla_schedules:
-        schedule.linkedin_volume = 0
-        schedule.email_volume = 0
-        schedule.linkedin_special_notes = "SDR Deactivated on {}".format(now)
-        schedule.email_special_notes = "SDR Deactivated on {}".format(now)
-
+    sla_schedule.linkedin_special_notes = "SDR Deactivated on {}".format(now)
+    sla_schedule.email_special_notes = "SDR Deactivated on {}".format(now)
     db.session.commit()
 
     return True

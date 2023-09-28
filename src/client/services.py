@@ -483,21 +483,24 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
         return False
 
     sdr.active = False
-    deactivate_sla_schedules(sdr.id)
-    sdr.weekly_li_outbound_target = 0
-    sdr.weekly_email_outbound_target = 0
     sdr.autopilot_enabled = False
+    deactivate_sla_schedules(sdr.id)
+    # sdr.weekly_li_outbound_target = 0
+    # sdr.weekly_email_outbound_target = 0
 
-    db.session.add(sdr)
     db.session.commit()
 
-    update_phantom_buster_launch_schedule(client_sdr_id)
+    # Set the launch volume to 0 (stop sending outreach)
+    update_phantom_buster_launch_schedule(
+        client_sdr_id=client_sdr_id,
+        custom_volume=0
+    )
 
     return True
 
 
 def activate_client_sdr(
-    client_sdr_id: int, li_target: Optional[int] = 0, email_target: Optional[int] = 0
+    client_sdr_id: int, li_target: Optional[int] = None, email_target: Optional[int] = None
 ) -> bool:
     """Activates a Client SDR and sets their SLAs
 
@@ -514,11 +517,15 @@ def activate_client_sdr(
         return False
 
     sdr.active = True
-    sdr.weekly_li_outbound_target = li_target
-    sdr.weekly_email_outbound_target = email_target
+    if li_target:
+        sdr.weekly_li_outbound_target = li_target
+    if email_target:
+        sdr.weekly_email_outbound_target = email_target
 
     db.session.add(sdr)
     db.session.commit()
+
+    load_sla_schedules(sdr.id)
 
     update_phantom_buster_launch_schedule(client_sdr_id)
 
@@ -1944,7 +1951,7 @@ def daily_pb_launch_schedule_update():
 
 
 @celery.task()
-def update_phantom_buster_launch_schedule(client_sdr_id: int):
+def update_phantom_buster_launch_schedule(client_sdr_id: int, custom_volume: Optional[int] = None):
     # Get the ClientSDR
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1963,7 +1970,7 @@ def update_phantom_buster_launch_schedule(client_sdr_id: int):
         )
         return False, "PhantomBuster config not found"
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=config.phantom_uuid)
-    result = pb_agent.update_launch_schedule()
+    result = pb_agent.update_launch_schedule(custom_volume=custom_volume)
 
     if result:
         send_slack_message(
