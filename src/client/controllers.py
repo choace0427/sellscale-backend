@@ -9,6 +9,7 @@ from src.personas.services import (
 from src.prospecting.models import Prospect
 from src.client.services import (
     edit_demo_feedback,
+    import_pre_onboarding,
     submit_demo_feedback,
     get_all_demo_feedback,
     get_demo_feedback,
@@ -2401,5 +2402,23 @@ def post_pre_onboarding_survey(client_sdr_id: int):
     )
     if not success:
         return jsonify({"message": "Failed to write to pre onboarding survey"}), 400
+
+    return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sync_pre_onboarding_data", methods=["POST"])
+@require_user
+def post_sync_pre_onboarding_data(client_sdr_id: int):
+    """Syncs pre onboarding data from client to client sdr"""
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return jsonify({"message": "Invalid SDR"}), 400
+
+    client_id: int = client_sdr.id
+    success, message = import_pre_onboarding(client_id)
+
+    if not success:
+        return jsonify({"message": message}), 400
 
     return jsonify({"message": "Success"}), 200
