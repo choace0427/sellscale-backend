@@ -10,6 +10,7 @@ from model_import import (
     OutboundCampaignStatus,
 )
 from src.client.models import SLASchedule
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
 from src.utils.datetime.dateutils import get_current_monday_sunday, get_next_next_monday_sunday
 from src.campaigns.services import (
@@ -28,6 +29,8 @@ SLACK_CHANNEL = URL_MAP["operations-campaign-generation"]
 def collect_and_generate_all_autopilot_campaigns(
     start_date: Optional[datetime] = None,
 ):
+    if type(start_date) == str:
+        start_date = convert_string_to_datetime(start_date)
 
     # Get all active clients
     active_clients = Client.query.filter_by(
@@ -89,6 +92,8 @@ def collect_and_generate_autopilot_campaign_for_sdr(
 
         # If custom_start_date is provided, then use the monday and sunday of that week
         if custom_start_date:
+            if type(custom_start_date) == str:
+                custom_start_date = convert_string_to_datetime(custom_start_date)
             start_date, end_date = get_current_monday_sunday(custom_start_date)
 
         # Get the SLA Schedule entry for this date range
