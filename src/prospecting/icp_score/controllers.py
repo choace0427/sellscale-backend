@@ -51,7 +51,7 @@ def post_manual_trigger_rerun(client_sdr_id: int):
 
     apply_icp_scoring_ruleset_filters_task(
         client_archetype_id=client_archetype_id,
-        icp_scoring_job_queue_id=icp_scoring_job_queue_id
+        icp_scoring_job_queue_id=icp_scoring_job_queue_id,
         manual_trigger=True
     )
 
