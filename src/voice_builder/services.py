@@ -193,11 +193,7 @@ def edit_voice_builder_sample(
     voice_builder_sample_id: int,
     updated_completion: str,
 ):
-    voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples.query.get(voice_builder_sample_id)
-
-    # Run rule engine
-    updated_completion = run_message_rule_engine_on_completion(completion=updated_completion)
-
+    voice_builder_sample = VoiceBuilderSamples.query.get(voice_builder_sample_id)
     voice_builder_sample.sample_completion = updated_completion
     db.session.add(voice_builder_sample)
     db.session.commit()
