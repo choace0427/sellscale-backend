@@ -24,7 +24,7 @@ class ICPScoringJobQueue(db.Model):
     error_message = db.Column(db.String, nullable=True)
     attempts = db.Column(db.Integer, nullable=False, default=0)
 
-    manual_trigger = db.Column(db.Boolean, nullable=False, default=False)
+    manual_trigger = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self):
         return {
