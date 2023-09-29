@@ -30,7 +30,7 @@ class ICPScoringJobQueue(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "prospect_ids": self.prospect_ids,
-            "run_status": self.run_status,
+            "run_status": self.run_status.value,
             "error_message": self.error_message,
             "attempts": self.attempts,
         }

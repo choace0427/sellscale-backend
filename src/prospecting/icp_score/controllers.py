@@ -30,7 +30,7 @@ def get_runs(client_sdr_id: int):
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return {"status": "error", "message": "Unauthorized"}, 401
 
-    jobs: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+    jobs: list[ICPScoringJobQueue] = ICPScoringJobQueue.query.filter_by(
         client_archetype_id=client_archetype_id
     ).order_by(ICPScoringJobQueue.id.desc()).all()
 
