@@ -877,6 +877,8 @@ def apply_icp_scoring_ruleset_filters(
         )
         db.session.commit()
 
+        prospect_ids = icp_scoring_job.prospect_ids or prospect_ids
+
         # Step 1: Get the raw prospect list with data enriched
         print("Pulling raw enriched prospect companies list...")
         raw_enriched_prospect_companies_list = get_raw_enriched_prospect_companies_list(
