@@ -6,6 +6,7 @@ from src.campaigns.services import (
     mark_campaign_as_ready_to_send,
     mark_campaign_as_initial_review_complete,
 )
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
 from src.campaigns.services import (
@@ -621,7 +622,15 @@ def get_email_analytics(client_sdr_id: int):
 
 @CAMPAIGN_BLUEPRINT.route("/autopilot/generate_all_campaigns", methods=["POST"])
 def generate_all_autopilot_campaigns_endpoint():
-    collect_and_generate_all_autopilot_campaigns()
+    """Generate all autopilot campaigns."""
+    start_date = get_request_parameter(
+        "start_date", request, json=True, required=False, parameter_type=str
+    )
+    start_date = convert_string_to_datetime(start_date) if start_date else None
+
+    collect_and_generate_all_autopilot_campaigns(
+        start_date=start_date
+    )
     return "OK", 200
 
 

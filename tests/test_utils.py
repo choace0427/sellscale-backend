@@ -69,6 +69,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.utils.datetime.dateutils import get_current_monday_friday
 
 
 @pytest.fixture
@@ -825,6 +826,34 @@ def basic_demo_feedback(
     db.session.commit()
 
     return df
+
+
+def basic_sla_schedule(
+    client_sdr: ClientSDR,
+    start_date: datetime = datetime.now(),
+    linkedin_volume: int = 0,
+    linkedin_special_notes: str = "test_linkedin_special_notes",
+    email_volume: int = 0,
+    email_special_notes: str = "test_email_special_notes",
+    week: int = 0,
+) -> SLASchedule:
+     # Get the monday of the start date's given week
+    start_date, end_date = get_current_monday_friday(start_date)
+
+    schedule: SLASchedule = SLASchedule(
+        client_sdr_id=client_sdr.id,
+        start_date=start_date,
+        end_date=end_date,
+        linkedin_volume=linkedin_volume,
+        linkedin_special_notes=linkedin_special_notes,
+        email_volume=email_volume,
+        email_special_notes=email_special_notes,
+        week=week,
+    )
+    db.session.add(schedule)
+    db.session.commit()
+
+    return schedule
 
 
 def clear_all_entities(SQLAlchemyObject):
