@@ -217,16 +217,30 @@ def contains_profane_word(text: str):
     return True, matches
 
 
-def get_aree_fix_basic(message_id: int) -> str:
-    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    if not message:
-        return "Message not found"
-    problems = message.problems
-    if not problems:
-        return message.completion
+def get_aree_fix_basic(message_id: Optional[int] = None, completion: Optional[str] = None, problems: Optional[list[str]] = []) -> str:
+    """Gets the ARREE Fix (Basic). Either a message_id or completion must be provided.
 
-    completion = message.completion.strip()
+    Args:
+        message_id (int): _description_
+        completion (Optional[str], optional): _description_. Defaults to None.
+        problems (Optional[list[str]], optional): _description_. Defaults to None.
 
+    Returns:
+        str: _description_
+    """
+    if not message_id and not completion:
+        return ""
+
+    if message_id:
+        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+        if not message:
+            return "Message not found"
+        problems = message.problems
+        if not problems:
+            return message.completion
+        completion = message.completion.strip()
+
+    print(problems)
     prompt = f"message: {completion}\n\nproblems:\n"
     for p in problems:
         prompt += f"- {p}\n"

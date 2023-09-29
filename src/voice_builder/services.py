@@ -18,6 +18,7 @@ from model_import import (
     ClientArchetype,
 )
 from model_import import Prospect, ResearchPointType
+from src.ml.rule_engine import run_message_rule_engine_on_completion
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from app import db, celery
 
@@ -162,6 +163,10 @@ def create_voice_builder_sample(
                 computed_prompt=computed_prompt,
                 prompt=prompt,
             )
+
+            # Run rule engine:
+            completion = run_message_rule_engine_on_completion(completion=completion)
+
             if completion:
                 break
 

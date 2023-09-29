@@ -79,6 +79,44 @@ def format_entities(
     return
 
 
+def run_message_rule_engine_on_completion(completion: str):
+    """Adversarial AI ruleset. Only runs on completion so not full-suite of Rules
+
+    Args:
+        completion (str): The completion to run the ruleset against.
+    """
+    prompt = ""
+    problems = []
+    highlighted_words = []
+
+    case_preserved_completion = completion
+    completion = completion.lower()
+
+    # Strict Rules
+    rule_no_profanity(completion, problems, highlighted_words)
+    rule_no_url(completion, problems, highlighted_words)
+    rule_linkedin_length(GeneratedMessageType.LINKEDIN, completion, problems, highlighted_words)
+    rule_no_brackets(completion, problems, highlighted_words)
+
+    # Warnings
+    rule_no_cookies(completion, problems, highlighted_words)
+    rule_no_symbols(completion, problems, highlighted_words)
+    rule_no_companies(completion, problems, highlighted_words)
+    rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
+    rule_no_hard_years(completion, prompt, problems, highlighted_words)
+    rule_catch_im_a(completion, prompt, problems, highlighted_words)
+    rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
+    rule_catch_has_6_or_more_consecutive_upper_case(
+        case_preserved_completion, prompt, problems, highlighted_words
+    )
+    # rule_no_ampersand(completion, problems, highlighted_words)
+    rule_no_fancying_a_chat(completion, problems, highlighted_words)
+
+    corrected_completion = get_aree_fix_basic(completion=completion, problems=problems)
+
+    return corrected_completion
+
+
 def run_message_rule_engine(message_id: int):
     """Adversarial AI ruleset.
 
@@ -147,6 +185,7 @@ def run_message_rule_engine(message_id: int):
         case_preserved_completion, prompt, problems, highlighted_words
     )
     # rule_no_ampersand(completion, problems, highlighted_words)
+    rule_no_fancying_a_chat(completion, problems, highlighted_words)
 
     if " me " in completion:
         problems.append("Contains 'me'.")
@@ -165,12 +204,6 @@ def run_message_rule_engine(message_id: int):
             "Contains 'stealth'. Check if they are referring to a past job."
         )
         highlighted_words.append("stealth")
-
-    if "fancy a chat" in completion:
-        problems.append(
-            "Contains 'fancy a chat'. Do not use this phrase in the completions."
-        )
-        highlighted_words.append("fancy a")
 
     highlighted_words = list(filter(lambda x: x != ".", highlighted_words))
 
@@ -672,5 +705,21 @@ def rule_no_brackets(completion: str, problems: list, highlighted_words: list):
         highlighted_words.append("]")
         highlighted_words.append("{")
         highlighted_words.append("}")
+
+    return
+
+
+def rule_no_fancying_a_chat(
+    completion: str, problems: list, highlighted_words: list
+):
+    """Rule: No Fancying a Chat
+
+    No 'fancy a chat' allowed in the completion.
+    """
+    if "fancy a chat" in completion:
+        problems.append(
+            "Contains 'fancy a chat'. Do not use this phrase in the completions."
+        )
+        highlighted_words.append("fancy a")
 
     return
