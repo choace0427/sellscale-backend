@@ -27,6 +27,8 @@ class ICPScoringJobQueue(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "prospect_ids": self.prospect_ids,
