@@ -794,6 +794,7 @@ def apply_icp_scoring_ruleset_filters_task(
     client_archetype_id: int,
     icp_scoring_job_queue_id: Optional[int] = None,
     prospect_ids: Optional[list[int]] = None,
+    manual_trigger: Optional[list[int]] = None,
 ) -> bool:
     """Creates an ICPScoringJobQueue object and begins the icp_scoring job
 
@@ -834,6 +835,7 @@ def apply_icp_scoring_ruleset_filters_task(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         prospect_ids=prospect_ids,
+        manual_trigger=manual_trigger,
     )
     db.session.add(icp_scoring_job)
     db.session.commit()
@@ -871,6 +873,8 @@ def apply_icp_scoring_ruleset_filters(
         icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
             id=icp_scoring_job_id
         ).first()
+        if icp_scoring_job.run_status not in [ICPScoringJobQueueStatus.PENDING, ICPScoringJobQueueStatus.FAILED]:
+            return
         icp_scoring_job.run_status = ICPScoringJobQueueStatus.IN_PROGRESS
         icp_scoring_job.attempts = (
             icp_scoring_job.attempts + 1 if icp_scoring_job.attempts else 1
