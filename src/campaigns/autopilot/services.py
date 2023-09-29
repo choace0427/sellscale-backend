@@ -50,7 +50,11 @@ def collect_and_generate_all_autopilot_campaigns(
     for i, sdr in enumerate(sdrs):
         sdr_id = sdr.id
 
-        collect_and_generate_autopilot_campaign_for_sdr.apply_async(args=[sdr_id, start_date])
+        collect_and_generate_autopilot_campaign_for_sdr.apply_async(
+            args=[sdr_id, start_date],
+            queue="message_generation",
+            routing_key="message_generation",
+        )
 
 
 @celery.task(bind=True, max_retries=1)
