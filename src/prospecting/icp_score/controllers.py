@@ -214,7 +214,9 @@ def run_on_prospects(client_sdr_id: int):
         return "Unauthorized", 401
 
     success = apply_icp_scoring_ruleset_filters_task(
-        client_archetype_id=client_archetype_id, prospect_ids=prospect_ids
+        client_archetype_id=client_archetype_id,
+        prospect_ids=prospect_ids,
+        manual_trigger=True
     )
 
     if success:
