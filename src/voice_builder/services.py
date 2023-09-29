@@ -109,7 +109,9 @@ def create_voice_builder_samples(
             )
             for _ in range(n)
         ]
-        concurrent.futures.wait(futures)
+
+    # Wait for all tasks to complete
+    concurrent.futures.wait(futures)
 
     samples = []
     while not results_queue.empty():
