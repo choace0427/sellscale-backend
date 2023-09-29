@@ -277,7 +277,8 @@ def get_raw_enriched_prospect_companies_list(
             deep_get(data, "personal.location")
         )
         processed[prospect_id].prospect_industry = industry
-        processed[prospect_id].prospect_skills = deep_get(data, "personal.skills")
+        processed[prospect_id].prospect_skills = deep_get(
+            data, "personal.skills")
         processed[prospect_id].prospect_positions = deep_get(
             data, "personal.position_groups.0.profile_positions"
         )
@@ -315,7 +316,8 @@ def get_raw_enriched_prospect_companies_list(
             )
             + ", "
             + (
-                deep_get(data, "company.details.locations.headquarter.geographic_area")
+                deep_get(
+                    data, "company.details.locations.headquarter.geographic_area")
                 if deep_get(
                     data, "company.details.locations.headquarter.geographic_area"
                 )
@@ -570,7 +572,8 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.prospect_dump.lower():
                     invalid_generalized = keyword
                     break
-            reasoning += "(❌ general prospect info: " + invalid_generalized + ") "
+            reasoning += "(❌ general prospect info: " + \
+                invalid_generalized + ") "
         elif (
             icp_scoring_ruleset.included_individual_generalized_keywords
             and enriched_prospect_company.prospect_dump
@@ -585,7 +588,8 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.prospect_dump.lower():
                     valid_generalized = keyword
                     break
-            reasoning += "(✅ general prospect info: " + valid_generalized + ") "
+            reasoning += "(✅ general prospect info: " + \
+                valid_generalized + ") "
 
         # Company Name
         if (
@@ -637,7 +641,8 @@ def score_one_prospect(
                 ):
                     invalid_company_location = keyword
                     break
-            reasoning += "(❌ company location: " + invalid_company_location + ") "
+            reasoning += "(❌ company location: " + \
+                invalid_company_location + ") "
         elif (
             icp_scoring_ruleset.included_company_locations_keywords
             and enriched_prospect_company.company_location
@@ -655,7 +660,8 @@ def score_one_prospect(
                 ):
                     valid_company_location = keyword
                     break
-            reasoning += "(✅ company location: " + valid_company_location + ") "
+            reasoning += "(✅ company location: " + \
+                valid_company_location + ") "
         elif icp_scoring_ruleset.included_company_locations_keywords:
             score -= num_attributes
             reasoning += "(❌ company location: No Match)"
@@ -765,7 +771,8 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.company_dump.lower():
                     invalid_generalized = keyword
                     break
-            reasoning += "(❌ company general info: " + invalid_generalized + ") "
+            reasoning += "(❌ company general info: " + \
+                invalid_generalized + ") "
         elif (
             icp_scoring_ruleset.included_company_generalized_keywords
             and enriched_prospect_company.company_dump
@@ -819,16 +826,23 @@ def apply_icp_scoring_ruleset_filters_task(
             apply_icp_scoring_ruleset_filters(
                 icp_scoring_job_id=icp_scoring_job_queue_id,
                 client_archetype_id=client_archetype_id,
-                prospect_ids=prospect_ids,
             )
         else:
             apply_icp_scoring_ruleset_filters.apply_async(
-                args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
+                args=[icp_scoring_job_queue_id, client_archetype_id],
                 queue="icp_scoring",
                 routing_key="icp_scoring",
             )
 
         return True
+
+    if prospect_ids == None:
+        # Get Prospects that belong in this ClientArchetype
+        prospects = (
+            Prospect.query.filter_by(archetype_id=client_archetype_id)
+            .all()
+        )
+        prospect_ids = [prospect.id for prospect in prospects]
 
     # Create ICPScoringJobQueue object
     icp_scoring_job = ICPScoringJobQueue(
@@ -882,6 +896,15 @@ def apply_icp_scoring_ruleset_filters(
         db.session.commit()
 
         prospect_ids = icp_scoring_job.prospect_ids or prospect_ids
+        if not prospect_ids:
+            # Get Prospects that belong in this ClientArchetype
+            prospects = (
+                Prospect.query.filter_by(
+                    archetype_id=client_archetype_id)
+                .all()
+            )
+            prospect_ids = [prospect.id for prospect in prospects]
+            icp_scoring_job.prospect_ids = prospect_ids
 
         # Step 1: Get the raw prospect list with data enriched
         print("Pulling raw enriched prospect companies list...")
@@ -993,7 +1016,8 @@ def apply_icp_scoring_ruleset_filters(
 
         print("Updating prospects...")
         for batch in tqdm(
-            [update_mappings[i : i + 50] for i in range(0, len(update_mappings), 50)]
+            [update_mappings[i: i + 50]
+                for i in range(0, len(update_mappings), 50)]
         ):
             if prospect_ids and len(prospect_ids) <= 50:
                 update_prospects(batch)
@@ -1092,7 +1116,8 @@ def predict_icp_scoring_filters_from_prospect_id(
         is_lookalike_profile_only=True,
     )
 
-    all_titles = [enriched_pcs[key].prospect_title for key in enriched_pcs.keys()]
+    all_titles = [
+        enriched_pcs[key].prospect_title for key in enriched_pcs.keys()]
     # get top 10 titles with highest frequency
     good_titles = [
         title
@@ -1110,7 +1135,8 @@ def predict_icp_scoring_filters_from_prospect_id(
         if industry and industry != "None"
     ]
 
-    all_companies = [enriched_pcs[key].company_name for key in enriched_pcs.keys()]
+    all_companies = [
+        enriched_pcs[key].company_name for key in enriched_pcs.keys()]
     # get top 10 companies with highest frequency
     good_companies = [
         company
@@ -1196,7 +1222,8 @@ def set_icp_scores_to_predicted_values(client_archetype_id: int):
         excluded_individual_generalized_keywords=[],
         included_company_name_keywords=good_companies,
         excluded_company_name_keywords=[],
-        included_company_locations_keywords=["United States", "Canada", "US ", "CA "],
+        included_company_locations_keywords=[
+            "United States", "Canada", "US ", "CA "],
         excluded_company_locations_keywords=[],
         company_size_start=min_company_size,
         company_size_end=max_company_size,

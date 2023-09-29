@@ -48,10 +48,14 @@ def post_manual_trigger_rerun(client_sdr_id: int):
     client_archetype_id = get_request_parameter(
         "client_archetype_id", request, json=True, required=True
     )
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=False
+    )
 
     apply_icp_scoring_ruleset_filters_task(
         client_archetype_id=client_archetype_id,
         icp_scoring_job_queue_id=icp_scoring_job_queue_id,
+        prospect_ids=prospect_ids,
         manual_trigger=True
     )
 
