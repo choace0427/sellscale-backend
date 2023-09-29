@@ -123,13 +123,18 @@ def create_voice_builder_samples(
     #     success, sample = create_voice_builder_sample(
     #         voice_builder_onboarding_id=voice_builder_onboarding_id,
     #         computed_prompt=computed_prompt,
+    #         queue=None,
     #     )
-    #     if success: samples.append(sample)
+    #     if success:
+    #         samples.append(sample)
+
     return samples
 
 
 def create_voice_builder_sample(
-    voice_builder_onboarding_id: int, computed_prompt: str, queue: queue.Queue
+    voice_builder_onboarding_id: int,
+    computed_prompt: str,
+    queue: Optional[queue.Queue] = None,
 ):
     with app.app_context():
         voice_builder_onboarding: VoiceBuilderOnboarding = (
@@ -151,10 +156,14 @@ def create_voice_builder_sample(
             archetype_id=archetype_id,
         )
 
-        completion, final_prompt = get_computed_prompt_completion(
-            computed_prompt=computed_prompt,
-            prompt=prompt,
-        )
+        attempts = 0
+        while attempts < 5:
+            completion, final_prompt = get_computed_prompt_completion(
+                computed_prompt=computed_prompt,
+                prompt=prompt,
+            )
+            if completion:
+                break
 
         voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples(
             voice_builder_onboarding_id=voice_builder_onboarding_id,
@@ -169,7 +178,8 @@ def create_voice_builder_sample(
         db.session.add(voice_builder_sample)
         db.session.commit()
 
-        queue.put(voice_builder_sample.to_dict())
+        if queue:
+            queue.put(voice_builder_sample.to_dict())
 
         return True, voice_builder_sample.to_dict()
 
