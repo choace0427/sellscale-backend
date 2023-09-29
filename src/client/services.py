@@ -491,16 +491,15 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
     db.session.commit()
 
     # Set the launch volume to 0 (stop sending outreach)
-    update_phantom_buster_launch_schedule(
-        client_sdr_id=client_sdr_id,
-        custom_volume=0
-    )
+    update_phantom_buster_launch_schedule(client_sdr_id=client_sdr_id, custom_volume=0)
 
     return True
 
 
 def activate_client_sdr(
-    client_sdr_id: int, li_target: Optional[int] = None, email_target: Optional[int] = None
+    client_sdr_id: int,
+    li_target: Optional[int] = None,
+    email_target: Optional[int] = None,
 ) -> bool:
     """Activates a Client SDR and sets their SLAs
 
@@ -1951,7 +1950,9 @@ def daily_pb_launch_schedule_update():
 
 
 @celery.task()
-def update_phantom_buster_launch_schedule(client_sdr_id: int, custom_volume: Optional[int] = None):
+def update_phantom_buster_launch_schedule(
+    client_sdr_id: int, custom_volume: Optional[int] = None
+):
     # Get the ClientSDR
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -3170,6 +3171,7 @@ def import_pre_onboarding(
     user_email_address = client.pre_onboarding_survey.get("user_email")
     user_calendly_link = client.pre_onboarding_survey.get("user_scheduling_link")
     user_linkedin_link = client.pre_onboarding_survey.get("user_linkedin_url")
+    user_scheduling_message = client.pre_onboarding_survey.get("scheduling_message")
 
     messaging_outbound_copy = client.pre_onboarding_survey.get("example_copy")
     messaging_link_to_case_studies = client.pre_onboarding_survey.get(
@@ -3194,6 +3196,7 @@ def import_pre_onboarding(
         ("user_full_name", user_full_name, True),
         ("user_email_address", user_email_address, True),
         ("user_calendly_link", user_calendly_link, False),
+        ("scheduling_message", user_scheduling_message, False),
         ("user_linkedin_link", user_linkedin_link, False),
         ("messaging_outbound_copy", messaging_outbound_copy, False),
         ("messaging_link_to_case_studies", messaging_link_to_case_studies, False),
@@ -3229,6 +3232,16 @@ def import_pre_onboarding(
             persona_contact_objective=persona_contact_objective,
         )
 
+    scheduling_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
+        BumpFramework.client_sdr_id == client_sdr_id,
+        BumpFramework.substatus == ProspectStatus.ACTIVE_CONVO_SCHEDULING.value,
+    ).all()
+    if len(scheduling_bump_frameworks) > 0:
+        for framework in scheduling_bump_frameworks:
+            framework.description = user_scheduling_message
+            db.session.add(framework)
+    db.session.commit()
+
     client: Client = Client.query.get(client_id)
     client.mission = company_mission_statement
     client.tagline = company_tagline
@@ -3239,7 +3252,7 @@ def import_pre_onboarding(
     client.existing_clients = messaging_existing_clients
     client.case_study = messaging_link_to_case_studies
     client.impressive_facts = messaging_impressive_facts
-    client.tone_attributes = messaging_tone.split(",")
+    client.tone_attributes = messaging_tone and messaging_tone.split(",")
     db.session.add(client)
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
