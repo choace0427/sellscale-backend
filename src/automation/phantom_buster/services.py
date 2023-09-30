@@ -288,7 +288,9 @@ def collect_and_load_sales_navigator_results(self) -> None:
             db.session.commit()
 
             launch_id = launch.id
-            trigger_upload_job_from_linkedin_sales_nav_scrape(launch_id)
+
+            # This will auto upload prospects to SellScale
+            # trigger_upload_job_from_linkedin_sales_nav_scrape(launch_id)
 
     return
 
