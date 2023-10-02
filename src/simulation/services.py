@@ -152,7 +152,7 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
 
     from src.message_generation.services import generate_followup_response
     from src.prospecting.models import ProspectOverallStatus, ProspectStatus
-    from src.client.models import ClientSDR
+    from src.client.models import ClientSDR, Prospect, ClientArchetype
 
     simulation: Simulation = Simulation.query.get(simulation_id)
     if not simulation:
@@ -172,6 +172,12 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
 
     if overall_status is None or li_status is None or bump_count is None:
         return False, "Missing meta data."
+    
+    # If we've already hit our max bump count, skip
+    prospect: Prospect = Prospect.query.get(simulation.prospect_id)
+    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    if client_archetype.li_bump_amount <= prospect.times_bumped:
+        return False, "Prospect has been bumped too many times."
 
     try:
         data = generate_followup_response(

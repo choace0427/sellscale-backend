@@ -134,6 +134,7 @@ class ClientArchetype(db.Model):
 
     contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
     first_message_delay_days = db.Column(db.Integer, nullable=True)
+    li_bump_amount = db.Column(db.Integer, nullable=True)
 
     def to_dict(self) -> dict:
 
@@ -169,6 +170,7 @@ class ClientArchetype(db.Model):
             "email_blocks_configuration": self.email_blocks_configuration,
             "contract_size": self.contract_size,
             "first_message_delay_days": self.first_message_delay_days,
+            "li_bump_amount": self.li_bump_amount,
         }
 
 

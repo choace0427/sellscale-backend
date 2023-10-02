@@ -1942,34 +1942,39 @@ def update_prospect_demo_date(
 
 @celery.task
 def auto_mark_uninterested_bumped_prospects():
-    prospects = db.session.execute(
-        """
-        select
-            prospect.id,
-            prospect.full_name,
-            client_sdr.name,
-            count(*)
-        from prospect
-            join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
-            join client_sdr on client_sdr.id = prospect.client_sdr_id
-        where prospect.overall_status = 'BUMPED'
-        group by 1,2,3
-        having count(*) > 3;
-    """
-    )
-    for prospect in prospects:
-        prospect_id = prospect[0]
-        prospect_name = prospect[1]
-        client_sdr_name = prospect[2]
-        prospect_count = prospect[3]
-        message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `nurturing mode`."
-        send_slack_message(message=message, webhook_urls=[URL_MAP["csm-convo-sorter"]])
+    
+    client_archetypes: List[ClientArchetype] = ClientArchetype.query.all()
 
-        update_prospect_status_linkedin(
-            prospect_id=prospect_id,
-            new_status=ProspectStatus.NOT_INTERESTED,
-            note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
+    for client_archetype in client_archetypes:
+        prospects = db.session.execute(
+            f"""
+            select
+                prospect.id,
+                prospect.full_name,
+                client_sdr.name,
+                count(*)
+            from prospect
+                join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
+                join client_sdr on client_sdr.id = prospect.client_sdr_id
+                join client_archetype on client_archetype.id = prospect.archetype_id
+            where prospect.overall_status = 'BUMPED' and client_archetype.id = {client_archetype.id}
+            group by 1,2,3
+            having count(*) > {client_archetype.li_bump_amount};
+        """
         )
+        for prospect in prospects:
+            prospect_id = prospect[0]
+            prospect_name = prospect[1]
+            client_sdr_name = prospect[2]
+            prospect_count = prospect[3]
+            message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `nurturing mode`."
+            send_slack_message(message=message, webhook_urls=[URL_MAP["csm-convo-sorter"]])
+
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id,
+                new_status=ProspectStatus.NOT_INTERESTED,
+                note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
+            )
 
 
 def find_prospect_id_from_li_or_email(

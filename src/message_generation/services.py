@@ -2248,6 +2248,12 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         if dupe_bump_msg:
             # Already generated a bump for this message
             return False
+        
+        # If we've already hit our max bump count, skip
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+        if client_archetype.li_bump_amount <= prospect.times_bumped:
+            return False
 
         bump_msg = GeneratedMessageAutoBump(
             client_sdr_id=client_sdr_id,
