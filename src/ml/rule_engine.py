@@ -104,8 +104,9 @@ def run_message_rule_engine_on_completion(
     # Strict Rules
     rule_no_profanity(completion, problems, highlighted_words)
     rule_no_url(completion, problems, highlighted_words)
-    rule_linkedin_length(GeneratedMessageType.LINKEDIN,
-                         completion, problems, highlighted_words)
+    rule_linkedin_length(
+        GeneratedMessageType.LINKEDIN, completion, problems, highlighted_words
+    )
     rule_no_brackets(completion, problems, highlighted_words)
 
     # Warnings
@@ -123,8 +124,7 @@ def run_message_rule_engine_on_completion(
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
 
     if run_arree:
-        completion = get_aree_fix_basic(
-            completion=completion, problems=problems)
+        completion = get_aree_fix_basic(completion=completion, problems=problems)
 
     return completion, problems, highlighted_words
 
@@ -145,8 +145,7 @@ def run_message_rule_engine(message_id: int):
     wipe_problems(message_id)
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(
-        message.message_cta)
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(message.message_cta)
     prompt = message.prompt
     case_preserved_completion = message.completion
     completion = message.completion.lower()
@@ -176,8 +175,7 @@ def run_message_rule_engine(message_id: int):
     # Strict Rules
     rule_no_profanity(completion, problems, highlighted_words)
     rule_no_url(completion, problems, highlighted_words)
-    rule_linkedin_length(message.message_type, completion,
-                         problems, highlighted_words)
+    rule_linkedin_length(message.message_type, completion, problems, highlighted_words)
 
     if (
         message.message_type == GeneratedMessageType.LINKEDIN
@@ -546,7 +544,7 @@ def rule_catch_strange_titles(
         chief_index = lower_title.find("chief")
         officer_index = lower_title.find("officer")
         if chief_index < officer_index:
-            title = title_section[chief_index: officer_index + 1]
+            title = title_section[chief_index : officer_index + 1]
             if title in roles:
                 if roles[title] in completion.lower():
                     return
@@ -556,10 +554,8 @@ def rule_catch_strange_titles(
         first_words = splitted_title_section[:4]  # Get the first 4 words
         first_words = " ".join(first_words).strip()
         if first_words in completion.lower():  # 4 words is too long for a title
-            first_words_case_preserved = title_section_case_preserved.split(" ")[
-                :4]
-            first_words_case_preserved = " ".join(
-                first_words_case_preserved).strip()
+            first_words_case_preserved = title_section_case_preserved.split(" ")[:4]
+            first_words_case_preserved = " ".join(first_words_case_preserved).strip()
             highlighted_words.append(first_words_case_preserved)
             problems.append(
                 "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
@@ -569,8 +565,7 @@ def rule_catch_strange_titles(
         if title_section in completion.lower():
             ALLOWED_SYMBOLS = ["'"]
             unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
-            match = list(
-                filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
+            match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
             if match and len(match) > 0:
                 highlighted_words.append(title_section_case_preserved)
                 problems.append(
@@ -726,16 +721,14 @@ def rule_no_brackets(completion: str, problems: list, highlighted_words: list):
     return
 
 
-def rule_no_fancying_a_chat(
-    completion: str, problems: list, highlighted_words: list
-):
+def rule_no_fancying_a_chat(completion: str, problems: list, highlighted_words: list):
     """Rule: No Fancying a Chat
 
     No 'fancy a chat' allowed in the completion.
     """
     if "fancy a chat" in completion:
         problems.append(
-            "Contains 'fancy a chat'. Do not use this phrase in the completions."
+            "Contains 'fancy a chat'. Do not use this phrase in the completions. Do not use the word 'fancy' in the completion."
         )
         highlighted_words.append("fancy a")
 
