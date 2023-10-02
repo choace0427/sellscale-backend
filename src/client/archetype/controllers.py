@@ -86,3 +86,26 @@ def patch_archetype_message_delay(client_sdr_id: int, archetype_id: int):
     db.session.commit()
 
     return jsonify({"status": "success"}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/li_bump_amount", methods=["PATCH"])
+@require_user
+def patch_archetype_li_bump_amount(client_sdr_id: int, archetype_id: int):
+    bump_amount = get_request_parameter(
+        "bump_amount", request, json=True, required=True, parameter_type=int
+    )
+
+    if bump_amount < 1:
+        return jsonify({"status": "error", "message": "Delay days must be a whole number"}), 400
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
+
+    archetype.li_bump_amount = bump_amount
+    db.session.commit()
+
+    return jsonify({"status": "success"}), 200
+
