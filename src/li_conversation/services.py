@@ -741,12 +741,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             + "\n-----"
         )
 
-    if bump_framework and bump_framework.additional_context:
-        message_content = message_content + (
-            "\n\nHere is some additional context to keep in mind when writing the message:\n-----\n"
-            + bump_framework.additional_context
-            + "\n-----"
-        )
+    # if bump_framework and bump_framework.additional_context:
+    #     message_content = message_content + (
+    #         "\n\nHere is some additional context to keep in mind when writing the message:\n-----\n"
+    #         + bump_framework.additional_context
+    #         + "\n-----"
+    #     )
 
     conversation_length_1_and_message_from_me = (
         len(convo_history) == 1 and convo_history[0].connection_degree == "You"

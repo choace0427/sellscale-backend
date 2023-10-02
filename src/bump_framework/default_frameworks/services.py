@@ -66,14 +66,14 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
 DEFAULT_BUMP_FRAMEWORKS = [
     {
         "title": "Pain Points Opener",
-        "description": "1. Thank them for connecting\n2. Connect with their role and any pain points that they have in their role based on what our company does\n3. How is it going with pain points they my face in their role?",
+        "description": "1. Thank them for connecting\n2. Connect with their role and any pain points that they have in their role based on what our company does\n3. How is it going with pain points they my face in their role?\n\nWhat pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
         "overall_status": ProspectOverallStatus.ACCEPTED,
         "substatus": None,
         "bump_length": BumpLength.MEDIUM,
         "bumped_count": 0,
         "bump_framework_template_name": "pain_points_opener",
         "bump_framework_human_readable_prompt": "Tap into a potential pain point that they may have in their role and connect with them on that",
-        "additional_context": "What pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
+        "additional_context": "",
         "transformer_blocklist": [
             x.value
             for x in ResearchPointType
@@ -95,14 +95,14 @@ DEFAULT_BUMP_FRAMEWORKS = [
     },
     {
         "title": "Short Follow Up Related to Role",
-        "description": "Do a short follow-up acknowledging they're busy using their role description - and that we'd love to chat about any [relevant painpoints their role may face]",
+        "description": "Do a short follow-up acknowledging they're busy using their role description - and that we'd love to chat about any [relevant painpoints their role may face]\n\nWhich pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
         "overall_status": ProspectOverallStatus.BUMPED,
         "substatus": None,
         "bump_length": BumpLength.SHORT,
         "bumped_count": 2,
         "bump_framework_template_name": "short_follow_up_related_to_role",
         "bump_framework_human_readable_prompt": "Do a short follow-up acknowledging they're busy using their role description - and that we'd love to chat about any relevant painpoints their role may face",
-        "additional_context": "Which pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
+        "additional_context": "",
         "transformer_blocklist": [],
     },
     {
