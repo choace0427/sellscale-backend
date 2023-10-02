@@ -24,7 +24,7 @@ from app import celery, db
 from flask import jsonify
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm.attributes import flag_modified
 
 from src.ml.openai_wrappers import (
@@ -2257,10 +2257,14 @@ def scrape_for_demos() -> int:
     prospects = (
         db.session.query(Prospect.id.label("prospect_id"))
         .outerjoin(DemoFeedback, Prospect.id == DemoFeedback.prospect_id)
+        .outerjoin(ClientSDR, Prospect.client_sdr_id == ClientSDR.id)
+        .outerjoin(Client, Prospect.client_id == Client.id)
         .filter(
             DemoFeedback.prospect_id == None,
             Prospect.demo_date != None,
-            Prospect.demo_date < datetime.now(),
+            Prospect.demo_date > datetime.now() - timedelta(days=7),
+            ClientSDR.active == True,
+            Client.active == True,
         )
     ).all()
 
@@ -2293,15 +2297,17 @@ def scrape_for_demos() -> int:
 
         # Send message to Slack
         send_slack_message(
-            message="📅 {sdr_name} - Demo feedback missing".format(sdr_name=sdr.name),
+            message="📅 {sdr_name} - Demo feedback missing for {prospect_name}".format(
+                sdr_name=sdr.name, prospect_name=prospect.full_name
+            ),
             webhook_urls=[URL_MAP["csm-demo-date"]],
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "📅 {sdr_name} - Demo feedback missing".format(
-                            sdr_name=sdr.name
+                        "text": "📅 ⏰ {sdr_name} - Demo feedback missing for {prospect_name}".format(
+                            sdr_name=sdr.name, prospect_name=prospect.full_name
                         ),
                         "emoji": True,
                     },
@@ -2311,31 +2317,10 @@ def scrape_for_demos() -> int:
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "Rep: *{sdr_name}*, *{client_name}*".format(
-                                sdr_name=sdr.name, client_name=client.company
-                            ),
-                        },
-                    ],
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "Prospect: *{prospect_name}*, *{prospect_company}*".format(
-                                prospect_name=prospect.full_name,
-                                prospect_company=prospect.company,
-                            ),
-                        },
-                    ],
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "Scheduled demo date: *{demo_date}*".format(
-                                demo_date=prospect.demo_date.strftime("%b %d, %Y")
+                            "text": "*{sdr_name}* (*{client_name}*) scheduled demo for *{date}*".format(
+                                sdr_name=sdr.name,
+                                client_name=client.company,
+                                date=prospect.demo_date.strftime("%b %d, %Y"),
                             ),
                         },
                     ],
