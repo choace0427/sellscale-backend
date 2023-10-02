@@ -457,7 +457,7 @@ def post_send_to_purgatory(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    send_to_purgatory(prospect_id, int(days), ProspectHiddenReason.MANUAL)
+    send_to_purgatory(prospect_id, int(days), ProspectHiddenReason.MANUAL, send_notification=True)
 
     return jsonify({"message": "Success"}), 200
 

@@ -311,17 +311,19 @@ def get_prospects_for_icp_table(
         result = [r for r in result if r[8] == ProspectStatus.SENT_OUTREACH]
 
     for r in result:
-        prospects.append({
-            "full_name": r[0],
-            "title": r[1],
-            "company": r[2],
-            "linkedin_url": r[3],
-            "icp_fit_score": r[4],
-            "icp_fit_reason": r[5],
-            "industry": r[6],
-            "id": r[7],
-            "status": r[8],
-        })
+        prospects.append(
+            {
+                "full_name": r[0],
+                "title": r[1],
+                "company": r[2],
+                "linkedin_url": r[3],
+                "icp_fit_score": r[4],
+                "icp_fit_reason": r[5],
+                "industry": r[6],
+                "id": r[7],
+                "status": r[8],
+            }
+        )
 
     return prospects
 
@@ -1822,7 +1824,12 @@ def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
     return True
 
 
-def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason):
+def send_to_purgatory(
+    prospect_id: int,
+    days: int,
+    reason: ProspectHiddenReason,
+    send_notification: bool = False,
+):
     prospect: Prospect = Prospect.query.get(prospect_id)
     new_hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 
@@ -1838,6 +1845,71 @@ def send_to_purgatory(prospect_id: int, days: int, reason: ProspectHiddenReason)
         prospect.hidden_reason = reason
         db.session.add(prospect)
         db.session.commit()
+
+    if send_notification:
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        send_slack_message(
+            message="SellScale AI just snoozed a prospect to "
+            + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+            + "!",
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "⏰ SellScale AI just snoozed a "
+                        + prospect.full_name
+                        + " to "
+                        + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                        + "!",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": (
+                            "*Last Message from Prospect:* _{prospect_message}_\n\n*AI Response:* _{ai_response}_\n\n\n\n*SDR* {sdr_name}"
+                        ).format(
+                            prospect_message=prospect.li_last_message_from_prospect.replace(
+                                "\n", " "
+                            ),
+                            ai_response=prospect.li_last_message_from_sdr.replace(
+                                "\n", " "
+                            ),
+                            sdr_name=client_sdr.name,
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Message will re-appear in SellScale inbox on "
+                        + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                        + ".",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Convo in Sight",
+                            "emoji": True,
+                        },
+                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                            auth_token=client_sdr.auth_token, prospect_id=prospect_id
+                        )
+                        + str(prospect_id),
+                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                            auth_token=client_sdr.auth_token, prospect_id=prospect_id
+                        ),
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+        )
 
 
 def update_prospect_demo_date(
