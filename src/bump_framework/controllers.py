@@ -500,3 +500,89 @@ def post_clone_bump_framework(client_sdr_id: int):
             jsonify({"status": "error", "message": "Could not import bump framework"}),
             400,
         )
+
+
+from src.bump_framework.services_bump_framework_templates import (
+    create_new_bump_framework_template,
+    toggle_bump_framework_template_active_status,
+    update_bump_framework_template,
+    get_all_active_bump_framework_templates,
+)
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/bump_framework_templates", methods=["GET"])
+def get_bump_framework_templates():
+    """Gets all bump framework templates for a given client SDR"""
+    bump_framework_templates: list[dict] = get_all_active_bump_framework_templates()
+    return jsonify({"bump_framework_templates": bump_framework_templates}), 200
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/bump_framework_templates", methods=["POST"])
+def post_create_bump_framework_template():
+    """Create a new bump framework template"""
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+    raw_prompt = get_request_parameter(
+        "raw_prompt", request, json=True, required=True, parameter_type=str
+    )
+    human_readable_prompt = get_request_parameter(
+        "human_readable_prompt", request, json=True, required=True, parameter_type=str
+    )
+    length = get_request_parameter(
+        "length", request, json=True, required=True, parameter_type=str
+    )
+
+    create_new_bump_framework_template(
+        name=name,
+        raw_prompt=raw_prompt,
+        human_readable_prompt=human_readable_prompt,
+        length=length,
+    )
+    return jsonify({"message": "Successfully created bump framework template"}), 200
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route(
+    "/bump_framework_templates/<int:bft_id>", methods=["PATCH"]
+)
+def patch_bump_framework_template(bft_id: int):
+    """Modifies a bump framework template"""
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+    raw_prompt = get_request_parameter(
+        "raw_prompt", request, json=True, required=True, parameter_type=str
+    )
+    human_readable_prompt = get_request_parameter(
+        "human_readable_prompt", request, json=True, required=True, parameter_type=str
+    )
+    length = get_request_parameter(
+        "length", request, json=True, required=True, parameter_type=str
+    )
+
+    update_bump_framework_template(
+        bft_id=bft_id,
+        name=name,
+        raw_prompt=raw_prompt,
+        human_readable_prompt=human_readable_prompt,
+        length=length,
+    )
+    return jsonify({"message": "Successfully updated bump framework template"}), 200
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route(
+    "/bump_framework_templates/toggle_active_status", methods=["POST"]
+)
+def post_toggle_bump_framework_template_active_status():
+    """Toggles active status of a bump framework template"""
+    bft_id = get_request_parameter(
+        "bft_id", request, json=True, required=True, parameter_type=int
+    )
+
+    toggle_bump_framework_template_active_status(bft_id=bft_id)
+    return (
+        jsonify(
+            {"message": "Successfully toggled bump framework template active status"}
+        ),
+        200,
+    )
