@@ -94,3 +94,35 @@ class JunctionBumpFrameworkClientArchetype(db.Model):
     client_archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
+
+
+class BumpFrameworkTemplates(db.Model):
+    __tablename__ = "bump_framework_templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    tag = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False)
+    raw_prompt = db.Column(db.String, nullable=False)
+    human_readable_prompt = db.Column(db.String, nullable=False)
+    length = db.Column(db.String, nullable=False)
+
+    active = db.Column(db.Boolean, nullable=False, default=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "tag": self.tag,
+            "name": self.name,
+            "raw_prompt": self.raw_prompt,
+            "human_readable_prompt": self.human_readable_prompt,
+            "length": self.length.value,
+            "active": self.active,
+        }
+
+    # 'role-have-to-do-with': {
+    #     "name": "Does your role have to do with?",
+    #     "raw_prompt": "Do a short follow-up acknowledging they're busy using their role description - and that we'd love to chat about any [relevant painpoints their role may face]\n\nWhich pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
+    #     "human_readable_prompt": "Connect with their role and ask them if their role has anything to do with what you want to connect with them on",
+    #     "length": 'MEDIUM',
+    # },

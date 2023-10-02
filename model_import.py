@@ -79,7 +79,7 @@ from src.daily_notifications.models import (
     NotificationStatus,
     EngagementFeedItem,
 )
-from src.bump_framework.models import BumpFramework
+from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.personas.models import (
     PersonaSplitRequestTaskStatus,
@@ -93,4 +93,8 @@ from src.simulation.models import Simulation
 from src.individual.models import Individual
 from src.analytics.models import SDRHealthStats
 from src.prospecting.icp_score.models import ICPScoringRuleset
-from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus, NylasWebhookType
+from src.webhooks.models import (
+    NylasWebhookPayloads,
+    NylasWebhookProcessingStatus,
+    NylasWebhookType,
+)
