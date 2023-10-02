@@ -1,4 +1,5 @@
 from typing import Optional
+from src.email_outbound.models import ProspectEmailStatus
 
 from src.ml.services import get_text_generation
 
@@ -26,6 +27,7 @@ from model_import import (
 )
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.icp_score.services import clone_icp_ruleset
+from src.prospecting.models import ProspectStatus
 from src.prospecting.services import get_prospect_details
 from app import db, celery
 import json
@@ -487,52 +489,63 @@ def unassign_prospects(
         prospect.icp_fit_reason = None
         prospect.icp_fit_prompt_data = None
 
-        # IF the prospect has a generated message, delete the message and clear the ID
-        if prospect.approved_outreach_message_id is not None:
-            prospect_message: GeneratedMessage = GeneratedMessage.query.get(
-                prospect.approved_outreach_message_id
-            )
-            if prospect_message is not None:
-                prospect_message.message_status = GeneratedMessageStatus.BLOCKED
-            prospect.approved_outreach_message_id = None
+        # LinkedIn: Before deleting messages, we need to make sure the prospect is only in PROSPECTED or QUEUED status
+        if (
+            prospect.status == ProspectStatus.PROSPECTED
+            or prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH
+        ):
+            # IF the prospect has a generated message, delete the message and clear the ID
+            if prospect.approved_outreach_message_id is not None:
+                prospect_message: GeneratedMessage = GeneratedMessage.query.get(
+                    prospect.approved_outreach_message_id
+                )
+                if prospect_message is not None:
+                    prospect_message.message_status = GeneratedMessageStatus.BLOCKED
+                prospect.approved_outreach_message_id = None
+
         if prospect.approved_prospect_email_id is not None:
             prospect_email: ProspectEmail = ProspectEmail.query.get(
                 prospect.approved_prospect_email_id
             )
             if prospect_email is not None:
-                prospect_email.date_scheduled_to_send = None
-                if prospect_email.personalized_body is not None:
-                    personalized_body: GeneratedMessage = GeneratedMessage.query.get(
-                        prospect_email.personalized_body
-                    )
-                    if personalized_body is not None:
-                        personalized_body.message_status = (
-                            GeneratedMessageStatus.BLOCKED
+
+                # EMAIL: Before deleting, we need to make sure the email has not been sent
+                if prospect_email.email_status == ProspectEmailStatus.SENT:
+
+                    prospect_email.date_scheduled_to_send = None
+                    if prospect_email.personalized_body is not None:
+                        personalized_body: GeneratedMessage = GeneratedMessage.query.get(
+                            prospect_email.personalized_body
                         )
-                    prospect_email.personalized_body = None
-                if prospect_email.personalized_first_line is not None:
-                    personalized_first_line: GeneratedMessage = (
-                        GeneratedMessage.query.get(
-                            prospect_email.personalized_first_line
+                        if personalized_body is not None:
+                            personalized_body.message_status = (
+                                GeneratedMessageStatus.BLOCKED
+                            )
+                        prospect_email.personalized_body = None
+                    if prospect_email.personalized_first_line is not None:
+                        personalized_first_line: GeneratedMessage = (
+                            GeneratedMessage.query.get(
+                                prospect_email.personalized_first_line
+                            )
                         )
-                    )
-                    if personalized_first_line is not None:
-                        personalized_first_line.message_status = (
-                            GeneratedMessageStatus.BLOCKED
+                        if personalized_first_line is not None:
+                            personalized_first_line.message_status = (
+                                GeneratedMessageStatus.BLOCKED
+                            )
+                        prospect_email.personalized_first_line = None
+                    if prospect_email.personalized_subject_line is not None:
+                        personalized_subject_line: GeneratedMessage = (
+                            GeneratedMessage.query.get(
+                                prospect_email.personalized_subject_line
+                            )
                         )
-                    prospect_email.personalized_first_line = None
-                if prospect_email.personalized_subject_line is not None:
-                    personalized_subject_line: GeneratedMessage = (
-                        GeneratedMessage.query.get(
-                            prospect_email.personalized_subject_line
-                        )
-                    )
-                    if personalized_subject_line is not None:
-                        personalized_subject_line.message_status = (
-                            GeneratedMessageStatus.BLOCKED
-                        )
-                    prospect_email.personalized_subject_line = None
-            prospect.approved_prospect_email_id = None
+                        if personalized_subject_line is not None:
+                            personalized_subject_line.message_status = (
+                                GeneratedMessageStatus.BLOCKED
+                            )
+                        prospect_email.personalized_subject_line = None
+
+                    prospect.approved_prospect_email_id = None
 
         db.session.commit()
 

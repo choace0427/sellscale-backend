@@ -85,7 +85,7 @@ def get_voice_builder_samples(voice_builder_onboarding_id: int):
         VoiceBuilderSamples
     ] = VoiceBuilderSamples.query.filter_by(
         voice_builder_onboarding_id=voice_builder_onboarding_id
-    ).all()
+    ).order_by(VoiceBuilderSamples.id.desc()).all()
     return [x.to_dict() for x in voice_builder_samples]
 
 
