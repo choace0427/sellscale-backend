@@ -16,7 +16,10 @@ from src.utils.request_helpers import get_request_parameter
 from src.voyager.linkedin import LinkedIn
 from app import db
 import time
-from src.message_generation.services import add_generated_msg_queue
+from src.message_generation.services import (
+    add_generated_msg_queue,
+    send_sent_by_sellscale_notification,
+)
 
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 
@@ -26,9 +29,12 @@ VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 def get_self_profile(client_sdr_id: int):
     """Get profile data for the SDR"""
 
-    cookies = get_request_parameter(
-        "cookies", request, json=False, required=False, parameter_type=str
-    ) or None
+    cookies = (
+        get_request_parameter(
+            "cookies", request, json=False, required=False, parameter_type=str
+        )
+        or None
+    )
     cookies = cookies.replace(':""', ':"').replace('"",', '",') if cookies else None
 
     api = LinkedIn(client_sdr_id=client_sdr_id, cookies=cookies)
@@ -93,7 +99,8 @@ def send_message(client_sdr_id: int):
     ai_generated = get_request_parameter(
         "ai_generated", request, json=True, required=False, parameter_type=bool
     )
-    if ai_generated is None: ai_generated = False
+    if ai_generated is None:
+        ai_generated = False
 
     purgatory = get_request_parameter(
         "purgatory", request, json=True, required=False, parameter_type=bool
@@ -108,15 +115,22 @@ def send_message(client_sdr_id: int):
         "bump_framework_title", request, json=True, required=False, parameter_type=str
     )
     bf_description = get_request_parameter(
-        "bump_framework_description", request, json=True, required=False, parameter_type=str
+        "bump_framework_description",
+        request,
+        json=True,
+        required=False,
+        parameter_type=str,
     )
     bf_length = get_request_parameter(
         "bump_framework_length", request, json=True, required=False, parameter_type=str
     )
     account_research_points = get_request_parameter(
-        "account_research_points", request, json=True, required=False, parameter_type=list
+        "account_research_points",
+        request,
+        json=True,
+        required=False,
+        parameter_type=list,
     )
-
 
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
@@ -130,7 +144,7 @@ def send_message(client_sdr_id: int):
                 bump_framework_title=bf_title,
                 bump_framework_description=bf_description,
                 bump_framework_length=bf_length,
-                account_research_points=account_research_points
+                account_research_points=account_research_points,
             )
 
         fetch_conversation(api=api, prospect_id=prospect_id, check_for_update=True)
@@ -141,6 +155,11 @@ def send_message(client_sdr_id: int):
         send_to_purgatory(prospect_id, bump_delay, ProspectHiddenReason.RECENTLY_BUMPED)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+
+    send_sent_by_sellscale_notification(
+        prospect_id=prospect_id,
+        message=msg,
+    )
 
     return jsonify({"message": "Sent message"}), 200
 
@@ -304,7 +323,11 @@ def get_connections(client_sdr_id: int):
     profile = api.get_user_profile(use_cache=False)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
-    sdr_urn_id = profile.get('miniProfile', {}).get('entityUrn', '').replace('urn:li:fs_miniProfile:', '')
+    sdr_urn_id = (
+        profile.get("miniProfile", {})
+        .get("entityUrn", "")
+        .replace("urn:li:fs_miniProfile:", "")
+    )
     if not sdr_urn_id:
         return jsonify({"message": "Failed to find URN ID for SDR"}), 403
 
@@ -323,11 +346,10 @@ def get_sales_nav(client_sdr_id: int):
     yoe = get_request_parameter("yoe", request, json=False, required=True)
 
     api = LinkedIn(client_sdr_id)
-    #profile = api.get_user_profile(use_cache=False)
+    # profile = api.get_user_profile(use_cache=False)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
-    
+
     result = api.graphql_get_sales_nav(keyword, yoe)
 
     return jsonify({"message": "Success", "data": result}), 200
-
