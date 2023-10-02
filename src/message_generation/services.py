@@ -2027,6 +2027,8 @@ def process_generated_msg_queue(
         ).first()
         prospect_name = prospect.full_name
 
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
         li_convo_msg.ai_generated = True
         li_convo_msg.bump_framework_id = msg_queue.bump_framework_id
         li_convo_msg.bump_framework_title = msg_queue.bump_framework_title
@@ -2042,6 +2044,41 @@ def process_generated_msg_queue(
 
         db.session.add(li_convo_msg)
         db.session.commit()
+
+        if (
+            prospect.overall_status == ProspectOverallStatus.ACTIVE_CONVO
+            and li_convo_msg.date
+            > datetime.datetime.utcnow() - datetime.timedelta(minutes=5)
+        ):
+            send_slack_message(
+                message="SellScale AI just replied to prospect!",
+                webhook_urls=[URL_MAP["eng-sandbox"]],
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "💬 SellScale AI just replied to a prospect!",
+                            "emoji": True,
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Prospect Status:* {prospect_status}\n\n*Prospect Message:* _{prospect_message}_\n\n*AI Response:* _{ai_response}_\n\n*Prospect Details:*\n- Name: {prospect_name}\n- Title: {prospect_title}\n- Company: {prospect_company}\n\n*SDR:* {sdr_name}".format(
+                                prospect_status=prospect.status.value,
+                                prospect_message=prospect.li_last_message_from_prospect,
+                                ai_response=li_convo_msg.message.replace("\n", " "),
+                                prospect_name=prospect_name,
+                                prospect_title=prospect.title,
+                                prospect_company=prospect.company,
+                                sdr_name=client_sdr.name,
+                            ),
+                        },
+                    },
+                ],
+            )
 
     if nylas_message_id:
         nylas_msg: EmailConversationMessage = EmailConversationMessage.query.filter(
