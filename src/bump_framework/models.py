@@ -116,7 +116,7 @@ class BumpFrameworkTemplates(db.Model):
             "name": self.name,
             "raw_prompt": self.raw_prompt,
             "human_readable_prompt": self.human_readable_prompt,
-            "length": self.length.value,
+            "length": self.length,
             "active": self.active,
         }
 

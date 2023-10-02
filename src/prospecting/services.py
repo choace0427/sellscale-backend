@@ -1848,11 +1848,15 @@ def send_to_purgatory(
 
     if send_notification:
         client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        client: Client = Client.query.get(client_sdr.client_id)
         send_slack_message(
             message="SellScale AI just snoozed a prospect to "
             + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
             + "!",
-            webhook_urls=[URL_MAP["eng-sandbox"]],
+            webhook_urls=[
+                URL_MAP["eng-sandbox"],
+                client.pipeline_notifications_webhook_url,
+            ],
             blocks=[
                 {
                     "type": "header",

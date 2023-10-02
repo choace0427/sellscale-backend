@@ -2071,13 +2071,17 @@ def send_sent_by_sellscale_notification(prospect_id: int, message: str):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_name = prospect.full_name
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
     if prospect.overall_status in (
         ProspectOverallStatus.ACTIVE_CONVO,
         ProspectOverallStatus.DEMO,
     ):
         send_slack_message(
             message="SellScale AI just replied to prospect!",
-            webhook_urls=[URL_MAP["eng-sandbox"]],
+            webhook_urls=[
+                URL_MAP["eng-sandbox"],
+                client.pipeline_notifications_webhook_url,
+            ],
             blocks=[
                 {
                     "type": "header",
