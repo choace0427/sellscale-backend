@@ -25,7 +25,8 @@ from app import db, celery
 
 @celery.task
 def generate_prospect_research(prospect_id: int):
-    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+    get_research_and_bullet_points_new(
+        prospect_id=prospect_id, test_mode=False)
 
 
 def conduct_research_for_n_prospects(
@@ -165,7 +166,11 @@ def create_voice_builder_sample(
             )
 
             # Run rule engine:
-            completion = run_message_rule_engine_on_completion(completion=completion)
+            completion, problems, highlighted_words = run_message_rule_engine_on_completion(
+                completion=completion,
+                prompt=prompt,
+                run_arree=True,
+            )
 
             if completion:
                 break
@@ -176,6 +181,8 @@ def create_voice_builder_sample(
             sample_prompt=prompt,
             sample_final_prompt=final_prompt,
             sample_completion=completion,
+            sample_problems=problems,
+            sample_highlighted_words=highlighted_words,
             research_point_ids=research_point_ids,
             cta_id=cta_id,
             prospect_id=prospect_id,
@@ -193,8 +200,18 @@ def edit_voice_builder_sample(
     voice_builder_sample_id: int,
     updated_completion: str,
 ):
-    voice_builder_sample = VoiceBuilderSamples.query.get(voice_builder_sample_id)
+    voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples.query.get(
+        voice_builder_sample_id)
+
+    _, problems, highlighted_words = run_message_rule_engine_on_completion(
+        completion=updated_completion,
+        prompt=voice_builder_sample.sample_prompt,
+        run_arree=False,
+    )
+
     voice_builder_sample.sample_completion = updated_completion
+    voice_builder_sample.sample_problems = problems
+    voice_builder_sample.sample_highlighted_words = highlighted_words
     db.session.add(voice_builder_sample)
     db.session.commit()
     return voice_builder_sample
@@ -203,7 +220,8 @@ def edit_voice_builder_sample(
 def delete_voice_builder_sample(
     voice_builder_sample_id: int,
 ):
-    voice_builder_sample = VoiceBuilderSamples.query.get(voice_builder_sample_id)
+    voice_builder_sample = VoiceBuilderSamples.query.get(
+        voice_builder_sample_id)
     if voice_builder_sample:
         db.session.delete(voice_builder_sample)
         db.session.commit()

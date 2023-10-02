@@ -41,6 +41,8 @@ class VoiceBuilderSamples(db.Model):
     sample_prompt = db.Column(db.String, nullable=True)
     sample_final_prompt = db.Column(db.String, nullable=True)
     sample_completion = db.Column(db.String, nullable=True)
+    sample_problems = db.Column(db.ARRAY(db.String), nullable=True)
+    sample_highlighted_words = db.Column(db.ARRAY(db.String), nullable=True)
 
     research_point_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
     cta_id = db.Column(db.Integer, nullable=True)
@@ -69,6 +71,8 @@ class VoiceBuilderSamples(db.Model):
             "sample_prompt": self.sample_prompt,
             "sample_final_prompt": self.sample_final_prompt,
             "sample_completion": self.sample_completion,
+            "sample_problems": self.sample_problems,
+            "sample_highlighted_words": self.sample_highlighted_words,
             "research_point_ids": self.research_point_ids,
             "research_point_types": [
                 rp.research_point_type.value
