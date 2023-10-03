@@ -682,7 +682,10 @@ def generate_email_bumps():
                 )
                 
                 # Increase times bumped
-                prospect_email.times_bumped += 1
+                if prospect_email.times_bumped is None:
+                    prospect_email.times_bumped = 1
+                else:
+                    prospect_email.times_bumped += 1
                 db.session.add(prospect_email)
                 db.session.commit()
 
