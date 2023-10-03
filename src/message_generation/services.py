@@ -811,6 +811,7 @@ def create_cta(
     expiration_date: Optional[datetime.datetime],
     active: bool = True,
     cta_type: str = "Manual",
+    auto_mark_as_scheduling_on_acceptance: Optional[bool] = False,
 ):
     duplicate_cta_exists = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == archetype_id,
@@ -825,6 +826,7 @@ def create_cta(
         active=active,
         expiration_date=expiration_date,
         cta_type=cta_type,
+        auto_mark_as_scheduling_on_acceptance=auto_mark_as_scheduling_on_acceptance,
     )
     db.session.add(cta)
     db.session.commit()
@@ -917,7 +919,10 @@ def backfill_cta_types():
 
 
 def update_cta(
-    cta_id: int, text_value: str, expiration_date: Optional[datetime.datetime]
+    cta_id: int,
+    text_value: str,
+    expiration_date: Optional[datetime.datetime],
+    auto_mark_as_scheduling_on_acceptance: Optional[bool] = None,
 ):
     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
     if not cta:
@@ -926,6 +931,11 @@ def update_cta(
     cta.text_value = text_value
     if expiration_date:
         cta.expiration_date = expiration_date
+
+    if auto_mark_as_scheduling_on_acceptance != None:
+        cta.auto_mark_as_scheduling_on_acceptance = (
+            auto_mark_as_scheduling_on_acceptance
+        )
 
     db.session.add(cta)
     db.session.commit()
@@ -2252,11 +2262,16 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         if dupe_bump_msg:
             # Already generated a bump for this message
             return False
-        
+
         # If we've already hit our max bump count, skip
         prospect: Prospect = Prospect.query.get(prospect_id)
-        client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-        if prospect.times_bumped and client_archetype.li_bump_amount <= prospect.times_bumped:
+        client_archetype: ClientArchetype = ClientArchetype.query.get(
+            prospect.archetype_id
+        )
+        if (
+            prospect.times_bumped
+            and client_archetype.li_bump_amount <= prospect.times_bumped
+        ):
             return False
 
         bump_msg = GeneratedMessageAutoBump(
