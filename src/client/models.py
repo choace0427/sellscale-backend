@@ -124,6 +124,16 @@ class ClientArchetype(db.Model):
     icp_matching_prompt = db.Column(db.String, nullable=True)
     icp_matching_option_filters = db.Column(db.JSON, nullable=True)
     persona_contact_objective = db.Column(db.String, nullable=True)
+    persona_cta_framework_company = db.Column(db.String, nullable=True)
+    persona_cta_framework_persona = db.Column(db.String, nullable=True)
+    persona_cta_framework_action = db.Column(db.String, nullable=True)
+    persona_use_cases = db.Column(db.String, nullable=True)
+    persona_filters = db.Column(db.JSON, nullable=True)
+    persona_lookalike_profile_1 = db.Column(db.String, nullable=True)
+    persona_lookalike_profile_2 = db.Column(db.String, nullable=True)
+    persona_lookalike_profile_3 = db.Column(db.String, nullable=True)
+    persona_lookalike_profile_4 = db.Column(db.String, nullable=True)
+    persona_lookalike_profile_5 = db.Column(db.String, nullable=True)
 
     is_unassigned_contact_archetype = db.Column(
         db.Boolean, nullable=True, default=False
