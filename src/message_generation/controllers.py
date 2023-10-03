@@ -253,12 +253,16 @@ def post_create_cta():
         datetime.datetime.fromisoformat(date_str[:-1]) if date_str else None
     )
     cta_type = get_request_parameter("cta_type", request, json=True, required=False)
+    auto_mark_as_scheduling_on_acceptance = get_request_parameter(
+        "auto_mark_as_scheduling_on_acceptance", request, json=True, required=False
+    )
 
     cta = create_cta(
         archetype_id=archetype_id,
         text_value=text_value,
         expiration_date=expiration_date,
         cta_type=cta_type,
+        auto_mark_as_scheduling_on_acceptance=auto_mark_as_scheduling_on_acceptance,
     )
     return jsonify({"cta_id": cta.id})
 
@@ -276,9 +280,15 @@ def put_update_cta():
     expiration_date = (
         datetime.datetime.fromisoformat(date_str[:-1]) if date_str else None
     )
+    auto_mark_as_scheduling_on_acceptance = get_request_parameter(
+        "auto_mark_as_scheduling_on_acceptance", request, json=True, required=False
+    )
 
     success = update_cta(
-        cta_id=cta_id, text_value=text_value, expiration_date=expiration_date
+        cta_id=cta_id,
+        text_value=text_value,
+        expiration_date=expiration_date,
+        auto_mark_as_scheduling_on_acceptance=auto_mark_as_scheduling_on_acceptance,
     )
     if success:
         return jsonify({"message": "Success"}), 200
@@ -986,7 +996,9 @@ def post_generate_bump_li_message(client_sdr_id: int):
     from src.li_conversation.models import LinkedInConvoMessage
 
     research_str = ""
-    points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect_id, bump_framework_id)
+    points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(
+        prospect_id, bump_framework_id
+    )
     # random_sample_points = random.sample(points, min(len(points), 3))
 
     # Convert points to string
@@ -1037,11 +1049,19 @@ def post_generate_bump_li_message(client_sdr_id: int):
     )
 
     return (
-        jsonify({"message": "Success", "data": {"message": response, "metadata": {
-            "prompt": prompt,
-            "research_str": research_str,
-            "convo_history": [c.to_dict() for c in convo_history],
-        }}}),
+        jsonify(
+            {
+                "message": "Success",
+                "data": {
+                    "message": response,
+                    "metadata": {
+                        "prompt": prompt,
+                        "research_str": research_str,
+                        "convo_history": [c.to_dict() for c in convo_history],
+                    },
+                },
+            }
+        ),
         200,
     )
 

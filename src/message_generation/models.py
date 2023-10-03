@@ -239,6 +239,7 @@ class GeneratedMessageCTA(db.Model):
             "active": is_cta_active(self.id),
             "expiration_date": self.expiration_date,
             "cta_type": self.cta_type,
+            "auto_mark_as_scheduling_on_acceptance": self.auto_mark_as_scheduling_on_acceptance,
         }
 
 

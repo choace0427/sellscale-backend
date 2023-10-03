@@ -8,6 +8,7 @@ import os
 from tomlkit import datetime
 from src.bump_framework.models import BumpFramework
 from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health
+from src.message_generation.models import GeneratedMessage, GeneratedMessageCTA
 
 from src.message_generation.services import process_generated_msg_queue
 
@@ -441,11 +442,12 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 def run_conversation_bump_analytics(convo_urn_id: str) -> bool:
     convo_entries: list[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter(
-            LinkedinConversationEntry.conversation_url==f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
+            LinkedinConversationEntry.conversation_url
+            == f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/",
             or_(
-                LinkedinConversationEntry.bump_analytics_processed==None,
-                LinkedinConversationEntry.bump_analytics_processed==False,
-            )
+                LinkedinConversationEntry.bump_analytics_processed == None,
+                LinkedinConversationEntry.bump_analytics_processed == False,
+            ),
         )
         .order_by(LinkedinConversationEntry.date.asc())
         .all()
@@ -606,6 +608,24 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             prospect_id=prospect.id,
             new_status=ProspectStatus.ACCEPTED,
         )
+
+        # Check if the message should be marked as scheduling based on the Generated Message CTA
+        approved_outreach_message_id = prospect.approved_outreach_message_id
+        gm: GeneratedMessage = GeneratedMessage.query.get(approved_outreach_message_id)
+        if gm:
+            gm_cta_id: int = gm.message_cta
+            gm_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(gm_cta_id)
+            if gm_cta and gm_cta.auto_mark_as_scheduling_on_acceptance:
+                update_prospect_status_linkedin(
+                    prospect_id=prospect.id,
+                    new_status=ProspectStatus.ACTIVE_CONVO,
+                )
+                update_prospect_status_linkedin(
+                    prospect_id=prospect.id,
+                    new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+                )
+                return
+
         return
 
     elif (
