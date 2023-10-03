@@ -2495,6 +2495,7 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.contract_size,
             ClientArchetype.transformer_blocklist,
             ClientArchetype.transformer_blocklist_initial,
+            ClientArchetype.li_bump_amount,
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.avg(Prospect.icp_fit_score)
             .filter(Prospect.icp_fit_score.isnot(None))
