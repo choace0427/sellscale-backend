@@ -478,6 +478,7 @@ def generate_email_bumps():
             Prospect.overall_status.in_(
                 [
                     "SENT_OUTREACH",
+                    "ACCEPTED",
                     "BUMPED",
                 ]
             ),

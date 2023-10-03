@@ -53,6 +53,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     - QUEUED_FOR_OUTREACH: email has been queued for outreach
     - SENT_OUTREACH: email has been sent
     - EMAIL_OPENED: email has been opened
+    - BUMPED: email has been bumped
     - ACCEPTED: email has been accepted (clicked on link)
     - ACTIVE_CONVO: email has been accepted and a conversation has been started
     - SCHEDULING: a is being scheduled following a conversation
@@ -71,6 +72,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
     ACCEPTED = "ACCEPTED"
     ACTIVE_CONVO = "ACTIVE_CONVO"
     SCHEDULING = "SCHEDULING"
+    BUMPED = "BUMPED"
 
     NOT_INTERESTED = "NOT_INTERESTED"
     UNSUBSCRIBED = "UNSUBSCRIBED"
@@ -85,6 +87,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
             "BOUNCED": "Bounced",
             "SENT_OUTREACH": "Sent email",
             "EMAIL_OPENED": "Opened Email",
+            "BUMPED": "Bumped",
             "ACCEPTED": "Accepted",
             "ACTIVE_CONVO": "Active Convo",
             "SCHEDULING": "Scheduling",
