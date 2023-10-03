@@ -571,6 +571,7 @@ def nylas_send_email(
         },
     )
     if res.status_code != 200:
+        print(res.json())
         return {}
 
     result = res.json()

@@ -39,6 +39,7 @@ from src.email_outbound.models import (
 )
 from src.email_outbound.ss_data import SSData
 from src.automation.slack_notification import send_status_change_slack_block
+import markdown
 
 
 def create_prospect_email(
@@ -221,9 +222,7 @@ def send_prospect_email(prospect_email_id: int):
     body_gm = GeneratedMessage.query.get(prospect_email.personalized_body)
 
     subject = subject_line_gm.completion
-    body = body_gm.completion
-    # replace all "\n" with </br> for html formatting
-    body = body.replace("\n", "</br>")
+    body = markdown.markdown(body_gm.completion)
 
     nylas_send_email(
         client_sdr_id=client_sdr_id,
