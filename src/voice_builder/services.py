@@ -165,7 +165,7 @@ def create_voice_builder_sample(
                 prompt=prompt,
             )
 
-            # Run rule engine:
+            # Run rule engine. For now, we don't need to use the problems or highlighted words
             completion, problems, highlighted_words = run_message_rule_engine_on_completion(
                 completion=completion,
                 prompt=prompt,
@@ -181,8 +181,8 @@ def create_voice_builder_sample(
             sample_prompt=prompt,
             sample_final_prompt=final_prompt,
             sample_completion=completion,
-            sample_problems=problems,
-            sample_highlighted_words=highlighted_words,
+            sample_problems=None,
+            sample_highlighted_words=None,
             research_point_ids=research_point_ids,
             cta_id=cta_id,
             prospect_id=prospect_id,
