@@ -323,6 +323,16 @@ def create_client_archetype(
     is_unassigned_contact_archetype: bool = False,
     active: bool = True,
     persona_contract_size: Optional[int] = None,
+    cta_blanks_company: Optional[str] = None,
+    cta_blanks_persona: Optional[str] = None,
+    cta_blanks_solution: Optional[str] = None,
+    persona_filters: Optional[str] = None,
+    common_use_cases: Optional[str] = None,
+    lookalike_1: Optional[str] = None,
+    lookalike_2: Optional[str] = None,
+    lookalike_3: Optional[str] = None,
+    lookalike_4: Optional[str] = None,
+    lookalike_5: Optional[str] = None,
 ):
     c: Client = get_client(client_id=client_id)
     if not c:
@@ -349,6 +359,16 @@ def create_client_archetype(
         ],
         contract_size=persona_contract_size or c.contract_size,
         li_bump_amount=3,
+        persona_cta_framework_company=cta_blanks_company,
+        persona_cta_framework_persona=cta_blanks_persona,
+        persona_cta_framework_action=cta_blanks_solution,
+        persona_use_cases=common_use_cases,
+        persona_filters=persona_filters,
+        persona_lookalike_profile_1=lookalike_1,
+        persona_lookalike_profile_2=lookalike_2,
+        persona_lookalike_profile_3=lookalike_3,
+        persona_lookalike_profile_4=lookalike_4,
+        persona_lookalike_profile_5=lookalike_5,
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -3188,6 +3208,16 @@ def import_pre_onboarding(
     persona_contact_objective = client.pre_onboarding_survey.get(
         "persona_contact_objective"
     )
+    cta_blanks_company = client.pre_onboarding_survey.get("cta_blanks_company")
+    cta_blanks_persona = client.pre_onboarding_survey.get("cta_blanks_persona")
+    cta_blanks_solution = client.pre_onboarding_survey.get("cta_blanks_solution")
+    common_use_cases = client.pre_onboarding_survey.get("common_use_cases")
+    persona_filters = client.pre_onboarding_survey.get("persona_filters")
+    persona_lookalike_1 = client.pre_onboarding_survey.get("persona_lookalike_1")
+    persona_lookalike_2 = client.pre_onboarding_survey.get("persona_lookalike_2")
+    persona_lookalike_3 = client.pre_onboarding_survey.get("persona_lookalike_3")
+    persona_lookalike_4 = client.pre_onboarding_survey.get("persona_lookalike_4")
+    persona_lookalike_5 = client.pre_onboarding_survey.get("persona_lookalike_5")
 
     company_mission_statement = client.pre_onboarding_survey.get("company_mission")
     company_tagline = client.pre_onboarding_survey.get("company_tagline")
@@ -3215,7 +3245,17 @@ def import_pre_onboarding(
     all_variables = [
         ("persona_name", persona_name, True),
         ("persona_buy_reason", persona_buy_reason, True),
-        ("persona_contact_objective", persona_contact_objective, True),
+        ("persona_contact_objective", persona_contact_objective, False),
+        ("cta_blanks_company", cta_blanks_company, False),
+        ("cta_blanks_persona", cta_blanks_persona, False),
+        ("cta_blanks_solution", cta_blanks_solution, False),
+        ("common_use_cases", common_use_cases, False),
+        ("persona_filters", persona_filters, False),
+        ("persona_lookalike_1", persona_lookalike_1, False),
+        ("persona_lookalike_2", persona_lookalike_2, False),
+        ("persona_lookalike_3", persona_lookalike_3, False),
+        ("persona_lookalike_4", persona_lookalike_4, False),
+        ("persona_lookalike_5", persona_lookalike_5, False),
         ("company_mission_statement", company_mission_statement, True),
         ("company_tagline", company_tagline, True),
         ("company_description", company_description, True),
@@ -3251,7 +3291,9 @@ def import_pre_onboarding(
         )
 
     client_archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-        ClientArchetype.client_sdr_id == client_sdr_id
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == False,
+        ClientArchetype.active == True,
     ).all()
     if not client_archetypes:
         create_client_archetype(
@@ -3261,6 +3303,16 @@ def import_pre_onboarding(
             filters={},
             persona_fit_reason=persona_buy_reason,
             persona_contact_objective=persona_contact_objective,
+            cta_blanks_company=cta_blanks_company,
+            cta_blanks_persona=cta_blanks_persona,
+            cta_blanks_solution=cta_blanks_solution,
+            common_use_cases=common_use_cases,
+            persona_filters=persona_filters,
+            lookalike_1=persona_lookalike_1,
+            lookalike_2=persona_lookalike_2,
+            lookalike_3=persona_lookalike_3,
+            lookalike_4=persona_lookalike_4,
+            lookalike_5=persona_lookalike_5,
         )
 
     scheduling_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
