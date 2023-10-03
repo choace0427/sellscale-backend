@@ -1742,25 +1742,25 @@ def update_persona_brain_details(
     if updated_persona_contract_size:
         client_archetype.contract_size = updated_persona_contract_size
     if updated_cta_framework_company:
-        client_archetype.cta_framework_company = updated_cta_framework_company
+        client_archetype.persona_cta_framework_company = updated_cta_framework_company
     if updated_cta_framework_persona:
-        client_archetype.cta_framework_persona = updated_cta_framework_persona
+        client_archetype.persona_cta_framework_persona = updated_cta_framework_persona
     if updated_cta_framework_action:
-        client_archetype.cta_framework_action = updated_cta_framework_action
+        client_archetype.persona_cta_framework_action = updated_cta_framework_action
     if updated_use_cases:
-        client_archetype.use_cases = updated_use_cases
+        client_archetype.persona_use_cases = updated_use_cases
     if updated_filters:
-        client_archetype.filters = updated_filters
+        client_archetype.persona_filters = updated_filters
     if updated_lookalike_profile_1:
-        client_archetype.lookalike_profile_1 = updated_lookalike_profile_1
+        client_archetype.persona_lookalike_profile_1 = updated_lookalike_profile_1
     if updated_lookalike_profile_2:
-        client_archetype.lookalike_profile_2 = updated_lookalike_profile_2
+        client_archetype.persona_lookalike_profile_2 = updated_lookalike_profile_2
     if updated_lookalike_profile_3:
-        client_archetype.lookalike_profile_3 = updated_lookalike_profile_3
+        client_archetype.persona_lookalike_profile_3 = updated_lookalike_profile_3
     if updated_lookalike_profile_4:
-        client_archetype.lookalike_profile_4 = updated_lookalike_profile_4
+        client_archetype.persona_lookalike_profile_4 = updated_lookalike_profile_4
     if updated_lookalike_profile_5:
-        client_archetype.lookalike_profile_5 = updated_lookalike_profile_5
+        client_archetype.persona_lookalike_profile_5 = updated_lookalike_profile_5
 
     db.session.add(client_archetype)
     db.session.commit()
@@ -2527,6 +2527,20 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.transformer_blocklist,
             ClientArchetype.transformer_blocklist_initial,
             ClientArchetype.li_bump_amount,
+            ClientArchetype.persona_cta_framework_company.label(
+                "cta_framework_company"
+            ),
+            ClientArchetype.persona_cta_framework_persona.label(
+                "cta_framework_persona"
+            ),
+            ClientArchetype.persona_cta_framework_action.label("cta_framework_action"),
+            ClientArchetype.persona_use_cases.label("use_cases"),
+            ClientArchetype.persona_filters.label("filters"),
+            ClientArchetype.persona_lookalike_profile_1.label("lookalike_profile_1"),
+            ClientArchetype.persona_lookalike_profile_2.label("lookalike_profile_2"),
+            ClientArchetype.persona_lookalike_profile_3.label("lookalike_profile_3"),
+            ClientArchetype.persona_lookalike_profile_4.label("lookalike_profile_4"),
+            ClientArchetype.persona_lookalike_profile_5.label("lookalike_profile_5"),
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.avg(Prospect.icp_fit_score)
             .filter(Prospect.icp_fit_score.isnot(None))

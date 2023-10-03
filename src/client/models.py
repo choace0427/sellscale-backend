@@ -128,7 +128,7 @@ class ClientArchetype(db.Model):
     persona_cta_framework_persona = db.Column(db.String, nullable=True)
     persona_cta_framework_action = db.Column(db.String, nullable=True)
     persona_use_cases = db.Column(db.String, nullable=True)
-    persona_filters = db.Column(db.JSON, nullable=True)
+    persona_filters = db.Column(db.String, nullable=True)
     persona_lookalike_profile_1 = db.Column(db.String, nullable=True)
     persona_lookalike_profile_2 = db.Column(db.String, nullable=True)
     persona_lookalike_profile_3 = db.Column(db.String, nullable=True)
