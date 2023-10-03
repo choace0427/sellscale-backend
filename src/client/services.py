@@ -348,6 +348,7 @@ def create_client_archetype(
             "End with Best, (new line) (My Name) (new line) (Title)",
         ],
         contract_size=persona_contract_size or c.contract_size,
+        li_bump_amount=3,
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -1715,6 +1716,16 @@ def update_persona_brain_details(
     updated_persona_icp_matching_prompt: Optional[str],
     updated_persona_contact_objective: Optional[str],
     updated_persona_contract_size: Optional[int],
+    updated_cta_framework_company: Optional[str],
+    updated_cta_framework_persona: Optional[str],
+    updated_cta_framework_action: Optional[str],
+    updated_use_cases: Optional[str],
+    updated_filters: Optional[str],
+    updated_lookalike_profile_1: Optional[str],
+    updated_lookalike_profile_2: Optional[str],
+    updated_lookalike_profile_3: Optional[str],
+    updated_lookalike_profile_4: Optional[str],
+    updated_lookalike_profile_5: Optional[str],
 ):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
@@ -1730,6 +1741,26 @@ def update_persona_brain_details(
         client_archetype.persona_contact_objective = updated_persona_contact_objective
     if updated_persona_contract_size:
         client_archetype.contract_size = updated_persona_contract_size
+    if updated_cta_framework_company:
+        client_archetype.cta_framework_company = updated_cta_framework_company
+    if updated_cta_framework_persona:
+        client_archetype.cta_framework_persona = updated_cta_framework_persona
+    if updated_cta_framework_action:
+        client_archetype.cta_framework_action = updated_cta_framework_action
+    if updated_use_cases:
+        client_archetype.use_cases = updated_use_cases
+    if updated_filters:
+        client_archetype.filters = updated_filters
+    if updated_lookalike_profile_1:
+        client_archetype.lookalike_profile_1 = updated_lookalike_profile_1
+    if updated_lookalike_profile_2:
+        client_archetype.lookalike_profile_2 = updated_lookalike_profile_2
+    if updated_lookalike_profile_3:
+        client_archetype.lookalike_profile_3 = updated_lookalike_profile_3
+    if updated_lookalike_profile_4:
+        client_archetype.lookalike_profile_4 = updated_lookalike_profile_4
+    if updated_lookalike_profile_5:
+        client_archetype.lookalike_profile_5 = updated_lookalike_profile_5
 
     db.session.add(client_archetype)
     db.session.commit()

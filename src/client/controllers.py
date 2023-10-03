@@ -1769,6 +1769,36 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
     updated_persona_contract_size = get_request_parameter(
         "updated_persona_contract_size", request, json=True, required=False
     )
+    updated_cta_framework_company = get_request_parameter(
+        "updated_cta_framework_company", request, json=True, required=False
+    )
+    updated_cta_framework_persona = get_request_parameter(
+        "updated_cta_framework_persona", request, json=True, required=False
+    )
+    updated_cta_framework_action = get_request_parameter(
+        "updated_cta_framework_action", request, json=True, required=False
+    )
+    updated_use_cases = get_request_parameter(
+        "updated_use_cases", request, json=True, required=False
+    )
+    updated_filters = get_request_parameter(
+        "updated_filters", request, json=True, required=False
+    )
+    updated_lookalike_profile_1 = get_request_parameter(
+        "updated_lookalike_profile_1", request, json=True, required=False
+    )
+    updated_lookalike_profile_2 = get_request_parameter(
+        "updated_lookalike_profile_2", request, json=True, required=False
+    )
+    updated_lookalike_profile_3 = get_request_parameter(
+        "updated_lookalike_profile_3", request, json=True, required=False
+    )
+    updated_lookalike_profile_4 = get_request_parameter(
+        "updated_lookalike_profile_4", request, json=True, required=False
+    )
+    updated_lookalike_profile_5 = get_request_parameter(
+        "updated_lookalike_profile_5", request, json=True, required=False
+    )
 
     success = update_persona_brain_details(
         client_sdr_id=client_sdr_id,
@@ -1778,6 +1808,16 @@ def post_update_persona_details(client_sdr_id: int, archetype_id: int):
         updated_persona_icp_matching_prompt=updated_persona_icp_matching_prompt,
         updated_persona_contact_objective=updated_persona_contact_objective,
         updated_persona_contract_size=updated_persona_contract_size,
+        updated_cta_framework_company=updated_cta_framework_company,
+        updated_cta_framework_persona=updated_cta_framework_persona,
+        updated_cta_framework_action=updated_cta_framework_action,
+        updated_use_cases=updated_use_cases,
+        updated_filters=updated_filters,
+        updated_lookalike_profile_1=updated_lookalike_profile_1,
+        updated_lookalike_profile_2=updated_lookalike_profile_2,
+        updated_lookalike_profile_3=updated_lookalike_profile_3,
+        updated_lookalike_profile_4=updated_lookalike_profile_4,
+        updated_lookalike_profile_5=updated_lookalike_profile_5,
     )
 
     if success:

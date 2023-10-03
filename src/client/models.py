@@ -181,6 +181,17 @@ class ClientArchetype(db.Model):
             "contract_size": self.contract_size,
             "first_message_delay_days": self.first_message_delay_days,
             "li_bump_amount": self.li_bump_amount,
+            "emoji": self.emoji,
+            "cta_framework_company": self.persona_cta_framework_company,
+            "cta_framework_persona": self.persona_cta_framework_persona,
+            "cta_framework_action": self.persona_cta_framework_action,
+            "use_cases": self.persona_use_cases,
+            "filters": self.persona_filters,
+            "lookalike_profile_1": self.persona_lookalike_profile_1,
+            "lookalike_profile_2": self.persona_lookalike_profile_2,
+            "lookalike_profile_3": self.persona_lookalike_profile_3,
+            "lookalike_profile_4": self.persona_lookalike_profile_4,
+            "lookalike_profile_5": self.persona_lookalike_profile_5,
         }
 
 
