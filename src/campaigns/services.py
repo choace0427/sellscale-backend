@@ -1655,6 +1655,7 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
     email_sent = []
     email_opened = []
     email_accepted = []
+    email_bumped = []
     email_replied = []
     prospect_scheduling = []
 
@@ -1679,6 +1680,8 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
             email_opened.append(email_prospect.prospect_id)
         elif outreach_status == ProspectEmailOutreachStatus.ACCEPTED:
             email_accepted.append(email_prospect.prospect_id)
+        elif outreach_status == ProspectEmailOutreachStatus.BUMPED:
+            email_bumped.append(email_prospect.prospect_id)
         elif outreach_status == ProspectEmailOutreachStatus.ACTIVE_CONVO:
             email_replied.append(email_prospect.prospect_id)
         elif outreach_status == ProspectEmailOutreachStatus.SCHEDULING:
@@ -1704,6 +1707,7 @@ def get_email_campaign_analytics(campaign_id: int) -> dict:
         "email_sent": email_sent,
         "email_opened": email_opened,
         "email_accepted": email_accepted,
+        "email_bumped": email_bumped,
         "email_replied": email_replied,
         "prospect_scheduling": prospect_scheduling,
         "prospect_not_interested": prospect_not_interested,

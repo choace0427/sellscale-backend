@@ -222,7 +222,7 @@ def send_prospect_email(prospect_email_id: int):
     body_gm = GeneratedMessage.query.get(prospect_email.personalized_body)
 
     subject = subject_line_gm.completion
-    body = markdown.markdown(body_gm.completion)
+    body = markdown.markdown(body_gm.completion.replace('\n', '<br/>'))
 
     nylas_send_email(
         client_sdr_id=client_sdr_id,

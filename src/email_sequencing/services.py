@@ -1,3 +1,5 @@
+from src.prospecting.services import calculate_prospect_overall_status
+from src.email_outbound.services import update_prospect_email_outreach_status
 from src.message_generation.services import add_generated_msg_queue
 from src.prospecting.nylas.services import nylas_get_messages, nylas_send_email
 from src.email_outbound.models import ProspectEmailOutreachStatus
@@ -459,6 +461,8 @@ def generate_prospect_email_bump(
 
 @celery.task
 def generate_email_bumps():
+    
+    BUMP_DELAY_DAYS = 3 # TODO: Hardcoded for now, but should be a setting in steps
 
     # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
     sdrs: List[ClientSDR] = (
@@ -541,9 +545,17 @@ def generate_email_bumps():
                             continue
                         
             # If bumping, check if the bump delay has been met
-            if prospect.overall_status == ProspectOverallStatus.BUMPED:
+            if prospect.overall_status == ProspectOverallStatus.BUMPED and False:
                 # Check if last message that was sent out was over X days ago
-                pass
+                from model_import import EmailConversationMessage
+
+                latest_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
+                    prospect_id=prospect.id
+                ).order_by(EmailConversationMessage.date_received.desc()).first()
+                if latest_message:
+                    if (datetime.datetime.utcnow() - latest_message.date_received).days < BUMP_DELAY_DAYS:
+                        #print(f"Skipping bump for prospect #{prospect.id} because last message was sent less than {BUMP_DELAY_DAYS} days ago")
+                        continue
 
             # Generate the email bump
             data = generate_prospect_email_bump(
@@ -562,7 +574,7 @@ def generate_email_bumps():
             last_message = messages[-1]
 
             # Convert completion markdown to body html
-            body = markdown.markdown(data.get("completion"))
+            body = markdown.markdown(data.get("completion").replace('\n', '<br/>'))
 
             # Send the email
             result = nylas_send_email(
@@ -628,7 +640,16 @@ def generate_email_bumps():
                             "elements": [
                                 {
                                     "type": "mrkdwn",
-                                    "text": f"*Autobump Message* {data.get('completion')}*",
+                                    "text": f"*Autobump Message [markdown]* {data.get('completion')}*",
+                                },
+                            ],
+                        },
+                        {
+                            "type": "context",
+                            "elements": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Autobump Message [html]* {result.get('body')}*",
                                 },
                             ],
                         },
@@ -651,5 +672,18 @@ def generate_email_bumps():
                         },
                     ],
                 )
+
+                # Set status to bumped
+                update_prospect_email_outreach_status(
+                    prospect_email_id=prospect_email.id,
+                    new_status=ProspectEmailOutreachStatus.BUMPED
+                )
+                
+                # Increase times bumped
+                prospect_email.times_bumped += 1
+                db.session.add(prospect_email)
+                db.session.commit()
+
+                calculate_prospect_overall_status(prospect_id=prospect.id)
 
                 return
