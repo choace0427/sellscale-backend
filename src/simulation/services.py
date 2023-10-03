@@ -176,7 +176,7 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
     # If we've already hit our max bump count, skip
     prospect: Prospect = Prospect.query.get(simulation.prospect_id)
     client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-    if client_archetype.li_bump_amount <= prospect.times_bumped:
+    if prospect.times_bumped and client_archetype.li_bump_amount <= prospect.times_bumped:
         return False, "Prospect has been bumped too many times."
 
     try:

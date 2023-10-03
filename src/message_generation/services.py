@@ -2256,7 +2256,7 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
         # If we've already hit our max bump count, skip
         prospect: Prospect = Prospect.query.get(prospect_id)
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-        if client_archetype.li_bump_amount <= prospect.times_bumped:
+        if prospect.times_bumped and client_archetype.li_bump_amount <= prospect.times_bumped:
             return False
 
         bump_msg = GeneratedMessageAutoBump(
