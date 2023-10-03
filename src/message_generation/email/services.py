@@ -8,6 +8,7 @@
 import re
 from typing import Optional
 from bs4 import BeautifulSoup
+from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import get_text_generation
 
 from src.client.models import Client, ClientArchetype, ClientSDR
@@ -291,7 +292,14 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.default == True,
                 EmailSequenceStep.overall_status == ProspectOverallStatus.SENT_OUTREACH,
             ).first()
-            template = sequence_step.template
+            if sequence_step is not None:
+                template = sequence_step.template
+            else:
+                send_slack_message(
+                    message=f"No sequence step found for prospect #'{prospect.id}'. status=SENT_OUTREACH",
+                    webhook_urls=[URL_MAP["operations-auto-bump-email"]],
+                )
+                raise Exception("No sequence step found for prospect.")
         elif prospect.overall_status == ProspectOverallStatus.BUMPED:
             sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
                 EmailSequenceStep.client_sdr_id == client_sdr_id,
@@ -301,7 +309,14 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.overall_status == ProspectOverallStatus.BUMPED,
                 EmailSequenceStep.bumped_count == prospect_email.times_bumped,
             ).first()
-            template = sequence_step.template
+            if sequence_step is not None:
+                template = sequence_step.template
+            else:
+                send_slack_message(
+                    message=f"No sequence step found for prospect #'{prospect.id}'. status=BUMPED & bumped_count={prospect_email.times_bumped}",
+                    webhook_urls=[URL_MAP["operations-auto-bump-email"]],
+                )
+                raise Exception("No sequence step found for prospect.")
 
     prompt = """You are a sales development representative writing on behalf of the salesperson.
 

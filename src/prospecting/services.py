@@ -1649,6 +1649,7 @@ def map_prospect_email_status_to_prospect_overall_status(
         ProspectEmailOutreachStatus.SENT_OUTREACH: ProspectOverallStatus.SENT_OUTREACH,
         ProspectEmailOutreachStatus.EMAIL_OPENED: ProspectOverallStatus.ACCEPTED,
         ProspectEmailOutreachStatus.ACCEPTED: ProspectOverallStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.BUMPED: ProspectOverallStatus.BUMPED,
         ProspectEmailOutreachStatus.ACTIVE_CONVO: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.UNSUBSCRIBED: ProspectOverallStatus.REMOVED,
