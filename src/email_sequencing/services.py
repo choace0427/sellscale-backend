@@ -446,6 +446,8 @@ def generate_prospect_email_bump(
             override_sequence_id=override_sequence_id,
             override_template=override_template
         )
+        if not prompt: return None
+        
         email_body = generate_email(prompt)
         email_body = email_body.get('body')
 
