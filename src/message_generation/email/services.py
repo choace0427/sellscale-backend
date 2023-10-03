@@ -224,12 +224,12 @@ def ai_followup_email_prompt(
     # TODO: Eventually have intelligent systems that can handle automatically responding to prospect replies.
     if (
         prospect.overall_status
-        not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED]
+        not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED, ProspectOverallStatus.ACCEPTED]
         and override_sequence_id is None
         and override_template is None
     ):
         raise Exception(
-            "Prospect is not in SENT_OUTREACH or BUMPED status and shouldn't be followed up with."
+            "Prospect is not in SENT_OUTREACH or BUMPED or ACCEPTED status and shouldn't be followed up with."
         )
 
     # Collect company information
@@ -296,10 +296,10 @@ def ai_followup_email_prompt(
                 template = sequence_step.template
             else:
                 send_slack_message(
-                    message=f"No sequence step found for prospect #'{prospect.id}'. status=SENT_OUTREACH",
+                    message=f"⚠️ No sequence step found for prospect #'{prospect.id}'. status=SENT_OUTREACH",
                     webhook_urls=[URL_MAP["operations-auto-bump-email"]],
                 )
-                raise Exception("No sequence step found for prospect.")
+                return None
         elif prospect.overall_status == ProspectOverallStatus.BUMPED:
             sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
                 EmailSequenceStep.client_sdr_id == client_sdr_id,
@@ -313,10 +313,10 @@ def ai_followup_email_prompt(
                 template = sequence_step.template
             else:
                 send_slack_message(
-                    message=f"No sequence step found for prospect #'{prospect.id}'. status=BUMPED & bumped_count={prospect_email.times_bumped}",
+                    message=f"⚠️ No sequence step found for prospect #'{prospect.id}'. status=BUMPED & bumped_count={prospect_email.times_bumped}",
                     webhook_urls=[URL_MAP["operations-auto-bump-email"]],
                 )
-                raise Exception("No sequence step found for prospect.")
+                return None
 
     prompt = """You are a sales development representative writing on behalf of the salesperson.
 
