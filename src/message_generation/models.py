@@ -220,6 +220,9 @@ class GeneratedMessageCTA(db.Model):
     cta_type = db.Column(db.String, nullable=True)
 
     expiration_date = db.Column(db.DateTime, nullable=True)  # in UTC
+    auto_mark_as_scheduling_on_acceptance = db.Column(
+        db.Boolean, nullable=True, default=False
+    )
 
     def get_active_ctas_for_archetype(archetype_id):
         return GeneratedMessageCTA.query.filter_by(
