@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+from src.email_sequencing.services import generate_prospect_email_bump
 
 from src.authentication.decorators import require_user
 from src.message_generation.email.services import ai_followup_email_prompt, ai_initial_email_prompt, ai_subject_line_prompt, generate_email, generate_subject_line
@@ -92,19 +93,19 @@ def post_generate_followup_email(client_sdr_id: int):
         return {"status": "error", "message": "Unauthorized."}, 401
 
     # Get the followup email body prompt and generate the email body
-    prompt = ai_followup_email_prompt(
+    data = generate_prospect_email_bump(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         thread_id=thread_id,
         override_sequence_id=override_sequence_id,
         override_template=override_template
     )
-    email_body = generate_email(prompt)
-    email_body = email_body.get('body')
+    if data is None:
+        return {"status": "error", "message": "Failed to generate email bump."}, 500
 
     return {
         'status': 'success',
         'data': {
-            'email_body': {'prompt': prompt, 'completion': email_body}
+            'email_body': data
         }
     }

@@ -1,9 +1,15 @@
-from model_import import EmailSequenceStep, EmailSubjectLineTemplate
-from app import db
-from src.client.models import ClientArchetype
+from src.message_generation.services import add_generated_msg_queue
+from src.prospecting.nylas.services import nylas_get_messages, nylas_send_email
+from src.email_outbound.models import ProspectEmailOutreachStatus
+from src.utils.slack import send_slack_message, URL_MAP
+from model_import import EmailSequenceStep, EmailSubjectLineTemplate, ProspectEmail, ProspectEmailStatusRecords
+from app import db, celery
+from src.client.models import ClientArchetype, ClientSDR, Prospect
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
-from typing import Optional
-
+from typing import List, Optional
+from sqlalchemy.sql.expression import func, or_
+import datetime
+from sqlalchemy.orm import joinedload
 
 def get_email_sequence_step_for_sdr(
     client_sdr_id: int,
@@ -410,3 +416,167 @@ def activate_email_subject_line_template(
     db.session.commit()
 
     return True
+
+
+def generate_prospect_email_bump(
+        client_sdr_id: int,
+        prospect_id: int,
+        thread_id: int,
+        override_sequence_id: Optional[int] = None,
+        override_template: Optional[str] = None
+    ):
+    """Generates a follow up email message for a prospect
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+        prospect_id (int): Prospect ID
+        thread_id (int): Email Thread ID
+    """
+    from src.message_generation.email.services import ai_followup_email_prompt, generate_email
+
+    try:
+        
+        prompt = ai_followup_email_prompt(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            thread_id=thread_id,
+            override_sequence_id=override_sequence_id,
+            override_template=override_template
+        )
+        email_body = generate_email(prompt)
+        email_body = email_body.get('body')
+
+        return { 'prompt': prompt, 'completion': email_body }
+
+    except Exception as e:
+        send_slack_message(
+            message=f"🛑 *Error occurred, broken generation:* '{e}'",
+            webhook_urls=[URL_MAP["operations-auto-bump-email"]],
+        )
+        return None
+
+
+@celery.task
+def generate_email_bumps():
+
+    # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
+    sdrs: List[ClientSDR] = (
+        ClientSDR.query.filter(
+            ClientSDR.active == True,
+            ClientSDR.auto_generate_messages == True,
+            ClientSDR.id == 34, # temp
+        )
+        .order_by(func.random())
+        .all()
+    )
+
+    for sdr in sdrs:
+        prospects: List[Prospect] = Prospect.query.filter(
+            Prospect.client_sdr_id == sdr.id,
+            Prospect.overall_status.in_(
+                [
+                    "ACCEPTED",
+                    "BUMPED",
+                    #"NURTURE",
+                ]
+            ),
+            or_(
+                Prospect.hidden_until == None,
+                Prospect.hidden_until <= datetime.datetime.utcnow(),
+            ),
+            Prospect.active == True,
+        ).all()
+        # ).join(ProspectEmail).filter(
+        #     ProspectEmail.outreach_status.in_(
+        #         [
+        #             "ACCEPTED",
+        #             "EMAIL_OPENED",
+        #         ]
+        #     )
+        # ).all()
+
+        # print(f"Generating bumps for {len(prospects)} prospects...")
+
+        for prospect in prospects:
+            # Get the archetype
+            archetype: ClientArchetype = ClientArchetype.query.get(
+                prospect.archetype_id
+            )
+
+            # If the archetype is unassigned contact, then we don't generate a bump
+            if archetype.is_unassigned_contact_archetype:
+                continue
+            
+            # Get the prospect email
+            prospect_email: ProspectEmail = ProspectEmail.query.get(
+                prospect.approved_prospect_email_id
+            )
+            if not prospect_email:
+                continue
+
+            # CHECK: If the prospect is in ACCEPTED stage and the message delay on the archetype is not quite up
+            #      then we don't generate a bump
+            if prospect.status == ProspectOverallStatus.ACCEPTED:
+
+                # If the archetype has a message delay, check if it's been long enough by referencing status records
+                if archetype and archetype.first_message_delay_days:
+                    # Get the first status record
+                    status_record: ProspectEmailStatusRecords = (
+                        ProspectEmailStatusRecords.query.filter(
+                            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id,
+                            ProspectEmailStatusRecords.to_status == ProspectEmailOutreachStatus.ACCEPTED,
+                        )
+                        .order_by(ProspectEmailStatusRecords.created_at.asc())
+                        .first()
+                    )
+                    if status_record:
+                        # If the first status record is less than the delay, then we don't generate a bump
+                        if (
+                            datetime.datetime.utcnow() - status_record.created_at
+                        ).days < archetype.first_message_delay_days:
+                            continue
+
+            
+
+            # Generate the email bump
+            data = generate_prospect_email_bump(
+                client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect.id,
+                thread_id=prospect_email.nylas_thread_id,
+            )
+            if not data: continue
+
+            # Get last message of thread to reply to
+            messages = nylas_get_messages(
+                client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect.id,
+                thread_id=prospect_email.nylas_thread_id,
+            )
+            reply_to_message_id = messages[-1].get("id")
+
+            # Send the email
+            result = nylas_send_email(
+                client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect.id,
+                subject="",
+                body=data.get("completion"),
+                reply_to_message_id=reply_to_message_id,
+                prospect_email_id=prospect_email.id,
+            )
+            nylas_message_id = result.get("id")
+            if isinstance(nylas_message_id, str):
+                add_generated_msg_queue(
+                    client_sdr_id=prospect.client_sdr_id, nylas_message_id=nylas_message_id
+                )
+
+            # IMPORTANT: this short circuits this loop if we successfully generate a bump
+            #       that way it only generates a bump once every 2 minutes
+            if result.get("thread_id"):
+                print(result)
+
+                send_slack_message(
+                    message=f"Sent email",
+                    webhook_urls=[URL_MAP["operations-auto-bump-email"]],
+                )
+
+                return

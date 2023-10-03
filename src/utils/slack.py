@@ -41,6 +41,7 @@ URL_MAP = {
     "messages-ops": "https://hooks.slack.com/services/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",
     "ops-email-detected": "https://hooks.slack.com/services/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",
     "operations-withdraw-invite": "https://hooks.slack.com/services/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",
+    "operations-auto-bump-email": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {
