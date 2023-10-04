@@ -297,11 +297,12 @@ def get_prospects_for_icp_table(
                 and client_sdr.id = {client_sdr_id}
                 and prospect.overall_status <> 'REMOVED'
             order by 
-                icp_fit_score desc,
+                {order_by}
                 1 asc
         """.format(
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
+            order_by="icp_fit_score desc," if not get_sample else "",
         )
     ).fetchall()
 
