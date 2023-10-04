@@ -655,6 +655,15 @@ def generate_email_bumps():
                                 },
                             ],
                         },
+                        {
+                            "type": "context",
+                            "elements": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Prompt* {data.get('prompt')}*",
+                                },
+                            ],
+                        },
                         {"type": "divider"},
                         {
                             "type": "section",
