@@ -303,7 +303,9 @@ def get_prospects_for_icp_table(
         """.format(
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
-            order_by="icp_fit_score desc," if not get_sample else "",
+            order_by="icp_fit_score desc, length(icp_fit_reason) desc,"
+            if not get_sample
+            else "",
         )
     ).fetchall()
 
