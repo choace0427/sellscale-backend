@@ -1866,7 +1866,7 @@ def send_to_purgatory(
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "⏰ SellScale AI just snoozed a "
+                        "text": "⏰ SellScale AI just snoozed "
                         + prospect.full_name
                         + " to "
                         + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")

@@ -2097,24 +2097,55 @@ def send_sent_by_sellscale_notification(prospect_id: int, message: str):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "💬 SellScale AI just replied to a prospect!",
+                        "text": "💬 SellScale AI just replied to " + prospect_name,
                         "emoji": True,
                     },
                 },
                 {
                     "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Prospect Status:* {prospect_status}\n\n*Prospect Message:* _{prospect_message}_\n\n*AI Response:* _{ai_response}_\n\n*Prospect Details:*\n- Name: {prospect_name}\n- Title: {prospect_title}\n- Company: {prospect_company}\n\n*SDR:* {sdr_name}".format(
-                            prospect_status=prospect.status.value,
-                            prospect_message=prospect.li_last_message_from_prospect,
-                            ai_response=message.replace("\n", " "),
-                            prospect_name=prospect_name,
-                            prospect_title=prospect.title,
-                            prospect_company=prospect.company,
-                            sdr_name=client_sdr.name,
-                        ),
-                    },
+                    "block_id": "sectionBlockOnlyFields",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": '*{prospect_first_name}*:\n_"{prospect_message}"_\n\n*{first_name} (AI)*:\n_"{ai_response}"_'.format(
+                                prospect_first_name=prospect.first_name,
+                                prospect_name=prospect_name,
+                                prospect_message=prospect.li_last_message_from_prospect.replace(
+                                    "\n", " "
+                                )
+                                if prospect.li_last_message_from_prospect
+                                else "-",
+                                ai_response=message.replace("\n", " "),
+                                first_name=client_sdr.name.split(" ")[0],
+                            ),
+                        }
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "🧳 Title: "
+                            + str(prospect.title)
+                            + " @ "
+                            + str(prospect.company)[0:20]
+                            + ("..." if len(prospect.company) > 20 else ""),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "🪜 Status: "
+                            + prospect.status.value.replace("_", " ").lower(),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "📌 SDR: " + client_sdr.name,
+                            "emoji": True,
+                        },
+                    ],
                 },
             ],
         )
