@@ -326,6 +326,16 @@ def create_email_subject_line_template(
     Returns:
         int: The id of the newly created email subject line template
     """
+    # Mark all other email subject line templates as inactive
+    if active:
+        all_templates: list[EmailSubjectLineTemplate] = EmailSubjectLineTemplate.query.filter(
+            EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
+            EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
+        ).all()
+        for t in all_templates:
+            t.active = False
+            db.session.add(t)
+
     # Create the email subject line template
     template = EmailSubjectLineTemplate(
         client_sdr_id=client_sdr_id,
