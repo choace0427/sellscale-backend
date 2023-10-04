@@ -296,10 +296,13 @@ def get_prospects_for_icp_table(
             where prospect.archetype_id = {client_archetype_id}
                 and client_sdr.id = {client_sdr_id}
                 and prospect.overall_status <> 'REMOVED'
-            order by 1 asc
+            order by 
+                {order_by}
+                1 asc
         """.format(
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
+            order_by="icp_fit_score desc," if not get_sample else "",
         )
     ).fetchall()
 
@@ -1863,7 +1866,7 @@ def send_to_purgatory(
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "⏰ SellScale AI just snoozed a "
+                        "text": "⏰ SellScale AI just snoozed "
                         + prospect.full_name
                         + " to "
                         + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
@@ -1947,7 +1950,7 @@ def update_prospect_demo_date(
 
 @celery.task
 def auto_mark_uninterested_bumped_prospects():
-    
+
     client_archetypes: List[ClientArchetype] = ClientArchetype.query.all()
 
     for client_archetype in client_archetypes:
@@ -1973,7 +1976,9 @@ def auto_mark_uninterested_bumped_prospects():
             client_sdr_name = prospect[2]
             prospect_count = prospect[3]
             message = f"⚠️ {prospect_name} has been bumped {prospect_count - 1} times by {client_sdr_name} and is now being marked as `nurturing mode`."
-            send_slack_message(message=message, webhook_urls=[URL_MAP["csm-convo-sorter"]])
+            send_slack_message(
+                message=message, webhook_urls=[URL_MAP["csm-convo-sorter"]]
+            )
 
             update_prospect_status_linkedin(
                 prospect_id=prospect_id,

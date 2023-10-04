@@ -8,7 +8,9 @@ from model_import import (
     ClientSDR,
 )
 from src.client.models import ClientArchetype
+from src.email_outbound.models import ProspectEmail
 from src.li_conversation.models import LinkedinConversationEntry
+from src.message_generation.models import GeneratedMessage
 from src.utils.slack import send_slack_message
 from src.utils.slack import URL_MAP
 
@@ -44,6 +46,19 @@ def send_status_change_slack_block(
     client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     persona = client_archetype.archetype
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+
+    generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
+        id=prospect.approved_outreach_message_id
+    ).first()
+    prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
+        id=prospect.approved_outreach_message_id
+    ).first()
+
+    date_sent = ""
+    if outreach_type == ProspectChannels.EMAIL and prospect_email:
+        date_sent = prospect_email.date_sent.strftime("%m/%d/%Y")
+    elif outreach_type == ProspectChannels.LINKEDIN and generated_message:
+        date_sent = generated_message.date_sent.strftime("%m/%d/%Y")
 
     # Find available webhook urls
     webhook_urls = [URL_MAP["sellscale_pipeline_all_clients"]]
@@ -205,7 +220,7 @@ def send_status_change_slack_block(
                 },
                 {
                     "type": "plain_text",
-                    "text": "🧳 Representing: {}".format(client.company),
+                    "text": "📆 Initial Send: {}".format(date_sent),
                     "emoji": True,
                 },
                 {
