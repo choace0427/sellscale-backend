@@ -547,7 +547,7 @@ def generate_email_bumps():
                             continue
                         
             # If bumping, check if the bump delay has been met
-            if prospect.overall_status == ProspectOverallStatus.BUMPED and False:
+            if prospect.overall_status == ProspectOverallStatus.BUMPED:
                 # Check if last message that was sent out was over X days ago
                 from model_import import EmailConversationMessage
 
