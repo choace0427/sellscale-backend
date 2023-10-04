@@ -300,7 +300,9 @@ def get_email_subject_line_template(
     if active_only:
         templates = templates.filter(EmailSubjectLineTemplate.active == True)
 
-    templates: list[EmailSubjectLineTemplate] = templates.all()
+    templates: list[EmailSubjectLineTemplate] = templates.order_by(
+        EmailSubjectLineTemplate.active.desc(),
+    ).all()
 
     return [template.to_dict() for template in templates]
 
