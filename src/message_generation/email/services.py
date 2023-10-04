@@ -291,6 +291,7 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.active == True,
                 EmailSequenceStep.default == True,
                 EmailSequenceStep.overall_status == ProspectOverallStatus.SENT_OUTREACH,
+                EmailSequenceStep.template != None,
             ).first()
             if sequence_step is not None:
                 template = sequence_step.template
@@ -308,6 +309,7 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.default == True,
                 EmailSequenceStep.overall_status == ProspectOverallStatus.BUMPED,
                 EmailSequenceStep.bumped_count == prospect_email.times_bumped,
+                EmailSequenceStep.template != None,
             ).first()
             if sequence_step is not None:
                 template = sequence_step.template
@@ -317,6 +319,28 @@ def ai_followup_email_prompt(
                     webhook_urls=[URL_MAP["operations-auto-bump-email"]],
                 )
                 return None
+        elif prospect.overall_status == ProspectOverallStatus.ACCEPTED:
+            sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
+                EmailSequenceStep.client_sdr_id == client_sdr_id,
+                EmailSequenceStep.client_archetype_id == client_archetype.id,
+                EmailSequenceStep.active == True,
+                EmailSequenceStep.default == True,
+                EmailSequenceStep.overall_status == ProspectOverallStatus.ACCEPTED,
+                EmailSequenceStep.template != None,
+            ).first()
+            if sequence_step is not None:
+                template = sequence_step.template
+            else:
+                send_slack_message(
+                    message=f"⚠️ No sequence step found for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status=ACCEPTED",
+                    webhook_urls=[URL_MAP["operations-auto-bump-email"]],
+                )
+                return None
+            
+    send_slack_message(
+        message=f"About to use template for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status={prospect.overall_status} & bumped_count={prospect_email.times_bumped}\n'{template}'",
+        webhook_urls=[URL_MAP["operations-auto-bump-email"]],
+    )
 
     prompt = """You are a sales development representative writing on behalf of the salesperson.
 
@@ -390,7 +414,7 @@ Output:""".format(
         prospect_research=account_points,
         research_points=research_points,
         persona_contact_objective=prospect_contact_objective,
-        past_threads=email_transcript,
+        past_threads='', # TODO: email_transcript
     )
 
     return prompt

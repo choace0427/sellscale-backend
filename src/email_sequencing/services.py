@@ -573,7 +573,7 @@ def generate_email_bumps():
                 prospect_id=prospect.id,
                 thread_id=prospect_email.nylas_thread_id,
             )
-            last_message = messages[-1]
+            last_message = messages[-1] if len(messages) > 0 else { "body": "", "nylas_message_id": None }
 
             # Convert completion markdown to body html
             body = markdown.markdown(data.get("completion").replace('\n', '<br/>'))
