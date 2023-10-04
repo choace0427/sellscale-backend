@@ -294,7 +294,10 @@ def patch_email_subject_line_template(client_sdr_id: int):
         "email_subject_line_template_id", request, json=True, required=True
     )
     subject_line = get_request_parameter(
-        "subject_line", request, json=True, required=True, parameter_type=str
+        "subject_line", request, json=True, required=False, parameter_type=str
+    )
+    active = get_request_parameter(
+        "active", request, json=True, required=False, parameter_type=bool
     )
 
     subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
@@ -308,6 +311,7 @@ def patch_email_subject_line_template(client_sdr_id: int):
         client_archetype_id=subject_line_template.client_archetype_id,
         email_subject_line_template_id=email_subject_line_template_id,
         subject_line=subject_line,
+        active=active,
     )
     if modified:
         return jsonify({"status": "success", "message": "Email subject line template updated."}), 200

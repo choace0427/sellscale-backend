@@ -343,8 +343,8 @@ def modify_email_subject_line_template(
     client_sdr_id: int,
     client_archetype_id: int,
     email_subject_line_template_id: int,
-    subject_line: Optional[str],
-    active: Optional[bool] = True,
+    subject_line: Optional[str] = None,
+    active: Optional[bool] = None,
 ) -> bool:
     """Modify a email subject line template
 
@@ -368,9 +368,19 @@ def modify_email_subject_line_template(
 
     if subject_line:
         template.subject_line = subject_line
-    template.active = active
 
-    db.session.add(template)
+    if active is not None:
+        # If active, then we also deactivate all other email subject line templates
+        if active:
+            all_templates: list[EmailSubjectLineTemplate] = EmailSubjectLineTemplate.query.filter(
+                EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
+                EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
+            ).all()
+            for t in all_templates:
+                t.active = False
+
+        template.active = active
+
     db.session.commit()
 
     return True
@@ -438,7 +448,7 @@ def generate_prospect_email_bump(
     from src.message_generation.email.services import ai_followup_email_prompt, generate_email
 
     try:
-        
+
         prompt = ai_followup_email_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
@@ -447,7 +457,7 @@ def generate_prospect_email_bump(
             override_template=override_template
         )
         if not prompt: return None
-        
+
         email_body = generate_email(prompt)
         email_body = email_body.get('body')
 
@@ -463,7 +473,7 @@ def generate_prospect_email_bump(
 
 @celery.task
 def generate_email_bumps():
-    
+
     BUMP_DELAY_DAYS = 3 # TODO: Hardcoded for now, but should be a setting in steps
 
     # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
@@ -515,7 +525,7 @@ def generate_email_bumps():
             # If the archetype is unassigned contact, then we don't generate a bump
             if archetype.is_unassigned_contact_archetype:
                 continue
-            
+
 
             # Get the prospect email
             prospect_email: ProspectEmail = ProspectEmail.query.get(
@@ -545,7 +555,7 @@ def generate_email_bumps():
                             datetime.datetime.utcnow() - status_record.created_at
                         ).days < archetype.first_message_delay_days:
                             continue
-                        
+
             # If bumping, check if the bump delay has been met
             if prospect.overall_status == ProspectOverallStatus.BUMPED:
                 # Check if last message that was sent out was over X days ago
@@ -689,7 +699,7 @@ def generate_email_bumps():
                     prospect_email_id=prospect_email.id,
                     new_status=ProspectEmailOutreachStatus.BUMPED
                 )
-                
+
                 # Increase times bumped
                 if prospect_email.times_bumped is None:
                     prospect_email.times_bumped = 1
