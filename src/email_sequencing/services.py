@@ -573,7 +573,7 @@ def generate_email_bumps():
                 prospect_id=prospect.id,
                 thread_id=prospect_email.nylas_thread_id,
             )
-            last_message = messages[-1]
+            last_message = messages[-1] if len(messages) > 0 else { "body": "", "nylas_message_id": None }
 
             # Convert completion markdown to body html
             body = markdown.markdown(data.get("completion").replace('\n', '<br/>'))
@@ -652,6 +652,18 @@ def generate_email_bumps():
                                 {
                                     "type": "mrkdwn",
                                     "text": f"*Autobump Message [html]* {result.get('body')}*",
+<<<<<<< HEAD
+=======
+                                },
+                            ],
+                        },
+                        {
+                            "type": "context",
+                            "elements": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Prompt* {data.get('prompt')}*",
+>>>>>>> fe84064ccca1ccbfc675be1e2822fb7afe03993e
                                 },
                             ],
                         },
@@ -682,7 +694,14 @@ def generate_email_bumps():
                 )
                 
                 # Increase times bumped
+<<<<<<< HEAD
                 prospect_email.times_bumped += 1
+=======
+                if prospect_email.times_bumped is None:
+                    prospect_email.times_bumped = 1
+                else:
+                    prospect_email.times_bumped += 1
+>>>>>>> fe84064ccca1ccbfc675be1e2822fb7afe03993e
                 db.session.add(prospect_email)
                 db.session.commit()
 

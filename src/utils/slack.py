@@ -55,7 +55,8 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
         os.environ.get("FLASK_ENV") != "production"
         and os.environ.get("FLASK_ENV") != "celery-production"
     ):
-        return
+        print(message)
+        return False
 
     for url in webhook_urls:
         webhook = WebhookClient(url)
