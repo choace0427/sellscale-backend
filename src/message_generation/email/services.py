@@ -296,7 +296,7 @@ def ai_followup_email_prompt(
                 template = sequence_step.template
             else:
                 send_slack_message(
-                    message=f"⚠️ No sequence step found for prospect #'{prospect.id}'. status=SENT_OUTREACH",
+                    message=f"⚠️ No sequence step found for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status=SENT_OUTREACH",
                     webhook_urls=[URL_MAP["operations-auto-bump-email"]],
                 )
                 return None
@@ -313,7 +313,7 @@ def ai_followup_email_prompt(
                 template = sequence_step.template
             else:
                 send_slack_message(
-                    message=f"⚠️ No sequence step found for prospect #'{prospect.id}'. status=BUMPED & bumped_count={prospect_email.times_bumped}",
+                    message=f"⚠️ No sequence step found for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status=BUMPED & bumped_count={prospect_email.times_bumped}",
                     webhook_urls=[URL_MAP["operations-auto-bump-email"]],
                 )
                 return None
