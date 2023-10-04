@@ -1,4 +1,5 @@
 import os
+import sys
 
 from kombu import Queue, Exchange
 from flask import Flask, request
@@ -38,6 +39,18 @@ if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
         # We recommend adjusting this value in production.
         traces_sample_rate=1.0,
     )
+
+    def sentry_excepthook(exc_type, exc_value, exc_traceback):
+        with sentry_sdk.push_scope() as scope:
+            # You can add additional context or tags here if needed
+            scope.set_tag("exception_type", exc_type)
+            scope.set_extra("traceback", exc_traceback)
+
+        # Capture the exception with Sentry
+        sentry_sdk.capture_exception(exc_value)
+
+    # Set the custom excepthook function as the default excepthook
+    sys.excepthook = sentry_excepthook
 
 
 def make_celery(app):
