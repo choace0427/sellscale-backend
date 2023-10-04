@@ -652,8 +652,6 @@ def generate_email_bumps():
                                 {
                                     "type": "mrkdwn",
                                     "text": f"*Autobump Message [html]* {result.get('body')}*",
-<<<<<<< HEAD
-=======
                                 },
                             ],
                         },
@@ -663,7 +661,6 @@ def generate_email_bumps():
                                 {
                                     "type": "mrkdwn",
                                     "text": f"*Prompt* {data.get('prompt')}*",
->>>>>>> fe84064ccca1ccbfc675be1e2822fb7afe03993e
                                 },
                             ],
                         },
@@ -694,14 +691,10 @@ def generate_email_bumps():
                 )
                 
                 # Increase times bumped
-<<<<<<< HEAD
-                prospect_email.times_bumped += 1
-=======
                 if prospect_email.times_bumped is None:
                     prospect_email.times_bumped = 1
                 else:
                     prospect_email.times_bumped += 1
->>>>>>> fe84064ccca1ccbfc675be1e2822fb7afe03993e
                 db.session.add(prospect_email)
                 db.session.commit()
 
