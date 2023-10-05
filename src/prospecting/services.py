@@ -2043,6 +2043,11 @@ def auto_mark_uninterested_bumped_prospects():
                 note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
             )
 
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            send_slack_message(
+                message=f'Status: {prospect.status}', webhook_urls=[URL_MAP["csm-convo-sorter"]]
+            )
+
 
 def find_prospect_id_from_li_or_email(
     client_sdr_id: int, li_url: Optional[str], email: Optional[str]
