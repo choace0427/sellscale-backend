@@ -504,7 +504,7 @@ def generate_email_bumps():
             ClientSDR.active == True,
             ClientSDR.auto_generate_messages == True,
             ClientSDR.auto_bump == True,
-            ClientSDR.id == 34,  # temp
+            ClientSDR.id.in_([103]),
         )
         .order_by(func.random())
         .all()
@@ -525,6 +525,7 @@ def generate_email_bumps():
                 Prospect.hidden_until <= datetime.datetime.utcnow(),
             ),
             Prospect.active == True,
+            Prospect.approved_prospect_email_id != None,
         ).all()
         # ).join(ProspectEmail).filter(
         #     ProspectEmail.outreach_status.in_(
