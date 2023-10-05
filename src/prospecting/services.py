@@ -2022,7 +2022,7 @@ def auto_mark_uninterested_bumped_prospects():
                 join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
                 join client_archetype on client_archetype.id = prospect.archetype_id
-            where prospect.overall_status = 'BUMPED' and client_archetype.id = {client_archetype.id}
+            where prospect.status = 'RESPONDED' and client_archetype.id = {client_archetype.id}
             group by 1,2,3
             having count(*) > {client_archetype.li_bump_amount};
         """
