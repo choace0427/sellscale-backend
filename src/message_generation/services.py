@@ -813,12 +813,12 @@ def create_cta(
     cta_type: str = "Manual",
     auto_mark_as_scheduling_on_acceptance: Optional[bool] = False,
 ):
-    duplicate_cta_exists = GeneratedMessageCTA.query.filter(
-        GeneratedMessageCTA.archetype_id == archetype_id,
-        GeneratedMessageCTA.text_value == text_value,
-    ).first()
-    if duplicate_cta_exists:
-        return duplicate_cta_exists
+    # duplicate_cta_exists = GeneratedMessageCTA.query.filter(
+    #     GeneratedMessageCTA.archetype_id == archetype_id,
+    #     GeneratedMessageCTA.text_value == text_value,
+    # ).first()
+    # if duplicate_cta_exists:
+    #     return duplicate_cta_exists
 
     cta: GeneratedMessageCTA = GeneratedMessageCTA(
         archetype_id=archetype_id,

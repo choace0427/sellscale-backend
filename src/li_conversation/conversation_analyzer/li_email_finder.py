@@ -54,6 +54,10 @@ def get_raw_email_data() -> list[LiEmailFinder]:
             or lower(substring(message FROM '[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}')) <> lower(prospect.email)
         );"""
 
+    import pdb
+
+    pdb.set_trace()
+
     data = db.session.execute(query).fetchall()
 
     formatted_data = []
