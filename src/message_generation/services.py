@@ -2077,11 +2077,26 @@ def process_generated_msg_queue(
     return True
 
 
-def send_sent_by_sellscale_notification(prospect_id: int, message: str):
+def send_sent_by_sellscale_notification(
+    prospect_id: int, message: str, bump_framework_id: Optional[int] = None
+):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_name = prospect.full_name
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
+
+    bump_framework_name = "a SellScale"
+    if bump_framework_id:
+        bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+        if bump_framework:
+            bump_framework_name = "'" + bump_framework.title + "'"
+
+    edit_framework_hotlink_url = (
+        "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+        + client_sdr.auth_token
+        + "&redirect=setup/linkedin/replies"
+    )
+
     if prospect.overall_status in (
         ProspectOverallStatus.ACTIVE_CONVO,
         ProspectOverallStatus.DEMO,
@@ -2103,23 +2118,20 @@ def send_sent_by_sellscale_notification(prospect_id: int, message: str):
                 },
                 {
                     "type": "section",
-                    "block_id": "sectionBlockOnlyFields",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": '*{prospect_first_name}*:\n_"{prospect_message}"_\n\n*{first_name} (AI)*:\n_"{ai_response}"_'.format(
-                                prospect_first_name=prospect.first_name,
-                                prospect_name=prospect_name,
-                                prospect_message=prospect.li_last_message_from_prospect.replace(
-                                    "\n", " "
-                                )
-                                if prospect.li_last_message_from_prospect
-                                else "-",
-                                ai_response=message.replace("\n", " "),
-                                first_name=client_sdr.name.split(" ")[0],
-                            ),
-                        }
-                    ],
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": '*{prospect_first_name}*:\n_"{prospect_message}"_\n\n*{first_name} (AI)*:\n_"{ai_response}"_'.format(
+                            prospect_first_name=prospect.first_name,
+                            prospect_name=prospect_name,
+                            prospect_message=prospect.li_last_message_from_prospect.replace(
+                                "\n", " "
+                            )
+                            if prospect.li_last_message_from_prospect
+                            else "-",
+                            ai_response=message.replace("\n", " "),
+                            first_name=client_sdr.name.split(" ")[0],
+                        ),
+                    },
                 },
                 {"type": "divider"},
                 {
@@ -2146,6 +2158,23 @@ def send_sent_by_sellscale_notification(prospect_id: int, message: str):
                             "emoji": True,
                         },
                     ],
+                },
+                {
+                    "type": "section",
+                    "block_id": "sectionBlockWithLinkButton",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Generated with {bump_framework_name} reply framework".format(
+                            bump_framework_name=bump_framework_name
+                        ),
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Edit", "emoji": True},
+                        "value": edit_framework_hotlink_url,
+                        "url": edit_framework_hotlink_url,
+                        "action_id": "button-action",
+                    },
                 },
             ],
         )

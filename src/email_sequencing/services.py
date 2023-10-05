@@ -300,7 +300,9 @@ def get_email_subject_line_template(
     if active_only:
         templates = templates.filter(EmailSubjectLineTemplate.active == True)
 
-    templates: list[EmailSubjectLineTemplate] = templates.all()
+    templates: list[EmailSubjectLineTemplate] = templates.order_by(
+        EmailSubjectLineTemplate.active.desc(),
+    ).all()
 
     return [template.to_dict() for template in templates]
 
@@ -370,15 +372,6 @@ def modify_email_subject_line_template(
         template.subject_line = subject_line
 
     if active is not None:
-        # If active, then we also deactivate all other email subject line templates
-        if active:
-            all_templates: list[EmailSubjectLineTemplate] = EmailSubjectLineTemplate.query.filter(
-                EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
-                EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
-            ).all()
-            for t in all_templates:
-                t.active = False
-
         template.active = active
 
     db.session.commit()

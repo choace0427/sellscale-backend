@@ -159,6 +159,7 @@ def send_message(client_sdr_id: int):
     send_sent_by_sellscale_notification(
         prospect_id=prospect_id,
         message=msg,
+        bump_framework_id=bf_id,
     )
 
     return jsonify({"message": "Sent message"}), 200

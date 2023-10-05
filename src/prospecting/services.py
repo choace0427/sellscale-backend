@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Union
+from regex import P
 from sqlalchemy import nullslast
 from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
 from src.email_outbound.email_store.services import (
@@ -302,7 +303,9 @@ def get_prospects_for_icp_table(
         """.format(
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
-            order_by="icp_fit_score desc," if not get_sample else "",
+            order_by="icp_fit_score desc, length(icp_fit_reason) desc,"
+            if not get_sample
+            else "",
         )
     ).fetchall()
 
@@ -449,6 +452,7 @@ def update_prospect_status_linkedin(
 
     p: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
     current_status = p.status
 
     # If the new status isn't an active convo sub status, does not start with ACTIVE_CONVO
@@ -460,6 +464,59 @@ def update_prospect_status_linkedin(
         create_note(prospect_id=prospect_id, note=note)
 
     # notifications
+    if new_status == ProspectStatus.NOT_QUALIFIED:
+        prospect_name = p.full_name
+        send_slack_message(
+            message="",
+            webhook_urls=[client.pipeline_notifications_webhook_url],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "❌ "
+                        + prospect_name
+                        + " has been removed from the pipeline",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": '*{prospect_first_name}*:\n_"{prospect_message}"_'.format(
+                            prospect_first_name=p.first_name,
+                            prospect_message=p.li_last_message_from_prospect.replace(
+                                "\n", " "
+                            )
+                            if p.li_last_message_from_prospect
+                            else "-",
+                        ),
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "🧳 Title: "
+                            + str(p.title)
+                            + " @ "
+                            + str(p.company)[0:20]
+                            + ("..." if len(p.company) > 20 else ""),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "📌 SDR: " + client_sdr.name,
+                            "emoji": True,
+                        },
+                    ],
+                },
+            ],
+        )
+
     if new_status == ProspectStatus.ACCEPTED:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
@@ -1965,7 +2022,7 @@ def auto_mark_uninterested_bumped_prospects():
                 join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
                 join client_archetype on client_archetype.id = prospect.archetype_id
-            where prospect.overall_status = 'BUMPED' and client_archetype.id = {client_archetype.id}
+            where prospect.status = 'RESPONDED' and client_archetype.id = {client_archetype.id}
             group by 1,2,3
             having count(*) > {client_archetype.li_bump_amount};
         """
@@ -1984,6 +2041,11 @@ def auto_mark_uninterested_bumped_prospects():
                 prospect_id=prospect_id,
                 new_status=ProspectStatus.NOT_INTERESTED,
                 note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
+            )
+
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            send_slack_message(
+                message=f'Status: {prospect.status}', webhook_urls=[URL_MAP["csm-convo-sorter"]]
             )
 
 

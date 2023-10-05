@@ -336,9 +336,9 @@ def ai_followup_email_prompt(
                     webhook_urls=[URL_MAP["operations-auto-bump-email"]],
                 )
                 return None
-            
+
     send_slack_message(
-        message=f"About to use template for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status={prospect.overall_status} & bumped_count={prospect_email.times_bumped}\n'{template}'",
+        message=f"About to use template for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status={prospect.overall_status} & bumped_count={prospect_email.times_bumped if prospect_email else 'NONE'}\n'{template}'",
         webhook_urls=[URL_MAP["operations-auto-bump-email"]],
     )
 
