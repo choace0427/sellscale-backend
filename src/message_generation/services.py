@@ -1,4 +1,5 @@
 import email
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.li_conversation.models import LinkedInConvoMessage
 from src.message_generation.email.services import (
     ai_initial_email_prompt,
@@ -1122,19 +1123,36 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         # 7a. Get the Email Body prompt
+        template: EmailSequenceStep = EmailSequenceStep.query.filter(
+            EmailSequenceStep.client_archetype_id == prospect.archetype_id,
+            EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
+            EmailSequenceStep.active == True,
+        ).first()
+        template_id = template.id if template else None
         initial_email_prompt = ai_initial_email_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
+            template_id=template_id,
         )
         # 7b. Generate the email body
         email_body = generate_email(prompt=initial_email_prompt)
         email_body = email_body.get("body")
 
         # 8a. Get the Subject Line prompt
+        subjectline_template: EmailSubjectLineTemplate = (
+            EmailSubjectLineTemplate.query.filter(
+                EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
+                EmailSubjectLineTemplate.active == True,
+            ).first()
+        )
+        subjectline_template_id = (
+            subjectline_template.id if subjectline_template else None
+        )
         subject_line_prompt = ai_subject_line_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             email_body=email_body,
+            subject_line_template_id=subjectline_template_id,
         )
         # 8b. Generate the subject line
         subject_line = generate_subject_line(prompt=subject_line_prompt)

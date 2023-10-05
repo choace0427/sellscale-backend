@@ -481,21 +481,7 @@ def ai_subject_line_prompt(
     elif test_template is not None:
         subject_line = test_template
 
-    prompt = """You are a sales development representative writing on behalf of the salesperson.
-
-Write an email subject line for the following email body. The subject line should be captivating and should entice the recipient to open the email.
-
-Use the following template. Stick to the template strictly:
---- START TEMPLATE ---
-{subject_line}
---- END TEMPLATE ---
-
-Here's the email body:
---- START EMAIL BODY ---
-{email_body}
---- END EMAIL BODY ---
-
-The following information is to help you, but is not neccessary to include in the subject line.
+    prompt = """You are a sales development representative writing a subject line on behalf of the salesperson.
 
 SDR info --
 SDR Name: {client_sdr_name}
@@ -513,6 +499,12 @@ More research --
 {research_points}
 
 Generate the email subject line. Do not include the word 'Subject:' in the output. Do not include quotations.
+
+IMPORTANT:
+Use the following subject line template strictly. Stick to the template strictly and do not deviate from the template:
+--- START TEMPLATE ---
+{subject_line}
+--- END TEMPLATE ---
 
 Output:""".format(
         subject_line=subject_line,
@@ -551,7 +543,7 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
             {"role": "system", "content": prompt},
         ],
         max_tokens=50,
-        temperature=0.65,
+        temperature=0.3,
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="EMAIL",
     )
