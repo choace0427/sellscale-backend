@@ -56,3 +56,16 @@ def get_current_company_specialties(data):
         )
 
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
+
+
+def get_current_company_industry(data):
+    # ___________ works in the _____________ industry
+    company_name = data.get("company", {}).get("details", {}).get("name")
+    company_industries = data.get("company", {}).get(
+        "details", {}).get("industries")
+
+    result = ", ".join(
+        company_industries[:-1]) + ", and " + company_industries[-1]
+    result = f"{company_name} works in the {result} industry"
+
+    return {"raw_data": {}, "prompt": "", "response": result}

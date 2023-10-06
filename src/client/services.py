@@ -1,5 +1,7 @@
 from enum import Enum
 import random
+from src.client.sdr.email.models import EmailType
+from src.client.sdr.email.services_email_bank import create_sdr_email_bank
 from src.client.sdr.services_client_sdr import (
     LINKEDIN_WARM_THRESHOLD,
     deactivate_sla_schedules,
@@ -154,7 +156,6 @@ def update_client_details(
 def update_client_sdr_details(
     client_sdr_id: int,
     name: Optional[str] = None,
-    email: Optional[str] = None,
     title: Optional[str] = None,
     disable_ai_on_prospect_respond: Optional[bool] = None,
     disable_ai_on_message_send: Optional[bool] = None,
@@ -167,8 +168,6 @@ def update_client_sdr_details(
 
     if name:
         csdr.name = name
-    if email:
-        csdr.email = email
     if title:
         csdr.title = title
     if disable_ai_on_prospect_respond is not None:
@@ -465,6 +464,12 @@ def create_client_sdr(client_id: int, name: str, email: str):
     create_sight_onboarding(sdr.id)
     create_unassigned_contacts_archetype(sdr.id)
 
+    create_sdr_email_bank(
+        client_sdr_id=sdr.id,
+        email_address=email,
+        email_type=EmailType.ANCHOR,
+    )
+
     # Load SLA schedules (will be generated with warmup SLA values)
     load_sla_schedules(sdr.id)
 
@@ -683,21 +688,6 @@ def update_client_sdr_scheduling_link(client_sdr_id: int, scheduling_link: str):
         return None
 
     sdr.scheduling_link = scheduling_link
-    db.session.add(sdr)
-    db.session.commit()
-
-    return True
-
-
-def update_client_sdr_email(client_sdr_id: int, email: str):
-    """
-    Update the email for a Client SDR
-    """
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not sdr:
-        return None
-
-    sdr.email = email
     db.session.add(sdr)
     db.session.commit()
 
@@ -1199,7 +1189,7 @@ def get_cta_stats(cta_id: int) -> dict:
 
     num_sent_and_converted_pair = db.session.execute(
         """
-        select 
+        select
             count(distinct generated_message.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') num_converted,
             count(distinct generated_message.prospect_id) filter (where prospect_status_records.to_status = 'ACCEPTED') num_converted
         from generated_message
@@ -3282,6 +3272,13 @@ def import_pre_onboarding(
     db.session.add(client_sdr)
 
     db.session.commit()
+
+    # Create a SDREmailBank for the SDR
+    create_sdr_email_bank(
+        client_sdr_id=client_sdr_id,
+        email_address=user_email_address,
+        email_type=EmailType.ANCHOR
+    )
 
     if len(missing_variables) > 0:
         return (

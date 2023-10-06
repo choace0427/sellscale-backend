@@ -39,6 +39,7 @@ from src.utils.converters.string_converters import clean_company_name
 from src.voice_builder.models import VoiceBuilderSamples
 from .extractors.current_company import (
     get_current_company_description,
+    get_current_company_industry,
     get_current_company_specialties,
 )
 from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
@@ -315,6 +316,11 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
                 ResearchPointType.COMMON_EDUCATION,
                 "common_education",
                 get_common_education,
+            ),
+            (
+                ResearchPointType.CURRENT_JOB_INDUSTRY,
+                "current_company_industry",
+                get_current_company_industry,
             ),
         ]
 

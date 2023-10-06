@@ -151,6 +151,12 @@ def get_all_research_point_types():
             "deprecated": False,
         },
         {
+            "transformer": ResearchPointType.CURRENT_JOB_INDUSTRY.value,
+            "description": "Extracts the industry of the current job",
+            "example": "The Coca-Cola Company works in the Food & Beverages industry",
+            "deprecated": False,
+        },
+        {
             "transformer": ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION.value,
             "description": "Extracts the description of the current experience",
             "example": "Founder of The Volta Group, an automotive coaching and training firm, focusing on sales growth and customer experience optimization",
