@@ -609,24 +609,7 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
             new_status=ProspectStatus.ACCEPTED,
         )
 
-        # Check if the message should be marked as scheduling based on the Generated Message CTA
-        approved_outreach_message_id = prospect.approved_outreach_message_id
-        gm: GeneratedMessage = GeneratedMessage.query.get(approved_outreach_message_id)
-        if gm:
-            gm_cta_id: int = gm.message_cta
-            gm_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(gm_cta_id)
-            if gm_cta and gm_cta.auto_mark_as_scheduling_on_acceptance:
-                update_prospect_status_linkedin(
-                    prospect_id=prospect.id,
-                    new_status=ProspectStatus.ACTIVE_CONVO,
-                    quietly=True
-                )
-                update_prospect_status_linkedin(
-                    prospect_id=prospect.id,
-                    new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
-                    footer_note="Note: Conversation marked as 'Scheduling' based on the CTA."
-                )
-                return
+        check_and_notify_for_auto_mark_scheduling(prospect_id=prospect_id)
 
         return
 
@@ -680,6 +663,47 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         prospect.hidden_until = dt.datetime.now()
         db.session.add(prospect)
         db.session.commit()
+
+
+def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    # Check if the message should be marked as scheduling based on the Generated Message CTA
+    approved_outreach_message_id = prospect.approved_outreach_message_id
+    gm: GeneratedMessage = GeneratedMessage.query.get(approved_outreach_message_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    if gm:
+        gm_cta_id: int = gm.message_cta
+        gm_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(gm_cta_id)
+        if gm_cta and gm_cta.auto_mark_as_scheduling_on_acceptance:
+            update_prospect_status_linkedin(
+                prospect_id=prospect.id,
+                new_status=ProspectStatus.ACTIVE_CONVO,
+                quietly=True,
+            )
+            update_prospect_status_linkedin(
+                prospect_id=prospect.id,
+                new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+                footer_note="Note: Conversation marked as 'Scheduling' based on the CTA.",
+            )
+
+            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                auth_token=client_sdr.auth_token, prospect_id=prospect_id
+            )
+            send_slack_message(
+                message=f"""
+                *🛎 New scheduling CTA accepted!*
+                ```
+                {gm.completion}
+                ```
+                
+                Please follow up with some times via the reply framework here:
+
+                *Direct Link:* {direct_link}
+                """,
+                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+            )
+            return
 
 
 def classify_active_convo(prospect_id: int, messages):
