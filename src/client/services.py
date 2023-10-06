@@ -1197,6 +1197,21 @@ def get_cta_stats(cta_id: int) -> dict:
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).all()
 
+    num_sent_and_converted_pair = db.session.execute(
+        """
+        select 
+            count(distinct generated_message.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') num_converted,
+            count(distinct generated_message.prospect_id) filter (where prospect_status_records.to_status = 'ACCEPTED') num_converted
+        from generated_message
+            join prospect_status_records on generated_message.prospect_id = prospect_status_records.prospect_id
+        where message_cta = {cta_id} and message_status = 'SENT'
+        """.format(
+            cta_id=cta_id
+        )
+    ).fetchall()
+    num_sent = num_sent_and_converted_pair[0][0]
+    num_converted = num_sent_and_converted_pair[0][1]
+
     # Get Prospect IDs
     prospect_id_set = set()
     for message in generated_messages:
@@ -1215,7 +1230,12 @@ def get_cta_stats(cta_id: int) -> dict:
         else:
             statuses_map[prospect.overall_status.value] += 1
 
-    return {"status_map": statuses_map, "total_count": len(prospects)}
+    return {
+        "status_map": statuses_map,
+        "total_count": len(prospects),
+        "num_sent": num_sent,
+        "num_converted": num_converted,
+    }
 
 
 def check_nylas_status(client_sdr_id: int) -> bool:
