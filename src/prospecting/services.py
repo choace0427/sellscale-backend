@@ -297,7 +297,7 @@ def get_prospects_for_icp_table(
             where prospect.archetype_id = {client_archetype_id}
                 and client_sdr.id = {client_sdr_id}
                 and prospect.overall_status <> 'REMOVED'
-            order by 
+            order by
                 {order_by}
                 1 asc
         """.format(
@@ -445,6 +445,7 @@ def update_prospect_status_linkedin(
     manually_send_to_purgatory: bool = False,
     quietly: Optional[bool] = False,
     override_status: Optional[bool] = False,
+    footer_note: Optional[str] = None,
 ) -> tuple[bool, str]:
     from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
     from src.daily_notifications.services import create_engagement_feed_item
@@ -543,13 +544,14 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
             engagement_metadata=message,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.LINKEDIN,
-            prospect=p,
-            new_status=ProspectStatus.ACTIVE_CONVO,
-            custom_message=" responded to your LinkedIn Invite! 🙌",
-            metadata=message,
-        )
+        if not quietly:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.LINKEDIN,
+                prospect=p,
+                new_status=ProspectStatus.ACTIVE_CONVO,
+                custom_message=" responded to your LinkedIn Invite! 🙌",
+                metadata=message,
+            )
 
     if new_status == ProspectStatus.SCHEDULING:
         create_engagement_feed_item(

@@ -117,33 +117,13 @@ def ai_initial_email_prompt(
 
 Write a personalized cold email with the following objective: {persona_contact_objective}
 
-Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
-
-Stick to the template strictly:
---- START TEMPLATE ---
-{template}
---- END TEMPLATE ---
+Write an initial email using the template and only include the personalization information if is is in the template. Stick to the template strictly.
 
 Note - you do not need to include all info.
 
 SDR info --
 SDR Name: {client_sdr_name}
 Title: {client_sdr_title}
-
-Company info --
-Tagline: {company_tagline}
-Company description: {company_description}
-
-Useful data --
-{value_prop_key_points}
-
-Tone: {company_tone}
-
-Persona info --
-Name: {persona_name}
-
-Why they buy --
-{persona_buy_reason}
 
 Prospect info --
 Prospect Name: {prospect_name}
@@ -162,6 +142,12 @@ Final instructions
 - Feel free to use markdown formatting to make the email look better.
 
 Generate the email body. Do not include the word 'Subject:' or 'Email:' in the output.
+
+IMPORTANT:
+Stick to the template very strictly. Do not deviate from the template:
+--- START TEMPLATE ---
+{template}
+--- END TEMPLATE ---
 
 Output:""".format(
         template=template,
@@ -224,7 +210,11 @@ def ai_followup_email_prompt(
     # TODO: Eventually have intelligent systems that can handle automatically responding to prospect replies.
     if (
         prospect.overall_status
-        not in [ProspectOverallStatus.SENT_OUTREACH, ProspectOverallStatus.BUMPED, ProspectOverallStatus.ACCEPTED]
+        not in [
+            ProspectOverallStatus.SENT_OUTREACH,
+            ProspectOverallStatus.BUMPED,
+            ProspectOverallStatus.ACCEPTED,
+        ]
         and override_sequence_id is None
         and override_template is None
     ):
@@ -284,13 +274,15 @@ def ai_followup_email_prompt(
         template = override_template
     else:
         # Get the template from the sequence step
-        if prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH:
+        if prospect.overall_status in [
+            ProspectOverallStatus.SENT_OUTREACH,
+            ProspectOverallStatus.ACCEPTED,
+        ]:
             sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
                 EmailSequenceStep.client_sdr_id == client_sdr_id,
                 EmailSequenceStep.client_archetype_id == client_archetype.id,
                 EmailSequenceStep.active == True,
-                EmailSequenceStep.default == True,
-                EmailSequenceStep.overall_status == ProspectOverallStatus.SENT_OUTREACH,
+                EmailSequenceStep.overall_status == ProspectOverallStatus.ACCEPTED,
                 EmailSequenceStep.template != None,
             ).first()
             if sequence_step is not None:
@@ -306,7 +298,6 @@ def ai_followup_email_prompt(
                 EmailSequenceStep.client_sdr_id == client_sdr_id,
                 EmailSequenceStep.client_archetype_id == client_archetype.id,
                 EmailSequenceStep.active == True,
-                EmailSequenceStep.default == True,
                 EmailSequenceStep.overall_status == ProspectOverallStatus.BUMPED,
                 EmailSequenceStep.bumped_count == prospect_email.times_bumped,
                 EmailSequenceStep.template != None,
@@ -319,60 +310,21 @@ def ai_followup_email_prompt(
                     webhook_urls=[URL_MAP["operations-auto-bump-email"]],
                 )
                 return None
-        elif prospect.overall_status == ProspectOverallStatus.ACCEPTED:
-            sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
-                EmailSequenceStep.client_sdr_id == client_sdr_id,
-                EmailSequenceStep.client_archetype_id == client_archetype.id,
-                EmailSequenceStep.active == True,
-                EmailSequenceStep.default == True,
-                EmailSequenceStep.overall_status == ProspectOverallStatus.ACCEPTED,
-                EmailSequenceStep.template != None,
-            ).first()
-            if sequence_step is not None:
-                template = sequence_step.template
-            else:
-                send_slack_message(
-                    message=f"⚠️ No sequence step found for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status=ACCEPTED",
-                    webhook_urls=[URL_MAP["operations-auto-bump-email"]],
-                )
-                return None
 
     send_slack_message(
-        message=f"About to use template for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status={prospect.overall_status} & bumped_count={prospect_email.times_bumped if prospect_email else 'NONE'}\n'{template}'",
+        message=f"About to use template for archetype '{client_archetype.archetype}' for SDR '{client_sdr.name}'. status={prospect.overall_status} & bumped_count={prospect_email.times_bumped if prospect_email else 'None'}\n'{template}'",
         webhook_urls=[URL_MAP["operations-auto-bump-email"]],
     )
 
     prompt = """You are a sales development representative writing on behalf of the salesperson.
 
-Write a follow up email to the previous email. The followup email should use information about the recipient in a highly personalized manner.
-
-Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
-
-Stick to the template strictly:
---- START TEMPLATE ---
-{template}
---- END TEMPLATE ---
+Write a follow up email to the previous email using the template and only include the information if is is in the template. Stick to the template strictly.
 
 Note - you do not need to include all info.
 
 SDR info --
 SDR Name: {client_sdr_name}
 Title: {client_sdr_title}
-
-Company info --
-Tagline: {company_tagline}
-Company description: {company_description}
-
-Useful data --
-{value_prop_key_points}
-
-Tone: {company_tone}
-
-Persona info --
-Name: {persona_name}
-
-Why they buy --
-{persona_buy_reason}
 
 Prospect info --
 Prospect Name: {prospect_name}
@@ -385,17 +337,20 @@ More research --
 {prospect_research}
 {research_points}
 
-Past thread
---- START THREAD ---
-{past_threads}
---- END THREAD ---
-
 Final instructions
 - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed"
 - Preserve the markdown formatting.
 - Feel free to use markdown formatting to make the email look better.
 
 Generate the email body. Do not include the word 'Subject:' or 'Email:' in the output.
+
+Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
+
+IMPORTANT:
+Stick to the template very strictly. Do not change this template at all. Do not deviate from the template:
+--- START TEMPLATE ---
+{template}
+--- END TEMPLATE ---
 
 Output:""".format(
         template=template,
@@ -414,7 +369,7 @@ Output:""".format(
         prospect_research=account_points,
         research_points=research_points,
         persona_contact_objective=prospect_contact_objective,
-        past_threads='', # TODO: email_transcript
+        past_threads="",  # TODO: email_transcript
     )
 
     return prompt
@@ -434,7 +389,7 @@ def generate_email(prompt: str) -> dict[str, str]:
             {"role": "system", "content": prompt},
         ],
         max_tokens=400,
-        temperature=0.65,
+        temperature=0.3,
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="EMAIL",
     )
@@ -510,40 +465,11 @@ def ai_subject_line_prompt(
     elif test_template is not None:
         subject_line = test_template
 
-    prompt = """You are a sales development representative writing on behalf of the salesperson.
-
-Write an email subject line for the following email body. The subject line should be captivating and should entice the recipient to open the email.
-
-Use the following template. Stick to the template strictly:
---- START TEMPLATE ---
-{subject_line}
---- END TEMPLATE ---
-
-Here's the email body:
---- START EMAIL BODY ---
-{email_body}
---- END EMAIL BODY ---
-
-The following information is to help you, but is not neccessary to include in the subject line.
+    prompt = """You are a sales development representative writing a subject line on behalf of the salesperson.
 
 SDR info --
 SDR Name: {client_sdr_name}
 Title: {client_sdr_title}
-
-Company info --
-Tagline: {company_tagline}
-Company description: {company_description}
-
-Useful data --
-{value_prop_key_points}
-
-Tone: {company_tone}
-
-Persona info --
-Name: {persona_name}
-
-Why they buy --
-{persona_buy_reason}
 
 Prospect info --
 Prospect Name: {prospect_name}
@@ -557,6 +483,12 @@ More research --
 {research_points}
 
 Generate the email subject line. Do not include the word 'Subject:' in the output. Do not include quotations.
+
+IMPORTANT:
+Use the following subject line template strictly. Stick to the template strictly and do not deviate from the template:
+--- START TEMPLATE ---
+{subject_line}
+--- END TEMPLATE ---
 
 Output:""".format(
         subject_line=subject_line,
@@ -595,7 +527,7 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
             {"role": "system", "content": prompt},
         ],
         max_tokens=50,
-        temperature=0.65,
+        temperature=0.3,
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="EMAIL",
     )

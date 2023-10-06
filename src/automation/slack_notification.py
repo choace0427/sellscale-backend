@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 from model_import import (
     ProspectStatus,
     ProspectChannels,
@@ -22,6 +22,7 @@ def send_status_change_slack_block(
     custom_message: str,
     metadata: dict = None,
     last_email_message: str = None,
+    footer_note: Optional[str] = None,
 ) -> None:
     """Sends a status change message to the appropriate slack channel
 
@@ -31,6 +32,8 @@ def send_status_change_slack_block(
         new_status (ProspectStatus | ProspectEmailOutreachStatus): The new status
         status_suffix (str): The suffix to add to the title, regarding the status
         metadata (dict, optional): Metadata. Defaults to None.
+        last_email_message (str, optional): The last email message. Defaults to None.
+        footer_note (str, optional): The footer note. Defaults to None.
 
     Raises:
         ValueError: Raise a ValueError if the status doesn't belong to the outreach type
@@ -205,6 +208,21 @@ def send_status_change_slack_block(
                         },
                     }
                 )
+
+    if footer_note:
+        message_blocks.append(
+            {  # Add footer note
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "plain_text",
+                        "text": footer_note,
+                        "emoji": True,
+                    }
+                ],
+            }
+        )
+
 
     channel_text = "Email" if outreach_type == ProspectChannels.EMAIL else "LinkedIn"
     message_blocks.append(

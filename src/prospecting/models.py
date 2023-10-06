@@ -505,9 +505,9 @@ class Prospect(db.Model):
         from src.research.models import ResearchPayload, ResearchType
 
         # Get prospect email status if it exists
-        p_email: ProspectEmail = ProspectEmail.query.filter_by(
-            prospect_id=self.id
-        ).first()
+        p_email: ProspectEmail = ProspectEmail.query.get(
+            self.approved_prospect_email_id
+        )
         p_email_status = None
         if p_email and p_email.outreach_status:
             p_email_status = p_email.outreach_status.value

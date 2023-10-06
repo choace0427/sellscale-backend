@@ -619,10 +619,12 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
                 update_prospect_status_linkedin(
                     prospect_id=prospect.id,
                     new_status=ProspectStatus.ACTIVE_CONVO,
+                    quietly=True
                 )
                 update_prospect_status_linkedin(
                     prospect_id=prospect.id,
                     new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+                    footer_note="Note: Conversation marked as 'Scheduling' based on the CTA."
                 )
                 return
 

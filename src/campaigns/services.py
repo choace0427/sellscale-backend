@@ -1188,7 +1188,10 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if client_sdr.auto_send_campaigns_enabled:
+    if (
+        client_sdr.auto_send_campaigns_enabled
+        and campaign.campaign_type == GeneratedMessageType.LINKEDIN
+    ):
         mark_prospects_as_queued_for_outreach(
             prospect_ids=prospect_ids,
             client_sdr_id=client_sdr_id,

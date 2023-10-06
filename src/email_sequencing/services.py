@@ -4,7 +4,12 @@ from src.message_generation.services import add_generated_msg_queue
 from src.prospecting.nylas.services import nylas_get_messages, nylas_send_email
 from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.utils.slack import send_slack_message, URL_MAP
-from model_import import EmailSequenceStep, EmailSubjectLineTemplate, ProspectEmail, ProspectEmailStatusRecords
+from model_import import (
+    EmailSequenceStep,
+    EmailSubjectLineTemplate,
+    ProspectEmail,
+    ProspectEmailStatusRecords,
+)
 from app import db, celery
 from src.client.models import ClientArchetype, ClientSDR, Prospect
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
@@ -13,6 +18,7 @@ from sqlalchemy.sql.expression import func, or_
 import datetime
 from sqlalchemy.orm import joinedload
 import markdown
+
 
 def get_email_sequence_step_for_sdr(
     client_sdr_id: int,
@@ -126,17 +132,13 @@ def create_email_sequence_step(
         int: The id of the newly created email sequence
     """
     if default:
-        all_sequence_steps: list[
-            EmailSequenceStep
-        ] = EmailSequenceStep.query.filter_by(
+        all_sequence_steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter_by(
             client_sdr_id=client_sdr_id,
             client_archetype_id=client_archetype_id,
             overall_status=overall_status,
         )
         if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
-            all_sequence_steps = all_sequence_steps.filter_by(
-                bumped_count=bumped_count
-            )
+            all_sequence_steps = all_sequence_steps.filter_by(bumped_count=bumped_count)
         all_sequence_steps = all_sequence_steps.all()
         for sequence_step in all_sequence_steps:
             sequence_step.default = False
@@ -326,6 +328,18 @@ def create_email_subject_line_template(
     Returns:
         int: The id of the newly created email subject line template
     """
+    # Mark all other email subject line templates as inactive
+    if active:
+        all_templates: list[
+            EmailSubjectLineTemplate
+        ] = EmailSubjectLineTemplate.query.filter(
+            EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
+            EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
+        ).all()
+        for t in all_templates:
+            t.active = False
+            db.session.add(t)
+
     # Create the email subject line template
     template = EmailSubjectLineTemplate(
         client_sdr_id=client_sdr_id,
@@ -372,6 +386,17 @@ def modify_email_subject_line_template(
         template.subject_line = subject_line
 
     if active is not None:
+        # If active, then we also deactivate all other email subject line templates
+        if active:
+            all_templates: list[
+                EmailSubjectLineTemplate
+            ] = EmailSubjectLineTemplate.query.filter(
+                EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
+                EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
+            ).all()
+            for t in all_templates:
+                t.active = False
+
         template.active = active
 
     db.session.commit()
@@ -425,12 +450,12 @@ def activate_email_subject_line_template(
 
 
 def generate_prospect_email_bump(
-        client_sdr_id: int,
-        prospect_id: int,
-        thread_id: int,
-        override_sequence_id: Optional[int] = None,
-        override_template: Optional[str] = None
-    ):
+    client_sdr_id: int,
+    prospect_id: int,
+    thread_id: int,
+    override_sequence_id: Optional[int] = None,
+    override_template: Optional[str] = None,
+):
     """Generates a follow up email message for a prospect
 
     Args:
@@ -438,36 +463,40 @@ def generate_prospect_email_bump(
         prospect_id (int): Prospect ID
         thread_id (int): Email Thread ID
     """
-    from src.message_generation.email.services import ai_followup_email_prompt, generate_email
+    from src.message_generation.email.services import (
+        ai_followup_email_prompt,
+        generate_email,
+    )
 
-    try:
+    # try:
 
-        prompt = ai_followup_email_prompt(
-            client_sdr_id=client_sdr_id,
-            prospect_id=prospect_id,
-            thread_id=thread_id,
-            override_sequence_id=override_sequence_id,
-            override_template=override_template
-        )
-        if not prompt: return None
-
-        email_body = generate_email(prompt)
-        email_body = email_body.get('body')
-
-        return { 'prompt': prompt, 'completion': email_body }
-
-    except Exception as e:
-        send_slack_message(
-            message=f"🛑 *Error occurred:* '{e}'",
-            webhook_urls=[URL_MAP["operations-auto-bump-email"]],
-        )
+    prompt = ai_followup_email_prompt(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        thread_id=thread_id,
+        override_sequence_id=override_sequence_id,
+        override_template=override_template,
+    )
+    if not prompt:
         return None
+
+    email_body = generate_email(prompt)
+    email_body = email_body.get("body")
+
+    return {"prompt": prompt, "completion": email_body}
+
+    # except Exception as e:
+    #     send_slack_message(
+    #         message=f"🛑 *Error occurred:* '{e}'",
+    #         webhook_urls=[URL_MAP["operations-auto-bump-email"]],
+    #     )
+    #     return None
 
 
 @celery.task
 def generate_email_bumps():
 
-    BUMP_DELAY_DAYS = 3 # TODO: Hardcoded for now, but should be a setting in steps
+    BUMP_DELAY_DAYS = 3  # TODO: Hardcoded for now, but should be a setting in steps
 
     # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
     sdrs: List[ClientSDR] = (
@@ -475,7 +504,7 @@ def generate_email_bumps():
             ClientSDR.active == True,
             ClientSDR.auto_generate_messages == True,
             ClientSDR.auto_bump == True,
-            ClientSDR.id == 34, # temp
+            ClientSDR.id.in_([103]),
         )
         .order_by(func.random())
         .all()
@@ -496,6 +525,7 @@ def generate_email_bumps():
                 Prospect.hidden_until <= datetime.datetime.utcnow(),
             ),
             Prospect.active == True,
+            Prospect.approved_prospect_email_id != None,
         ).all()
         # ).join(ProspectEmail).filter(
         #     ProspectEmail.outreach_status.in_(
@@ -519,7 +549,6 @@ def generate_email_bumps():
             if archetype.is_unassigned_contact_archetype:
                 continue
 
-
             # Get the prospect email
             prospect_email: ProspectEmail = ProspectEmail.query.get(
                 prospect.approved_prospect_email_id
@@ -536,8 +565,10 @@ def generate_email_bumps():
                     # Get the first status record
                     status_record: ProspectEmailStatusRecords = (
                         ProspectEmailStatusRecords.query.filter(
-                            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id,
-                            ProspectEmailStatusRecords.to_status == ProspectEmailOutreachStatus.ACCEPTED,
+                            ProspectEmailStatusRecords.prospect_email_id
+                            == prospect_email.id,
+                            ProspectEmailStatusRecords.to_status
+                            == ProspectEmailOutreachStatus.ACCEPTED,
                         )
                         .order_by(ProspectEmailStatusRecords.created_at.asc())
                         .first()
@@ -554,12 +585,16 @@ def generate_email_bumps():
                 # Check if last message that was sent out was over X days ago
                 from model_import import EmailConversationMessage
 
-                latest_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
-                    prospect_id=prospect.id
-                ).order_by(EmailConversationMessage.date_received.desc()).first()
+                latest_message: EmailConversationMessage = (
+                    EmailConversationMessage.query.filter_by(prospect_id=prospect.id)
+                    .order_by(EmailConversationMessage.date_received.desc())
+                    .first()
+                )
                 if latest_message:
-                    if (datetime.datetime.utcnow() - latest_message.date_received).days < BUMP_DELAY_DAYS:
-                        #print(f"Skipping bump for prospect #{prospect.id} because last message was sent less than {BUMP_DELAY_DAYS} days ago")
+                    if (
+                        datetime.datetime.utcnow() - latest_message.date_received
+                    ).days < BUMP_DELAY_DAYS:
+                        # print(f"Skipping bump for prospect #{prospect.id} because last message was sent less than {BUMP_DELAY_DAYS} days ago")
                         continue
 
             # Generate the email bump
@@ -568,7 +603,8 @@ def generate_email_bumps():
                 prospect_id=prospect.id,
                 thread_id=prospect_email.nylas_thread_id,
             )
-            if not data: continue
+            if not data:
+                continue
 
             # Get last message of thread to reply to
             messages = nylas_get_messages(
@@ -576,10 +612,14 @@ def generate_email_bumps():
                 prospect_id=prospect.id,
                 thread_id=prospect_email.nylas_thread_id,
             )
-            last_message = messages[-1] if len(messages) > 0 else { "body": "", "nylas_message_id": None }
+            last_message = (
+                messages[-1]
+                if len(messages) > 0
+                else {"body": "", "nylas_message_id": None}
+            )
 
             # Convert completion markdown to body html
-            body = markdown.markdown(data.get("completion").replace('\n', '<br/>'))
+            body = markdown.markdown(data.get("completion").replace("\n", "<br/>"))
 
             # Send the email
             result = nylas_send_email(
@@ -593,7 +633,8 @@ def generate_email_bumps():
             nylas_message_id = result.get("id")
             if isinstance(nylas_message_id, str):
                 add_generated_msg_queue(
-                    client_sdr_id=prospect.client_sdr_id, nylas_message_id=nylas_message_id
+                    client_sdr_id=prospect.client_sdr_id,
+                    nylas_message_id=nylas_message_id,
                 )
 
             # IMPORTANT: this short circuits this loop if we successfully generate a bump
@@ -690,7 +731,7 @@ def generate_email_bumps():
                 # Set status to bumped
                 update_prospect_email_outreach_status(
                     prospect_email_id=prospect_email.id,
-                    new_status=ProspectEmailOutreachStatus.BUMPED
+                    new_status=ProspectEmailOutreachStatus.BUMPED,
                 )
 
                 # Increase times bumped
