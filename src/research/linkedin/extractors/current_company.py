@@ -64,8 +64,13 @@ def get_current_company_industry(data):
     company_industries = data.get("company", {}).get(
         "details", {}).get("industries")
 
-    result = ", ".join(
-        company_industries[:-1]) + ", and " + company_industries[-1]
-    result = f"{company_name} works in the {result} industry"
+    if (len(company_industries) == 1):
+        result = company_industries[0]
+    elif (len(company_industries) == 2):
+        result = " and ".join(company_industries)
+    else:
+      result = ", ".join(company_industries[:-1]) + ", and " + company_industries[-1]
+    
+    result = f"{company_name} works in the {result.lower()} industry"
 
     return {"raw_data": {}, "prompt": "", "response": result}
