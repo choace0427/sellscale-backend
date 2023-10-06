@@ -9,6 +9,7 @@ from model_import import (
     ProspectOverallStatus,
 )
 from src.client.models import DemoFeedback
+from src.client.sdr.email.services_email_bank import nylas_exchange_for_authorization_code
 from test_utils import (
     test_app,
     basic_client,
@@ -34,7 +35,6 @@ from src.client.services import (
     get_cta_by_archetype_id,
     get_client_sdr,
     get_sdr_available_outbound_channels,
-    nylas_exchange_for_authorization_code,
     submit_demo_feedback,
 )
 import json
@@ -486,7 +486,7 @@ def test_get_sdr_available_outbound_channels():
 
 @use_app_context
 @mock.patch(
-    "src.client.services.post_nylas_oauth_token",
+    "src.client.sdr.email.services_email_bank.post_nylas_oauth_token",
     return_value={
         "access_token": "test_token",
         "account_id": "test_id",

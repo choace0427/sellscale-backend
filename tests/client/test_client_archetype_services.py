@@ -36,8 +36,8 @@ from src.client.services import (
     get_cta_by_archetype_id,
     get_client_sdr,
     get_sdr_available_outbound_channels,
-    nylas_exchange_for_authorization_code,
 )
+
 import json
 import mock
 
