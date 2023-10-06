@@ -88,6 +88,13 @@ def create_sdr_email_bank(
     Returns:
         int: ID of the created email bank
     """
+    duplicate: SDREmailBank = SDREmailBank.query.filter(
+        SDREmailBank.email_address == email_address
+    ).first()
+
+    if duplicate:
+        return duplicate.id
+
     email_bank = SDREmailBank(
         client_sdr_id=client_sdr_id,
         email_address=email_address,

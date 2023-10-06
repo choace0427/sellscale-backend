@@ -39,7 +39,6 @@ from src.client.services import (
     clear_nylas_tokens,
     populate_single_prospect_event,
     nylas_account_details,
-    update_client_sdr_email,
     update_client_sdr_scheduling_link,
     update_client_pipeline_notification_webhook,
     update_client_sdr_pipeline_notification_webhook,
@@ -466,7 +465,6 @@ def get_sdr(client_sdr_id: int):
 @require_user
 def patch_sdr(client_sdr_id: int):
     name = get_request_parameter("name", request, json=True, required=False)
-    email = get_request_parameter("email", request, json=True, required=False)
     title = get_request_parameter("title", request, json=True, required=False)
 
     ai_outreach = get_request_parameter(
@@ -498,7 +496,6 @@ def patch_sdr(client_sdr_id: int):
     success = update_client_sdr_details(
         client_sdr_id=client_sdr_id,
         name=name,
-        email=email,
         title=title,
         disable_ai_on_prospect_respond=disable_ai_on_prospect_respond,
         disable_ai_on_message_send=disable_ai_on_message_send,
@@ -801,20 +798,6 @@ def patch_update_scheduling_link(client_sdr_id: int):
         return jsonify({"error": "Failed to update scheduling link"}), 404
 
     return jsonify({"message": "Scheduling link updated"}), 200
-
-
-@CLIENT_BLUEPRINT.route("/sdr/update_email", methods=["PATCH"])
-def patch_update_sdr_email():
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
-    )
-    email = get_request_parameter("email", request, json=True, required=True)
-
-    success = update_client_sdr_email(client_sdr_id=client_sdr_id, email=email)
-
-    if not success:
-        return "Failed to update email", 404
-    return "OK", 200
 
 
 @CLIENT_BLUEPRINT.route("/sdr/get_available_outbound_channels", methods=["GET"])
