@@ -60,6 +60,7 @@ from model_import import (
 from src.automation.models import PhantomBusterSalesNavigatorConfig, PhantomBusterSalesNavigatorLaunch, SalesNavigatorLaunchStatus
 from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
 from src.client.models import SLASchedule
+from src.client.sdr.email.models import EmailType, SDREmailBank
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
@@ -84,6 +85,7 @@ def test_app():
         )
 
     with app.app_context():
+        clear_all_entities(SDREmailBank)
         clear_all_entities(JunctionBumpFrameworkClientArchetype)
         clear_all_entities(EngagementFeedItem)
         clear_all_entities(Echo)
@@ -854,6 +856,30 @@ def basic_sla_schedule(
     db.session.commit()
 
     return schedule
+
+
+def basic_sdr_email_bank(
+    client_sdr: ClientSDR,
+    active: Optional[bool] = True,
+    email_address: Optional[str] = "test_email_address",
+    email_type: Optional[EmailType] = EmailType.ANCHOR,
+    nylas_auth_code: Optional[str] = "test_nylas_auth_code",
+    nylas_account_id: Optional[str] = "test_nylas_account_id",
+    nylas_active: Optional[bool] = True,
+) -> SDREmailBank:
+    email_bank: SDREmailBank = SDREmailBank(
+        client_sdr_id=client_sdr.id,
+        active=active,
+        email_address=email_address,
+        email_type=email_type,
+        nylas_auth_code=nylas_auth_code,
+        nylas_account_id=nylas_account_id,
+        nylas_active=nylas_active,
+    )
+    db.session.add(email_bank)
+    db.session.commit()
+
+    return email_bank
 
 
 def clear_all_entities(SQLAlchemyObject):

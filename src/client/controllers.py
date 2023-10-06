@@ -2,6 +2,7 @@ from crypt import methods
 from typing import Optional
 from flask import Blueprint, request, jsonify
 from numpy import require
+from src.client.sdr.email.services_email_bank import nylas_exchange_for_authorization_code
 from src.client.sdr.services_client_sdr import update_sdr_blacklist_words
 from src.personas.services import (
     clone_persona,
@@ -64,7 +65,6 @@ from src.client.services import (
     get_transformers_by_archetype_id,
     get_all_uploads_by_archetype_id,
     toggle_client_sdr_autopilot_enabled,
-    nylas_exchange_for_authorization_code,
     get_unused_linkedin_and_email_prospect_for_persona,
     update_persona_brain_details,
     predict_persona_fit_reason,
