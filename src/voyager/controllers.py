@@ -132,6 +132,12 @@ def send_message(client_sdr_id: int):
         parameter_type=list,
     )
 
+    send_sent_by_sellscale_notification(
+        prospect_id=prospect_id,
+        message=msg,
+        bump_framework_id=bf_id,
+    )
+
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
     msg_urn_id = api.send_message(msg, recipients=[urn_id])
@@ -155,12 +161,6 @@ def send_message(client_sdr_id: int):
         send_to_purgatory(prospect_id, bump_delay, ProspectHiddenReason.RECENTLY_BUMPED)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
-
-    send_sent_by_sellscale_notification(
-        prospect_id=prospect_id,
-        message=msg,
-        bump_framework_id=bf_id,
-    )
 
     return jsonify({"message": "Sent message"}), 200
 
