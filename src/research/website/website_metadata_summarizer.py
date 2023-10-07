@@ -154,7 +154,7 @@ def process_cache_and_print_website(url: str):
     if cached_website_details:
         print(f"Found cached website details for {url}.")
         print(cached_website_details)
-        return
+        return cached_website_details
 
     # If we don't have a cached version, fetch the website details
     website_details: dict = get_website_details(url)
@@ -164,8 +164,5 @@ def process_cache_and_print_website(url: str):
 
     # Cache the website details
     cache_website_details(url, website_details)
-
-    # Print the website details
-    print(json.dumps(website_details, indent=4))
 
     return website_details
