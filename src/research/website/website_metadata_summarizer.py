@@ -167,3 +167,5 @@ def process_cache_and_print_website(url: str):
 
     # Print the website details
     print(json.dumps(website_details, indent=4))
+
+    return website_details

@@ -8,6 +8,9 @@ from src.research.linkedin.iscraper import (
     get_linkedin_link_from_iscraper,
 )
 from src.research.models import ResearchPoints
+from src.research.website.website_metadata_summarizer import (
+    process_cache_and_print_website,
+)
 
 from src.utils.request_helpers import get_request_parameter
 from src.research.services import (
@@ -159,6 +162,7 @@ def get_account_research_points_endpoint(client_sdr_id: int):
 
     return jsonify(get_account_research_points_by_prospect_id(prospect_id=prospect_id))
 
+
 @RESEARCH_BLUEPRINT.route("/account_research_points/inputs", methods=["GET"])
 @require_user
 def get_account_research_points_inputs_endpoint(client_sdr_id: int):
@@ -245,3 +249,11 @@ def get_research_point_acceptance_rates(client_sdr_id: int):
     data = research_point_acceptance_rate()
 
     return jsonify({"message": "Success", "data": data}), 200
+
+
+@RESEARCH_BLUEPRINT.route("/generate_website_metadata", methods=["POST"])
+def get_website_metadata():
+    url = get_request_parameter("url", request, json=True, required=True)
+
+    metadata = process_cache_and_print_website(url)
+    return jsonify(metadata), 200
