@@ -44,6 +44,13 @@ def process_deltas_message_opened(
 def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[bool, str]:
     """Process a single `message.opened` delta from a Nylas webhook notification.
 
+    The system for updating an entire thread can be complex:
+    1. Get the message ID from the delta
+    2. Update the message
+    3. Get the thread ID from the message
+    4. Update the thread
+    This situation can occur if we process a message.opened before a message.created, which is bound to happen.
+
     Args:
         delta (dict): A single `message.opened` delta from a Nylas webhook notification.
         payload_id (int): The ID of the NylasWebhookPayloads entry that contains the webhook original payload.
@@ -134,34 +141,25 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             nylas_payload.processing_fail_reason = "Failed to update thread"
             db.session.commit()
             return False, "Failed to update thread"
-        convo_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
-            client_sdr_id=client_sdr.id,
-            prospect_id=prospect_id,
-        ).first()
-        if not convo_thread:
-            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "No conversation thread found"
-            db.session.commit()
-            return False, "No conversation thread found"
 
-        # Update and get the messages
+        # Get the id of the message, update and get the message
+        message_id: str = metadata.get("message_id")
         success = nylas_update_messages(
             client_sdr_id=client_sdr.id,
             nylas_account_id=account_id,
             prospect_id=prospect_id,
-            thread_id=convo_thread.nylas_thread_id,
+            message_ids=[message_id]
         )
         if not success:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
             nylas_payload.processing_fail_reason = "Failed to update messages"
             db.session.commit()
             return False, "Failed to update messages"
-
-        # Get the id of the message
-        message_id: str = metadata.get("message_id")
         convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
             nylas_message_id=message_id
         ).first()
+
+        # Get the thread information
         if not convo_message:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
             nylas_payload.processing_fail_reason = "No message found"
@@ -175,6 +173,20 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             nylas_payload.processing_fail_reason = "No conversation thread found"
             db.session.commit()
             return False, "No conversation thread found"
+
+        # Update the messages based on thread ID.
+        success = nylas_update_messages(
+            client_sdr_id=client_sdr.id,
+            nylas_account_id=account_id,
+            prospect_id=prospect_id,
+            thread_id=convo_thread.nylas_thread_id
+        )
+        if not success:
+            nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
+            nylas_payload.processing_fail_reason = "Failed to update all messages in the thread"
+            db.session.commit()
+            return False, "Failed to update all messages in the thread"
+
 
         # Check that the information is correct:
         # 1. ClientSDR ID in payload matches ClientSDR ID in delta

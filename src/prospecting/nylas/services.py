@@ -400,109 +400,26 @@ def nylas_update_messages(
     if res.status_code != 200:
         return False
 
-    result: list[dict] = res.json()
+    result = res.json()
 
     # Update existing or create new messages
-    for message in result:
-        existing_message: EmailConversationMessage = (
-            EmailConversationMessage.query.filter_by(
-                nylas_message_id=message.get("id")
-            ).first()
+    if type(result) == dict:
+        process_nylas_update_message_result(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            email_bank_id=email_bank.id,
+            message=result,
         )
-
-        # Get existing thread (one should exist)
-        existing_thread: EmailConversationThread = (
-            EmailConversationThread.query.filter_by(
-                nylas_thread_id=message.get("thread_id")
-            ).first()
-        )
-        if not existing_thread:
-            raise Exception(
-                f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}'
-            )
-
-        # Update existing message
-        if existing_message:
-            # Convert time-since-epoch into datetime objects
-            date_received = existing_message.date_received
-            if message.get("date"):
-                date_received = datetime.fromtimestamp(
-                    message.get("date", existing_message.date_received) or 0,
-                    tz=timezone.utc,
-                )
-
-            existing_message.subject = message.get(
-                "subject", existing_message.subject)
-            existing_message.snippet = message.get(
-                "snippet", existing_message.snippet)
-            existing_message.body = message.get("body", existing_message.body)
-            existing_message.bcc = message.get("bcc", existing_message.bcc)
-            existing_message.cc = message.get("cc", existing_message.cc)
-            existing_message.date_received = date_received
-            existing_message.files = message.get(
-                "files", existing_message.files)
-            existing_message.message_from = message.get(
-                "from", existing_message.message_from
-            )
-            existing_message.message_to = message.get(
-                "to", existing_message.message_to)
-            existing_message.reply_to = message.get(
-                "reply_to", existing_message.reply_to
-            )
-            existing_message.nylas_message_id = message.get(
-                "id", existing_message.nylas_message_id
-            )
-            existing_message.nylas_data_raw = message
-
-        # Add new message
-        if not existing_message:
-            # Check if message is from SDR
-            message_from_prospect = False
-            message_from_sdr = False
-            messages_from: list[dict] = message.get("from")
-            for message_from in messages_from:
-                message_from_email = message_from.get("email")
-                if message_from_email == prospect.email:
-                    message_from_prospect = True
-                elif email_belongs_to_sdr(message_from_email):
-                    message_from_sdr = True
-
-            # Convert time-since-epoch into datetime objects
-            date_received = None
-            if message.get("date"):
-                date_received = datetime.fromtimestamp(
-                    message.get("date", 0) or 0, tz=timezone.utc
-                )
-
-            new_message: EmailConversationMessage = EmailConversationMessage(
+    elif type(result) == list:
+        for message in result:
+            process_nylas_update_message_result(
                 client_sdr_id=client_sdr_id,
                 prospect_id=prospect_id,
-                prospect_email=prospect.email,
-                sdr_email=email_bank.email_address,
-                from_sdr=message_from_sdr,
-                from_prospect=message_from_prospect,
-                subject=message.get("subject"),
-                snippet=message.get("snippet"),
-                body=message.get("body"),
-                bcc=message.get("bcc"),
-                cc=message.get("cc"),
-                date_received=date_received,
-                files=message.get("files"),
-                message_from=message.get("from"),
-                message_to=message.get("to"),
-                reply_to=message.get("reply_to"),
-                email_conversation_thread_id=existing_thread.id,
-                nylas_message_id=message.get("id"),
-                nylas_data_raw=message,
-                nylas_thread_id=message.get("thread_id"),
+                email_bank_id=email_bank.id,
+                message=message,
             )
-            db.session.add(new_message)
-
-            # Increment unread messages
-            prospect.email_unread_messages = prospect.email_unread_messages + \
-                1 if prospect.email_unread_messages else 1
-
-    db.session.commit()
+    else:
+        return False
 
     # Get the latest message and update the prospect accordingly
     latest_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
@@ -512,6 +429,127 @@ def nylas_update_messages(
     prospect.email_is_last_message_from_sdr = latest_message.from_sdr
     prospect.email_last_message_from_prospect = None if latest_message.from_sdr else latest_message.body
     prospect.email_last_message_from_sdr = latest_message.body if latest_message.from_sdr else None
+
+    db.session.commit()
+
+    return True
+
+
+def process_nylas_update_message_result(client_sdr_id: int, prospect_id: int, email_bank_id: int, message: dict) -> bool:
+    """Processes the result of a Nylas update message call.
+
+    Args:
+        client_sdr_id (int): ID of the ClientSDR
+        prospect_id (int): ID of the Prospect
+        email_bank_id (int): ID of the email bank
+        message (dict): Message from Nylas
+
+    Returns:
+        bool: Whether the processing was successful
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+
+    existing_message: EmailConversationMessage = (
+        EmailConversationMessage.query.filter_by(
+            nylas_message_id=message.get("id")
+        ).first()
+    )
+
+    # Get existing thread (one should exist)
+    existing_thread: EmailConversationThread = (
+        EmailConversationThread.query.filter_by(
+            nylas_thread_id=message.get("thread_id")
+        ).first()
+    )
+    if not existing_thread:
+        raise Exception(
+            f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}'
+        )
+
+    # Update existing message
+    if existing_message:
+        # Convert time-since-epoch into datetime objects
+        date_received = existing_message.date_received
+        if message.get("date"):
+            date_received = datetime.fromtimestamp(
+                message.get("date", existing_message.date_received) or 0,
+                tz=timezone.utc,
+            )
+
+        existing_message.subject = message.get(
+            "subject", existing_message.subject)
+        existing_message.snippet = message.get(
+            "snippet", existing_message.snippet)
+        existing_message.body = message.get("body", existing_message.body)
+        existing_message.bcc = message.get("bcc", existing_message.bcc)
+        existing_message.cc = message.get("cc", existing_message.cc)
+        existing_message.date_received = date_received
+        existing_message.files = message.get(
+            "files", existing_message.files)
+        existing_message.message_from = message.get(
+            "from", existing_message.message_from
+        )
+        existing_message.message_to = message.get(
+            "to", existing_message.message_to)
+        existing_message.reply_to = message.get(
+            "reply_to", existing_message.reply_to
+        )
+        existing_message.nylas_message_id = message.get(
+            "id", existing_message.nylas_message_id
+        )
+        existing_message.nylas_data_raw = message
+
+    # Add new message
+    if not existing_message:
+        # Check if message is from SDR
+        message_from_prospect = False
+        message_from_sdr = False
+        messages_from: list[dict] = message.get("from")
+        for message_from in messages_from:
+            message_from_email = message_from.get("email")
+            if message_from_email == prospect.email:
+                message_from_prospect = True
+            elif email_belongs_to_sdr(
+                client_sdr_id=client_sdr_id,
+                email_address=message_from_email
+            ):
+                message_from_sdr = True
+
+        # Convert time-since-epoch into datetime objects
+        date_received = None
+        if message.get("date"):
+            date_received = datetime.fromtimestamp(
+                message.get("date", 0) or 0, tz=timezone.utc
+            )
+
+        new_message: EmailConversationMessage = EmailConversationMessage(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            prospect_email=prospect.email,
+            sdr_email=email_bank.email_address,
+            from_sdr=message_from_sdr,
+            from_prospect=message_from_prospect,
+            subject=message.get("subject"),
+            snippet=message.get("snippet"),
+            body=message.get("body"),
+            bcc=message.get("bcc"),
+            cc=message.get("cc"),
+            date_received=date_received,
+            files=message.get("files"),
+            message_from=message.get("from"),
+            message_to=message.get("to"),
+            reply_to=message.get("reply_to"),
+            email_conversation_thread_id=existing_thread.id,
+            nylas_message_id=message.get("id"),
+            nylas_data_raw=message,
+            nylas_thread_id=message.get("thread_id"),
+        )
+        db.session.add(new_message)
+
+        # Increment unread messages
+        prospect.email_unread_messages = prospect.email_unread_messages + \
+            1 if prospect.email_unread_messages else 1
 
     db.session.commit()
 
