@@ -924,6 +924,7 @@ def update_cta(
     text_value: str,
     expiration_date: Optional[datetime.datetime],
     auto_mark_as_scheduling_on_acceptance: Optional[bool] = None,
+    cta_type: Optional[str] = None,
 ):
     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
     if not cta:
@@ -937,6 +938,9 @@ def update_cta(
         cta.auto_mark_as_scheduling_on_acceptance = (
             auto_mark_as_scheduling_on_acceptance
         )
+
+    if cta_type:
+        cta.cta_type = cta_type
 
     db.session.add(cta)
     db.session.commit()
@@ -3085,3 +3089,33 @@ Keep the whole message 1-2 sentences and 1 paragraph long. Keep it short!""",
 
         # Retry
         self.retry(exc=e, countdown=5)
+
+
+def get_cta_types():
+    return [
+        "In-Person-based",
+        "Help-Based",
+        "Feedback-Based",
+        "Problem-Based",
+        "Priority-Based",
+        "Persona-Based",
+        "Solution-Based",
+        "Company-Based",
+        "Time-Based",
+        "Demo-Based",
+        "Interest-Based",
+        "Test-Based",
+        "Question-Based",
+        "Expertise-Based",
+        "Meeting-Based",
+        "Pain-Based",
+        "FOMO-Based",
+        "Competitor-Based",
+        "Discovery-Based",
+        "Intent-Based",
+        "Result-Based",
+        "Role-Based",
+        "Resource-Based",
+        "Connection-Based",
+        "Event-Based",
+    ]

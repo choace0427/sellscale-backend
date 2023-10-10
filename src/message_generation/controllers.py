@@ -5,6 +5,7 @@ from src.client.models import ClientSDR
 from src.message_generation.models import StackRankedMessageGenerationConfiguration
 from src.message_generation.services import (
     delete_prospect_bump,
+    get_cta_types,
     get_prospect_bump,
     refresh_computed_prompt_for_stack_ranked_configuration,
     scribe_sample_email_generation,
@@ -283,12 +284,16 @@ def put_update_cta():
     auto_mark_as_scheduling_on_acceptance = get_request_parameter(
         "auto_mark_as_scheduling_on_acceptance", request, json=True, required=False
     )
+    cta_type: str = get_request_parameter(
+        "cta_type", request, json=True, required=False
+    )
 
     success = update_cta(
         cta_id=cta_id,
         text_value=text_value,
         expiration_date=expiration_date,
         auto_mark_as_scheduling_on_acceptance=auto_mark_as_scheduling_on_acceptance,
+        cta_type=cta_type,
     )
     if success:
         return jsonify({"message": "Success"}), 200
@@ -1143,3 +1148,12 @@ def delete_stack_ranked_configuration_sample(client_sdr_id: int):
     )
 
     return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/cta_types", methods=["GET"])
+@require_user
+def get_cta_types_endpoint(client_sdr_id: int):
+    """Gets all cta types for a given client_sdr_id"""
+    cta_types = get_cta_types()
+
+    return jsonify({"data": cta_types}), 200
