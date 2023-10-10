@@ -475,9 +475,7 @@ def update_prospect_status_linkedin(
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "❌ "
-                        + prospect_name
-                        + " has been removed from the pipeline",
+                        "text": "🧹 SellScale has cleaned up your pipeline by removing a prospect",
                         "emoji": True,
                     },
                 },
@@ -2047,7 +2045,8 @@ def auto_mark_uninterested_bumped_prospects():
 
             prospect: Prospect = Prospect.query.get(prospect_id)
             send_slack_message(
-                message=f'Status: {prospect.status}', webhook_urls=[URL_MAP["csm-convo-sorter"]]
+                message=f"Status: {prospect.status}",
+                webhook_urls=[URL_MAP["csm-convo-sorter"]],
             )
 
 
