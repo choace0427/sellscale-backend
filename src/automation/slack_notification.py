@@ -59,9 +59,9 @@ def send_status_change_slack_block(
 
     date_sent = ""
     if outreach_type == ProspectChannels.EMAIL and prospect_email:
-        date_sent = prospect_email.date_sent.strftime("%m/%d/%Y")
+        date_sent = prospect_email.created_at.strftime("%m/%d/%Y")
     elif outreach_type == ProspectChannels.LINKEDIN and generated_message:
-        date_sent = generated_message.date_sent.strftime("%m/%d/%Y")
+        date_sent = generated_message.created_at.strftime("%m/%d/%Y")
 
     # Find available webhook urls
     webhook_urls = [URL_MAP["sellscale_pipeline_all_clients"]]
@@ -222,7 +222,6 @@ def send_status_change_slack_block(
                 ],
             }
         )
-
 
     channel_text = "Email" if outreach_type == ProspectChannels.EMAIL else "LinkedIn"
     message_blocks.append(

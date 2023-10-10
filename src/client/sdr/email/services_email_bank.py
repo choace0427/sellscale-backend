@@ -2,7 +2,7 @@ from app import db
 
 import requests
 import os
-from typing import Optional
+from typing import Optional, Union
 
 
 from src.client.models import ClientSDR
@@ -24,6 +24,37 @@ def get_sdr_email_banks(client_sdr_id: int, active_only: Optional[bool] = True) 
     return query.all()
 
 
+def get_sdr_email_bank(
+    email_bank_id: Optional[int] = None,
+    email_address: Optional[str] = None,
+    nylas_account_id: Optional[str] = None,
+) -> Union[SDREmailBank, None]:
+    """ Gets an SDR Email Bank
+
+    Args:
+        email_bank_id (Optional[int], optional): ID of the email bank. Defaults to None.
+        email_address (Optional[str], optional): Email address. Defaults to None.
+        nylas_account_id (Optional[str], optional): Nylas account ID. Defaults to None.
+
+    Returns:
+        Union[SDREmailBank, None]: SDREmailBank object if found, None if not found
+    """
+    if email_bank_id:
+        return SDREmailBank.query.filter(
+            SDREmailBank.id == email_bank_id
+        ).first()
+    elif email_address:
+        return SDREmailBank.query.filter(
+            SDREmailBank.email_address == email_address
+        ).first()
+    elif nylas_account_id:
+        return SDREmailBank.query.filter(
+            SDREmailBank.nylas_account_id == nylas_account_id
+        ).first()
+
+    return None
+
+
 def update_sdr_email_bank(
     email_bank_id: int,
     active: Optional[bool] = None,
@@ -40,7 +71,8 @@ def update_sdr_email_bank(
         bool: Whether or not the update was successful
         str: Message if the update was not successful
     """
-    email_bank: SDREmailBank = SDREmailBank.query.filter(SDREmailBank.id == email_bank_id).first()
+    email_bank: SDREmailBank = SDREmailBank.query.filter(
+        SDREmailBank.id == email_bank_id).first()
 
     if not email_bank:
         return False, "Email bank not found"
@@ -107,6 +139,30 @@ def create_sdr_email_bank(
     db.session.commit()
 
     return email_bank.id
+
+
+def email_belongs_to_sdr(
+    client_sdr_id: int,
+    email_address: str
+) -> bool:
+    """ Checks if an email belongs to an SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        email_address (str): Email address
+
+    Returns:
+        bool: Whether or not the email belongs to the SDR
+    """
+    email_bank: SDREmailBank = SDREmailBank.query.filter(
+        SDREmailBank.client_sdr_id == client_sdr_id,
+        SDREmailBank.email_address == email_address
+    ).first()
+
+    if not email_bank:
+        return False
+
+    return True
 
 
 def nylas_exchange_for_authorization_code(
@@ -201,4 +257,3 @@ def post_nylas_oauth_token(code: str) -> dict:
         return {"message": "Error exchanging for access token", "status_code": 500}
 
     return response.json()
-

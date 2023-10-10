@@ -2,7 +2,9 @@ from crypt import methods
 from typing import Optional
 from flask import Blueprint, request, jsonify
 from numpy import require
-from src.client.sdr.email.services_email_bank import nylas_exchange_for_authorization_code
+from src.client.sdr.email.services_email_bank import (
+    nylas_exchange_for_authorization_code,
+)
 from src.client.sdr.services_client_sdr import update_sdr_blacklist_words
 from src.personas.services import (
     clone_persona,
@@ -17,6 +19,7 @@ from src.client.services import (
     get_demo_feedback_for_client,
     toggle_client_sdr_auto_bump,
     toggle_client_sdr_auto_send_campaigns_enabled,
+    update_phantom_buster_launch_schedule,
     write_client_pre_onboarding_survey,
 )
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
@@ -599,6 +602,8 @@ def set_sdr_timezone(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_sdr.timezone = timezone
     db.session.commit()
+
+    update_phantom_buster_launch_schedule(client_sdr_id)
 
     return jsonify({"message": "Success"}), 200
 

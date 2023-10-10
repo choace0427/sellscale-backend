@@ -28,6 +28,7 @@ import time
 import json
 from datetime import datetime, timedelta
 from sqlalchemy.orm.attributes import flag_modified
+from nylas import APIClient
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -1255,12 +1256,29 @@ def clear_nylas_tokens(client_sdr_id: int):
     if not sdr:
         return "No client sdr found with this id", 400
 
+    nylas = APIClient(
+        os.environ.get("NYLAS_CLIENT_ID"),
+        os.environ.get("NYLAS_CLIENT_SECRET"),
+    )
+    account = next((a for a in nylas.accounts.all()
+               if a.get('email') == sdr.email), None)
+    
+    if account:
+      account.downgrade()
+    else:
+      "Error clearing tokens", 500
+    
     sdr.nylas_auth_code = None
     sdr.nylas_account_id = None
     sdr.nylas_active = False
 
     db.session.add(sdr)
     db.session.commit()
+
+    send_slack_message(
+        message=f"🔗❌ Nylas Disconnected\n {sdr.name} (# {sdr.id}) just disconnected his Nylas account from Sight.\nEmail disconnected: {sdr.email}",
+        webhook_urls=[URL_MAP["operations-nylas-connection"]],
+    )
 
     return "Cleared tokens", 200
 
@@ -3157,6 +3175,7 @@ def import_pre_onboarding(
     user_calendly_link = client.pre_onboarding_survey.get("user_scheduling_link")
     user_linkedin_link = client.pre_onboarding_survey.get("user_linkedin_url")
     user_scheduling_message = client.pre_onboarding_survey.get("scheduling_message")
+    user_timezone = client.pre_onboarding_survey.get("user_timezone")
 
     messaging_outbound_copy = client.pre_onboarding_survey.get("example_copy")
     messaging_link_to_case_studies = client.pre_onboarding_survey.get(
@@ -3191,6 +3210,7 @@ def import_pre_onboarding(
         ("user_full_name", user_full_name, True),
         ("user_email_address", user_email_address, True),
         ("user_calendly_link", user_calendly_link, False),
+        ("user_timezone", user_timezone, False),
         ("scheduling_message", user_scheduling_message, False),
         ("user_linkedin_link", user_linkedin_link, False),
         ("messaging_outbound_copy", messaging_outbound_copy, False),
@@ -3269,6 +3289,7 @@ def import_pre_onboarding(
     client_sdr.linkedin_url = user_linkedin_link
     client_sdr.scheduling_link = user_calendly_link
     client_sdr.email = user_email_address
+    client_sdr.timezone = user_timezone
     db.session.add(client_sdr)
 
     db.session.commit()
@@ -3277,7 +3298,7 @@ def import_pre_onboarding(
     create_sdr_email_bank(
         client_sdr_id=client_sdr_id,
         email_address=user_email_address,
-        email_type=EmailType.ANCHOR
+        email_type=EmailType.ANCHOR,
     )
 
     if len(missing_variables) > 0:

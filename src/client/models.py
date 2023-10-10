@@ -1,5 +1,6 @@
 import enum
 from app import db
+from src.client.sdr.email.models import SDREmailBank
 from src.prospecting.models import ProspectStatus, Prospect
 from src.research.models import ResearchPointType
 import sqlalchemy as sa
@@ -417,6 +418,11 @@ class ClientSDR(db.Model):
             client_sdr_id=self.id
         ).all()
 
+        # Get the Emails
+        email_bank: list[SDREmailBank] = SDREmailBank.query.filter_by(
+            client_sdr_id=self.id
+        ).all()
+
         return {
             "id": self.id,
             "client_name": client.company,
@@ -466,6 +472,7 @@ class ClientSDR(db.Model):
             "conversion_open_pct": self.conversion_open_pct,
             "conversion_reply_pct": self.conversion_reply_pct,
             "conversion_demo_pct": self.conversion_demo_pct,
+            "emails": [email.to_dict() for email in email_bank] if email_bank else None,
         }
 
 

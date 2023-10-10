@@ -191,3 +191,44 @@ class AccountResearchPoints(db.Model):
             "title": self.title,
             "reason": self.reason,
         }
+
+
+class WebsiteMetadataCache(db.Model):
+    __tablename__ = "website_metadata_cache"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    website_url = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=False)
+    summary = db.Column(db.String, nullable=False)
+    products = db.Column(db.ARRAY(db.String), nullable=False)
+    industries = db.Column(db.ARRAY(db.String), nullable=False)
+    target_profiles = db.Column(db.ARRAY(db.String), nullable=False)
+    company_type = db.Column(db.String, nullable=False)
+    location = db.Column(db.String, nullable=False)
+    highlights = db.Column(db.ARRAY(db.String), nullable=False)
+    linkedin_url = db.Column(db.String, nullable=False)
+    twitter_url = db.Column(db.String, nullable=False)
+    crunchbase_url = db.Column(db.String, nullable=False)
+    instagram_url = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, nullable=False)
+    address = db.Column(db.String, nullable=False)
+
+    def to_dict(self):
+        return {
+            "website_url": self.website_url,
+            "description": self.description,
+            "summary": self.summary,
+            "products": self.products,
+            "industries": self.industries,
+            "target_profiles": self.target_profiles,
+            "company_type": self.company_type,
+            "location": self.location,
+            "highlights": self.highlights,
+            "linkedin_url": self.linkedin_url,
+            "twitter_url": self.twitter_url,
+            "crunchbase_url": self.crunchbase_url,
+            "instagram_url": self.instagram_url,
+            "email": self.email,
+            "address": self.address,
+        }
