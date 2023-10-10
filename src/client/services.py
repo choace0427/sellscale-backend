@@ -28,6 +28,7 @@ import time
 import json
 from datetime import datetime, timedelta
 from sqlalchemy.orm.attributes import flag_modified
+from nylas import APIClient
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -1255,17 +1256,18 @@ def clear_nylas_tokens(client_sdr_id: int):
     if not sdr:
         return "No client sdr found with this id", 400
 
-    response = requests.delete(
-        "https://api.nylas.com/account",
-        headers={
-            "Accept": "application/json",
-            "Authorization": "Bearer {secret}".format(secret=sdr.nylas_auth_code),
-            "Content-Type": "application/json",
-        },
+    nylas = APIClient(
+        os.environ.get("NYLAS_CLIENT_ID"),
+        os.environ.get("NYLAS_CLIENT_SECRET"),
     )
-    if response.status_code != 200:
-        return "Error clearing tokens", 500
-
+    account = next((a for a in nylas.accounts.all()
+               if a.get('email') == sdr.email), None)
+    
+    if account:
+      account.downgrade()
+    else:
+      "Error clearing tokens", 500
+    
     sdr.nylas_auth_code = None
     sdr.nylas_account_id = None
     sdr.nylas_active = False
