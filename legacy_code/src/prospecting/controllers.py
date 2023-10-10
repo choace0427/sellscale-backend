@@ -10,10 +10,6 @@ from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
 from src.prospecting.nylas.services import (
     nylas_send_email,
-    nylas_get_threads,
-    nylas_update_threads,
-    nylas_get_messages,
-    nylas_update_messages,
 )
 from app import db
 

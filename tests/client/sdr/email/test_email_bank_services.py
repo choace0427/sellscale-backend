@@ -1,7 +1,7 @@
 from app import app, db
 from decorators import use_app_context
 from src.client.sdr.email.models import EmailType, SDREmailBank
-from src.client.sdr.email.services_email_bank import create_sdr_email_bank, get_sdr_email_banks, update_sdr_email_bank
+from src.client.sdr.email.services_email_bank import create_sdr_email_bank, email_belongs_to_sdr, get_sdr_email_banks, update_sdr_email_bank
 from test_utils import (
     test_app,
     basic_client,
@@ -55,3 +55,21 @@ def test_create_sdr_email_bank():
     assert id
     assert SDREmailBank.query.count() == 1
     assert SDREmailBank.query.first().id == id
+
+
+@use_app_context
+def test_email_belongs_to_sdr():
+    """Tests that an email belongs to an SDR"""
+    client = basic_client()
+    client_sdr = basic_client_sdr(client)
+    email_bank = basic_sdr_email_bank(client_sdr)
+
+    assert email_belongs_to_sdr(
+        client_sdr_id=client_sdr.id,
+        email_address=email_bank.email_address
+    )
+
+    assert not email_belongs_to_sdr(
+        client_sdr_id=client_sdr.id,
+        email_address='fake@sellscale.com'
+    )

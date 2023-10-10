@@ -150,7 +150,10 @@ def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[
             return False, "Failed to save thread"
 
         messages: list[dict] = nylas_get_messages(
-            client_sdr.id, prospect.id, thread.get("id")
+            client_sdr_id=client_sdr.id,
+            prospect_id=prospect.id,
+            nylas_account_id=account_id,
+            thread_id=thread.get("id")
         )
         for message in messages:
             # Check if message is bounced

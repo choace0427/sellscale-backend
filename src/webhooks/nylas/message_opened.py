@@ -3,6 +3,8 @@ from typing import Union
 from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
+from src.client.sdr.email.models import SDREmailBank
+from src.client.sdr.email.services_email_bank import get_sdr_email_bank
 from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
@@ -81,10 +83,12 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             nylas_payload.processing_fail_reason = "No account ID in object data"
             db.session.commit()
             return False, "No account ID in object data"
-        client_sdr: ClientSDR = ClientSDR.query.filter(
-            ClientSDR.nylas_account_id == account_id,
-            ClientSDR.nylas_active == True,
-        ).first()
+
+        # Get the SDR Email Bank in order to get the SDR
+        email_bank: SDREmailBank = get_sdr_email_bank(
+            nylas_account_id=account_id,
+        )
+        client_sdr: ClientSDR = ClientSDR.query.get(email_bank.client_sdr_id)
         if client_sdr and not client_sdr.active:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.INELIGIBLE
             nylas_payload.processing_fail_reason = "Client SDR is not active"
@@ -143,6 +147,7 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
         # Update and get the messages
         success = nylas_update_messages(
             client_sdr_id=client_sdr.id,
+            nylas_account_id=account_id,
             prospect_id=prospect_id,
             thread_id=convo_thread.nylas_thread_id,
         )

@@ -3,6 +3,8 @@ from typing import Union
 from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
+from src.client.sdr.email.models import SDREmailBank
+from src.client.sdr.email.services_email_bank import email_belongs_to_sdr, get_sdr_email_bank
 from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
@@ -82,10 +84,12 @@ def process_single_thread_replied(
             nylas_payload.processing_fail_reason = "No account ID in object data"
             db.session.commit()
             return False, "No account ID in object data"
-        client_sdr: ClientSDR = ClientSDR.query.filter(
-            ClientSDR.nylas_account_id == account_id,
-            ClientSDR.nylas_active == True,
-        ).first()
+
+        # Get the SDR Email Bank in order to get the SDR
+        email_bank: SDREmailBank = get_sdr_email_bank(
+            nylas_account_id=account_id,
+        )
+        client_sdr: ClientSDR = ClientSDR.query.get(email_bank.client_sdr_id)
         if client_sdr and not client_sdr.active:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.INELIGIBLE
             nylas_payload.processing_fail_reason = "Client SDR is not active"
@@ -163,16 +167,25 @@ def process_single_thread_replied(
             return False, "Failed to update thread"
 
         # Update the messages in this thread
-        success = nylas_update_messages(client_sdr_id, prospect_id, thread_id)
+        success = nylas_update_messages(
+            client_sdr_id=client_sdr_id,
+            nylas_account_id=account_id,
+            prospect_id=prospect_id,
+            thread_id=thread_id
+        )
         if not success:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
             nylas_payload.processing_fail_reason = "Failed to update messages"
             db.session.commit()
             return False, "Failed to update messages"
 
-        # Is the message from me? If not, then a prospect must have replied. Mark the thread as prospect_replied.
+        # Check if this message is from me. If not, then a prospect must have replied. Mark the thread as prospect_replied.
         from_self: bool = metadata.get("from_self")
-        if not from_self:
+        email_bank: SDREmailBank = get_sdr_email_bank(
+            nylas_account_id=account_id
+        )
+        from_sdr: bool = email_belongs_to_sdr(client_sdr_id, email_bank.email_address)
+        if not from_sdr:
             thread: EmailConversationThread = EmailConversationThread.query.filter_by(
                 nylas_thread_id=thread_id
             )

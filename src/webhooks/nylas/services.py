@@ -14,7 +14,6 @@ from src.email_outbound.models import (
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
 
-from src.prospecting.nylas.services import nylas_update_threads, nylas_get_messages
 from src.prospecting.nylas.nylas_wrappers import wrapped_nylas_get_single_thread
 from src.prospecting.services import calculate_prospect_overall_status
 from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus, NylasWebhookType
