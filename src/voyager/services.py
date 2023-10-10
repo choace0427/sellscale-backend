@@ -35,7 +35,7 @@ from src.research.models import IScraperPayloadCache
 from src.prospecting.models import Prospect, ProspectStatus, ProspectHiddenReason
 from typing import List, Union
 from src.li_conversation.services import create_linkedin_conversation_entry
-from model_import import ClientSDR
+from model_import import ClientSDR, Client
 from app import db
 from tqdm import tqdm
 from src.utils.abstract.attr_utils import deep_get
@@ -389,7 +389,9 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             timestamp = message.date.strftime("%m/%d/%Y, %H:%M:%S")
             messages.append(f"{message.author} ({timestamp}): {message.message}")
         messages.reverse()
-        classify_active_convo(prospect.id, messages)
+
+        if prospect.status not in [ProspectStatus.ACTIVE_CONVO_SCHEDULING]:
+            classify_active_convo(prospect.id, messages)
 
     return "OK", 200
 
@@ -667,6 +669,8 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
 
 def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
+    client_id: int = prospect.client_id
+    prospect_full_name: str = prospect.full_name
 
     # Check if the message should be marked as scheduling based on the Generated Message CTA
     approved_outreach_message_id = prospect.approved_outreach_message_id
@@ -685,11 +689,14 @@ def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
                 prospect_id=prospect.id,
                 new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
                 footer_note="Note: Conversation marked as 'Scheduling' based on the CTA.",
+                quietly=True,
             )
 
             direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
                 auth_token=client_sdr.auth_token, prospect_id=prospect_id
             )
+
+            # send Slack message to Internal SellScale Urgent Alerts channel
             send_slack_message(
                 message=f"""
                 *🛎 New scheduling CTA accepted!*
@@ -703,6 +710,21 @@ def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
                 """,
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
+
+            # send Slack notification to Client pipeline channel too
+            client: Client = Client.query.get(client_id)
+            webhook_url = client.pipeline_notifications_webhook_url
+            if webhook_url:
+                send_slack_message(
+                    message=f"""
+                    *🛎 New scheduling CTA accepted by {prospect_full_name}*
+                    ```
+                    {gm.completion}
+                    ```
+                    """,
+                    webhook_urls=[webhook_url],
+                )
+
             return
 
 
