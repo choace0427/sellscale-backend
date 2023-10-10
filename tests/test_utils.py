@@ -60,14 +60,14 @@ from model_import import (
 from src.automation.models import PhantomBusterSalesNavigatorConfig, PhantomBusterSalesNavigatorLaunch, SalesNavigatorLaunchStatus
 from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
 from src.client.models import SLASchedule
-from src.client.sdr.email.models import EmailType, SDREmailBank
+from src.client.sdr.email.models import EmailType, SDREmailBank, SDREmailSendSchedule
 from src.daily_notifications.models import (
     DailyNotification,
     NotificationStatus,
     NotificationType,
 )
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.utils.datetime.dateutils import get_current_monday_friday
@@ -85,6 +85,7 @@ def test_app():
         )
 
     with app.app_context():
+        clear_all_entities(SDREmailSendSchedule)
         clear_all_entities(SDREmailBank)
         clear_all_entities(JunctionBumpFrameworkClientArchetype)
         clear_all_entities(EngagementFeedItem)
@@ -880,6 +881,28 @@ def basic_sdr_email_bank(
     db.session.commit()
 
     return email_bank
+
+
+def basic_sdr_email_send_schedule(
+    client_sdr: ClientSDR,
+    email_bank: SDREmailBank,
+    time_zone: Optional[str] = "America/New_York",
+    days: Optional[list[int]] = [1, 2, 3, 4, 5],
+    start_time: Optional[time] = time(hour=9, minute=0, second=0),
+    end_time: Optional[time] = time(hour=17, minute=0, second=0),
+) -> SDREmailSendSchedule:
+    email_send_schedule: SDREmailSendSchedule = SDREmailSendSchedule(
+        client_sdr_id=client_sdr.id,
+        email_bank_id=email_bank.id,
+        time_zone=time_zone,
+        days=days,
+        start_time=start_time,
+        end_time=end_time,
+    )
+    db.session.add(email_send_schedule)
+    db.session.commit()
+
+    return email_send_schedule
 
 
 def clear_all_entities(SQLAlchemyObject):
