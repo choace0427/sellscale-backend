@@ -205,6 +205,7 @@ def create_auto_connect_agent(client_sdr_id: int, linkedin_session_cookie: str):
     client: Client = Client.query.get(client_sdr.client_id)
     client_sdr_name: str = client_sdr.name
     client_company = client.company
+    timezone = client_sdr.timezone or "America/Los_Angeles"
     url = "https://api.phantombuster.com/api/v2/agents/save"
 
     phantom_name = "LinkedIn Auto Connect - {company} ({sdr_name})".format(
@@ -283,7 +284,7 @@ def create_auto_connect_agent(client_sdr_id: int, linkedin_session_cookie: str):
                     "dec",
                 ],
                 "minute": [random_minute],
-                "timezone": "America/Los_Angeles",
+                "timezone": timezone,
                 "simplePreset": "Once per working hour, excluding weekends",
                 "isSimplePresetEnabled": False,
             },
