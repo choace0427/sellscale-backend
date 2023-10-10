@@ -1255,12 +1255,30 @@ def clear_nylas_tokens(client_sdr_id: int):
     if not sdr:
         return "No client sdr found with this id", 400
 
+    response = requests.delete(
+        "https://api.nylas.com/account",
+        headers={
+            "Accept": "application/json",
+            "Authorization": "Bearer {secret}".format(
+                secret=sdr.nylas_auth_code
+            ),
+            "Content-Type": "application/json",
+        },
+    )
+    if response.status_code != 200:
+        return "Error clearing tokens", 500
+    
     sdr.nylas_auth_code = None
     sdr.nylas_account_id = None
     sdr.nylas_active = False
 
     db.session.add(sdr)
     db.session.commit()
+
+    send_slack_message(
+        message=f"🔗❌ Nylas Disconnected\n {sdr.name} (# {sdr.id}) just disconnected his Nylas account from Sight.\nEmail disconnected: {sdr.email}",
+        webhook_urls=[URL_MAP["operations-nylas-connection"]],
+    )
 
     return "Cleared tokens", 200
 
