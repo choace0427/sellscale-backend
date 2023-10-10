@@ -1,4 +1,5 @@
 from datetime import datetime
+from src.company.models import Company
 from sqlalchemy import update
 from app import db
 from model_import import ResearchPointType, ClientArchetype
@@ -78,7 +79,8 @@ def replicate_transformer_blocklist(
     Returns:
         tuple[bool, str]: success & message
     """
-    source_ca: ClientArchetype = ClientArchetype.query.get(source_client_archetype_id)
+    source_ca: ClientArchetype = ClientArchetype.query.get(
+        source_client_archetype_id)
     if not source_ca:
         return False, "Source client archetype not found"
     destination_ca: ClientArchetype = ClientArchetype.query.get(
@@ -195,7 +197,8 @@ def get_archetype_activity(
 
     # Convert and format output
     results = [
-        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        {column_map.get(i, "unknown"): value for i,
+         value in enumerate(tuple(row))}
         for row in results
     ]
 
@@ -253,7 +256,8 @@ def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dic
     }
 
     # Convert and format output
-    result = {column_map.get(i, "unknown"): value for i, value in enumerate(results)}
+    result = {column_map.get(i, "unknown"): value for i,
+              value in enumerate(results)}
 
     return result
 
@@ -706,3 +710,51 @@ def hard_deactivate_client_archetype(
     db.session.commit()
 
     return True
+
+
+def get_icp_filters_autofill(client_sdr_id: int, client_archetype_id: int):
+    """
+      Gets the top values for each filter in the ICP filters to use as autofill
+    """
+
+    AMOUNT = 10
+
+    # Top 10 job titles
+    results = db.session.execute(
+        f"""
+        select lower(title), count(distinct prospect.id) from prospect where archetype_id = {client_archetype_id} group by 1 order by 2 desc limit {AMOUNT};
+        """
+    ).fetchall()
+    job_titles = [result[0] for result in results]
+
+    # Top 10 industries
+    results = db.session.execute(
+        f"""
+        select lower(industry), count(distinct prospect.id) from prospect where archetype_id = {client_archetype_id} group by 1 order by 2 desc limit {AMOUNT};
+      """
+    ).fetchall()
+    industries = [result[0] for result in results]
+
+    # Get average years of experience
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id
+    ).all()
+    mins = []
+    maxes = []
+    for prospect in prospects:
+        if prospect.employee_count:
+            parts = prospect.employee_count.split('-')
+            if len(parts) == 2:
+                mins.append(int(parts[0]))
+                maxes.append(int(parts[1]))
+    avg_min = sum(mins) / len(mins)
+    avg_max = sum(maxes) / len(maxes)
+
+    return {
+        "job_titles": job_titles,
+        "industries": industries,
+        "yoe": {
+            "min": avg_min,
+            "max": avg_max,
+        },
+    }
