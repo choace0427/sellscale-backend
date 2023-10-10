@@ -1259,15 +1259,13 @@ def clear_nylas_tokens(client_sdr_id: int):
         "https://api.nylas.com/account",
         headers={
             "Accept": "application/json",
-            "Authorization": "Bearer {secret}".format(
-                secret=sdr.nylas_auth_code
-            ),
+            "Authorization": "Bearer {secret}".format(secret=sdr.nylas_auth_code),
             "Content-Type": "application/json",
         },
     )
     if response.status_code != 200:
         return "Error clearing tokens", 500
-    
+
     sdr.nylas_auth_code = None
     sdr.nylas_account_id = None
     sdr.nylas_active = False
@@ -3175,6 +3173,7 @@ def import_pre_onboarding(
     user_calendly_link = client.pre_onboarding_survey.get("user_scheduling_link")
     user_linkedin_link = client.pre_onboarding_survey.get("user_linkedin_url")
     user_scheduling_message = client.pre_onboarding_survey.get("scheduling_message")
+    user_timezone = client.pre_onboarding_survey.get("user_timezone")
 
     messaging_outbound_copy = client.pre_onboarding_survey.get("example_copy")
     messaging_link_to_case_studies = client.pre_onboarding_survey.get(
@@ -3209,6 +3208,7 @@ def import_pre_onboarding(
         ("user_full_name", user_full_name, True),
         ("user_email_address", user_email_address, True),
         ("user_calendly_link", user_calendly_link, False),
+        ("user_timezone", user_timezone, False),
         ("scheduling_message", user_scheduling_message, False),
         ("user_linkedin_link", user_linkedin_link, False),
         ("messaging_outbound_copy", messaging_outbound_copy, False),
@@ -3287,6 +3287,7 @@ def import_pre_onboarding(
     client_sdr.linkedin_url = user_linkedin_link
     client_sdr.scheduling_link = user_calendly_link
     client_sdr.email = user_email_address
+    client_sdr.timezone = user_timezone
     db.session.add(client_sdr)
 
     db.session.commit()
@@ -3295,7 +3296,7 @@ def import_pre_onboarding(
     create_sdr_email_bank(
         client_sdr_id=client_sdr_id,
         email_address=user_email_address,
-        email_type=EmailType.ANCHOR
+        email_type=EmailType.ANCHOR,
     )
 
     if len(missing_variables) > 0:
