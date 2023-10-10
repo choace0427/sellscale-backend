@@ -34,3 +34,30 @@ class SDREmailBank(db.Model):
             "nylas_account_id": self.nylas_account_id,
             "nylas_active": self.nylas_active
         }
+
+
+class SDREmailSendSchedule(db.Model):
+    __tablename__ = "sdr_email_send_schedule"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Foreign Keys
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    email_bank_id = db.Column(db.Integer, db.ForeignKey("sdr_email_bank.id"), nullable=False)
+
+    # Times to send email
+    time_zone = db.Column(db.String, nullable=False)
+    days = db.Column(db.ARRAY(db.Integer), nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "email_bank_id": self.email_bank_id,
+            "time_zone": self.time_zone,
+            "days": self.days,
+            "start_time": self.start_time,
+            "end_time": self.end_time
+        }

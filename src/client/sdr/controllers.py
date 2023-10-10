@@ -1,3 +1,4 @@
+from src.client.services_client_archetype import get_icp_filters_autofill
 from app import db
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
@@ -195,3 +196,15 @@ def get_sdrs_from_emails_request():
     results = get_all_sdrs_from_emails(emails=emails)
     
     return jsonify({"status": "Success", "data": results}), 200
+
+
+@CLIENT_SDR_BLUEPRINT.route("/icp_filters/autofill", methods=["GET"])
+@require_user
+def get_icp_filter_autofill(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True, parameter_type=int
+    )
+
+    results = get_icp_filters_autofill(client_sdr_id, archetype_id)
+
+    return jsonify({"status": "success", "data": results}), 200
