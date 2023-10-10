@@ -1311,10 +1311,7 @@ def mark_prospects_as_queued_for_outreach(
     # Update messages
     updated_messages = []
     for id in messages_ids:
-        message: GeneratedMessage = GeneratedMessage.query.get(id)
-        message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
-        message.date_sent = datetime.datetime.utcnow()
-        updated_messages.append(message)
+        mark_generated_message_as_queued_for_outreach.delay(message_id=id)
 
     # Mark campaign as complete
     if campaign_id is not None:
@@ -1325,6 +1322,24 @@ def mark_prospects_as_queued_for_outreach(
     db.session.commit()
 
     return True, None
+
+
+@celery.task(bind=True, max_retries=3)
+def mark_generated_message_as_queued_for_outreach(self, message_id: int):
+    try:
+        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+        if not message:
+            return False
+
+        message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
+        message.date_sent = datetime.datetime.utcnow()
+
+        db.session.add(message)
+        db.session.commit()
+
+        return True
+    except Exception as e:
+        raise self.retry(exc=e, countdown=3**self.request.retries)
 
 
 @celery.task(bind=True, max_retries=3)
