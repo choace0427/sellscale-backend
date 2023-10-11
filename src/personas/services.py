@@ -1,5 +1,5 @@
 from typing import Optional
-from src.email_outbound.models import ProspectEmailStatus
+from src.email.email_outbound.models import ProspectEmailStatus
 
 from src.ml.services import get_text_generation
 
@@ -445,7 +445,7 @@ def unassign_prospects(
         bool: True if successful, False otherwise
     """
     from src.message_generation.models import GeneratedMessage
-    from src.email_outbound.models import ProspectEmail
+    from src.email.email_outbound.models import ProspectEmail
 
     # Get the target archetype
     target_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)

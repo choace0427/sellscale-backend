@@ -32,6 +32,11 @@ class GeneratedMessageJobStatus(enum.Enum):
     FAILED = "FAILED"
 
 
+class GeneratedMessageEmailType(enum.Enum):
+    SUBJECT_LINE = "SUBJECT_LINE"
+    BODY = "BODY"
+
+
 class GeneratedMessage(db.Model):
     __tablename__ = "generated_message"
 
@@ -92,6 +97,11 @@ class GeneratedMessage(db.Model):
 
     priority_rating = db.Column(db.Integer, nullable=True)
 
+    # Email
+    email_type = db.Column(db.Enum(GeneratedMessageEmailType), nullable=True)
+    email_subject_line_template_id = db.Column(db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True)
+    email_sequence_step_template_id = db.Column(db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -121,6 +131,9 @@ class GeneratedMessage(db.Model):
             "adversary_identified_fix": self.adversary_identified_fix,
             "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
             "priority_rating": self.priority_rating,
+            "email_type": self.email_type.value if self.email_type else None,
+            "email_subject_line_template_id": self.email_subject_line_template_id,
+            "email_sequence_step_template_id": self.email_sequence_step_template_id,
         }
 
 

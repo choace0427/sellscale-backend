@@ -4,7 +4,7 @@ from model_import import Prospect, ClientSDR
 from app import db, celery
 import time
 
-from src.email_outbound.email_store.services import (
+from src.email.email_outbound.email_store.services import (
     create_email_store,
     email_store_hunter_verify,
 )

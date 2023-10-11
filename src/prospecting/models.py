@@ -3,7 +3,7 @@ from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 import enum
 from typing import Optional
-from src.email_outbound.email_store.models import EmailStore
+from src.email.email_outbound.email_store.models import EmailStore
 from src.utils.abstract.attr_utils import deep_get
 
 from src.utils.hasher import generate_uuid
@@ -24,7 +24,7 @@ class ProspectChannels(enum.Enum):
 
     def to_dict_verbose():
         """Returns a verbose dictionary of the channels, their available statuses, the statuses' descriptions, and a mapping of the status to the SellScale status."""
-        from src.email_outbound.models import ProspectEmailOutreachStatus
+        from src.email.email_outbound.models import ProspectEmailOutreachStatus
 
         li_channel_verbose = {
             "name": "LinkedIn",
@@ -58,7 +58,7 @@ class ProspectChannels(enum.Enum):
         }
 
     def map_to_other_channel_enum(channel: str) -> enum.Enum:
-        from src.email_outbound.models import ProspectEmailOutreachStatus
+        from src.email.email_outbound.models import ProspectEmailOutreachStatus
 
         if channel == ProspectChannels.LINKEDIN.value:
             return ProspectStatus
@@ -494,7 +494,7 @@ class Prospect(db.Model):
         shallow_data: Optional[bool] = False,
         return_convo: Optional[bool] = False,
     ) -> dict:
-        from src.email_outbound.models import (
+        from src.email.email_outbound.models import (
             ProspectEmail,
             EmailConversationThread,
             EmailConversationMessage,

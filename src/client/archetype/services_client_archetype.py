@@ -120,8 +120,10 @@ def bulk_action_withdraw_prospect_invitations(
                 'type': 'section',
                 'text': {
                     'type': 'mrkdwn',
-                    'text': 'LinkedIn URLs:\n```{}```'.format(
-                        '\n'.join([prospect.linkedin_url for prospect in prospects])
+                    'text': '{amt} LI\'s withdrawn:\n```{li_list}```'.format(
+                        amt=len(prospects),
+                        li_list="\n".join(
+                            [prospect.linkedin_url for prospect in prospects])
                     )
                 }
             },

@@ -1,5 +1,5 @@
 import email
-from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.li_conversation.models import LinkedInConvoMessage
 from src.message_generation.email.services import (
     ai_initial_email_prompt,
@@ -7,7 +7,7 @@ from src.message_generation.email.services import (
     generate_email,
     generate_subject_line,
 )
-from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
+from src.message_generation.models import GeneratedMessageAutoBump, GeneratedMessageEmailType, SendStatus
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
 from src.research.account_research import generate_prospect_research
@@ -47,7 +47,7 @@ from model_import import (
 from typing import List, Optional, Union
 from src.ml.rule_engine import run_message_rule_engine
 from src.ml_adversary.services import run_adversary
-from src.email_outbound.models import ProspectEmailStatus
+from src.email.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPointType, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from src.research.linkedin.services import get_research_and_bullet_points_new
@@ -59,7 +59,7 @@ from ..ml.fine_tuned_models import (
     get_few_shot_baseline_prompt,
 )
 from src.utils.random_string import generate_random_alphanumeric
-from src.email_outbound.services import create_prospect_email
+from src.email.email_outbound.services import create_prospect_email
 from src.message_generation.ner_exceptions import ner_exceptions, title_abbreviations
 from ..utils.abstract.attr_utils import deep_get
 import random
@@ -1163,7 +1163,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         subject_line = subject_line.get("subject_line")
 
         # 9. Create the GeneratedMessage objects
-        ai_generated_body = GeneratedMessage(
+        ai_generated_body: GeneratedMessage = GeneratedMessage(
             prospect_id=prospect_id,
             outbound_campaign_id=campaign_id,
             prompt=initial_email_prompt,
@@ -1171,6 +1171,9 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             message_status=GeneratedMessageStatus.DRAFT,
             message_type=GeneratedMessageType.EMAIL,
             priority_rating=campaign.priority_rating if campaign else 0,
+            email_type=GeneratedMessageEmailType.BODY,
+            email_sequence_step_template_id=template_id,
+
         )
         ai_generated_subject_line = GeneratedMessage(
             prospect_id=prospect_id,
@@ -1180,6 +1183,8 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             message_status=GeneratedMessageStatus.DRAFT,
             message_type=GeneratedMessageType.EMAIL,
             priority_rating=campaign.priority_rating if campaign else 0,
+            email_type=GeneratedMessageEmailType.SUBJECT_LINE,
+            email_subject_line_template_id=subjectline_template_id,
         )
         db.session.add(ai_generated_body)
         db.session.add(ai_generated_subject_line)

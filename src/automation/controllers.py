@@ -23,6 +23,9 @@ from src.utils.slack import send_slack_message, CHANNEL_NAME_MAP, send_delayed_s
 from src.authentication.decorators import require_user
 from datetime import datetime
 
+# Do not delete - registering Celery Task
+from src.automation.orchestrator import process_queue
+
 AUTOMATION_BLUEPRINT = Blueprint("automation", __name__)
 
 

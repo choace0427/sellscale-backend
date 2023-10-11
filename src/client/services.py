@@ -7,7 +7,7 @@ from src.client.sdr.services_client_sdr import (
     deactivate_sla_schedules,
     load_sla_schedules,
 )
-from src.email_sequencing.models import EmailSequenceStep
+from src.email.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
@@ -1262,12 +1262,12 @@ def clear_nylas_tokens(client_sdr_id: int):
     )
     account = next((a for a in nylas.accounts.all()
                if a.get('email') == sdr.email), None)
-    
+
     if account:
       account.downgrade()
     else:
       "Error clearing tokens", 500
-    
+
     sdr.nylas_auth_code = None
     sdr.nylas_account_id = None
     sdr.nylas_active = False

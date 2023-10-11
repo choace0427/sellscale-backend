@@ -24,8 +24,8 @@ from src.prospecting.models import (
     ProspectHiddenReason,
 )
 from datetime import datetime
-from src.email_outbound.models import ProspectEmail
-from src.email_outbound.models import ProspectEmailOutreachStatus
+from src.email.email_outbound.models import ProspectEmail
+from src.email.email_outbound.models import ProspectEmailOutreachStatus
 from src.prospecting.services import (
     mark_prospect_as_removed,
     search_prospects,
@@ -76,7 +76,7 @@ from src.utils.random_string import generate_random_alphanumeric
 from src.authentication.decorators import require_user
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.utils.slack import send_slack_message, URL_MAP
-from src.email_outbound.email_store.hunter import (
+from src.email.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
 from src.prospecting.services import update_prospect_demo_date

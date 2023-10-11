@@ -67,11 +67,12 @@ def update_sdr_email_send_schedule(
     ).all()
 
     # If send_schedule_id is specified, we can just edit that one
-    schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter(
-        SDREmailSendSchedule.id == send_schedule_id,
-        SDREmailSendSchedule.client_sdr_id == client_sdr_id
-    ).first()
-    schedules = [schedule]
+    if send_schedule_id:
+        schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter(
+            SDREmailSendSchedule.id == send_schedule_id,
+            SDREmailSendSchedule.client_sdr_id == client_sdr_id
+        ).first()
+        schedules = [schedule]
 
     if not schedules:
         return False

@@ -1,7 +1,7 @@
 from app import db, app
 from src.bump_framework.models import BumpLength
-from src.email_sequencing.models import EmailSubjectLineTemplate
-from src.email_sequencing.services import (
+from src.email.email_sequencing.models import EmailSubjectLineTemplate
+from src.email.email_sequencing.services import (
     create_email_sequence_step,
     get_email_sequence_step_for_sdr,
     get_sequence_step_count_for_sdr,

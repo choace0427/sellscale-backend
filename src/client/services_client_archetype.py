@@ -5,7 +5,7 @@ from app import db
 from model_import import ResearchPointType, ClientArchetype
 from typing import Union, Optional
 from src.client.models import ClientSDR
-from src.email_outbound.models import ProspectEmail
+from src.email.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.models import Prospect, ProspectStatus
@@ -470,7 +470,7 @@ def get_email_blocks_configuration(
     Returns:
         list: email blocks configuration
     """
-    from src.email_sequencing.models import EmailSequenceStep
+    from src.email.email_sequencing.models import EmailSequenceStep
 
     sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     if not sdr:

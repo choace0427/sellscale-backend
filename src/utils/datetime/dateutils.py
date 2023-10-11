@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import datetime
 from datetime import date, datetime, timedelta
 from typing import Union, Optional
@@ -79,3 +80,27 @@ def get_current_monday_friday(date: Optional[datetime]) -> tuple[datetime.date, 
     end_date = start_date + timedelta(days=4)
 
     return start_date.date(), end_date.date()
+
+
+def get_future_datetime(months=0, days=0, minutes=0):
+    # Get the current date and time
+    current_time = datetime.utcnow()
+
+    # Calculate the future time by adding the specified months, days, and minutes
+    future_time = current_time + timedelta(
+        days=days,
+        minutes=minutes,
+        # Adding months is a bit more complicated due to varying month lengths
+        # We'll add the months one by one
+    )
+
+    # Handle the months increment
+    if months > 0:
+        for _ in range(months):
+            # Calculate the number of days in the current month
+            days_in_current_month = (future_time.replace(
+                day=1) + timedelta(days=32)).day - 1
+            # Add the days of the current month to the future_time
+            future_time += timedelta(days=days_in_current_month)
+
+    return future_time

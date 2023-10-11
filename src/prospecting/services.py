@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import List, Optional, Union
 from regex import P
 from sqlalchemy import nullslast
-from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
-from src.email_outbound.email_store.services import (
+from src.email.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
+from src.email.email_outbound.email_store.services import (
     create_email_store,
     email_store_hunter_verify,
 )
@@ -12,7 +12,7 @@ from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
 
 from src.company.services import find_company_for_prospect
-from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
+from src.email.email_outbound.models import EmailConversationThread, EmailConversationMessage
 from sqlalchemy import or_
 import requests
 from src.message_generation.models import (
@@ -20,7 +20,7 @@ from src.message_generation.models import (
     GeneratedMessageStatus,
     GeneratedMessageType,
 )
-from src.email_outbound.models import (
+from src.email.email_outbound.models import (
     ProspectEmail,
     ProspectEmailStatus,
     ProspectEmailOutreachStatus,
@@ -454,6 +454,7 @@ def update_prospect_status_linkedin(
     p: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
+    auth_token = client_sdr.auth_token
     current_status = p.status
 
     # If the new status isn't an active convo sub status, does not start with ACTIVE_CONVO
@@ -467,6 +468,11 @@ def update_prospect_status_linkedin(
     # notifications
     if new_status == ProspectStatus.NOT_QUALIFIED:
         prospect_name = p.full_name
+
+        direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+            auth_token=auth_token,
+            prospect_id=p.id,
+        )
         send_slack_message(
             message="",
             webhook_urls=[client.pipeline_notifications_webhook_url],
@@ -475,7 +481,7 @@ def update_prospect_status_linkedin(
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "🧹 SellScale has cleaned up your pipeline by removing a prospect",
+                        "text": "🧹 SellScale has cleaned up your pipeline",
                         "emoji": True,
                     },
                 },
@@ -483,8 +489,8 @@ def update_prospect_status_linkedin(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": '*{prospect_first_name}*:\n_"{prospect_message}"_'.format(
-                            prospect_first_name=p.first_name,
+                        "text": '*Prospect removed:* {prospect_name}\n"{prospect_message}"'.format(
+                            prospect_name=prospect_name,
                             prospect_message=p.li_last_message_from_prospect.replace(
                                 "\n", " "
                             )
@@ -493,7 +499,6 @@ def update_prospect_status_linkedin(
                         ),
                     },
                 },
-                {"type": "divider"},
                 {
                     "type": "context",
                     "elements": [
@@ -512,6 +517,34 @@ def update_prospect_status_linkedin(
                             "emoji": True,
                         },
                     ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*AI label change:* `{old_status}` -> `{new_status}`".format(
+                            old_status=current_status.value, new_status=new_status.value
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " ",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Convo in Sight",
+                            "emoji": True,
+                        },
+                        "value": direct_link,
+                        "url": direct_link,
+                        "action_id": "button-action",
+                    },
                 },
             ],
         )

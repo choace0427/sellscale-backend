@@ -377,3 +377,25 @@ class PhantomBusterAgent:
             "desired_target": client_sdr.weekly_li_outbound_target,
             "actual_target": len(hours) * len(minutes) * len(dows) * ADDS_PER_LAUNCH,
         }
+
+
+class ProcessQueue(db.Model):
+    """A queue for processing various tasks
+
+    Useful for any kind of scheduled processes and async process pipeline
+    """
+    __tablename__ = "process_queue"
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String, nullable=False)
+    meta_data = db.Column(db.JSON, nullable=True)
+    execution_date = db.Column(db.DateTime, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "type": self.type,
+            "meta_data": self.meta_data,
+            "execution_date": str(self.execution_date),
+            "created_at": str(self.created_at),
+        }

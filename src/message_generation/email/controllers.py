@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from src.email_sequencing.services import generate_prospect_email_bump
+from src.email.email_sequencing.services import generate_prospect_email_bump
 
 from src.authentication.decorators import require_user
 from src.message_generation.email.services import ai_followup_email_prompt, ai_initial_email_prompt, ai_subject_line_prompt, generate_email, generate_subject_line
