@@ -293,6 +293,24 @@ class LinkedIn(object):
 
         return profile
 
+
+    def remove_connection(self, public_profile_id):
+        """Remove a given profile as a connection.
+
+        :param public_profile_id: public ID of a LinkedIn profile
+        :type public_profile_id: str
+
+        :return: Error state. True if error occurred
+        :rtype: boolean
+        """
+        res = self._post(
+            f"/identity/profiles/{public_profile_id}/profileActions?action=disconnect",
+            headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
+
+        return res.status_code != 200
+    
+
     def get_urn_id_from_public_id(self, public_id):
         """Get the profile URN ID for a given profile public ID.
         :param public_id: LinkedIn public ID for a profile

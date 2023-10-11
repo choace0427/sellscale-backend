@@ -1,11 +1,13 @@
 from typing import Optional
 
+
+from src.utils.datetime.dateutils import get_future_datetime
 from src.voyager.services import withdraw_li_invite
 from src.automation.models import ProcessQueue
 from app import celery, db
 from datetime import datetime
 
-# Define what process types call what functions (with celery)
+# Define what process types call what functions (these functions need '@celery.task' decorator)
 # - args are passed into the function from meta_data.args
 PROCESS_TYPE_MAP = {
     "li_invite_withdraw": {
@@ -117,5 +119,78 @@ def remove_process_from_queue(process_id: int):
     return True
 
 
-
+def add_process_for_future(type: str, args: dict = {}, months: int = 0, days: int = 0, minutes: int = 0):
+    """ Adds an instance to the process queue
     
+    Args:
+        type (str): The type of process, must be an option in the PROCESS_TYPE_MAP
+        args (dict, kwargs): Args that are passed into the function
+        months: (int): Number of months until execution
+        days: (int): Number of days until execution
+        minutes: (int): Number of minutes until execution
+
+
+    Returns:
+        ProcessQueue (dict): The added process queue as a dict
+        or
+        None, reason (str)
+    """
+
+    return add_process_to_queue(
+        type=type,
+        meta_data={
+            'args': args
+        },
+        execution_date=get_future_datetime(months, days, minutes),
+    )
+    
+
+def add_process_list(
+        type: str,
+        args_list: list[dict] = [],
+        chunk_size: int = 10,
+        init_wait_days: int = 0,
+        init_wait_minutes: int = 0,
+        wait_days: int = 0,
+        wait_minutes: int = 0,
+    ):
+    """ Queues up a series of processes to be executed over a set amount of time
+    
+    Args:
+        type (str): The type of process, must be an option in the PROCESS_TYPE_MAP
+        args_list (list[dict], list[kwargs]): List of all args that will be executed.
+            - Each arg entry is an individual process and executed function
+        chunk_size: (int): Maximum number of args (processes) to be called at once at a time
+        init_wait_days: (int): Initial onset number of days to wait before starting these executions
+        init_wait_minutes: (int): Initial onset number of minutes to wait before starting these executions
+        wait_days: (int): Number of days to wait in between each process chunk
+        wait_minutes: (int): Number of minutes to wait in between each process chunk
+
+
+    Returns:
+        list[ProcessQueue] (list[dict]): List of queued process
+    """
+
+    processes = []
+
+    chunks = [args_list[i:i + chunk_size]
+              for i in range(0, len(args_list), chunk_size)]
+
+    total_wait_days = init_wait_days
+    total_wait_minutes = init_wait_minutes
+    for chunk in chunks:
+        for args in chunk:
+            process = add_process_for_future(
+                type=type,
+                args=args,
+                months=0,
+                days=total_wait_days,
+                minutes=total_wait_minutes
+            )
+            processes.append(process)
+        total_wait_days += wait_days
+        total_wait_minutes += wait_minutes
+
+    return processes
+
+
