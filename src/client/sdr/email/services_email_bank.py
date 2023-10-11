@@ -1,3 +1,4 @@
+from datetime import time
 from app import db
 
 import requests
@@ -6,7 +7,8 @@ from typing import Optional, Union
 
 
 from src.client.models import ClientSDR
-from src.client.sdr.email.models import EmailType, SDREmailBank
+from src.client.sdr.email.models import EmailType, SDREmailBank, SDREmailSendSchedule
+from src.client.sdr.email.services_email_schedule import create_sdr_email_send_schedule
 
 
 def get_sdr_email_banks(client_sdr_id: int, active_only: Optional[bool] = True) -> list[SDREmailBank]:
@@ -127,6 +129,18 @@ def create_sdr_email_bank(
     if duplicate:
         return duplicate.id
 
+    # If the email_type is "anchor", replace all other anchor emails with alias
+    if email_type == EmailType.ANCHOR:
+        old_anchors: list[SDREmailBank] = SDREmailBank.query.filter(
+            SDREmailBank.email_type == EmailType.ANCHOR,
+            SDREmailBank.client_sdr_id == client_sdr_id
+        ).all()
+        for anchor_email_bank in old_anchors:
+            anchor_email_bank.email_type = EmailType.ALIAS
+            db.session.add(anchor_email_bank)
+            db.session.commit()
+
+    # Create the new email bank
     email_bank = SDREmailBank(
         client_sdr_id=client_sdr_id,
         email_address=email_address,
@@ -137,6 +151,19 @@ def create_sdr_email_bank(
     )
     db.session.add(email_bank)
     db.session.commit()
+
+    # Get the client SDR
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Create a default email send schedule
+    create_sdr_email_send_schedule(
+        client_sdr_id=client_sdr_id,
+        email_bank_id=email_bank.id,
+        time_zone=client_sdr.timezone,
+        days=[0, 1, 2, 3, 4],
+        start_time=time(hour=8),
+        end_time=time(hour=17),
+    )
 
     return email_bank.id
 
