@@ -5,6 +5,7 @@ import re
 from typing import Optional
 from bs4 import BeautifulSoup
 from flask import jsonify
+from src.email_scheduling.services import populate_email_messaging_schedule_entries
 from src.email_sequencing.models import EmailSequenceStep
 from src.client.models import ClientSDR
 from src.email_outbound.models import Sequence, SequenceStatus
@@ -149,6 +150,19 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                 0,
             )
         prospect_email.date_scheduled_to_send = time_index
+
+        subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
+        body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
+
+        populate_email_messaging_schedule_entries(
+            client_sdr_id=outbound_campaign.client_sdr_id,
+            prospect_email_id=prospect_email.id,
+            subject_line_id=prospect_email.personalized_subject_line,
+            body_id=prospect_email.personalized_body,
+            initial_email_subject_line_template_id=subject_line.email_subject_line_template_id,
+            initial_email_body_template_id=body.email_sequence_step_template_id,
+            initial_email_send_date=time_index,
+        )
 
         bulk_updates.append(prospect_email)
 
