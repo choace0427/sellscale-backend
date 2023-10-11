@@ -32,6 +32,11 @@ class GeneratedMessageJobStatus(enum.Enum):
     FAILED = "FAILED"
 
 
+class GeneratedMessageEmailType(enum.Enum):
+    SUBJECT_LINE = "SUBJECT_LINE"
+    BODY = "BODY"
+
+
 class GeneratedMessage(db.Model):
     __tablename__ = "generated_message"
 
@@ -91,6 +96,11 @@ class GeneratedMessage(db.Model):
     after_autocorrect_text = db.Column(db.String, nullable=True)
 
     priority_rating = db.Column(db.Integer, nullable=True)
+
+    # Email
+    email_type = db.Column(db.Enum(GeneratedMessageEmailType), nullable=True)
+    email_subject_line_template_id = db.Column(db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True)
+    email_sequence_step_template_id = db.Column(db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=True)
 
     def to_dict(self) -> dict:
         return {
