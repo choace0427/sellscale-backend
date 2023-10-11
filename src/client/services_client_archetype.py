@@ -745,8 +745,11 @@ def get_icp_filters_autofill(client_sdr_id: int, client_archetype_id: int):
         if prospect.employee_count:
             parts = prospect.employee_count.split('-')
             if len(parts) == 2:
-                mins.append(int(parts[0]))
-                maxes.append(int(parts[1]))
+                try:
+                    mins.append(int(parts[0]))
+                    maxes.append(int(parts[1]))
+                except ValueError:
+                    pass
     avg_min = sum(mins) / len(mins)
     avg_max = sum(maxes) / len(maxes)
 

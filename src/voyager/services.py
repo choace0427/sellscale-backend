@@ -671,11 +671,14 @@ def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_id: int = prospect.client_id
     prospect_full_name: str = prospect.full_name
+    client: Client = Client.query.get(client_id)
+    company: str = client.company
 
     # Check if the message should be marked as scheduling based on the Generated Message CTA
     approved_outreach_message_id = prospect.approved_outreach_message_id
     gm: GeneratedMessage = GeneratedMessage.query.get(approved_outreach_message_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    sdr_name: str = client_sdr.name
     if gm:
         gm_cta_id: int = gm.message_cta
         gm_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(gm_cta_id)
@@ -707,6 +710,8 @@ def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
                 Please follow up with some times via the reply framework here:
 
                 *Direct Link:* {direct_link}
+
+                *SDR*: {sdr_name} ({company})
                 """,
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
