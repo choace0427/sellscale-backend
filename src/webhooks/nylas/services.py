@@ -5,13 +5,13 @@ from src.client.services import populate_single_prospect_event
 from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     EmailConversationMessage,
     EmailConversationThread,
     ProspectEmail,
     ProspectEmailOutreachStatus,
 )
-from src.email.email_outbound.services import update_prospect_email_outreach_status
+from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
 
 from src.prospecting.nylas.nylas_wrappers import wrapped_nylas_get_single_thread

@@ -68,8 +68,9 @@ from src.daily_notifications.models import (
 )
 from typing import Optional
 from datetime import datetime, time, timedelta
+from src.email_scheduling.models import EmailMessagingSchedule
 
-from src.email.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.utils.datetime.dateutils import get_current_monday_friday
 
 
@@ -85,6 +86,7 @@ def test_app():
         )
 
     with app.app_context():
+        clear_all_entities(EmailMessagingSchedule)
         clear_all_entities(SDREmailSendSchedule)
         clear_all_entities(SDREmailBank)
         clear_all_entities(JunctionBumpFrameworkClientArchetype)
@@ -178,7 +180,7 @@ def basic_archetype(
 ) -> ClientArchetype:
     client_sdr_id = None if client_sdr is None else client_sdr.id
     a = ClientArchetype(
-        client_id=client.id, client_sdr_id=client_sdr_id, archetype="Testing archetype", active=True
+        client_id=client.id, client_sdr_id=client_sdr_id, archetype="Testing archetype", active=True, li_bump_amount=0
     )
     db.session.add(a)
     db.session.commit()

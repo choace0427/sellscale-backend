@@ -58,7 +58,7 @@ def get_valid_next_prospect_statuses(prospect_id: int, channel_type) -> dict:
 
 
 def prospect_email_unsubscribe(prospect_id: int) -> bool:
-    from src.email.email_outbound.services import update_prospect_email_outreach_status
+    from src.email_outbound.services import update_prospect_email_outreach_status
     from src.prospecting.services import calculate_prospect_overall_status
 
     prospect: Prospect = Prospect.query.get(prospect_id)

@@ -22,7 +22,7 @@ from model_import import (
 )
 from sqlalchemy.sql.expression import func
 from src.editor.models import Editor, EditorTypes
-from src.email.email_outbound.services import get_approved_prospect_email_by_id
+from src.email_outbound.services import get_approved_prospect_email_by_id
 from tqdm import tqdm
 from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,

@@ -53,7 +53,7 @@ from src.automation.models import (
     PhantomBusterPayload,
     ProcessQueue,
 )
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     EmailSchema,
     EmailCustomizedFieldTypes,
     ProspectEmail,
@@ -81,7 +81,7 @@ from src.daily_notifications.models import (
     EngagementFeedItem,
 )
 from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates
-from src.email.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.personas.models import (
     PersonaSplitRequestTaskStatus,
     PersonaSplitRequest,
@@ -89,7 +89,7 @@ from src.personas.models import (
 )
 from src.voice_builder.models import VoiceBuilderOnboarding, VoiceBuilderSamples
 from src.company.models import Company, CompanyRelation
-from src.email.email_outbound.models import EmailConversationMessage
+from src.email_outbound.models import EmailConversationMessage
 from src.simulation.models import Simulation
 from src.individual.models import Individual
 from src.analytics.models import SDRHealthStats
@@ -99,4 +99,4 @@ from src.webhooks.models import (
     NylasWebhookProcessingStatus,
     NylasWebhookType,
 )
-from src.email.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
+from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus

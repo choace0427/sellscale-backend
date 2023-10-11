@@ -7,10 +7,10 @@ from test_utils import (
     basic_archetype,
     basic_sei_raw,
 )
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     SalesEngagementInteractionSS,
 )
-from src.email.email_outbound.outreach_io.services import (
+from src.email_outbound.outreach_io.services import (
     validate_outreach_csv_payload,
     convert_outreach_payload_to_ss,
 )

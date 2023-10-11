@@ -2,8 +2,8 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import EmailSequenceStep
-from src.email.email_sequencing.models import EmailSubjectLineTemplate
-from src.email.email_sequencing.services import (
+from src.email_sequencing.models import EmailSubjectLineTemplate
+from src.email_sequencing.services import (
     activate_sequence_step,
     create_email_sequence_step,
     deactivate_sequence_step,

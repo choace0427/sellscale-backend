@@ -8,7 +8,7 @@ from model_import import (
     ClientSDR,
 )
 from src.client.models import ClientArchetype
-from src.email.email_outbound.models import ProspectEmail
+from src.email_outbound.models import ProspectEmail
 from src.li_conversation.models import LinkedinConversationEntry
 from src.message_generation.models import GeneratedMessage
 from src.utils.slack import send_slack_message

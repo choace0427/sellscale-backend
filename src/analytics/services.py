@@ -4,7 +4,7 @@ from flask import jsonify
 from src.client.models import *
 from src.message_generation.models import *
 from src.prospecting.models import *
-from src.email.email_outbound.models import *
+from src.email_outbound.models import *
 
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_, not_
