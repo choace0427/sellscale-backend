@@ -24,6 +24,11 @@ class SDREmailBank(db.Model):
     nylas_active = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self) -> dict:
+        # Get the attached Send Schedule
+        send_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter(
+            SDREmailSendSchedule.email_bank_id == self.id
+        ).first()
+
         return {
             "id": self.id,
             "active": self.active,
@@ -32,7 +37,8 @@ class SDREmailBank(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "nylas_auth_code": self.nylas_auth_code,
             "nylas_account_id": self.nylas_account_id,
-            "nylas_active": self.nylas_active
+            "nylas_active": self.nylas_active,
+            "send_schedule": send_schedule.to_dict() if send_schedule else None
         }
 
 
