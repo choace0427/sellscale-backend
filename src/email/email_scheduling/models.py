@@ -33,7 +33,7 @@ class EmailMessagingSchedule(db.Model):
     body_id = db.Column(
         db.Integer, db.ForeignKey("generated_message.id"), nullable=True)
     email_subject_line_template_id = db.Column(
-        db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=False)
+        db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True)
     email_body_template_id = db.Column(
         db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=False)
 

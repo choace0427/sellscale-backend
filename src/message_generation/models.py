@@ -131,6 +131,9 @@ class GeneratedMessage(db.Model):
             "adversary_identified_fix": self.adversary_identified_fix,
             "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
             "priority_rating": self.priority_rating,
+            "email_type": self.email_type.value if self.email_type else None,
+            "email_subject_line_template_id": self.email_subject_line_template_id,
+            "email_sequence_step_template_id": self.email_sequence_step_template_id,
         }
 
 

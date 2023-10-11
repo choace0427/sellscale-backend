@@ -7,7 +7,7 @@ from src.message_generation.email.services import (
     generate_email,
     generate_subject_line,
 )
-from src.message_generation.models import GeneratedMessageAutoBump, SendStatus
+from src.message_generation.models import GeneratedMessageAutoBump, GeneratedMessageEmailType, SendStatus
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
 from src.research.account_research import generate_prospect_research
@@ -1163,7 +1163,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         subject_line = subject_line.get("subject_line")
 
         # 9. Create the GeneratedMessage objects
-        ai_generated_body = GeneratedMessage(
+        ai_generated_body: GeneratedMessage = GeneratedMessage(
             prospect_id=prospect_id,
             outbound_campaign_id=campaign_id,
             prompt=initial_email_prompt,
@@ -1171,6 +1171,9 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             message_status=GeneratedMessageStatus.DRAFT,
             message_type=GeneratedMessageType.EMAIL,
             priority_rating=campaign.priority_rating if campaign else 0,
+            email_type=GeneratedMessageEmailType.BODY,
+            email_sequence_step_template_id=template_id,
+
         )
         ai_generated_subject_line = GeneratedMessage(
             prospect_id=prospect_id,
@@ -1180,6 +1183,8 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             message_status=GeneratedMessageStatus.DRAFT,
             message_type=GeneratedMessageType.EMAIL,
             priority_rating=campaign.priority_rating if campaign else 0,
+            email_type=GeneratedMessageEmailType.SUBJECT_LINE,
+            email_subject_line_template_id=subjectline_template_id,
         )
         db.session.add(ai_generated_body)
         db.session.add(ai_generated_subject_line)
