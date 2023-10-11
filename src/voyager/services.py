@@ -997,29 +997,25 @@ def queue_withdraw_li_invites(client_sdr_id: int, prospect_ids: list[int]):
         args_list=[{'client_sdr_id': client_sdr_id, 'prospect_id': p_id} for p_id in prospect_ids],
         chunk_size=50,
         chunk_wait_days=1,
-        buffer_wait_minutes=1,
+        buffer_wait_minutes=5,
     )
 
 
 @celery.task
 def withdraw_li_invite(client_sdr_id: int, prospect_id: int):
 
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect: return
-    li_public_id = prospect.linkedin_url.split("/in/")[1].split("/")[0]
 
-    api = LinkedIn(client_sdr_id)
-    success = api.remove_connection(li_public_id)
+    pba = PhantomBusterAgent('1386024932692725')
+    pba.update_argument(key="sessionCookie", new_value=sdr.li_at_token)
+    pba.update_argument(key='profilesToWithdraw', new_value='https://www.' + prospect.linkedin_url)
 
-    if success:
-        send_slack_message(
-            message=f"Calling withdraw from queue, sdr:{client_sdr_id}, prospect:{prospect_id}",
-            webhook_urls=[URL_MAP["eng-sandbox"]],
-        )
-    else:
-        send_slack_message(
-            message=f"Calling withdraw from queue, sdr:{client_sdr_id}, prospect:{prospect_id}, failed",
-            webhook_urls=[URL_MAP["eng-sandbox"]],
-        )
+    pba.run_phantom()
+
+    send_slack_message(
+        message=f"Calling withdraw from queue, sdr:{client_sdr_id}, prospect:{prospect_id}",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
 
 

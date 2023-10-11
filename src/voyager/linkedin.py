@@ -294,7 +294,7 @@ class LinkedIn(object):
         return profile
 
 
-    def remove_connection(self, public_profile_id):
+    def remove_connection(self, public_profile_id, invite_urn_id):
         """Remove a given profile as a connection.
 
         :param public_profile_id: public ID of a LinkedIn profile
@@ -305,11 +305,47 @@ class LinkedIn(object):
         """
         res = self._post(
             f"/identity/profiles/{public_profile_id}/profileActions?action=disconnect",
-            headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
+            headers={
+                "accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
+        # res = self._post(
+        #     f"/voyagerRelationshipsDashInvitations/urn%3Ali%3Afsd_invitation%3A{invite_urn_id}?action=withdraw",
+        #     headers={
+        #         "accept": "application/vnd.linkedin.normalized+json+2.1"},
+        # )
+
+        return res.status_code == 200, res.status_code, res.text
+    
+
+    def get_invitations(self, start=0, limit=3):
+        """Fetch connection invitations for the currently logged in user.
+
+        :param start: How much to offset results by
+        :type start: int
+        :param limit: Maximum amount of invitations to return
+        :type limit: int
+
+        :return: List of invitation objects
+        :rtype: list
+        """
+        params = {
+            "start": start,
+            "count": limit,
+            "includeInsights": True,
+            "q": "receivedInvitation",
+        }
+
+        res = self._fetch(
+            "/relationships/invitationViews",
+            params=params,
         )
 
-        return res.status_code != 200
-    
+        if res.status_code != 200:
+            return []
+
+        response_payload = res.json()
+        return [element["invitation"] for element in response_payload["elements"]]
+
 
     def get_urn_id_from_public_id(self, public_id):
         """Get the profile URN ID for a given profile public ID.
