@@ -36,12 +36,13 @@ from src.prospecting.models import Prospect, ProspectStatus, ProspectHiddenReaso
 from typing import List, Union
 from src.li_conversation.services import create_linkedin_conversation_entry
 from model_import import ClientSDR, Client
-from app import db
+from app import db, celery
 from tqdm import tqdm
 from src.utils.abstract.attr_utils import deep_get
 from src.voyager.linkedin import LinkedIn
 from sqlalchemy import or_
 from fuzzywuzzy import fuzz
+from datetime import datetime
 
 
 def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
@@ -985,3 +986,35 @@ def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
 
         if sdr_updated and prospect_updated:
             return
+
+
+def queue_withdraw_li_invite(client_sdr_id: int, prospect_id: int):
+    
+    from src.automation.orchestrator import add_process_to_queue
+    
+    add_process_to_queue(
+        type='li_invite_withdraw',
+        meta_data={
+            'args': {
+                'client_sdr_id': client_sdr_id,
+                'prospect_id': prospect_id,
+            }
+        },
+        execution_date=datetime.utcnow()
+    )
+
+    pass
+
+
+@celery.task
+def withdraw_li_invite(client_sdr_id: int, prospect_id: int):
+    print('client_sdr_id', client_sdr_id)
+    print('prospect_id', prospect_id)
+
+    send_slack_message(
+        message=f"Calling withdraw from queue, sdr:{client_sdr_id}, prospect:{prospect_id}",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
+    pass
+

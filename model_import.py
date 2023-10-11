@@ -51,6 +51,7 @@ from src.automation.models import (
     PhantomBusterConfig,
     PhantomBusterType,
     PhantomBusterPayload,
+    ProcessQueue,
 )
 from src.email.email_outbound.models import (
     EmailSchema,

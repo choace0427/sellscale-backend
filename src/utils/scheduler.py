@@ -8,6 +8,21 @@ from pytz import timezone
 ENV = os.environ.get("FLASK_ENV")
 
 
+def process_queue():
+    from src.automation.orchestrator import process_queue
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        process_queue.apply_async(
+            args=[],
+            queue="orchestrator",
+            routing_key="orchestrator",
+            priority=1,
+        )
+
+
 def scrape_all_inboxes_job():
     from src.automation.inbox_scraper import scrape_all_inboxes
 
@@ -296,6 +311,8 @@ monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Ang
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 
 # Minute triggers
+scheduler.add_job(func=process_queue, trigger="interval", minutes=1)
+
 scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)

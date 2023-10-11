@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from src.bump_framework.models import BumpFramework
 from src.prospecting.services import send_to_purgatory
 from src.utils.slack import URL_MAP, send_slack_message
-from src.voyager.services import fetch_li_prospects_for_sdr
+from src.voyager.services import fetch_li_prospects_for_sdr, queue_withdraw_li_invite
 from src.prospecting.models import Prospect, ProspectHiddenReason
 from src.client.models import ClientSDR
 from src.voyager.services import (
@@ -307,6 +307,20 @@ def get_refetch_all_convos(client_sdr_id: int):
     """Refetches all convos for the SDR"""
 
     fetch_li_prospects_for_sdr(client_sdr_id)
+
+    return jsonify({"message": "Success"}), 200
+
+
+@VOYAGER_BLUEPRINT.route("/withdraw_invite", methods=["POST"])
+@require_user
+def post_withdraw_invite(client_sdr_id: int):
+    """Withdraw the li invite for the prospect"""
+
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    queue_withdraw_li_invite(client_sdr_id, prospect_id)
 
     return jsonify({"message": "Success"}), 200
 
