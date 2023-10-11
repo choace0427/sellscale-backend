@@ -151,8 +151,10 @@ def add_process_list(
         chunk_size: int = 10,
         init_wait_days: int = 0,
         init_wait_minutes: int = 0,
-        wait_days: int = 0,
-        wait_minutes: int = 0,
+        chunk_wait_days: int = 0,
+        chunk_wait_minutes: int = 0,
+        buffer_wait_days: int = 0,
+        buffer_wait_minutes: int = 0,
     ):
     """ Queues up a series of processes to be executed over a set amount of time
     
@@ -163,9 +165,10 @@ def add_process_list(
         chunk_size: (int): Maximum number of args (processes) to be called at once at a time
         init_wait_days: (int): Initial onset number of days to wait before starting these executions
         init_wait_minutes: (int): Initial onset number of minutes to wait before starting these executions
-        wait_days: (int): Number of days to wait in between each process chunk
-        wait_minutes: (int): Number of minutes to wait in between each process chunk
-
+        chunk_wait_days: (int): Number of days to wait in between each process chunk
+        chunk_wait_minutes: (int): Number of minutes to wait in between each process chunk
+        buffer_wait_days: (int): Number of days to wait in between each process in a chunk
+        buffer_wait_minutes: (int): Number of minutes to wait in between each process in a chunk
 
     Returns:
         list[ProcessQueue] (list[dict]): List of queued process
@@ -179,17 +182,17 @@ def add_process_list(
     total_wait_days = init_wait_days
     total_wait_minutes = init_wait_minutes
     for chunk in chunks:
-        for args in chunk:
+        for i, args in enumerate(chunk):
             process = add_process_for_future(
                 type=type,
                 args=args,
                 months=0,
-                days=total_wait_days,
-                minutes=total_wait_minutes
+                days=total_wait_days+(buffer_wait_days*i),
+                minutes=total_wait_minutes+(buffer_wait_minutes*i),
             )
             processes.append(process)
-        total_wait_days += wait_days
-        total_wait_minutes += wait_minutes
+        total_wait_days += chunk_wait_days
+        total_wait_minutes += chunk_wait_minutes
 
     return processes
 
