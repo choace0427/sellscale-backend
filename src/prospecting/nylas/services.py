@@ -8,7 +8,7 @@ from app import db, celery
 from src.client.models import ClientSDR, Client
 from src.client.sdr.email.models import SDREmailBank
 from src.client.sdr.email.services_email_bank import email_belongs_to_sdr
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     EmailConversationMessage,
     EmailConversationThread,
     ProspectEmail,

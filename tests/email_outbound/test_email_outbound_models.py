@@ -1,4 +1,4 @@
-from src.email.email_outbound.models import EmailCustomizedFieldTypes
+from src.email_outbound.models import EmailCustomizedFieldTypes
 from src.ml.models import GNLPModelType
 from model_import import EmailSchema, ProspectEmail
 from test_utils import (

@@ -7,7 +7,7 @@ from src.client.sdr.services_client_sdr import (
     deactivate_sla_schedules,
     load_sla_schedules,
 )
-from src.email.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )

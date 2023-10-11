@@ -12,11 +12,11 @@ from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import get_text_generation
 
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.email.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
-from src.email.email_outbound.services import (
+from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
+from src.email_outbound.services import (
     get_email_messages_with_prospect_transcript_format,
 )
-from src.email.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import AccountResearchPoints, ResearchPoints
 

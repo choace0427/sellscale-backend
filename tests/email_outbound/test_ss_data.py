@@ -2,7 +2,7 @@ from decorators import use_app_context
 from test_utils import test_app
 from app import db
 
-from src.email.email_outbound.ss_data import SSData
+from src.email_outbound.ss_data import SSData
 from model_import import (
     EmailInteractionState,
     EmailSequenceState,

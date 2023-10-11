@@ -3,7 +3,7 @@ from app import app, db
 
 from model_import import Client, PersonaSplitRequestTask, PersonaSplitRequest
 from decorators import use_app_context
-from src.email.email_outbound.models import ProspectEmail
+from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage
 from src.personas.services import get_unassignable_prospects_using_icp_heuristic, unassign_prospects
 from src.prospecting.models import Prospect

@@ -1,8 +1,8 @@
 from app import db
-from src.email.email_outbound.models import EmailCustomizedFieldTypes
+from src.email_outbound.models import EmailCustomizedFieldTypes
 from model_import import GeneratedMessage, GeneratedMessageType
 from src.ml.models import GNLPModelType
-from src.email.email_outbound.services import create_prospect_email
+from src.email_outbound.services import create_prospect_email
 from test_utils import (
     basic_client,
     basic_client_sdr,
@@ -15,7 +15,7 @@ from test_utils import (
 )
 from decorators import use_app_context
 from test_utils import test_app
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     EmailSchema,
     ProspectEmail,
     ProspectEmailStatus,
@@ -152,11 +152,11 @@ def test_post_batch_update_emails_failed():
 
 @use_app_context
 @mock.patch(
-    "src.email.email_outbound.controllers.convert_outreach_payload_to_ss.apply_async",
+    "src.email_outbound.controllers.convert_outreach_payload_to_ss.apply_async",
     return_value=1,
 )
 @mock.patch(
-    "src.email.email_outbound.controllers.collect_and_update_status_from_ss_data.s",
+    "src.email_outbound.controllers.collect_and_update_status_from_ss_data.s",
     return_value=True,
 )
 def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_mock):
@@ -201,7 +201,7 @@ def test_update_status_from_csv_payload(collect_and_update_mock, convert_to_ss_m
 
 @use_app_context
 @mock.patch(
-    "src.email.email_outbound.controllers.batch_mark_prospects_in_email_campaign_queued",
+    "src.email_outbound.controllers.batch_mark_prospects_in_email_campaign_queued",
     return_value="something",
 )
 def test_batch_mark_sent(batch_mark_mock):

@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from src.ml.openai_wrappers import DEFAULT_TEMPERATURE
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
-from src.email.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.models import EmailSequenceStep
 
 from src.research.models import IScraperPayloadCache, ResearchPoints
 from src.research.models import ResearchPayload

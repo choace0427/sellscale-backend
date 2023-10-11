@@ -104,7 +104,7 @@ def make_celery(app):
         f"src.ml.services.test_rate_limiter": {
             "rate_limit": "2/s",
         },
-        f"src.email.email_outbound.email_store.services.email_store_hunter_verify": {
+        f"src.email_outbound.email_store.services.email_store_hunter_verify": {
             "rate_limit": "2/s",
         },
     }
@@ -165,7 +165,7 @@ def register_blueprints(app):
     from src.automation.controllers import AUTOMATION_BLUEPRINT
     from src.authentication.controllers import AUTHENTICATION_BLUEPRINT
     from src.analytics.controllers import ANALYTICS_BLUEPRINT
-    from src.email.email_outbound.controllers import EMAIL_GENERATION_BLUEPRINT
+    from src.email_outbound.controllers import EMAIL_GENERATION_BLUEPRINT
     from src.campaigns.controllers import CAMPAIGN_BLUEPRINT
     from src.sight_inbox.controllers import SIGHT_INBOX_BLUEPRINT
     from src.editing_tools.controllers import EDITING_TOOLS_BLUEPRINT
@@ -178,7 +178,7 @@ def register_blueprints(app):
     from src.integrations.controllers import INTEGRATION_BLUEPRINT
     from src.voyager.controllers import VOYAGER_BLUEPRINT
     from src.bump_framework.controllers import BUMP_FRAMEWORK_BLUEPRINT
-    from src.email.email_sequencing.controllers import EMAIL_SEQUENCING_BLUEPRINT
+    from src.email_sequencing.controllers import EMAIL_SEQUENCING_BLUEPRINT
     from src.personas.controllers import PERSONAS_BLUEPRINT
     from src.voice_builder.controllers import VOICE_BUILDER_BLUEPRINT
     from src.company.controllers import COMPANY_BLUEPRINT

@@ -1,5 +1,5 @@
 from src.client.models import ClientSDR, Client
-from src.email.email_outbound.services import get_sequences, add_sequence
+from src.email_outbound.services import get_sequences, add_sequence
 from src.authentication.decorators import require_user
 from app import db
 from src.prospecting.models import Prospect
@@ -10,13 +10,13 @@ from flask import Blueprint, request, jsonify
 from src.message_generation.services import (
     mark_prospect_email_approved,
 )
-from src.email.email_outbound.services import (
+from src.email_outbound.services import (
     batch_update_emails,
     batch_mark_prospects_in_email_campaign_queued,
     create_sales_engagement_interaction_raw,
     collect_and_update_status_from_ss_data,
 )
-from src.email.email_outbound.outreach_io.services import (
+from src.email_outbound.outreach_io.services import (
     validate_outreach_csv_payload,
     convert_outreach_payload_to_ss,
 )

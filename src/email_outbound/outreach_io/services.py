@@ -4,7 +4,7 @@ from model_import import (
     EmailInteractionState,
     EmailSequenceState
 )
-from src.email.email_outbound.ss_data import SSData
+from src.email_outbound.ss_data import SSData
 
 EMAIL = "Email"
 SEQUENCE_STATE = "Sequence State"

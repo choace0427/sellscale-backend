@@ -5,9 +5,9 @@ import re
 from typing import Optional
 from bs4 import BeautifulSoup
 from flask import jsonify
-from src.email.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.models import EmailSequenceStep
 from src.client.models import ClientSDR
-from src.email.email_outbound.models import Sequence, SequenceStatus
+from src.email_outbound.models import Sequence, SequenceStatus
 
 from app import db, celery
 from model_import import (
@@ -25,7 +25,7 @@ from src.campaigns.models import (
 )
 from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4_MODEL, wrapped_chat_gpt_completion
 from src.prospecting.services import calculate_prospect_overall_status
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     EmailInteractionState,
     EmailSchema,
     ProspectEmail,
@@ -37,7 +37,7 @@ from src.email.email_outbound.models import (
     ProspectEmailStatusRecords,
     VALID_UPDATE_EMAIL_STATUS_MAP,
 )
-from src.email.email_outbound.ss_data import SSData
+from src.email_outbound.ss_data import SSData
 from src.automation.slack_notification import send_status_change_slack_block
 import markdown
 

@@ -122,7 +122,7 @@ def auto_send_bumps():
 
 def replenish_sdr_credits():
     from src.ml.services import replenish_all_ml_credits_for_all_sdrs
-    from src.email.email_outbound.email_store.hunter import (
+    from src.email_outbound.email_store.hunter import (
         replenish_all_email_credits_for_all_sdrs,
     )
 
@@ -135,7 +135,7 @@ def replenish_sdr_credits():
 
 
 def send_prospect_emails():
-    from src.email.email_outbound.services import send_prospect_emails
+    from src.email_outbound.services import send_prospect_emails
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -155,7 +155,7 @@ def generate_message_bumps():
 
 
 def generate_email_bumps():
-    from src.email.email_sequencing.services import generate_email_bumps
+    from src.email_sequencing.services import generate_email_bumps
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -225,7 +225,7 @@ def run_scrape_for_demos():
 
 
 def run_collect_and_trigger_email_store_hunter_verify():
-    from src.email.email_outbound.email_store.services import (
+    from src.email_outbound.email_store.services import (
         collect_and_trigger_email_store_hunter_verify,
     )
 

@@ -1,4 +1,4 @@
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     EmailCustomizedFieldTypes,
     SalesEngagementInteractionSource,
     SalesEngagementInteractionRaw,
@@ -7,7 +7,7 @@ from src.email.email_outbound.models import (
     EmailSequenceState,
 )
 from src.ml.models import GNLPModelType
-from src.email.email_outbound.services import (
+from src.email_outbound.services import (
     create_prospect_email,
     batch_mark_prospect_email_sent,
     update_prospect_email_flow_statuses,
@@ -30,7 +30,7 @@ from test_utils import (
 from decorators import use_app_context
 from test_utils import test_app
 from app import db
-from src.email.email_outbound.models import (
+from src.email_outbound.models import (
     EmailSchema,
     ProspectEmail,
     ProspectEmailStatus,
@@ -84,7 +84,7 @@ def test_create_prospect_email():
 
 @use_app_context
 @mock.patch(
-    "src.email.email_outbound.services.update_prospect_email_flow_statuses.apply_async",
+    "src.email_outbound.services.update_prospect_email_flow_statuses.apply_async",
     return_value=None,
 )
 def test_batch_mark_prospect_email_sent(update_mock):
@@ -176,7 +176,7 @@ def test_create_sales_engagement_interaction_raw():
 
 
 @use_app_context
-@mock.patch("src.email.email_outbound.services.update_status_from_ss_data.apply_async")
+@mock.patch("src.email_outbound.services.update_status_from_ss_data.apply_async")
 def test_collect_and_update_status_from_ss_data(update_status_from_ss_data_mock):
     client = basic_client()
     sdr = basic_client_sdr(client)

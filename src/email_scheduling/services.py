@@ -3,9 +3,9 @@ from app import db
 from datetime import datetime, timedelta
 from typing import Optional
 from src.client.models import ClientArchetype
-from src.email.email_outbound.models import ProspectEmail
-from src.email.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
-from src.email.email_sequencing.models import EmailSequenceStep
+from src.email_outbound.models import ProspectEmail
+from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
+from src.email_sequencing.models import EmailSequenceStep
 from src.prospecting.models import Prospect, ProspectOverallStatus
 
 
@@ -113,7 +113,7 @@ def populate_email_messaging_schedule_entries(
 
     # Create the followups
     followups_created = 1
-    followup_email_send_date = initial_email_send_date
+    followup_email_send_date = accepted_followup_email_send_date
     while followups_created < FOLLOWUP_LIMIT: # 10 followups max
         # Search for a sequence step that is bumped and has a followup number
         bumped_sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter_by(

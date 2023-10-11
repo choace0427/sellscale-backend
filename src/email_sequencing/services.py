@@ -1,8 +1,8 @@
 from src.prospecting.services import calculate_prospect_overall_status
-from src.email.email_outbound.services import update_prospect_email_outreach_status
+from src.email_outbound.services import update_prospect_email_outreach_status
 from src.message_generation.services import add_generated_msg_queue
 from src.prospecting.nylas.services import nylas_get_messages, nylas_send_email
-from src.email.email_outbound.models import ProspectEmailOutreachStatus
+from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.utils.slack import send_slack_message, URL_MAP
 from model_import import (
     EmailSequenceStep,
