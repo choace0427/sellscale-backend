@@ -6,7 +6,6 @@ from src.client.models import ClientArchetype
 from src.email_outbound.models import ProspectEmail
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
 from src.email_sequencing.models import EmailSequenceStep
-from src.message_generation.email.services import ai_followup_email_prompt, generate_email
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.prospecting.models import Prospect, ProspectOverallStatus
 
@@ -177,6 +176,8 @@ def generate_email_messaging_schedule_entry(
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating success and a message
     """
+    from src.message_generation.email.services import ai_followup_email_prompt, generate_email
+
     # Get the email_messaging_schedule entry
     email_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule.query.get(email_messaging_schedule_id)
     if not email_messaging_schedule:
