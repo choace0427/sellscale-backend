@@ -9,7 +9,7 @@ from model_import import (
 )
 from src.client.archetype.services_client_archetype import bulk_action_move_prospects_to_archetype
 from src.client.services_client_archetype import hard_deactivate_client_archetype
-from src.email_outbound.models import ProspectEmail
+from src.email.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.prospecting.models import Prospect, ProspectStatus
 from test_utils import (

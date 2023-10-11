@@ -5,8 +5,8 @@ from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
 from src.client.sdr.email.models import SDREmailBank
 from src.client.sdr.email.services_email_bank import email_belongs_to_sdr, get_sdr_email_bank
-from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
-from src.email_outbound.services import update_prospect_email_outreach_status
+from src.email.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
+from src.email.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
 from src.prospecting.nylas.services import nylas_update_messages, nylas_update_threads
 from src.prospecting.services import calculate_prospect_overall_status

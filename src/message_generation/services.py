@@ -1,5 +1,5 @@
 import email
-from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.li_conversation.models import LinkedInConvoMessage
 from src.message_generation.email.services import (
     ai_initial_email_prompt,
@@ -47,7 +47,7 @@ from model_import import (
 from typing import List, Optional, Union
 from src.ml.rule_engine import run_message_rule_engine
 from src.ml_adversary.services import run_adversary
-from src.email_outbound.models import ProspectEmailStatus
+from src.email.email_outbound.models import ProspectEmailStatus
 from src.research.models import ResearchPayload, ResearchPointType, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from src.research.linkedin.services import get_research_and_bullet_points_new
@@ -59,7 +59,7 @@ from ..ml.fine_tuned_models import (
     get_few_shot_baseline_prompt,
 )
 from src.utils.random_string import generate_random_alphanumeric
-from src.email_outbound.services import create_prospect_email
+from src.email.email_outbound.services import create_prospect_email
 from src.message_generation.ner_exceptions import ner_exceptions, title_abbreviations
 from ..utils.abstract.attr_utils import deep_get
 import random

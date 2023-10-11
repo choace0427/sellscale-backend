@@ -69,7 +69,7 @@ from src.daily_notifications.models import (
 from typing import Optional
 from datetime import datetime, time, timedelta
 
-from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.utils.datetime.dateutils import get_current_monday_friday
 
 

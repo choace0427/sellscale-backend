@@ -1,5 +1,5 @@
 from app import db, celery
-from src.email_outbound.email_store.models import EmailStore, HunterVerifyStatus
+from src.email.email_outbound.email_store.models import EmailStore, HunterVerifyStatus
 
 
 def create_email_store(
@@ -64,7 +64,7 @@ def email_store_hunter_verify(self, email_store_id: int) -> (bool, str):
     Returns:
         (bool, str): (success, message)
     """
-    from src.email_outbound.email_store.hunter import verify_email_from_hunter
+    from src.email.email_outbound.email_store.hunter import verify_email_from_hunter
 
     try:
         email_store: EmailStore = EmailStore.query.get(email_store_id)

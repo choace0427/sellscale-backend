@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import List, Optional, Union
 from regex import P
 from sqlalchemy import nullslast
-from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
-from src.email_outbound.email_store.services import (
+from src.email.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
+from src.email.email_outbound.email_store.services import (
     create_email_store,
     email_store_hunter_verify,
 )
@@ -12,7 +12,7 @@ from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
 
 from src.company.services import find_company_for_prospect
-from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
+from src.email.email_outbound.models import EmailConversationThread, EmailConversationMessage
 from sqlalchemy import or_
 import requests
 from src.message_generation.models import (
@@ -20,7 +20,7 @@ from src.message_generation.models import (
     GeneratedMessageStatus,
     GeneratedMessageType,
 )
-from src.email_outbound.models import (
+from src.email.email_outbound.models import (
     ProspectEmail,
     ProspectEmailStatus,
     ProspectEmailOutreachStatus,
