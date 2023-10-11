@@ -298,6 +298,16 @@ def run_weekday_phantom_buster_updater():
         daily_pb_launch_schedule_update.delay()
 
 
+def run_collect_and_generate_email_messaging_schedule_entries():
+    from src.email_scheduling.services import collect_and_generate_email_messaging_schedule_entries
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        collect_and_generate_email_messaging_schedule_entries.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
@@ -309,6 +319,9 @@ monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Ang
 
 # Add all jobs to scheduler
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
+
+# 30 second triggers
+scheduler.add_job(func=run_next_client_sdr_li_conversation_scraper_job, trigger="interval", seconds=30)
 
 # Minute triggers
 scheduler.add_job(func=process_queue, trigger="interval", minutes=1)
