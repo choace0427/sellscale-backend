@@ -305,7 +305,7 @@ def run_collect_and_generate_email_messaging_schedule_entries():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        collect_and_generate_email_messaging_schedule_entries()
+        collect_and_generate_email_messaging_schedule_entries.delay()
 
 
 def run_collect_and_send_email_messaging_schedule_entries():
@@ -315,7 +315,7 @@ def run_collect_and_send_email_messaging_schedule_entries():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        collect_and_send_email_messaging_schedule_entries()
+        collect_and_send_email_messaging_schedule_entries.delay()
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))

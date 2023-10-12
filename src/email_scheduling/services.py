@@ -145,7 +145,8 @@ def populate_email_messaging_schedule_entries(
     return email_ids
 
 
-def collect_and_generate_email_messaging_schedule_entries() -> tuple[bool, str]:
+@celery.task(bind=True, max_retries=3)
+def collect_and_generate_email_messaging_schedule_entries(self) -> tuple[bool, str]:
     """ Collects and generates email_messaging_schedule entries that need to be generated
 
     Returns:
@@ -260,7 +261,8 @@ def generate_email_messaging_schedule_entry(
     return True, "Success"
 
 
-def collect_and_send_email_messaging_schedule_entries() -> tuple[bool, str]:
+@celery.task(bind=True, max_retries=3)
+def collect_and_send_email_messaging_schedule_entries(self) -> tuple[bool, str]:
     """ Collects and sends email_messaging_schedule entries that need to be sent
 
     Returns:
@@ -281,6 +283,7 @@ def collect_and_send_email_messaging_schedule_entries() -> tuple[bool, str]:
 
 @celery.task(bind=True, max_retries=3)
 def send_email_messaging_schedule_entry(
+    self,
     email_messaging_schedule_id: int,
 ) -> tuple[bool, str]:
     """ Sends an email_messaging_schedule entry
