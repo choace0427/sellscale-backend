@@ -1,6 +1,6 @@
 from app import db
 
-from src.client.models import ClientArchetype, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.models import Prospect
 from src.utils.slack import URL_MAP, send_slack_message
@@ -69,6 +69,8 @@ def bulk_action_withdraw_prospect_invitations(
     if not sdr:
         return False, "Invalid Client SDR"
 
+    client: Client = Client.query.get(sdr.client_id)
+
     from src.voyager.services import queue_withdraw_li_invites
     from model_import import ProspectStatus, ProspectOverallStatus
 
@@ -98,13 +100,18 @@ def bulk_action_withdraw_prospect_invitations(
         message="{} has withdrawn {} prospect invitations. Please follow the instructions on Notion.".format(
             sdr.name, len(prospect_ids)
         ),
-        webhook_urls=[URL_MAP["operations-withdraw-invite"]],
+        webhook_urls=[
+            URL_MAP["operations-withdraw-invite"],
+            client.pipeline_notifications_webhook_url,
+        ],
         blocks=[
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "{} is withdrawing prospect invitations.".format(sdr.name),
+                    "text": "👌🏽 {} is withdrawing {} invitations".format(
+                        sdr.name, str(len(prospect_ids))
+                    ),
                     "emoji": True,
                 },
             },
@@ -112,27 +119,14 @@ def bulk_action_withdraw_prospect_invitations(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Follow the steps in this <{}|Notion document>".format(
-                        "https://www.notion.so/sellscale/PB-LinkedIn-Withdrawal-3ffa2898c3464432afaf36d5db96e1f2?pvs=4"
-                    ),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "LinkedIn cookie: \n```{}```".format(sdr.li_at_token),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "{amt} LI's withdrawn:\n```{li_list}```".format(
+                    "text": "{amt} Profiles Withdrawn Include:\n```{li_list}\n\n{end_message}``` ".format(
                         amt=len(prospects),
                         li_list="\n".join(
-                            [prospect.linkedin_url for prospect in prospects]
+                            [prospect.linkedin_url for prospect in prospects][0:10]
                         ),
+                        end_message="...and {} more".format(len(prospects) - 10)
+                        if len(prospects) > 10
+                        else "",
                     ),
                 },
             },
@@ -140,7 +134,7 @@ def bulk_action_withdraw_prospect_invitations(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Once done, please mark this task as complete ✅.",
+                    "text": "Note: This process may take a few days to complete as there's a 50 profile withdrawal limit per day.",
                 },
             },
         ],
