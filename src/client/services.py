@@ -1260,13 +1260,14 @@ def clear_nylas_tokens(client_sdr_id: int):
         os.environ.get("NYLAS_CLIENT_ID"),
         os.environ.get("NYLAS_CLIENT_SECRET"),
     )
-    account = next((a for a in nylas.accounts.all()
-               if a.get('email') == sdr.email), None)
+    account = next(
+        (a for a in nylas.accounts.all() if a.get("email") == sdr.email), None
+    )
 
     if account:
-      account.downgrade()
+        account.downgrade()
     else:
-      "Error clearing tokens", 500
+        "Error clearing tokens", 500
 
     sdr.nylas_auth_code = None
     sdr.nylas_account_id = None
@@ -3107,6 +3108,12 @@ def write_client_pre_onboarding_survey(
         db.session.add(client)
         db.session.commit()
 
+        sync_field_to_db(
+            client_id,
+            key,
+            value,
+        )
+
         return True
     except Exception as e:
         if retries_left > 0:
@@ -3115,6 +3122,29 @@ def write_client_pre_onboarding_survey(
             )
         else:
             return False
+
+
+def sync_field_to_db(client_id: int, key: str, value: str):
+    client: Client = Client.query.get(client_id)
+    first_persona: ClientArchetype = (
+        ClientArchetype.query.filter(
+            ClientArchetype.client_id == client_id,
+            ClientArchetype.is_unassigned_contact_archetype == False,
+        )
+        .order_by(ClientArchetype.created_at.asc())
+        .first()
+    )
+
+    if key == "persona_name":
+        first_persona.archetype = value
+    if key == "persona_buy_reason":
+        first_persona.persona_fit_reason = value
+    if key == "persona_contact_objective":
+        first_persona.persona_contact_objective = value
+    if key == "cta_blanks_company":
+        first_persona.cta_blanks_company = value
+
+    return True
 
 
 def get_all_sdrs_from_emails(emails: list[str]):
