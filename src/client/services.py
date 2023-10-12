@@ -3096,10 +3096,11 @@ def propagate_contract_value(client_id: int, new_value: int):
 
 
 def write_client_pre_onboarding_survey(
-    client_id: int, key: str, value: str, retries_left: int = 3
+    client_sdr_id: int, client_id: int, key: str, value: str, retries_left: int = 3
 ):
     """Writes a client pre-onboarding survey response to the database"""
     try:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         client: Client = Client.query.get(client_id)
         client.pre_onboarding_survey = client.pre_onboarding_survey or {}
         client.pre_onboarding_survey[key] = value
@@ -3109,6 +3110,7 @@ def write_client_pre_onboarding_survey(
         db.session.commit()
 
         sync_field_to_db(
+            client_sdr_id,
             client_id,
             key,
             value,
@@ -3118,13 +3120,14 @@ def write_client_pre_onboarding_survey(
     except Exception as e:
         if retries_left > 0:
             return write_client_pre_onboarding_survey(
-                client_id, key, value, retries_left - 1
+                client_sdr_id, client_id, key, value, retries_left - 1
             )
         else:
             return False
 
 
-def sync_field_to_db(client_id: int, key: str, value: str):
+def sync_field_to_db(client_sdr_id: int, client_id: int, key: str, value: str):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_id)
     first_persona: ClientArchetype = (
         ClientArchetype.query.filter(
@@ -3132,6 +3135,15 @@ def sync_field_to_db(client_id: int, key: str, value: str):
             ClientArchetype.is_unassigned_contact_archetype == False,
         )
         .order_by(ClientArchetype.created_at.asc())
+        .first()
+    )
+    scheduling_framework: BumpFramework = (
+        BumpFramework.query.filter(
+            BumpFramework.client_sdr_id == client_sdr_id,
+            BumpFramework.default == True,
+            BumpFramework.substatus == "ACTIVE_CONVO_SCHEDULING",
+        )
+        .order_by(BumpFramework.created_at.asc())
         .first()
     )
 
@@ -3142,7 +3154,69 @@ def sync_field_to_db(client_id: int, key: str, value: str):
     if key == "persona_contact_objective":
         first_persona.persona_contact_objective = value
     if key == "cta_blanks_company":
-        first_persona.cta_blanks_company = value
+        first_persona.persona_cta_framework_company = value
+    if key == "cta_blanks_persona":
+        first_persona.persona_cta_framework_persona = value
+    if key == "cta_blanks_solution":
+        first_persona.persona_cta_framework_action = value
+    if key == "common_use_cases":
+        first_persona.persona_use_cases = value
+    if key == "persona_filters":
+        first_persona.persona_filters = value
+    if key == "persona_lookalike_1":
+        first_persona.persona_lookalike_profile_1 = value
+    if key == "persona_lookalike_2":
+        first_persona.persona_lookalike_profile_2 = value
+    if key == "persona_lookalike_3":
+        first_persona.persona_lookalike_profile_3 = value
+    if key == "persona_lookalike_4":
+        first_persona.persona_lookalike_profile_4 = value
+    if key == "persona_lookalike_5":
+        first_persona.persona_lookalike_profile_5 = value
+    if key == "company_mission":
+        client.mission = value
+    if key == "company_tagline":
+        client.tagline = value
+    if key == "company_description":
+        client.description = value
+    if key == "company_value_prop":
+        client.value_prop_key_points = value
+    if key == "sequence_open_rate":
+        client_sdr.conversion_open_pct = value
+    if key == "sequence_reply_rate":
+        client_sdr.conversion_reply_pct = value
+    if key == "sequence_demo_rate":
+        client_sdr.conversion_demo_pct = value
+    if key == "do_not_contact":
+        client.do_not_contact_company_names = [x.strip() for x in value.split(",")]
+    if key == "user_full_name":
+        client_sdr.name = value
+    if key == "user_email":
+        client_sdr.email = value
+    if key == "user_scheduling_link":
+        client_sdr.scheduling_link = value
+    if key == "user_linkedin_url":
+        client_sdr.linkedin_url = value
+    if key == "scheduling_message":
+        scheduling_framework.description = value
+    if key == "user_timezone":
+        client_sdr.timezone = value
+    if key == "example_copy":
+        client.example_outbound_copy = value
+    if key == "company_case_studies":
+        client.case_study = value
+    if key == "existing_clients":
+        client.existing_clients = value
+    if key == "impressive_facts":
+        client.impressive_facts = value
+    if key == "messaging_tone":
+        client.tone_attributes = [x.strip() for x in value.split(",")]
+
+    db.session.add(client)
+    db.session.add(client_sdr)
+    db.session.add(first_persona)
+    db.session.add(scheduling_framework)
+    db.session.commit()
 
     db.session.add(first_persona)
     db.session.commit()

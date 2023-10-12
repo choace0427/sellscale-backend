@@ -2424,6 +2424,7 @@ def post_pre_onboarding_survey(client_sdr_id: int):
     value = get_request_parameter("value", request, json=True, required=True)
 
     success = write_client_pre_onboarding_survey(
+        client_sdr_id=client_sdr_id,
         client_id=client_sdr.client_id,
         key=key,
         value=value,
