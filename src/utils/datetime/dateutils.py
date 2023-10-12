@@ -89,10 +89,10 @@ def get_current_monday_friday(
 
 
 def get_future_datetime(
-    months=0, days=0, minutes=0, start_time: datetime = datetime.utcnow()
+    months=0, days=0, minutes=0, relative_time=datetime.utcnow()
 ):
     # Calculate the future time by adding the specified months, days, and minutes
-    future_time = start_time + timedelta(
+    future_time = relative_time + timedelta(
         days=days,
         minutes=minutes,
         # Adding months is a bit more complicated due to varying month lengths

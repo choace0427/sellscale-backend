@@ -98,8 +98,8 @@ def add_process_to_queue(
         meta_data=meta_data,
         execution_date=execution_date,
     )
-    db.session.add(process)
-    db.session.commit()
+    # db.session.add(process)
+    # db.session.commit()
 
     return process.to_dict()
 
@@ -130,7 +130,7 @@ def add_process_for_future(
     months: int = 0,
     days: int = 0,
     minutes: int = 0,
-    append_to_end: bool = False,
+    relative_time = datetime.utcnow(),
 ):
     """Adds an instance to the process queue
 
@@ -140,7 +140,7 @@ def add_process_for_future(
         months: (int): Number of months until execution
         days: (int): Number of days until execution
         minutes: (int): Number of minutes until execution
-        append_to_end: (bool): Whether to append the processes to the end of the queue or not (based on execution date)
+        relative_time: (datetime): The time in which the future time is relative to
 
     Returns:
         ProcessQueue (dict): The added process queue as a dict
@@ -148,20 +148,11 @@ def add_process_for_future(
         None, reason (str)
     """
 
-    start_time = datetime.utcnow()
-    if append_to_end:
-        last_process: ProcessQueue = (
-            ProcessQueue.query.filter_by(type=type)
-            .order_by(ProcessQueue.execution_date.desc())
-            .first()
-        )
-        if last_process:
-            start_time = last_process.execution_date
-
     return add_process_to_queue(
         type=type,
         meta_data={"args": args},
-        execution_date=get_future_datetime(months, days, minutes, start_time),
+        execution_date=get_future_datetime(
+            months, days, minutes, relative_time),
     )
 
 
@@ -196,6 +187,17 @@ def add_process_list(
         list[ProcessQueue] (list[dict]): List of queued process
     """
 
+    start_time = datetime.utcnow()
+    if append_to_end:
+        last_process: ProcessQueue = (
+            ProcessQueue.query.filter_by(type=type)
+            .order_by(ProcessQueue.execution_date.desc())
+            .first()
+        )
+        if last_process:
+            start_time = last_process.execution_date
+
+
     processes = []
 
     chunks = [
@@ -212,10 +214,11 @@ def add_process_list(
                 months=0,
                 days=total_wait_days + (buffer_wait_days * i),
                 minutes=total_wait_minutes + (buffer_wait_minutes * i),
-                append_to_end=append_to_end,
+                relative_time=start_time,
             )
             processes.append(process)
         total_wait_days += chunk_wait_days
         total_wait_minutes += chunk_wait_minutes
 
+    print(processes)
     return processes

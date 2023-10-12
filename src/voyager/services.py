@@ -998,7 +998,7 @@ def queue_withdraw_li_invites(client_sdr_id: int, prospect_ids: list[int]):
             {"client_sdr_id": client_sdr_id, "prospect_id": p_id}
             for p_id in prospect_ids
         ],
-        chunk_size=80,
+        chunk_size=1000,
         chunk_wait_days=1,
         buffer_wait_minutes=5,
         append_to_end=True,
