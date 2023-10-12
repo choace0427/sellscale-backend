@@ -154,14 +154,14 @@ def generate_message_bumps():
         generate_message_bumps.delay()
 
 
-def generate_email_bumps():
-    from src.email_sequencing.services import generate_email_bumps
+# def generate_email_bumps():
+#     from src.email_sequencing.services import generate_email_bumps
 
-    if (
-        os.environ.get("FLASK_ENV") == "production"
-        and os.environ.get("SCHEDULING_INSTANCE") == "true"
-    ):
-        generate_email_bumps.delay()
+#     if (
+#         os.environ.get("FLASK_ENV") == "production"
+#         and os.environ.get("SCHEDULING_INSTANCE") == "true"
+#     ):
+#         generate_email_bumps.delay()
 
 
 def auto_mark_uninterested_bumped_prospects_job():
@@ -341,7 +341,7 @@ scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
 scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)
-scheduler.add_job(func=generate_email_bumps, trigger="interval", minutes=2)
+# scheduler.add_job(func=generate_email_bumps, trigger="interval", minutes=2)
 scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
