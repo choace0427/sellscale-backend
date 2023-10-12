@@ -44,6 +44,10 @@ class EmailMessagingSchedule(db.Model):
     # Scheduled Date
     date_scheduled = db.Column(db.DateTime, nullable=False)
 
+    # Nylas Data
+    nylas_message_id = db.Column(db.String, nullable=True)
+    nylas_thread_id = db.Column(db.String, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -56,6 +60,8 @@ class EmailMessagingSchedule(db.Model):
             "email_body_template_id": self.email_body_template_id,
             "send_status": self.send_status.value,
             "send_status_error": self.send_status_error,
-            "date_scheduled": self.date_scheduled
+            "date_scheduled": self.date_scheduled,
+            "nylas_message_id": self.nylas_message_id,
+            "nylas_thread_id": self.nylas_thread_id
         }
 

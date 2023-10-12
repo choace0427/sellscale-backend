@@ -305,7 +305,17 @@ def run_collect_and_generate_email_messaging_schedule_entries():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        collect_and_generate_email_messaging_schedule_entries.delay()
+        collect_and_generate_email_messaging_schedule_entries()
+
+
+def run_collect_and_send_email_messaging_schedule_entries():
+    from src.email_scheduling.services import collect_and_send_email_messaging_schedule_entries
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        collect_and_send_email_messaging_schedule_entries()
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
@@ -322,6 +332,7 @@ scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 
 # 30 second triggers
 scheduler.add_job(func=run_next_client_sdr_li_conversation_scraper_job, trigger="interval", seconds=30)
+scheduler.add_job(func=run_collect_and_generate_email_messaging_schedule_entries, trigger="interval", seconds=30)
 
 # Minute triggers
 scheduler.add_job(func=process_queue, trigger="interval", minutes=1)
