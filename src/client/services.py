@@ -3144,6 +3144,9 @@ def sync_field_to_db(client_id: int, key: str, value: str):
     if key == "cta_blanks_company":
         first_persona.cta_blanks_company = value
 
+    db.session.add(first_persona)
+    db.session.commit()
+
     return True
 
 
