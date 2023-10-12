@@ -987,17 +987,22 @@ def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
         if sdr_updated and prospect_updated:
             return
 
-          
+
 def queue_withdraw_li_invites(client_sdr_id: int, prospect_ids: list[int]):
-    
+
     from src.automation.orchestrator import add_process_list
-    
+
     return add_process_list(
-        type='li_invite_withdraw',
-        args_list=[{'client_sdr_id': client_sdr_id, 'prospect_id': p_id} for p_id in prospect_ids],
+        type="li_invite_withdraw",
+        args_list=[
+            {"client_sdr_id": client_sdr_id, "prospect_id": p_id}
+            for p_id in prospect_ids
+        ],
         chunk_size=50,
         chunk_wait_days=1,
         buffer_wait_minutes=5,
+        append_to_end=True,
+        init_wait_minutes=5,
     )
 
 
@@ -1007,9 +1012,11 @@ def withdraw_li_invite(client_sdr_id: int, prospect_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    pba = PhantomBusterAgent('1386024932692725')
+    pba = PhantomBusterAgent("1386024932692725")
     pba.update_argument(key="sessionCookie", new_value=sdr.li_at_token)
-    pba.update_argument(key='profilesToWithdraw', new_value='https://www.' + prospect.linkedin_url)
+    pba.update_argument(
+        key="profilesToWithdraw", new_value="https://www." + prospect.linkedin_url
+    )
 
     pba.run_phantom()
 
@@ -1017,5 +1024,3 @@ def withdraw_li_invite(client_sdr_id: int, prospect_id: int):
         message=f"Calling withdraw from queue, sdr:{client_sdr_id}, prospect:{prospect_id}",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
-
-

@@ -45,11 +45,13 @@ def get_current_year():
     return datetime.now().year
 
 
-def get_next_next_monday_sunday(date: Optional[datetime]) -> tuple[datetime.date, datetime.date]:
+def get_next_next_monday_sunday(
+    date: Optional[datetime],
+) -> tuple[datetime.date, datetime.date]:
     date = date or datetime.today()
 
     days_until_next_monday = (7 - date.weekday()) % 7
-    if days_until_next_monday == 0: # If today is Monday
+    if days_until_next_monday == 0:  # If today is Monday
         days_until_next_monday = 7
     next_monday = date + timedelta(days=days_until_next_monday)
     next_next_monday = next_monday + timedelta(days=7)
@@ -58,7 +60,9 @@ def get_next_next_monday_sunday(date: Optional[datetime]) -> tuple[datetime.date
     return next_next_monday.date(), next_next_sunday.date()
 
 
-def get_current_monday_sunday(date: Optional[datetime]) -> tuple[datetime.date, datetime.date]:
+def get_current_monday_sunday(
+    date: Optional[datetime],
+) -> tuple[datetime.date, datetime.date]:
     date = date or datetime.today()
 
     # Get the monday of the current week
@@ -70,7 +74,9 @@ def get_current_monday_sunday(date: Optional[datetime]) -> tuple[datetime.date, 
     return start_date.date(), end_date.date()
 
 
-def get_current_monday_friday(date: Optional[datetime]) -> tuple[datetime.date, datetime.date]:
+def get_current_monday_friday(
+    date: Optional[datetime],
+) -> tuple[datetime.date, datetime.date]:
     date = date or datetime.today()
 
     # Get the monday of the current week
@@ -82,12 +88,11 @@ def get_current_monday_friday(date: Optional[datetime]) -> tuple[datetime.date, 
     return start_date.date(), end_date.date()
 
 
-def get_future_datetime(months=0, days=0, minutes=0):
-    # Get the current date and time
-    current_time = datetime.utcnow()
-
+def get_future_datetime(
+    months=0, days=0, minutes=0, start_time: datetime = datetime.utcnow()
+):
     # Calculate the future time by adding the specified months, days, and minutes
-    future_time = current_time + timedelta(
+    future_time = start_time + timedelta(
         days=days,
         minutes=minutes,
         # Adding months is a bit more complicated due to varying month lengths
@@ -98,8 +103,9 @@ def get_future_datetime(months=0, days=0, minutes=0):
     if months > 0:
         for _ in range(months):
             # Calculate the number of days in the current month
-            days_in_current_month = (future_time.replace(
-                day=1) + timedelta(days=32)).day - 1
+            days_in_current_month = (
+                future_time.replace(day=1) + timedelta(days=32)
+            ).day - 1
             # Add the days of the current month to the future_time
             future_time += timedelta(days=days_in_current_month)
 

@@ -11,10 +11,10 @@ from datetime import datetime
 # - args are passed into the function from meta_data.args
 PROCESS_TYPE_MAP = {
     "li_invite_withdraw": {
-        'function': withdraw_li_invite,
-        'priority': 10,
-        'queue': None,
-        'routing_key': None,
+        "function": withdraw_li_invite,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
     }
 }
 
@@ -50,30 +50,34 @@ def handle_process(type: str, meta_data: Optional[dict]) -> bool:
     Returns:
         success (bool): Whether it was scheduled to execute or not
     """
-    
+
     process_data = PROCESS_TYPE_MAP.get(type)
-    if not process_data: return False
+    if not process_data:
+        return False
 
     ### Read and use meta data here ###
 
     # Get args as dict from meta_data
-    args = meta_data.get('args') if meta_data else {}
-    if not args or not isinstance(args, dict): args = {}
+    args = meta_data.get("args") if meta_data else {}
+    if not args or not isinstance(args, dict):
+        args = {}
 
     # Execute the function on the appropriate celery worker queue
-    (process_data.get('function')).apply_async(
+    (process_data.get("function")).apply_async(
         kwargs=args,
-        queue=process_data.get('queue', None),
-        routing_key=process_data.get('routing_key', None),
-        priority=process_data.get('priority', 1),
+        queue=process_data.get("queue", None),
+        routing_key=process_data.get("routing_key", None),
+        priority=process_data.get("priority", 1),
     )
 
     return True
 
 
-def add_process_to_queue(type: str, meta_data: Optional[dict], execution_date: datetime):
-    """ Adds an instance to the process queue
-    
+def add_process_to_queue(
+    type: str, meta_data: Optional[dict], execution_date: datetime
+):
+    """Adds an instance to the process queue
+
     Args:
         type (str): The type of process, must be an option in the PROCESS_TYPE_MAP
         meta_data (dict): Any meta data that is relevant for the process.
@@ -87,7 +91,7 @@ def add_process_to_queue(type: str, meta_data: Optional[dict], execution_date: d
     """
 
     if not (type in PROCESS_TYPE_MAP):
-        return None, 'Invalid process type'
+        return None, "Invalid process type"
 
     process = ProcessQueue(
         type=type,
@@ -101,8 +105,8 @@ def add_process_to_queue(type: str, meta_data: Optional[dict], execution_date: d
 
 
 def remove_process_from_queue(process_id: int):
-    """ Removes a process from the process queue
-    
+    """Removes a process from the process queue
+
     Args:
         process_id (int): The id of the process queue
 
@@ -111,7 +115,8 @@ def remove_process_from_queue(process_id: int):
     """
 
     process: ProcessQueue = ProcessQueue.query.get(process_id)
-    if not process: return False
+    if not process:
+        return False
 
     db.session.delete(process)
     db.session.commit()
@@ -119,16 +124,23 @@ def remove_process_from_queue(process_id: int):
     return True
 
 
-def add_process_for_future(type: str, args: dict = {}, months: int = 0, days: int = 0, minutes: int = 0):
-    """ Adds an instance to the process queue
-    
+def add_process_for_future(
+    type: str,
+    args: dict = {},
+    months: int = 0,
+    days: int = 0,
+    minutes: int = 0,
+    append_to_end: bool = False,
+):
+    """Adds an instance to the process queue
+
     Args:
         type (str): The type of process, must be an option in the PROCESS_TYPE_MAP
         args (dict, kwargs): Args that are passed into the function
         months: (int): Number of months until execution
         days: (int): Number of days until execution
         minutes: (int): Number of minutes until execution
-
+        append_to_end: (bool): Whether to append the processes to the end of the queue or not (based on execution date)
 
     Returns:
         ProcessQueue (dict): The added process queue as a dict
@@ -136,28 +148,37 @@ def add_process_for_future(type: str, args: dict = {}, months: int = 0, days: in
         None, reason (str)
     """
 
+    start_time = datetime.utcnow()
+    if append_to_end:
+        last_process: ProcessQueue = (
+            ProcessQueue.query.filter_by(type=type)
+            .order_by(ProcessQueue.execution_date.desc())
+            .first()
+        )
+        if last_process:
+            start_time = last_process.execution_date
+
     return add_process_to_queue(
         type=type,
-        meta_data={
-            'args': args
-        },
-        execution_date=get_future_datetime(months, days, minutes),
+        meta_data={"args": args},
+        execution_date=get_future_datetime(months, days, minutes, start_time),
     )
-    
+
 
 def add_process_list(
-        type: str,
-        args_list: list[dict] = [],
-        chunk_size: int = 10,
-        init_wait_days: int = 0,
-        init_wait_minutes: int = 0,
-        chunk_wait_days: int = 0,
-        chunk_wait_minutes: int = 0,
-        buffer_wait_days: int = 0,
-        buffer_wait_minutes: int = 0,
-    ):
-    """ Queues up a series of processes to be executed over a set amount of time
-    
+    type: str,
+    args_list: list[dict] = [],
+    chunk_size: int = 10,
+    init_wait_days: int = 0,
+    init_wait_minutes: int = 0,
+    chunk_wait_days: int = 0,
+    chunk_wait_minutes: int = 0,
+    buffer_wait_days: int = 0,
+    buffer_wait_minutes: int = 0,
+    append_to_end: bool = False,
+):
+    """Queues up a series of processes to be executed over a set amount of time
+
     Args:
         type (str): The type of process, must be an option in the PROCESS_TYPE_MAP
         args_list (list[dict], list[kwargs]): List of all args that will be executed.
@@ -169,6 +190,7 @@ def add_process_list(
         chunk_wait_minutes: (int): Number of minutes to wait in between each process chunk
         buffer_wait_days: (int): Number of days to wait in between each process in a chunk
         buffer_wait_minutes: (int): Number of minutes to wait in between each process in a chunk
+        append_to_end: (bool): Whether to append the processes to the end of the queue or not (based on execution date)
 
     Returns:
         list[ProcessQueue] (list[dict]): List of queued process
@@ -176,8 +198,9 @@ def add_process_list(
 
     processes = []
 
-    chunks = [args_list[i:i + chunk_size]
-              for i in range(0, len(args_list), chunk_size)]
+    chunks = [
+        args_list[i : i + chunk_size] for i in range(0, len(args_list), chunk_size)
+    ]
 
     total_wait_days = init_wait_days
     total_wait_minutes = init_wait_minutes
@@ -187,13 +210,12 @@ def add_process_list(
                 type=type,
                 args=args,
                 months=0,
-                days=total_wait_days+(buffer_wait_days*i),
-                minutes=total_wait_minutes+(buffer_wait_minutes*i),
+                days=total_wait_days + (buffer_wait_days * i),
+                minutes=total_wait_minutes + (buffer_wait_minutes * i),
+                append_to_end=append_to_end,
             )
             processes.append(process)
         total_wait_days += chunk_wait_days
         total_wait_minutes += chunk_wait_minutes
 
     return processes
-
-
