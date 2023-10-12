@@ -314,7 +314,7 @@ def get_prospects_for_icp_table(
         result = result[:50]
 
     if invited_on_linkedin:
-        result = [r for r in result if r[8] == ProspectStatus.SENT_OUTREACH]
+        result = [r for r in result if str(r[8]) == 'SENT_OUTREACH']
 
     for r in result:
         prospects.append(

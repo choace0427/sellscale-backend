@@ -311,20 +311,6 @@ def get_refetch_all_convos(client_sdr_id: int):
     return jsonify({"message": "Success"}), 200
 
 
-@VOYAGER_BLUEPRINT.route("/withdraw_invites", methods=["POST"])
-@require_user
-def post_withdraw_invite(client_sdr_id: int):
-    """Withdraw the li invite for the prospect"""
-
-    prospect_ids = get_request_parameter(
-        "prospect_ids", request, json=True, required=True, parameter_type=list
-    )
-
-    processes = queue_withdraw_li_invites(client_sdr_id, prospect_ids)
-
-    return jsonify({"message": "Success", "data": processes}), 200
-
-
 @VOYAGER_BLUEPRINT.route("/connections", methods=["GET"])
 @require_user
 def get_connections(client_sdr_id: int):

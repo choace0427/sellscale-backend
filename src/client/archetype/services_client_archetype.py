@@ -72,10 +72,28 @@ def bulk_action_withdraw_prospect_invitations(
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return False, "Invalid Client SDR"
+    
+    from src.voyager.services import queue_withdraw_li_invites
+    from model_import import ProspectStatus, ProspectOverallStatus
 
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.id.in_(prospect_ids)
     ).all()
+
+    archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == True,
+    ).first()
+
+
+    for prospect in prospects:
+        prospect.status = ProspectStatus.PROSPECTED
+        prospect.overall_status = ProspectOverallStatus.PROSPECTED
+
+        if archetype:
+            prospect.archetype_id = archetype.id
+
+    db.session.commit()
 
     # TODO: Perform QUEUEing for PhantomBuster
     # https://www.notion.so/sellscale/PB-LinkedIn-Withdrawal-3ffa2898c3464432afaf36d5db96e1f2?pvs=4
@@ -137,4 +155,7 @@ def bulk_action_withdraw_prospect_invitations(
         ]
     )
 
-    return True, "Success"
+    # Send out queue of phantom buster withdraws
+    processes = queue_withdraw_li_invites(client_sdr_id, prospect_ids)
+
+    return True, "Success", processes
