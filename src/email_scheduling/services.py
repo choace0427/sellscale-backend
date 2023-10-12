@@ -14,6 +14,49 @@ FOLLOWUP_LIMIT = 10
 DEFAULT_SENDING_DELAY_INTERVAL = 3
 
 
+def get_email_messaging_schedule_entries(
+    client_sdr_id: int,
+    prospect_id: Optional[int] = None,
+    future_only: Optional[bool] = True
+) -> list[dict]:
+    """ Gets email_messaging_schedule entries
+
+    Args:
+        client_sdr_id (int): ID of the client_sdr
+        prospect_id (Optional[int], optional): ID of the prospect. Defaults to None.
+        future_only (Optional[bool], optional): Whether to only get future entries. Defaults to True.
+
+    Returns:
+        list[dict]: A list of email_messaging_schedule entries
+    """
+    query = EmailMessagingSchedule.query.filter(
+        EmailMessagingSchedule.client_sdr_id == client_sdr_id,
+    )
+
+    # Get the prospect email, if prospect_id is provided
+    if prospect_id:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+        query = query.filter(
+            EmailMessagingSchedule.prospect_email_id == prospect_email.id,
+        )
+
+    # Get future entries, if future_only is True
+    if future_only:
+        query = query.filter(
+            EmailMessagingSchedule.date_scheduled >= datetime.utcnow(),
+        )
+
+    # Execute the query
+    email_messaging_schedules: list[EmailMessagingSchedule] = query.all()
+
+    # Convert to dict
+    email_messaging_schedules_dict: list[dict] = []
+    email_messaging_schedules_dict = [email_messaging_schedule.to_dict() for email_messaging_schedule in email_messaging_schedules]
+
+    return email_messaging_schedules_dict
+
+
 def create_email_messaging_schedule_entry(
     client_sdr_id: int,
     prospect_email_id: int,

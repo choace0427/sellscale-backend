@@ -190,6 +190,7 @@ def register_blueprints(app):
     from src.message_generation.email.controllers import MESSAGE_GENERATION_EMAIL_BLUEPRINT
     from src.client.archetype.controllers import CLIENT_ARCHETYPE_BLUEPRINT
     from src.client.sdr.email.controllers import SDR_EMAIL_BLUEPRINT
+    from src.email_scheduling.controllers import EMAIL_SCHEDULING_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -235,6 +236,7 @@ def register_blueprints(app):
     app.register_blueprint(INDIVIDUAL_BLUEPRINT, url_prefix="/individual")
     app.register_blueprint(ICP_SCORING_BLUEPRINT, url_prefix="/icp_scoring")
     app.register_blueprint(SDR_EMAIL_BLUEPRINT, url_prefix="/client/sdr/email")
+    app.register_blueprint(EMAIL_SCHEDULING_BLUEPRINT, url_prefix="/email/schedule")
 
     db.init_app(app)
 
