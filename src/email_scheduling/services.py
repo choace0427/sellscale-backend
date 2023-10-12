@@ -159,11 +159,14 @@ def collect_and_generate_email_messaging_schedule_entries(self) -> tuple[bool, s
         EmailMessagingSchedule.date_scheduled <= datetime.utcnow() + timedelta(days=1),
     ).first()
 
-    success, message = generate_email_messaging_schedule_entry.delay(
+    if not email_messaging_schedule:
+        return True, "No email_messaging_schedule entries to generate"
+
+    generate_email_messaging_schedule_entry.delay(
         email_messaging_schedule_id=email_messaging_schedule.id,
     )
 
-    return success, message
+    return True, "Registered task"
 
 
 @celery.task(bind=True, max_retries=3)
@@ -274,11 +277,14 @@ def collect_and_send_email_messaging_schedule_entries(self) -> tuple[bool, str]:
         EmailMessagingSchedule.date_scheduled <= datetime.utcnow(),
     ).first()
 
-    success, message = send_email_messaging_schedule_entry.delay(
+    if not email_messaging_schedule:
+        return True, "No email_messaging_schedule entries to send"
+
+    send_email_messaging_schedule_entry.delay(
         email_messaging_schedule_id=email_messaging_schedule.id,
     )
 
-    return success, message
+    return True, "Registered task"
 
 
 @celery.task(bind=True, max_retries=3)
@@ -342,7 +348,7 @@ def send_email_messaging_schedule_entry(
     result: dict = nylas_send_email(
         client_sdr_id=email_messaging_schedule.client_sdr_id,
         prospect_id=prospect_email.prospect_id,
-        subject_line=subject_line.completion,
+        subject=subject_line.completion,
         body=body.completion,
         reply_to_message_id=reply_to_message_id,
         prospect_email_id=prospect_email.id,
