@@ -331,8 +331,8 @@ monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Ang
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 
 # 30 second triggers
-scheduler.add_job(func=run_next_client_sdr_li_conversation_scraper_job, trigger="interval", seconds=30)
 scheduler.add_job(func=run_collect_and_generate_email_messaging_schedule_entries, trigger="interval", seconds=30)
+scheduler.add_job(func=run_collect_and_send_email_messaging_schedule_entries, trigger="interval", seconds=30)
 
 # Minute triggers
 scheduler.add_job(func=process_queue, trigger="interval", minutes=1)
