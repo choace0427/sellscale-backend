@@ -160,6 +160,9 @@ def post_create_bump_framework(client_sdr_id: int):
     use_account_research = get_request_parameter(
         "use_account_research", request, json=True, required=False, parameter_type=bool
     )
+    human_readable_prompt = get_request_parameter(
+        "human_readable_prompt", request, json=True, required=False, parameter_type=str
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -193,6 +196,7 @@ def post_create_bump_framework(client_sdr_id: int):
         substatus=substatus,
         default=default,
         use_account_research=use_account_research,
+        bump_framework_human_readable_prompt=human_readable_prompt,
     )
     if bump_framework_id:
         return (
