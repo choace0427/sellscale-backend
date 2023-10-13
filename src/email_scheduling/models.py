@@ -3,6 +3,7 @@ from app import db
 import enum
 
 from src.email_outbound.models import ProspectEmail
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.prospecting.models import Prospect
 
 
@@ -56,19 +57,23 @@ class EmailMessagingSchedule(db.Model):
         prospect_email: ProspectEmail = ProspectEmail.query.filter_by(id=self.prospect_email_id).first()
         prospect: Prospect = Prospect.query.filter_by(id=prospect_email.prospect_id).first()
 
+        # Get the templates
+        subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.filter_by(id=self.email_subject_line_template_id).first()
+        body_template: EmailSequenceStep = EmailSequenceStep.query.filter_by(id=self.email_body_template_id).first()
+
         return {
             "id": self.id,
             "client_sdr_id": self.client_sdr_id,
             "email_type": self.email_type.value,
             "subject_line_id": self.subject_line_id,
             "body_id": self.body_id,
-            "email_subject_line_template_id": self.email_subject_line_template_id,
-            "email_body_template_id": self.email_body_template_id,
             "send_status": self.send_status.value,
             "send_status_error": self.send_status_error,
             "date_scheduled": self.date_scheduled,
             "nylas_message_id": self.nylas_message_id,
             "nylas_thread_id": self.nylas_thread_id,
+            "subject_line_template": subject_line_template.to_dict() if subject_line_template else None,
+            "body_template": body_template.to_dict() if body_template else None,
             "prospect_email": prospect_email.to_dict() if prospect_email else None,
             "prospect": prospect.to_dict() if prospect else None
         }
