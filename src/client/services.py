@@ -3211,6 +3211,10 @@ def sync_field_to_db(client_sdr_id: int, client_id: int, key: str, value: str):
         client.impressive_facts = value
     if key == "messaging_tone":
         client.tone_attributes = [x.strip() for x in value.split(",")]
+    if key == "poc_full_name":
+        client.contact_name = value
+    if key == "poc_email":
+        client.contact_email = value
 
     db.session.add(client)
     db.session.add(client_sdr)
