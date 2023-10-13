@@ -19,6 +19,7 @@ from src.client.services import (
     get_demo_feedback_for_client,
     toggle_client_sdr_auto_bump,
     toggle_client_sdr_auto_send_campaigns_enabled,
+    update_client_sdr_cc_bcc_emails,
     update_phantom_buster_launch_schedule,
     write_client_pre_onboarding_survey,
 )
@@ -2450,3 +2451,21 @@ def post_sync_pre_onboarding_data(client_sdr_id: int):
         return jsonify({"message": message}), 400
 
     return jsonify({"message": "Success"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/update_bcc_cc_emails", methods=["POST"])
+@require_user
+def post_update_bcc_cc_emails(client_sdr_id: int):
+    cc_emails = get_request_parameter("cc_emails", request, json=True, required=False)
+    bcc_emails = get_request_parameter("bcc_emails", request, json=True, required=False)
+
+    success = update_client_sdr_cc_bcc_emails(
+        client_sdr_id=client_sdr_id,
+        cc_emails=cc_emails,
+        bcc_emails=bcc_emails,
+    )
+
+    if not success:
+        return "Failed to update cc and bcc emails", 400
+    
+    return "OK", 200

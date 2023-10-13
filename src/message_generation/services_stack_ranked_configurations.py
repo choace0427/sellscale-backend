@@ -347,6 +347,9 @@ def get_random_prospect(
                 archetype_id=archetype_id,
                 overall_status=overall_status,
             )
+            .filter(
+                Prospect.icp_fit_score != None,
+            )
             .order_by(Prospect.icp_fit_score.desc())
             .limit(50)
             .all()

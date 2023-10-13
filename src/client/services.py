@@ -3421,3 +3421,21 @@ def import_pre_onboarding(
         )
 
     return True, "Successfully imported pre-onboarding survey"
+
+
+def update_client_sdr_cc_bcc_emails(
+    client_sdr_id: int,
+    cc_emails: Optional[list[str]],
+    bcc_emails: Optional[list[str]],
+):
+    """
+    Updates the CC and BCC emails for a client SDR
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if cc_emails is not None:
+        client_sdr.weekly_report_cc_emails = cc_emails
+    if bcc_emails is not None:
+        client_sdr.weekly_report_bcc_emails = bcc_emails
+    db.session.add(client_sdr)
+    db.session.commit()
+    return True
