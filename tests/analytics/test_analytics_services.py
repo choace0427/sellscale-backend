@@ -80,21 +80,23 @@ def test_get_sdr_pipeline_all_details():
             "active_convo_objection": 0,
             "active_convo_next_steps": 0,
             "active_convo_scheduling": 0,
-            "active_convo_revival": 0
+            "active_convo_revival": 0,
         },
         "SELLSCALE": {
             "PROSPECTED": 0,
             "SENT_OUTREACH": 2,
             "ACCEPTED": 1,
             "BUMPED": 0,
+            "NURTURE": 0,
             "ACTIVE_CONVO": 1,
             "DEMO": 0,
-            "REMOVED": 1
+            "REMOVED": 1,
         },
         "EMAIL": {
             "UNKNOWN": 0,
             "NOT_SENT": 0,
             "BOUNCED": 0,
+            "BUMPED": 0,
             "SENT_OUTREACH": 0,
             "EMAIL_OPENED": 0,
             "ACCEPTED": 0,
@@ -105,6 +107,6 @@ def test_get_sdr_pipeline_all_details():
             "UNSUBSCRIBED": 0,
             "DEMO_SET": 0,
             "DEMO_WON": 0,
-            "DEMO_LOST": 0
-        }
+            "DEMO_LOST": 0,
+        },
     }

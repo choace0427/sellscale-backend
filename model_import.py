@@ -99,4 +99,9 @@ from src.webhooks.models import (
     NylasWebhookProcessingStatus,
     NylasWebhookType,
 )
-from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
+from src.email_scheduling.models import (
+    EmailMessagingSchedule,
+    EmailMessagingType,
+    EmailMessagingStatus,
+)
+from src.ml.models import TextGeneration

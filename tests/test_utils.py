@@ -56,8 +56,13 @@ from model_import import (
     PersonaSplitRequest,
     PersonaSplitRequestTask,
     PhantomBusterPayload,
+    TextGeneration,
 )
-from src.automation.models import PhantomBusterSalesNavigatorConfig, PhantomBusterSalesNavigatorLaunch, SalesNavigatorLaunchStatus
+from src.automation.models import (
+    PhantomBusterSalesNavigatorConfig,
+    PhantomBusterSalesNavigatorLaunch,
+    SalesNavigatorLaunchStatus,
+)
 from src.bump_framework.models import BumpLength, JunctionBumpFrameworkClientArchetype
 from src.client.models import SLASchedule
 from src.client.sdr.email.models import EmailType, SDREmailBank, SDREmailSendSchedule
@@ -86,6 +91,7 @@ def test_app():
         )
 
     with app.app_context():
+        clear_all_entities(TextGeneration)
         clear_all_entities(EmailMessagingSchedule)
         clear_all_entities(SDREmailSendSchedule)
         clear_all_entities(SDREmailBank)
@@ -180,7 +186,11 @@ def basic_archetype(
 ) -> ClientArchetype:
     client_sdr_id = None if client_sdr is None else client_sdr.id
     a = ClientArchetype(
-        client_id=client.id, client_sdr_id=client_sdr_id, archetype="Testing archetype", active=True, li_bump_amount=0
+        client_id=client.id,
+        client_sdr_id=client_sdr_id,
+        archetype="Testing archetype",
+        active=True,
+        li_bump_amount=0,
     )
     db.session.add(a)
     db.session.commit()
@@ -587,17 +597,17 @@ def basic_stack_ranked_message_generation_config(
 
 
 EXAMPLE_PAYLOAD_PERSONAL = {
-    'position_groups': [
+    "position_groups": [
         {
-            'company': {
-                'name': 'Test',
-                'url': 'https://www.linkedin.com/company/test_company',
+            "company": {
+                "name": "Test",
+                "url": "https://www.linkedin.com/company/test_company",
             }
         },
     ]
 }
 
-EXAMPLE_PAYLOAD_COMPANY = {'details': {'name': 'Fake Company Mock'}}
+EXAMPLE_PAYLOAD_COMPANY = {"details": {"name": "Fake Company Mock"}}
 
 
 def basic_iscraper_payload_cache(
@@ -679,7 +689,7 @@ def basic_email_sequence_step(
     email_blocks: list[str] = [],
     active: bool = True,
     overall_status: ProspectOverallStatus = ProspectOverallStatus.ACTIVE_CONVO,
-    substatus: str = 'ACTIVE_CONVO_NEXT_STEPS',
+    substatus: str = "ACTIVE_CONVO_NEXT_STEPS",
     bumped_count: int = 1,
     default: bool = False,
     sellscale_default_generated: bool = False,
@@ -746,7 +756,9 @@ def basic_generated_message_autobump(
         message=message,
         account_research_points=account_research_points,
         bump_framework_title=bump_framework.title if bump_framework else None,
-        bump_framework_description=bump_framework.description if bump_framework else None,
+        bump_framework_description=bump_framework.description
+        if bump_framework
+        else None,
         bump_framework_length=bump_framework.bump_length if bump_framework else None,
     )
     db.session.add(autobump)
@@ -842,7 +854,7 @@ def basic_sla_schedule(
     email_special_notes: str = "test_email_special_notes",
     week: int = 0,
 ) -> SLASchedule:
-     # Get the monday of the start date's given week
+    # Get the monday of the start date's given week
     start_date, end_date = get_current_monday_friday(start_date)
 
     schedule: SLASchedule = SLASchedule(
@@ -922,6 +934,4 @@ def test_socket_blocks():
     import requests
 
     with pytest.raises(Exception):
-        response = requests.request(
-            "GET", "http://google.com"
-        )
+        response = requests.request("GET", "http://google.com")

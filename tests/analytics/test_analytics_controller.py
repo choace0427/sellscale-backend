@@ -56,6 +56,7 @@ def test_get_all_pipeline_details():
                 "ACCEPTED": 0,
                 "ACTIVE_CONVO": 0,
                 "BOUNCED": 0,
+                "BUMPED": 0,
                 "DEMO_LOST": 0,
                 "DEMO_SET": 0,
                 "DEMO_WON": 0,
@@ -66,7 +67,7 @@ def test_get_all_pipeline_details():
                 "SCHEDULING": 0,
                 "SENT_OUTREACH": 0,
                 "UNKNOWN": 0,
-                "UNSUBSCRIBED": 0
+                "UNSUBSCRIBED": 0,
             },
             "LINKEDIN": {
                 "accepted": 0,
@@ -87,16 +88,17 @@ def test_get_all_pipeline_details():
                 "responded": 0,
                 "scheduling": 0,
                 "send_outreach_failed": 0,
-                "sent_outreach": 0
+                "sent_outreach": 0,
             },
             "SELLSCALE": {
                 "ACCEPTED": 1,
                 "ACTIVE_CONVO": 0,
                 "BUMPED": 0,
                 "DEMO": 0,
+                "NURTURE": 0,
                 "PROSPECTED": 0,
                 "REMOVED": 0,
-                "SENT_OUTREACH": 2
+                "SENT_OUTREACH": 2,
             },
             "accepted": 0,
             "active_convo": 0,
@@ -116,6 +118,6 @@ def test_get_all_pipeline_details():
             "responded": 0,
             "scheduling": 0,
             "send_outreach_failed": 0,
-            "sent_outreach": 0
-        }
+            "sent_outreach": 0,
+        },
     }

@@ -90,7 +90,7 @@ def test_get_valid_next_prospect_statuses():
         ]
         is not None
     )
-    assert len(valid_next_statuses["all_statuses"]) == 13
+    assert len(valid_next_statuses["all_statuses"]) == 14
 
     # Test Email again
     prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
@@ -102,4 +102,4 @@ def test_get_valid_next_prospect_statuses():
         ]
         is not None
     )
-    assert len(valid_next_statuses["all_statuses"]) == 13
+    assert len(valid_next_statuses["all_statuses"]) == 14
