@@ -108,8 +108,8 @@ def add_process_to_queue(
         meta_data=meta_data,
         execution_date=execution_date,
     )
-    # db.session.add(process)
-    # db.session.commit()
+    db.session.add(process)
+    db.session.commit()
 
     return process.to_dict()
 
@@ -230,5 +230,4 @@ def add_process_list(
         total_wait_days += chunk_wait_days
         total_wait_minutes += chunk_wait_minutes
 
-    print(processes)
     return processes
