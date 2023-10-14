@@ -135,7 +135,6 @@ def add_individual_from_linkedin_url(self, url: str) -> tuple[bool, int or str, 
             payload=payload,
             payload_type=IScraperPayloadType.PERSONAL,
         )
-        print(cache_id)
         if not cache_id:
             return False, "Could not cache payload."
 
