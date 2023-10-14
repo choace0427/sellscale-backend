@@ -29,8 +29,8 @@ PROCESS_TYPE_MAP = {
     "run_icrawler": {
         "function": individual_similar_profile_crawler,
         "priority": 10,
-        "queue": None,
-        "routing_key": None,
+        "queue": 'icrawler',
+        "routing_key": 'icrawler',
     },
 }
 ###############################
