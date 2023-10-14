@@ -121,8 +121,17 @@ def add_individual_from_linkedin_url(self, url: str) -> tuple[bool, int or str, 
         elif "/lead/" in url:
             slug = get_navigator_slug_from_url(url)
 
-        # Get payload from iscraper
-        payload = research_personal_profile_details(profile_id=slug)
+        # Get iScraper payload
+        iscraper_cache: IScraperPayloadCache = (
+            IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
+                linkedin_url=url,
+            )
+        )
+        if iscraper_cache and iscraper_cache.payload:
+            payload = json.loads(iscraper_cache.payload)
+        else:
+            # Fetch payload from iScraper...
+            payload = research_personal_profile_details(profile_id=slug)
 
         if payload.get("detail") == "Profile data cannot be retrieved." or not deep_get(
             payload, "first_name"
@@ -131,14 +140,15 @@ def add_individual_from_linkedin_url(self, url: str) -> tuple[bool, int or str, 
 
         linkedin_url = "linkedin.com/in/{}".format(deep_get(payload, "profile_id"))
 
-        # Cache payload
-        cache_id = create_iscraper_payload_cache(
-            linkedin_url=linkedin_url,
-            payload=payload,
-            payload_type=IScraperPayloadType.PERSONAL,
-        )
-        if not cache_id:
-            return False, "Could not cache payload."
+        if not iscraper_cache:
+            # Cache payload
+            cache_id = create_iscraper_payload_cache(
+                linkedin_url=linkedin_url,
+                payload=payload,
+                payload_type=IScraperPayloadType.PERSONAL,
+            )
+            if not cache_id:
+                return False, "Could not cache payload."
 
         # Add individual from cache
         return add_individual_from_iscraper_cache(linkedin_url)
