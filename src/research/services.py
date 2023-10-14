@@ -16,12 +16,10 @@ def create_iscraper_payload_cache(
         payload=json.dumps(payload),
         payload_type=payload_type.value,
     )
-    cache_id = iscraper_payload_cache.id
     db.session.add(iscraper_payload_cache)
     db.session.commit()
 
-    return cache_id
-
+    return iscraper_payload_cache.id
 
 def create_research_payload(
     prospect_id: int, research_type: ResearchType, payload: dict

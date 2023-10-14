@@ -1,6 +1,6 @@
 from typing import Optional
 
-from src.individual.services import add_individual_from_iscraper_cache
+from src.individual.services import add_individual_from_iscraper_cache, individual_similar_profile_crawler
 from src.voyager.services import withdraw_li_invite
 
 from src.utils.datetime.dateutils import get_future_datetime
@@ -25,7 +25,13 @@ PROCESS_TYPE_MAP = {
         "priority": 10,
         "queue": None,
         "routing_key": None,
-    }
+    },
+    "run_icrawler": {
+        "function": individual_similar_profile_crawler,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
 }
 ###############################
 

@@ -45,6 +45,107 @@ def backfill_prospects(client_sdr_id):
     }
 
 
+# Scrapes li individuals following similar profiles until it can't find any more
+@celery.task
+def individual_similar_profile_crawler(individual_id: int):
+  ### KILL SWITCH ###
+  # return
+  ###################
+
+  from src.automation.orchestrator import add_process_for_future
+    
+  individual: Individual = Individual.query.get(individual_id)
+  if not individual or not individual.linkedin_similar_profiles or len(individual.linkedin_similar_profiles) == 0:
+      send_slack_message(
+          message=f"[iCrawler 🪳]\n- Individual (# {individual_id}) has no similar profiles\n- Ending this crawl branch ❌",
+          webhook_urls=[URL_MAP["operations-icrawler"]],
+      )
+      return
+
+  # Get similar profiles
+  for profile in individual.linkedin_similar_profiles:
+      try:
+          profile_id = profile.get("profile_id")
+          if not profile_id: continue
+
+          profile_url = f'linkedin.com/in/{profile.get("profile_id")}'
+          success, new_id, created = add_individual_from_linkedin_url(profile_url)
+
+          if not success:
+              send_slack_message(
+                  message=f"[iCrawler 🪳]\n- Failed to add individual with profile '{profile_url}'\n- Data = Success: {success}, New ID: {new_id}, Created: {created}",
+                  webhook_urls=[URL_MAP["operations-icrawler"]],
+              )
+              continue
+          
+          if not created:
+              send_slack_message(
+                  message=f"[iCrawler 🪳]\n- Updated existing individual (# {new_id}) with profile '{profile_url}'\n- Ending this crawl branch ❌",
+                  webhook_urls=[URL_MAP["operations-icrawler"]],
+              )
+              continue
+          else:
+              # Continue the crawl...
+              send_slack_message(
+                  message=f"[iCrawler 🪳]\n- Added individual (# {new_id}) with profile '{profile_url}'\n- Continuing the crawl 👣👣🪳",
+                  webhook_urls=[URL_MAP["operations-icrawler"]],
+              )
+              add_process_for_future(
+                  type="run_icrawler",
+                  args={
+                      "individual_id": new_id
+                  },
+                  minutes=10,
+              )
+
+      except Exception as e:
+          send_slack_message(
+              message=f"[iCrawler 🪳]\n- Error when crawling on branch for individual (# {individual_id})\n- Data = {str(e)}\n- Ending this crawl branch ❌",
+              webhook_urls=[URL_MAP["operations-icrawler"]],
+          )
+          continue
+
+
+@celery.task(bind=True, max_retries=3, default_retry_delay=10)
+def add_individual_from_linkedin_url(self, url: str) -> tuple[bool, int or str, bool or None]:
+
+    from src.research.linkedin.services import research_personal_profile_details
+    from src.prospecting.services import get_navigator_slug_from_url, get_linkedin_slug_from_url
+    from src.research.services import create_iscraper_payload_cache
+
+    try:
+        if "/in/" in url:
+            slug = get_linkedin_slug_from_url(url)
+        elif "/lead/" in url:
+            slug = get_navigator_slug_from_url(url)
+
+        # Get payload from iscraper
+        payload = research_personal_profile_details(profile_id=slug)
+
+        if payload.get("detail") == "Profile data cannot be retrieved." or not deep_get(
+            payload, "first_name"
+        ):
+            return False, "Profile data cannot be retrieved."
+
+        linkedin_url = "linkedin.com/in/{}".format(deep_get(payload, "profile_id"))
+
+        # Cache payload
+        cache_id = create_iscraper_payload_cache(
+            linkedin_url=linkedin_url,
+            payload=payload,
+            payload_type=IScraperPayloadType.PERSONAL,
+        )
+        print(cache_id)
+        if not cache_id:
+            return False, "Could not cache payload."
+
+        # Add individual from cache
+        return add_individual_from_iscraper_cache(linkedin_url)
+
+    except Exception as e:
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
 def backfill_iscraper_cache(start_index: int, end_index: int):
     
     from src.automation.orchestrator import add_process_list
@@ -173,7 +274,7 @@ def add_individual_from_iscraper_cache(li_url: str):
             cache, "position_groups.0.profile_positions.0.location"),
     )
 
-    return True if individual_id else False
+    return True if individual_id else False, individual_id, created
 
 
 @celery.task
