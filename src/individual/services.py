@@ -49,7 +49,7 @@ def backfill_prospects(client_sdr_id):
 @celery.task
 def individual_similar_profile_crawler(individual_id: int):
   ### KILL SWITCH ###
-  KILL_SWITCH = False
+  KILL_SWITCH = True
   ###################
 
   from src.automation.orchestrator import add_process_list
