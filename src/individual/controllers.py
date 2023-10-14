@@ -19,7 +19,10 @@ def post_backfill_prospects(client_sdr_id: int):
         jsonify(
             {
                 "status": "success",
-                "data": results,
+                "data": {
+                    "total": len(results),
+                    #"results": results,
+                },
             }
         ),
         200,
