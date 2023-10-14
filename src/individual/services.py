@@ -1,15 +1,17 @@
+import datetime
 import json
 import math
 from typing import Optional
 
 from psycopg2 import IntegrityError
+from src.utils.abstract.attr_utils import deep_get
 from src.company.services import find_company
 from src.individual.models import Individual
 from src.prospecting.models import Prospect
 from sqlalchemy import or_
 
 from src.company.models import Company, CompanyRelation
-from src.research.models import IScraperPayloadCache
+from src.research.models import IScraperPayloadCache, IScraperPayloadType
 from app import db, celery
 from src.utils.math import get_unique_int
 from src.utils.slack import send_slack_message, URL_MAP
@@ -41,6 +43,137 @@ def backfill_prospects(client_sdr_id):
         "dupe_count": dupe_count,
         "added_count": added_count,
     }
+
+
+def backfill_iscraper_cache(start_index: int, end_index: int):
+    
+    from src.automation.orchestrator import add_process_list
+
+    caches: list[IScraperPayloadCache] = IScraperPayloadCache.query.filter(
+        IScraperPayloadCache.id >= start_index,
+        IScraperPayloadCache.id <= end_index,
+        IScraperPayloadCache.payload_type == IScraperPayloadType.PERSONAL,
+    ).all()
+
+    return add_process_list(
+        type="add_individual_from_iscraper_cache",
+        args_list=[
+            {"li_url": cache.linkedin_url }
+            for cache in caches
+        ],
+        chunk_size=100,
+        chunk_wait_minutes=10,
+    )
+
+
+@celery.task
+def add_individual_from_iscraper_cache(li_url: str):
+
+    iscraper_cache: IScraperPayloadCache = (
+        IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
+            linkedin_url=li_url,
+        )
+    )
+    cache: dict = (
+        json.loads(iscraper_cache.payload)
+        if iscraper_cache and iscraper_cache.payload
+        else None
+    )
+    if not cache:
+        return None
+
+    # Try and find company
+    company_name = deep_get(cache, "position_groups.0.company.name")
+    company_id = find_company(company_name) if company_name else None
+
+    individual_id, created = add_individual(
+        full_name=cache.get("first_name")+' '+cache.get("last_name"),
+        first_name=cache.get("first_name"),
+        last_name=cache.get("last_name"),
+        title=cache.get("sub_title"),
+        bio=cache.get("summary"),
+        linkedin_url=li_url,
+        instagram_url=None,
+        facebook_url=None,
+        twitter_url=deep_get(cache, "contact_info.twitter"),
+        email=deep_get(cache, "contact_info.email"),
+        phone=None,
+        address=None,
+        li_public_id=cache.get("profile_id"),
+        li_urn_id=cache.get("entity_urn"),
+        img_url=None,
+        img_expire=None,
+        industry=cache.get("industry"),
+        company_name=company_name,
+        company_id=company_id,
+        linkedin_followers=deep_get(cache, "network_info.followers_count"),
+        instagram_followers=None,
+        facebook_followers=None,
+        twitter_followers=None,
+        linkedin_connections=deep_get(cache, "network_info.connections_count"),
+        linkedin_recommendations=cache.get("recommendations"),
+        birth_date=cache.get("birth_date"),
+        location=cache.get("location"),
+        language_country=deep_get(cache, "languages.primary_locale.country"),
+        language_locale=deep_get(cache, "languages.primary_locale.language"),
+        skills=cache.get("skills"),
+        websites=deep_get(cache, "contact_info.websites"),
+        education_history=cache.get("education"),
+        patent_history=cache.get("patents"),
+        award_history=cache.get("awards"),
+        certification_history=cache.get("certifications"),
+        organization_history=cache.get("organizations"),
+        project_history=cache.get("projects"),
+        publication_history=cache.get("publications"),
+        course_history=cache.get("courses"),
+        test_score_history=cache.get("test_scores"),
+        work_history=cache.get("position_groups"),
+        volunteer_history=cache.get("volunteer_experiences"),
+        linkedin_similar_profiles=cache.get("related_profiles"),
+        recent_education_school=deep_get(cache, "education.0.school.name"),
+        recent_education_degree=deep_get(cache, "education.0.degree_name"),
+        recent_education_field=deep_get(cache, "education.0.field_of_study"),
+        recent_education_start_date=None if deep_get(cache, "education.0.date.start.month") is None 
+            or deep_get(cache, "education.0.date.start.year") is None else 
+            datetime.date(
+                year=deep_get(cache, "education.0.date.start.year"),
+                month=deep_get(cache, "education.0.date.start.month"),
+                day=1
+            ),
+        recent_education_end_date=None if deep_get(cache, "education.0.date.end.month") is None
+            or deep_get(cache, "education.0.date.end.year") is None else
+            datetime.date(
+                year=deep_get(cache, "education.0.date.end.year"),
+                month=deep_get(cache, "education.0.date.end.month"),
+                day=1
+            ),
+        recent_job_title=deep_get(
+            cache, "position_groups.0.profile_positions.0.title"),
+        recent_job_start_date=None if deep_get(cache, "position_groups.0.profile_positions.0.date.start.month") is None
+        or deep_get(cache, "position_groups.0.profile_positions.0.date.start.year") is None else
+        datetime.date(
+                year=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.start.year"),
+                month=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.start.month"),
+                day=1
+        ),
+        recent_job_end_date=None if deep_get(cache, "position_groups.0.profile_positions.0.date.end.month") is None
+        or deep_get(cache, "position_groups.0.profile_positions.0.date.end.year") is None else
+        datetime.date(
+                year=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.end.year"),
+                month=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.end.month"),
+                day=1
+        ),
+        recent_job_description=deep_get(
+            cache, "position_groups.0.profile_positions.0.description"),
+        recent_job_location=deep_get(
+            cache, "position_groups.0.profile_positions.0.location"),
+    )
+
+    return True if individual_id else False
 
 
 @celery.task
@@ -78,6 +211,36 @@ def add_individual_from_prospect(prospect_id: int) -> bool:
         instagram_followers=None,
         facebook_followers=None,
         twitter_followers=None,
+        linkedin_connections=None,
+        linkedin_recommendations=None,
+        birth_date=None,
+        location=None,
+        language_country=None,
+        language_locale=None,
+        skills=None,
+        websites=None,
+        education_history=None,
+        patent_history=None,
+        award_history=None,
+        certification_history=None,
+        organization_history=None,
+        project_history=None,
+        publication_history=None,
+        course_history=None,
+        test_score_history=None,
+        work_history=None,
+        volunteer_history=None,
+        linkedin_similar_profiles=None,
+        recent_education_school=None,
+        recent_education_degree=None,
+        recent_education_field=None,
+        recent_education_start_date=None,
+        recent_education_end_date=None,
+        recent_job_title=None,
+        recent_job_start_date=None,
+        recent_job_end_date=None,
+        recent_job_description=None,
+        recent_job_location=None,
     )
     prospect.individual_id = individual_id
     db.session.commit()
@@ -109,6 +272,36 @@ def add_individual(
     instagram_followers: Optional[int],
     facebook_followers: Optional[int],
     twitter_followers: Optional[int],
+    linkedin_connections: Optional[int],
+    linkedin_recommendations: Optional[list[dict]],
+    birth_date: Optional[str],
+    location: Optional[dict],
+    language_country: Optional[str],
+    language_locale: Optional[str],
+    skills: Optional[list[str]],
+    websites: Optional[list[dict]],
+    education_history: Optional[list[dict]],
+    patent_history: Optional[list[dict]],
+    award_history: Optional[list[dict]],
+    certification_history: Optional[list[dict]],
+    organization_history: Optional[list[dict]],
+    project_history: Optional[list[dict]],
+    publication_history: Optional[list[dict]],
+    course_history: Optional[list[dict]],
+    test_score_history: Optional[list[dict]],
+    work_history: Optional[list[dict]],
+    volunteer_history: Optional[list[dict]],
+    linkedin_similar_profiles: Optional[list[dict]],
+    recent_education_school: Optional[str],
+    recent_education_degree: Optional[str],
+    recent_education_field: Optional[str],
+    recent_education_start_date: Optional[datetime.date],
+    recent_education_end_date: Optional[datetime.date],
+    recent_job_title: Optional[str],
+    recent_job_start_date: Optional[datetime.date],
+    recent_job_end_date: Optional[datetime.date],
+    recent_job_description: Optional[str],
+    recent_job_location: Optional[dict],
 ) -> tuple[Optional[int], bool]:
     """
     Adds an individual to the database, or updates an existing individual if
@@ -210,6 +403,67 @@ def add_individual(
             existing_individual.facebook_followers = facebook_followers
         if twitter_followers:
             existing_individual.twitter_followers = twitter_followers
+        if linkedin_connections:
+            existing_individual.linkedin_connections = linkedin_connections
+        if linkedin_recommendations:
+            existing_individual.linkedin_recommendations = linkedin_recommendations
+        if birth_date:
+            existing_individual.birth_date = birth_date
+        if location:
+            existing_individual.location = location
+        if language_country:
+            existing_individual.language_country = language_country
+        if language_locale:
+            existing_individual.language_locale = language_locale
+        if skills:
+            existing_individual.skills = skills
+        if websites:
+            existing_individual.websites = websites
+        if education_history:
+            existing_individual.education_history = education_history
+        if patent_history:
+            existing_individual.patent_history = patent_history
+        if award_history:
+            existing_individual.award_history = award_history
+        if certification_history:
+            existing_individual.certification_history = certification_history
+        if organization_history:
+            existing_individual.organization_history = organization_history
+        if project_history:
+            existing_individual.project_history = project_history
+        if publication_history:
+            existing_individual.publication_history = publication_history
+        if course_history:
+            existing_individual.course_history = course_history
+        if test_score_history:
+            existing_individual.test_score_history = test_score_history
+        if work_history:
+            existing_individual.work_history = work_history
+        if volunteer_history:
+            existing_individual.volunteer_history = volunteer_history
+        if linkedin_similar_profiles:
+            existing_individual.linkedin_similar_profiles = linkedin_similar_profiles
+        if recent_education_school:
+            existing_individual.recent_education_school = recent_education_school
+        if recent_education_degree:
+            existing_individual.recent_education_degree = recent_education_degree
+        if recent_education_field:
+            existing_individual.recent_education_field = recent_education_field
+        if recent_education_start_date:
+            existing_individual.recent_education_start_date = recent_education_start_date
+        if recent_education_end_date:
+            existing_individual.recent_education_end_date = recent_education_end_date
+        if recent_job_title:
+            existing_individual.recent_job_title = recent_job_title
+        if recent_job_start_date:
+            existing_individual.recent_job_start_date = recent_job_start_date
+        if recent_job_end_date:
+            existing_individual.recent_job_end_date = recent_job_end_date
+        if recent_job_description:
+            existing_individual.recent_job_description = recent_job_description
+        if recent_job_location:
+            existing_individual.recent_job_location = recent_job_location
+
         db.session.commit()
         return existing_individual.id, False
 
@@ -238,6 +492,36 @@ def add_individual(
             instagram_followers=instagram_followers,
             facebook_followers=facebook_followers,
             twitter_followers=twitter_followers,
+            linkedin_connections=linkedin_connections,
+            linkedin_recommendations=linkedin_recommendations,
+            birth_date=birth_date,
+            location=location,
+            language_country=language_country,
+            language_locale=language_locale,
+            skills=skills,
+            websites=websites,
+            education_history=education_history,
+            patent_history=patent_history,
+            award_history=award_history,
+            certification_history=certification_history,
+            organization_history=organization_history,
+            project_history=project_history,
+            publication_history=publication_history,
+            course_history=course_history,
+            test_score_history=test_score_history,
+            work_history=work_history,
+            volunteer_history=volunteer_history,
+            linkedin_similar_profiles=linkedin_similar_profiles,
+            recent_education_school=recent_education_school,
+            recent_education_degree=recent_education_degree,
+            recent_education_field=recent_education_field,
+            recent_education_start_date=recent_education_start_date,
+            recent_education_end_date=recent_education_end_date,
+            recent_job_title=recent_job_title,
+            recent_job_start_date=recent_job_start_date,
+            recent_job_end_date=recent_job_end_date,
+            recent_job_description=recent_job_description,
+            recent_job_location=recent_job_location,
         )
         db.session.add(individual)
         db.session.commit()

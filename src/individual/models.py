@@ -9,7 +9,10 @@ class Individual(db.Model):
     full_name = db.Column(db.String, nullable=True)
     first_name = db.Column(db.String, nullable=True)
     last_name = db.Column(db.String, nullable=True)
+
+    # Self-proclaimed title
     title = db.Column(db.String, nullable=True)
+
     bio = db.Column(db.String, nullable=True)
 
     linkedin_url = db.Column(db.String, nullable=True)
@@ -27,15 +30,54 @@ class Individual(db.Model):
     img_expire = db.Column(db.Numeric(20, 0), nullable=False, default=0)
 
     industry = db.Column(db.String, nullable=True)
+
+    # For most recent job
     company_name = db.Column(db.String, nullable=True)
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
+
+    linkedin_connections = db.Column(db.Integer, nullable=True)
+    linkedin_recommendations = db.Column(db.ARRAY(db.JSON), nullable=True)
 
     linkedin_followers = db.Column(db.Integer, nullable=True)
     instagram_followers = db.Column(db.Integer, nullable=True)
     facebook_followers = db.Column(db.Integer, nullable=True)
     twitter_followers = db.Column(db.Integer, nullable=True)
 
-    # TODO: Maybe include a birthday field? We do get that li data
+    birth_date = db.Column(db.Date, nullable=True)
+    location = db.Column(db.JSON, nullable=True)
+
+    language_country = db.Column(db.String, nullable=True)
+    language_locale = db.Column(db.String, nullable=True)
+
+    skills = db.Column(db.ARRAY(db.String), nullable=True)
+    websites = db.Column(db.ARRAY(db.JSON), nullable=True)
+
+    recent_education_school = db.Column(db.String, nullable=True)
+    recent_education_degree = db.Column(db.String, nullable=True)
+    recent_education_field = db.Column(db.String, nullable=True)
+    recent_education_start_date = db.Column(db.Date, nullable=True)
+    recent_education_end_date = db.Column(db.Date, nullable=True)
+
+    recent_job_title = db.Column(db.String, nullable=True)
+    # For recent job company, see company_name and company_id
+    recent_job_start_date = db.Column(db.Date, nullable=True)
+    recent_job_end_date = db.Column(db.Date, nullable=True)
+    recent_job_description = db.Column(db.String, nullable=True)
+    recent_job_location = db.Column(db.JSON, nullable=True)
+
+    education_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    patent_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    award_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    certification_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    organization_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    project_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    publication_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    course_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    test_score_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    work_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+    volunteer_history = db.Column(db.ARRAY(db.JSON), nullable=True)
+
+    linkedin_similar_profiles = db.Column(db.ARRAY(db.JSON), nullable=True)
 
     def to_dict(self):
         
@@ -70,4 +112,39 @@ class Individual(db.Model):
                 "facebook": self.facebook_followers,
                 "twitter": self.twitter_followers,
             },
+            "birth_date": self.birth_date,
+            "location": self.location,
+            "language": {
+                "country": self.language_country,
+                "locale": self.language_locale,
+            },
+            "skills": self.skills,
+            "websites": self.websites,
+            "education": {
+                "recent_school": self.recent_education_school,
+                "recent_degree": self.recent_education_degree,
+                "recent_field": self.recent_education_field,
+                "recent_start_date": self.recent_education_start_date,
+                "recent_end_date": self.recent_education_end_date,
+                "history": self.education_history,
+            },
+            "patents": self.patent_history,
+            "awards": self.award_history,
+            "certifications": self.certification_history,
+            "organizations": self.organization_history,
+            "projects": self.project_history,
+            "publications": self.publication_history,
+            "courses": self.course_history,
+            "test_scores": self.test_score_history,
+            "work": {
+                "recent_title": self.recent_job_title,
+                "recent_company": self.company_name,
+                "recent_start_date": self.recent_job_start_date,
+                "recent_end_date": self.recent_job_end_date,
+                "recent_description": self.recent_job_description,
+                "recent_location": self.recent_job_location,
+                "history": self.work_history,
+            },
+            "volunteer": self.volunteer_history,
+            "similar_profiles": self.linkedin_similar_profiles,
         }

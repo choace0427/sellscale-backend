@@ -1,12 +1,16 @@
 from typing import Optional
 
+from src.individual.services import add_individual_from_iscraper_cache
+from src.voyager.services import withdraw_li_invite
 
 from src.utils.datetime.dateutils import get_future_datetime
-from src.voyager.services import withdraw_li_invite
 from src.automation.models import ProcessQueue
 from app import celery, db
 from datetime import datetime
 
+###############################
+# REGISTER PROCESS TYPES HERE #
+###############################
 # Define what process types call what functions (these functions need '@celery.task' decorator)
 # - args are passed into the function from meta_data.args
 PROCESS_TYPE_MAP = {
@@ -15,9 +19,15 @@ PROCESS_TYPE_MAP = {
         "priority": 10,
         "queue": None,
         "routing_key": None,
+    },
+    "add_individual_from_iscraper_cache": {
+        "function": add_individual_from_iscraper_cache,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
     }
 }
-
+###############################
 
 @celery.task
 def process_queue():
