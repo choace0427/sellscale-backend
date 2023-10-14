@@ -62,7 +62,7 @@ def backfill_iscraper_cache(start_index: int, end_index: int):
             for cache in caches
         ],
         chunk_size=100,
-        chunk_wait_minutes=2,
+        chunk_wait_minutes=3,
     )
 
 

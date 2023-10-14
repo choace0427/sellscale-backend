@@ -84,7 +84,7 @@ def handle_process(type: str, meta_data: Optional[dict]) -> bool:
 
 
 def add_process_to_queue(
-    type: str, meta_data: Optional[dict], execution_date: datetime
+    type: str, meta_data: Optional[dict], execution_date: datetime, commit: bool = True
 ):
     """Adds an instance to the process queue
 
@@ -93,6 +93,7 @@ def add_process_to_queue(
         meta_data (dict): Any meta data that is relevant for the process.
            - Values in the "args" entry is passed into the executed function
         execution_date: (datetime): The time in which the process will be executed
+        commit: (bool, optional): Whether to commit the process to the database or not
 
     Returns:
         ProcessQueue (dict): The added process queue as a dict
@@ -109,7 +110,8 @@ def add_process_to_queue(
         execution_date=execution_date,
     )
     db.session.add(process)
-    db.session.commit()
+    if commit:
+        db.session.commit()
 
     return process.to_dict()
 
@@ -141,6 +143,7 @@ def add_process_for_future(
     days: int = 0,
     minutes: int = 0,
     relative_time = datetime.utcnow(),
+    commit: bool = True,
 ):
     """Adds an instance to the process queue
 
@@ -151,6 +154,7 @@ def add_process_for_future(
         days: (int): Number of days until execution
         minutes: (int): Number of minutes until execution
         relative_time: (datetime): The time in which the future time is relative to
+        commit: (bool, optional): Whether to commit the process to the database or not
 
     Returns:
         ProcessQueue (dict): The added process queue as a dict
@@ -163,6 +167,7 @@ def add_process_for_future(
         meta_data={"args": args},
         execution_date=get_future_datetime(
             months, days, minutes, relative_time),
+        commit=commit,
     )
 
 
@@ -225,9 +230,11 @@ def add_process_list(
                 days=total_wait_days + (buffer_wait_days * i),
                 minutes=total_wait_minutes + (buffer_wait_minutes * i),
                 relative_time=start_time,
+                commit=False,
             )
             processes.append(process)
         total_wait_days += chunk_wait_days
         total_wait_minutes += chunk_wait_minutes
 
+    db.session.commit()
     return processes
