@@ -49,10 +49,10 @@ def backfill_prospects(client_sdr_id):
 @celery.task
 def individual_similar_profile_crawler(individual_id: int):
   ### KILL SWITCH ###
-  # return
+  KILL_SWITCH = False
   ###################
 
-  from src.automation.orchestrator import add_process_for_future
+  from src.automation.orchestrator import add_process_list
     
   individual: Individual = Individual.query.get(individual_id)
   if not individual or not individual.linkedin_similar_profiles or len(individual.linkedin_similar_profiles) == 0:
@@ -85,17 +85,19 @@ def individual_similar_profile_crawler(individual_id: int):
               )
               continue
           else:
+              if KILL_SWITCH: continue
               # Continue the crawl...
               send_slack_message(
                   message=f"[iCrawler 🪳]\n- Added individual (# {new_id}) with profile '{profile_url}'\n- Continuing the crawl 👣👣🪳",
                   webhook_urls=[URL_MAP["operations-icrawler"]],
               )
-              add_process_for_future(
+              add_process_list(
                   type="run_icrawler",
-                  args={
+                  args_list=[{
                       "individual_id": new_id
-                  },
-                  minutes=10,
+                  }],
+                  buffer_wait_minutes=10,
+                  append_to_end=True,
               )
 
       except Exception as e:
