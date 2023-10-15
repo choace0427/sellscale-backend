@@ -109,8 +109,10 @@ class BumpFrameworkTemplates(db.Model):
 
     active = db.Column(db.Boolean, nullable=False, default=True)
 
-    bumped_count = db.Column(db.Integer, nullable=True)
-    overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
+    bumped_counts = db.Column(db.ARRAY(db.Integer), nullable=True)
+    overall_statuses = db.Column(
+        db.ARRAY(sa.Enum(ProspectOverallStatus, create_constraint=False)), nullable=True
+    )
 
     def to_dict(self):
         return {

@@ -44,11 +44,11 @@ def get_all_active_bump_framework_templates(
 ):
     frameworks_query = BumpFrameworkTemplates.query.filter_by(active=True)
 
-    if bumped_count is not None:
-        frameworks_query = frameworks_query.filter_by(bumped_count=bumped_count)
+    # if bumped_count is not None:
+    #     frameworks_query = frameworks_query.filter_by(bumped_count=bumped_count)
 
-    if overall_status is not None:
-        frameworks_query = frameworks_query.filter_by(overall_status=overall_status)
+    # if overall_status is not None:
+    #     frameworks_query = frameworks_query.filter_by(overall_status=overall_status)
 
     frameworks = frameworks_query.all()
 
