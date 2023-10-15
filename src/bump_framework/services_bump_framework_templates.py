@@ -1,6 +1,8 @@
 import re
+from typing import Optional
 from app import db
 from model_import import BumpFrameworkTemplates
+from src.prospecting.models import ProspectOverallStatus
 
 
 def create_new_bump_framework_template(
@@ -37,8 +39,17 @@ def update_bump_framework_template(
     db.session.commit()
 
 
-def get_all_active_bump_framework_templates():
-    return [
-        bft.to_dict()
-        for bft in BumpFrameworkTemplates.query.filter_by(active=True).all()
-    ]
+def get_all_active_bump_framework_templates(
+    bumped_count: Optional[int], overall_status: Optional[ProspectOverallStatus]
+):
+    frameworks_query = BumpFrameworkTemplates.query.filter_by(active=True)
+
+    if bumped_count is not None:
+        frameworks_query = frameworks_query.filter_by(bumped_count=bumped_count)
+
+    if overall_status is not None:
+        frameworks_query = frameworks_query.filter_by(overall_status=overall_status)
+
+    frameworks = frameworks_query.all()
+
+    return [bft.to_dict() for bft in frameworks]

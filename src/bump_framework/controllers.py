@@ -517,7 +517,18 @@ from src.bump_framework.services_bump_framework_templates import (
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump_framework_templates", methods=["GET"])
 def get_bump_framework_templates():
     """Gets all bump framework templates for a given client SDR"""
-    bump_framework_templates: list[dict] = get_all_active_bump_framework_templates()
+    bumped_count = (
+        get_request_parameter(
+            "bumped_count", request, json=False, required=False, parameter_type=int
+        )
+        or None
+    )
+    overall_status = get_request_parameter(
+        "overall_status", request, json=False, required=False, parameter_type=str
+    )
+    bump_framework_templates: list[dict] = get_all_active_bump_framework_templates(
+        bumped_count=bumped_count, overall_status=overall_status
+    )
     return jsonify({"bump_framework_templates": bump_framework_templates}), 200
 
 
