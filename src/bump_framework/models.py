@@ -123,6 +123,8 @@ class BumpFrameworkTemplates(db.Model):
             "human_readable_prompt": self.human_readable_prompt,
             "length": self.length,
             "active": self.active,
+            "bumped_counts": self.bumped_counts,
+            "overall_statuses": [o.value for o in self.overall_statuses],
         }
 
     # 'role-have-to-do-with': {
