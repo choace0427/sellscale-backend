@@ -1,3 +1,4 @@
+from typing import Optional
 import requests
 import json
 import csv
@@ -79,12 +80,12 @@ def format_entities(
     return
 
 
-def run_message_rule_engine_on_completion(
+def run_message_rule_engine_on_linkedin_completion(
     completion: str,
     prompt: str,
     run_arree: bool = False,
 ) -> tuple[str, list, list]:
-    """Adversarial AI ruleset. Only runs on completion so not full-suite of Rules
+    """Adversarial AI ruleset for LinkedIn. Only runs on completion so not full-suite of Rules
 
     Args:
         completion (str): The completion to run the ruleset against.
@@ -145,7 +146,10 @@ def run_message_rule_engine(message_id: int):
     wipe_problems(message_id)
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(message.message_cta)
+    if message.message_cta:
+        cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(message.message_cta)
+    else:
+        cta = None
     prompt = message.prompt
     case_preserved_completion = message.completion
     completion = message.completion.lower()
@@ -176,7 +180,6 @@ def run_message_rule_engine(message_id: int):
     rule_no_profanity(completion, problems, highlighted_words)
     rule_no_url(completion, problems, highlighted_words)
     rule_linkedin_length(message.message_type, completion, problems, highlighted_words)
-
     if (
         message.message_type == GeneratedMessageType.LINKEDIN
     ):  # Only apply this rule to LinkedIn messages
@@ -187,7 +190,7 @@ def run_message_rule_engine(message_id: int):
 
     # Warnings
     rule_no_cookies(completion, problems, highlighted_words)
-    rule_no_symbols(completion, problems, highlighted_words)
+    rule_no_symbols(completion, problems, highlighted_words, message.message_type)
     rule_no_companies(completion, problems, highlighted_words)
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
@@ -199,23 +202,26 @@ def run_message_rule_engine(message_id: int):
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
 
-    if " me " in completion:
-        problems.append("Contains 'me'.")
-        highlighted_words.append("me")
 
-    if "they've worked " in completion:
-        problems.append("Contains 'they've worked'.")
-        highlighted_words.append("they've worked")
+    # Only run for linkedin:
+    if message.message_type == GeneratedMessageType.LINKEDIN:
+        if " me " in completion:
+            problems.append("Contains 'me'.")
+            highlighted_words.append("me")
 
-    if "i've spent" in completion:
-        problems.append("Contains 'i've spent'.")
-        highlighted_words.append("i've spent")
+        if "they've worked " in completion:
+            problems.append("Contains 'they've worked'.")
+            highlighted_words.append("they've worked")
 
-    if "stealth" in completion:
-        problems.append(
-            "Contains 'stealth'. Check if they are referring to a past job."
-        )
-        highlighted_words.append("stealth")
+        if "i've spent" in completion:
+            problems.append("Contains 'i've spent'.")
+            highlighted_words.append("i've spent")
+
+        if "stealth" in completion:
+            problems.append(
+                "Contains 'stealth'. Check if they are referring to a past job."
+            )
+            highlighted_words.append("stealth")
 
     highlighted_words = list(filter(lambda x: x != ".", highlighted_words))
 
@@ -242,8 +248,8 @@ def run_autocorrect(message_id: int):
         return
 
     # todo(Aakash) eventually enable this for both Linkedin and Email. For now, only run for Linkedin
-    if message.message_type != GeneratedMessageType.LINKEDIN:
-        return
+    # if message.message_type != GeneratedMessageType.LINKEDIN:
+    #     return
 
     before_autocorrect_text = message.completion
     before_autocorrect_problems = message.problems
@@ -271,7 +277,12 @@ def run_autocorrect(message_id: int):
     run_message_rule_engine(message_id)
 
 
-def rule_no_symbols(completion: str, problems: list, highlighted_words: list):
+def rule_no_symbols(
+    completion: str,
+    problems: list,
+    highlighted_words: list,
+    message_type: Optional[GeneratedMessageType] = None,
+):
     """Rule: No Symbols
 
     No symbols allowed in the completion.
@@ -279,6 +290,9 @@ def rule_no_symbols(completion: str, problems: list, highlighted_words: list):
     \p{S} matches any math symbols, currency signs, dingbats, box-drawing characters, etc
     """
     ALLOWED_SYMBOLS = ["+"]
+    if message_type == GeneratedMessageType.EMAIL:
+        ALLOWED_SYMBOLS.extend(["@", "<", ">"])
+
     unfiltered_match = re.findall(r"[\p{S}]", completion)
     match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
     if match and len(match) > 0:

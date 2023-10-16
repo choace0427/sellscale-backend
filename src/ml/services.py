@@ -15,7 +15,7 @@ from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect, ProspectStatus
-from src.message_generation.models import GeneratedMessage
+from src.message_generation.models import GeneratedMessage, GeneratedMessageType
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
     GNLPModel,
@@ -240,13 +240,44 @@ def get_aree_fix_basic(message_id: Optional[int] = None, completion: Optional[st
             return message.completion
         completion = message.completion.strip()
 
-    print(problems)
-    prompt = f"message: {completion}\n\nproblems:\n"
+    # Format the problems in a bulleted list
+    problems_bulleted = ""
     for p in problems:
-        prompt += f"- {p}\n"
-    prompt += "\ninstruction: Given the message and a list of problems identified in the message, please fix the message. Make as few changes as possible.\n\n"
-    prompt += "revised message:"
+        problems_bulleted += f"- {p}\n"
 
+    # Create the instruction
+    instruction = """Given the message and a list of problems identified in the message, please fix the message. Make as few changes as possible."""
+    if message.message_type == GeneratedMessageType.EMAIL:
+        # If the message is an Email,
+        template_id = message.email_sequence_step_template_id
+        template: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
+        template = template.template
+        instruction = """Given the email and a list of problems identified in the email, please fix the email. Make as few changes as possible.
+
+This template was used to generate the email. Do not deviate from the template:
+=== START EMAIL TEMPLATE ===
+{template}
+=== END EMAIL TEMPLATE ===
+""".format(
+    template=template
+)
+
+    # Construct the final prompt
+    prompt = """message:
+{completion}
+
+problems:
+{problems_bulleted}
+
+instruction: {instruction}
+
+revised message:""".format(
+    completion=completion,
+    problems_bulleted=problems_bulleted,
+    instruction=instruction,
+)
+
+    # Get the fixed completion
     fixed_completion = wrapped_create_completion(
         model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
         prompt=prompt,

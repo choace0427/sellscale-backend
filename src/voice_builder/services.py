@@ -18,7 +18,7 @@ from model_import import (
     ClientArchetype,
 )
 from model_import import Prospect, ResearchPointType
-from src.ml.rule_engine import run_message_rule_engine_on_completion
+from src.ml.rule_engine import run_message_rule_engine_on_linkedin_completion
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from app import db, celery
 
@@ -166,7 +166,7 @@ def create_voice_builder_sample(
             )
 
             # Run rule engine. For now, we don't need to use the problems or highlighted words
-            completion, problems, highlighted_words = run_message_rule_engine_on_completion(
+            completion, problems, highlighted_words = run_message_rule_engine_on_linkedin_completion(
                 completion=completion,
                 prompt=prompt,
                 run_arree=True,
@@ -203,7 +203,7 @@ def edit_voice_builder_sample(
     voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples.query.get(
         voice_builder_sample_id)
 
-    _, problems, highlighted_words = run_message_rule_engine_on_completion(
+    _, problems, highlighted_words = run_message_rule_engine_on_linkedin_completion(
         completion=updated_completion,
         prompt=voice_builder_sample.sample_prompt,
         run_arree=False,

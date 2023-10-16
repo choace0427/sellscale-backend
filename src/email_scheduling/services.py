@@ -6,7 +6,7 @@ from src.client.models import ClientArchetype
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
 from src.email_sequencing.models import EmailSequenceStep
-from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
+from src.message_generation.models import GeneratedMessage, GeneratedMessageEmailType, GeneratedMessageStatus, GeneratedMessageType
 from src.prospecting.models import Prospect, ProspectOverallStatus
 
 
@@ -255,7 +255,10 @@ def generate_email_messaging_schedule_entry(
     reply_subject_line: GeneratedMessage = GeneratedMessage(
         prompt="Hardcoded: Reply Subject Line",
         completion=reply_subject_line_text,
+        prospect_id=prospect_email.prospect_id,
         message_status=GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
+        message_type=GeneratedMessageType.EMAIL,
+        email_type=GeneratedMessageEmailType.SUBJECT_LINE,
     )
     db.session.add(reply_subject_line)
     db.session.commit()
@@ -290,7 +293,10 @@ def generate_email_messaging_schedule_entry(
     reply_email_body = GeneratedMessage(
         prompt=followup_email_prompt,
         completion=email_body,
+        prospect_id=prospect_email.prospect_id,
         message_status=GeneratedMessageStatus.QUEUED_FOR_OUTREACH,
+        message_type=GeneratedMessageType.EMAIL,
+        email_type=GeneratedMessageEmailType.BODY,
     )
     db.session.add(reply_email_body)
     db.session.commit()
@@ -403,6 +409,13 @@ def send_email_messaging_schedule_entry(
     email_messaging_schedule.send_status = EmailMessagingStatus.SENT
     email_messaging_schedule.nylas_message_id = nylas_message_id
     email_messaging_schedule.nylas_thread_id = nylas_thread_id
+
+    # 4b. Update the generated_message
+    now = datetime.utcnow()
+    subject_line.message_status = GeneratedMessageStatus.SENT
+    subject_line.date_sent = now
+    body.message_status = GeneratedMessageStatus.SENT
+    body.date_sent = now
 
     # 5. Update the prospect_email
     # 5b. Get the appropriate status

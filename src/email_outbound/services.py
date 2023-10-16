@@ -25,6 +25,7 @@ from src.campaigns.models import (
     OutboundCampaignStatus,
 )
 from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4_MODEL, wrapped_chat_gpt_completion
+from src.ml.rule_engine import run_message_rule_engine
 from src.prospecting.services import calculate_prospect_overall_status
 from src.email_outbound.models import (
     EmailInteractionState,
@@ -154,6 +155,10 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
         body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
 
+        # Run Rule Engine + ARREE on the body
+        run_message_rule_engine(body.id)
+
+        # Populate the email messaging schedule entries
         populate_email_messaging_schedule_entries(
             client_sdr_id=outbound_campaign.client_sdr_id,
             prospect_email_id=prospect_email.id,
