@@ -1,5 +1,6 @@
 import openai
 from model_import import GeneratedMessageType
+from src.email_sequencing.models import EmailSequenceStep
 
 
 def magic_edit(message_copy: str):
@@ -76,6 +77,11 @@ def get_editing_details(message_id: int):
     if config_id:
         configuration = StackRankedMessageGenerationConfiguration.query.get(config_id)
 
+    email_template = None
+    if generated_message.email_sequence_step_template_id:
+        template: EmailSequenceStep =  EmailSequenceStep.query.get(generated_message.email_sequence_step_template_id)
+        email_template = template.to_dict()
+
     return {
         "prospect": prospect.to_dict(),
         "cta": cta.to_dict() if cta else None,
@@ -83,4 +89,5 @@ def get_editing_details(message_id: int):
         "serp_payload": serp_payload.payload if serp_payload else {},
         "research_points": [rp.to_dict() for rp in research_points] if research_points else [],
         "configuration": configuration.to_dict() if configuration else None,
+        "email_template": email_template,
     }
