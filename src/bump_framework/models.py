@@ -29,6 +29,8 @@ class BumpFramework(db.Model):
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
     substatus = db.Column(db.String(255), nullable=True)
 
+    human_feedback = db.Column(db.String, nullable=True)
+
     default = db.Column(db.Boolean, nullable=False, default=False)
 
     bump_length = db.Column(
@@ -106,6 +108,7 @@ class BumpFrameworkTemplates(db.Model):
     raw_prompt = db.Column(db.String, nullable=False)
     human_readable_prompt = db.Column(db.String, nullable=False)
     length = db.Column(db.String, nullable=False)
+    tag = db.Column(db.String, nullable=True)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
 
