@@ -280,6 +280,9 @@ def patch_bump_framework(client_sdr_id: int):
         required=False,
         parameter_type=str,
     )
+    human_feedback = get_request_parameter(
+        "human_feedback", request, json=True, required=False, parameter_type=str
+    )
 
     if bump_delay_days < 2:
         return (
@@ -339,6 +342,7 @@ def patch_bump_framework(client_sdr_id: int):
         additional_context=additional_context,
         bump_framework_template_name=bump_framework_template_name,
         bump_framework_human_readable_prompt=bump_framework_human_readable_prompt,
+        human_feedback=human_feedback,
     )
 
     return jsonify({"status": "success", "data": {}}), 200 if modified else 400

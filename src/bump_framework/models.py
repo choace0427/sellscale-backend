@@ -83,6 +83,7 @@ class BumpFramework(db.Model):
             "additional_context": self.additional_context,
             "bump_framework_template_name": self.bump_framework_template_name,
             "bump_framework_human_readable_prompt": self.bump_framework_human_readable_prompt,
+            "human_feedback": self.human_feedback,
         }
 
 

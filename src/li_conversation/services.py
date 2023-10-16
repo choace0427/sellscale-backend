@@ -722,16 +722,16 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     if override_bump_length == BumpLength.SHORT or (
         bump_framework and bump_framework.bump_length == BumpLength.SHORT
     ):
-        message_content = message_content + ("\nLength: 1-2 sentences.")
+        message_content = message_content + ("\nLength: 1 sentence.")
     elif override_bump_length == BumpLength.MEDIUM or (
         bump_framework and bump_framework.bump_length == BumpLength.MEDIUM
     ):
-        message_content = message_content + ("\nLength: 2-4 sentences")
+        message_content = message_content + ("\nLength: 2-3 sentences")
     elif override_bump_length == BumpLength.LONG or (
         bump_framework and bump_framework.bump_length == BumpLength.LONG
     ):
         message_content = message_content + (
-            "\nLength: 2 paragraphs. Separate with line breaks."
+            "\nLength: 1 paragraph with 1-2 sentences per paragraph. Separate with line breaks."
         )
 
     if bump_framework:
@@ -739,6 +739,18 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             "\n\nYou will be using the bump framework below to construct the message - follow the instructions carefully to construct the message:\nBump Framework:\n----\n "
             + bump_framework.description
             + "\n-----"
+        )
+
+    if client and client.tagline:
+        message_content = message_content + (
+            "\nThis is what " + client.company + " does:\n" + client.tagline + "\n"
+        )
+
+    if bump_framework and bump_framework.human_feedback:
+        message_content = message_content + (
+            "\n\nIMPORTANT: The user you're working with reviewed what you produced and had this feedback:\n"
+            + bump_framework.human_feedback
+            + "\n\n"
         )
 
     # if bump_framework and bump_framework.additional_context:
