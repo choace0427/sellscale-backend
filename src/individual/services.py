@@ -651,7 +651,7 @@ def start_upload(name: str, data: list[dict]):
     
     jobs = []
     for d in data:
-        li_url = d.get('linkedin_url', d.get('li_url', d.get('linkedin', None)))
+        li_url = d.get('linkedin_url')
         if li_url:
             profile_id = li_url.split("/in/")[1].split("/")[0]
             profile_url = f'linkedin.com/in/{profile_id}'
