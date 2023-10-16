@@ -66,9 +66,10 @@ def get_editing_details(message_id: int):
     serp_payload = ResearchPayload.get_by_prospect_id(
         prospect_id=prospect_id, payload_type=ResearchType.SERP_PAYLOAD
     )
-    research_points: list[ResearchPoints] = ResearchPoints.query.filter(
-        ResearchPoints.id.in_(generated_message.research_points)
-    ).all()
+    if generated_message.research_points:
+        research_points: list[ResearchPoints] = ResearchPoints.query.filter(
+            ResearchPoints.id.in_(generated_message.research_points)
+        ).all()
     config_id = generated_message.stack_ranked_message_generation_configuration_id
     configuration = None
     if config_id:
