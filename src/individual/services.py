@@ -6,7 +6,7 @@ from typing import Optional
 from psycopg2 import IntegrityError
 from src.utils.abstract.attr_utils import deep_get
 from src.company.services import find_company
-from src.individual.models import Individual
+from src.individual.models import Individual, IndividualsUpload
 from src.prospecting.models import Prospect
 from sqlalchemy import or_
 
@@ -638,3 +638,46 @@ def add_individual(
         db.session.add(individual)
         db.session.commit()
         return individual.id, True
+
+
+def get_uploads():
+    uploads: list[IndividualsUpload] = IndividualsUpload.query.all()
+    return [upload.to_dict() for upload in uploads]
+
+
+def start_upload(name: str, data: list[dict]):
+    
+    from src.automation.orchestrator import add_process_list
+    
+    jobs = []
+    for d in data:
+        li_url = d.get('linkedin_url', d.get('li_url', d.get('linkedin', None)))
+        if li_url:
+            profile_id = li_url.split("/in/")[1].split("/")[0]
+            profile_url = f'linkedin.com/in/{profile_id}'
+            if profile_id:
+                jobs.append({"profile_url": profile_url})
+    
+
+    add_process_list(
+        type="upload_job_for_individual",
+        args_list=jobs,
+        buffer_wait_minutes=1,
+    )
+
+    upload = IndividualsUpload(
+        name=name,
+        total_size=len(data),
+        upload_size=len(jobs),
+        payload_data=data,
+    )
+    db.session.add(upload)
+    db.session.commit()
+
+    return upload.to_dict()
+
+
+@celery.task
+def upload_job_for_individual(profile_url: str):
+    return add_individual_from_linkedin_url(profile_url)
+

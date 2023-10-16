@@ -148,3 +148,22 @@ class Individual(db.Model):
             "volunteer": self.volunteer_history,
             "similar_profiles": self.linkedin_similar_profiles,
         }
+
+
+class IndividualsUpload(db.Model):
+    __tablename__ = "individuals_upload"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    total_size = db.Column(db.Integer, nullable=False)
+    upload_size = db.Column(db.Integer, nullable=False)
+    payload_data = db.Column(db.ARRAY(db.JSON), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "total_size": self.total_size,
+            "upload_size": self.upload_size,
+            "payload_data": self.payload_data,
+        }
