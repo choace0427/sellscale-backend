@@ -166,4 +166,5 @@ class IndividualsUpload(db.Model):
             "total_size": self.total_size,
             "upload_size": self.upload_size,
             "payload_data": self.payload_data,
+            "created_at": self.created_at,
         }
