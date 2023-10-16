@@ -66,6 +66,7 @@ def get_editing_details(message_id: int):
     serp_payload = ResearchPayload.get_by_prospect_id(
         prospect_id=prospect_id, payload_type=ResearchType.SERP_PAYLOAD
     )
+    research_points = None
     if generated_message.research_points:
         research_points: list[ResearchPoints] = ResearchPoints.query.filter(
             ResearchPoints.id.in_(generated_message.research_points)
@@ -80,6 +81,6 @@ def get_editing_details(message_id: int):
         "cta": cta.to_dict() if cta else None,
         "linkedin_payload": li_payload.payload if li_payload else {},
         "serp_payload": serp_payload.payload if serp_payload else {},
-        "research_points": [rp.to_dict() for rp in research_points],
+        "research_points": [rp.to_dict() for rp in research_points] if research_points else [],
         "configuration": configuration.to_dict() if configuration else None,
     }
