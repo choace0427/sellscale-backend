@@ -126,7 +126,7 @@ class BumpFrameworkTemplates(db.Model):
             "bumped_counts": self.bumped_counts,
             "overall_statuses": [o.value for o in self.overall_statuses]
             if self.overall_statuses
-            else [],
+            else None,
         }
 
     # 'role-have-to-do-with': {
