@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from src.individual.services import backfill_iscraper_cache, backfill_prospects, get_uploads, start_upload
+from src.individual.services import backfill_iscraper_cache, backfill_prospects, get_uploads, start_crawler_on_linkedin_public_id, start_upload
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -44,6 +44,26 @@ def post_individuals_upload():
             {
                 "status": "success",
                 "data": uploads,
+            }
+        ),
+        200,
+    )
+
+
+@INDIVIDUAL_BLUEPRINT.route("/start_crawler", methods=["POST"])
+# No authentication required for now
+def post_start_crawler():
+
+    public_li_id = get_request_parameter(
+        "public_li_id", request, json=True, required=True, parameter_type=str
+    )
+
+    start_crawler_on_linkedin_public_id(public_li_id)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
             }
         ),
         200,

@@ -4,6 +4,7 @@ import math
 from typing import Optional
 
 from psycopg2 import IntegrityError
+from src.analytics.services import flag_enabled
 from src.utils.abstract.attr_utils import deep_get
 from src.company.services import find_company
 from src.individual.models import Individual, IndividualsUpload
@@ -45,12 +46,15 @@ def backfill_prospects(client_sdr_id):
     }
 
 
+def start_crawler_on_linkedin_public_id(profile_id: str):
+    profile_url = f'linkedin.com/in/{profile_id}'
+    success, new_id, created = add_individual_from_linkedin_url(profile_url)
+    if new_id: individual_similar_profile_crawler(new_id)
+
+
 # Scrapes li individuals following similar profiles until it can't find any more
 @celery.task
 def individual_similar_profile_crawler(individual_id: int):
-  ### KILL SWITCH ###
-  KILL_SWITCH = True
-  ###################
 
   from src.automation.orchestrator import add_process_list
     
@@ -85,7 +89,8 @@ def individual_similar_profile_crawler(individual_id: int):
               )
               continue
           else:
-              if KILL_SWITCH: continue
+              if not flag_enabled('icrawler_enabled'): continue
+
               # Continue the crawl...
               send_slack_message(
                   message=f"[iCrawler 🪳]\n- Added individual (# {new_id}) with profile '{profile_url}'\n- Continuing the crawl 👣👣🪳",
@@ -96,7 +101,7 @@ def individual_similar_profile_crawler(individual_id: int):
                   args_list=[{
                       "individual_id": new_id
                   }],
-                  buffer_wait_minutes=10,
+                  buffer_wait_minutes=2,
                   append_to_end=True,
               )
 

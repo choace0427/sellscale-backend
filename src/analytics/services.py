@@ -1,3 +1,4 @@
+from src.analytics.models import FeatureFlag
 from app import db
 from flask import jsonify
 
@@ -93,3 +94,36 @@ def get_sdr_pipeline_all_details(
     all_pipeline_details[ProspectChannels.EMAIL.value] = email_statuses_count
 
     return all_pipeline_details
+
+
+def flag_enabled(feature: str) -> bool:
+    """Checks if a feature is enabled
+
+    Args:
+        feature (str): The feature to check
+
+    Returns:
+        bool: Returns True if the feature is enabled, False otherwise
+    """
+    feature: FeatureFlag = FeatureFlag.query.filter(
+        FeatureFlag.feature == feature).first()
+    if feature:
+        return feature.value == 1
+    return False
+
+
+def flag_is_value(feature: str, value: int) -> bool:
+    """Checks if a feature has a specific value
+
+    Args:
+        feature (str): The feature to check
+
+    Returns:
+        bool: Returns True if the feature has the value, False otherwise
+    """
+    feature: FeatureFlag = FeatureFlag.query.filter(
+        FeatureFlag.feature == feature).first()
+    if feature:
+        return feature.value == value
+    return False
+
