@@ -77,6 +77,7 @@ def individual_similar_profile_crawler(individual_id: int):
       return
 
   # Get similar profiles
+  new_ids = []
   for profile in individual.linkedin_similar_profiles:
       try:
           profile_id = profile.get("profile_id")
@@ -106,14 +107,7 @@ def individual_similar_profile_crawler(individual_id: int):
                   message=f"[iCrawler 🪳]\n- Added individual (# {new_id}) with profile '{profile_url}'\n- Continuing the crawl 👣👣🪳",
                   webhook_urls=[URL_MAP["operations-icrawler"]],
               )
-              add_process_list(
-                  type="run_icrawler",
-                  args_list=[{
-                      "individual_id": new_id
-                  }],
-                  buffer_wait_minutes=20,
-                  append_to_end=True,
-              )
+              new_ids.append(new_id)
 
       except Exception as e:
           send_slack_message(
@@ -121,6 +115,15 @@ def individual_similar_profile_crawler(individual_id: int):
               webhook_urls=[URL_MAP["operations-icrawler"]],
           )
           continue
+
+  add_process_list(
+      type="run_icrawler",
+      args_list=[{
+          "individual_id": new_id
+      } for new_id in new_ids],
+      buffer_wait_minutes=20,
+      append_to_end=True,
+  )
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
