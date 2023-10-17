@@ -781,6 +781,7 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
 
     # After applying all the filters, retrieve the filtered individuals
     filtered_individuals: list[Individual] = individuals_query.limit(limit).offset(offset).all()
+    count_individuals = individuals_query.count()
 
-    return [individual.to_dict() for individual in filtered_individuals]
+    return [individual.to_dict() for individual in filtered_individuals], count_individuals
 

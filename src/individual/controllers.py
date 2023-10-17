@@ -128,13 +128,16 @@ def get_all_individuals_request(client_sdr_id: int):
         "offset", request, json=False, required=False, parameter_type=int
     ) or 0
 
-    results = get_all_individuals(client_archetype_id, limit, offset)
+    results, count = get_all_individuals(client_archetype_id, limit, offset)
 
     return (
         jsonify(
             {
                 "status": "success",
-                "data": results,
+                "data": {
+                    "total": count,
+                    "results": results,
+                },
             }
         ),
         200,
