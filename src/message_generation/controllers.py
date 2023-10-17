@@ -26,7 +26,6 @@ from src.message_generation.services import (
     create_generated_message_feedback,
     generate_cta_examples,
     batch_mark_prospect_email_approved_by_prospect_ids,
-    generate_new_email_content_for_approved_email,
     clear_all_generated_message_jobs,
     batch_update_generated_message_ctas,
     get_generation_statuses,
@@ -400,28 +399,41 @@ def post_batch_mark_prospect_email_approved():
     return "Failed to update", 400
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route("/pick_new_approved_email", methods=["POST"])
-def pick_new_approved_email():
-    prospect_id = get_request_parameter(
-        "prospect_id", request, json=True, required=True
-    )
+# @MESSAGE_GENERATION_BLUEPRINT.route("/pick_new_approved_email", methods=["POST"])
+# def pick_new_approved_email():
+#     prospect_id = get_request_parameter(
+#         "prospect_id", request, json=True, required=True
+#     )
 
-    generate_new_email_content_for_approved_email(
-        prospect_id=prospect_id,
-    )
+#     generate_new_email_content_for_approved_email(
+#         prospect_id=prospect_id,
+#     )
 
-    return "OK", 200
+#     return "OK", 200
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route("/email/body/regenerate", methods=["POST"])
-@require_user
-def regenerate_email_body_endpoint(client_sdr_id: int):
+def regenerate_email_body_endpoint():
+    campaign_uuid = get_request_parameter(
+        "campaign_uuid", request, json=True, required=True
+    )
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True
     )
 
+    campaign: OutboundCampaign = OutboundCampaign.query.filter_by(
+        uuid=campaign_uuid
+    ).first()
+    if not campaign:
+        return jsonify({"status": "error", "message": "Campaign not found"}), 400
+
+    prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+    if not prospect:
+        return jsonify({"status": "error", "message": "Prospect not found"}), 400
+    if prospect.client_sdr_id != campaign.client_sdr_id:
+        return jsonify({"status": "error", "message": "Incorrect credentials"}), 401
+
     success, message = regenerate_email_body(
-        client_sdr_id=client_sdr_id,
         prospect_id=prospect_id
     )
     if not success:
