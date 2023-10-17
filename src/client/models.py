@@ -286,6 +286,7 @@ class ClientSDR(db.Model):
     weekly_report_bcc_emails = db.Column(db.ARRAY(db.String), nullable=True)
 
     active = db.Column(db.Boolean, nullable=True, default=True)
+    is_onboarding = db.Column(db.Boolean, nullable=True, default=False)
 
     weekly_li_outbound_target = db.Column(db.Integer, nullable=True)
     weekly_email_outbound_target = db.Column(db.Integer, nullable=True)
