@@ -1,4 +1,6 @@
 from app import db
+from sqlalchemy import CheckConstraint
+
 from src.client.models import ClientArchetype
 
 from src.prospecting.models import ProspectOverallStatus
@@ -63,6 +65,13 @@ class EmailSequenceStep(db.Model):
 
     template = db.Column(db.String, nullable=True)
 
+    sequence_delay_days = db.Column(db.Integer, nullable=True, default=0)
+
+    # Define a CheckConstraint to enforce the minimum value
+    __table_args__ = (
+        CheckConstraint('sequence_delay_days >= 0', name='check_sequence_delay_days_positive'),
+    )
+
     def to_dict(self):
         archetype: ClientArchetype = ClientArchetype.query.get(
             self.client_archetype_id
@@ -81,5 +90,6 @@ class EmailSequenceStep(db.Model):
             "default": self.default,
             "bumped_count": self.bumped_count,
             "sellscale_default_generated": self.sellscale_default_generated,
-            "template": self.template
+            "template": self.template,
+            "sequence_delay_days": self.sequence_delay_days
         }

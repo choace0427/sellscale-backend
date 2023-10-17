@@ -168,8 +168,9 @@ def modify_email_sequence_step(
     client_sdr_id: int,
     client_archetype_id: int,
     sequence_step_id: int,
-    title: Optional[str],
-    template: Optional[str],
+    title: Optional[str] = None,
+    template: Optional[str] = None,
+    sequence_delay_days: Optional[int] = None,
     bumped_count: Optional[int] = None,
     default: Optional[bool] = False,
 ) -> bool:
@@ -181,6 +182,7 @@ def modify_email_sequence_step(
         sequence_step_id (int): The id of the email sequence
         title (Optional[str]): The title of the email sequence
         template (Optional[str]): The template of the email sequence
+        sequence_delay_days (Optional[int]): The number of days to delay the email sequence
         bumped_count (Optional[int], optional): The number which corresponds to which bump in the sequence this step appears. Defaults to None.
         default (Optional[bool]): Whether the email sequence is the default
 
@@ -199,6 +201,9 @@ def modify_email_sequence_step(
 
     if bumped_count:
         sequence_step.bumped_count = bumped_count
+
+    if sequence_delay_days and sequence_delay_days > 0:
+        sequence_step.sequence_delay_days = sequence_delay_days
 
     overall_status = sequence_step.overall_status
     substatus = sequence_step.substatus

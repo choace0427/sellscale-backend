@@ -176,6 +176,12 @@ def patch_sequence_step(client_sdr_id: int):
         )
         or None
     )
+    sequence_delay_days = (
+        get_request_parameter(
+            "sequence_delay_days", request, json=True, required=False, parameter_type=int
+        )
+        or None
+    )
 
     sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(sequence_step_id)
     if not sequence_step:

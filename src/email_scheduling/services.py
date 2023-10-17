@@ -141,8 +141,8 @@ def populate_email_messaging_schedule_entries(
         return email_ids
 
     # Create the accepted (1 time) followup
-    accepted_followup_email_send_date = initial_email_send_date + \
-        timedelta(days=DEFAULT_SENDING_DELAY_INTERVAL)
+    delay_days = accepted_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    accepted_followup_email_send_date = initial_email_send_date + timedelta(days=delay_days)
     accepted_followup_email_id = create_email_messaging_schedule_entry(
         client_sdr_id=client_sdr_id,
         prospect_email_id=prospect_email_id,
@@ -169,8 +169,8 @@ def populate_email_messaging_schedule_entries(
         if not bumped_sequence_step:
             break
 
-        followup_email_send_date = followup_email_send_date + \
-            timedelta(days=DEFAULT_SENDING_DELAY_INTERVAL)
+        delay_days = bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+        followup_email_send_date = followup_email_send_date + timedelta(days=delay_days)
         followup_email_id = create_email_messaging_schedule_entry(
             client_sdr_id=client_sdr_id,
             prospect_email_id=prospect_email_id,
