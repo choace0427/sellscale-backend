@@ -1,4 +1,5 @@
 from typing import Optional
+from bs4 import BeautifulSoup
 import requests
 import json
 import csv
@@ -153,6 +154,17 @@ def run_message_rule_engine(message_id: int):
     prompt = message.prompt
     case_preserved_completion = message.completion
     completion = message.completion.lower()
+
+    # If the message is an email, we need to strip the HTML tags
+    if message.message_type == GeneratedMessageType.EMAIL:
+        # Add spaces between HTML tags
+        completion = re.sub(r">", "> ", completion)
+
+        # Remove HTML tags
+        soup = BeautifulSoup(completion, 'html.parser')
+
+        # Get the text without HTML tags
+        completion = soup.get_text()
 
     prospect: Prospect = Prospect.query.get(message.prospect_id)
     prospect_name = prospect.first_name + " " + prospect.last_name
