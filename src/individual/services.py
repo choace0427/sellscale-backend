@@ -780,7 +780,7 @@ def get_all_individuals(client_archetype_id: int):
     # TODO the rest of the filters
 
     # After applying all the filters, retrieve the filtered individuals
-    filtered_individuals: list[Individual] = individuals_query.all()
+    filtered_individuals: list[Individual] = individuals_query.limit(1000).all()
 
     return [individual.to_dict() for individual in filtered_individuals]
 
