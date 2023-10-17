@@ -700,7 +700,7 @@ def upload_job_for_individual(profile_url: str):
     return add_individual_from_linkedin_url(profile_url)
 
 
-def get_all_individuals(client_archetype_id: int):
+def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int = 0):
     
     from src.prospecting.icp_score.models import ICPScoringRuleset
 
@@ -780,7 +780,7 @@ def get_all_individuals(client_archetype_id: int):
     # TODO the rest of the filters
 
     # After applying all the filters, retrieve the filtered individuals
-    filtered_individuals: list[Individual] = individuals_query.limit(1000).all()
+    filtered_individuals: list[Individual] = individuals_query.limit(limit).offset(offset).all()
 
     return [individual.to_dict() for individual in filtered_individuals]
 

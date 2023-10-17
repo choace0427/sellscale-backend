@@ -121,8 +121,14 @@ def get_all_individuals_request(client_sdr_id: int):
     client_archetype_id = get_request_parameter(
         "archetype_id", request, json=False, required=True, parameter_type=int
     )
+    limit = get_request_parameter(
+        "limit", request, json=False, required=False, parameter_type=int
+    ) or 100
+    offset = get_request_parameter(
+        "offset", request, json=False, required=False, parameter_type=int
+    ) or 0
 
-    results = get_all_individuals(client_archetype_id)
+    results = get_all_individuals(client_archetype_id, limit, offset)
 
     return (
         jsonify(
