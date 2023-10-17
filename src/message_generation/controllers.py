@@ -8,6 +8,7 @@ from src.message_generation.services import (
     get_cta_types,
     get_prospect_bump,
     refresh_computed_prompt_for_stack_ranked_configuration,
+    regenerate_email_body,
     scribe_sample_email_generation,
     update_stack_ranked_configuration_data,
 )
@@ -410,6 +411,23 @@ def pick_new_approved_email():
     )
 
     return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/email/body/regenerate", methods=["POST"])
+@require_user
+def regenerate_email_body_endpoint(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+
+    success, message = regenerate_email_body(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id
+    )
+    if not success:
+        return jsonify({"status": "error", "message": message}), 400
+
+    return jsonify({"status": "success", "message": message}), 200
 
 
 @MESSAGE_GENERATION_BLUEPRINT.route(

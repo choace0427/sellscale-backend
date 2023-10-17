@@ -1329,6 +1329,54 @@ def generate_new_email_content_for_approved_email(prospect_id: int):
         return False, "No new config(s) found"
 
 
+def regenerate_email_body(
+    client_sdr_id: int,
+    prospect_id: int
+) -> tuple[bool, str]:
+    """Regenerates the email body for a prospect
+
+    Args:
+        client_sdr_id (int): The ID of the client sdr
+        prospect_id (int): The ID of the prospect
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean representing success and a string representing the message
+    """
+    # Get the Prospect Email
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.client_sdr_id != client_sdr_id:
+        return False, "Client SDR does not match prospect's client SDR"
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
+    if not prospect_email:
+        return False, "No prospect email found"
+
+    # Get the personalized body
+    personalized_body: GeneratedMessage = GeneratedMessage.query.get(
+        prospect_email.personalized_body
+    )
+    if not personalized_body:
+        return False, "No personalized body found"
+
+    # Get the prompt
+    prompt = personalized_body.prompt
+
+    # Generate the email
+    email_body = generate_email(prompt=prompt)
+    email_body = email_body.get("body")
+
+    # Update the GeneratedMessage
+    personalized_body.completion = email_body
+    personalized_body.message_status = GeneratedMessageStatus.DRAFT
+    db.session.commit()
+
+    # Run Rule Engine + ARREE
+    run_message_rule_engine(personalized_body.id)
+
+    return True, "Success"
+
+
 def mark_random_new_prospect_email(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_email: ProspectEmail = ProspectEmail.query.filter(
