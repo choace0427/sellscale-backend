@@ -9,7 +9,7 @@ from src.utils.abstract.attr_utils import deep_get
 from src.company.services import find_company
 from src.individual.models import Individual, IndividualsUpload
 from src.prospecting.models import Prospect
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, not_
 
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache, IScraperPayloadType
@@ -698,4 +698,89 @@ def start_upload(name: str, data: list[dict]):
 @celery.task
 def upload_job_for_individual(profile_url: str):
     return add_individual_from_linkedin_url(profile_url)
+
+
+def get_all_individuals(client_archetype_id: int):
+    
+    from src.prospecting.icp_score.models import ICPScoringRuleset
+
+    ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
+        ICPScoringRuleset.client_archetype_id == client_archetype_id,
+    ).first()
+
+
+    # Start building the query for the Individual table
+    individuals_query = Individual.query
+
+    # Title
+    if ruleset.included_individual_title_keywords:
+        keyword_filters = [
+            Individual.title.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_title_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_individual_title_keywords:
+        exclude_filters = [
+            not_(Individual.title.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_title_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+    # Industry
+    if ruleset.included_individual_industry_keywords:
+        keyword_filters = [
+            Individual.industry.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_industry_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_individual_title_keywords:
+        exclude_filters = [
+            not_(Individual.industry.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_title_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+            
+    # Company
+    if ruleset.included_company_name_keywords:
+        keyword_filters = [
+            Individual.company_name.ilike(f"%{keyword}%") for keyword in ruleset.included_company_name_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_company_name_keywords:
+        exclude_filters = [
+            not_(Individual.company_name.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_company_name_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+    # Bio
+    if ruleset.included_individual_generalized_keywords:
+        keyword_filters = [
+            Individual.bio.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_generalized_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_individual_generalized_keywords:
+        exclude_filters = [
+            not_(Individual.bio.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_generalized_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+    # Bio
+    if ruleset.included_individual_locations_keywords:
+        keyword_filters = [
+            Individual.location.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_locations_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_individual_locations_keywords:
+        exclude_filters = [
+            not_(Individual.location.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_locations_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+    # TODO the rest of the filters
+
+    # After applying all the filters, retrieve the filtered individuals
+    filtered_individuals: list[Individual] = individuals_query.all()
+
+    return [individual.to_dict() for individual in filtered_individuals]
 

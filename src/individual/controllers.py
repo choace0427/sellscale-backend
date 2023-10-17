@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from src.individual.services import backfill_iscraper_cache, backfill_prospects, get_uploads, start_crawler_on_linkedin_public_id, start_upload
+from src.individual.services import backfill_iscraper_cache, backfill_prospects, get_all_individuals, get_uploads, start_crawler_on_linkedin_public_id, start_upload
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -108,6 +108,27 @@ def post_backfill_iscraper_cache(client_sdr_id: int):
                     "total": len(results),
                     # "results": results,
                 },
+            }
+        ),
+        200,
+    )
+
+
+@INDIVIDUAL_BLUEPRINT.route("/", methods=["GET"])
+@require_user
+def get_all_individuals_request(client_sdr_id: int):
+    
+    client_archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True, parameter_type=int
+    )
+
+    results = get_all_individuals(client_archetype_id)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": results,
             }
         ),
         200,
