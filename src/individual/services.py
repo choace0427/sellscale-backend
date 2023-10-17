@@ -121,7 +121,7 @@ def individual_similar_profile_crawler(individual_id: int):
       args_list=[{
           "individual_id": new_id
       } for new_id in new_ids],
-      buffer_wait_minutes=2,
+      buffer_wait_minutes=10,
       append_to_end=True,
   )
 
