@@ -200,6 +200,7 @@ def complete_client_sdr_onboarding(
 
     return True
 
+
 def toggle_is_onboarding(
     client_sdr_id: int,
 ):
@@ -213,7 +214,6 @@ def toggle_is_onboarding(
     db.session.commit()
 
     return True
-)
 
 
 def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list:

@@ -136,6 +136,7 @@ def populate_email_messaging_schedule_entries(
         client_sdr_id=client_sdr_id,
         client_archetype_id=prospect.archetype_id,
         overall_status=ProspectOverallStatus.ACCEPTED,
+        default=True,
     ).first()
     if not accepted_sequence_step:
         return email_ids
@@ -165,6 +166,7 @@ def populate_email_messaging_schedule_entries(
             client_sdr_id=client_sdr_id,
             client_archetype_id=prospect.archetype_id,
             bumped_count=followups_created,
+            default=True,
         ).first()
         if not bumped_sequence_step:
             break
