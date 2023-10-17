@@ -47,14 +47,24 @@ def backfill_prospects(client_sdr_id):
 
 
 def start_crawler_on_linkedin_public_id(profile_id: str):
+    from src.automation.orchestrator import add_process_for_future
+
     profile_url = f'linkedin.com/in/{profile_id}'
     success, new_id, created = add_individual_from_linkedin_url(profile_url)
-    if new_id: individual_similar_profile_crawler(new_id)
+    
+    if new_id:
+        add_process_for_future(
+            type="run_icrawler",
+            args={
+                "individual_id": new_id
+            },
+        )
 
 
 # Scrapes li individuals following similar profiles until it can't find any more
 @celery.task
 def individual_similar_profile_crawler(individual_id: int):
+  if not flag_enabled('icrawler_enabled'): return
 
   from src.automation.orchestrator import add_process_list
     
@@ -101,7 +111,7 @@ def individual_similar_profile_crawler(individual_id: int):
                   args_list=[{
                       "individual_id": new_id
                   }],
-                  buffer_wait_minutes=2,
+                  buffer_wait_minutes=20,
                   append_to_end=True,
               )
 
