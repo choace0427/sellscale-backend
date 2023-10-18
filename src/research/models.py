@@ -5,8 +5,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 import enum
 
-from src.bump_framework.models import BumpFrameworkTemplates
-
 
 class ResearchType(enum.Enum):
     LINKEDIN_ISCRAPER = "LINKEDIN_ISCRAPER"
@@ -107,7 +105,7 @@ class ResearchPoints(db.Model):
         bump_framework_template_id: Optional[int] = None,
     ) -> list:
         from model_import import ClientArchetype, Prospect
-        from src.bump_framework.models import BumpFramework
+        from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates
 
         prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         if not prospect:
