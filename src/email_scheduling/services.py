@@ -3,6 +3,8 @@ from app import celery, db
 from datetime import datetime, timedelta
 from typing import Optional
 from src.client.models import ClientArchetype
+from src.client.sdr.email.models import SDREmailSendSchedule
+from src.client.sdr.email.services_email_schedule import create_default_sdr_email_send_schedule
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
 from src.email_sequencing.models import EmailSequenceStep
@@ -116,6 +118,26 @@ def populate_email_messaging_schedule_entries(
 
     # Track all the scheduled email ids
     email_ids = []
+
+    # # Get this SDRs sending schedule
+    # sending_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter_by(
+    #     client_sdr_id=client_sdr_id,
+    # ).first()
+    # if not sending_schedule:
+    #     send_schedule_id = create_default_sdr_email_send_schedule(
+    #         client_sdr_id=client_sdr_id
+    #         email_bank_id
+    #     )
+
+    # # Get the next available date
+    # furthest_initial_email: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
+    #     EmailMessagingSchedule.client_sdr_id == client_sdr_id,
+    #     EmailMessagingSchedule.email_type == EmailMessagingType.INITIAL_EMAIL,
+    # ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
+    # if not furthest_initial_email:
+    #     # If no initial emails have been sent, choose tomorrow
+    #     initial_email_send_date = datetime.utcnow() + timedelta(days=1)
+
 
     # Create the initial email entry
     initial_email_id = create_email_messaging_schedule_entry(

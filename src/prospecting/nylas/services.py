@@ -563,6 +563,7 @@ def nylas_send_email(
     body: str,
     reply_to_message_id: Union[str, None] = None,
     prospect_email_id: Optional[int] = None,
+    email_bank_id: Optional[int] = None,
 ) -> dict:
     """Sends an email to the Prospect through the ClientSDR's Nylas account.
 
@@ -572,6 +573,7 @@ def nylas_send_email(
         - subject (str): Subject of the email
         - body (str): Body of the email
         - reply_to_message_id (str, optional): ID of the message to reply to
+        - prospect_email_id (Optional[int], optional): ID of the ProspectEmail record. Defaults to None.
 
     Returns:
         - dict: Response from Nylas API
@@ -620,11 +622,26 @@ def nylas_send_email(
     # if not reply_to_message_id:
     #     body += f"</br></br><a href='{link}' target='_blank'>Unsubscribe</a>"
 
+    # Get the email bank value (first for now)
+    email_bank: SDREmailBank = None
+    if email_bank_id:
+        email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+    if not email_bank:
+        email_bank: SDREmailBank = SDREmailBank.query.filter(
+            SDREmailBank.client_sdr_id == client_sdr_id,
+            SDREmailBank.nylas_active == True,
+            SDREmailBank.nylas_auth_code != None,
+            SDREmailBank.nylas_account_id != None,
+        ).first()
+
+    if not email_bank:
+        raise Exception("No EmailBank found in nylas_send_email.")
+
     # Send email through Nylas
     res = requests.post(
         url=f"https://api.nylas.com/send",
         headers={
-            "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
+            "Authorization": f"Bearer {email_bank.nylas_auth_code}",
             "Accept": "application/json",
             "Content-Type": "application/json",
         },
@@ -639,7 +656,7 @@ def nylas_send_email(
             ],
             "from": [
                 {
-                    "email": client_sdr.email,
+                    "email": email_bank.email_address,
                     "name": client_sdr.name,
                 }
             ],

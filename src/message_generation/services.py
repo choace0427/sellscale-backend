@@ -8,7 +8,11 @@ from src.message_generation.email.services import (
     generate_email,
     generate_subject_line,
 )
-from src.message_generation.models import GeneratedMessageAutoBump, GeneratedMessageEmailType, SendStatus
+from src.message_generation.models import (
+    GeneratedMessageAutoBump,
+    GeneratedMessageEmailType,
+    SendStatus,
+)
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
 from src.research.account_research import generate_prospect_research
@@ -1174,7 +1178,6 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             priority_rating=campaign.priority_rating if campaign else 0,
             email_type=GeneratedMessageEmailType.BODY,
             email_sequence_step_template_id=template_id,
-
         )
         ai_generated_subject_line = GeneratedMessage(
             prospect_id=prospect_id,
@@ -1332,7 +1335,7 @@ def clear_prospect_approved_email(prospect_id: int):
 
 def regenerate_email_body(
     # client_sdr_id: int,
-    prospect_id: int
+    prospect_id: int,
 ) -> tuple[bool, str]:
     """Regenerates the email body for a prospect
 
@@ -2167,15 +2170,18 @@ def send_sent_by_sellscale_notification(
         if bump_framework:
             bump_framework_name = "'" + bump_framework.title + "'"
 
-    edit_framework_hotlink_url = (
-        "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-        + client_sdr.auth_token
-        + "&redirect=setup/linkedin/replies"
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+        auth_token=client_sdr.auth_token,
+        prospect_id=prospect_id if prospect_id else "",
     )
 
-    if prospect.overall_status in (
-        ProspectOverallStatus.ACTIVE_CONVO,
-        ProspectOverallStatus.DEMO,
+    if (
+        prospect.overall_status
+        in (
+            ProspectOverallStatus.ACTIVE_CONVO,
+            ProspectOverallStatus.DEMO,
+        )
+        and prospect.li_last_message_from_prospect
     ):
         send_slack_message(
             message="SellScale AI just replied to prospect!",
@@ -2238,17 +2244,16 @@ def send_sent_by_sellscale_notification(
                 {
                     "type": "section",
                     "block_id": "sectionBlockWithLinkButton",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Generated with {bump_framework_name} reply framework".format(
-                            bump_framework_name=bump_framework_name
-                        ),
-                    },
+                    "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
                     "accessory": {
                         "type": "button",
-                        "text": {"type": "plain_text", "text": "Edit", "emoji": True},
-                        "value": edit_framework_hotlink_url,
-                        "url": edit_framework_hotlink_url,
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Convo",
+                            "emoji": True,
+                        },
+                        "value": direct_link,
+                        "url": direct_link,
                         "action_id": "button-action",
                     },
                 },
@@ -2601,7 +2606,7 @@ def generate_followup_response(
             convo_history=convo_history,
             bump_framework_id=best_framework.get("id") if best_framework else None,
             account_research_copy=research_str,
-            bump_framework_template_id=bump_framework_template_id
+            bump_framework_template_id=bump_framework_template_id,
         )  # type: ignore
 
         if show_slack_messages:

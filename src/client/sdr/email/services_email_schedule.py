@@ -2,8 +2,37 @@ from typing import Optional
 from app import db
 
 from datetime import time
+from src.client.models import ClientSDR
 
 from src.client.sdr.email.models import SDREmailSendSchedule
+
+
+def create_default_sdr_email_send_schedule(
+    client_sdr_id: int,
+    email_bank_id: int,
+) -> int:
+    """ Creates a default SDR Email Send Schedule
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+        email_bank_id (int): ID of the email bank
+
+    Returns:
+        int: ID of the created email send schedule
+    """
+    sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    email_send_schedule = SDREmailSendSchedule(
+        client_sdr_id=client_sdr_id,
+        email_bank_id=email_bank_id,
+        time_zone=sdr.timezone or "America/Los_Angeles",
+        days=[1, 2, 3, 4, 5],
+        start_time=time(hour=9, minute=0),
+        end_time=time(hour=17, minute=0),
+    )
+    db.session.add(email_send_schedule)
+    db.session.commit()
+
+    return email_send_schedule.id
 
 
 def create_sdr_email_send_schedule(
