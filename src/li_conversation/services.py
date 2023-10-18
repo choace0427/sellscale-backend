@@ -730,28 +730,19 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     if (
         override_bump_length == BumpLength.SHORT
         or (bump_framework and bump_framework.bump_length == BumpLength.SHORT)
-        or (
-            bump_framework_template
-            and bump_framework_template.length == BumpLength.SHORT
-        )
+        or (bump_framework_template and bump_framework_template.length == "SHORT")
     ):
         message_content = message_content + ("\nLength: 1 sentence.")
     elif (
         override_bump_length == BumpLength.MEDIUM
         or (bump_framework and bump_framework.bump_length == BumpLength.MEDIUM)
-        or (
-            bump_framework_template
-            and bump_framework_template.length == BumpLength.MEDIUM
-        )
+        or (bump_framework_template and bump_framework_template.length == "MEDIUM")
     ):
         message_content = message_content + ("\nLength: 2-3 sentences")
     elif (
         override_bump_length == BumpLength.LONG
         or (bump_framework and bump_framework.bump_length == BumpLength.LONG)
-        or (
-            bump_framework_template
-            and bump_framework_template.length == BumpLength.LONG
-        )
+        or (bump_framework_template and bump_framework_template.length == "LONG")
     ):
         message_content = message_content + (
             "\nLength: 1 paragraph with 1-2 sentences per paragraph. Separate with line breaks."
