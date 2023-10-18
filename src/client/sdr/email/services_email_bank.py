@@ -231,19 +231,30 @@ def nylas_exchange_for_authorization_code(
         return False, {"message": "Error getting account id", "status_code": 500}
 
     # Validate email matches Client SDR
-    response = response.get("email_address")
-    if not response:
+    email_address = response.get("email_address")
+    if not email_address:
         return False, {"message": "Error getting email address", "status_code": 500}
 
-    # Create the email bank object
-    email_bank_id = create_sdr_email_bank(
-        client_sdr_id=client_sdr_id,
-        email_address=response,
-        email_type=EmailType.ALIAS,
-        nylas_auth_code=access_token,
-        nylas_account_id=account_id,
-        nylas_active=True,
-    )
+    # Check if the email bank object already exists
+    email_bank: SDREmailBank = get_sdr_email_bank(
+        email_address=email_address
+    ).first()
+    if not email_bank:
+        # Create the email bank object
+        email_bank_id = create_sdr_email_bank(
+            client_sdr_id=client_sdr_id,
+            email_address=email_address,
+            email_type=EmailType.ALIAS,
+            nylas_auth_code=access_token,
+            nylas_account_id=account_id,
+            nylas_active=True,
+        )
+        email_bank = SDREmailBank.query.get(email_bank_id)
+
+    # Update email bank
+    email_bank.nylas_account_id = account_id
+    email_bank.nylas_auth_code = access_token
+    email_bank.nylas_active = True
 
     # Update Client SDR
     client_sdr.nylas_auth_code = access_token
