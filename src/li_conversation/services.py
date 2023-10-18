@@ -732,7 +732,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         or (bump_framework and bump_framework.bump_length == BumpLength.SHORT)
         or (
             bump_framework_template
-            and bump_framework_template.bump_length == BumpLength.SHORT
+            and bump_framework_template.length == BumpLength.SHORT
         )
     ):
         message_content = message_content + ("\nLength: 1 sentence.")
@@ -741,7 +741,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         or (bump_framework and bump_framework.bump_length == BumpLength.MEDIUM)
         or (
             bump_framework_template
-            and bump_framework_template.bump_length == BumpLength.MEDIUM
+            and bump_framework_template.length == BumpLength.MEDIUM
         )
     ):
         message_content = message_content + ("\nLength: 2-3 sentences")
@@ -750,7 +750,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         or (bump_framework and bump_framework.bump_length == BumpLength.LONG)
         or (
             bump_framework_template
-            and bump_framework_template.bump_length == BumpLength.LONG
+            and bump_framework_template.length == BumpLength.LONG
         )
     ):
         message_content = message_content + (
