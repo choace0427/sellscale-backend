@@ -136,6 +136,9 @@ class BumpFrameworkTemplates(db.Model):
             "overall_statuses": [o.value for o in self.overall_statuses]
             if self.overall_statuses
             else None,
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            if self.transformer_blocklist
+            else [],
         }
 
     # 'role-have-to-do-with': {
