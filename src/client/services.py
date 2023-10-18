@@ -469,6 +469,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
         auto_generate_messages=True,
         analytics_activation_date=datetime.utcnow(),
         auto_bump=True,
+        is_onboarding=True,
     )
     db.session.add(sdr)
     db.session.commit()
