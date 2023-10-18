@@ -1045,7 +1045,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
 
     # Convert points to string
     for point in points:
-        research_str += f"{point.value}\n"
+        research_str += f"{point.research_point_type.value} - {point.value}\n"
 
     convo_history: list[LinkedInConvoMessage] = []
     # Populate the array with hardcoded messages
