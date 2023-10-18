@@ -1,4 +1,5 @@
 import email
+from src.bump_framework.models import BumpFrameworkTemplates
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.li_conversation.models import LinkedInConvoMessage
 from src.message_generation.email.services import (
@@ -2500,6 +2501,7 @@ def generate_followup_response(
     bump_count: int,
     convo_history: List[LinkedInConvoMessage],
     show_slack_messages: bool = True,
+    bump_framework_template_id: Optional[BumpFrameworkTemplates] = None,
 ):
     try:
 
@@ -2599,6 +2601,7 @@ def generate_followup_response(
             convo_history=convo_history,
             bump_framework_id=best_framework.get("id") if best_framework else None,
             account_research_copy=research_str,
+            bump_framework_template_id=bump_framework_template_id
         )  # type: ignore
 
         if show_slack_messages:

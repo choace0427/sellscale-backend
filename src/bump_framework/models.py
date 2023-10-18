@@ -118,6 +118,11 @@ class BumpFrameworkTemplates(db.Model):
         db.ARRAY(sa.Enum(ProspectOverallStatus, create_constraint=False)), nullable=True
     )
 
+    transformer_blocklist = db.Column(
+        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        nullable=True,
+    )  # use this list to blocklist transformer durings message generation
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -131,6 +136,9 @@ class BumpFrameworkTemplates(db.Model):
             "overall_statuses": [o.value for o in self.overall_statuses]
             if self.overall_statuses
             else None,
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            if self.transformer_blocklist
+            else [],
         }
 
     # 'role-have-to-do-with': {

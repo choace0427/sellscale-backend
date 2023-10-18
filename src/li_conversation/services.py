@@ -26,7 +26,7 @@ from src.li_conversation.conversation_analyzer.li_email_finder import (
 )
 
 from src.li_conversation.models import LinkedInConvoMessage
-from src.bump_framework.models import BumpLength
+from src.bump_framework.models import BumpFrameworkTemplates, BumpLength
 from src.prospecting.services import send_to_purgatory
 from src.research.models import ResearchPoints
 from src.utils.datetime.dateparse_utils import get_working_hours_in_utc, is_weekend
@@ -532,6 +532,7 @@ def generate_chat_gpt_response_to_conversation_thread(
     override_bump_length: Optional[BumpLength] = None,
     max_retries: int = 3,
     use_cache: bool = False,
+    bump_framework_template_id: Optional[int] = None,
 ):
     for _ in range(max_retries):
         try:
@@ -542,6 +543,7 @@ def generate_chat_gpt_response_to_conversation_thread(
                 account_research_copy=account_research_copy,
                 override_bump_length=override_bump_length,
                 use_cache=use_cache,
+                bump_framework_template_id=bump_framework_template_id,
             )
         except Exception as e:
             time.sleep(2)
@@ -664,6 +666,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     account_research_copy: str = "",
     override_bump_length: Optional[BumpLength] = None,
     use_cache: bool = False,
+    bump_framework_template_id: Optional[int] = None,
 ):
     from model_import import Prospect
 
@@ -684,6 +687,11 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     user_title = client_sdr.title or "sales rep"
     company = client.company
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    bump_framework_template: Optional[BumpFrameworkTemplates] = (
+        BumpFrameworkTemplates.query.get(bump_framework_template_id)
+        if bump_framework_template_id
+        else None
+    )
 
     details = "\nFor some context, {first_name} is a {title} at {company}. Use these details when personalizing.".format(
         first_name=prospect.first_name,
@@ -719,16 +727,22 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
                 + "\n-----\n"
             )
 
-    if override_bump_length == BumpLength.SHORT or (
-        bump_framework and bump_framework.bump_length == BumpLength.SHORT
+    if (
+        override_bump_length == BumpLength.SHORT
+        or (bump_framework and bump_framework.bump_length == BumpLength.SHORT)
+        or (bump_framework_template and bump_framework_template.length == "SHORT")
     ):
         message_content = message_content + ("\nLength: 1 sentence.")
-    elif override_bump_length == BumpLength.MEDIUM or (
-        bump_framework and bump_framework.bump_length == BumpLength.MEDIUM
+    elif (
+        override_bump_length == BumpLength.MEDIUM
+        or (bump_framework and bump_framework.bump_length == BumpLength.MEDIUM)
+        or (bump_framework_template and bump_framework_template.length == "MEDIUM")
     ):
         message_content = message_content + ("\nLength: 2-3 sentences")
-    elif override_bump_length == BumpLength.LONG or (
-        bump_framework and bump_framework.bump_length == BumpLength.LONG
+    elif (
+        override_bump_length == BumpLength.LONG
+        or (bump_framework and bump_framework.bump_length == BumpLength.LONG)
+        or (bump_framework_template and bump_framework_template.length == "LONG")
     ):
         message_content = message_content + (
             "\nLength: 1 paragraph with 1-2 sentences per paragraph. Separate with line breaks."
@@ -738,6 +752,13 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         message_content = message_content + (
             "\n\nYou will be using the bump framework below to construct the message - follow the instructions carefully to construct the message:\nBump Framework:\n----\n "
             + bump_framework.description
+            + "\n-----"
+        )
+
+    if bump_framework_template:
+        message_content = message_content + (
+            "\n\nYou will be using the bump framework below to construct the message - follow the instructions carefully to construct the message:\nBump Framework:\n----\n "
+            + bump_framework_template.raw_prompt
             + "\n-----"
         )
 

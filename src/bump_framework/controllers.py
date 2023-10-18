@@ -3,7 +3,7 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import BumpFramework
-from src.bump_framework.models import BumpLength
+from src.bump_framework.models import BumpFrameworkTemplates, BumpLength
 from src.bump_framework.services import (
     clone_bump_framework,
     create_bump_framework,
@@ -164,6 +164,10 @@ def post_create_bump_framework(client_sdr_id: int):
         "human_readable_prompt", request, json=True, required=False, parameter_type=str
     )
 
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
+    )
+
     # Get the enum value for the overall status
     found_key = False
     for key, val in ProspectOverallStatus.__members__.items():
@@ -197,6 +201,7 @@ def post_create_bump_framework(client_sdr_id: int):
         default=default,
         use_account_research=use_account_research,
         bump_framework_human_readable_prompt=human_readable_prompt,
+        transformer_blocklist=transformer_blocklist,
     )
     if bump_framework_id:
         return (
@@ -540,12 +545,16 @@ def post_create_bump_framework_template():
     length = get_request_parameter(
         "length", request, json=True, required=True, parameter_type=str
     )
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
+    )
 
     create_new_bump_framework_template(
         name=name,
         raw_prompt=raw_prompt,
         human_readable_prompt=human_readable_prompt,
         length=length,
+        transformer_blocklist=transformer_blocklist,
     )
     return jsonify({"message": "Successfully created bump framework template"}), 200
 
@@ -567,6 +576,9 @@ def patch_bump_framework_template(bft_id: int):
     length = get_request_parameter(
         "length", request, json=True, required=True, parameter_type=str
     )
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
+    )
 
     update_bump_framework_template(
         bft_id=bft_id,
@@ -574,6 +586,7 @@ def patch_bump_framework_template(bft_id: int):
         raw_prompt=raw_prompt,
         human_readable_prompt=human_readable_prompt,
         length=length,
+        transformer_blocklist=transformer_blocklist,
     )
     return jsonify({"message": "Successfully updated bump framework template"}), 200
 
