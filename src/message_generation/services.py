@@ -2170,10 +2170,9 @@ def send_sent_by_sellscale_notification(
         if bump_framework:
             bump_framework_name = "'" + bump_framework.title + "'"
 
-    edit_framework_hotlink_url = (
-        "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-        + client_sdr.auth_token
-        + "&redirect=setup/linkedin/replies"
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+        auth_token=client_sdr.auth_token,
+        prospect_id=prospect_id if prospect_id else "",
     )
 
     if (
@@ -2245,17 +2244,16 @@ def send_sent_by_sellscale_notification(
                 {
                     "type": "section",
                     "block_id": "sectionBlockWithLinkButton",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Generated with {bump_framework_name} reply framework".format(
-                            bump_framework_name=bump_framework_name
-                        ),
-                    },
+                    "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
                     "accessory": {
                         "type": "button",
-                        "text": {"type": "plain_text", "text": "Edit", "emoji": True},
-                        "value": edit_framework_hotlink_url,
-                        "url": edit_framework_hotlink_url,
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Convo",
+                            "emoji": True,
+                        },
+                        "value": direct_link,
+                        "url": direct_link,
                         "action_id": "button-action",
                     },
                 },
