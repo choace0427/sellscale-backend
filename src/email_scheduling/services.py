@@ -130,6 +130,7 @@ def populate_email_messaging_schedule_entries(
         body_id=body_id,
     )
     email_ids.append(initial_email_id)
+    initial_email_template: EmailSequenceStep = EmailSequenceStep.query.get(initial_email_body_template_id)
 
     # Find the ACCEPTED sequence step
     accepted_sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter_by(
@@ -142,7 +143,7 @@ def populate_email_messaging_schedule_entries(
         return email_ids
 
     # Create the accepted (1 time) followup
-    delay_days = accepted_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    delay_days = initial_email_template.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
     accepted_followup_email_send_date = initial_email_send_date + timedelta(days=delay_days)
     accepted_followup_email_id = create_email_messaging_schedule_entry(
         client_sdr_id=client_sdr_id,
@@ -160,6 +161,7 @@ def populate_email_messaging_schedule_entries(
     # Create the followups
     followups_created = 1
     followup_email_send_date = accepted_followup_email_send_date
+    delay_days = accepted_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
     while followups_created < FOLLOWUP_LIMIT:  # 10 followups max
         # Search for a sequence step that is bumped and has a followup number
         bumped_sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter_by(
@@ -171,7 +173,6 @@ def populate_email_messaging_schedule_entries(
         if not bumped_sequence_step:
             break
 
-        delay_days = bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
         followup_email_send_date = followup_email_send_date + timedelta(days=delay_days)
         followup_email_id = create_email_messaging_schedule_entry(
             client_sdr_id=client_sdr_id,
@@ -186,6 +187,7 @@ def populate_email_messaging_schedule_entries(
         )
         email_ids.append(followup_email_id)
         followups_created += 1
+        delay_days = bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
 
     return email_ids
 
