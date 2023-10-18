@@ -195,6 +195,7 @@ def patch_sequence_step(client_sdr_id: int):
         sequence_step_id=sequence_step_id,
         title=title,
         template=template,
+        sequence_delay_days=sequence_delay_days,
         bumped_count=bumped_count,
         default=default,
     )
