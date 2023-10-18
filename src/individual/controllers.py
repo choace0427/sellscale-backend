@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from src.individual.services import backfill_iscraper_cache, backfill_prospects, convert_to_prospects, get_all_individuals, get_uploads, start_crawler_on_linkedin_public_id, start_upload
+from src.individual.services import backfill_iscraper_cache, backfill_prospects, convert_to_prospects, start_upload_from_urn_ids, get_all_individuals, get_uploads, start_crawler_on_linkedin_public_id, start_upload
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -38,6 +38,30 @@ def post_individuals_upload():
     ) or []
 
     uploads = start_upload(name, data)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": uploads,
+            }
+        ),
+        200,
+    )
+
+
+@INDIVIDUAL_BLUEPRINT.route("/upload_from_urn_ids", methods=["POST"])
+# No authentication required for now
+def post_add_from_urn_ids():
+
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+    urn_ids = get_request_parameter(
+        "urn_ids", request, json=True, required=True, parameter_type=list
+    ) or []
+
+    uploads = start_upload_from_urn_ids(name, urn_ids)
 
     return (
         jsonify(

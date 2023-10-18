@@ -733,8 +733,44 @@ def start_upload(name: str, data: list[dict]):
     return upload.to_dict()
 
 
+def start_upload_from_urn_ids(name: str, urn_ids: list[str]):
+
+    from src.automation.orchestrator import add_process_list
+
+    jobs = []
+    for urn_id in urn_ids:
+        jobs.append({"urn_id": urn_id})
+
+    add_process_list(
+        type="upload_job_for_individual",
+        args_list=jobs,
+        buffer_wait_minutes=1,
+    )
+
+    upload = IndividualsUpload(
+        name=name,
+        total_size=len(urn_ids),
+        upload_size=len(jobs),
+        payload_data=urn_ids,
+    )
+    db.session.add(upload)
+    db.session.commit()
+
+    return upload.to_dict()
+
+
 @celery.task
-def upload_job_for_individual(profile_url: str):
+def upload_job_for_individual(profile_url: str = None, urn_id: str = None):
+
+    if (not profile_url and urn_id):
+        from src.voyager.linkedin import LinkedIn
+
+        api = LinkedIn(34)# Aaron's account
+        profile = api.get_profile(urn_id=urn_id)
+        if not profile or not profile.get("profile_id"):
+            return False
+        profile_url = f'linkedin.com/in/{profile.get("profile_id")}'
+
     return add_individual_from_linkedin_url(profile_url)
 
 
