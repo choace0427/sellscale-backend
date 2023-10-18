@@ -994,6 +994,7 @@ def add_prospect(
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
     is_lookalike_profile: bool = False,
+    individual_id: Optional[int] = None,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -1016,6 +1017,7 @@ def add_prospect(
         synchronous_research (bool, optional): Whether or not to run synchronous research on the Prospect. Defaults to False.
         set_status (ProspectStatus, optional): Status to set the Prospect to. Defaults to ProspectStatus.PROSPECTED.
         set_note (str, optional): Note to add to the Prospect. Defaults to None.
+        individual_id (Optional[int], optional): ID of the Individual. Defaults to None.
 
     Returns:
         int or None: ID of the Prospect if it was added successfully, None otherwise
@@ -1107,6 +1109,7 @@ def add_prospect(
             active=True,
             contract_size=archetype.contract_size,
             is_lookalike_profile=is_lookalike_profile,
+            individual_id=individual_id,
         )
         db.session.add(prospect)
         db.session.commit()

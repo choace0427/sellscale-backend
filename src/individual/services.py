@@ -46,6 +46,44 @@ def backfill_prospects(client_sdr_id):
     }
 
 
+def convert_to_prospects(client_sdr_id: int, client_archetype_id: int, individual_ids: list[int]):
+    
+    from src.prospecting.services import add_prospect
+    from src.client.models import ClientArchetype
+
+    archetype: ClientArchetype = ClientArchetype.query.get(client_sdr_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return None
+    
+    individuals: list[Individual] = Individual.query.filter(
+        Individual.id.in_(individual_ids),
+    ).all()
+    
+    results = []
+    for individual in individuals:
+        prospect_id = add_prospect(
+            client_id=archetype.client_id,
+            archetype_id=client_archetype_id,
+            client_sdr_id=client_sdr_id,
+            company=individual.company_name,
+            company_url=None,# TODO
+            employee_count=None,# TODO
+            full_name=individual.full_name,
+            industry=individual.industry,
+            linkedin_url=individual.linkedin_url,
+            linkedin_bio=individual.bio,
+            linkedin_num_followers=individual.linkedin_followers,
+            title=individual.title,
+            twitter_url=individual.twitter_url,
+            email=individual.email,
+            individual_id=individual.id,
+        )
+        results.append(prospect_id)
+
+    return results
+    
+
+
 def start_crawler_on_linkedin_public_id(profile_id: str):
     from src.automation.orchestrator import add_process_for_future
 

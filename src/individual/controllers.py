@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from src.individual.services import backfill_iscraper_cache, backfill_prospects, get_all_individuals, get_uploads, start_crawler_on_linkedin_public_id, start_upload
+from src.individual.services import backfill_iscraper_cache, backfill_prospects, convert_to_prospects, get_all_individuals, get_uploads, start_crawler_on_linkedin_public_id, start_upload
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -81,6 +81,33 @@ def post_backfill_prospects(client_sdr_id: int):
             {
                 "status": "success",
                 "data": results,
+            }
+        ),
+        200,
+    )
+
+
+@INDIVIDUAL_BLUEPRINT.route("/convert-to-prospects", methods=["POST"])
+@require_user
+def post_convert_to_prospects(client_sdr_id: int):
+    
+    client_archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+
+    individual_ids = get_request_parameter(
+        "individual_ids", request, json=True, required=True, parameter_type=list
+    ) or []
+
+    prospect_ids = convert_to_prospects(client_sdr_id, client_archetype_id, individual_ids)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "prospect_ids": prospect_ids,
+                },
             }
         ),
         200,
