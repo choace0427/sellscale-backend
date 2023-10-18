@@ -8,7 +8,11 @@ from src.message_generation.email.services import (
     generate_email,
     generate_subject_line,
 )
-from src.message_generation.models import GeneratedMessageAutoBump, GeneratedMessageEmailType, SendStatus
+from src.message_generation.models import (
+    GeneratedMessageAutoBump,
+    GeneratedMessageEmailType,
+    SendStatus,
+)
 from src.ml.services import determine_best_bump_framework_from_convo
 from src.client.models import ClientSDR
 from src.research.account_research import generate_prospect_research
@@ -1174,7 +1178,6 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             priority_rating=campaign.priority_rating if campaign else 0,
             email_type=GeneratedMessageEmailType.BODY,
             email_sequence_step_template_id=template_id,
-
         )
         ai_generated_subject_line = GeneratedMessage(
             prospect_id=prospect_id,
@@ -1332,7 +1335,7 @@ def clear_prospect_approved_email(prospect_id: int):
 
 def regenerate_email_body(
     # client_sdr_id: int,
-    prospect_id: int
+    prospect_id: int,
 ) -> tuple[bool, str]:
     """Regenerates the email body for a prospect
 
@@ -2173,9 +2176,13 @@ def send_sent_by_sellscale_notification(
         + "&redirect=setup/linkedin/replies"
     )
 
-    if prospect.overall_status in (
-        ProspectOverallStatus.ACTIVE_CONVO,
-        ProspectOverallStatus.DEMO,
+    if (
+        prospect.overall_status
+        in (
+            ProspectOverallStatus.ACTIVE_CONVO,
+            ProspectOverallStatus.DEMO,
+        )
+        and prospect.li_last_message_from_prospect
     ):
         send_slack_message(
             message="SellScale AI just replied to prospect!",
@@ -2601,7 +2608,7 @@ def generate_followup_response(
             convo_history=convo_history,
             bump_framework_id=best_framework.get("id") if best_framework else None,
             account_research_copy=research_str,
-            bump_framework_template_id=bump_framework_template_id
+            bump_framework_template_id=bump_framework_template_id,
         )  # type: ignore
 
         if show_slack_messages:

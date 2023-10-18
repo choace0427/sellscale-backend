@@ -717,20 +717,6 @@ def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
 
-            # send Slack notification to Client pipeline channel too
-            client: Client = Client.query.get(client_id)
-            webhook_url = client.pipeline_notifications_webhook_url
-            if webhook_url:
-                send_slack_message(
-                    message=f"""
-                    *🛎 New scheduling CTA accepted by {prospect_full_name}*
-                    ```
-                    {gm.completion}
-                    ```
-                    """,
-                    webhook_urls=[webhook_url],
-                )
-
             return
 
 
