@@ -767,9 +767,9 @@ def upload_job_for_individual(profile_url: str = None, urn_id: str = None):
 
         api = LinkedIn(34)# Aaron's account
         profile = api.get_profile(urn_id=urn_id)
-        if not profile or not profile.get("profile_id"):
+        if not profile or not profile.get("public_id"):
             return False
-        profile_url = f'linkedin.com/in/{profile.get("profile_id")}'
+        profile_url = f'linkedin.com/in/{profile.get("public_id")}'
 
     return add_individual_from_linkedin_url(profile_url)
 
