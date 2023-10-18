@@ -238,7 +238,7 @@ def nylas_exchange_for_authorization_code(
     # Check if the email bank object already exists
     email_bank: SDREmailBank = get_sdr_email_bank(
         email_address=email_address
-    ).first()
+    )
     if not email_bank:
         # Create the email bank object
         email_bank_id = create_sdr_email_bank(
