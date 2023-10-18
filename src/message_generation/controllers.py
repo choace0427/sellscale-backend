@@ -433,9 +433,7 @@ def regenerate_email_body_endpoint():
     if prospect.client_sdr_id != campaign.client_sdr_id:
         return jsonify({"status": "error", "message": "Incorrect credentials"}), 401
 
-    success, message = regenerate_email_body(
-        prospect_id=prospect_id
-    )
+    success, message = regenerate_email_body(prospect_id=prospect_id)
     if not success:
         return jsonify({"status": "error", "message": message}), 400
 
@@ -1017,6 +1015,13 @@ def post_generate_bump_li_message(client_sdr_id: int):
         )
         or True
     )
+    bump_framework_template_id = get_request_parameter(
+        "bump_framework_template_id",
+        request,
+        json=True,
+        required=False,
+        parameter_type=int,
+    )
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
@@ -1081,6 +1086,7 @@ def post_generate_bump_li_message(client_sdr_id: int):
         bump_framework_id=bump_framework_id,
         account_research_copy=research_str,
         use_cache=use_cache,
+        bump_framework_template_id=bump_framework_template_id,
     )
 
     return (
