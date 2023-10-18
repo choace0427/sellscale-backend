@@ -989,12 +989,14 @@ def add_prospect(
     title: Optional[str] = None,
     twitter_url: Optional[str] = None,
     email: Optional[str] = None,
-    allow_duplicates: bool = True,
+    allow_duplicates: bool = False,
     synchronous_research: bool = False,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
     is_lookalike_profile: bool = False,
     individual_id: Optional[int] = None,
+    score_prospect: bool = True,
+    research_payload: bool = True,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -1013,7 +1015,7 @@ def add_prospect(
         title (Optional[str], optional): Prospect's LinkedIn Title. Defaults to None.
         twitter_url (Optional[str], optional): Prospect's Twitter URL. Defaults to None.
         email (Optional[str], optional): Prospect's email. Defaults to None.
-        allow_duplicates (bool, optional): Whether or not to check for duplicate prospects. Defaults to True.
+        allow_duplicates (bool, optional): Whether or not to allow duplicate Prospects. Defaults to False.
         synchronous_research (bool, optional): Whether or not to run synchronous research on the Prospect. Defaults to False.
         set_status (ProspectStatus, optional): Status to set the Prospect to. Defaults to ProspectStatus.PROSPECTED.
         set_note (str, optional): Note to add to the Prospect. Defaults to None.
@@ -1083,7 +1085,7 @@ def add_prospect(
             status = ProspectStatus.NOT_QUALIFIED
             overall_status = ProspectOverallStatus.REMOVED
 
-    can_create_prospect = not prospect_exists or not allow_duplicates
+    can_create_prospect = not prospect_exists or allow_duplicates
     if can_create_prospect:
 
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
@@ -1137,7 +1139,8 @@ def add_prospect(
             email_store_hunter_verify.delay(email_store_id=email_store_id)
 
     # Get research payload
-    get_research_payload_new(prospect_id=p_id, test_mode=False)
+    if research_payload:
+        get_research_payload_new(prospect_id=p_id, test_mode=False)
 
     # Find the company details for the prospect
     find_company_for_prospect(p_id)
@@ -1149,9 +1152,10 @@ def add_prospect(
         create_prospect_note(prospect_id=p_id, note=set_note)
 
     # Apply ICP Scoring Ruleset filters
-    apply_icp_scoring_ruleset_filters_task(
-        client_archetype_id=archetype_id, prospect_ids=[p_id]
-    )
+    if score_prospect:
+        apply_icp_scoring_ruleset_filters_task(
+            client_archetype_id=archetype_id, prospect_ids=[p_id]
+        )
 
     return p_id
 
@@ -1213,7 +1217,7 @@ def create_prospect_from_linkedin_link(
     batch: str = None,
     email: str = None,
     synchronous_research: bool = False,
-    allow_duplicates: bool = True,
+    allow_duplicates: bool = False,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
     is_lookalike_profile: bool = False,

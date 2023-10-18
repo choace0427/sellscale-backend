@@ -77,6 +77,9 @@ def convert_to_prospects(client_sdr_id: int, client_archetype_id: int, individua
             twitter_url=individual.twitter_url,
             email=individual.email,
             individual_id=individual.id,
+            allow_duplicates=False,
+            score_prospect=False,
+            research_payload=False,
         )
         results.append(prospect_id)
 
