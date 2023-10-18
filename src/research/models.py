@@ -5,6 +5,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 import enum
 
+from src.bump_framework.models import BumpFrameworkTemplates
+
 
 class ResearchType(enum.Enum):
     LINKEDIN_ISCRAPER = "LINKEDIN_ISCRAPER"
@@ -100,7 +102,9 @@ class ResearchPoints(db.Model):
         return ResearchPoints.query.filter_by(research_payload_id=payload_id).all()
 
     def get_research_points_by_prospect_id(
-        prospect_id: int, bump_framework_id: Optional[int] = None
+        prospect_id: int,
+        bump_framework_id: Optional[int] = None,
+        bump_framework_template_id: Optional[int] = None,
     ) -> list:
         from model_import import ClientArchetype, Prospect
         from src.bump_framework.models import BumpFramework
@@ -130,6 +134,22 @@ class ResearchPoints(db.Model):
                     p
                     for p in research_points
                     if p.research_point_type not in bump_framework.transformer_blocklist
+                ]
+
+        # Filter out points that are in the bump framework template blocklist
+        if bump_framework_template_id:
+            bump_framework_template: BumpFrameworkTemplates = (
+                BumpFrameworkTemplates.query.get(bump_framework_template_id)
+            )
+            if (
+                bump_framework_template
+                and bump_framework_template.transformer_blocklist
+            ):
+                research_points = [
+                    p
+                    for p in research_points
+                    if p.research_point_type
+                    not in bump_framework_template.transformer_blocklist
                 ]
 
         # Filter out points that are in the archetype blocklist
