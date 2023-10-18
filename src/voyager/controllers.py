@@ -75,10 +75,11 @@ def get_self_profile(client_sdr_id: int):
 def get_profile(client_sdr_id: int):
     """Get profile data for a prospect"""
 
-    public_id = get_request_parameter("public_id", request, json=False, required=True)
+    public_id = get_request_parameter("public_id", request, json=False, required=False)
+    urn_id = get_request_parameter("urn_id", request, json=False, required=False)
 
     api = LinkedIn(client_sdr_id)
-    profile = api.get_profile(public_id)
+    profile = api.get_profile(public_id=public_id, urn_id=urn_id)
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
