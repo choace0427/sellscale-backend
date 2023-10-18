@@ -1037,7 +1037,9 @@ def post_generate_bump_li_message(client_sdr_id: int):
 
     research_str = ""
     points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(
-        prospect_id, bump_framework_id
+        prospect_id,
+        bump_framework_id=bump_framework_id,
+        bump_framework_template_id=bump_framework_template_id,
     )
     # random_sample_points = random.sample(points, min(len(points), 3))
 
