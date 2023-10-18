@@ -51,7 +51,7 @@ def convert_to_prospects(client_sdr_id: int, client_archetype_id: int, individua
     from src.prospecting.services import add_prospect
     from src.client.models import ClientArchetype
 
-    archetype: ClientArchetype = ClientArchetype.query.get(client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return None
     
