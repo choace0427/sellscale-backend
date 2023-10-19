@@ -283,12 +283,26 @@ def get_initial_email_send_date(
     else:
         send_date = furthest_initial_email.date_scheduled
 
+        # Get the send cadence according to the SDR's Email SLA (Warming Schedule)
+        sla_schedule: SLASchedule = SLASchedule.query.filter(
+            SLASchedule.client_sdr_id == client_sdr_id,
+            SLASchedule.start_date <= send_date,
+            SLASchedule.end_date + timedelta(days=3) >= send_date, # Give a little buffer
+        ).first()
+        email_sla = sla_schedule.email_volume if sla_schedule else 5
+        email_sla = email_sla or 5
+        try:
+            minute_cadence = 60 / (email_sla / len(sending_schedule.days) / (sending_schedule.end_time.hour - sending_schedule.start_time.hour))
+        except:
+            minute_cadence = 60
+
+        send_date = send_date + timedelta(minutes=minute_cadence)
+
     # Convert the send_date to the Inbox timezone
     utc_tz = pytz.timezone("UTC")
     inbox_tz = pytz.timezone(sending_schedule.time_zone or client_sdr.timezone or DEFAULT_TIMEZONE)
     localized = utc_tz.localize(send_date)
     send_date = localized.astimezone(inbox_tz)
-    bumped = False
 
     # Verify that the time is within the sending schedule, otherwise adjust
     if send_date.time() < sending_schedule.start_time:
@@ -299,7 +313,6 @@ def get_initial_email_send_date(
             second=0,
             microsecond=0
         )
-        bumped = True
     elif send_date.time() > sending_schedule.end_time:
         # If the time is after the end time, bump up to the next day's start time
         send_date = send_date.replace(
@@ -309,12 +322,10 @@ def get_initial_email_send_date(
             microsecond=0
         )
         send_date = send_date + timedelta(days=1)
-        bumped = True
 
     # Verify that the date is within the sending schedule, otherwise adjust
     while send_date.weekday() not in sending_schedule.days:
         send_date = send_date + timedelta(days=1)
-        bumped = True
 
     # Get the send cadence according to the SDR's Email SLA (Warming Schedule)
     sla_schedule: SLASchedule = SLASchedule.query.filter(
@@ -328,9 +339,6 @@ def get_initial_email_send_date(
         minute_cadence = 60 / (email_sla / len(sending_schedule.days) / (sending_schedule.end_time.hour - sending_schedule.start_time.hour))
     except:
         minute_cadence = 60
-
-    if not bumped:
-        send_date + timedelta(minutes=minute_cadence)
 
     # Convert the send_date back to UTC
     utc_send_date = send_date.astimezone(utc_tz)
@@ -615,6 +623,32 @@ def send_email_messaging_schedule_entry(
     )
     nylas_message_id = result.get("id")
     nylas_thread_id = result.get("thread_id")
+    time_since_epoch = result.get("date")
+    utc_datetime = datetime.utcfromtimestamp(time_since_epoch)
+
+    # 3b. Update future send dates
+    future_email_messaging_schedules: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+        EmailMessagingSchedule.prospect_email_id == email_messaging_schedule.prospect_email_id,
+        EmailMessagingSchedule.id > email_messaging_schedule.id,
+    ).order_by(EmailMessagingSchedule.id.asc()).all()
+    step: EmailSequenceStep = EmailSequenceStep.query.get(email_messaging_schedule.email_body_template_id)
+    delay = step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    new_time = utc_datetime + timedelta(days=delay)
+    new_time = verify_followup_send_date(
+        client_sdr_id=email_messaging_schedule.client_sdr_id,
+        followup_send_date=new_time,
+        email_bank_id=None,
+    )
+    for future_email_messaging_schedule in future_email_messaging_schedules:
+        future_email_messaging_schedule.date_scheduled = new_time
+
+        step: EmailSequenceStep = EmailSequenceStep.query.get(future_email_messaging_schedule.email_body_template_id)
+        new_time = new_time + timedelta(days=step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL)
+        new_time = verify_followup_send_date(
+            client_sdr_id=email_messaging_schedule.client_sdr_id,
+            followup_send_date=new_time,
+            email_bank_id=None,
+        )
 
     # 4. Update the email_messaging_schedule
     email_messaging_schedule.send_status = EmailMessagingStatus.SENT
