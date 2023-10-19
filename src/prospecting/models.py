@@ -1042,6 +1042,8 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.PROSPECTED,  # Permissable to retry
         ProspectStatus.SENT_OUTREACH,  # Permissable to be moved.
         ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.NOT_INTERESTED,
+        ProspectStatus.NOT_QUALIFIED
     ],
     ProspectStatus.DEMO_WON: [],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_WON],
