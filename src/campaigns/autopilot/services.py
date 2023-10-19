@@ -202,7 +202,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
 
         # Generate campaign for Email given SLAs for the SDR
         if (
-            sla_schedule.email_volume > 0
+            sla_schedule.email_volume > 0 and False
         ):  # Email
             # Check that SLA has not been filled:
             sla_count = get_sla_count(
