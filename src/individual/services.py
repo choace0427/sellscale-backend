@@ -800,14 +800,18 @@ def upload_job_for_individual(profile_url: str = None, urn_id: str = None):
 def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int = 0):
     
     from src.prospecting.icp_score.models import ICPScoringRuleset
+    from model_import import ClientArchetype
 
     ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
         ICPScoringRuleset.client_archetype_id == client_archetype_id,
     ).first()
 
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
     # Start building the query for the Individual table
     individuals_query = Individual.query.join(
-        Prospect).filter(Prospect.archetype_id != client_archetype_id)
+        Prospect).join(
+        Company).filter(Prospect.client_id != archetype.client_id)
 
     # Title
     if ruleset.included_individual_title_keywords:
@@ -861,7 +865,7 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         ]
         individuals_query = individuals_query.filter(and_(*exclude_filters))
 
-    # Bio
+    # Location
     if ruleset.included_individual_locations_keywords:
         keyword_filters = [
             Individual.location.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_locations_keywords
@@ -874,7 +878,60 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         ]
         individuals_query = individuals_query.filter(and_(*exclude_filters))
 
+    # Skills
+    if ruleset.included_individual_skills_keywords:
+        keyword_filters = [
+            Individual.skills.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_skills_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_individual_skills_keywords:
+        exclude_filters = [
+            not_(Individual.skills.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_skills_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+    # Company Description
+    if ruleset.included_company_generalized_keywords:
+        keyword_filters = [
+            Company.description.ilike(f"%{keyword}%") for keyword in ruleset.included_company_generalized_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_company_generalized_keywords:
+        exclude_filters = [
+            not_(Company.description.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_skills_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+    # Company Industry
+    if ruleset.included_individual_industry_keywords:
+        keyword_filters = [
+            Company.industries.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_industry_keywords
+        ]
+        individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+    if ruleset.excluded_individual_industry_keywords:
+        exclude_filters = [
+            not_(Company.industries.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_industry_keywords
+        ]
+        individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+    # Company Employee Count
+    if ruleset.company_size_start and ruleset.company_size_end:
+        individuals_query = individuals_query.filter(and_([
+            Company.employees >= ruleset.company_size_start,
+            Company.employees <= ruleset.company_size_end
+        ]))
+
     # TODO the rest of the filters
+    # Experience
+    # if ruleset.individual_years_of_experience_start and ruleset.individual_years_of_experience_end:
+    #     job_experience_filter = and_(
+    #         Individual.years_of_experience >= ruleset.individual_years_of_experience_start,
+    #         years_of_experience <= ruleset.individual_years_of_experience_end)
+
+    #     individuals_query = individuals_query.filter(job_experience_filter)
 
     # After applying all the filters, retrieve the filtered individuals
     filtered_individuals: list[Individual] = individuals_query.limit(limit).offset(offset).all()
