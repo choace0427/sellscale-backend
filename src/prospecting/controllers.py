@@ -455,7 +455,9 @@ def post_send_to_purgatory(client_sdr_id: int, prospect_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect does not belong to user"}), 403
 
-    send_to_purgatory(prospect_id, int(days), ProspectHiddenReason.MANUAL, send_notification=True)
+    send_to_purgatory(
+        prospect_id, int(days), ProspectHiddenReason.MANUAL, send_notification=True
+    )
 
     return jsonify({"message": "Success"}), 200
 
@@ -604,7 +606,8 @@ def get_prospects_endpoint(client_sdr_id: int):
                 request,
                 json=True,
                 required=False,
-            ) or None
+            )
+            or None
         )
 
     except Exception as e:
@@ -666,9 +669,7 @@ def get_prospects_for_icp(client_sdr_id: int):
     client_archetype_id = get_request_parameter(
         "client_archetype_id", request, json=True, required=True
     )
-    get_sample = get_request_parameter(
-        "get_sample", request, json=True, required=False
-    )
+    get_sample = get_request_parameter("get_sample", request, json=True, required=False)
     invited_on_linkedin = get_request_parameter(
         "invited_on_linkedin", request, json=True, required=False
     )
@@ -878,7 +879,7 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
         return reason, 400
 
     # Get client ID from client archetype ID.
-    archetype = ClientArchetype.query.filter(
+    archetype: ClientArchetype = ClientArchetype.query.filter(
         ClientArchetype.id == archetype_id,
         ClientArchetype.client_sdr_id == client_sdr_id,
     ).first()
@@ -924,16 +925,66 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     )
 
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
-    client = Client.query.filter(Client.id == client_sdr.client_id).first()
+    client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
     try:
         send_slack_message(
-            message="{user} uploaded {X} prospects under the {persona} persona from {client_name}".format(
-                user=client_sdr.name,
-                X=len(csv_payload),
-                persona=archetype.archetype,
-                client_name=client.company,
-            ),
-            webhook_urls=[URL_MAP["operations-prospect-uploads"]],
+            message="",
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "🚢 {x} new prospects added to prospect list!".format(
+                            x=len(csv_payload)
+                        ),
+                        "emoji": True,
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "User: {user} ({company})".format(
+                                user=client_sdr.name, company=client.company
+                            ),
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "Persona: {persona}".format(
+                                persona=archetype.archetype
+                            ),
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "View contacts on SellScale",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Convo in Sight",
+                            "emoji": True,
+                        },
+                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
+                            auth_token=client_sdr.auth_token
+                        ),
+                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
+                            auth_token=client_sdr.auth_token
+                        ),
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+            webhook_urls=[
+                URL_MAP["operations-prospect-uploads"],
+                client.pipeline_notifications_webhook_url,
+            ],
         )
     except Exception as e:
         print("Failed to send slack notification: {}".format(e))

@@ -1,9 +1,10 @@
+import pytz
 from app import celery, db
 
 from datetime import datetime, timedelta
 from typing import Optional
-from src.client.models import ClientArchetype
-from src.client.sdr.email.models import SDREmailSendSchedule
+from src.client.models import ClientArchetype, ClientSDR, SLASchedule
+from src.client.sdr.email.models import SDREmailBank, SDREmailSendSchedule
 from src.client.sdr.email.services_email_schedule import create_default_sdr_email_send_schedule
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
@@ -14,6 +15,7 @@ from src.prospecting.models import Prospect, ProspectOverallStatus
 
 FOLLOWUP_LIMIT = 10
 DEFAULT_SENDING_DELAY_INTERVAL = 3
+DEFAULT_TIMEZONE = "America/Los_Angeles"
 
 
 def get_email_messaging_schedule_entries(
@@ -110,8 +112,24 @@ def populate_email_messaging_schedule_entries(
     body_id: int,
     initial_email_subject_line_template_id: int,
     initial_email_body_template_id: int,
-    initial_email_send_date: datetime,
+    initial_email_send_date: Optional[datetime] = None,
 ) -> list[int]:
+    """Populates the email_messaging_schedule table with the appropriate entries
+
+    Will use a helper function to determine the appropriate time to send the email
+
+    Args:
+        client_sdr_id (int): ID of the client_sdr
+        prospect_email_id (int): ID of the prospect_email
+        subject_line_id (int): ID of the subject line (Generated Message)
+        body_id (int): ID of the body (Generated Message)
+        initial_email_subject_line_template_id (int): ID of the initial email subject line template (EmailSubjectLine)
+        initial_email_body_template_id (int): ID of the initial email body template (EmailSequenceStep)
+        DEPRECATED - initial_email_send_date (Optional[datetime], optional): Time to send first email. Defaults to None.
+
+    Returns:
+        list[int]: A list of the email_messaging_schedule IDs
+    """
     # Get the Archetype ID from the prospect
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect: Prospect = Prospect.query.get(prospect_email.prospect_id)
@@ -119,25 +137,11 @@ def populate_email_messaging_schedule_entries(
     # Track all the scheduled email ids
     email_ids = []
 
-    # # Get this SDRs sending schedule
-    # sending_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter_by(
-    #     client_sdr_id=client_sdr_id,
-    # ).first()
-    # if not sending_schedule:
-    #     send_schedule_id = create_default_sdr_email_send_schedule(
-    #         client_sdr_id=client_sdr_id
-    #         email_bank_id
-    #     )
-
-    # # Get the next available date
-    # furthest_initial_email: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
-    #     EmailMessagingSchedule.client_sdr_id == client_sdr_id,
-    #     EmailMessagingSchedule.email_type == EmailMessagingType.INITIAL_EMAIL,
-    # ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
-    # if not furthest_initial_email:
-    #     # If no initial emails have been sent, choose tomorrow
-    #     initial_email_send_date = datetime.utcnow() + timedelta(days=1)
-
+    # Get the next available send date
+    initial_email_send_date = get_initial_email_send_date(
+        client_sdr_id=client_sdr_id,
+        email_bank_id=None,
+    )
 
     # Create the initial email entry
     initial_email_id = create_email_messaging_schedule_entry(
@@ -167,6 +171,11 @@ def populate_email_messaging_schedule_entries(
     # Create the accepted (1 time) followup
     delay_days = initial_email_template.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
     accepted_followup_email_send_date = initial_email_send_date + timedelta(days=delay_days)
+    accepted_followup_email_send_date = verify_followup_send_date(
+        client_sdr_id=client_sdr_id,
+        followup_send_date=accepted_followup_email_send_date,
+        email_bank_id=None,
+    )
     accepted_followup_email_id = create_email_messaging_schedule_entry(
         client_sdr_id=client_sdr_id,
         prospect_email_id=prospect_email_id,
@@ -196,6 +205,11 @@ def populate_email_messaging_schedule_entries(
             break
 
         followup_email_send_date = followup_email_send_date + timedelta(days=delay_days)
+        followup_email_send_date = verify_followup_send_date(
+            client_sdr_id=client_sdr_id,
+            followup_send_date=followup_email_send_date,
+            email_bank_id=None,
+        )
         followup_email_id = create_email_messaging_schedule_entry(
             client_sdr_id=client_sdr_id,
             prospect_email_id=prospect_email_id,
@@ -212,6 +226,177 @@ def populate_email_messaging_schedule_entries(
         delay_days = bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
 
     return email_ids
+
+
+def get_initial_email_send_date(
+    client_sdr_id: int,
+    email_bank_id: Optional[int] = None
+) -> datetime:
+    """ Gets the next available send date for an email
+
+    Args:
+        client_sdr_id (int): ID of the client_sdr
+        email_bank_id (Optional[int], optional): ID of the email_bank. Defaults to None.
+
+    Raises:
+        Exception: If the sending schedule is not set up correctly
+
+    Returns:
+        datetime: The next available send date
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if not email_bank_id:
+        # Get the email bank (random for now)
+        email_bank: SDREmailBank = SDREmailBank.query.filter(
+            SDREmailBank.client_sdr_id == client_sdr_id,
+            SDREmailBank.nylas_account_id != None,
+            SDREmailBank.nylas_auth_code != None,
+            SDREmailBank.nylas_active == True,
+        ).first()
+    else:
+        email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+
+    # Get this SDRs sending schedule
+    sending_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter_by(
+        client_sdr_id=client_sdr_id,
+        email_bank_id=email_bank.id,
+    ).first()
+    if not sending_schedule:
+        send_schedule_id = create_default_sdr_email_send_schedule(
+            client_sdr_id=client_sdr_id,
+            email_bank_id=email_bank.id,
+        )
+        sending_schedule = SDREmailSendSchedule.query.get(send_schedule_id)
+    if sending_schedule.days == [] or sending_schedule.days is None:
+        raise Exception("This inbox's sending schedule is not set up correctly. No sending days are set.")
+
+    # Get the next available date
+    furthest_initial_email: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
+        EmailMessagingSchedule.client_sdr_id == client_sdr_id,
+        EmailMessagingSchedule.email_type == EmailMessagingType.INITIAL_EMAIL,
+        EmailMessagingSchedule.send_status == EmailMessagingStatus.NEEDS_GENERATION or EmailMessagingSchedule.send_status == EmailMessagingStatus.SCHEDULED,
+    ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
+    if not furthest_initial_email:
+        # If no initial emails have been sent, choose tomorrow
+        send_date = datetime.utcnow() + timedelta(days=1)
+    else:
+        send_date = furthest_initial_email.date_scheduled
+
+    # Convert the send_date to the Inbox timezone
+    utc_tz = pytz.timezone("UTC")
+    inbox_tz = pytz.timezone(sending_schedule.time_zone or client_sdr.timezone or DEFAULT_TIMEZONE)
+    localized = utc_tz.localize(send_date)
+    send_date = localized.astimezone(inbox_tz)
+    bumped = False
+
+    # Verify that the time is within the sending schedule, otherwise adjust
+    if send_date.time() < sending_schedule.start_time:
+        # If the time is before the start time, bump up to the start time
+        send_date = send_date.replace(
+            hour=sending_schedule.start_time.hour,
+            minute=sending_schedule.start_time.minute,
+            second=0,
+            microsecond=0
+        )
+        bumped = True
+    elif send_date.time() > sending_schedule.end_time:
+        # If the time is after the end time, bump up to the next day's start time
+        send_date = send_date.replace(
+            hour=sending_schedule.start_time.hour,
+            minute=sending_schedule.start_time.minute,
+            second=0,
+            microsecond=0
+        )
+        send_date = send_date + timedelta(days=1)
+        bumped = True
+
+    # Verify that the date is within the sending schedule, otherwise adjust
+    while send_date.weekday() not in sending_schedule.days:
+        send_date = send_date + timedelta(days=1)
+        bumped = True
+
+    # Get the send cadence according to the SDR's Email SLA (Warming Schedule)
+    sla_schedule: SLASchedule = SLASchedule.query.filter(
+        SLASchedule.client_sdr_id == client_sdr_id,
+        SLASchedule.start_date <= send_date,
+        SLASchedule.end_date + timedelta(days=3) >= send_date, # Give a little buffer
+    ).first()
+    email_sla = sla_schedule.email_volume if sla_schedule else 5
+    email_sla = email_sla or 5
+    try:
+        minute_cadence = 60 / (email_sla / len(sending_schedule.days) / (sending_schedule.end_time.hour - sending_schedule.start_time.hour))
+    except:
+        minute_cadence = 60
+
+    if not bumped:
+        send_date + timedelta(minutes=minute_cadence)
+
+    # Convert the send_date back to UTC
+    utc_send_date = send_date.astimezone(utc_tz)
+
+    return utc_send_date
+
+
+def verify_followup_send_date(
+    client_sdr_id: int,
+    followup_send_date: datetime,
+    email_bank_id: Optional[int] = None
+) -> datetime:
+    """ Verifies that the followup_send_date is valid
+
+    Args:
+        client_sdr_id (int): ID of the client_sdr
+        followup_send_date (datetime): The date the email is scheduled to be sent
+        email_bank_id (Optional[int], optional): ID of the email_bank. Defaults to None.
+
+    Raises:
+        Exception: If the sending schedule is not set up correctly
+
+    Returns:
+        datetime: The next available send date
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if not email_bank_id:
+        # Get the email bank (random for now)
+        email_bank: SDREmailBank = SDREmailBank.query.filter(
+            SDREmailBank.client_sdr_id == client_sdr_id,
+            SDREmailBank.nylas_account_id != None,
+            SDREmailBank.nylas_auth_code != None,
+            SDREmailBank.nylas_active == True,
+        ).first()
+    else:
+        email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+
+    # Get this SDRs sending schedule
+    sending_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter_by(
+        client_sdr_id=client_sdr_id,
+        email_bank_id=email_bank.id,
+    ).first()
+    if not sending_schedule:
+        send_schedule_id = create_default_sdr_email_send_schedule(
+            client_sdr_id=client_sdr_id,
+            email_bank_id=email_bank.id,
+        )
+        sending_schedule = SDREmailSendSchedule.query.get(send_schedule_id)
+    if sending_schedule.days == [] or sending_schedule.days is None:
+        raise Exception("This inbox's sending schedule is not set up correctly. No sending days are set.")
+
+    # Convert the send_date to the Inbox timezone
+    utc_tz = pytz.timezone("UTC")
+    inbox_tz = pytz.timezone(sending_schedule.time_zone or client_sdr.timezone or DEFAULT_TIMEZONE)
+    try:
+        localized = utc_tz.localize(followup_send_date)
+    except:
+        localized = followup_send_date
+    followup_send_date = localized.astimezone(inbox_tz)
+
+    # Verify that the date is within the sending schedule, otherwise adjust
+    while followup_send_date.weekday() not in sending_schedule.days:
+        followup_send_date = followup_send_date + timedelta(days=1)
+
+    return followup_send_date
 
 
 @celery.task(bind=True, max_retries=3)

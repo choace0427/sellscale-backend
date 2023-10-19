@@ -5,12 +5,17 @@ from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
 from src.client.sdr.email.models import SDREmailBank
 from src.client.sdr.email.services_email_bank import get_sdr_email_bank
-from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
+from src.email_outbound.models import (
+    EmailConversationMessage,
+    EmailConversationThread,
+    ProspectEmailOutreachStatus,
+)
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.prospecting.models import Prospect, ProspectChannels
 from src.prospecting.nylas.services import nylas_update_messages, nylas_update_threads
 from src.prospecting.services import calculate_prospect_overall_status
 from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus
+
 
 @celery.task(bind=True, max_retries=5)
 def process_deltas_message_opened(
@@ -41,7 +46,9 @@ def process_deltas_message_opened(
 
 
 @celery.task(bind=True, max_retries=5)
-def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[bool, str]:
+def process_single_message_opened(
+    self, delta: dict, payload_id: int
+) -> tuple[bool, str]:
     """Process a single `message.opened` delta from a Nylas webhook notification.
 
     The system for updating an entire thread can be complex:
@@ -60,14 +67,13 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
     """
     try:
         # Get payload and set it to "PROCESSING"
-        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
-            payload_id)
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(payload_id)
         if not nylas_payload:
             return False, "No payload found"
         nylas_payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
         db.session.commit()
 
-        delta = delta or nylas_payload.nylas_payload.get('deltas')[0]
+        delta = delta or nylas_payload.nylas_payload.get("deltas")[0]
         delta_type = delta.get("type")
         if delta_type != "message.opened":
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
@@ -132,9 +138,7 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
 
         # Update and get the thread
         success = nylas_update_threads(
-            client_sdr_id=client_sdr.id,
-            prospect_id=prospect_id,
-            limit=5
+            client_sdr_id=client_sdr.id, prospect_id=prospect_id, limit=5
         )
         if not success:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
@@ -148,16 +152,18 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             client_sdr_id=client_sdr.id,
             nylas_account_id=account_id,
             prospect_id=prospect_id,
-            message_ids=[message_id]
+            message_ids=[message_id],
         )
         if not success:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
             nylas_payload.processing_fail_reason = "Failed to update messages"
             db.session.commit()
             return False, "Failed to update messages"
-        convo_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
-            nylas_message_id=message_id
-        ).first()
+        convo_message: EmailConversationMessage = (
+            EmailConversationMessage.query.filter_by(
+                nylas_message_id=message_id
+            ).first()
+        )
 
         # Get the thread information
         if not convo_message:
@@ -179,14 +185,15 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             client_sdr_id=client_sdr.id,
             nylas_account_id=account_id,
             prospect_id=prospect_id,
-            thread_id=convo_thread.nylas_thread_id
+            thread_id=convo_thread.nylas_thread_id,
         )
         if not success:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "Failed to update all messages in the thread"
+            nylas_payload.processing_fail_reason = (
+                "Failed to update all messages in the thread"
+            )
             db.session.commit()
             return False, "Failed to update all messages in the thread"
-
 
         # Check that the information is correct:
         # 1. ClientSDR ID in payload matches ClientSDR ID in delta
@@ -194,9 +201,14 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
         # 3. Prospect Email belongs to Prospect
         if client_sdr_id != client_sdr.id:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "Client SDR ID in payload does not match Client SDR ID in delta"
+            nylas_payload.processing_fail_reason = (
+                "Client SDR ID in payload does not match Client SDR ID in delta"
+            )
             db.session.commit()
-            return False, "Client SDR ID in payload does not match Client SDR ID in delta"
+            return (
+                False,
+                "Client SDR ID in payload does not match Client SDR ID in delta",
+            )
         prospect: Prospect = Prospect.query.get(prospect_id)
         if not prospect:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
@@ -205,12 +217,16 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
             return False, "No prospect found"
         if prospect.client_sdr_id != client_sdr.id:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "Prospect does not belong to Client SDR"
+            nylas_payload.processing_fail_reason = (
+                "Prospect does not belong to Client SDR"
+            )
             db.session.commit()
             return False, "Prospect does not belong to Client SDR"
         if prospect.approved_prospect_email_id != prospect_email_id:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "Prospect Email does not belong to Prospect"
+            nylas_payload.processing_fail_reason = (
+                "Prospect Email does not belong to Prospect"
+            )
             db.session.commit()
             return False, "Prospect Email does not belong to Prospect"
 
@@ -241,8 +257,7 @@ def process_single_message_opened(self, delta: dict, payload_id: int) -> tuple[b
         db.session.commit()
         return True, "Successfully tracked email open"
     except Exception as e:
-        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
-            payload_id)
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(payload_id)
         if not nylas_payload:
             return False, "No payload found"
 

@@ -694,6 +694,7 @@ def basic_email_sequence_step(
     default: bool = False,
     sellscale_default_generated: bool = False,
     template: str = None,
+    sequence_delay_days: int = None,
 ):
     from model_import import EmailSequenceStep
 
@@ -709,6 +710,7 @@ def basic_email_sequence_step(
         default=default,
         sellscale_default_generated=sellscale_default_generated,
         template=template,
+        sequence_delay_days=sequence_delay_days,
     )
     db.session.add(email_sequence_step)
     db.session.commit()
@@ -900,8 +902,8 @@ def basic_sdr_email_bank(
 def basic_sdr_email_send_schedule(
     client_sdr: ClientSDR,
     email_bank: SDREmailBank,
-    time_zone: Optional[str] = "America/New_York",
-    days: Optional[list[int]] = [1, 2, 3, 4, 5],
+    time_zone: Optional[str] = "America/Los_Angeles",
+    days: Optional[list[int]] = [0, 1, 2, 3, 4],
     start_time: Optional[time] = time(hour=9, minute=0, second=0),
     end_time: Optional[time] = time(hour=17, minute=0, second=0),
 ) -> SDREmailSendSchedule:

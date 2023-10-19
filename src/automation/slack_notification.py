@@ -65,19 +65,24 @@ def send_status_change_slack_block(
 
     # Find available webhook urls
     webhook_urls = [URL_MAP["sellscale_pipeline_all_clients"]]
-    if (
-        client.pipeline_notifications_webhook_url
-        and client.notification_allowlist
-        and new_status in client.notification_allowlist
-        and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
+    if client.pipeline_notifications_webhook_url and (
+        (
+              outreach_type == ProspectChannels.LINKEDIN 
+              and client.notification_allowlist
+        )
+        or (outreach_type == ProspectChannels.EMAIL)
     ):
         webhook_urls.append(client.pipeline_notifications_webhook_url)
     if (
         client_sdr
         and client_sdr.pipeline_notifications_webhook_url
-        and client_sdr.notification_allowlist
-        and new_status in client_sdr.notification_allowlist
-        and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
+        and (
+            (
+                outreach_type == ProspectChannels.LINKEDIN
+                and client_sdr.notification_allowlist
+            )
+            or (outreach_type == ProspectChannels.EMAIL)
+        )
     ):
         webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
 
