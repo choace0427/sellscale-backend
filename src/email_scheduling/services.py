@@ -275,12 +275,13 @@ def get_initial_email_send_date(
     furthest_initial_email: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
         EmailMessagingSchedule.client_sdr_id == client_sdr_id,
         EmailMessagingSchedule.email_type == EmailMessagingType.INITIAL_EMAIL,
+        EmailMessagingSchedule.send_status == EmailMessagingStatus.NEEDS_GENERATION or EmailMessagingSchedule.send_status == EmailMessagingStatus.SCHEDULED,
     ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
     if not furthest_initial_email:
         # If no initial emails have been sent, choose tomorrow
         send_date = datetime.utcnow() + timedelta(days=1)
     else:
-        send_date = furthest_initial_email.date_scheduled.date()
+        send_date = furthest_initial_email.date_scheduled
 
     # Convert the send_date to the Inbox timezone
     utc_tz = pytz.timezone("UTC")
