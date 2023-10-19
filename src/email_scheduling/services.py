@@ -324,7 +324,10 @@ def get_initial_email_send_date(
     ).first()
     email_sla = sla_schedule.email_volume if sla_schedule else 5
     email_sla = email_sla or 5
-    minute_cadence = 60 / (email_sla / len(sending_schedule.days) / (sending_schedule.end_time.hour - sending_schedule.start_time.hour))
+    try:
+        minute_cadence = 60 / (email_sla / len(sending_schedule.days) / (sending_schedule.end_time.hour - sending_schedule.start_time.hour))
+    except:
+        minute_cadence = 60
 
     if not bumped:
         send_date + timedelta(minutes=minute_cadence)
