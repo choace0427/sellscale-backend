@@ -314,7 +314,7 @@ def get_prospects_for_icp_table(
         result = result[:50]
 
     if invited_on_linkedin:
-        result = [r for r in result if str(r[8]) == 'SENT_OUTREACH']
+        result = [r for r in result if str(r[8]) == "SENT_OUTREACH"]
 
     for r in result:
         prospects.append(
@@ -466,7 +466,10 @@ def update_prospect_status_linkedin(
         create_note(prospect_id=prospect_id, note=note)
 
     # notifications
-    if new_status == ProspectStatus.NOT_QUALIFIED:
+    if (new_status == ProspectStatus.NOT_QUALIFIED) or (
+        new_status == ProspectStatus.NOT_INTERESTED
+        and "ACTIVE_CONVO" in current_status.value
+    ):
         prospect_name = p.full_name
 
         direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
