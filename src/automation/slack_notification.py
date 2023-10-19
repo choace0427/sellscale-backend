@@ -69,7 +69,7 @@ def send_status_change_slack_block(
         client.pipeline_notifications_webhook_url
         and client.notification_allowlist
         and new_status in client.notification_allowlist
-        and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
+        # and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
     ):
         webhook_urls.append(client.pipeline_notifications_webhook_url)
     if (
@@ -77,7 +77,7 @@ def send_status_change_slack_block(
         and client_sdr.pipeline_notifications_webhook_url
         and client_sdr.notification_allowlist
         and new_status in client_sdr.notification_allowlist
-        and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
+        # and outreach_type == ProspectChannels.LINKEDIN  # todo(Aakash) remove this
     ):
         webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
 
