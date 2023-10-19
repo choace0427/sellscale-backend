@@ -48,43 +48,63 @@ def backfill_prospects(client_sdr_id):
 
 def convert_to_prospects(client_sdr_id: int, client_archetype_id: int, individual_ids: list[int]):
     
-    from src.prospecting.services import add_prospect
+    from src.automation.orchestrator import add_process_list
     from src.client.models import ClientArchetype
 
     archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return None
     
-    individuals: list[Individual] = Individual.query.filter(
-        Individual.id.in_(individual_ids),
-    ).all()
+    return add_process_list(
+        type="convert_to_prospect",
+        args_list=[
+            {
+              "client_sdr_id": client_sdr_id,
+              "client_archetype_id": client_archetype_id,
+              "individual_id": individual_id
+            }
+            for individual_id in individual_ids
+        ],
+        chunk_size=200,
+        chunk_wait_minutes=4,
+    )
     
-    results = []
-    for individual in individuals:
-        prospect_id = add_prospect(
-            client_id=archetype.client_id,
-            archetype_id=client_archetype_id,
-            client_sdr_id=client_sdr_id,
-            company=individual.company_name,
-            company_url=None,# TODO
-            employee_count=None,# TODO
-            full_name=individual.full_name,
-            industry=individual.industry,
-            linkedin_url=individual.linkedin_url,
-            linkedin_bio=individual.bio,
-            linkedin_num_followers=individual.linkedin_followers,
-            title=individual.title,
-            twitter_url=individual.twitter_url,
-            email=individual.email,
-            individual_id=individual.id,
-            allow_duplicates=False,
-            score_prospect=False,
-            research_payload=False,
-        )
-        results.append(prospect_id)
 
-    return results
-    
+@celery.task
+def convert_to_prospect(client_sdr_id: int, client_archetype_id: int, individual_id: int):
+
+    from src.prospecting.services import add_prospect
+    from src.client.models import ClientArchetype
+
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return None
+
+    individual: Individual = Individual.query.get(individual_id)
+    company: Company = Company.query.get(individual.company_id) if individual.company_id else None
+ 
+    prospect_id = add_prospect(
+        client_id=archetype.client_id,
+        archetype_id=client_archetype_id,
+        client_sdr_id=client_sdr_id,
+        company=individual.company_name,
+        company_url=company.career_page_url if company else None,
+        employee_count=str(company.employees) if company else None,
+        full_name=individual.full_name,
+        industry=individual.industry,
+        linkedin_url=individual.linkedin_url,
+        linkedin_bio=individual.bio,
+        linkedin_num_followers=individual.linkedin_followers,
+        title=individual.title,
+        twitter_url=individual.twitter_url,
+        email=individual.email,
+        individual_id=individual.id,
+        allow_duplicates=False,
+        score_prospect=True,
+        research_payload=True,
+    )
+
+    return prospect_id
 
 
 def start_crawler_on_linkedin_public_id(profile_id: str):
@@ -785,9 +805,9 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         ICPScoringRuleset.client_archetype_id == client_archetype_id,
     ).first()
 
-
     # Start building the query for the Individual table
-    individuals_query = Individual.query
+    individuals_query = Individual.query.join(
+        Prospect).filter(Prospect.archetype_id != client_archetype_id)
 
     # Title
     if ruleset.included_individual_title_keywords:

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from src.individual.services import add_individual_from_iscraper_cache, individual_similar_profile_crawler, upload_job_for_individual
+from src.individual.services import add_individual_from_iscraper_cache, individual_similar_profile_crawler, upload_job_for_individual, convert_to_prospect
 from src.voyager.services import withdraw_li_invite
 
 from src.utils.datetime.dateutils import get_future_datetime
@@ -37,6 +37,12 @@ PROCESS_TYPE_MAP = {
         "priority": 10,
         "queue": None,
         "routing_key": None,
+    },
+    "convert_to_prospect": {
+        "function": convert_to_prospect,
+        "priority": 10,
+        "queue": 'individual-to-prospect',
+        "routing_key": 'individual-to-prospect',
     },
 }
 ###############################
