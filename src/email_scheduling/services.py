@@ -330,7 +330,7 @@ def get_initial_email_send_date(
         minute_cadence = 60
 
     if not bumped:
-        send_date + timedelta(minutes=minute_cadence)
+        send_date = send_date + timedelta(minutes=minute_cadence)
 
     # Convert the send_date back to UTC
     utc_send_date = send_date.astimezone(utc_tz)
@@ -615,6 +615,32 @@ def send_email_messaging_schedule_entry(
     )
     nylas_message_id = result.get("id")
     nylas_thread_id = result.get("thread_id")
+    time_since_epoch = result.get("date")
+    utc_datetime = datetime.utcfromtimestamp(time_since_epoch)
+
+    # 3b. Update future send dates
+    future_email_messaging_schedules: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+        EmailMessagingSchedule.prospect_email_id == email_messaging_schedule.prospect_email_id,
+        EmailMessagingSchedule.id > email_messaging_schedule.id,
+    ).order_by(EmailMessagingSchedule.id.asc()).all()
+    step: EmailSequenceStep = EmailSequenceStep.query.get(email_messaging_schedule.email_body_template_id)
+    delay = step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    new_time = utc_datetime + timedelta(days=delay)
+    new_time = verify_followup_send_date(
+        client_sdr_id=email_messaging_schedule.client_sdr_id,
+        followup_send_date=new_time,
+        email_bank_id=None,
+    )
+    for future_email_messaging_schedule in future_email_messaging_schedules:
+        future_email_messaging_schedule.date_scheduled = new_time
+
+        step: EmailSequenceStep = EmailSequenceStep.query.get(future_email_messaging_schedule.email_body_template_id)
+        new_time = new_time + timedelta(days=step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL)
+        new_time = verify_followup_send_date(
+            client_sdr_id=email_messaging_schedule.client_sdr_id,
+            followup_send_date=new_time,
+            email_bank_id=None,
+        )
 
     # 4. Update the email_messaging_schedule
     email_messaging_schedule.send_status = EmailMessagingStatus.SENT
