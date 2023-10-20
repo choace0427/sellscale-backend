@@ -157,6 +157,7 @@ class IndividualsUpload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     total_size = db.Column(db.Integer, nullable=False)
+    added_size = db.Column(db.Integer, nullable=True)
     upload_size = db.Column(db.Integer, nullable=False)
     payload_data = db.Column(db.ARRAY(db.JSON), nullable=False)
 
@@ -165,6 +166,7 @@ class IndividualsUpload(db.Model):
             "id": self.id,
             "name": self.name,
             "total_size": self.total_size,
+            "added_size": self.added_size,
             "upload_size": self.upload_size,
             "payload_data": self.payload_data,
             "created_at": self.created_at,

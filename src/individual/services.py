@@ -728,6 +728,15 @@ def start_upload(name: str, data: list[dict]):
     
     from src.automation.orchestrator import add_process_list
     
+    upload = IndividualsUpload(
+        name=name,
+        total_size=len(data),
+        upload_size=0,
+        payload_data=data,
+    )
+    db.session.add(upload)
+    db.session.commit()
+
     jobs = []
     for d in data:
         li_url = d.get('linkedin_url')
@@ -735,23 +744,18 @@ def start_upload(name: str, data: list[dict]):
             profile_id = li_url.split("/in/")[1].split("/")[0]
             profile_url = f'linkedin.com/in/{profile_id}'
             if profile_id:
-                jobs.append({"profile_url": profile_url})
+                jobs.append({"upload_id": upload.id, "profile_url": profile_url})
     
+    
+    upload: IndividualsUpload = IndividualsUpload.query.get(upload.id)
+    upload.upload_size = len(jobs)
+    db.session.commit()
 
     add_process_list(
         type="upload_job_for_individual",
         args_list=jobs,
         buffer_wait_minutes=1,
     )
-
-    upload = IndividualsUpload(
-        name=name,
-        total_size=len(data),
-        upload_size=len(jobs),
-        payload_data=data,
-    )
-    db.session.add(upload)
-    db.session.commit()
 
     return upload.to_dict()
 
@@ -760,9 +764,22 @@ def start_upload_from_urn_ids(name: str, urn_ids: list[str]):
 
     from src.automation.orchestrator import add_process_list
 
+    upload = IndividualsUpload(
+        name=name,
+        total_size=len(urn_ids),
+        upload_size=0,
+        payload_data=urn_ids,
+    )
+    db.session.add(upload)
+    db.session.commit()
+
     jobs = []
     for urn_id in urn_ids:
-        jobs.append({"urn_id": urn_id})
+        jobs.append({"upload_id": upload.id, "urn_id": urn_id})
+
+    upload: IndividualsUpload = IndividualsUpload.query.get(upload.id)
+    upload.upload_size = len(jobs)
+    db.session.commit()
 
     add_process_list(
         type="upload_job_for_individual",
@@ -770,20 +787,11 @@ def start_upload_from_urn_ids(name: str, urn_ids: list[str]):
         buffer_wait_minutes=1,
     )
 
-    upload = IndividualsUpload(
-        name=name,
-        total_size=len(urn_ids),
-        upload_size=len(jobs),
-        payload_data=urn_ids,
-    )
-    db.session.add(upload)
-    db.session.commit()
-
     return upload.to_dict()
 
 
 @celery.task
-def upload_job_for_individual(profile_url: str = None, urn_id: str = None):
+def upload_job_for_individual(upload_id: int = None, profile_url: str = None, urn_id: str = None):
 
     if (not profile_url and urn_id):
         from src.voyager.linkedin import LinkedIn
@@ -793,6 +801,12 @@ def upload_job_for_individual(profile_url: str = None, urn_id: str = None):
         if not profile or not profile.get("public_id"):
             return False
         profile_url = f'linkedin.com/in/{profile.get("public_id")}'
+
+    if upload_id:
+        upload: IndividualsUpload = IndividualsUpload.query.get(upload_id)
+        if upload:
+            upload.added_size = upload.added_size + 1 if upload.added_size else 1
+            db.session.commit()
 
     return add_individual_from_linkedin_url(profile_url)
 
