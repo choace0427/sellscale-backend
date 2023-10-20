@@ -25,8 +25,7 @@ from app import db, celery
 
 @celery.task
 def generate_prospect_research(prospect_id: int):
-    get_research_and_bullet_points_new(
-        prospect_id=prospect_id, test_mode=False)
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
 
 def conduct_research_for_n_prospects(
@@ -81,11 +80,13 @@ def update_voice_builder_onboarding_instruction(
 
 
 def get_voice_builder_samples(voice_builder_onboarding_id: int):
-    voice_builder_samples: list[
-        VoiceBuilderSamples
-    ] = VoiceBuilderSamples.query.filter_by(
-        voice_builder_onboarding_id=voice_builder_onboarding_id
-    ).order_by(VoiceBuilderSamples.id.desc()).all()
+    voice_builder_samples: list[VoiceBuilderSamples] = (
+        VoiceBuilderSamples.query.filter_by(
+            voice_builder_onboarding_id=voice_builder_onboarding_id
+        )
+        .order_by(VoiceBuilderSamples.id.desc())
+        .all()
+    )
     return [x.to_dict() for x in voice_builder_samples]
 
 
@@ -159,14 +160,18 @@ def create_voice_builder_sample(
         )
 
         attempts = 0
-        while attempts < 5:
+        while attempts < 2:
             completion, final_prompt = get_computed_prompt_completion(
                 computed_prompt=computed_prompt,
                 prompt=prompt,
             )
 
             # Run rule engine. For now, we don't need to use the problems or highlighted words
-            completion, problems, highlighted_words = run_message_rule_engine_on_linkedin_completion(
+            (
+                completion,
+                problems,
+                highlighted_words,
+            ) = run_message_rule_engine_on_linkedin_completion(
                 completion=completion,
                 prompt=prompt,
                 run_arree=True,
@@ -174,6 +179,8 @@ def create_voice_builder_sample(
 
             if completion:
                 break
+
+            attempts += 1
 
         voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples(
             voice_builder_onboarding_id=voice_builder_onboarding_id,
@@ -201,7 +208,8 @@ def edit_voice_builder_sample(
     updated_completion: str,
 ):
     voice_builder_sample: VoiceBuilderSamples = VoiceBuilderSamples.query.get(
-        voice_builder_sample_id)
+        voice_builder_sample_id
+    )
 
     _, problems, highlighted_words = run_message_rule_engine_on_linkedin_completion(
         completion=updated_completion,
@@ -220,8 +228,7 @@ def edit_voice_builder_sample(
 def delete_voice_builder_sample(
     voice_builder_sample_id: int,
 ):
-    voice_builder_sample = VoiceBuilderSamples.query.get(
-        voice_builder_sample_id)
+    voice_builder_sample = VoiceBuilderSamples.query.get(voice_builder_sample_id)
     if voice_builder_sample:
         db.session.delete(voice_builder_sample)
         db.session.commit()
@@ -347,6 +354,12 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     if archetype:
         priority = 5
 
+    baseline_srmc: Optional[
+        StackRankedMessageGenerationConfiguration
+    ] = StackRankedMessageGenerationConfiguration.query.filter_by(
+        client_id=voice_builder_onboarding.client_id, archetype_id=None
+    ).first()
+
     srmc: StackRankedMessageGenerationConfiguration = (
         StackRankedMessageGenerationConfiguration(
             configuration_type="DEFAULT",
@@ -377,6 +390,41 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
         )
     )
     db.session.add(srmc)
+
+    if not baseline_srmc:
+        new_baseline_srmc: StackRankedMessageGenerationConfiguration = (
+            StackRankedMessageGenerationConfiguration(
+                configuration_type="DEFAULT",
+                generated_message_type=voice_builder_onboarding.generated_message_type,
+                research_point_types=[x.value for x in ResearchPointType],
+                instruction=voice_builder_onboarding.instruction,
+                computed_prompt=computed_prompt,
+                active=True,
+                always_enable=True,
+                name="Baseline - {company_name}".format(
+                    company_name=company_name,
+                ),
+                client_id=voice_builder_onboarding.client_id,
+                archetype_id=None,
+                priority=1,
+                prompt_1=prompt_1,
+                completion_1=completion_1,
+                prompt_2=prompt_2,
+                completion_2=completion_2,
+                prompt_3=prompt_3,
+                completion_3=completion_3,
+                prompt_4=prompt_4,
+                completion_4=completion_4,
+                prompt_5=prompt_5,
+                completion_5=completion_5,
+                prompt_6=prompt_6,
+                completion_6=completion_6,
+                prompt_7=prompt_7,
+                completion_7=completion_7,
+            )
+        )
+        db.session.add(new_baseline_srmc)
+
     db.session.commit()
 
     srmc_dict = srmc.to_dict()

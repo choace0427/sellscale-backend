@@ -514,8 +514,8 @@ def unassign_prospects(
 
                     prospect_email.date_scheduled_to_send = None
                     if prospect_email.personalized_body is not None:
-                        personalized_body: GeneratedMessage = GeneratedMessage.query.get(
-                            prospect_email.personalized_body
+                        personalized_body: GeneratedMessage = (
+                            GeneratedMessage.query.get(prospect_email.personalized_body)
                         )
                         if personalized_body is not None:
                             personalized_body.message_status = (
