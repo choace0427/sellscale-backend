@@ -721,7 +721,7 @@ def add_individual(
 
 def get_uploads():
     uploads: list[IndividualsUpload] = IndividualsUpload.query.all()
-    return [upload.to_dict() for upload in uploads]
+    return [upload.to_dict() for upload in reversed(uploads)]
 
 
 def start_upload(name: str, data: list[dict]):
