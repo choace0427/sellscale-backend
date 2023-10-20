@@ -55,19 +55,28 @@ def convert_to_prospects(client_sdr_id: int, client_archetype_id: int, individua
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return None
     
-    return add_process_list(
-        type="convert_to_prospect",
-        args_list=[
-            {
-              "client_sdr_id": client_sdr_id,
-              "client_archetype_id": client_archetype_id,
-              "individual_id": individual_id
-            }
-            for individual_id in individual_ids
-        ],
-        chunk_size=200,
-        chunk_wait_minutes=4,
-    )
+    if len(individual_ids) > 10:
+        return add_process_list(
+            type="convert_to_prospect",
+            args_list=[
+                {
+                  "client_sdr_id": client_sdr_id,
+                  "client_archetype_id": client_archetype_id,
+                  "individual_id": individual_id
+                }
+                for individual_id in individual_ids
+            ],
+            chunk_size=200,
+            chunk_wait_minutes=4,
+        )
+    else:
+        for individual_id in individual_ids:
+            convert_to_prospect(
+                client_sdr_id=client_sdr_id,
+                client_archetype_id=client_archetype_id,
+                individual_id=individual_id,
+            )
+        return []
     
 
 @celery.task
@@ -824,7 +833,10 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
 
     # Start building the query for the Individual table
     individuals_query = Individual.query.join(
-        Prospect).join(Company).filter(Prospect.client_id != archetype.client_id)
+        Prospect, Prospect.individual_id == Individual.id
+    ).join(
+        Company, Company.id == Individual.company_id
+    ).filter(Prospect.client_id != archetype.client_id)
 
     if ruleset:
 
