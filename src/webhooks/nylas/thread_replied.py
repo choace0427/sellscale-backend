@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from typing import Union
 from app import db, celery
@@ -227,9 +228,10 @@ def process_single_thread_replied(
                 )
 
             # Block future AI emails
+            now = datetime.utcnow()
             future_messages: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
                 EmailMessagingSchedule.prospect_email_id == prospect_email_id,
-                EmailMessagingSchedule.date_scheduled > latest_message.date_received,
+                EmailMessagingSchedule.date_scheduled > now
             ).all()
             for message in future_messages:
                 # Delete the message
