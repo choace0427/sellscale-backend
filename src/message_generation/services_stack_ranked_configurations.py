@@ -560,6 +560,8 @@ def set_active_stack_ranked_configuration_tool(configuration_id: int, set_active
     )
     if not srmgc:
         return False, "Stack ranked message generation configuration does not exist"
+    if srmgc.always_enable and set_active == False:
+        return False, "This message configuration is meant to always be on."
     srmgc.active = set_active
     db.session.add(srmgc)
     db.session.commit()

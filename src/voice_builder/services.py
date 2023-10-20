@@ -357,7 +357,7 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     baseline_srmc: Optional[
         StackRankedMessageGenerationConfiguration
     ] = StackRankedMessageGenerationConfiguration.query.filter_by(
-        client_id=voice_builder_onboarding.client_id,
+        client_id=voice_builder_onboarding.client_id, archetype_id=None
     ).first()
 
     srmc: StackRankedMessageGenerationConfiguration = (
@@ -405,7 +405,7 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
                     company_name=company_name,
                 ),
                 client_id=voice_builder_onboarding.client_id,
-                archetype_id=voice_builder_onboarding.client_archetype_id,
+                archetype_id=None,
                 priority=1,
                 prompt_1=prompt_1,
                 completion_1=completion_1,
