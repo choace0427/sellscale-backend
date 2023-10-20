@@ -217,7 +217,11 @@ def contains_profane_word(text: str):
     return True, matches
 
 
-def get_aree_fix_basic(message_id: Optional[int] = None, completion: Optional[str] = None, problems: Optional[list[str]] = []) -> str:
+def get_aree_fix_basic(
+    message_id: Optional[int] = None,
+    completion: Optional[str] = None,
+    problems: Optional[list[str]] = [],
+) -> str:
     """Gets the ARREE Fix (Basic). Either a message_id or completion must be provided.
 
     Args:
@@ -231,8 +235,9 @@ def get_aree_fix_basic(message_id: Optional[int] = None, completion: Optional[st
     if not message_id and not completion:
         return ""
 
+    message = None
     if message_id:
-        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+        message: Optional[GeneratedMessage] = GeneratedMessage.query.get(message_id)
         if not message:
             return "Message not found"
         problems = message.problems
@@ -247,7 +252,7 @@ def get_aree_fix_basic(message_id: Optional[int] = None, completion: Optional[st
 
     # Create the instruction
     instruction = """Given the message and a list of problems identified in the message, please fix the message. Make as few changes as possible."""
-    if message.message_type == GeneratedMessageType.EMAIL:
+    if message and message.message_type == GeneratedMessageType.EMAIL:
         # If the message is an Email,
         template_id = message.email_sequence_step_template_id
         template: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
@@ -259,8 +264,8 @@ This template was used to generate the email. Do not deviate from the template:
 {template}
 === END EMAIL TEMPLATE ===
 """.format(
-    template=template
-)
+            template=template
+        )
 
     # Construct the final prompt
     prompt = """message:
@@ -272,10 +277,10 @@ problems:
 instruction: {instruction}
 
 revised message:""".format(
-    completion=completion,
-    problems_bulleted=problems_bulleted,
-    instruction=instruction,
-)
+        completion=completion,
+        problems_bulleted=problems_bulleted,
+        instruction=instruction,
+    )
 
     # Get the fixed completion
     fixed_completion = wrapped_create_completion(
