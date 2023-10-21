@@ -106,7 +106,8 @@ def flag_enabled(feature: str) -> bool:
         bool: Returns True if the feature is enabled, False otherwise
     """
     feature: FeatureFlag = FeatureFlag.query.filter(
-        FeatureFlag.feature == feature).first()
+        FeatureFlag.feature == feature
+    ).first()
     if feature:
         return feature.value == 1
     return False
@@ -122,8 +123,150 @@ def flag_is_value(feature: str, value: int) -> bool:
         bool: Returns True if the feature has the value, False otherwise
     """
     feature: FeatureFlag = FeatureFlag.query.filter(
-        FeatureFlag.feature == feature).first()
+        FeatureFlag.feature == feature
+    ).first()
     if feature:
         return feature.value == value
     return False
 
+
+def get_all_campaign_analytics_for_client(client_id: int):
+    query = """
+        with d as (
+            select 
+                client_archetype.emoji,
+                client_archetype.archetype,
+                client_archetype.persona_fit_reason,
+                client_sdr.auth_token,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'SENT_OUTREACH' or 
+                        prospect_email_status_records.to_status = 'SENT_OUTREACH'
+                ) num_sent,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'ACCEPTED' or 
+                        prospect_email_status_records.to_status = 'EMAIL_OPENED'
+                ) num_opens,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
+                        prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+                ) num_replies,
+                client_sdr.name
+            
+            from client_archetype
+                join client_sdr on client_sdr.id = client_archetype.client_sdr_id
+                join prospect on prospect.client_sdr_id = client_sdr.id
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+            where client_archetype.client_id = {client_id}
+                and client_archetype.active
+            group by 1,2,3,4, client_archetype.updated_at, client_sdr.name
+            order by client_archetype.updated_at desc
+        )
+        select 
+            *,
+            100 "sent_percent",
+            num_opens / (0.0001 + cast(num_sent as float)) "open_percent",
+            num_replies / (0.0001 + cast(num_sent as float)) "num_replies"
+        from d;
+    """.format(
+        client_id=client_id
+    )
+
+    data = db.session.execute(query).fetchall()
+
+    data_arr = []
+    for row in data:
+        data_arr.append(
+            {
+                "emoji": row[0],
+                "archetype": row[1],
+                "persona_fit_reason": row[2],
+                "num_sent": row[4],
+                "num_opens": row[5],
+                "num_replies": row[6],
+                "name": row[7],
+                "sent_percent": row[8],
+                "open_percent": row[9],
+                "reply_percent": row[10],
+            }
+        )
+
+    return data_arr
+
+
+def get_outreach_over_time(
+    client_id: int,
+    num_days: int = 365,
+):
+    query = """
+        select 
+            to_char(prospect_status_records.created_at, 'YYYY-MM-DD'),
+            count(distinct prospect.id) filter (
+                where prospect_status_records.to_status = 'SENT_OUTREACH' or 
+                    prospect_email_status_records.to_status = 'SENT_OUTREACH'
+            ) sent_outreach,
+            count(distinct prospect.id) filter (
+                where prospect_status_records.to_status = 'ACCEPTED' or 
+                    prospect_email_status_records.to_status = 'EMAIL_OPENED'
+            ) opened,
+            count(distinct prospect.id) filter (
+                where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
+                    prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+            ) active_convo
+        from client_archetype
+            join client_sdr on client_sdr.id = client_archetype.client_sdr_id
+            join prospect on prospect.client_sdr_id = client_sdr.id
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+            left join prospect_email on prospect_email.prospect_id = prospect.id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+        where prospect_status_records.created_at > NOW() - '{days} days'::INTERVAL
+            and prospect.client_id = {client_id}
+        group by 1
+        order by 1 asc;
+    """.format(
+        client_id=client_id, days=num_days
+    )
+
+    data = db.session.execute(query).fetchall()
+
+    dates = []
+    sent_outreach = []
+    opened = []
+    active_convo = []
+
+    for row in data:
+        dates.append(row[0])
+        sent_outreach.append(row[1])
+        opened.append(row[2])
+        active_convo.append(row[3])
+
+    modes = {
+        "week": {
+            "labels": dates[len(dates) - 7 :],
+            "data": {
+                # get last 7
+                "outbound": sent_outreach[len(sent_outreach) - 7 :],
+                "acceptances": opened[len(opened) - 7 :],
+                "replies": active_convo[len(active_convo) - 7 :],
+            },
+        },
+        "month": {
+            "labels": dates[len(dates) - 30 :],
+            "data": {
+                "outbound": sent_outreach[len(sent_outreach) - 30 :],
+                "acceptances": opened[len(opened) - 30 :],
+                "replies": active_convo[len(active_convo) - 30 :],
+            },
+        },
+        "year": {
+            "labels": dates,
+            "data": {
+                "outbound": sent_outreach,
+                "acceptances": opened,
+                "replies": active_convo,
+            },
+        },
+    }
+
+    return modes
