@@ -150,7 +150,8 @@ def get_all_campaign_analytics_for_client(client_id: int):
                     where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
                         prospect_email_status_records.to_status = 'ACTIVE_CONVO'
                 ) num_replies,
-                client_sdr.name
+                client_sdr.name,
+                client_sdr.img_url
             
             from client_archetype
                 join client_sdr on client_sdr.id = client_archetype.client_sdr_id
@@ -160,7 +161,7 @@ def get_all_campaign_analytics_for_client(client_id: int):
                 left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
             where client_archetype.client_id = {client_id}
                 and client_archetype.active
-            group by 1,2,3,4, client_archetype.updated_at, client_sdr.name
+            group by 1,2,3,4, client_archetype.updated_at, client_sdr.name, client_sdr.img_url
             order by client_archetype.updated_at desc
         )
         select 
@@ -186,9 +187,10 @@ def get_all_campaign_analytics_for_client(client_id: int):
                 "num_opens": row[5],
                 "num_replies": row[6],
                 "name": row[7],
-                "sent_percent": row[8],
-                "open_percent": row[9],
-                "reply_percent": row[10],
+                "img_url": row[8],
+                "sent_percent": row[9],
+                "open_percent": row[10],
+                "reply_percent": row[11],
             }
         )
 
