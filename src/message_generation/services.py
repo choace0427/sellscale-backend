@@ -1152,7 +1152,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
 
         # 8a. Get the Subject Line
         subjectline_template_id = None
-        subjectline_strict = False # Tracks if the template includes [[]], if it does then we need to use AI generate
+        subjectline_strict = False # Tracks if we need to use AI generate. [[ and {{ in template signify AI hence not strict
         subjectline_templates: list[EmailSubjectLineTemplate] = (
             EmailSubjectLineTemplate.query.filter(
                 EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
@@ -1163,7 +1163,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         if subjectline_template:
             subjectline_template_id = subjectline_template.id
             subjectline_template.times_used = subjectline_template.times_used + 1 if subjectline_template.times_used else 1
-            subjectline_strict = "[[" in subjectline_template.subject_line or "{{" in subjectline_template.subject_line
+            subjectline_strict = "[[" not in subjectline_template.subject_line and "{{" not in subjectline_template.subject_line
 
         # 8b. Generate the subject line
         if subjectline_strict:
