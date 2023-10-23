@@ -1132,12 +1132,15 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
         # 7a. Get the Email Body prompt
+        template_id = None
         template: EmailSequenceStep = EmailSequenceStep.query.filter(
             EmailSequenceStep.client_archetype_id == prospect.archetype_id,
             EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
             EmailSequenceStep.active == True,
         ).first()
-        template_id = template.id if template else None
+        if template:
+            template_id = template.id
+            template.times_used = template.times_used + 1 if template.times_used else 1
         initial_email_prompt = ai_initial_email_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
@@ -1147,25 +1150,35 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         email_body = generate_email(prompt=initial_email_prompt)
         email_body = email_body.get("body")
 
-        # 8a. Get the Subject Line prompt
-        subjectline_template: EmailSubjectLineTemplate = (
+        # 8a. Get the Subject Line
+        subjectline_template_id = None
+        subjectline_strict = False # Tracks if the template includes [[]], if it does then we need to use AI generate
+        subjectline_templates: list[EmailSubjectLineTemplate] = (
             EmailSubjectLineTemplate.query.filter(
                 EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
                 EmailSubjectLineTemplate.active == True,
-            ).first()
+            ).all()
         )
-        subjectline_template_id = (
-            subjectline_template.id if subjectline_template else None
-        )
-        subject_line_prompt = ai_subject_line_prompt(
-            client_sdr_id=client_sdr_id,
-            prospect_id=prospect_id,
-            email_body=email_body,
-            subject_line_template_id=subjectline_template_id,
-        )
+        subjectline_template: EmailSubjectLineTemplate = random.choice(subjectline_templates)
+        if subjectline_template:
+            subjectline_template_id = subjectline_template.id
+            subjectline_template.times_used = subjectline_template.times_used + 1 if subjectline_template.times_used else 1
+            subjectline_strict = "[[" in subjectline_template.subject_line or "{{" in subjectline_template.subject_line
+
         # 8b. Generate the subject line
-        subject_line = generate_subject_line(prompt=subject_line_prompt)
-        subject_line = subject_line.get("subject_line")
+        if subjectline_strict:
+            subject_line_prompt = "No AI template detected in subject line template. Using exact template."
+            subject_line = subjectline_template.subject_line
+        else:
+            subject_line_prompt = ai_subject_line_prompt(
+                client_sdr_id=client_sdr_id,
+                prospect_id=prospect_id,
+                email_body=email_body,
+                subject_line_template_id=subjectline_template_id,
+            )
+            # 8b. Generate the subject line
+            subject_line = generate_subject_line(prompt=subject_line_prompt)
+            subject_line = subject_line.get("subject_line")
 
         # 9. Create the GeneratedMessage objects
         ai_generated_body: GeneratedMessage = GeneratedMessage(
@@ -1193,6 +1206,10 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         db.session.add(ai_generated_body)
         db.session.add(ai_generated_subject_line)
         db.session.commit()
+
+        # 9b. Run rule engine on the subject line and body
+        run_message_rule_engine(message_id=ai_generated_subject_line.id)
+        run_message_rule_engine(message_id=ai_generated_body.id)
 
         # 10. Create the ProspectEmail object
         prospect_email: ProspectEmail = create_prospect_email(

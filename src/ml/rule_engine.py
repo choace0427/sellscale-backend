@@ -6,7 +6,7 @@ import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
 from src.client.models import ClientSDR
-from src.message_generation.models import GeneratedMessageCTA
+from src.message_generation.models import GeneratedMessageCTA, GeneratedMessageEmailType
 from src.ml.services import get_aree_fix_basic
 from src.utils.string.string_utils import (
     has_consecutive_uppercase_string,
@@ -21,6 +21,8 @@ profanity_csv_path = r"src/../datasets/profanity.csv"
 web_blacklist_path = r"src/../datasets/web_blacklist.csv"
 dr_positions_path = r"src/../datasets/dr_positions.csv"
 company_suffix_csv_path = r"src/../datasets/company_suffixes.csv"
+
+SUBJECT_LINE_CHARACTER_LIMIT = 40
 
 
 def get_adversarial_ai_approval(prompt):
@@ -214,6 +216,9 @@ def run_message_rule_engine(message_id: int):
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
 
+    # Only run for Email Subject Lines
+    if message.message_type == GeneratedMessageType.EMAIL and message.email_type == GeneratedMessageEmailType.SUBJECT_LINE:
+        rule_subject_line_character_limit(completion, problems)
 
     # Only run for linkedin:
     if message.message_type == GeneratedMessageType.LINKEDIN:
@@ -757,5 +762,16 @@ def rule_no_fancying_a_chat(completion: str, problems: list, highlighted_words: 
             "Contains 'fancy a chat'. Do not use this phrase in the completions. Do not use the word 'fancy' in the completion."
         )
         highlighted_words.append("fancy a")
+
+    return
+
+
+def rule_subject_line_character_limit(completion: str, problems: list):
+    """Rule: Subject Line Character Limit
+
+    Subject line must be less than a character limit.
+    """
+    if len(completion) > SUBJECT_LINE_CHARACTER_LIMIT:
+        problems.append("Subject line is too long. Please shorten it.")
 
     return

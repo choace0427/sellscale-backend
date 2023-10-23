@@ -334,16 +334,16 @@ def create_email_subject_line_template(
         int: The id of the newly created email subject line template
     """
     # Mark all other email subject line templates as inactive
-    if active:
-        all_templates: list[
-            EmailSubjectLineTemplate
-        ] = EmailSubjectLineTemplate.query.filter(
-            EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
-            EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
-        ).all()
-        for t in all_templates:
-            t.active = False
-            db.session.add(t)
+    # if active:
+    #     all_templates: list[
+    #         EmailSubjectLineTemplate
+    #     ] = EmailSubjectLineTemplate.query.filter(
+    #         EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
+    #         EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
+    #     ).all()
+    #     for t in all_templates:
+    #         t.active = False
+    #         db.session.add(t)
 
     # Create the email subject line template
     template = EmailSubjectLineTemplate(
@@ -365,7 +365,7 @@ def modify_email_subject_line_template(
     client_archetype_id: int,
     email_subject_line_template_id: int,
     subject_line: Optional[str] = None,
-    active: Optional[bool] = None,
+    active: Optional[bool] = True,
 ) -> bool:
     """Modify a email subject line template
 
@@ -390,19 +390,19 @@ def modify_email_subject_line_template(
     if subject_line:
         template.subject_line = subject_line
 
-    if active is not None:
-        # If active, then we also deactivate all other email subject line templates
-        if active:
-            all_templates: list[
-                EmailSubjectLineTemplate
-            ] = EmailSubjectLineTemplate.query.filter(
-                EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
-                EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
-            ).all()
-            for t in all_templates:
-                t.active = False
+    # if active is not None:
+    #     # If active, then we also deactivate all other email subject line templates
+    #     if active:
+    #         all_templates: list[
+    #             EmailSubjectLineTemplate
+    #         ] = EmailSubjectLineTemplate.query.filter(
+    #             EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
+    #             EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
+    #         ).all()
+    #         for t in all_templates:
+    #             t.active = False
 
-        template.active = active
+    template.active = active
 
     db.session.commit()
 

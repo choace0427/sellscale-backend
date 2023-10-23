@@ -61,7 +61,6 @@ def test_create_email_sequence_step():
         client_sdr_id=client_sdr.id,
         client_archetype_id=archetype.id,
         title="Test Title",
-        email_blocks=["DEPRECATED"],
         template="Test Template",
         overall_status=ProspectOverallStatus.BUMPED,
         bumped_count=1,
@@ -74,7 +73,6 @@ def test_create_email_sequence_step():
     sequence_step: EmailSequenceStep = db.session.query(EmailSequenceStep).get(id)
     assert sequence_step is not None
     assert sequence_step.title == "Test Title"
-    assert sequence_step.email_blocks == ["DEPRECATED"]
     assert sequence_step.template == "Test Template"
     assert sequence_step.overall_status == ProspectOverallStatus.BUMPED
     assert sequence_step.bumped_count == 1
@@ -98,7 +96,6 @@ def test_modify_email_sequence_step():
         client_archetype_id=archetype.id,
         sequence_step_id=email_sequence_step.id,
         title="Test Title",
-        email_blocks=["DEPRECATED"],
         template="Test Template",
         bumped_count=1,
         default=True,
@@ -109,7 +106,6 @@ def test_modify_email_sequence_step():
     )
     assert sequence_step is not None
     assert sequence_step.title == "Test Title"
-    assert sequence_step.email_blocks == ["DEPRECATED"]
     assert sequence_step.template == "Test Template"
     assert sequence_step.bumped_count == 1
     assert sequence_step.default is True
