@@ -84,7 +84,7 @@ def get_editing_details(message_id: int):
 
     subject_line_template = None
     if generated_message.email_subject_line_template_id:
-        template: EmailSubjectLineTemplate =  EmailSubjectLineTemplate.query.get(generated_message.subject_line_template_id)
+        template: EmailSubjectLineTemplate =  EmailSubjectLineTemplate.query.get(generated_message.email_subject_line_template_id)
         subject_line_template = template.to_dict()
 
     return {
