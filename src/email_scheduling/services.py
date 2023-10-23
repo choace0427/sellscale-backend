@@ -612,6 +612,13 @@ def send_email_messaging_schedule_entry(
         else:
             return False, f"Could not find a previous email to reply to, even though this is a FOLLOW_UP_EMAIL"
 
+    # 2b. If the prospect email record is not SENT_OUTREACH or EMAIL_OPENED, we should not send and delete the message
+    if prospect_email.outreach_status != ProspectEmailOutreachStatus.SENT_OUTREACH or prospect_email.outreach_status != ProspectEmailOutreachStatus.EMAIL_OPENED:
+        # Delete the messages
+        db.session.delete(email_messaging_schedule)
+        db.session.commit()
+        return False, f"ProspectEmail with ID {prospect_email.id} is not in SENT_OUTREACH or EMAIL_OPENED status"
+
     # 3. Send the email
     result: dict = nylas_send_email(
         client_sdr_id=email_messaging_schedule.client_sdr_id,

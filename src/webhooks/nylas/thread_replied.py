@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from typing import Union
 from app import db, celery
@@ -7,6 +8,7 @@ from src.client.sdr.email.models import SDREmailBank
 from src.client.sdr.email.services_email_bank import email_belongs_to_sdr, get_sdr_email_bank
 from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
 from src.email_outbound.services import update_prospect_email_outreach_status
+from src.email_scheduling.models import EmailMessagingSchedule
 from src.prospecting.models import Prospect, ProspectChannels
 from src.prospecting.nylas.services import nylas_update_messages, nylas_update_threads
 from src.prospecting.services import calculate_prospect_overall_status
@@ -224,6 +226,17 @@ def process_single_thread_replied(
                         "email_snippet": message_snippet,
                     },
                 )
+
+            # Block future AI emails
+            now = datetime.utcnow()
+            future_messages: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+                EmailMessagingSchedule.prospect_email_id == prospect_email_id,
+                EmailMessagingSchedule.date_scheduled > now
+            ).all()
+            for message in future_messages:
+                # Delete the message
+                db.session.delete(message)
+            db.session.commit()
 
             # Calculate prospect overall status
             calculate_prospect_overall_status(prospect_id)
