@@ -66,8 +66,8 @@ class EmailSequenceStep(db.Model):
     template = db.Column(db.String, nullable=True)
 
     # Analytics
-    times_used = db.Column(db.Integer, nullable=False, default=0)
-    times_accepted = db.Column(db.Integer, nullable=False, default=0)
+    times_used = db.Column(db.Integer, nullable=True, default=0)
+    times_accepted = db.Column(db.Integer, nullable=True, default=0)
 
     sequence_delay_days = db.Column(db.Integer, nullable=True, default=0)
 
