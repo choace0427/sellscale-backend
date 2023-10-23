@@ -465,6 +465,11 @@ def generate_email_messaging_schedule_entry(
         EmailMessagingSchedule.prospect_email_id == prospect_email.id,
         EmailMessagingSchedule.subject_line_id != None
     ).order_by(EmailMessagingSchedule.id.desc()).first()
+    if not last_messaging_schedule:
+        # Delete entry
+        db.session.delete(email_messaging_schedule)
+        db.session.commit()
+        return False, f"EmailMessagingSchedule with ID {email_messaging_schedule_id} does not have a subject line to reply to"
     subject_line: GeneratedMessage = GeneratedMessage.query.get(
         last_messaging_schedule.subject_line_id)
     subject_line_text: str = subject_line.completion
