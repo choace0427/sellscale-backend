@@ -117,8 +117,6 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         prospect_email: ProspectEmail = ProspectEmail.query.get(
             prospect.approved_prospect_email_id
         )
-        prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
-        prospect_email.email_status = ProspectEmailStatus.SENT
 
         # set date_scheduled to a time between 9am and 5pm on a weekday. keep it at a 5 minute interval from previous email
         time_index = time_index + datetime.timedelta(minutes=5)
@@ -150,10 +148,18 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                 0,
                 0,
             )
-        prospect_email.date_scheduled_to_send = time_index
 
         subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
         body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
+
+        # If the body is not approved, then we need to delete them and then delete the prospect_email
+        if body.message_status != GeneratedMessageStatus.APPROVED:
+            db.session.delete(subject_line)
+            db.session.delete(body)
+            prospect.approved_prospect_email_id = None
+            db.session.delete(prospect_email)
+            db.session.add(prospect)
+            continue
 
         # Populate the email messaging schedule entries
         populate_email_messaging_schedule_entries(
@@ -165,6 +171,10 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
             initial_email_body_template_id=body.email_sequence_step_template_id,
             initial_email_send_date=time_index,
         )
+
+        prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+        prospect_email.email_status = ProspectEmailStatus.SENT
+        prospect_email.date_scheduled_to_send = time_index
 
         bulk_updates.append(prospect_email)
 

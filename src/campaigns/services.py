@@ -748,6 +748,7 @@ def get_top_intent_prospects(
                 Prospect.email_intent_score != None,
                 Prospect.approved_prospect_email_id == None,
                 Prospect.email.isnot(None),
+                Prospect.overall_status != ProspectOverallStatus.BUMPED.value,
             )
             .order_by(Prospect.email_intent_score.desc(), func.random())
             .limit(num_prospects)
@@ -806,6 +807,7 @@ def get_top_healthscore_prospects(
         prospects = prospects.filter(
             Prospect.email.isnot(None),
             Prospect.approved_prospect_email_id == None,
+            Prospect.overall_status != ProspectOverallStatus.BUMPED.value,
         )
     elif campaign_type == GeneratedMessageType.LINKEDIN:
         prospects = prospects.filter(
@@ -857,6 +859,7 @@ def get_random_prospects(
         prospects = prospects.filter(
             Prospect.email.isnot(None),
             Prospect.approved_prospect_email_id == None,
+            Prospect.overall_status != ProspectOverallStatus.BUMPED.value,
         )
     elif campaign_type == GeneratedMessageType.LINKEDIN:
         prospects = prospects.filter(
