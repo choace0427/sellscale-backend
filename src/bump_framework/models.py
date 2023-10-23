@@ -111,6 +111,9 @@ class BumpFrameworkTemplates(db.Model):
     length = db.Column(db.String, nullable=False)
     tag = db.Column(db.String, nullable=True)
 
+    labels = db.Column(db.ARRAY(db.String), nullable=True)
+    tone = db.Column(db.String, nullable=True)
+
     active = db.Column(db.Boolean, nullable=False, default=True)
 
     bumped_counts = db.Column(db.ARRAY(db.Integer), nullable=True)
