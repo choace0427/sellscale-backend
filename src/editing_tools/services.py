@@ -88,6 +88,7 @@ def get_editing_details(message_id: int):
         subject_line_template = template.to_dict()
 
     return {
+        "prompt": generated_message.prompt,
         "prospect": prospect.to_dict(),
         "cta": cta.to_dict() if cta else None,
         "linkedin_payload": li_payload.payload if li_payload else {},
