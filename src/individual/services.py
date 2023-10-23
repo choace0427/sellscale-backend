@@ -836,7 +836,10 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         Prospect, Prospect.individual_id == Individual.id
     ).join(
         Company, Company.id == Individual.company_id
-    ).filter(Prospect.client_id != archetype.client_id)
+    ).filter(
+        ~db.session.query(Prospect).filter(Prospect.individual_id ==
+            Individual.id, Prospect.client_id == archetype.client_id).correlate(Individual).exists()
+    )
 
     if ruleset:
 
