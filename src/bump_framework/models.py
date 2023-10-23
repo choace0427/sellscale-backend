@@ -142,6 +142,8 @@ class BumpFrameworkTemplates(db.Model):
             "transformer_blocklist": [t.value for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
+            "labels": self.labels,
+            "tone": self.tone,
         }
 
     # 'role-have-to-do-with': {

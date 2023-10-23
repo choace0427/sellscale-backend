@@ -137,6 +137,8 @@ def create_bump_framework(
     bump_framework_human_readable_prompt: Optional[str] = None,
     additional_context: Optional[str] = None,
     transformer_blocklist: Optional[list] = [],
+    tone: Optional[str] = None,
+    labels: Optional[list] = [],
 ) -> int:
     """Create a new bump framework, if default is True, set all other bump frameworks to False
 
@@ -194,6 +196,8 @@ def create_bump_framework(
         bump_framework_human_readable_prompt=bump_framework_human_readable_prompt,
         additional_context=additional_context,
         transformer_blocklist=transformer_blocklist,
+        tone=tone,
+        labels=labels,
     )
     db.session.add(bump_framework)
     db.session.commit()
