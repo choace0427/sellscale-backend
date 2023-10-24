@@ -232,9 +232,9 @@ class WebsiteMetadataCache(db.Model):
     email = db.Column(db.String, nullable=False)
     address = db.Column(db.String, nullable=False)
 
-    company_name = db.Column(db.String, nullable=False)
-    mission = db.Column(db.String, nullable=False)
-    value_proposition = db.Column(db.String, nullable=False)
+    company_name = db.Column(db.String, nullable=True)
+    mission = db.Column(db.String, nullable=True)
+    value_proposition = db.Column(db.String, nullable=True)
 
     def to_dict(self):
         return {
