@@ -253,4 +253,7 @@ class WebsiteMetadataCache(db.Model):
             "instagram_url": self.instagram_url,
             "email": self.email,
             "address": self.address,
+            "company_name": self.company_name,
+            "mission": self.mission,
+            "value_proposition": self.value_proposition,
         }
