@@ -59,6 +59,7 @@ class BumpFramework(db.Model):
 
         return {
             "id": self.id,
+            "created_at": self.created_at,
             "title": self.title,
             "description": self.description,
             "active": self.active,
