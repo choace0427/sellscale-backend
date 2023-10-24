@@ -1,4 +1,5 @@
 from typing import Optional
+from src.email_scheduling.services import populate_email_messaging_schedule_entries
 
 from src.individual.services import add_individual_from_iscraper_cache, individual_similar_profile_crawler, upload_job_for_individual, convert_to_prospect
 from src.voyager.services import withdraw_li_invite
@@ -46,6 +47,12 @@ PROCESS_TYPE_MAP = {
         "queue": 'individual-to-prospect',
         "routing_key": 'individual-to-prospect',
     },
+    "populate_email_messaging_schedule_entries": {
+        "function": populate_email_messaging_schedule_entries,
+        "priority": 1,
+        "queue": 'email_scheduler',
+        "routing_key": 'email_scheduler',
+    }
 }
 ###############################
 
@@ -69,6 +76,7 @@ def process_queue():
                 or_(
                     ProcessQueue.status == ProcessQueueStatus.QUEUED,
                     ProcessQueue.status == ProcessQueueStatus.RETRY,
+                    ProcessQueue.status == None,
                 )
             ),
             and_(

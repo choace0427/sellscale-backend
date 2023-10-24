@@ -70,6 +70,7 @@ def make_celery(app):
         "ml_prospect_classification", type="direct"
     )
     message_generation_exchange = Exchange("message_generation", type="direct")
+    email_scheduler = Exchange("email_scheduler", type="direct")
     celery.conf.task_queues = (
         Queue("default", default_exchange, routing_key="default"),
         Queue("prospecting", prospecting_exchange, routing_key="prospecting"),
@@ -83,6 +84,11 @@ def make_celery(app):
             message_generation_exchange,
             routing_key="message_generation",
         ),
+        Queue(
+            "email_scheduler",
+            email_scheduler,
+            routing_key="email_scheduler",
+        )
     )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"
