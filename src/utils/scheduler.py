@@ -296,7 +296,7 @@ def run_collect_and_generate_email_messaging_schedule_entries():
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         collect_and_generate_email_messaging_schedule_entries.apply_async(
-            [],
+            args=[],
             queue="email_scheduler",
             routing_key="email_scheduler",
             priority=2,
@@ -311,7 +311,7 @@ def run_collect_and_send_email_messaging_schedule_entries():
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         collect_and_send_email_messaging_schedule_entries.apply_async(
-            [],
+            args=[],
             queue="email_scheduler",
             routing_key="email_scheduler",
             priority=1,
