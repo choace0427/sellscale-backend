@@ -126,7 +126,12 @@ def handle_process(process_id: int, type: str, meta_data: Optional[dict]) -> boo
         queue=process_data.get("queue", None),
         routing_key=process_data.get("routing_key", None),
         priority=process_data.get("priority", 5),
-        link=remove_process_from_queue(process_id)
+        link=remove_process_from_queue.signature(
+            process_id,
+            queue="orchestrator",
+            routing_key="orchestrator",
+            priority=1,
+        )
     )
 
     return True
