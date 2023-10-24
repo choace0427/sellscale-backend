@@ -138,6 +138,13 @@ def populate_email_messaging_schedule_entries(
     # Track all the scheduled email ids
     email_ids = []
 
+    # Make sure we don't have any existing email_messaging_schedule entries
+    existing_email_messaging_schedules: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+        EmailMessagingSchedule.prospect_email_id == prospect_email_id,
+    ).all()
+    if existing_email_messaging_schedules:
+        return email_ids
+
     # Get the next available send date
     initial_email_send_date = get_initial_email_send_date(
         client_sdr_id=client_sdr_id,
