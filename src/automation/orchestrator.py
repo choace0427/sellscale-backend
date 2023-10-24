@@ -170,7 +170,7 @@ def add_process_to_queue(
 
     return process.to_dict()
 
-
+@celery.task
 def remove_process_from_queue(result: tuple, process_id: int):
     """Removes a process from the queue after it has been executed, depending on the result
 
