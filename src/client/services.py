@@ -147,7 +147,7 @@ def update_client_details(
         c.case_study = case_study
     if contract_size:
         c.contract_size = contract_size
-        propagate_contract_value(client_id, contract_size)
+        # propagate_contract_value(client_id, contract_size)
 
     db.session.add(c)
     db.session.commit()
