@@ -379,6 +379,12 @@ class PhantomBusterAgent:
         }
 
 
+class ProcessQueueStatus(enum.Enum):
+    QUEUED = "QUEUED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETE = "COMPLETE" # This should, in theory, never be used
+    RETRY = "RETRY"
+
 class ProcessQueue(db.Model):
     """A queue for processing various tasks
 
@@ -390,6 +396,8 @@ class ProcessQueue(db.Model):
     type = db.Column(db.String, nullable=False)
     meta_data = db.Column(db.JSON, nullable=True)
     execution_date = db.Column(db.DateTime, nullable=False)
+    executed_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.Enum(ProcessQueueStatus), default=ProcessQueueStatus.QUEUED, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -397,5 +405,7 @@ class ProcessQueue(db.Model):
             "type": self.type,
             "meta_data": self.meta_data,
             "execution_date": str(self.execution_date),
+            "executed_at": str(self.executed_at),
             "created_at": str(self.created_at),
+            "status": self.status.value if self.status else None,
         }

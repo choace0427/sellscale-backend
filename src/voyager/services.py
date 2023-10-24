@@ -708,7 +708,7 @@ def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
                 ```
                 {gm.completion}
                 ```
-                
+
                 Please follow up with some times via the reply framework here:
 
                 *Direct Link:* {direct_link}
@@ -1011,3 +1011,5 @@ def withdraw_li_invite(client_sdr_id: int, prospect_id: int):
         message=f"Calling withdraw from queue, sdr:{client_sdr_id}, prospect:{prospect_id}",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
+
+    return True, "Success"

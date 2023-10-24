@@ -120,7 +120,7 @@ def convert_to_prospect(
         research_payload=True,
     )
 
-    return prospect_id
+    return True, prospect_id
 
 
 def start_crawler_on_linkedin_public_id(profile_id: str):
@@ -204,6 +204,8 @@ def individual_similar_profile_crawler(individual_id: int):
         buffer_wait_minutes=10,
         append_to_end=True,
     )
+
+    return True, new_ids
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
