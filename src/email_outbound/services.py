@@ -106,15 +106,18 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     if not outbound_campaign:
         return False, "Campaign not found"
+    elif outbound_campaign.status == OutboundCampaignStatus.COMPLETE:
+        return False, "Campaign is already complete"
+
     outbound_campaign.status = OutboundCampaignStatus.COMPLETE
     # outbound_campaign.calculate_cost()
-    db.session.add(outbound_campaign)
+    db.session.commit()
 
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.id.in_(outbound_campaign.prospect_ids)
     ).all()
     bulk_updates = []
-    for prospect in prospects:
+    for index, prospect in enumerate(prospects):
         prospect_email: ProspectEmail = ProspectEmail.query.get(
             prospect.approved_prospect_email_id
         )
@@ -160,7 +163,8 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                 "initial_email_subject_line_template_id": subject_line.email_subject_line_template_id,
                 "initial_email_body_template_id": body.email_sequence_step_template_id,
                 "initial_email_send_date": None,
-            }
+            },
+            minutes=(index)
         )
 
         # populate_email_messaging_schedule_entries(
