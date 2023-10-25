@@ -1332,6 +1332,12 @@ def generate_new_icp_filters(client_archetype_id: int, message: str):
     prompt = f"""
 I have a list of filters for finding good sales prospects. I'm going to give you the filters and then provide you with a alteration to them. Please make the alteration then return the filters in the exact same format I presented them to you.
 
+If the alteration is location related, please use the full name of the location (e.g. United States, Canada, etc.) and related locations.
+#### Example
+Alteration: show me people in the bay area
+Prospect Location Keywords: bay area, san francisco, san jose, oakland, berkeley
+
+
 ## Current Filters
 Prospect Years of Experience: [{icp_scoring_ruleset.individual_years_of_experience_start}, {icp_scoring_ruleset.individual_years_of_experience_end}]
 Company Size: [{icp_scoring_ruleset.company_size_start}, {icp_scoring_ruleset.company_size_end}]
@@ -1425,7 +1431,7 @@ def update_icp_filters(client_archetype_id: int, filters):
             if key == 'client_archetype_id':
                 continue
 
-            if value is ['None']:
+            if value is ['None'] or value is [''] or value is []:
                 setattr(icp_scoring_ruleset, key, None)
             else:
                 setattr(icp_scoring_ruleset, key, value)

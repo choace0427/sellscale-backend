@@ -10,7 +10,7 @@ from src.utils.abstract.attr_utils import deep_get
 from src.company.services import find_company
 from src.individual.models import Individual, IndividualsUpload
 from src.prospecting.models import Prospect
-from sqlalchemy import or_, and_, not_
+from sqlalchemy import or_, and_, not_, text
 
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache, IScraperPayloadType
@@ -939,14 +939,16 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         # Location
         if ruleset.included_individual_locations_keywords:
             keyword_filters = [
-                Individual.location.ilike(f"%{keyword}%")
+                text("CAST(individual.location AS TEXT) ILIKE :keyword").bindparams(
+                    keyword=rf"%{keyword}%")
                 for keyword in ruleset.included_individual_locations_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_locations_keywords:
             exclude_filters = [
-                not_(Individual.location.ilike(f"%{keyword}%"))
+                ~text("CAST(individual.location AS TEXT) ILIKE :keyword").bindparams(
+                    keyword=rf"%{keyword}%")
                 for keyword in ruleset.excluded_individual_locations_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
@@ -954,15 +956,17 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         # Skills
         if ruleset.included_individual_skills_keywords:
             keyword_filters = [
-                Individual.skills.ilike(f"%{keyword}%")
+                Individual.skills.any(skill.ilike(f"%{keyword}%"))
                 for keyword in ruleset.included_individual_skills_keywords
+                for skill in Individual.skills
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_skills_keywords:
             exclude_filters = [
-                not_(Individual.skills.ilike(f"%{keyword}%"))
+                ~Individual.skills.any(skill.ilike(f"%{keyword}%"))
                 for keyword in ruleset.excluded_individual_skills_keywords
+                for skill in Individual.skills
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
@@ -982,19 +986,26 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Company Industry
-        if ruleset.included_individual_industry_keywords:
-            keyword_filters = [
-                Company.industries.ilike(f"%{keyword}%")
-                for keyword in ruleset.included_individual_industry_keywords
-            ]
-            individuals_query = individuals_query.filter(or_(*keyword_filters))
+        # if ruleset.included_company_industries_keywords:
+        #     keyword_filters = [
+        #         text("CAST(company.industries AS TEXT) ILIKE :keyword").bindparams(
+        #             keyword=rf"%{keyword}%")
+        #         for keyword in ruleset.included_company_industries_keywords
+        #     ]
+        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
 
-        if ruleset.excluded_individual_industry_keywords:
-            exclude_filters = [
-                not_(Company.industries.ilike(f"%{keyword}%"))
-                for keyword in ruleset.excluded_individual_industry_keywords
-            ]
-            individuals_query = individuals_query.filter(and_(*exclude_filters))
+        # if ruleset.excluded_company_industries_keywords:
+        #     exclude_filters = [
+        #         ~Company.industries.any(keyword.ilike(f"%{keyword}%"))
+        #         for keyword in ruleset.excluded_company_industries_keywords
+        #     ]
+        #     keyword_filters = [
+        #         text("CAST(company.industries AS TEXT) ILIKE :keyword").bindparams(
+        #             keyword=rf"%{keyword}%")
+        #         for keyword in ruleset.included_company_industries_keywords
+        #     ]
+        #     individuals_query = individuals_query.filter(
+        #         and_(*exclude_filters))
 
         # Company Employee Count
         if ruleset.company_size_start and ruleset.company_size_end:
