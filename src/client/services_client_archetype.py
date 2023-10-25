@@ -4,7 +4,7 @@ from sqlalchemy import update
 from app import db
 from model_import import ResearchPointType, ClientArchetype
 from typing import Union, Optional
-from src.client.models import ClientSDR
+from src.client.models import Client, ClientSDR
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.ml.services import mark_queued_and_classify
@@ -79,8 +79,7 @@ def replicate_transformer_blocklist(
     Returns:
         tuple[bool, str]: success & message
     """
-    source_ca: ClientArchetype = ClientArchetype.query.get(
-        source_client_archetype_id)
+    source_ca: ClientArchetype = ClientArchetype.query.get(source_client_archetype_id)
     if not source_ca:
         return False, "Source client archetype not found"
     destination_ca: ClientArchetype = ClientArchetype.query.get(
@@ -154,18 +153,12 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
     return list_of_archetypes
 
 
-def get_archetype_activity(
-    client_sdr_id: int,
-    archetype_id: Optional[int] = None,
-    aggregate: Optional[bool] = True,
-    custom_start_date: Optional[datetime] = None,
-    custom_end_date: Optional[datetime] = None,
-) -> list[dict]:
-    # TODO: Use the archetype_id to filter the results
-    # TODO: Use the aggregate flag to determine if we should aggregate the results or not.
-    # TODO: Use the custom_start_date and custom_end_date to filter the results
+def get_archetype_activity(client_sdr_id: int) -> list[dict]:
 
     interval = "1 day"
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = sdr.client_id
 
     results = db.session.execute(
         """
@@ -182,9 +175,9 @@ def get_archetype_activity(
             prospect
             LEFT JOIN linkedin_conversation_entry ON linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
             LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
-        WHERE client_sdr_id = {client_sdr_id};
+        WHERE client_id = {client_id};
         """.format(
-            interval=interval, client_sdr_id=client_sdr_id
+            interval=interval, client_id=client_id
         )
     ).fetchall()
 
@@ -197,9 +190,46 @@ def get_archetype_activity(
 
     # Convert and format output
     results = [
-        {column_map.get(i, "unknown"): value for i,
-         value in enumerate(tuple(row))}
+        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
         for row in results
+    ]
+
+    return results
+
+
+def overall_activity_for_client(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = sdr.client_id
+
+    query = """
+        select 
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') sent_outreach,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'EMAIL_OPENED') email_opened,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') active_convo,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') demo_set
+        from prospect
+            join prospect_status_records on prospect.id = prospect_status_records.prospect_id
+            left join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_thread_id
+            left join prospect_email on prospect_email.prospect_id = prospect.id 
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+        where client_id = {client_id};
+    """.format(
+        client_id=client_id
+    )
+
+    data = db.session.execute(query).fetchall()
+
+    column_map = {
+        0: "sent_outreach",
+        1: "email_opened",
+        2: "active_convo",
+        3: "demo_set",
+    }
+
+    # Convert and format output
+    results = [
+        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+        for row in data
     ]
 
     return results
@@ -256,8 +286,7 @@ def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dic
     }
 
     # Convert and format output
-    result = {column_map.get(i, "unknown"): value for i,
-              value in enumerate(results)}
+    result = {column_map.get(i, "unknown"): value for i, value in enumerate(results)}
 
     return result
 
@@ -714,7 +743,7 @@ def hard_deactivate_client_archetype(
 
 def get_icp_filters_autofill(client_sdr_id: int, client_archetype_id: int):
     """
-      Gets the top values for each filter in the ICP filters to use as autofill
+    Gets the top values for each filter in the ICP filters to use as autofill
     """
 
     AMOUNT = 10
@@ -743,7 +772,7 @@ def get_icp_filters_autofill(client_sdr_id: int, client_archetype_id: int):
     maxes = []
     for prospect in prospects:
         if prospect.employee_count:
-            parts = prospect.employee_count.split('-')
+            parts = prospect.employee_count.split("-")
             if len(parts) == 2:
                 try:
                     mins.append(int(parts[0]))

@@ -105,6 +105,7 @@ from src.client.services_client_archetype import (
     get_email_blocks_configuration,
     hard_deactivate_client_archetype,
     modify_archetype_prospect_filters,
+    overall_activity_for_client,
     patch_archetype_email_blocks_configuration,
     update_transformer_blocklist,
     replicate_transformer_blocklist,
@@ -400,38 +401,24 @@ def get_archetype(client_sdr_id: int):
     return jsonify({"message": "Success", "archetype": archetype}), 200
 
 
-@CLIENT_BLUEPRINT.route("/archetype/get_archetypes/activity", methods=["GET"])
+@CLIENT_BLUEPRINT.route("/overall/activity", methods=["GET"])
 @require_user
-def get_archetypes_activity(client_sdr_id: int):
+def get_overall_client_activity(client_sdr_id: int):
     """Gets all the archetypes for a client SDR, with option to search filter by archetype name"""
-    archeytpe_id = get_request_parameter(
-        "archetype_id", request, json=False, required=False, parameter_type=int
+    activities = get_archetype_activity(client_sdr_id=client_sdr_id)
+    overall_activity = overall_activity_for_client(client_sdr_id=client_sdr_id)
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {
+                    "activities": activities,
+                    "overall_activity": overall_activity,
+                },
+            }
+        ),
+        200,
     )
-    aggregate = get_request_parameter(
-        "aggregate", request, json=False, required=False, parameter_type=bool
-    )
-    custom_start_date = get_request_parameter(
-        "custom_start_date", request, json=False, required=False, parameter_type=str
-    )
-    custom_end_date = get_request_parameter(
-        "custom_end_date", request, json=False, required=False, parameter_type=str
-    )
-
-    custom_start_date = (
-        convert_string_to_datetime(custom_start_date) if custom_start_date else None
-    )
-    custom_end_date = (
-        convert_string_to_datetime(custom_end_date) if custom_end_date else None
-    )
-
-    activities = get_archetype_activity(
-        client_sdr_id=client_sdr_id,
-        archetype_id=archeytpe_id,
-        aggregate=aggregate,
-        custom_start_date=custom_start_date,
-        custom_end_date=custom_end_date,
-    )
-    return jsonify({"message": "Success", "data": {"activities": activities}}), 200
 
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes/overview", methods=["GET"])
