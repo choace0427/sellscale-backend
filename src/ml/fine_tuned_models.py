@@ -157,6 +157,7 @@ def get_config_completion(
     if not config:
         raise ValueError("No config provided")
     few_shot_prompt: str = config.computed_prompt.format(prompt=prompt)
+
     response = get_text_generation(
         [
             {"role": "system", "content": few_shot_prompt},

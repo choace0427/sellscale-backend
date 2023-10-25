@@ -548,6 +548,12 @@ def post_create_bump_framework_template():
     transformer_blocklist = get_request_parameter(
         "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
+    tone = get_request_parameter(
+        "tone", request, json=True, required=False, parameter_type=str
+    )
+    labels = get_request_parameter(
+        "labels", request, json=True, required=False, parameter_type=list
+    )
 
     create_new_bump_framework_template(
         name=name,
@@ -555,6 +561,8 @@ def post_create_bump_framework_template():
         human_readable_prompt=human_readable_prompt,
         length=length,
         transformer_blocklist=transformer_blocklist,
+        tone=tone,
+        labels=labels,
     )
     return jsonify({"message": "Successfully created bump framework template"}), 200
 
@@ -579,6 +587,12 @@ def patch_bump_framework_template(bft_id: int):
     transformer_blocklist = get_request_parameter(
         "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
+    tone = get_request_parameter(
+        "tone", request, json=True, required=False, parameter_type=str
+    )
+    labels = get_request_parameter(
+        "labels", request, json=True, required=False, parameter_type=list
+    )
 
     update_bump_framework_template(
         bft_id=bft_id,
@@ -587,6 +601,8 @@ def patch_bump_framework_template(bft_id: int):
         human_readable_prompt=human_readable_prompt,
         length=length,
         transformer_blocklist=transformer_blocklist,
+        tone=tone,
+        labels=labels,
     )
     return jsonify({"message": "Successfully updated bump framework template"}), 200
 

@@ -11,6 +11,7 @@ from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
+from src.prospecting.icp_score.services import update_icp_scoring_ruleset
 from src.prospecting.models import ProspectEvent
 
 from model_import import DemoFeedback, BumpFramework
@@ -146,7 +147,7 @@ def update_client_details(
         c.case_study = case_study
     if contract_size:
         c.contract_size = contract_size
-        propagate_contract_value(client_id, contract_size)
+        # propagate_contract_value(client_id, contract_size)
 
     db.session.add(c)
     db.session.commit()
@@ -422,9 +423,57 @@ def create_client_archetype(
         archetype_id=archetype_id,
     )
 
+    titles = predict_titles_from_archetype_name(archetype)
+    update_icp_scoring_ruleset(
+        client_archetype_id=archetype_id,
+        included_individual_title_keywords=titles,
+        excluded_individual_title_keywords=[],
+        included_individual_industry_keywords=[],
+        excluded_individual_industry_keywords=[],
+        individual_years_of_experience_start=0,
+        individual_years_of_experience_end=100,
+        included_individual_skills_keywords=[],
+        excluded_individual_skills_keywords=[],
+        included_individual_locations_keywords=[],
+        excluded_individual_locations_keywords=[],
+        included_individual_generalized_keywords=[],
+        excluded_individual_generalized_keywords=[],
+        included_company_name_keywords=[],
+        excluded_company_name_keywords=[],
+        included_company_locations_keywords=[],
+        excluded_company_locations_keywords=[],
+        company_size_start=0,
+        company_size_end=10000000,
+        included_company_industries_keywords=[],
+        excluded_company_industries_keywords=[],
+        included_company_generalized_keywords=[],
+        excluded_company_generalized_keywords=[],
+    )
+
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
 
     return {"client_archetype_id": client_archetype.id}
+
+
+def predict_titles_from_archetype_name(archetype: str, retries=3):
+    try:
+        completion = wrapped_create_completion(
+            prompt=f"You are about to insert a new archetype named {archetype}. What is a list of 4-5 generic titles you would use to search for this archetype on LinkedIn? Return a JSON object with the key, 'titles', and a list of titles as the value.".format(
+                archetype
+            ),
+            model=OPENAI_CHAT_GPT_4_MODEL,
+            temperature=0.7,
+            max_tokens=100,
+        )
+
+        obj = json.loads(completion)
+        titles = obj["titles"]
+        return titles
+    except Exception as e:
+        if retries > 0:
+            return predict_titles_from_archetype_name(archetype, retries - 1)
+        else:
+            return []
 
 
 def get_client_sdr(client_sdr_id: int) -> dict:

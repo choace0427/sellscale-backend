@@ -5,7 +5,7 @@ import re
 from typing import Optional
 from bs4 import BeautifulSoup
 from flask import jsonify
-from src.email_scheduling.services import populate_email_messaging_schedule_entries
+from src.automation.models import ProcessQueue
 from src.email_sequencing.models import EmailSequenceStep
 from src.client.models import ClientSDR
 from src.email_outbound.models import Sequence, SequenceStatus
@@ -101,6 +101,8 @@ def batch_update_emails(
 
 
 def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
+    from src.automation.orchestrator import add_process_for_future
+
     outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     if not outbound_campaign:
         return False, "Campaign not found"
@@ -112,62 +114,67 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         Prospect.id.in_(outbound_campaign.prospect_ids)
     ).all()
     bulk_updates = []
-    time_index = datetime.datetime.utcnow()
     for prospect in prospects:
         prospect_email: ProspectEmail = ProspectEmail.query.get(
             prospect.approved_prospect_email_id
         )
-        prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
-        prospect_email.email_status = ProspectEmailStatus.SENT
-
-        # set date_scheduled to a time between 9am and 5pm on a weekday. keep it at a 5 minute interval from previous email
-        time_index = time_index + datetime.timedelta(minutes=5)
-        if time_index.hour > 17:  # nothing after 5p PST
-            try:
-                time_index = datetime.datetime(
-                    time_index.year,
-                    time_index.month,
-                    time_index.day + 1,
-                    9,
-                    0,
-                    0,
-                )
-            except:
-                time_index = datetime.datetime(
-                    time_index.year,
-                    (time_index.month + 1) % 12,
-                    1,
-                    9,
-                    0,
-                    0,
-                )
-        if time_index.isoweekday() > 5:  # skip weekends
-            time_index = datetime.datetime(
-                time_index.year,
-                time_index.month,
-                (time_index.day + 3) % 7 + 1,
-                9,
-                0,
-                0,
-            )
-        prospect_email.date_scheduled_to_send = time_index
 
         subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
         body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
 
-        # Run Rule Engine + ARREE on the body
-        run_message_rule_engine(body.id)
+        # If the body is not approved, then we need to delete them and then delete the prospect_email
+        if body.message_status != GeneratedMessageStatus.APPROVED:
+            db.session.delete(subject_line)
+            db.session.delete(body)
+            prospect.approved_prospect_email_id = None
+            db.session.delete(prospect_email)
+            db.session.add(prospect)
+            continue
+
+        # Check that we haven't been queued already
+        exists: ProcessQueue = ProcessQueue.query.filter(
+            ProcessQueue.type == "populate_email_messaging_schedule_entries",
+            ProcessQueue.meta_data == {
+                "args": {
+                    "client_sdr_id": outbound_campaign.client_sdr_id,
+                    "prospect_email_id": prospect_email.id,
+                    "subject_line_id": prospect_email.personalized_subject_line,
+                    "body_id": prospect_email.personalized_body,
+                    "initial_email_subject_line_template_id": subject_line.email_subject_line_template_id,
+                    "initial_email_body_template_id": body.email_sequence_step_template_id,
+                    "initial_email_send_date": None,
+                }
+            }
+        ).first()
+        if exists:
+            continue
 
         # Populate the email messaging schedule entries
-        populate_email_messaging_schedule_entries(
-            client_sdr_id=outbound_campaign.client_sdr_id,
-            prospect_email_id=prospect_email.id,
-            subject_line_id=prospect_email.personalized_subject_line,
-            body_id=prospect_email.personalized_body,
-            initial_email_subject_line_template_id=subject_line.email_subject_line_template_id,
-            initial_email_body_template_id=body.email_sequence_step_template_id,
-            initial_email_send_date=time_index,
+        add_process_for_future(
+            type="populate_email_messaging_schedule_entries",
+            args={
+                "client_sdr_id": outbound_campaign.client_sdr_id,
+                "prospect_email_id": prospect_email.id,
+                "subject_line_id": prospect_email.personalized_subject_line,
+                "body_id": prospect_email.personalized_body,
+                "initial_email_subject_line_template_id": subject_line.email_subject_line_template_id,
+                "initial_email_body_template_id": body.email_sequence_step_template_id,
+                "initial_email_send_date": None,
+            }
         )
+
+        # populate_email_messaging_schedule_entries(
+        #     client_sdr_id=outbound_campaign.client_sdr_id,
+        #     prospect_email_id=prospect_email.id,
+        #     subject_line_id=prospect_email.personalized_subject_line,
+        #     body_id=prospect_email.personalized_body,
+        #     initial_email_subject_line_template_id=subject_line.email_subject_line_template_id,
+        #     initial_email_body_template_id=body.email_sequence_step_template_id,
+        #     initial_email_send_date=None,
+        # )
+
+        prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+        prospect_email.email_status = ProspectEmailStatus.APPROVED
 
         bulk_updates.append(prospect_email)
 
@@ -177,79 +184,80 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     return True
 
 
-@celery.task
-def send_prospect_emails():
-    """
-    Sends all the prospect emails that need to be sent at a given time
-    """
-    prospect_emails: list[ProspectEmail] = ProspectEmail.query.filter(
-        ProspectEmail.outreach_status
-        == ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
-        ProspectEmail.date_scheduled_to_send <= datetime.datetime.utcnow(),
-    ).all()
-    print("Sending {} emails".format(len(prospect_emails)))
-    for prospect_email in prospect_emails:
-        send_prospect_email.apply_async(args=[prospect_email.id], countdown=10)
+# DEPRECATED
+# @celery.task
+# def send_prospect_emails():
+#     """
+#     Sends all the prospect emails that need to be sent at a given time
+#     """
+#     prospect_emails: list[ProspectEmail] = ProspectEmail.query.filter(
+#         ProspectEmail.outreach_status
+#         == ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
+#         ProspectEmail.date_scheduled_to_send <= datetime.datetime.utcnow(),
+#     ).all()
+#     print("Sending {} emails".format(len(prospect_emails)))
+#     for prospect_email in prospect_emails:
+#         send_prospect_email.apply_async(args=[prospect_email.id], countdown=10)
 
+# DEPRECATED
+# @celery.task
+# def send_prospect_email(prospect_email_id: int):
+#     """
+#     Sends the prospect email via Nylas and updates the prospect_email status to SENT.
+#     Also updates prospect email status to SENT and updates any relevant generated messages to SENT
+#     as well.
+#     """
+#     from src.prospecting.nylas.services import nylas_send_email
 
-@celery.task
-def send_prospect_email(prospect_email_id: int):
-    """
-    Sends the prospect email via Nylas and updates the prospect_email status to SENT.
-    Also updates prospect email status to SENT and updates any relevant generated messages to SENT
-    as well.
-    """
-    from src.prospecting.nylas.services import nylas_send_email
+#     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
 
-    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+#     if (
+#         not prospect_email
+#         or prospect_email.outreach_status
+#         != ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+#     ):
+#         return False
 
-    if (
-        not prospect_email
-        or prospect_email.outreach_status
-        != ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
-    ):
-        return False
+#     outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(
+#         prospect_email.outbound_campaign_id
+#     )
+#     client_sdr_id = outbound_campaign.client_sdr_id
+#     prospect_id = prospect_email.prospect_id
 
-    outbound_campaign: OutboundCampaign = OutboundCampaign.query.get(
-        prospect_email.outbound_campaign_id
-    )
-    client_sdr_id = outbound_campaign.client_sdr_id
-    prospect_id = prospect_email.prospect_id
+#     prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
+#     prospect_email.email_status = ProspectEmailStatus.SENT
+#     prospect_email.date_sent = datetime.datetime.now()
+#     db.session.add(prospect_email)
 
-    prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
-    prospect_email.email_status = ProspectEmailStatus.SENT
-    prospect_email.date_sent = datetime.datetime.now()
-    db.session.add(prospect_email)
+#     # Updates to generated_message
+#     gm_line_ids = [
+#         prospect_email.personalized_first_line,
+#         prospect_email.personalized_subject_line,
+#         prospect_email.personalized_body,
+#     ]
+#     generated_messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
+#         GeneratedMessage.id.in_(gm_line_ids)
+#     ).all()
+#     for generated_message in generated_messages:
+#         generated_message.message_status = GeneratedMessageStatus.SENT
+#         db.session.add(generated_message)
+#     db.session.commit()
 
-    # Updates to generated_message
-    gm_line_ids = [
-        prospect_email.personalized_first_line,
-        prospect_email.personalized_subject_line,
-        prospect_email.personalized_body,
-    ]
-    generated_messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
-        GeneratedMessage.id.in_(gm_line_ids)
-    ).all()
-    for generated_message in generated_messages:
-        generated_message.message_status = GeneratedMessageStatus.SENT
-        db.session.add(generated_message)
-    db.session.commit()
+#     subject_line_gm = GeneratedMessage.query.get(
+#         prospect_email.personalized_subject_line
+#     )
+#     body_gm = GeneratedMessage.query.get(prospect_email.personalized_body)
 
-    subject_line_gm = GeneratedMessage.query.get(
-        prospect_email.personalized_subject_line
-    )
-    body_gm = GeneratedMessage.query.get(prospect_email.personalized_body)
+#     subject = subject_line_gm.completion
+#     body = markdown.markdown(body_gm.completion.replace('\n', '<br/>'))
 
-    subject = subject_line_gm.completion
-    body = markdown.markdown(body_gm.completion.replace('\n', '<br/>'))
-
-    nylas_send_email(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        subject=subject,
-        body=body,
-        prospect_email_id=prospect_email_id,
-    )
+#     nylas_send_email(
+#         client_sdr_id=client_sdr_id,
+#         prospect_id=prospect_id,
+#         subject=subject,
+#         body=body,
+#         prospect_email_id=prospect_email_id,
+#     )
 
 
 def batch_mark_prospect_email_sent(prospect_ids: list[int], campaign_id: int) -> bool:

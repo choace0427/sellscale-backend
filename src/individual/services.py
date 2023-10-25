@@ -4,6 +4,7 @@ import math
 from typing import Optional
 
 from psycopg2 import IntegrityError
+import sqlalchemy
 from src.analytics.services import flag_enabled
 from src.utils.abstract.attr_utils import deep_get
 from src.company.services import find_company
@@ -46,23 +47,25 @@ def backfill_prospects(client_sdr_id):
     }
 
 
-def convert_to_prospects(client_sdr_id: int, client_archetype_id: int, individual_ids: list[int]):
-    
+def convert_to_prospects(
+    client_sdr_id: int, client_archetype_id: int, individual_ids: list[int]
+):
+
     from src.automation.orchestrator import add_process_list
     from src.client.models import ClientArchetype
 
     archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return None
-    
+
     if len(individual_ids) > 10:
         return add_process_list(
             type="convert_to_prospect",
             args_list=[
                 {
-                  "client_sdr_id": client_sdr_id,
-                  "client_archetype_id": client_archetype_id,
-                  "individual_id": individual_id
+                    "client_sdr_id": client_sdr_id,
+                    "client_archetype_id": client_archetype_id,
+                    "individual_id": individual_id,
                 }
                 for individual_id in individual_ids
             ],
@@ -77,10 +80,12 @@ def convert_to_prospects(client_sdr_id: int, client_archetype_id: int, individua
                 individual_id=individual_id,
             )
         return []
-    
+
 
 @celery.task
-def convert_to_prospect(client_sdr_id: int, client_archetype_id: int, individual_id: int):
+def convert_to_prospect(
+    client_sdr_id: int, client_archetype_id: int, individual_id: int
+):
 
     from src.prospecting.services import add_prospect
     from src.client.models import ClientArchetype
@@ -90,8 +95,10 @@ def convert_to_prospect(client_sdr_id: int, client_archetype_id: int, individual
         return None
 
     individual: Individual = Individual.query.get(individual_id)
-    company: Company = Company.query.get(individual.company_id) if individual.company_id else None
- 
+    company: Company = (
+        Company.query.get(individual.company_id) if individual.company_id else None
+    )
+
     prospect_id = add_prospect(
         client_id=archetype.client_id,
         archetype_id=client_archetype_id,
@@ -113,94 +120,104 @@ def convert_to_prospect(client_sdr_id: int, client_archetype_id: int, individual
         research_payload=True,
     )
 
-    return prospect_id
+    return True, prospect_id
 
 
 def start_crawler_on_linkedin_public_id(profile_id: str):
     from src.automation.orchestrator import add_process_for_future
 
-    profile_url = f'linkedin.com/in/{profile_id}'
+    profile_url = f"linkedin.com/in/{profile_id}"
     success, new_id, created = add_individual_from_linkedin_url(profile_url)
-    
+
     if new_id:
         add_process_for_future(
             type="run_icrawler",
-            args={
-                "individual_id": new_id
-            },
+            args={"individual_id": new_id},
         )
 
 
 # Scrapes li individuals following similar profiles until it can't find any more
 @celery.task
 def individual_similar_profile_crawler(individual_id: int):
-  if not flag_enabled('icrawler_enabled'): return
+    if not flag_enabled("icrawler_enabled"):
+        return
 
-  from src.automation.orchestrator import add_process_list
-    
-  individual: Individual = Individual.query.get(individual_id)
-  if not individual or not individual.linkedin_similar_profiles or len(individual.linkedin_similar_profiles) == 0:
-      send_slack_message(
-          message=f"[iCrawler 🪳]\n- Individual (# {individual_id}) has no similar profiles\n- Ending this crawl branch ❌",
-          webhook_urls=[URL_MAP["operations-icrawler"]],
-      )
-      return
+    from src.automation.orchestrator import add_process_list
 
-  # Get similar profiles
-  new_ids = []
-  for profile in individual.linkedin_similar_profiles:
-      try:
-          profile_id = profile.get("profile_id")
-          if not profile_id: continue
+    individual: Individual = Individual.query.get(individual_id)
+    if (
+        not individual
+        or not individual.linkedin_similar_profiles
+        or len(individual.linkedin_similar_profiles) == 0
+    ):
+        send_slack_message(
+            message=f"[iCrawler 🪳]\n- Individual (# {individual_id}) has no similar profiles\n- Ending this crawl branch ❌",
+            webhook_urls=[URL_MAP["operations-icrawler"]],
+        )
+        return
 
-          profile_url = f'linkedin.com/in/{profile.get("profile_id")}'
-          success, new_id, created = add_individual_from_linkedin_url(profile_url)
+    # Get similar profiles
+    new_ids = []
+    for profile in individual.linkedin_similar_profiles:
+        try:
+            profile_id = profile.get("profile_id")
+            if not profile_id:
+                continue
 
-          if not success:
-              send_slack_message(
-                  message=f"[iCrawler 🪳]\n- Failed to add individual with profile '{profile_url}'\n- Data = Success: {success}, New ID: {new_id}, Created: {created}",
-                  webhook_urls=[URL_MAP["operations-icrawler"]],
-              )
-              continue
-          
-          if not created:
-              send_slack_message(
-                  message=f"[iCrawler 🪳]\n- Updated existing individual (# {new_id}) with profile '{profile_url}'\n- Ending this crawl branch ❌",
-                  webhook_urls=[URL_MAP["operations-icrawler"]],
-              )
-              continue
-          else:
-              if not flag_enabled('icrawler_enabled'): continue
+            profile_url = f'linkedin.com/in/{profile.get("profile_id")}'
+            success, new_id, created = add_individual_from_linkedin_url(profile_url)
 
-              # Continue the crawl...
-              send_slack_message(
-                  message=f"[iCrawler 🪳]\n- Added individual (# {new_id}) with profile '{profile_url}'\n- Continuing the crawl 👣👣🪳",
-                  webhook_urls=[URL_MAP["operations-icrawler"]],
-              )
-              new_ids.append(new_id)
+            if not success:
+                send_slack_message(
+                    message=f"[iCrawler 🪳]\n- Failed to add individual with profile '{profile_url}'\n- Data = Success: {success}, New ID: {new_id}, Created: {created}",
+                    webhook_urls=[URL_MAP["operations-icrawler"]],
+                )
+                continue
 
-      except Exception as e:
-          send_slack_message(
-              message=f"[iCrawler 🪳]\n- Error when crawling on branch for individual (# {individual_id})\n- Data = {str(e)}\n- Ending this crawl branch ❌",
-              webhook_urls=[URL_MAP["operations-icrawler"]],
-          )
-          continue
+            if not created:
+                send_slack_message(
+                    message=f"[iCrawler 🪳]\n- Updated existing individual (# {new_id}) with profile '{profile_url}'\n- Ending this crawl branch ❌",
+                    webhook_urls=[URL_MAP["operations-icrawler"]],
+                )
+                continue
+            else:
+                if not flag_enabled("icrawler_enabled"):
+                    continue
 
-  add_process_list(
-      type="run_icrawler",
-      args_list=[{
-          "individual_id": new_id
-      } for new_id in new_ids],
-      buffer_wait_minutes=10,
-      append_to_end=True,
-  )
+                # Continue the crawl...
+                send_slack_message(
+                    message=f"[iCrawler 🪳]\n- Added individual (# {new_id}) with profile '{profile_url}'\n- Continuing the crawl 👣👣🪳",
+                    webhook_urls=[URL_MAP["operations-icrawler"]],
+                )
+                new_ids.append(new_id)
+
+        except Exception as e:
+            send_slack_message(
+                message=f"[iCrawler 🪳]\n- Error when crawling on branch for individual (# {individual_id})\n- Data = {str(e)}\n- Ending this crawl branch ❌",
+                webhook_urls=[URL_MAP["operations-icrawler"]],
+            )
+            continue
+
+    add_process_list(
+        type="run_icrawler",
+        args_list=[{"individual_id": new_id} for new_id in new_ids],
+        buffer_wait_minutes=10,
+        append_to_end=True,
+    )
+
+    return True, new_ids
 
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
-def add_individual_from_linkedin_url(self, url: str) -> tuple[bool, int or str, bool or None]:
+def add_individual_from_linkedin_url(
+    self, url: str
+) -> tuple[bool, int or str, bool or None]:
 
     from src.research.linkedin.services import research_personal_profile_details
-    from src.prospecting.services import get_navigator_slug_from_url, get_linkedin_slug_from_url
+    from src.prospecting.services import (
+        get_navigator_slug_from_url,
+        get_linkedin_slug_from_url,
+    )
     from src.research.services import create_iscraper_payload_cache
 
     try:
@@ -246,7 +263,7 @@ def add_individual_from_linkedin_url(self, url: str) -> tuple[bool, int or str, 
 
 
 def backfill_iscraper_cache(start_index: int, end_index: int):
-    
+
     from src.automation.orchestrator import add_process_list
 
     caches: list[IScraperPayloadCache] = IScraperPayloadCache.query.filter(
@@ -257,10 +274,7 @@ def backfill_iscraper_cache(start_index: int, end_index: int):
 
     return add_process_list(
         type="add_individual_from_iscraper_cache",
-        args_list=[
-            {"li_url": cache.linkedin_url }
-            for cache in caches
-        ],
+        args_list=[{"li_url": cache.linkedin_url} for cache in caches],
         chunk_size=100,
         chunk_wait_minutes=3,
     )
@@ -287,7 +301,7 @@ def add_individual_from_iscraper_cache(li_url: str):
     company_id = find_company(company_name) if company_name else None
 
     individual_id, created = add_individual(
-        full_name=cache.get("first_name")+' '+cache.get("last_name"),
+        full_name=cache.get("first_name") + " " + cache.get("last_name"),
         first_name=cache.get("first_name"),
         last_name=cache.get("last_name"),
         title=cache.get("sub_title"),
@@ -333,44 +347,55 @@ def add_individual_from_iscraper_cache(li_url: str):
         recent_education_school=deep_get(cache, "education.0.school.name"),
         recent_education_degree=deep_get(cache, "education.0.degree_name"),
         recent_education_field=deep_get(cache, "education.0.field_of_study"),
-        recent_education_start_date=None if deep_get(cache, "education.0.date.start.month") is None 
-            or deep_get(cache, "education.0.date.start.year") is None else 
-            datetime.date(
-                year=deep_get(cache, "education.0.date.start.year"),
-                month=deep_get(cache, "education.0.date.start.month"),
-                day=1
-            ),
-        recent_education_end_date=None if deep_get(cache, "education.0.date.end.month") is None
-            or deep_get(cache, "education.0.date.end.year") is None else
-            datetime.date(
-                year=deep_get(cache, "education.0.date.end.year"),
-                month=deep_get(cache, "education.0.date.end.month"),
-                day=1
-            ),
-        recent_job_title=deep_get(
-            cache, "position_groups.0.profile_positions.0.title"),
-        recent_job_start_date=None if deep_get(cache, "position_groups.0.profile_positions.0.date.start.month") is None
-        or deep_get(cache, "position_groups.0.profile_positions.0.date.start.year") is None else
-        datetime.date(
-                year=deep_get(
-                    cache, "position_groups.0.profile_positions.0.date.start.year"),
-                month=deep_get(
-                    cache, "position_groups.0.profile_positions.0.date.start.month"),
-                day=1
+        recent_education_start_date=None
+        if deep_get(cache, "education.0.date.start.month") is None
+        or deep_get(cache, "education.0.date.start.year") is None
+        else datetime.date(
+            year=deep_get(cache, "education.0.date.start.year"),
+            month=deep_get(cache, "education.0.date.start.month"),
+            day=1,
         ),
-        recent_job_end_date=None if deep_get(cache, "position_groups.0.profile_positions.0.date.end.month") is None
-        or deep_get(cache, "position_groups.0.profile_positions.0.date.end.year") is None else
-        datetime.date(
-                year=deep_get(
-                    cache, "position_groups.0.profile_positions.0.date.end.year"),
-                month=deep_get(
-                    cache, "position_groups.0.profile_positions.0.date.end.month"),
-                day=1
+        recent_education_end_date=None
+        if deep_get(cache, "education.0.date.end.month") is None
+        or deep_get(cache, "education.0.date.end.year") is None
+        else datetime.date(
+            year=deep_get(cache, "education.0.date.end.year"),
+            month=deep_get(cache, "education.0.date.end.month"),
+            day=1,
+        ),
+        recent_job_title=deep_get(cache, "position_groups.0.profile_positions.0.title"),
+        recent_job_start_date=None
+        if deep_get(cache, "position_groups.0.profile_positions.0.date.start.month")
+        is None
+        or deep_get(cache, "position_groups.0.profile_positions.0.date.start.year")
+        is None
+        else datetime.date(
+            year=deep_get(
+                cache, "position_groups.0.profile_positions.0.date.start.year"
+            ),
+            month=deep_get(
+                cache, "position_groups.0.profile_positions.0.date.start.month"
+            ),
+            day=1,
+        ),
+        recent_job_end_date=None
+        if deep_get(cache, "position_groups.0.profile_positions.0.date.end.month")
+        is None
+        or deep_get(cache, "position_groups.0.profile_positions.0.date.end.year")
+        is None
+        else datetime.date(
+            year=deep_get(cache, "position_groups.0.profile_positions.0.date.end.year"),
+            month=deep_get(
+                cache, "position_groups.0.profile_positions.0.date.end.month"
+            ),
+            day=1,
         ),
         recent_job_description=deep_get(
-            cache, "position_groups.0.profile_positions.0.description"),
+            cache, "position_groups.0.profile_positions.0.description"
+        ),
         recent_job_location=deep_get(
-            cache, "position_groups.0.profile_positions.0.location"),
+            cache, "position_groups.0.profile_positions.0.location"
+        ),
     )
 
     return True if individual_id else False, individual_id, created
@@ -650,7 +675,9 @@ def add_individual(
         if recent_education_field:
             existing_individual.recent_education_field = recent_education_field
         if recent_education_start_date:
-            existing_individual.recent_education_start_date = recent_education_start_date
+            existing_individual.recent_education_start_date = (
+                recent_education_start_date
+            )
         if recent_education_end_date:
             existing_individual.recent_education_end_date = recent_education_end_date
         if recent_job_title:
@@ -734,9 +761,9 @@ def get_uploads():
 
 
 def start_upload(name: str, data: list[dict]):
-    
+
     from src.automation.orchestrator import add_process_list
-    
+
     upload = IndividualsUpload(
         name=name,
         total_size=len(data),
@@ -748,14 +775,13 @@ def start_upload(name: str, data: list[dict]):
 
     jobs = []
     for d in data:
-        li_url = d.get('linkedin_url')
+        li_url = d.get("linkedin_url")
         if li_url and "/in/" in li_url:
             profile_id = li_url.split("/in/")[1].split("/")[0]
-            profile_url = f'linkedin.com/in/{profile_id}'
+            profile_url = f"linkedin.com/in/{profile_id}"
             if profile_id:
                 jobs.append({"upload_id": upload.id, "profile_url": profile_url})
-    
-    
+
     upload: IndividualsUpload = IndividualsUpload.query.get(upload.id)
     upload.upload_size = len(jobs)
     db.session.commit()
@@ -800,12 +826,14 @@ def start_upload_from_urn_ids(name: str, urn_ids: list[str]):
 
 
 @celery.task
-def upload_job_for_individual(upload_id: int = None, profile_url: str = None, urn_id: str = None):
+def upload_job_for_individual(
+    upload_id: int = None, profile_url: str = None, urn_id: str = None
+):
 
-    if (not profile_url and urn_id):
+    if not profile_url and urn_id:
         from src.voyager.linkedin import LinkedIn
 
-        api = LinkedIn(34)# Aaron's account
+        api = LinkedIn(34)  # Aaron's account
         profile = api.get_profile(urn_id=urn_id)
         if not profile or not profile.get("public_id"):
             return False
@@ -821,7 +849,7 @@ def upload_job_for_individual(upload_id: int = None, profile_url: str = None, ur
 
 
 def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int = 0):
-    
+
     from src.prospecting.icp_score.models import ICPScoringRuleset
     from model_import import ClientArchetype
 
@@ -832,13 +860,18 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
     archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
 
     # Start building the query for the Individual table
-    individuals_query = Individual.query.join(
-        Prospect, Prospect.individual_id == Individual.id
-    ).join(
-        Company, Company.id == Individual.company_id
-    ).filter(
-        ~db.session.query(Prospect).filter(Prospect.individual_id ==
-            Individual.id, Prospect.client_id == archetype.client_id).correlate(Individual).exists()
+    individuals_query = (
+        Individual.query.join(Prospect, Prospect.individual_id == Individual.id)
+        .join(Company, Company.id == Individual.company_id)
+        .filter(
+            ~db.session.query(Prospect)
+            .filter(
+                Prospect.individual_id == Individual.id,
+                Prospect.client_id == archetype.client_id,
+            )
+            .correlate(Individual)
+            .exists()
+        )
     )
 
     if ruleset:
@@ -846,113 +879,146 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         # Title
         if ruleset.included_individual_title_keywords:
             keyword_filters = [
-                Individual.title.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_title_keywords
+                Individual.title.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_title_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_title_keywords:
             exclude_filters = [
-                not_(Individual.title.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_title_keywords
+                not_(Individual.title.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_title_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Industry
         if ruleset.included_individual_industry_keywords:
             keyword_filters = [
-                Individual.industry.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_industry_keywords
+                Individual.industry.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_industry_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_title_keywords:
             exclude_filters = [
-                not_(Individual.industry.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_title_keywords
+                not_(Individual.industry.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_title_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
-                
+
         # Company
         if ruleset.included_company_name_keywords:
             keyword_filters = [
-                Individual.company_name.ilike(f"%{keyword}%") for keyword in ruleset.included_company_name_keywords
+                Individual.company_name.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_company_name_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_company_name_keywords:
             exclude_filters = [
-                not_(Individual.company_name.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_company_name_keywords
+                not_(Individual.company_name.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_company_name_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Bio
         if ruleset.included_individual_generalized_keywords:
             keyword_filters = [
-                Individual.bio.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_generalized_keywords
+                Individual.bio.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_generalized_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_generalized_keywords:
             exclude_filters = [
-                not_(Individual.bio.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_generalized_keywords
+                not_(Individual.bio.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_generalized_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Location
         if ruleset.included_individual_locations_keywords:
             keyword_filters = [
-                Individual.location.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_locations_keywords
+                Individual.location.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_locations_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_locations_keywords:
             exclude_filters = [
-                not_(Individual.location.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_locations_keywords
+                not_(Individual.location.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_locations_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Skills
         if ruleset.included_individual_skills_keywords:
             keyword_filters = [
-                Individual.skills.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_skills_keywords
+                Individual.skills.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_skills_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_skills_keywords:
             exclude_filters = [
-                not_(Individual.skills.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_skills_keywords
+                not_(Individual.skills.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_skills_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Company Description
         if ruleset.included_company_generalized_keywords:
             keyword_filters = [
-                Company.description.ilike(f"%{keyword}%") for keyword in ruleset.included_company_generalized_keywords
+                Company.description.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_company_generalized_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_company_generalized_keywords:
             exclude_filters = [
-                not_(Company.description.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_skills_keywords
+                not_(Company.description.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_skills_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Company Industry
         if ruleset.included_individual_industry_keywords:
             keyword_filters = [
-                Company.industries.ilike(f"%{keyword}%") for keyword in ruleset.included_individual_industry_keywords
+                Company.industries.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_industry_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_industry_keywords:
             exclude_filters = [
-                not_(Company.industries.ilike(f"%{keyword}%")) for keyword in ruleset.excluded_individual_industry_keywords
+                not_(Company.industries.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_industry_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # Company Employee Count
         if ruleset.company_size_start and ruleset.company_size_end:
-            individuals_query = individuals_query.filter(and_([
+            individuals_query = individuals_query.filter(
                 Company.employees >= ruleset.company_size_start,
-                Company.employees <= ruleset.company_size_end
-            ]))
+                Company.employees <= ruleset.company_size_end,
+            )
+
+        # Company has 'locations'. not location. cast location to string
+        if ruleset.included_company_locations_keywords:
+            include_location_filters = [
+                Company.locations.cast(sqlalchemy.String).ilike(f"%{keyword}%")
+                for keyword in ruleset.included_company_locations_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*include_location_filters))
+
+        if ruleset.excluded_company_locations_keywords:
+            exclude_location_filters = [
+                not_(Company.locations.cast(sqlalchemy.String).ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_company_locations_keywords
+            ]
+            individuals_query = individuals_query.filter(
+                and_(*exclude_location_filters)
+            )
 
         # TODO the rest of the filters
         # Experience
@@ -964,8 +1030,11 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         #     individuals_query = individuals_query.filter(job_experience_filter)
 
         # After applying all the filters, retrieve the filtered individuals
-    filtered_individuals: list[Individual] = individuals_query.limit(limit).offset(offset).all()
+    filtered_individuals: list[Individual] = (
+        individuals_query.limit(limit).offset(offset).all()
+    )
     count_individuals = individuals_query.count()
 
-    return [individual.to_dict() for individual in filtered_individuals], count_individuals
-
+    return [
+        individual.to_dict() for individual in filtered_individuals
+    ], count_individuals

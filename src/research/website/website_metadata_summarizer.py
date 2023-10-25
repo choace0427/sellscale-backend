@@ -32,8 +32,8 @@ def gpt4_interpret_html(html_content: str):
 ----
 INSTRUCTIONS:
 Extract key details from the HTML content and return a JSON object with the following fields:
-- description: (mandatory) a short description of the company ex. 'We are a CRM company'
-- summary: (mandatory) a one-line summary of the company ex. 'We are a CRM company that helps small businesses manage their customers'
+- description: (mandatory) a short description of the company. 2-3 sentences long. ex. 'We are a CRM company that uses AI to help small businesses manage their customers. ...
+- summary: (mandatory) a one line tagline for the company ex. 'Supercharge your outbound with AI'
 - products: (mandatory) a list of 3-4 main products offered by the company ex. 'CRM', 'ERP', 'HR'
 - industries: (mandatory) a list of industries the company operates in ex. 'healthcare', 'finance', 'education'
 - target_profiles: (mandatory) a list of target customer profiles for the company ex. 'small business owners', 'developers', 'hospital administrators'
@@ -46,6 +46,9 @@ Extract key details from the HTML content and return a JSON object with the foll
 - instagram_url: the Instagram URL for the company ex. 'https://www.instagram.com/acme/'
 - email: the email address for the company ex. 'johnny@acm.ecom'
 - address: the address for the company ex. '123 Main St, San Francisco, CA 94105'
+- company_name: the name of the company ex. 'Acme'
+- mission: extrapolate the mission statement of the company ex. 'We help small businesses manage their customers'
+- value_proposition: extrapolate the value proposition of the company ex. 'We help small businesses manage their customers'
 
 Fill in all the fields above with the correct values. If a field is not applicable, leave it blank.
 
@@ -143,6 +146,9 @@ def cache_website_details(url: str, website_details: dict):
         instagram_url=website_details.get("instagram_url", ""),
         email=website_details.get("email", ""),
         address=website_details.get("address", ""),
+        company_name=website_details.get("company_name", ""),
+        mission=website_details.get("mission", ""),
+        value_proposition=website_details.get("value_proposition", ""),
     )
     db.session.add(website_metadata_cache)
     db.session.commit()

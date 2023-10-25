@@ -59,6 +59,7 @@ class BumpFramework(db.Model):
 
         return {
             "id": self.id,
+            "created_at": self.created_at,
             "title": self.title,
             "description": self.description,
             "active": self.active,
@@ -111,6 +112,9 @@ class BumpFrameworkTemplates(db.Model):
     length = db.Column(db.String, nullable=False)
     tag = db.Column(db.String, nullable=True)
 
+    labels = db.Column(db.ARRAY(db.String), nullable=True)
+    tone = db.Column(db.String, nullable=True)
+
     active = db.Column(db.Boolean, nullable=False, default=True)
 
     bumped_counts = db.Column(db.ARRAY(db.Integer), nullable=True)
@@ -139,6 +143,8 @@ class BumpFrameworkTemplates(db.Model):
             "transformer_blocklist": [t.value for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
+            "labels": self.labels,
+            "tone": self.tone,
         }
 
     # 'role-have-to-do-with': {

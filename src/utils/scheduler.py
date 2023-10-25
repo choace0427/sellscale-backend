@@ -134,16 +134,6 @@ def replenish_sdr_credits():
         replenish_all_email_credits_for_all_sdrs()
 
 
-def send_prospect_emails():
-    from src.email_outbound.services import send_prospect_emails
-
-    if (
-        os.environ.get("FLASK_ENV") == "production"
-        and os.environ.get("SCHEDULING_INSTANCE") == "true"
-    ):
-        send_prospect_emails.delay()
-
-
 def generate_message_bumps():
     from src.message_generation.services import generate_message_bumps
 
@@ -305,7 +295,12 @@ def run_collect_and_generate_email_messaging_schedule_entries():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        collect_and_generate_email_messaging_schedule_entries.delay()
+        collect_and_generate_email_messaging_schedule_entries.apply_async(
+            args=[],
+            queue="email_scheduler",
+            routing_key="email_scheduler",
+            priority=2,
+        )
 
 
 def run_collect_and_send_email_messaging_schedule_entries():
@@ -315,7 +310,12 @@ def run_collect_and_send_email_messaging_schedule_entries():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        collect_and_send_email_messaging_schedule_entries.delay()
+        collect_and_send_email_messaging_schedule_entries.apply_async(
+            args=[],
+            queue="email_scheduler",
+            routing_key="email_scheduler",
+            priority=1,
+        )
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
@@ -337,7 +337,6 @@ scheduler.add_job(func=run_collect_and_send_email_messaging_schedule_entries, tr
 # Minute triggers
 scheduler.add_job(func=process_queue, trigger="interval", minutes=1)
 
-scheduler.add_job(func=send_prospect_emails, trigger="interval", minutes=1)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
 scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)

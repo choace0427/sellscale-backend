@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+from src.email_sequencing.models import EmailSubjectLineTemplate
 from src.email_sequencing.services import generate_prospect_email_bump
 
 from src.authentication.decorators import require_user
@@ -25,7 +26,7 @@ def post_generate_initial_email(client_sdr_id: int):
         "test_template", request, json=True, required=False, parameter_type=str
     )
     subject_line_template_id = get_request_parameter(
-        "subject_line_template_id", request, json=True, required=False, parameter_type=int
+        "subject_line_template_id", request, json=True, required=True, parameter_type=int
     )
     subject_line_template = get_request_parameter(
         "subject_line_template", request, json=True, required=False, parameter_type=str
@@ -39,31 +40,44 @@ def post_generate_initial_email(client_sdr_id: int):
         return {"status": "error", "message": "Unauthorized."}, 401
 
     # Get the initial email body prompt and generate the email body
-    prompt = ai_initial_email_prompt(
+    body_prompt = ai_initial_email_prompt(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         test_template=test_template,
         template_id=template_id
     )
-    email_body = generate_email(prompt)
+    email_body = generate_email(body_prompt)
     email_body = email_body.get('body')
 
     # Get the initial email subject prompt and generate the subject line
-    prompt = ai_subject_line_prompt(
-        client_sdr_id=client_sdr_id,
-        prospect_id=prospect_id,
-        email_body=email_body,
-        subject_line_template_id=subject_line_template_id,
-        test_template=subject_line_template
-    )
-    subject_line = generate_subject_line(prompt)
-    subject_line = subject_line.get('subject_line')
+    # Get the EmailSubjectLineTemplate if it exists
+    if subject_line_template_id:
+        subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.filter_by(
+            id=subject_line_template_id).first()
+
+        subject_line_strict = False
+        if subject_line_template:
+            subject_line_strict = "[[" not in subject_line_template.subject_line and "{{" not in subject_line_template.subject_line
+
+        if subject_line_strict:
+            subject_prompt = "No AI template detected in subject line template. Using exact template."
+            subject_line = subject_line_template.subject_line
+        else:
+            subject_prompt = ai_subject_line_prompt(
+                client_sdr_id=client_sdr_id,
+                prospect_id=prospect_id,
+                email_body=email_body,
+                subject_line_template_id=subject_line_template_id,
+                test_template=subject_line_template
+            )
+            subject_line = generate_subject_line(subject_prompt)
+            subject_line = subject_line.get('subject_line')
 
     return {
         'status': 'success',
         'data': {
-            'email_body': {'prompt': prompt, 'completion': email_body},
-            'subject_line': {'prompt': prompt, 'completion': subject_line}
+            'email_body': {'prompt': body_prompt, 'completion': email_body},
+            'subject_line': {'prompt': subject_prompt, 'completion': subject_line}
         }
     }
 

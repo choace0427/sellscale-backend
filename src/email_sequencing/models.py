@@ -65,6 +65,10 @@ class EmailSequenceStep(db.Model):
 
     template = db.Column(db.String, nullable=True)
 
+    # Analytics
+    times_used = db.Column(db.Integer, nullable=True, default=0)
+    times_accepted = db.Column(db.Integer, nullable=True, default=0)
+
     sequence_delay_days = db.Column(db.Integer, nullable=True, default=0)
 
     # Define a CheckConstraint to enforce the minimum value
@@ -91,5 +95,7 @@ class EmailSequenceStep(db.Model):
             "bumped_count": self.bumped_count,
             "sellscale_default_generated": self.sellscale_default_generated,
             "template": self.template,
+            "times_used": self.times_used,
+            "times_accepted": self.times_accepted,
             "sequence_delay_days": self.sequence_delay_days
         }

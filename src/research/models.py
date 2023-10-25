@@ -232,6 +232,10 @@ class WebsiteMetadataCache(db.Model):
     email = db.Column(db.String, nullable=False)
     address = db.Column(db.String, nullable=False)
 
+    company_name = db.Column(db.String, nullable=True)
+    mission = db.Column(db.String, nullable=True)
+    value_proposition = db.Column(db.String, nullable=True)
+
     def to_dict(self):
         return {
             "website_url": self.website_url,
@@ -249,4 +253,7 @@ class WebsiteMetadataCache(db.Model):
             "instagram_url": self.instagram_url,
             "email": self.email,
             "address": self.address,
+            "company_name": self.company_name,
+            "mission": self.mission,
+            "value_proposition": self.value_proposition,
         }

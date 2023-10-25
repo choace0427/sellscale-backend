@@ -12,6 +12,8 @@ def create_new_bump_framework_template(
     human_readable_prompt: str,
     length: str,
     transformer_blocklist: list,
+    tone: str,
+    labels: list,
 ):
     # only alphabets with hyphens all lowercase
     tag = re.sub(r"[^a-z-]", "", name.replace(" ", "-").lower()).replace(" ", "-")
@@ -23,6 +25,8 @@ def create_new_bump_framework_template(
         length=length,
         active=True,
         transformer_blocklist=transformer_blocklist,
+        tone=tone,
+        labels=labels,
     )
     db.session.add(bft)
     db.session.commit()
@@ -41,6 +45,8 @@ def update_bump_framework_template(
     human_readable_prompt: str,
     length: str,
     transformer_blocklist: list,
+    tone: str,
+    labels: list,
 ):
     bft: BumpFrameworkTemplates = BumpFrameworkTemplates.query.get(bft_id)
     bft.name = name
@@ -48,6 +54,8 @@ def update_bump_framework_template(
     bft.human_readable_prompt = human_readable_prompt
     bft.length = length
     bft.transformer_blocklist = transformer_blocklist
+    bft.tone = tone
+    bft.labels = labels
     db.session.commit()
 
 

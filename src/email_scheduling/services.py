@@ -1,3 +1,4 @@
+import random
 import pytz
 from app import celery, db
 
@@ -104,7 +105,7 @@ def create_email_messaging_schedule_entry(
 
     return email_messaging_schedule.id
 
-
+@celery.task
 def populate_email_messaging_schedule_entries(
     client_sdr_id: int,
     prospect_email_id: int,
@@ -136,6 +137,13 @@ def populate_email_messaging_schedule_entries(
 
     # Track all the scheduled email ids
     email_ids = []
+
+    # Make sure we don't have any existing email_messaging_schedule entries
+    existing_email_messaging_schedules: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+        EmailMessagingSchedule.prospect_email_id == prospect_email_id,
+    ).all()
+    if existing_email_messaging_schedules:
+        return email_ids
 
     # Get the next available send date
     initial_email_send_date = get_initial_email_send_date(
@@ -170,7 +178,8 @@ def populate_email_messaging_schedule_entries(
 
     # Create the accepted (1 time) followup
     delay_days = initial_email_template.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
-    accepted_followup_email_send_date = initial_email_send_date + timedelta(days=delay_days)
+    random_minute_offset = random.randint(-15, 15)
+    accepted_followup_email_send_date = initial_email_send_date + timedelta(days=delay_days, minutes=random_minute_offset)
     accepted_followup_email_send_date = verify_followup_send_date(
         client_sdr_id=client_sdr_id,
         followup_send_date=accepted_followup_email_send_date,
@@ -204,7 +213,8 @@ def populate_email_messaging_schedule_entries(
         if not bumped_sequence_step:
             break
 
-        followup_email_send_date = followup_email_send_date + timedelta(days=delay_days)
+        random_minute_offset = random.randint(-15, 15)
+        followup_email_send_date = followup_email_send_date + timedelta(days=delay_days, minutes=random_minute_offset)
         followup_email_send_date = verify_followup_send_date(
             client_sdr_id=client_sdr_id,
             followup_send_date=followup_email_send_date,
@@ -424,8 +434,13 @@ def collect_and_generate_email_messaging_schedule_entries(self) -> tuple[bool, s
     if not email_messaging_schedule:
         return True, "No email_messaging_schedule entries to generate"
 
-    generate_email_messaging_schedule_entry.delay(
-        email_messaging_schedule_id=email_messaging_schedule.id,
+    generate_email_messaging_schedule_entry.apply_async(
+        kwargs={
+            "email_messaging_schedule_id": email_messaging_schedule.id,
+        },
+        queue="email_scheduler",
+        routing_key="email_scheduler",
+        prioriy=2,
     )
 
     return True, "Registered task"
@@ -465,6 +480,11 @@ def generate_email_messaging_schedule_entry(
         EmailMessagingSchedule.prospect_email_id == prospect_email.id,
         EmailMessagingSchedule.subject_line_id != None
     ).order_by(EmailMessagingSchedule.id.desc()).first()
+    if not last_messaging_schedule:
+        # Delete entry
+        db.session.delete(email_messaging_schedule)
+        db.session.commit()
+        return False, f"EmailMessagingSchedule with ID {email_messaging_schedule_id} does not have a subject line to reply to"
     subject_line: GeneratedMessage = GeneratedMessage.query.get(
         last_messaging_schedule.subject_line_id)
     subject_line_text: str = subject_line.completion
@@ -548,8 +568,13 @@ def collect_and_send_email_messaging_schedule_entries(self) -> tuple[bool, str]:
     if not email_messaging_schedule:
         return True, "No email_messaging_schedule entries to send"
 
-    send_email_messaging_schedule_entry.delay(
-        email_messaging_schedule_id=email_messaging_schedule.id,
+    send_email_messaging_schedule_entry.apply_async(
+        kwargs={
+            "email_messaging_schedule_id": email_messaging_schedule.id,
+        },
+        queue="email_scheduler",
+        routing_key="email_scheduler",
+        prioriy=1,
     )
 
     return True, "Registered task"
@@ -650,7 +675,8 @@ def send_email_messaging_schedule_entry(
         future_email_messaging_schedule.date_scheduled = new_time
 
         step: EmailSequenceStep = EmailSequenceStep.query.get(future_email_messaging_schedule.email_body_template_id)
-        new_time = new_time + timedelta(days=step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL)
+        random_minute_offset = random.randint(-15, 15)
+        new_time = new_time + timedelta(days=step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL, minutes=random_minute_offset)
         new_time = verify_followup_send_date(
             client_sdr_id=email_messaging_schedule.client_sdr_id,
             followup_send_date=new_time,
@@ -672,6 +698,7 @@ def send_email_messaging_schedule_entry(
     # 5. Update the prospect_email
     # 5b. Get the appropriate status
     outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH if email_messaging_schedule.email_type == EmailMessagingType.INITIAL_EMAIL else ProspectEmailOutreachStatus.BUMPED
+    prospect_email.email_status = ProspectEmailStatus.SENT
 
     # 5c. Update the prospect_email status
     success, _ = update_prospect_status_email(
