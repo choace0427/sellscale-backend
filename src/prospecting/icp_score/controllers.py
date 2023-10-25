@@ -5,6 +5,8 @@ from app import db
 
 from flask import Blueprint, jsonify, request
 from src.prospecting.icp_score.services import (
+    generate_new_icp_filters,
+    update_icp_filters,
     update_icp_scoring_ruleset,
     move_selected_prospects_to_unassigned,
     apply_icp_scoring_ruleset_filters_task,
@@ -282,3 +284,38 @@ def post_clear_icp_ruleset(client_sdr_id: int):
     if success:
         return "OK", 200
     return "Failed to clear ICP ruleset", 500
+
+
+@ICP_SCORING_BLUEPRINT.route("/generate_new_icp_filters", methods=["POST"])
+@require_user
+def post_generate_new_icp_filters(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+
+    message = get_request_parameter(
+        "message", request, json=True, required=True
+    )
+
+    result = generate_new_icp_filters(client_archetype_id=client_archetype_id, message=message)
+
+    return jsonify({"message": "Success", "data": result }), 200
+
+
+@ICP_SCORING_BLUEPRINT.route("/update_icp_filters", methods=["POST"])
+@require_user
+def post_update_icp_filters(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+
+    filters = get_request_parameter(
+        "filters", request, json=True, required=True
+    )
+
+    result = update_icp_filters(
+        client_archetype_id=client_archetype_id,
+        filters=filters
+    )
+
+    return jsonify({"message": "Success", "data": result}), 200

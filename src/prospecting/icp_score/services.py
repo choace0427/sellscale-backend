@@ -5,6 +5,7 @@ from typing import Counter, Optional
 from flask import app
 import pandas as pd
 from pyparsing import dictOf
+from src.ml.services import get_text_generation
 from src.client.models import ClientArchetype
 from src.prospecting.icp_score.models import (
     ICPScoringJobQueue,
@@ -1316,3 +1317,124 @@ def clone_icp_ruleset(source_archetype_id: int, target_archetype_id: int):
     )
 
     return success
+
+
+def generate_new_icp_filters(client_archetype_id: int, message: str):
+    
+    icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=client_archetype_id
+    ).first()
+    if not icp_scoring_ruleset:
+        return False
+    
+
+    # Use message to improve the ICP scoring ruleset
+    prompt = f"""
+I have a list of filters for finding good sales prospects. I'm going to give you the filters and then provide you with a alteration to them. Please make the alteration then return the filters in the exact same format I presented them to you.
+
+## Current Filters
+Prospect Years of Experience: [{icp_scoring_ruleset.individual_years_of_experience_start}, {icp_scoring_ruleset.individual_years_of_experience_end}]
+Company Size: [{icp_scoring_ruleset.company_size_start}, {icp_scoring_ruleset.company_size_end}]
+Prospect Title Keywords: {icp_scoring_ruleset.included_individual_title_keywords}
+Prospect Industry Keywords: {icp_scoring_ruleset.included_individual_industry_keywords}
+Prospect Location Keywords: {icp_scoring_ruleset.included_individual_locations_keywords}
+Prospect Skills Keywords: {icp_scoring_ruleset.included_individual_skills_keywords}
+Prospect Generalized Keywords: {icp_scoring_ruleset.included_individual_generalized_keywords}
+Company Name Keywords: {icp_scoring_ruleset.included_company_name_keywords}
+Company Location Keywords: {icp_scoring_ruleset.included_company_locations_keywords}
+Company Industry Keywords: {icp_scoring_ruleset.included_company_industries_keywords}
+Company Generalized Keywords: {icp_scoring_ruleset.included_company_generalized_keywords}
+
+## Alteration
+{message}
+
+## Updated Filters
+"""
+
+
+    response = get_text_generation(
+        [
+            {"role": "user", "content": prompt},
+        ],
+        temperature=1.0,
+        max_tokens=240,
+        model="gpt-4",
+        type="ICP_CLASSIFY",
+    )
+
+    lines = response.strip().split("\n")
+
+    # Initialize an empty dictionary
+    icp_dict = {}
+
+    # Define the mapping of keys to attribute names in the ICPScoringRuleset class
+    key_to_attribute = {
+        "Prospect Years of Experience": ("individual_years_of_experience_start", "individual_years_of_experience_end"),
+        "Company Size": ("company_size_start", "company_size_end"),
+        "Prospect Title Keywords": ("included_individual_title_keywords", "excluded_individual_title_keywords"),
+        "Prospect Industry Keywords": ("included_individual_industry_keywords", "excluded_individual_industry_keywords"),
+        "Prospect Location Keywords": ("included_individual_locations_keywords", "excluded_individual_locations_keywords"),
+        "Prospect Skills Keywords": ("included_individual_skills_keywords", "excluded_individual_skills_keywords"),
+        "Prospect Generalized Keywords": ("included_individual_generalized_keywords", "excluded_individual_generalized_keywords"),
+        "Company Name Keywords": ("included_company_name_keywords", "excluded_company_name_keywords"),
+        "Company Location Keywords": ("included_company_locations_keywords", "excluded_company_locations_keywords"),
+        "Company Industry Keywords": ("included_company_industries_keywords", "excluded_company_industries_keywords"),
+        "Company Generalized Keywords": ("included_company_generalized_keywords", "excluded_company_generalized_keywords"),
+    }
+
+
+    # Iterate over the lines and populate the icp_dict
+    for line in lines:
+        if ":" in line:
+            key, value = line.split(": ")
+            attributes = key_to_attribute.get(key)
+            if attributes:
+                # Split the values based on brackets and remove leading/trailing whitespace
+                values = [v.strip() for v in value.strip('[]').split(', ')]
+                if len(values) == 2:
+                    start, end = values
+                    try:
+                        icp_dict[attributes[0]] = int(
+                            start) if start and start != 'None' else None
+                        icp_dict[attributes[1]] = int(
+                            end) if end and end != 'None' else None
+                    except ValueError:
+                        icp_dict[attributes[0]] = None
+                        icp_dict[attributes[1]] = None
+                else:
+                    icp_dict[attributes[0]] = [v.strip("'") for v in values]
+
+    # Create an instance of ICPScoringRuleset and populate it with the values
+    icp_ruleset = ICPScoringRuleset(**icp_dict)
+
+    # Convert the ICPScoringRuleset instance to a dictionary
+    icp_dict = icp_ruleset.to_dict()
+
+    return icp_dict
+
+
+def update_icp_filters(client_archetype_id: int, filters):
+    
+    icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=client_archetype_id
+    ).first()
+    if icp_scoring_ruleset:
+        # Update the attributes with the values from icp_dict
+        for key, value in filters.items():
+
+            if key == 'client_archetype_id':
+                continue
+
+            if value is ['None']:
+                setattr(icp_scoring_ruleset, key, None)
+            else:
+                setattr(icp_scoring_ruleset, key, value)
+
+        # Commit the changes to the database
+        db.session.commit()
+
+        return True
+    else:
+        return False
+    
+
