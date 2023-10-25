@@ -333,10 +333,9 @@ scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 # 30 second triggers
 scheduler.add_job(func=run_collect_and_generate_email_messaging_schedule_entries, trigger="interval", seconds=30)
 scheduler.add_job(func=run_collect_and_send_email_messaging_schedule_entries, trigger="interval", seconds=30)
+scheduler.add_job(func=process_queue, trigger="interval", seconds=30)
 
 # Minute triggers
-scheduler.add_job(func=process_queue, trigger="interval", minutes=1)
-
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
 scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)

@@ -1,6 +1,8 @@
 from email.policy import default
 from typing import Optional
 
+from sqlalchemy.dialects.postgresql import JSONB
+
 from src.client.models import ClientArchetype, ClientSDR
 from app import db
 import sqlalchemy as sa
@@ -394,7 +396,7 @@ class ProcessQueue(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String, nullable=False)
-    meta_data = db.Column(db.JSON, nullable=True)
+    meta_data = db.Column(JSONB, nullable=True)
     execution_date = db.Column(db.DateTime, nullable=False)
     executed_at = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.Enum(ProcessQueueStatus), default=ProcessQueueStatus.QUEUED, nullable=True)

@@ -154,7 +154,7 @@ def individual_similar_profile_crawler(individual_id: int):
             message=f"[iCrawler 🪳]\n- Individual (# {individual_id}) has no similar profiles\n- Ending this crawl branch ❌",
             webhook_urls=[URL_MAP["operations-icrawler"]],
         )
-        return
+        return False, []
 
     # Get similar profiles
     new_ids = []
@@ -845,7 +845,11 @@ def upload_job_for_individual(
             upload.added_size = upload.added_size + 1 if upload.added_size else 1
             db.session.commit()
 
-    return add_individual_from_linkedin_url(profile_url)
+    result = add_individual_from_linkedin_url(profile_url)
+    if type(result) is tuple:
+        return result
+
+    return True
 
 
 def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int = 0):

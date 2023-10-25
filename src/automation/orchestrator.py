@@ -166,11 +166,11 @@ def add_process_to_queue(
     return process.to_dict()
 
 @celery.task
-def remove_process_from_queue(result: tuple, process_id: int):
+def remove_process_from_queue(result: list, process_id: int):
     """Removes a process from the queue after it has been executed, depending on the result
 
     Args:
-        result (tuple): The result of the executed function
+        result (list): The result of the executed function
         process_id (int): The id of the process queue
 
     Returns:
@@ -180,17 +180,17 @@ def remove_process_from_queue(result: tuple, process_id: int):
     if not process:
         return False
 
-    # If the type is not a tuple, then this system wasn't used correctly.
+    # If the type is not a list, then this system wasn't used correctly.
     # For the time being, we will delete the process and raise an exception.
-    if type(result) is not tuple:
+    if type(result) is not list:
         job = process.type
 
         db.session.delete(process)
         db.session.commit()
         raise Exception(
-            f"Process return value was not correct, result was not a tuple. Function: {job}")
+            f"Process return value was not correct, result was not a list. Function: {job}")
 
-    # Make sure that the first element of the tuple is a boolean
+    # Make sure that the first element of the list is a boolean
     result = result[0]
     if type(result) is not bool:
         job = process.type
