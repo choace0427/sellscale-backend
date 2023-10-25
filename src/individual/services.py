@@ -276,7 +276,9 @@ def backfill_iscraper_cache(start_index: int, end_index: int):
         type="add_individual_from_iscraper_cache",
         args_list=[{"li_url": cache.linkedin_url} for cache in caches],
         chunk_size=100,
-        chunk_wait_minutes=3,
+        chunk_wait_minutes=30,
+        buffer_wait_minutes=1,
+        append_to_end=True,
     )
 
 

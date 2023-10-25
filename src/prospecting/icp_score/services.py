@@ -1434,7 +1434,8 @@ def update_icp_filters(client_archetype_id: int, filters):
             if value is ['None'] or value is [''] or value is []:
                 setattr(icp_scoring_ruleset, key, None)
             else:
-                setattr(icp_scoring_ruleset, key, value)
+                setattr(icp_scoring_ruleset, key, [
+                        s.replace('"', '') for s in value])
 
         # Commit the changes to the database
         db.session.commit()
