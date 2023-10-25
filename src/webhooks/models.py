@@ -15,6 +15,7 @@ class NylasWebhookType(enum.Enum):
     EVENT_CREATED = "event.created"
     EVENT_UPDATED = "event.updated"
     THREAD_REPLIED = "thread.replied"
+    ACCOUNT_INVALID = "account.invalid"
 
 
 class NylasWebhookPayloads(db.Model):

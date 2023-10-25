@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from src.webhooks.models import NylasWebhookProcessingStatus, NylasWebhookType
+from src.webhooks.nylas.account_invalid import process_deltas_account_invalid
 from src.webhooks.nylas.event_update import process_deltas_event_update
 from src.webhooks.nylas.message_created import process_deltas_message_created
 from src.webhooks.nylas.message_opened import process_deltas_message_opened
@@ -186,3 +187,39 @@ def nylas_webhook_thread_replied():
     )
 
     return "Deltas for `thread.replied` have been queued", 200
+
+
+@WEBHOOKS_BLUEPRINT.route('/nylas/account_invalid', methods=['GET', 'POST'])
+def nylas_webhook_account_invalid():
+    """Webhook for Nylas account event."""
+
+    if request.method == 'GET' and "challenge" in request.args:
+        return request.args["challenge"]
+
+    is_genuine = verify_signature(
+        message=request.data,
+        key=NYLAS_CLIENT_SECRET.encode("utf8"),
+        signature=request.headers.get("X-Nylas-Signature"),
+    )
+    if not is_genuine:
+        return "Signature verification failed!", 401
+
+    # Let's save the webhook notification to our database, so that we can
+    # process it later.
+    data = request.get_json()
+    payload_id = create_nylas_webhook_payload_entry(
+        nylas_payload=data,
+        nylas_webhook_type=NylasWebhookType.ACCOUNT_INVALID,
+        processing_status=NylasWebhookProcessingStatus.PENDING,
+        processing_fail_reason=None
+    )
+
+    # Alright, we have a genuine webhook notification from Nylas
+    # Let's find out what it says...
+    deltas = data["deltas"]
+
+    process_deltas_account_invalid.apply_async(
+        args=[deltas, payload_id]
+    )
+
+    return "Deltas for `account.invalid` have been queued", 200
