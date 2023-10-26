@@ -150,25 +150,41 @@ def get_all_campaign_analytics_for_client(client_id: int):
                     where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
                         prospect_email_status_records.to_status = 'ACTIVE_CONVO'
                 ) num_replies,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'DEMO_SET' or
+                        prospect_email_status_records.to_status = 'DEMO_SET'
+                ) num_demos,
                 client_sdr.name,
-                client_sdr.img_url
-            
+                client_sdr.img_url,
+                icp_scoring_ruleset.included_individual_title_keywords,
+                icp_scoring_ruleset.included_individual_locations_keywords,
+                icp_scoring_ruleset.included_individual_industry_keywords,
+                icp_scoring_ruleset.included_individual_generalized_keywords,
+                icp_scoring_ruleset.included_individual_skills_keywords,
+                icp_scoring_ruleset.included_company_name_keywords,
+                icp_scoring_ruleset.included_company_locations_keywords,
+                icp_scoring_ruleset.included_company_generalized_keywords,
+                icp_scoring_ruleset.included_company_industries_keywords,
+                icp_scoring_ruleset.company_size_start,
+                icp_scoring_ruleset.company_size_end
             from client_archetype
                 join client_sdr on client_sdr.id = client_archetype.client_sdr_id
                 join prospect on prospect.client_sdr_id = client_sdr.id
                 left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
                 left join prospect_email on prospect_email.prospect_id = prospect.id
                 left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+                left join icp_scoring_ruleset on icp_scoring_ruleset.client_archetype_id = client_archetype.id
             where client_archetype.client_id = {client_id}
                 and client_archetype.active
-            group by 1,2,3,4, client_archetype.updated_at, client_sdr.name, client_sdr.img_url
+            group by 1,2,3,4, client_archetype.updated_at, client_sdr.name, client_sdr.img_url, icp_scoring_ruleset.included_individual_title_keywords, icp_scoring_ruleset.included_individual_locations_keywords, icp_scoring_ruleset.included_individual_industry_keywords, icp_scoring_ruleset.included_company_name_keywords, icp_scoring_ruleset.included_company_locations_keywords, icp_scoring_ruleset.included_individual_generalized_keywords, icp_scoring_ruleset.included_individual_skills_keywords, icp_scoring_ruleset.included_company_generalized_keywords,icp_scoring_ruleset.included_company_industries_keywords, icp_scoring_ruleset.company_size_start, icp_scoring_ruleset.company_size_end
             order by client_archetype.updated_at desc
         )
         select 
             *,
             100 "sent_percent",
             num_opens / (0.0001 + cast(num_sent as float)) "open_percent",
-            num_replies / (0.0001 + cast(num_sent as float)) "num_replies"
+            num_replies / (0.0001 + cast(num_sent as float)) "num_replies",
+            num_demos / (0.0001 + cast(num_sent as float)) "num_demos"
         from d;
     """.format(
         client_id=client_id
@@ -186,11 +202,24 @@ def get_all_campaign_analytics_for_client(client_id: int):
                 "num_sent": row[4],
                 "num_opens": row[5],
                 "num_replies": row[6],
-                "name": row[7],
-                "img_url": row[8],
-                "sent_percent": row[9],
-                "open_percent": row[10],
-                "reply_percent": row[11],
+                "num_demos": row[7],
+                "name": row[8],
+                "img_url": row[9],
+                "included_individual_title_keywords": row[10],
+                "included_individual_locations_keywords": row[11],
+                "included_individual_industry_keywords": row[12],
+                "included_individual_generalized_keywords": row[13],
+                "included_individual_skills_keywords": row[14],
+                "included_company_name_keywords": row[15],
+                "included_company_locations_keywords": row[16],
+                "included_company_generalized_keywords": row[17],
+                "included_company_industries_keywords": row[18],
+                "company_size_start": row[19],
+                "company_size_end": row[20],
+                "sent_percent": row[21],
+                "open_percent": row[22],
+                "reply_percent": row[23],
+                "demo_percent": row[24],
             }
         )
 

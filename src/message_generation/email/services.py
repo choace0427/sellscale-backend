@@ -417,42 +417,41 @@ def ai_subject_line_prompt(
         str: The subject line prompt
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
+    # client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-    account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
-        AccountResearchPoints.prospect_id == prospect.id
-    ).all()
+    # client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    # account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
+    #     AccountResearchPoints.prospect_id == prospect.id
+    # ).all()
 
     # Collect company information
-    client_sdr_name = client_sdr.name
-    client_sdr_title = client_sdr.title
-    company_tagline = client.tagline
-    company_description = client.description
-    company_value_prop_key_points = client.value_prop_key_points
-    company_tone_attributes = (
-        ", ".join(client.tone_attributes) if client.tone_attributes else ""
-    )
+    # client_sdr_name = client_sdr.name
+    # client_sdr_title = client_sdr.title
+    # company_tagline = client.tagline
+    # company_description = client.description
+    # company_value_prop_key_points = client.value_prop_key_points
+    # company_tone_attributes = (
+    #     ", ".join(client.tone_attributes) if client.tone_attributes else ""
+    # )
 
     # Collect persona information
-    persona_name = client_archetype.archetype
-    persona_buy_reason = client_archetype.persona_fit_reason
-    prospect_contact_objective = client_archetype.persona_contact_objective
+    # persona_name = client_archetype.archetype
+    # persona_buy_reason = client_archetype.persona_fit_reason
     prospect_name = prospect.full_name
     prospect_title = prospect.title
     prospect_bio = prospect.linkedin_bio
-    prospect_company_name = prospect.company
+    # prospect_company_name = prospect.company
 
     # Collect research points
-    prospect_research: list[
-        ResearchPoints
-    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    research_points = ""
-    for point in prospect_research:
-        research_points += f"- {point.value}\n"
-    account_points = ""
-    for point in account_research:
-        account_points += f"- {point.title}: {point.reason}\n"
+    # prospect_research: list[
+    #     ResearchPoints
+    # ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    # research_points = ""
+    # for point in prospect_research:
+    #     research_points += f"- {point.value}\n"
+    # account_points = ""
+    # for point in account_research:
+    #     account_points += f"- {point.title}: {point.reason}\n"
 
     subject_line = DEFAULT_SUBJECT_LINE_TEMPLATE
 
@@ -465,49 +464,30 @@ def ai_subject_line_prompt(
     elif test_template is not None:
         subject_line = test_template
 
-    prompt = """You are a sales development representative writing a subject line on behalf of the salesperson.
+    prompt = """Given the following email body, please write a subject line that would be most likely to get a response from the prospect.
+-- START EMAIL BODY --
+{email_body}
+-- END EMAIL BODY --
 
-SDR info --
-SDR Name: {client_sdr_name}
-Title: {client_sdr_title}
-
-Prospect info --
+Here are some facts about the prospect:
 Prospect Name: {prospect_name}
 Prospect Title: {prospect_title}
-Prospect Bio:
-"{prospect_bio}"
-Prospect Company Name: {prospect_company_name}
+Prospect Bio: "{prospect_bio}"
 
-More research --
-{prospect_research}
-{research_points}
-
-Generate the email subject line. Do not include the word 'Subject:' in the output. Do not include quotations.
+Do not include the word 'Subject:' in the output. Do not include quotations.
 
 IMPORTANT:
 Use the following subject line template strictly. Stick to the template strictly and do not deviate from the template:
 --- START TEMPLATE ---
-{subject_line}
+{template}
 --- END TEMPLATE ---
 
 Output:""".format(
-        subject_line=subject_line,
         email_body=email_body,
-        client_sdr_name=client_sdr_name,
-        client_sdr_title=client_sdr_title,
-        company_tagline=company_tagline,
-        company_description=company_description,
-        value_prop_key_points=company_value_prop_key_points,
-        company_tone=company_tone_attributes,
-        persona_name=persona_name,
-        persona_buy_reason=persona_buy_reason,
         prospect_name=prospect_name,
         prospect_title=prospect_title,
         prospect_bio=prospect_bio,
-        prospect_company_name=prospect_company_name,
-        prospect_research=account_points,
-        research_points=research_points,
-        persona_contact_objective=prospect_contact_objective,
+        template=subject_line,
     )
 
     return prompt

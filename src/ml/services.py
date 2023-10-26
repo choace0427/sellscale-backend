@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from src.ml.openai_wrappers import DEFAULT_TEMPERATURE
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
-from src.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 
 from src.research.models import IScraperPayloadCache, ResearchPoints
 from src.research.models import ResearchPayload
@@ -15,7 +15,7 @@ from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect, ProspectStatus
-from src.message_generation.models import GeneratedMessage, GeneratedMessageType
+from src.message_generation.models import GeneratedMessage, GeneratedMessageEmailType, GeneratedMessageType
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
     GNLPModel,
@@ -253,10 +253,16 @@ def get_aree_fix_basic(
     # Create the instruction
     instruction = """Given the message and a list of problems identified in the message, please fix the message. Make as few changes as possible."""
     if message and message.message_type == GeneratedMessageType.EMAIL:
-        # If the message is an Email,
-        template_id = message.email_sequence_step_template_id
-        template: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
-        template = template.template
+        # If the message is an Email
+        if message.email_type == GeneratedMessageEmailType.BODY:
+            template_id = message.email_sequence_step_template_id
+            template: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
+            template = template.template
+        elif message.email_type == GeneratedMessageEmailType.SUBJECT_LINE:
+            subject_line_id = message.email_subject_line_template_id
+            subject_line: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(subject_line_id)
+            template = subject_line.subject_line
+
         instruction = """Given the email and a list of problems identified in the email, please fix the email. Make as few changes as possible.
 
 This template was used to generate the email. Do not deviate from the template:

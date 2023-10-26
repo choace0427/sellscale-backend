@@ -9,7 +9,7 @@ from src.client.sdr.email.models import SDREmailBank, SDREmailSendSchedule
 from src.client.sdr.email.services_email_schedule import create_default_sdr_email_send_schedule
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
-from src.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.message_generation.models import GeneratedMessage, GeneratedMessageEmailType, GeneratedMessageStatus, GeneratedMessageType
 from src.prospecting.models import Prospect, ProspectOverallStatus
 
@@ -694,6 +694,14 @@ def send_email_messaging_schedule_entry(
     subject_line.date_sent = now
     body.message_status = GeneratedMessageStatus.SENT
     body.date_sent = now
+
+    # 4c. Get the templates from the generated message and increment use count
+    subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(subject_line.email_subject_line_template_id)
+    if subject_line_template:
+        subject_line_template.times_used = subject_line_template.times_used + 1 if subject_line_template.times_used else 1
+    body_template: EmailSequenceStep = EmailSequenceStep.query.get(body.email_sequence_step_template_id)
+    if body_template:
+        body_template.times_used = body_template.times_used + 1 if body_template.times_used else 1
 
     # 5. Update the prospect_email
     # 5b. Get the appropriate status
