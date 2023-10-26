@@ -14,7 +14,8 @@ from src.email_sequencing.services import (
     create_email_subject_line_template,
     modify_email_subject_line_template,
     deactivate_email_subject_line_template,
-    activate_email_subject_line_template
+    activate_email_subject_line_template,
+    undefault_all_sequence_steps_in_status
 )
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
@@ -201,6 +202,21 @@ def patch_sequence_step(client_sdr_id: int):
     )
 
     return jsonify({"message": "Sequence step updated."}), 200 if modified else 400
+
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/step/deactivate/all", methods=["POST"])
+@require_user
+def post_deactivate_all_sequence_steps(client_sdr_id: int):
+    """Deactivates all sequence steps for a given client SDR"""
+    sequence_step_id = get_request_parameter(
+        "sequence_step_id", request, json=True, required=True
+    )
+
+    undefault_all_sequence_steps_in_status(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=sequence_step_id,
+    )
+    return jsonify({"status": "success", "message": "Sequence steps deactivated."}), 200
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step/deactivate", methods=["POST"])
