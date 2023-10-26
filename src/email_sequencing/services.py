@@ -238,6 +238,44 @@ def modify_email_sequence_step(
     return True
 
 
+def undefault_all_sequence_steps_in_status(
+    client_sdr_id: int,
+    sequence_step_id: int
+) -> bool:
+    """Marks all sequence steps in the same status as the given sequence step as no longer default
+
+    Args:
+        client_sdr_id (int): The id of the client SDR
+        sequence_step_id (int): The id of the sequence step
+
+    Returns:
+        bool: Whether the sequence steps were deactivated
+    """
+    sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter(
+        EmailSequenceStep.client_sdr_id == client_sdr_id,
+        EmailSequenceStep.id == sequence_step_id,
+    ).first()
+    if not sequence_step:
+        return False
+
+    sequence_step.default = False
+
+    # Get sequence steps in the same status
+    sequence_steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
+        EmailSequenceStep.client_sdr_id == client_sdr_id,
+        EmailSequenceStep.client_archetype_id == sequence_step.client_archetype_id,
+        EmailSequenceStep.overall_status == sequence_step.overall_status,
+        EmailSequenceStep.substatus == sequence_step.substatus,
+        EmailSequenceStep.bumped_count == sequence_step.bumped_count,
+    ).all()
+    for sequence_step in sequence_steps:
+        sequence_step.default = False
+
+    db.session.commit()
+
+    return True
+
+
 def deactivate_sequence_step(client_sdr_id: int, sequence_step_id: int) -> bool:
     """Deletes a BumpFramework entry by marking it as inactive
 
