@@ -128,7 +128,7 @@ class LinkedIn(object):
         except Exception as e:
             
             send_slack_message(
-                message=f"Error on fetch, {str(e)}",
+                message=f"Error on fetch, {str(e)}, {res.text}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
@@ -156,7 +156,7 @@ class LinkedIn(object):
             res = self.client.session.post(url, **kwargs)
 
             send_slack_message(
-                message=f"Post response: {str(res)}",
+                message=f"Post response: {str(res)}, {res.text}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
