@@ -1164,11 +1164,6 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         )
         if subjectline_template:
             subjectline_template_id = subjectline_template.id
-            subjectline_template.times_used = (
-                subjectline_template.times_used + 1
-                if subjectline_template.times_used
-                else 1
-            )
             subjectline_strict = (
                 "[[" not in subjectline_template.subject_line
                 and "{{" not in subjectline_template.subject_line
