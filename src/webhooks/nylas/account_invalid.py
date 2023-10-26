@@ -24,13 +24,11 @@ def process_deltas_account_invalid(
     """
     # Process deltas
     if type(deltas) == dict:
-        delta_type = deltas.get("type")
         process_single_account_invalid.apply_async(args=[deltas, payload_id])
 
     for delta in deltas:
         # Processing the data might take awhile, so we should split it up into
         # multiple tasks, so that we don't block the Celery worker.
-        delta_type = deltas.get("type")
         process_single_account_invalid.apply_async(args=[deltas, payload_id])
 
     return True, len(deltas)
@@ -143,6 +141,10 @@ def process_single_account_invalid(
                 }
             ]
         )
+
+        # Set payload to "SUCCEEDED"
+        payload.processing_status = NylasWebhookProcessingStatus.SUCCEEDED
+        db.session.commit()
 
         return True, account_id
     except Exception as e:
