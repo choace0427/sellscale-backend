@@ -39,7 +39,8 @@ def get_self_profile(client_sdr_id: int):
 
     api = LinkedIn(client_sdr_id=client_sdr_id, cookies=cookies)
     profile = api.get_user_profile(use_cache=False)
-    if not api.is_valid():
+
+    if not cookies and not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)

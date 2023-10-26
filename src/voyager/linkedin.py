@@ -112,13 +112,16 @@ class LinkedIn(object):
         try:
             res = self.client.session.get(url, **kwargs)
 
+            if res.status_code == 401:
+                raise Exception("Invalid cookies")
+
             # Attempt request again if we're being rate limited
             if res.status_code == 400 and self.request_count < 20:
                 return self._fetch(uri=uri, base_request=base_request, **kwargs)
 
             return res
-        except TooManyRedirects as e:
-            print("TooManyRedirects - Invalidating cookies")
+        except Exception as e:
+            print("Error - Invalidating cookies")
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
             if sdr:
 
@@ -142,13 +145,16 @@ class LinkedIn(object):
         try:
             res = self.client.session.post(url, **kwargs)
 
+            if res.status_code == 401:
+                raise Exception("Invalid cookies")
+
             # Attempt request again if we're being rate limited
             if res.status_code == 400 and self.request_count < 20:
                 return self._post(uri=uri, base_request=base_request, **kwargs)
 
             return res
-        except TooManyRedirects as e:
-            print("TooManyRedirects - Invalidating cookies")
+        except Exception as e:
+            print("Error - Invalidating cookies")
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
             if sdr:
 
@@ -363,10 +369,10 @@ class LinkedIn(object):
         me_profile = self.client.metadata.get("me")
         if not self.client.metadata.get("me") or not use_cache:
             res = self._fetch(f"/me")
-            if res.status_code == 403:
+            if res.status_code == 403 or res.status_code == 401:
                 sdr = self.client_sdr
                 send_slack_message(
-                    message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
+                    message=f"SDR {sdr.name} (#{sdr.id}) returned a {res.status_code} response from LinkedIn. Investigate?",
                     webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
                 )
                 return None
