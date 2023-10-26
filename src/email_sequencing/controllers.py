@@ -214,7 +214,7 @@ def post_deactivate_all_sequence_steps(client_sdr_id: int):
 
     undefault_all_sequence_steps_in_status(
         client_sdr_id=client_sdr_id,
-        client_archetype_id=sequence_step_id,
+        sequence_step_id=sequence_step_id,
     )
     return jsonify({"status": "success", "message": "Sequence steps deactivated."}), 200
 
