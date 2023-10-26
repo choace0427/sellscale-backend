@@ -73,7 +73,7 @@ def process_single_account_invalid(
 
         # Get EmailBank entry
         email_bank: SDREmailBank = SDREmailBank.query.filter_by(
-            nylas_connected_email_account_id=account_id).first()
+            nylas_account_id=account_id).first()
         if not email_bank:
             payload.processing_status = NylasWebhookProcessingStatus.FAILED
             payload.processing_fail_reason = "No EmailBank entry found"
