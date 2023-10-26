@@ -164,7 +164,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                 "initial_email_body_template_id": body.email_sequence_step_template_id,
                 "initial_email_send_date": None,
             },
-            minutes=(index)
+            minutes=index
         )
 
         # populate_email_messaging_schedule_entries(
