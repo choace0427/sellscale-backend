@@ -46,6 +46,11 @@ def get_self_profile(client_sdr_id: int):
     api = LinkedIn(client_sdr_id=client_sdr_id, cookies=cookies)
     profile = api.get_user_profile(use_cache=False)
 
+    send_slack_message(
+        message=f"<{client_sdr_id}> Self profile: {profile}",
+        webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+    )
+
     if not cookies and not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
