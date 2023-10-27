@@ -39,7 +39,7 @@ def get_email_messaging_schedule_entries_endpoint(client_sdr_id: int):
 def patch_email_messaging_schedule_entry(client_sdr_id: int, schedule_id: int):
     """Patches an email messaging schedule entry."""
     new_time = get_request_parameter(
-        "new_time", request, json=False, required=True, parameter_type=str
+        "new_time", request, json=True, required=True, parameter_type=str
     )
 
     new_time = convert_string_to_datetime(content=new_time)
