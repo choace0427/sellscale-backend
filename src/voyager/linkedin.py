@@ -113,7 +113,7 @@ class LinkedIn(object):
             res = self.client.session.get(url, **kwargs)
 
             send_slack_message(
-                message=f"Get response: {str(res)}",
+                message=f"<{self.client_sdr_id}> Get response: {str(res)}, {res.text}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
@@ -128,7 +128,7 @@ class LinkedIn(object):
         except Exception as e:
             
             send_slack_message(
-                message=f"Error on fetch, {str(e)}, {res.text}",
+                message=f"<{self.client_sdr_id}> Error on fetch, {str(e)}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
@@ -156,7 +156,7 @@ class LinkedIn(object):
             res = self.client.session.post(url, **kwargs)
 
             send_slack_message(
-                message=f"Post response: {str(res)}, {res.text}",
+                message=f"<{self.client_sdr_id}> Post response: {str(res)}, {res.text}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
@@ -171,11 +171,11 @@ class LinkedIn(object):
         except Exception as e:
             
             send_slack_message(
-                message=f"Error on post, {str(e)}",
+                message=f"<{self.client_sdr_id}> Error on post, {str(e)}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
-            sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
+            sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
             if sdr:
 
                 if sdr.li_cookies != "INVALID":
