@@ -1330,7 +1330,7 @@ def generate_new_icp_filters(client_archetype_id: int, message: str):
 
     # Use message to improve the ICP scoring ruleset
     prompt = f"""
-I have a list of filters for finding good sales prospects. I'm going to give you the filters and then provide you with a alteration to them. Please make the alteration then return the filters in the exact same format I presented them to you.
+I have a list of filters for finding good sales prospects. I'm going to give you the filters and then provide you with a alteration to them. Please make the alteration then return the filters in the exact same format I presented them to you. The alteration should generally be to add additional filters, rather than replace filters (unless it makes sense to do so). If you are unsure about a filter, please leave it as is.
 
 If the alteration is location related, please use the full name of the location (e.g. United States, Canada, etc.) and related locations.
 #### Example
