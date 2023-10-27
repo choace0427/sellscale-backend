@@ -113,7 +113,7 @@ class LinkedIn(object):
             res = self.client.session.get(url, **kwargs)
 
             send_slack_message(
-                message=f"<{self.client_sdr_id}> Get response: {str(res)}, {res.text}",
+                message=f"<{self.client_sdr_id}> Get response: {str(res)}\n\n {res.raw}\n\n {res.reason}\n\n {res.__dict__}\n\n {res.text}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
@@ -156,7 +156,7 @@ class LinkedIn(object):
             res = self.client.session.post(url, **kwargs)
 
             send_slack_message(
-                message=f"<{self.client_sdr_id}> Post response: {str(res)}, {res.text}",
+                message=f"<{self.client_sdr_id}> Post response: {str(res)}\n\n {res.raw}\n\n {res.reason}\n\n {res.__dict__}\n\n {res.text}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
             )
 
