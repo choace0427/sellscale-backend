@@ -1431,7 +1431,7 @@ def update_icp_filters(client_archetype_id: int, filters):
             if key == 'client_archetype_id':
                 continue
 
-            if value is ['None'] or value is [''] or value is []:
+            if value == ['None'] or value == [''] or value == []:
                 setattr(icp_scoring_ruleset, key, None)
             else:
                 if isinstance(value, list):
