@@ -779,8 +779,8 @@ def get_icp_filters_autofill(client_sdr_id: int, client_archetype_id: int):
                     maxes.append(int(parts[1]))
                 except ValueError:
                     pass
-    avg_min = sum(mins) / len(mins)
-    avg_max = sum(maxes) / len(maxes)
+    avg_min = sum(mins) / (len(mins) + 0.0001)
+    avg_max = sum(maxes) / (len(maxes) + 0.0001)
 
     return {
         "job_titles": job_titles,
