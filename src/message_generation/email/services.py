@@ -133,7 +133,6 @@ Prospect Bio:
 Prospect Company Name: {prospect_company_name}
 
 More research --
-{prospect_research}
 {research_points}
 
 Final instructions
@@ -163,7 +162,6 @@ Output:""".format(
         prospect_title=prospect_title,
         prospect_bio=prospect_bio,
         prospect_company_name=prospect_company_name,
-        prospect_research=account_points,
         research_points=research_points,
         persona_contact_objective=prospect_contact_objective,
     )
