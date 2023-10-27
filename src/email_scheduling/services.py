@@ -62,6 +62,77 @@ def get_email_messaging_schedule_entries(
     return email_messaging_schedules_dict
 
 
+def modify_email_messaging_schedule_entry(
+    email_messaging_schedule_id: int,
+    date_scheduled: Optional[datetime] = None,
+) -> tuple[bool, str]:
+    """ Modifies an email_messaging_schedule entry's date_scheduled
+
+    Args:
+        email_messaging_schedule_id (int): The ID of the email_messaging_schedule entry to modify
+        date_scheduled (Optional[datetime], optional): The new date_scheduled. Defaults to None.
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and a message
+    """
+    now = datetime.utcnow()
+    utc_timezone = pytz.utc
+    now = utc_timezone.localize(now)
+    if date_scheduled:
+        if date_scheduled.tzinfo is None:
+            date_scheduled = utc_timezone.localize(date_scheduled)
+        else:
+            date_scheduled = date_scheduled.astimezone(utc_timezone)
+        if date_scheduled < now:
+            return False, "Cannot reschedule an email in the past"
+
+    schedule_entry: EmailMessagingSchedule = EmailMessagingSchedule.query.get(email_messaging_schedule_id)
+    if schedule_entry.send_status == EmailMessagingStatus.SENT:
+        return False, "Cannot reschedule a sent email"
+
+    # The email wants to be rescheduled
+    if date_scheduled:
+        # Get the email before the rescheduled email that has not been sent yet, and track the time
+        previous_email: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
+            EmailMessagingSchedule.prospect_email_id == schedule_entry.prospect_email_id,
+            EmailMessagingSchedule.date_scheduled < schedule_entry.date_scheduled,
+            EmailMessagingSchedule.send_status != EmailMessagingStatus.SENT,
+        ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
+        boundary_time = previous_email.date_scheduled if previous_email else now
+        boundary_time = utc_timezone.localize(boundary_time)
+
+        if date_scheduled < boundary_time:
+            return False, "Cannot reschedule an email to occur before the previous email in the sequence"
+
+        old_date = schedule_entry.date_scheduled
+        old_date = utc_timezone.localize(old_date)
+        schedule_entry.date_scheduled = date_scheduled
+        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(schedule_entry.email_body_template_id)
+
+        # Trickle down effect on future emails to preserve cadence
+        future_emails: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
+            EmailMessagingSchedule.prospect_email_id == schedule_entry.prospect_email_id,
+            EmailMessagingSchedule.date_scheduled > old_date,
+        ).all()
+        delay = sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+        date_scheduled = schedule_entry.date_scheduled
+        for future_email in future_emails:
+            new_date = verify_followup_send_date(
+                client_sdr_id=future_email.client_sdr_id,
+                followup_send_date=date_scheduled + timedelta(days=delay),
+                email_bank_id=None,
+            )
+            sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(future_email.email_body_template_id)
+            delay = sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+            date_scheduled = new_date
+            future_email.date_scheduled = new_date
+
+    db.session.commit()
+    return True, "Success"
+
+
 def create_email_messaging_schedule_entry(
     client_sdr_id: int,
     prospect_email_id: int,
