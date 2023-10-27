@@ -37,6 +37,12 @@ def get_self_profile(client_sdr_id: int):
     )
     cookies = cookies.replace(':""', ':"').replace('"",', '",') if cookies else None
 
+    if cookies:
+        send_slack_message(
+            message=f"<{client_sdr_id}> Passed in cookies: {cookies}",
+            webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+        )
+
     api = LinkedIn(client_sdr_id=client_sdr_id, cookies=cookies)
     profile = api.get_user_profile(use_cache=False)
 
