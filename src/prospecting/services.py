@@ -28,6 +28,11 @@ from src.email_outbound.models import (
     VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.ml.openai_wrappers import (
+    OPENAI_COMPLETION_DAVINCI_3_MODEL,
+    wrapped_chat_gpt_completion,
+    wrapped_create_completion,
+)
 from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
 from src.research.linkedin.services import (
     get_research_and_bullet_points_new,
@@ -2766,3 +2771,54 @@ def add_prospect_message_feedback(
     db.session.commit()
 
     return feedback.id
+
+
+def extract_colloquialized_company_name(prospect_id: int, retries=3):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or not prospect.company:
+        return None
+
+    if prospect.colloquialized_company:
+        return prospect.colloquialized_company
+
+    try:
+        prompt = """
+    Colloquialize this company name into something I can insert in an email. 
+
+    Important Notes:
+    - remove 'LLC' or 'Inc' or other uneeded endings. 
+    - If it's all uppercase, proper case it
+
+    It should work in this sentence:
+    "How are things going at [[company_name]]"?
+
+    IMPORTANT:
+    Only respond with the colloquialized name.  Nothing else.
+
+    Company Name: {company_name}
+    Colloquialized:""".format(
+            company_name=prospect.company
+        )
+
+        completion = wrapped_chat_gpt_completion(
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        if (
+            len(completion) > len(prospect.company)
+            or "?" in completion
+            or '"' in completion
+            or not completion
+        ):
+            raise Exception("Invalid response")
+
+        prospect.colloquialized_company = completion
+        db.session.add(prospect)
+        db.session.commit()
+
+        return completion
+    except Exception as e:
+        if retries > 0:
+            return extract_colloquialized_company_name(prospect_id, retries=retries - 1)
+        else:
+            return prospect.company
