@@ -380,6 +380,7 @@ class Prospect(db.Model):
 
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     company = db.Column(db.String, nullable=True)
+    colloquialized_company = db.Column(db.String, nullable=True)
     company_url = db.Column(db.String, nullable=True)
     employee_count = db.Column(db.String, nullable=True)
 
@@ -1043,7 +1044,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.SENT_OUTREACH,  # Permissable to be moved.
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.NOT_INTERESTED,
-        ProspectStatus.NOT_QUALIFIED
+        ProspectStatus.NOT_QUALIFIED,
     ],
     ProspectStatus.DEMO_WON: [],
     ProspectStatus.DEMO_LOSS: [ProspectStatus.DEMO_WON],
