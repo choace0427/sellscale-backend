@@ -100,22 +100,31 @@ def modify_email_messaging_schedule_entry(
             EmailMessagingSchedule.send_status != EmailMessagingStatus.SENT,
         ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
         boundary_time = previous_email.date_scheduled if previous_email else now
-        boundary_time = utc_timezone.localize(boundary_time)
+        if boundary_time.tzinfo is None:
+            boundary_time = utc_timezone.localize(boundary_time)
+        else:
+            boundary_time = boundary_time.astimezone(utc_timezone)
 
         if date_scheduled < boundary_time:
             return False, "Cannot reschedule an email to occur before the previous email in the sequence"
 
+        # Get the future emails
         old_date = schedule_entry.date_scheduled
-        old_date = utc_timezone.localize(old_date)
-        schedule_entry.date_scheduled = date_scheduled
-        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(schedule_entry.email_body_template_id)
-
-        # Trickle down effect on future emails to preserve cadence
         future_emails: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
             EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
             EmailMessagingSchedule.prospect_email_id == schedule_entry.prospect_email_id,
             EmailMessagingSchedule.date_scheduled > old_date,
         ).all()
+        if old_date.tzinfo is None:
+            old_date = utc_timezone.localize(old_date)
+        else:
+            old_date = old_date.astimezone(utc_timezone)
+        schedule_entry.date_scheduled = date_scheduled
+        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(schedule_entry.email_body_template_id)
+
+        print(schedule_entry.date_scheduled)
+
+        # Trickle down effect on future emails to preserve cadence
         delay = sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
         date_scheduled = schedule_entry.date_scheduled
         for future_email in future_emails:
