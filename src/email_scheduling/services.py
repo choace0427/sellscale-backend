@@ -718,7 +718,7 @@ def send_email_messaging_schedule_entry(
             return False, f"Could not find a previous email to reply to, even though this is a FOLLOW_UP_EMAIL"
 
         # 2aa. If the prospect email record is not SENT_OUTREACH or EMAIL_OPENED, we should not send and delete the message
-        if prospect_email.outreach_status != ProspectEmailOutreachStatus.SENT_OUTREACH or prospect_email.outreach_status != ProspectEmailOutreachStatus.EMAIL_OPENED:
+        if prospect_email.outreach_status != ProspectEmailOutreachStatus.SENT_OUTREACH and prospect_email.outreach_status != ProspectEmailOutreachStatus.EMAIL_OPENED:
             # Delete the messages
             db.session.delete(email_messaging_schedule)
             db.session.commit()
