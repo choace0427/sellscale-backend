@@ -108,7 +108,13 @@ def modify_email_messaging_schedule_entry(
         if date_scheduled < boundary_time:
             return False, "Cannot reschedule an email to occur before the previous email in the sequence"
 
+        # Get the future emails
         old_date = schedule_entry.date_scheduled
+        future_emails: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
+            EmailMessagingSchedule.prospect_email_id == schedule_entry.prospect_email_id,
+            EmailMessagingSchedule.date_scheduled > old_date,
+        ).all()
         if old_date.tzinfo is None:
             old_date = utc_timezone.localize(old_date)
         else:
@@ -116,12 +122,9 @@ def modify_email_messaging_schedule_entry(
         schedule_entry.date_scheduled = date_scheduled
         sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(schedule_entry.email_body_template_id)
 
+        print(schedule_entry.date_scheduled)
+
         # Trickle down effect on future emails to preserve cadence
-        future_emails: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
-            EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
-            EmailMessagingSchedule.prospect_email_id == schedule_entry.prospect_email_id,
-            EmailMessagingSchedule.date_scheduled > old_date,
-        ).all()
         delay = sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
         date_scheduled = schedule_entry.date_scheduled
         for future_email in future_emails:
