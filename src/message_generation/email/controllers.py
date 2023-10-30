@@ -1,9 +1,9 @@
 from flask import Blueprint, request
 from src.email_sequencing.models import EmailSubjectLineTemplate
-from src.email_sequencing.services import generate_prospect_email_bump
 
 from src.authentication.decorators import require_user
 from src.message_generation.email.services import ai_followup_email_prompt, ai_initial_email_prompt, ai_subject_line_prompt, generate_email, generate_subject_line
+from src.ml.spam_detection import run_algorithmic_spam_detection
 from src.prospecting.models import Prospect
 from src.utils.request_helpers import get_request_parameter
 
@@ -73,11 +73,14 @@ def post_generate_initial_email(client_sdr_id: int):
             subject_line = generate_subject_line(subject_prompt)
             subject_line = subject_line.get('subject_line')
 
+    body_spam_results = run_algorithmic_spam_detection(text=email_body)
+    subject_spam_results = run_algorithmic_spam_detection(text=subject_line)
+
     return {
         'status': 'success',
         'data': {
-            'email_body': {'prompt': body_prompt, 'completion': email_body},
-            'subject_line': {'prompt': subject_prompt, 'completion': subject_line}
+            'email_body': {'prompt': body_prompt, 'completion': email_body, 'spam_detection_results': body_spam_results},
+            'subject_line': {'prompt': subject_prompt, 'completion': subject_line, 'spam_detection_results': subject_spam_results}
         }
     }
 
@@ -106,16 +109,17 @@ def post_generate_followup_email(client_sdr_id: int):
     elif prospect.client_sdr_id != client_sdr_id:
         return {"status": "error", "message": "Unauthorized."}, 401
 
-    # Get the followup email body prompt and generate the email body
-    data = generate_prospect_email_bump(
+    prompt = ai_followup_email_prompt(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         thread_id=thread_id,
         override_sequence_id=override_sequence_id,
-        override_template=override_template
+        override_template=override_template,
     )
-    if data is None:
-        return {"status": "error", "message": "Failed to generate email bump."}, 500
+    if not prompt:
+        return None
+    email_body = generate_email(prompt)
+    email_body = email_body.get("body")
 
     return {
         'status': 'success',

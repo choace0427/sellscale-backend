@@ -21,6 +21,7 @@ cov.xml
 !web_blacklist.csv
 !dr_positions.csv
 !company_suffixes.csv
+!spam_words.csv
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
