@@ -121,9 +121,11 @@ def post_generate_followup_email(client_sdr_id: int):
     email_body = generate_email(prompt)
     email_body = email_body.get("body")
 
+    body_spam_results = run_algorithmic_spam_detection(text=email_body)
+
     return {
         'status': 'success',
         'data': {
-            'email_body': data
+            'email_body': {'prompt': prompt, 'completion': email_body, 'spam_detection_results': body_spam_results}
         }
     }
