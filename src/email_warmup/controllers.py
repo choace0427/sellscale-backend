@@ -1,4 +1,4 @@
-from app import db, app
+from app import db
 
 from flask import Blueprint, request, jsonify
 from src.authentication.decorators import require_user
