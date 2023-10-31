@@ -2773,30 +2773,31 @@ def add_prospect_message_feedback(
     return feedback.id
 
 
-def extract_colloquialized_company_name(prospect_id: int, retries=3):
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect or not prospect.company:
-        return None
-
-    if prospect.colloquialized_company:
-        return prospect.colloquialized_company
-
+@celery.task(bind=True, max_retries=3)
+def extract_colloquialized_company_name(self, prospect_id: int):
     try:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect or not prospect.company:
+            return None
+
+        if prospect.colloquialized_company:
+            return prospect.colloquialized_company
+
         prompt = """
-    Colloquialize this company name into something I can insert in an email. 
+        Colloquialize this company name into something I can insert in an email. 
 
-    Important Notes:
-    - remove 'LLC' or 'Inc' or other uneeded endings. 
-    - If it's all uppercase, proper case it
+        Important Notes:
+        - remove 'LLC' or 'Inc' or other uneeded endings. 
+        - If it's all uppercase, proper case it
 
-    It should work in this sentence:
-    "How are things going at [[company_name]]"?
+        It should work in this sentence:
+        "How are things going at [[company_name]]"?
 
-    IMPORTANT:
-    Only respond with the colloquialized name.  Nothing else.
+        IMPORTANT:
+        Only respond with the colloquialized name.  Nothing else.
 
-    Company Name: {company_name}
-    Colloquialized:""".format(
+        Company Name: {company_name}
+        Colloquialized:""".format(
             company_name=prospect.company
         )
 
@@ -2816,9 +2817,11 @@ def extract_colloquialized_company_name(prospect_id: int, retries=3):
         db.session.add(prospect)
         db.session.commit()
 
+        db.session.close()
+
         return completion
     except Exception as e:
-        if retries > 0:
-            return extract_colloquialized_company_name(prospect_id, retries=retries - 1)
+        if self.request.retries < self.max_retries:
+            self.retry(exc=e)
         else:
-            return prospect.company
+            raise e
