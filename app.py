@@ -9,6 +9,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 
 from flask_sqlalchemy import SQLAlchemy
+from src.email_warmup.controllers import EMAIL_WARMUP_BLUEPRINT
 from src.setup.TimestampedModel import TimestampedModel
 from src.utils.scheduler import *
 from src.utils.slack import URL_MAP
@@ -243,6 +244,7 @@ def register_blueprints(app):
     app.register_blueprint(ICP_SCORING_BLUEPRINT, url_prefix="/icp_scoring")
     app.register_blueprint(SDR_EMAIL_BLUEPRINT, url_prefix="/client/sdr/email")
     app.register_blueprint(EMAIL_SCHEDULING_BLUEPRINT, url_prefix="/email/schedule")
+    app.register_blueprint(EMAIL_WARMUP_BLUEPRINT, url_prefix="/email/warmup")
 
     db.init_app(app)
 
