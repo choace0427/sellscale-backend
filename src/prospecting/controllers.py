@@ -55,6 +55,7 @@ from src.prospecting.services import (
     get_prospects_for_income_pipeline,
     get_li_message_from_contents,
     add_prospect_message_feedback,
+    extract_colloquialized_company_name,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,

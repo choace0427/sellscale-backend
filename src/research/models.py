@@ -5,6 +5,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 import enum
 
+from src.prospecting.models import ProspectStatus
+
 
 class ResearchType(enum.Enum):
     LINKEDIN_ISCRAPER = "LINKEDIN_ISCRAPER"
@@ -123,6 +125,15 @@ class ResearchPoints(db.Model):
             research_points.extend(
                 ResearchPoints.query.filter_by(research_payload_id=payload.id).all()
             )
+
+        if prospect.status == ProspectStatus.PROSPECTED:
+            if client_archetype.transformer_blocklist_initial is not None:
+                research_points = [
+                    point
+                    for point in research_points
+                    if point.research_point_type
+                    not in client_archetype.transformer_blocklist_initial
+                ]
 
         # Filter out points that are in the bump framework blocklist
         if bump_framework_id:
