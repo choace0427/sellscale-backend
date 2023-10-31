@@ -506,7 +506,7 @@ def has_any_linkedin_messages(prospect_id: int):
 
 
 def generate_linkedin_outreaches_with_configurations(
-    prospect_id: int, outbound_campaign_id: int, cta_id: str = None, template_id: int = None
+    prospect_id: int, outbound_campaign_id: int, cta_id: str = None
 ):
     from src.li_conversation.services import ai_initial_li_msg_prompt
 
@@ -517,10 +517,12 @@ def generate_linkedin_outreaches_with_configurations(
         return None
 
     ### Use new template-based generation ###
-    if template_id:
-        prospect: Prospect = Prospect.query.get(prospect_id)
-        template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(
-            template_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+
+    if archetype.template_mode:
+        template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.get_random(
+            prospect.archetype_id)
 
         prompt = ai_initial_li_msg_prompt(
             client_sdr_id=prospect.client_sdr_id,
