@@ -555,6 +555,7 @@ def generate_linkedin_outreaches_with_configurations(
             if TOP_CONFIGURATION
             else None,
             priority_rating=campaign.priority_rating if campaign else 0,
+            li_init_template_id=template.id,
         )
         db.session.add(message)
         db.session.commit()

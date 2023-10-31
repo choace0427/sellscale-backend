@@ -102,6 +102,11 @@ class GeneratedMessage(db.Model):
     email_subject_line_template_id = db.Column(db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True)
     email_sequence_step_template_id = db.Column(db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=True)
 
+    # LinkedIn
+    li_init_template_id = db.Column(
+        db.Integer, db.ForeignKey("linkedin_initial_message_template.id"), nullable=True
+    )
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -134,6 +139,7 @@ class GeneratedMessage(db.Model):
             "email_type": self.email_type.value if self.email_type else None,
             "email_subject_line_template_id": self.email_subject_line_template_id,
             "email_sequence_step_template_id": self.email_sequence_step_template_id,
+            "li_init_template_id": self.li_init_template_id,
         }
 
 
