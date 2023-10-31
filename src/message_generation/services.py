@@ -451,7 +451,9 @@ def generate_batch_of_research_points_from_config(
     archetype: ClientArchetype = ClientArchetype.query.get(config.archetype_id)
 
     # Remove the research point types that are in the blocklists
-    if archetype and archetype.transformer_blocklist:
+    if archetype and (
+        archetype.transformer_blocklist or archetype.transformer_blocklist_initial
+    ):
         allowed_research_point_types_in_config = [
             item
             for item in allowed_research_point_types_in_config
