@@ -1,7 +1,51 @@
 from datetime import datetime
 from typing import Optional
+
+from src.client.models import ClientArchetype
 from app import db
 from src.prospecting.models import Prospect
+from sqlalchemy.sql.expression import func
+
+
+class LinkedinInitialMessageTemplate(db.Model):
+    __tablename__ = "linkedin_initial_message_template"
+
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.String(600), nullable=False)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True)
+
+    active = db.Column(db.Boolean, nullable=False, default=True)
+    times_used = db.Column(db.Integer, nullable=False, default=0)
+    times_accepted = db.Column(db.Integer, nullable=False, default=0)
+
+    sellscale_generated = db.Column(db.Boolean, nullable=True, default=False)
+
+
+    def get_random(client_archetype_id: int):
+        return LinkedinInitialMessageTemplate.query.filter_by(
+            client_archetype_id=client_archetype_id, active=True
+        ).order_by(func.random()).first()
+    
+
+    def to_dict(self):
+        archetype: ClientArchetype = ClientArchetype.query.get(
+            self.client_archetype_id
+        )
+
+        return {
+            "id": self.id,
+            "message": self.message,
+            "client_sdr_id": self.client_sdr_id,
+            "client_archetype_id": self.client_archetype_id,
+            "client_archetype_archetype": archetype.archetype if archetype else None,
+            "active": self.active,
+            "times_used": self.times_used,
+            "times_accepted": self.times_accepted,
+            "sellscale_generated": self.sellscale_generated
+        }
 
 
 class LinkedinConversationScrapeQueue(db.Model):
