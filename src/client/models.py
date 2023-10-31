@@ -147,6 +147,8 @@ class ClientArchetype(db.Model):
     first_message_delay_days = db.Column(db.Integer, nullable=True)
     li_bump_amount = db.Column(db.Integer, server_default="3", nullable=False)
 
+    template_mode = db.Column(db.Boolean, nullable=True)
+
     def to_dict(self) -> dict:
 
         from src.message_generation.models import GeneratedMessageCTA
@@ -193,6 +195,7 @@ class ClientArchetype(db.Model):
             "lookalike_profile_3": self.persona_lookalike_profile_3,
             "lookalike_profile_4": self.persona_lookalike_profile_4,
             "lookalike_profile_5": self.persona_lookalike_profile_5,
+            "template_mode": self.template_mode,
         }
 
 

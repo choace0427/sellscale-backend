@@ -349,6 +349,7 @@ def create_client_archetype(
     lookalike_3: Optional[str] = None,
     lookalike_4: Optional[str] = None,
     lookalike_5: Optional[str] = None,
+    template_mode: Optional[bool] = False,
 ):
     c: Client = get_client(client_id=client_id)
     if not c:
@@ -385,6 +386,7 @@ def create_client_archetype(
         persona_lookalike_profile_3=lookalike_3,
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
+        template_mode=template_mode,
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -2555,6 +2557,7 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.transformer_blocklist,
             ClientArchetype.transformer_blocklist_initial,
             ClientArchetype.li_bump_amount,
+            ClientArchetype.template_mode,
             ClientArchetype.persona_cta_framework_company.label(
                 "cta_framework_company"
             ),

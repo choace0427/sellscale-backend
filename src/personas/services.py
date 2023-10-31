@@ -583,6 +583,7 @@ def clone_persona(
         persona_fit_reason=persona_fit_reason,
         icp_matching_prompt=persona_icp_matching_instructions,
         persona_contact_objective=persona_contact_objective,
+        template_mode=original_persona.template_mode,
     )
     new_persona_id: int = result.get("client_archetype_id") or -1
 
