@@ -185,7 +185,7 @@ def generate_outreaches_for_prospect_list_from_multiple_ctas(
 ):
     try:
         for i, prospect_id in enumerate(prospect_ids):
-            cta_id = cta_ids[i % len(cta_ids)]
+            cta_id = cta_ids[i % len(cta_ids)] if len(cta_ids) > 0 else None
 
             # Check if there is already a job for this Prospect under this Campaign
             job_exists = GeneratedMessageJobQueue.query.filter(
