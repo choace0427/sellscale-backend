@@ -237,7 +237,10 @@ def delete_archetype_li_template(client_sdr_id: int, archetype_id: int):
 def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id: int):
 
     template_id = get_request_parameter(
-        "template_id", request, json=True, required=True, parameter_type=int
+        "template_id", request, json=True, required=False, parameter_type=int
+    )
+    template_str = get_request_parameter(
+        "template_str", request, json=True, required=False, parameter_type=str
     )
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
@@ -246,15 +249,20 @@ def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id:
     elif archetype.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
 
-    template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(
-        template_id)
+    if template_id:
+        template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(
+            template_id)
+        template_str = template.message
+    else:
+        template = None
     
     from src.li_conversation.services import detect_template_research_points
     
-    research_points = detect_template_research_points(template.message)
+    research_points = detect_template_research_points(template_str)
     if research_points:
-        template.research_points = research_points
-        db.session.commit()
+        if template:
+            template.research_points = research_points
+            db.session.commit()
         return jsonify({"status": "success", "data": research_points}), 200
     else:
         return jsonify({"status": "error", "message": "Failed to detect research points"}), 500
