@@ -1,3 +1,4 @@
+import json
 from typing import List, Union, Optional
 
 from src.ml.services import get_text_generation
@@ -1769,5 +1770,42 @@ Stick to the template very strictly. Do not change this template at all. Do not 
     return prompt
 
     
+def detect_template_research_points(template: str):
+    
+    all_research_points = [member.value for member in ResearchPointType]
+    points_str = '\n'.join(all_research_points)
+    
+    prompt = f"""
+
+I have message template and I want to detect the research points that should be utilized in order to fill in the template.
+
+### Template
+{template}
+
+### Research Points
+{points_str}
+
+Please only respond with a JSON array of the research points that should be used. Write the research points exactly as they are written above.
+    """
+
+    completion = get_text_generation(
+        [{"role": "user", "content": prompt}],
+        max_tokens=300,
+        model="gpt-4",
+        type="RESEARCH",
+        prospect_id=None,
+        client_sdr_id=None,
+        use_cache=False,
+    )
+
+    # Parse JSON string
+    try:
+        research_points = json.loads(completion)
+    except:
+        research_points = None
+
+    return research_points
+
+
 
 

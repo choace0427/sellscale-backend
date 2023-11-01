@@ -181,6 +181,12 @@ def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
     sellscale_generated = get_request_parameter(
         "sellscale_generated", request, json=True, required=True, parameter_type=bool
     )
+    research_points = get_request_parameter(
+        "research_points", request, json=True, required=True, parameter_type=list
+    )
+    additional_instructions = get_request_parameter(
+        "additional_instructions", request, json=True, required=True, parameter_type=str
+    )
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
@@ -195,7 +201,9 @@ def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
         active=True,
         times_used=0,
         times_accepted=0,
-        sellscale_generated=sellscale_generated
+        sellscale_generated=sellscale_generated,
+        research_points=research_points,
+        additional_instructions=additional_instructions,
     )
     db.session.add(template)
     db.session.commit()
@@ -223,3 +231,30 @@ def delete_archetype_li_template(client_sdr_id: int, archetype_id: int):
 
     return jsonify({"status": "success"}), 200
 
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/li_template/detect_research", methods=["POST"])
+@require_user
+def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id: int):
+
+    template_id = get_request_parameter(
+        "template_id", request, json=True, required=True, parameter_type=int
+    )
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
+
+    template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(
+        template_id)
+    
+    from src.li_conversation.services import detect_template_research_points
+    
+    research_points = detect_template_research_points(template.message)
+    if research_points:
+        template.research_points = research_points
+        db.session.commit()
+        return jsonify({"status": "success", "data": research_points}), 200
+    else:
+        return jsonify({"status": "error", "message": "Failed to detect research points"}), 500
