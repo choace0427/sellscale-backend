@@ -1716,7 +1716,7 @@ def ai_initial_li_msg_prompt(
 
     print(prompt)
 
-    name, industry, title, company, notes = ''
+    name, industry, title, company, notes = '', '', '', '', ''
 
     parts = prompt.split("<>")
     for part in parts:

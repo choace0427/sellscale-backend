@@ -459,7 +459,7 @@ def get_sample_prompt_from_config_details(
     ]
 
     if configuration_type == "DEFAULT":
-        research_point_types = random.sample(research_point_types, 2)
+        research_point_types = random.sample(research_point_types, 2) if len(research_point_types) >= 2 else research_point_types
         if has_custom:
             research_point_types.append("CUSTOM")
 

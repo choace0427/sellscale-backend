@@ -2921,7 +2921,7 @@ def refresh_computed_prompt_for_stack_ranked_configuration(configuration_id: int
     return True
 
 
-def generate_li_convo_init_msg(prospect_id: int, use_templates: bool = False):
+def generate_li_convo_init_msg(prospect_id: int):
     """Generates the initial message for a linkedin conversation
 
     Args:
@@ -2948,9 +2948,14 @@ def generate_li_convo_init_msg(prospect_id: int, use_templates: bool = False):
     from src.li_conversation.services import ai_initial_li_msg_prompt
 
     ### Use new template-based generation ###
-    if use_templates:
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        prospect.archetype_id)
+    
+    print("archetype.template_mode", archetype.template_mode)
 
-        prospect: Prospect = Prospect.query.get(prospect_id)
+    if archetype.template_mode:
+
         template: LinkedinInitialMessageTemplate = (
             LinkedinInitialMessageTemplate.get_random(prospect.archetype_id)
         )
@@ -2961,6 +2966,8 @@ def generate_li_convo_init_msg(prospect_id: int, use_templates: bool = False):
             template=template.message,
         )
 
+        print("prompt", prompt)
+
         completion = get_text_generation(
             [{"role": "user", "content": prompt}],
             max_tokens=200,
@@ -2970,6 +2977,8 @@ def generate_li_convo_init_msg(prospect_id: int, use_templates: bool = False):
             client_sdr_id=prospect.client_sdr_id,
             use_cache=False,
         )
+
+        print("completion", completion)
 
         return completion, {
             "prompt": prompt,
