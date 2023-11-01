@@ -1778,6 +1778,8 @@ def detect_template_research_points(template: str):
     prompt = f"""
 
 I have message template and I want to detect the research points that should be utilized in order to fill in the template.
+The prospect name, prospect title, prospect industry, and prospect company name are provided by default. No need to include them in the research points.
+
 
 ### Template
 {template}
