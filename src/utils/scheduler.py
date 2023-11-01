@@ -144,6 +144,16 @@ def generate_message_bumps():
         generate_message_bumps.delay()
 
 
+def reset_phantom_buster_scrapes_and_launches_job():
+    from src.automation.services import reset_phantom_buster_scrapes_and_launches
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "false"
+    ):
+        reset_phantom_buster_scrapes_and_launches.delay()
+
+
 # def generate_email_bumps():
 #     from src.email_sequencing.services import generate_email_bumps
 
@@ -289,7 +299,9 @@ def run_weekday_phantom_buster_updater():
 
 
 def run_collect_and_generate_email_messaging_schedule_entries():
-    from src.email_scheduling.services import collect_and_generate_email_messaging_schedule_entries
+    from src.email_scheduling.services import (
+        collect_and_generate_email_messaging_schedule_entries,
+    )
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -304,7 +316,9 @@ def run_collect_and_generate_email_messaging_schedule_entries():
 
 
 def run_collect_and_send_email_messaging_schedule_entries():
-    from src.email_scheduling.services import collect_and_send_email_messaging_schedule_entries
+    from src.email_scheduling.services import (
+        collect_and_send_email_messaging_schedule_entries,
+    )
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -331,8 +345,16 @@ monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Ang
 scheduler = BackgroundScheduler(timezone="America/Los_Angeles")
 
 # 30 second triggers
-scheduler.add_job(func=run_collect_and_generate_email_messaging_schedule_entries, trigger="interval", seconds=30)
-scheduler.add_job(func=run_collect_and_send_email_messaging_schedule_entries, trigger="interval", seconds=30)
+scheduler.add_job(
+    func=run_collect_and_generate_email_messaging_schedule_entries,
+    trigger="interval",
+    seconds=30,
+)
+scheduler.add_job(
+    func=run_collect_and_send_email_messaging_schedule_entries,
+    trigger="interval",
+    seconds=30,
+)
 scheduler.add_job(func=process_queue, trigger="interval", seconds=30)
 
 # Minute triggers
@@ -346,6 +368,9 @@ scheduler.add_job(
 )
 scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
 scheduler.add_job(func=run_queued_gm_jobs, trigger="interval", seconds=30)
+scheduler.add_job(
+    func=reset_phantom_buster_scrapes_and_launches_job, trigger="interval", minutes=15
+)
 
 # Hourly triggers
 # scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)

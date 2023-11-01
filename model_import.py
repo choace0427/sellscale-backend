@@ -105,3 +105,7 @@ from src.email_scheduling.models import (
     EmailMessagingStatus,
 )
 from src.ml.models import TextGeneration
+from src.automation.models import (
+    PhantomBusterSalesNavigatorConfig,
+    PhantomBusterSalesNavigatorLaunch
+)
