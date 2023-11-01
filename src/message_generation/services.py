@@ -534,6 +534,8 @@ def generate_linkedin_outreaches_with_configurations(
             client_sdr_id=prospect.client_sdr_id,
             prospect_id=prospect_id,
             template=template.message,
+            additional_instructions=template.additional_instructions or '',
+            research_points=template.research_points or [],
         )
 
         completion = get_text_generation(
@@ -2951,8 +2953,6 @@ def generate_li_convo_init_msg(prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(
         prospect.archetype_id)
-    
-    print("archetype.template_mode", archetype.template_mode)
 
     if archetype.template_mode:
 
@@ -2964,9 +2964,11 @@ def generate_li_convo_init_msg(prospect_id: int):
             client_sdr_id=prospect.client_sdr_id,
             prospect_id=prospect_id,
             template=template.message,
+            additional_instructions=template.additional_instructions or '',
+            research_points=template.research_points or [],
         )
 
-        print("prompt", prompt)
+        #print("prompt", prompt)
 
         completion = get_text_generation(
             [{"role": "user", "content": prompt}],
@@ -3310,3 +3312,27 @@ def get_cta_types():
         "Connection-Based",
         "Event-Based",
     ]
+
+
+def get_prospect_research_points(prospect_id: int, research_points: list[str]) -> list[dict]:
+    """
+    Gets the research points for a prospect, filtered by the research points given
+    """
+    
+    get_research_and_bullet_points_new(
+        prospect_id=prospect_id, test_mode=False)
+
+    all_research_points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(
+        prospect_id)
+    
+    #print("all_research_points", [point.research_point_type.name for point in all_research_points])
+    
+    found_research_points = [
+        research_point
+        for research_point in all_research_points
+        if research_point.research_point_type.name in research_points
+    ]
+
+    return [research_point.to_dict() for research_point in found_research_points]
+
+

@@ -14,7 +14,7 @@ from src.message_generation.models import (
     SendStatus,
     StackRankedMessageGenerationConfiguration,
 )
-from src.message_generation.services import get_li_convo_history
+from src.message_generation.services import get_li_convo_history, get_prospect_research_points
 from src.prospecting.models import (
     ProspectHiddenReason,
     ProspectOverallStatus,
@@ -1683,6 +1683,8 @@ def ai_initial_li_msg_prompt(
     client_sdr_id: int,
     prospect_id: int,
     template: str,
+    additional_instructions: str,
+    research_points: list[str],
 ) -> str:
     """Generate an AI LinkedIn Prompt given a prospect. Uses the prospect's sequence step template, otherwise uses a default SellScale template.
 
@@ -1697,39 +1699,43 @@ def ai_initial_li_msg_prompt(
 
     """
 
-    from src.message_generation.services_stack_ranked_configurations import get_sample_prompt_from_config_details
+    # from src.message_generation.services_stack_ranked_configurations import get_sample_prompt_from_config_details
 
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    # client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     # client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
     # client_archetype: ClientArchetype = ClientArchetype.query.get(
     #     prospect.archetype_id)
     
-    prompt, _, _, _, _, _ = get_sample_prompt_from_config_details(
-        generated_message_type="LINKEDIN",
-        research_point_types=[x.value for x in ResearchPointType],
-        configuration_type="DEFAULT",
-        client_id=client_sdr.client_id,
-        archetype_id=prospect.archetype_id,
-        override_prospect_id=prospect_id,
-    )
+    # prompt, _, _, _, _, _ = get_sample_prompt_from_config_details(
+    #     generated_message_type="LINKEDIN",
+    #     research_point_types=[x.value for x in ResearchPointType],
+    #     configuration_type="DEFAULT",
+    #     client_id=client_sdr.client_id,
+    #     archetype_id=prospect.archetype_id,
+    #     override_prospect_id=prospect_id,
+    # )
 
-    print(prompt)
+    found_points = get_prospect_research_points(prospect_id, research_points)
 
-    name, industry, title, company, notes = '', '', '', '', ''
+    name = prospect.full_name
+    industry = prospect.industry
+    title = prospect.title
+    company = prospect.company
+    notes = "\n".join([point.get('value') for point in found_points])
 
-    parts = prompt.split("<>")
-    for part in parts:
-        if part.startswith('name: '):
-            name = part.replace('name: ', '')
-        elif part.startswith('industry: '):
-            industry = part.replace('industry: ', '')
-        elif part.startswith('title: '):
-            title = part.replace('title: ', '')
-        elif part.startswith('company: '):
-            company = part.replace('company: ', '')
-        elif part.startswith('notes: '):
-            notes = part.replace('notes: ', '')
+    # parts = prompt.split("<>")
+    # for part in parts:
+    #     if part.startswith('name: '):
+    #         name = part.replace('name: ', '')
+    #     elif part.startswith('industry: '):
+    #         industry = part.replace('industry: ', '')
+    #     elif part.startswith('title: '):
+    #         title = part.replace('title: ', '')
+    #     elif part.startswith('company: '):
+    #         company = part.replace('company: ', '')
+    #     elif part.startswith('notes: '):
+    #         notes = part.replace('notes: ', '')
       
     prompt = f"""
 You are a sales development representative writing on behalf of the salesperson.
@@ -1749,6 +1755,7 @@ Prospect Notes:
 Final instructions
 - Do not put generalized fluff, such as "I couldn't help but notice" or  "I noticed"
 - The output message needs to be less than 300 characters.
+- {additional_instructions}
 
 Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
 

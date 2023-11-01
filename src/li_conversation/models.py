@@ -23,6 +23,9 @@ class LinkedinInitialMessageTemplate(db.Model):
 
     sellscale_generated = db.Column(db.Boolean, nullable=True, default=False)
 
+    additional_instructions = db.Column(db.String, nullable=True)
+    research_points = db.Column(db.ARRAY(db.String), nullable=True)
+
 
     def get_random(client_archetype_id: int):
         return LinkedinInitialMessageTemplate.query.filter_by(
@@ -44,7 +47,9 @@ class LinkedinInitialMessageTemplate(db.Model):
             "active": self.active,
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
-            "sellscale_generated": self.sellscale_generated
+            "sellscale_generated": self.sellscale_generated,
+            "additional_instructions": self.additional_instructions,
+            "research_points": self.research_points,
         }
 
 

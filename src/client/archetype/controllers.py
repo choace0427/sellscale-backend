@@ -146,6 +146,12 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
     times_accepted = get_request_parameter(
         "times_accepted", request, json=True, required=False, parameter_type=int
     )
+    research_points = get_request_parameter(
+        "research_points", request, json=True, required=False, parameter_type=list
+    )
+    additional_instructions = get_request_parameter(
+        "additional_instructions", request, json=True, required=False, parameter_type=str
+    )
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
@@ -158,6 +164,8 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
     template.active = active or template.active
     template.times_used = times_used or template.times_used
     template.times_accepted = times_accepted or template.times_accepted
+    template.research_points = research_points or template.research_points
+    template.additional_instructions = additional_instructions or template.additional_instructions
     db.session.commit()
 
     return jsonify({"status": "success"}), 200
