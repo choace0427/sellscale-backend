@@ -74,9 +74,10 @@ def pass_through_smartlead_warmup_request(client_sdr_id: int) -> list[dict]:
 
 
 @celery.task(bind=True)
-def set_channel_warmups_for_all_active_sdrs():
-    active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(is_active=True).all()
+def set_channel_warmups_for_all_active_sdrs(self):
+    active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True).all()
     for active_sdr in active_sdrs:
+        print(f"Setting channel warmups for {active_sdr.name}")
         set_channel_warmups_for_sdr.delay(active_sdr.id)
 
 

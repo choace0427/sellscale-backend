@@ -394,6 +394,7 @@ scheduler.add_job(
 )
 scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 scheduler.add_job(func=run_hourly_email_finder_job, trigger="interval", hours=1)
+scheduler.add_job(func=run_set_channel_warmups, trigger="interval", hours=3)
 
 # Daily triggers
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
