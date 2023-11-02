@@ -561,9 +561,7 @@ def generate_linkedin_outreaches_with_configurations(
             message_cta=None,
             message_type=GeneratedMessageType.LINKEDIN,
             few_shot_prompt=None,
-            stack_ranked_message_generation_configuration_id=TOP_CONFIGURATION.id
-            if TOP_CONFIGURATION
-            else None,
+            stack_ranked_message_generation_configuration_id=None,
             priority_rating=campaign.priority_rating if campaign else 0,
             li_init_template_id=template.id,
         )
