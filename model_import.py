@@ -107,5 +107,6 @@ from src.email_scheduling.models import (
 from src.ml.models import TextGeneration
 from src.automation.models import (
     PhantomBusterSalesNavigatorConfig,
-    PhantomBusterSalesNavigatorLaunch
+    PhantomBusterSalesNavigatorLaunch,
 )
+from src.channel_warmup.models import ChannelWarmup
