@@ -315,6 +315,16 @@ def run_collect_and_generate_email_messaging_schedule_entries():
         )
 
 
+def run_set_channel_warmups():
+    from src.channel_warmup.services import set_channel_warmups_for_all_active_sdrs
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        set_channel_warmups_for_all_active_sdrs.delay()
+
+
 def run_collect_and_send_email_messaging_schedule_entries():
     from src.email_scheduling.services import (
         collect_and_send_email_messaging_schedule_entries,

@@ -3,6 +3,10 @@ from app import db
 from flask import Blueprint, request, jsonify
 from src.authentication.decorators import require_user
 from src.channel_warmup.services import pass_through_smartlead_warmup_request
+from src.channel_warmup.services import (
+    set_channel_warmups_for_sdr,
+    set_channel_warmups_for_all_active_sdrs,
+)
 
 
 CHANNEL_WARMUP = Blueprint("email/warmup", __name__)

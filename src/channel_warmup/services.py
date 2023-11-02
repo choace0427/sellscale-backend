@@ -1,9 +1,13 @@
+import datetime
 import json
 import subprocess
+
+from httpx import Client
 from model_import import ClientSDR
 import requests
 from src.channel_warmup.models import ChannelWarmup
 from src.utils.abstract.attr_utils import deep_get
+from app import db, celery
 
 
 def pass_through_smartlead_warmup_request(client_sdr_id: int) -> list[dict]:
@@ -69,24 +73,84 @@ def pass_through_smartlead_warmup_request(client_sdr_id: int) -> list[dict]:
     return result
 
 
-def set_channel_warmups_for_sdr(client_sdr_id):
-    email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
+@celery.task(bind=True)
+def set_channel_warmups_for_all_active_sdrs():
+    active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(is_active=True).all()
+    for active_sdr in active_sdrs:
+        set_channel_warmups_for_sdr.delay(active_sdr.id)
 
-    # PAYLOAD
-    # [{'id': 511112, 'from_name': 'Hristina Bell', 'from_email': 'hristina@doppler-tech.com', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 100, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 507298, 'from_name': 'Hristina Bell', 'from_email': 'hristina@dopplersecret.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 100, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 507290, 'from_name': 'Hristina Bell', 'from_email': 'hristina@dopplertechnology.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 92, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 507282, 'from_name': 'Hristina Bell', 'from_email': 'hristina@dopplersecret.com', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 92, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 493757, 'from_name': 'Hristina Bell', 'from_email': 'h.bell@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 94, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 493756, 'from_name': 'Hristina Bell', 'from_email': 'hristinabell@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 93, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 493755, 'from_name': 'Hristina Bell', 'from_email': 'hristina.bell@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 93, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 492954, 'from_name': 'Hristina Bell', 'from_email': 'hristina@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 97, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}]
 
-    for email_warmup in email_warmups:
-        email = email_warmup["from_email"]
-        warmup_reputation = email_warmup["email_warmup_details"]["warmup_reputation"]
-        daily_sent_count = email_warmup["daily_sent_count"]
-        daily_limit = email_warmup["message_per_day"]
+@celery.task(bind=True)
+def set_channel_warmups_for_sdr(self, client_sdr_id):
+    try:
+        client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+        if not client_sdr:
+            return
+        name: str = client_sdr.name
+        print(f"Setting channel warmups for {name}")
 
-        channel_warmup: ChannelWarmup = ChannelWarmup(
-            client_sdr_id=client_sdr_id,
-            channel_type="EMAIL",
-            daily_sent_count=daily_sent_count,
-            daily_limit=daily_limit,
-            warmup_enabled=True,
-            reputation=warmup_reputation,
-            account_name=email,
+        # Clear all warmups
+        ChannelWarmup.query.filter_by(client_sdr_id=client_sdr_id).delete()
+
+        # Create Email Warmups
+        email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
+        for email_warmup in email_warmups:
+            email = email_warmup["from_email"]
+            warmup_reputation = email_warmup["email_warmup_details"][
+                "warmup_reputation"
+            ]
+            daily_sent_count = email_warmup["daily_sent_count"]
+            daily_limit = email_warmup["message_per_day"]
+
+            email_channel_warmup: ChannelWarmup = ChannelWarmup(
+                client_sdr_id=client_sdr_id,
+                channel_type="EMAIL",
+                daily_sent_count=daily_sent_count,
+                daily_limit=daily_limit,
+                warmup_enabled=True,
+                reputation=warmup_reputation,
+                account_name=email,
+            )
+            db.session.add(email_channel_warmup)
+            db.session.commit()
+
+        print(f"Finished setting channel warmups for {name}")
+
+        # Create Linkedin Warmups
+        linkedin_query = """
+        select 
+            'LINKEDIN' channel_type, 
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' and prospect_status_records.created_at > NOW() - '24 hours'::INTERVAL) daily_sent_count,
+            client_sdr.weekly_li_outbound_target / 5 daily_limit,
+            case when client_sdr.created_at > NOW() - '30 days'::INTERVAL then TRUE else FALSE END warmup_enabled,
+            100 warmup_reputation,
+            concat(client_sdr.name, ' LinkedIn') account_name
+            
+        from
+            client_sdr 
+            join prospect on prospect.client_sdr_id = client_sdr.id
+            join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        where client_sdr.id = {client_sdr_id}
+        group by 1,3,4,5,6
+        limit 1
+        """.format(
+            client_sdr_id=client_sdr_id
         )
+        linkedin_warmups = db.session.execute(linkedin_query).fetchall()
+        if len(linkedin_warmups) > 0:
+            linkedin_channel_warmup: ChannelWarmup = ChannelWarmup(
+                client_sdr_id=client_sdr_id,
+                channel_type="LINKEDIN",
+                daily_sent_count=linkedin_warmups[0][1],
+                daily_limit=linkedin_warmups[0][2],
+                warmup_enabled=linkedin_warmups[0][3],
+                reputation=linkedin_warmups[0][4],
+                account_name=linkedin_warmups[0][5],
+            )
+            db.session.add(linkedin_channel_warmup)
+            db.session.commit()
+
+        print(f"Finished setting channel warmups for {name}")
+    except Exception as e:
+        print("Error setting warmups for sdr", client_sdr_id)
+        raise e
