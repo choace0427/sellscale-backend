@@ -15,6 +15,7 @@ from sqlalchemy import or_, and_
 # REGISTER PROCESS TYPES HERE #
 ###############################
 # Define what process types call what functions (these functions need '@celery.task' decorator)
+# - function must return a boolean for success or failure
 # - args are passed into the function from meta_data.args
 PROCESS_TYPE_MAP = {
     "li_invite_withdraw": {
