@@ -149,7 +149,7 @@ def reset_phantom_buster_scrapes_and_launches_job():
 
     if (
         os.environ.get("FLASK_ENV") == "production"
-        and os.environ.get("SCHEDULING_INSTANCE") == "false"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         reset_phantom_buster_scrapes_and_launches.delay()
 
