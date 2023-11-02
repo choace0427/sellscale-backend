@@ -18,6 +18,8 @@ class ChannelWarmup(db.Model):
         nullable=False,
     )
 
+    account_name = db.Column(db.String, nullable=True)
+
     daily_sent_count = db.Column(db.Integer, nullable=False)
     daily_limit = db.Column(db.Integer, nullable=False)
 

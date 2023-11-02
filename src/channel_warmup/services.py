@@ -2,6 +2,7 @@ import json
 import subprocess
 from model_import import ClientSDR
 import requests
+from src.channel_warmup.models import ChannelWarmup
 from src.utils.abstract.attr_utils import deep_get
 
 
@@ -66,3 +67,26 @@ def pass_through_smartlead_warmup_request(client_sdr_id: int) -> list[dict]:
     result = deep_get(result, "data.email_accounts")
 
     return result
+
+
+def set_channel_warmups_for_sdr(client_sdr_id):
+    email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
+
+    # PAYLOAD
+    # [{'id': 511112, 'from_name': 'Hristina Bell', 'from_email': 'hristina@doppler-tech.com', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 100, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 507298, 'from_name': 'Hristina Bell', 'from_email': 'hristina@dopplersecret.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 100, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 507290, 'from_name': 'Hristina Bell', 'from_email': 'hristina@dopplertechnology.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 92, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 507282, 'from_name': 'Hristina Bell', 'from_email': 'hristina@dopplersecret.com', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 92, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 493757, 'from_name': 'Hristina Bell', 'from_email': 'h.bell@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 94, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 493756, 'from_name': 'Hristina Bell', 'from_email': 'hristinabell@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 93, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 493755, 'from_name': 'Hristina Bell', 'from_email': 'hristina.bell@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 93, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}, {'id': 492954, 'from_name': 'Hristina Bell', 'from_email': 'hristina@usedoppler.net', '__typename': 'email_accounts', 'type': 'GMAIL', 'smtp_host': None, 'is_smtp_success': True, 'is_imap_success': True, 'message_per_day': 5, 'daily_sent_count': 0, 'dns_validation_status': {}, 'email_warmup_details': {'status': 'ACTIVE', 'warmup_reputation': 97, '__typename': 'email_warmup_details'}, 'email_account_tag_mappings': [], 'client_id': None, 'client': None}]
+
+    for email_warmup in email_warmups:
+        email = email_warmup["from_email"]
+        warmup_reputation = email_warmup["email_warmup_details"]["warmup_reputation"]
+        daily_sent_count = email_warmup["daily_sent_count"]
+        daily_limit = email_warmup["message_per_day"]
+
+        channel_warmup: ChannelWarmup = ChannelWarmup(
+            client_sdr_id=client_sdr_id,
+            channel_type="EMAIL",
+            daily_sent_count=daily_sent_count,
+            daily_limit=daily_limit,
+            warmup_enabled=True,
+            reputation=warmup_reputation,
+            account_name=email,
+        )
