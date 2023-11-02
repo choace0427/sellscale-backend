@@ -88,7 +88,7 @@ def make_celery(app):
             "email_scheduler",
             email_scheduler,
             routing_key="email_scheduler",
-        )
+        ),
     )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"
@@ -193,11 +193,13 @@ def register_blueprints(app):
     from src.automation.phantom_buster.controllers import PHANTOM_BUSTER_BLUEPRINT
     from src.individual.controllers import INDIVIDUAL_BLUEPRINT
     from src.prospecting.icp_score.controllers import ICP_SCORING_BLUEPRINT
-    from src.message_generation.email.controllers import MESSAGE_GENERATION_EMAIL_BLUEPRINT
+    from src.message_generation.email.controllers import (
+        MESSAGE_GENERATION_EMAIL_BLUEPRINT,
+    )
     from src.client.archetype.controllers import CLIENT_ARCHETYPE_BLUEPRINT
     from src.client.sdr.email.controllers import SDR_EMAIL_BLUEPRINT
     from src.email_scheduling.controllers import EMAIL_SCHEDULING_BLUEPRINT
-    from src.email_warmup.controllers import EMAIL_WARMUP_BLUEPRINT
+    from src.channel_warmup.controllers import CHANNEL_WARMUP
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -244,7 +246,7 @@ def register_blueprints(app):
     app.register_blueprint(ICP_SCORING_BLUEPRINT, url_prefix="/icp_scoring")
     app.register_blueprint(SDR_EMAIL_BLUEPRINT, url_prefix="/client/sdr/email")
     app.register_blueprint(EMAIL_SCHEDULING_BLUEPRINT, url_prefix="/email/schedule")
-    app.register_blueprint(EMAIL_WARMUP_BLUEPRINT, url_prefix="/email/warmup")
+    app.register_blueprint(CHANNEL_WARMUP, url_prefix="/email/warmup")
 
     db.init_app(app)
 
