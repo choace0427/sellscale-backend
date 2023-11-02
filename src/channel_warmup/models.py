@@ -25,3 +25,15 @@ class ChannelWarmup(db.Model):
 
     warmup_enabled = db.Column(db.Boolean, nullable=False, default=False)
     reputation = db.Column(db.Float, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "channel_type": self.channel_type.value,
+            "account_name": self.account_name,
+            "daily_sent_count": self.daily_sent_count,
+            "daily_limit": self.daily_limit,
+            "warmup_enabled": self.warmup_enabled,
+            "reputation": self.reputation,
+        }
