@@ -95,6 +95,8 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
     launch_date = db.Column(db.DateTime, nullable=True)
     error_message = db.Column(db.String, nullable=True)
 
+    process_type = db.Column(db.String, nullable=True)
+
     name = db.Column(db.String, nullable=True)
 
     client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
@@ -120,6 +122,7 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             "archetype": ClientArchetype.query.get(self.client_archetype_id).archetype
             if self.client_archetype_id
             else None,
+            "process_type": self.process_type,
         }
 
 

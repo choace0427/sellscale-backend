@@ -67,6 +67,9 @@ def post_sales_navigator_launch(client_sdr_id):
     client_archetype_id = get_request_parameter(
         "client_archetype_id", request, json=True, required=False, parameter_type=int
     )
+    process_type = get_request_parameter(
+        "process_type", request, json=True, required=False, parameter_type=str
+    )
 
     success, _ = register_phantom_buster_sales_navigator_url(
         sales_navigator_url=sales_navigator_url,
@@ -74,6 +77,7 @@ def post_sales_navigator_launch(client_sdr_id):
         client_sdr_id=client_sdr_id,
         scrape_name=name,
         client_archetype_id=client_archetype_id,
+        process_type=process_type,
     )
     if not success:
         return (

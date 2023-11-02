@@ -153,6 +153,7 @@ def register_phantom_buster_sales_navigator_url(
     client_sdr_id: int,
     scrape_name: str,
     client_archetype_id: Optional[int] = None,
+    process_type: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Registers a Sales Navigator URL to a PhantomBusterSalesNavigatorConfig entry
 
@@ -161,6 +162,7 @@ def register_phantom_buster_sales_navigator_url(
         scrape_count (int): Number of times to scrape this URL
         client_sdr_id (int): The ID of the Client SDR who is running a Sales Navigator job
         scrape_name (str): Name of the scrape
+        process_type (Optional[str]): Type of way to process the sales nav response (into prospect or individual, etc)
 
     Returns:
         tuple[bool, str]: Success and message
@@ -220,6 +222,7 @@ def register_phantom_buster_sales_navigator_url(
         scrape_count=scrape_count,
         name=scrape_name,
         client_archetype_id=client_archetype_id,
+        process_type=process_type,
     )
     db.session.add(launch)
     db.session.commit()
@@ -289,13 +292,68 @@ def collect_and_load_sales_navigator_results(self) -> None:
 
             launch_id = launch.id
 
-            # This will auto upload prospects to SellScale
-            # trigger_upload_job_from_linkedin_sales_nav_scrape(launch_id)
+            if launch.process_type == 'individual':
+                # Upload individuals to SellScale
+                trigger_upload_individuals_job_from_linkedin_sales_nav_scrape(launch_id)
+
+            elif launch.process_type == 'prospect' or launch.process_type is None:
+                # Upload prospects to SellScale
+                # TODO - disabled for now due to race condition bug
+                # trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(launch_id)
+                pass
 
     return
 
 
-def trigger_upload_job_from_linkedin_sales_nav_scrape(
+
+def trigger_upload_individuals_job_from_linkedin_sales_nav_scrape(
+    phantom_buster_sales_navigator_launch_id: int,
+):
+    pb_launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(
+            phantom_buster_sales_navigator_launch_id
+        )
+    )
+
+    if (
+        not pb_launch
+        or not pb_launch.status == SalesNavigatorLaunchStatus.SUCCESS
+        or not pb_launch.client_archetype_id
+    ):
+        return False, "Invalid PhantomBusterSalesNavigatorLaunch entry"
+
+    processed_result = pb_launch.result_processed
+
+    client_sdr: ClientSDR = ClientSDR.query.get(pb_launch.client_sdr_id)
+    userToken = client_sdr.auth_token
+
+    payload = []
+    for result in processed_result:
+        payload.append(
+            {
+                "linkedin_url": result.get("profileUrl"),
+            }
+        )
+
+    api_url = os.environ.get("SELLSCALE_API_URL")
+    url = "{api_url}/individual/upload".format(api_url=api_url)
+    payload = json.dumps(
+        {
+            "name": pb_launch.name,
+            "data": payload,
+        }
+    )
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {userToken}".format(userToken=userToken),
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    print(response)
+
+
+def trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(
     phantom_buster_sales_navigator_launch_id: int,
 ):
     pb_launch: PhantomBusterSalesNavigatorLaunch = (
