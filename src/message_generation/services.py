@@ -233,16 +233,18 @@ def run_queued_gm_job():
             prospect_id,
             outbound_campaign_id,
             generated_message_cta_id as cta_id,
-            id as gm_job_id,
+            generated_message_job_queue.id as gm_job_id,
             generated_message_job_queue.generated_message_type
         from generated_message_job_queue
+        join prospect on generated_message_job_queue.prospect_id = prospect.id
+        join client_archetype on prospect.archetype_id = client_archetype.id
         where
             generated_message_job_queue.created_at > NOW() - '1 days'::INTERVAL and
             generated_message_job_queue.status = 'PENDING' and
             (
-                generated_message_job_queue.generated_message_type = 'LINKEDIN' and generated_message_cta_id is not null
+                (generated_message_job_queue.generated_message_type = 'LINKEDIN' and (generated_message_cta_id is not null or client_archetype.template_mode = true))
                 or
-                generated_message_job_queue.generated_message_type = 'EMAIL'
+                (generated_message_job_queue.generated_message_type = 'EMAIL')
             ) and
             attempts < 3
         order by random()

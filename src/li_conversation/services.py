@@ -1756,7 +1756,7 @@ Prospect Notes:
 Final instructions
 - Do not put generalized fluff, such as "I couldn't help but notice" or  "I noticed"
 - The output message needs to be less than 300 characters.
-- {additional_instructions}
+{additional_instructions}
 
 Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
 
