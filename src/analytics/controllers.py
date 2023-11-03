@@ -59,3 +59,15 @@ def get_outreach_over_time_endpoint(client_sdr_id: int):
 
     modes = get_outreach_over_time(client_id=client_sdr.client_id)
     return {"message": "Success", "outreach_over_time": modes}, 200
+
+@ANALYTICS_BLUEPRINT.route("/client_campaign_analytics", methods=["GET"])
+@require_user
+def get_client_campaign_analytics(client_sdr_id: int):
+    """Endpoint to get all campaign analytics for the SDRs in the given SDR's client"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return {"message": "Invalid client SDR ID"}, 400
+
+    details = get_all_campaign_analytics_for_client(client_id=client_sdr.client_id)
+
+    return {"message": "Success", "analytics": details}, 200

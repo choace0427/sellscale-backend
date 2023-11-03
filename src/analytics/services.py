@@ -304,3 +304,75 @@ def get_outreach_over_time(
     }
 
     return modes
+
+def get_all_campaign_analytics_for_client(client_id: int):
+    query = """
+        select 
+            client_archetype.archetype "Campaign",
+            client_sdr.name "Account",
+            count(distinct prospect.id) "Sourced",
+            concat(round(100 * cast(count(distinct prospect.id) filter (where (
+                prospect_email_status_records.to_status = 'SENT_OUTREACH' or 
+                prospect_status_records.to_status = 'SENT_OUTREACH'
+            )) as float) / (count(distinct prospect.id) + 0.001)), '%') "Contacted%",
+            concat(round(100 * cast(count(distinct prospect.id) filter (where (
+                prospect_email_status_records.to_status = 'EMAIL_OPENED' or 
+                prospect_status_records.to_status = 'ACCEPTED'
+            )) as float) / (count(distinct prospect.id) + 0.001)), '%') "Open%",
+            concat(round(100 * cast(count(distinct prospect.id) filter (where (
+                prospect_email_status_records.to_status = 'ACTIVE_CONVO' or 
+                prospect_status_records.to_status = 'ACTIVE_CONVO'
+            )) as float) / (count(distinct prospect.id) + 0.001)), '%') "Reply%",
+            count(distinct prospect.id) filter (where (
+                prospect_email_status_records.to_status = 'DEMO_SET' or 
+                prospect_status_records.to_status = 'DEMO_SET'
+            )) "Demo Set",
+            case 
+                when 
+                    count(distinct prospect.id) filter (where (
+                        prospect_email_status_records.to_status = 'SENT_OUTREACH' or 
+                        prospect_status_records.to_status = 'SENT_OUTREACH'
+                    )) < 10
+                    and client_archetype.active = False
+                    then 'Setup'
+                when 
+                    count(distinct prospect.id) filter (where (
+                        prospect_email_status_records.to_status = 'SENT_OUTREACH' or 
+                        prospect_status_records.to_status = 'SENT_OUTREACH'
+                    )) >= 10 
+                    and client_archetype.active = False
+                    then 'Complete'
+                else
+                    'Active'
+            end "Status"
+        from 
+            client_archetype
+            join prospect on prospect.archetype_id = client_archetype.id
+            join client_sdr on client_sdr.id = client_archetype.client_sdr_id
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+        where client_archetype.client_id = {client_id}
+        group by 1,2, client_archetype.active;
+    """.format(
+        client_id=client_id
+    )
+
+    data = db.session.execute(query).fetchall()
+
+    data_arr = []
+    for row in data:
+        data_arr.append(
+            {
+                "campaign": row[0],
+                "account": row[1],
+                "sourced": row[2],
+                "contacted": row[3],
+                "open": row[4],
+                "reply": row[5],
+                "demo_set": row[6],
+                "status": row[7],
+            }
+        )
+
+    return data_arr
