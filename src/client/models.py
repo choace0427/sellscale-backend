@@ -444,8 +444,8 @@ class ClientSDR(db.Model):
             "pipeline_notifications_webhook_url": self.pipeline_notifications_webhook_url,
             "last_li_conversation_scrape_date": self.last_li_conversation_scrape_date,
             "li_connected": self.li_at_token is not None,
-            "li_voyager_connected": self.li_cookies is not None
-            and self.li_cookies != "INVALID",
+            "li_voyager_connected": self.li_at_token is not None
+            and self.li_at_token != "INVALID",
             "nylas_connected": self.nylas_account_id is not None and self.nylas_active,
             "email_fetching_credits": self.email_fetching_credits,
             "ml_credits": self.ml_credits,

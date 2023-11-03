@@ -2901,7 +2901,7 @@ def onboarding_setup_completion_report(client_sdr_id: int):
     scheduling_info = bool(sdr.scheduling_link or sdr.calendly_access_token)
     email_integration = bool(sdr.nylas_account_id is not None and sdr.nylas_active)
     linkedin_integration = bool(
-        sdr.li_cookies is not None and sdr.li_cookies != "INVALID"
+        sdr.li_at_token is not None and sdr.li_at_token != "INVALID"
     )
 
     create_personas = len(archetypes) > 0

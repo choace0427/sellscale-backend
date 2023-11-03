@@ -113,7 +113,7 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
 
     li_at_token = json.loads(cookies).get("li_at")
     sdr.li_at_token = li_at_token
-    sdr.li_cookies = cookies
+    sdr.li_at_token = cookies
 
     # Update the pb agent
     if os.environ.get("FLASK_ENV") == "production":
@@ -155,7 +155,7 @@ def clear_linkedin_cookies(client_sdr_id: int):
     if not sdr:
         return "No client sdr found with this id", 400
 
-    sdr.li_cookies = None
+    sdr.li_at_token = None
 
     db.session.add(sdr)
     db.session.commit()

@@ -77,6 +77,14 @@ class Client(object):
             proxies=self.proxies,
         )
         return res.cookies
+    
+    def _get_cookies_for_sdr_store(self, li_at: str):
+        cookies_jar = self._request_session_cookies()
+        if not cookies_jar: return None
+
+        cookies_jar.set('li_at', li_at)
+        
+        return cookies_jar
 
     def _set_session_cookies(self, cookies):
         """
@@ -94,10 +102,18 @@ class Client(object):
     def authenticate(self, client_sdr: ClientSDR):
         if self._use_cookie_cache:
             self.logger.debug("Attempting to use cached cookies")
-            if client_sdr.li_cookies and client_sdr.li_cookies != 'INVALID':
-              cookies = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
+            if client_sdr.li_at_token and client_sdr.li_at_token != 'INVALID':
+                cookies = self._get_cookies_for_sdr_store(client_sdr.li_at_token)
             else:
-              cookies = None
+                try:
+                    cookie_jar = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
+                    if cookie_jar and cookie_jar.get('li_at'):
+                        client_sdr.li_at_token = cookie_jar.get('li_at')
+                        db.session.commit()
+                        cookies = self._get_cookies_for_sdr_store(cookie_jar.get('li_at'))
+                except:
+                    cookies = None
+
             if cookies:
                 self.logger.debug("Using cached cookies")
                 self._set_session_cookies(cookies)
