@@ -11,6 +11,7 @@ class LinkedinInitialMessageTemplate(db.Model):
     __tablename__ = "linkedin_initial_message_template"
 
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
     message = db.Column(db.String(600), nullable=False)
     client_sdr_id = db.Column(
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)

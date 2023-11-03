@@ -124,6 +124,9 @@ def post_li_convo_generate_initial_message(client_sdr_id: int):
     simulation_id = get_request_parameter(
         "simulation_id", request, json=True, required=True, parameter_type=int
     )
+    template_id = get_request_parameter(
+        "template_id", request, json=True, required=False, parameter_type=int
+    )
 
     simulation: Simulation = Simulation.query.get(simulation_id)
     if not simulation or simulation.client_sdr_id != client_sdr_id:
@@ -131,14 +134,14 @@ def post_li_convo_generate_initial_message(client_sdr_id: int):
 
     if simulation.type.value != "LI_CONVERSATION":
         return jsonify({"message": "Simulation is not of a LinkedIn conversation"}), 400
-
+    
     tries = 0
     success = False
     error_msg = ""
     while tries < 3:
         tries = tries + 1
         try:
-            success = generate_sim_li_convo_init_msg(simulation_id=simulation_id)
+            success = generate_sim_li_convo_init_msg(simulation_id=simulation_id, template_id=template_id)
             if success:
                 break
         except Exception as e:

@@ -105,7 +105,7 @@ def get_sim_li_convo_history(
     return retval
 
 
-def generate_sim_li_convo_init_msg(simulation_id: int):
+def generate_sim_li_convo_init_msg(simulation_id: int, template_id: Optional[int] = None):
     """Generates the initial message for a simulated linkedin conversation
 
     Args:
@@ -124,7 +124,7 @@ def generate_sim_li_convo_init_msg(simulation_id: int):
     if simulation.type != SimulationType.LI_CONVERSATION:
         return False
 
-    message, meta_data = generate_li_convo_init_msg(simulation.prospect_id)
+    message, meta_data = generate_li_convo_init_msg(simulation.prospect_id, template_id)
 
     client_sdr: ClientSDR = ClientSDR.query.get(simulation.client_sdr_id)
 

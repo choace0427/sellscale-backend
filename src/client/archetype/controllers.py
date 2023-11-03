@@ -153,6 +153,7 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
         "additional_instructions", request, json=True, required=False, parameter_type=str
     )
 
+
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "Invalid archetype"}), 400
@@ -161,7 +162,7 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
     
     template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(template_id)
     template.message = message or template.message
-    template.active = active or template.active
+    template.active = active if active is not None else template.active
     template.times_used = times_used or template.times_used
     template.times_accepted = times_accepted or template.times_accepted
     template.research_points = research_points or template.research_points

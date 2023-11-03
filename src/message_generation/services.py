@@ -2923,7 +2923,7 @@ def refresh_computed_prompt_for_stack_ranked_configuration(configuration_id: int
     return True
 
 
-def generate_li_convo_init_msg(prospect_id: int):
+def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = None):
     """Generates the initial message for a linkedin conversation
 
     Args:
@@ -2956,9 +2956,15 @@ def generate_li_convo_init_msg(prospect_id: int):
 
     if archetype.template_mode:
 
-        template: LinkedinInitialMessageTemplate = (
-            LinkedinInitialMessageTemplate.get_random(prospect.archetype_id)
-        )
+
+        if not template_id:
+            template: LinkedinInitialMessageTemplate = (
+                LinkedinInitialMessageTemplate.get_random(prospect.archetype_id)
+            )
+        else:
+            template: LinkedinInitialMessageTemplate = (
+                LinkedinInitialMessageTemplate.query.get(template_id)
+            )
 
         prompt = ai_initial_li_msg_prompt(
             client_sdr_id=prospect.client_sdr_id,
