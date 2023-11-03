@@ -134,6 +134,9 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
     template_id = get_request_parameter(
         "template_id", request, json=True, required=True, parameter_type=int
     )
+    title = get_request_parameter(
+        "title", request, json=True, required=False, parameter_type=str
+    )
     message = get_request_parameter(
         "message", request, json=True, required=False, parameter_type=str
     )
@@ -161,6 +164,7 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
         return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
     
     template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(template_id)
+    template.title = title or template.title
     template.message = message or template.message
     template.active = active if active is not None else template.active
     template.times_used = times_used or template.times_used
@@ -176,6 +180,9 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
 @require_user
 def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
     
+    title = get_request_parameter(
+        "title", request, json=True, required=True, parameter_type=str
+    )
     message = get_request_parameter(
         "message", request, json=True, required=True, parameter_type=str
     )
@@ -196,6 +203,7 @@ def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
         return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
 
     template = LinkedinInitialMessageTemplate(
+        title=title,
         message=message,
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
