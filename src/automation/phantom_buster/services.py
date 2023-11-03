@@ -13,6 +13,7 @@ from src.automation.models import (
 )
 
 from src.client.models import Client, ClientSDR
+from src.utils.slack import send_slack_message, URL_MAP
 
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
@@ -283,6 +284,11 @@ def collect_and_load_sales_navigator_results(self) -> None:
             agent.in_use = False
             db.session.commit()
 
+            send_slack_message(
+                message=f"❌ Failed to run PhantomBuster Sales Navigator job: {launch.name}, {status}",
+                webhook_urls=[URL_MAP["csm-individuals"]],
+            )
+
         elif result_raw:
             # If the result exists, then load the result into the database, and mark the launch as complete
 
@@ -301,6 +307,11 @@ def collect_and_load_sales_navigator_results(self) -> None:
             db.session.commit()
 
             launch_id = launch.id
+
+            send_slack_message(
+                message=f"✅ Successfully ran PhantomBuster Sales Navigator job: {launch.name}, {status}",
+                webhook_urls=[URL_MAP["csm-individuals"]],
+            )
 
             if launch.process_type == 'individual':
                 # Upload individuals to SellScale
