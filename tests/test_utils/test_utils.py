@@ -940,6 +940,8 @@ def clear_all_entities(SQLAlchemyObject):
 def test_simple_test():
     assert True
 
+def test_simple_test_2():
+    assert True
 
 def test_socket_blocks():
     import requests

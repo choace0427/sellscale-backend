@@ -5,6 +5,7 @@ venv/
 
 *.coverage*
 dump.rdb
+!.coveragerc
 
 training_set_temp.jsonl
 *.csv

@@ -76,12 +76,15 @@ jobs:
         export FLASK_ENV='testing'
         export APP_SETTINGS=config.TestingConfig
         coverage run -m pytest -vv
+      continue-on-error: true
+
+    - name: Save Code Coverage (Current Branch)
+      run: |
         mv .coverage .current.coverage
       continue-on-error: true
 
     - name: Check Code Coverage (Main Branch)
       run: |
-        cat .current.coverage
         git fetch origin
         git checkout main
         export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testing
@@ -89,11 +92,14 @@ jobs:
         export FLASK_ENV='testing'
         export APP_SETTINGS=config.TestingConfig
         coverage run -m pytest -vv
+      continue-on-error: true
+
+    - name: Save Code Coverage (Main Branch)
+      run: |
         mv .coverage .main.coverage
       continue-on-error: true
 
     - name: Check Coverage
       if: always()
       run: |
-        cat .main.coverage
         python -c "import coverage; current_coverage = coverage.Coverage(data_file='.current.coverage'); main_coverage = coverage.Coverage(data_file='.main.coverage'); current_coverage.load(); main_coverage.load(); current_total = current_coverage.report(omit=['*site-packages*']); main_total = main_coverage.report(omit=['*site-packages*']); diff = current_total - main_total; print(f'Current coverage: {current_total:.2f}%'); print(f'Main coverage: {main_total:.2f}%'); print(f'Coverage difference: {diff:.2f}%'); sys.exit(0) if diff >= 0 else sys.exit(1)"
