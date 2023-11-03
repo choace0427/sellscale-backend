@@ -305,7 +305,7 @@ def get_outreach_over_time(
 
     return modes
 
-def get_all_campaign_analytics_for_client(client_id: int):
+def get_all_campaign_analytics_for_client_campaigns_page(client_id: int):
     query = """
         select 
             client_archetype.archetype "Campaign",

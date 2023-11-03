@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from src.utils.request_helpers import get_request_parameter
 from src.analytics.services import (
     get_all_campaign_analytics_for_client,
+    get_all_campaign_analytics_for_client_campaigns_page,
     get_outreach_over_time,
     get_sdr_pipeline_all_details,
 )
@@ -68,6 +69,6 @@ def get_client_campaign_analytics(client_sdr_id: int):
     if not client_sdr:
         return {"message": "Invalid client SDR ID"}, 400
 
-    details = get_all_campaign_analytics_for_client(client_id=client_sdr.client_id)
+    details = get_all_campaign_analytics_for_client_campaigns_page(client_id=client_sdr.client_id)
 
     return {"message": "Success", "analytics": details}, 200
