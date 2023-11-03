@@ -393,7 +393,7 @@ class LinkedIn(object):
                 sdr = self.client_sdr
                 status_code = res.status_code if res else 'Unknown'
                 send_slack_message(
-                    message=f"SDR {sdr.name} (#{sdr.id}) returned a {status_code} response from LinkedIn. Investigate?",
+                    message=f"SDR {sdr.name} (#{sdr.id}) returned a {status_code} response from LinkedIn. Investigate?\n{self.client.session.cookies}\n{self.client.session.headers}",
                     webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
                 )
                 return None
