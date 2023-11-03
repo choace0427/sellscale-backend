@@ -1,6 +1,6 @@
 from app import db, app
 from model_import import AdversaryTrainingPoint, GeneratedMessage
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
@@ -9,7 +9,7 @@ from test_utils import (
     basic_gnlp_model,
     basic_generated_message,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 import json
 import mock
 
@@ -75,7 +75,7 @@ def test_create_adversary():
     assert training_point is not None
     assert training_point.mistake_description == "test-mistake"
     assert training_point.fix_instuctions == "test-fix"
-    
+
 
 @use_app_context
 def test_toggle_training_point():

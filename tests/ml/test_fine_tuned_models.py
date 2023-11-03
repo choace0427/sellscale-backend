@@ -1,15 +1,15 @@
 from app import db, app
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_client,
     basic_archetype,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.message_generation.services import *
 from model_import import GeneratedMessageCTA, GeneratedMessage, GeneratedMessageStatus
 from src.research.models import ResearchPointType, ResearchType
 from src.client.services import create_client
 from model_import import Client, ProspectStatus
-from test_utils import test_app
+from tests.test_utils.test_utils import test_app
 from app import db
 import mock
 import json

@@ -1,9 +1,9 @@
 from app import db, app
 import pytest
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 import json
 from src.automation.inbox_scraper import scrape_all_inboxes
-from test_utils import test_app, basic_client, basic_client_sdr
+from tests.test_utils.test_utils import test_app, basic_client, basic_client_sdr
 import mock
 from src.automation.models import PhantomBusterConfig
 

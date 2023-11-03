@@ -3,7 +3,7 @@ import json
 from src.bump_framework.models import BumpLength
 from src.bump_framework.services import create_bump_framework
 from src.prospecting.models import ProspectOverallStatus
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
@@ -11,7 +11,7 @@ from test_utils import (
     basic_bump_framework,
     get_login_token
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 
 LOGIN_TOKEN = get_login_token()
 

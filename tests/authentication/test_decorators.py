@@ -1,10 +1,10 @@
 from app import app, db
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_client,
     basic_client_sdr,
     test_app,
     get_login_token)
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 
 import json
 

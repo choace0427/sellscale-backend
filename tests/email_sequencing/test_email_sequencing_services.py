@@ -14,7 +14,7 @@ from src.email_sequencing.services import (
     deactivate_email_subject_line_template,
     activate_email_subject_line_template,
 )
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
@@ -22,7 +22,7 @@ from test_utils import (
     basic_email_sequence_step,
     basic_email_subject_line_template,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 
 from model_import import ProspectOverallStatus, EmailSequenceStep
 

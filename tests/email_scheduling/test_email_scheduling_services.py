@@ -8,7 +8,7 @@ from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingSt
 from src.email_scheduling.services import DEFAULT_SENDING_DELAY_INTERVAL, create_email_messaging_schedule_entry, generate_email_messaging_schedule_entry, get_initial_email_send_date, modify_email_messaging_schedule_entry, populate_email_messaging_schedule_entries, verify_followup_send_date
 from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import ProspectOverallStatus
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
@@ -21,7 +21,7 @@ from test_utils import (
     basic_sdr_email_bank,
     basic_sdr_email_send_schedule
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 
 
 @use_app_context

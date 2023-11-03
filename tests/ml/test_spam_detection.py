@@ -1,6 +1,6 @@
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.ml.spam_detection import run_algorithmic_spam_detection
-from test_utils import test_app
+from tests.test_utils.test_utils import test_app
 from app import app
 
 @use_app_context

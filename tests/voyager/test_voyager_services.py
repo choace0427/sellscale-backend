@@ -1,6 +1,6 @@
 from app import db, app
 from src.voyager.services import get_prospect_status_from_convo
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
@@ -9,7 +9,7 @@ from test_utils import (
     basic_gnlp_model,
     basic_prospect,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.message_generation.services import *
 from src.ml.models import GNLPFinetuneJobStatuses
 from app import db

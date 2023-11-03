@@ -4,13 +4,13 @@ from src.research.models import (
     ResearchPointType,
     AccountResearchType,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.message_generation.services import *
 from app import db
 import mock
 import json
-from test_utils import test_app
-from test_utils import basic_client, basic_archetype, basic_prospect, basic_client_sdr
+from tests.test_utils.test_utils import test_app
+from tests.test_utils.test_utils import basic_client, basic_archetype, basic_prospect, basic_client_sdr
 
 
 @use_app_context

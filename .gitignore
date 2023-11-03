@@ -3,7 +3,7 @@ venv/
 .envstaging
 .envprod
 
-.coverage*
+*.coverage*
 dump.rdb
 
 training_set_temp.jsonl

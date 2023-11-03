@@ -1,15 +1,15 @@
 from src.email_outbound.models import EmailCustomizedFieldTypes
 from src.ml.models import GNLPModelType
 from model_import import EmailSchema, ProspectEmail
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_client,
     basic_archetype,
     basic_gnlp_model,
     basic_prospect,
     basic_generated_message,
 )
-from decorators import use_app_context
-from test_utils import test_app
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app
 from app import db
 
 

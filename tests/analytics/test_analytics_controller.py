@@ -1,7 +1,7 @@
 from app import app
 import pytest
-from decorators import use_app_context
-from test_utils import (
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import (
     test_app,
     get_login_token,
     basic_client,

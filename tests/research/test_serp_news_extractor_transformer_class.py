@@ -2,8 +2,8 @@ from src.research.website.serp_news_extractor_transformer import (
     SerpNewsExtractorTransformer,
 )
 import mock
-from test_utils import test_app, basic_client, basic_archetype, basic_prospect
-from decorators import use_app_context
+from tests.test_utils.test_utils import test_app, basic_client, basic_archetype, basic_prospect
+from tests.test_utils.decorators import use_app_context
 from model_import import ResearchPoints, ResearchPayload
 
 

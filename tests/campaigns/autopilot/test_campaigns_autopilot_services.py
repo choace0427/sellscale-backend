@@ -1,5 +1,5 @@
 from app import db
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_archetype,
@@ -10,7 +10,7 @@ from test_utils import (
     basic_generated_message_cta,
     basic_outbound_campaign,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from freezegun import freeze_time
 from datetime import datetime, timedelta
 from model_import import (

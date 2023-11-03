@@ -1,10 +1,10 @@
-from decorators import use_app_context
-from test_utils import test_app
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app
 
 from src.utils.slack import *
 from src.prospecting.models import ProspectStatus
 from src.automation.slack_notification import send_slack_block
-from test_utils import basic_client, basic_archetype, basic_prospect
+from tests.test_utils.test_utils import basic_client, basic_archetype, basic_prospect
 from model_import import Client
 from app import db
 import mock

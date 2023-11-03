@@ -1,10 +1,10 @@
 from app import db, app
-from test_utils import test_app
-from decorators import use_app_context
+from tests.test_utils.test_utils import test_app
+from tests.test_utils.decorators import use_app_context
 import json
 
 from src.response_ai.models import ResponseConfiguration
-from test_utils import basic_client, basic_archetype
+from tests.test_utils.test_utils import basic_client, basic_archetype
 
 
 @use_app_context

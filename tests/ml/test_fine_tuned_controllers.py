@@ -1,12 +1,12 @@
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_client,
     basic_archetype,
     basic_gnlp_model,
     basic_prospect,
     basic_generated_message,
 )
-from decorators import use_app_context
-from test_utils import test_app
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app
 from model_import import GNLPModelFineTuneJobs
 from src.ml.models import GNLPFinetuneJobStatuses, GNLPModelType
 from app import app

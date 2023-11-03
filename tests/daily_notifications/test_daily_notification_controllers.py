@@ -1,5 +1,5 @@
-from decorators import use_app_context
-from test_utils import test_app, basic_client, basic_client_sdr, basic_daily_notification, basic_prospect, basic_archetype
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app, basic_client, basic_client_sdr, basic_daily_notification, basic_prospect, basic_archetype
 from src.daily_notifications.models import DailyNotification
 from app import app, db
 import json
@@ -18,7 +18,7 @@ def test_daily_notification_fetch_all():
 
     assert response.status_code == 200
 
-    # TODO: Fix this test 
+    # TODO: Fix this test
     #assert len(response.data) == len(DailyNotification.query.filter(
     #    DailyNotification.client_sdr_id == client_sdr.id,
     #    DailyNotification.status == "PENDING",

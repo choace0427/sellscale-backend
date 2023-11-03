@@ -15,7 +15,7 @@ from src.email_outbound.services import (
     collect_and_update_status_from_ss_data,
     update_status_from_ss_data,
 )
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_client,
     basic_client_sdr,
     basic_archetype,
@@ -27,8 +27,8 @@ from test_utils import (
     basic_outbound_campaign,
     basic_prospect_email,
 )
-from decorators import use_app_context
-from test_utils import test_app
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app
 from app import db
 from src.email_outbound.models import (
     EmailSchema,

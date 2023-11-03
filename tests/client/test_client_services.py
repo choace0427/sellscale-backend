@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from app import app, db
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from model_import import (
     Client,
     ClientArchetype,
@@ -10,7 +10,7 @@ from model_import import (
 )
 from src.client.models import DemoFeedback
 from src.client.sdr.email.services_email_bank import nylas_exchange_for_authorization_code
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     get_login_token,

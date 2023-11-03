@@ -1,5 +1,5 @@
 from app import app, db
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_client,
     basic_archetype,
     basic_prospect,
@@ -27,7 +27,7 @@ from model_import import (
     GeneratedMessage,
     ClientSDR,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 import json
 import mock
 

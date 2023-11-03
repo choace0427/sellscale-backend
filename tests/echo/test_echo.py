@@ -1,9 +1,9 @@
 from app import db, app
-from test_utils import test_app
+from tests.test_utils.test_utils import test_app
 from model_import import Echo
 import pytest
 from config import TestingConfig
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 
 
 def test_echo(test_app):

@@ -1,9 +1,9 @@
 from app import app, db
 from datetime import time
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.client.sdr.email.models import EmailType, SDREmailBank, SDREmailSendSchedule
 from src.client.sdr.email.services_email_schedule import create_sdr_email_send_schedule, update_sdr_email_send_schedule
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_sdr_email_send_schedule,
     test_app,
     basic_client,

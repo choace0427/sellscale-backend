@@ -1,5 +1,5 @@
 from app import db, app
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_archetype,
@@ -7,7 +7,7 @@ from test_utils import (
     basic_gnlp_model,
     basic_prospect,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.ml.rule_engine import (
     rule_no_brackets,
     run_message_rule_engine,

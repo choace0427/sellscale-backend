@@ -1,4 +1,4 @@
-from test_utils import test_app
+from tests.test_utils.test_utils import test_app
 
 
 def use_app_context(func):

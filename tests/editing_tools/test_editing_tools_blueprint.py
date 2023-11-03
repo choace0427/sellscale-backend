@@ -1,8 +1,8 @@
 from flask import jsonify
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from app import db
 from model_import import ResearchType
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_archetype,

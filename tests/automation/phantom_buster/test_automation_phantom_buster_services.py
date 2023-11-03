@@ -1,10 +1,10 @@
 from app import db, app
 import pytest
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 import json
 from src.automation.models import PhantomBusterSalesNavigatorConfig, PhantomBusterSalesNavigatorLaunch, SalesNavigatorLaunchStatus
 from src.automation.phantom_buster.services import collect_and_load_sales_navigator_results, collect_and_trigger_phantom_buster_sales_navigator_launches, get_sales_navigator_launch_result, get_sales_navigator_launches, register_phantom_buster_sales_navigator_url, run_phantom_buster_sales_navigator
-from test_utils import test_app, basic_client, basic_client_sdr, basic_pb_sn_config, basic_pb_sn_launch
+from tests.test_utils.test_utils import test_app, basic_client, basic_client_sdr, basic_pb_sn_config, basic_pb_sn_launch
 import mock
 
 

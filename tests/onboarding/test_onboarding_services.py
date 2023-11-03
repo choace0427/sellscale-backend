@@ -1,5 +1,5 @@
 from app import db, app
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
@@ -16,13 +16,13 @@ from src.onboarding.services import (
     is_onboarding_complete,
 )
 from model_import import (SightOnboarding, ResponseConfiguration, GeneratedMessageCTA)
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 
 @use_app_context
 def test_get_sight_onboarding():
     client = basic_client()
     client_sdr = basic_client_sdr(client=client)
-    
+
     sight_onboarding : SightOnboarding = SightOnboarding(client_sdr_id=client_sdr.id)
     db.session.add(sight_onboarding)
     db.session.commit()
@@ -185,4 +185,3 @@ def test_is_onboarding_complete():
         "completed_first_campaign": False,
         "completed_go_live": False
     }
-    

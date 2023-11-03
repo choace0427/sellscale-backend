@@ -1,0 +1,99 @@
+name: Coverage Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  test-lint-coverage:
+    runs-on: ubuntu-latest
+
+    # Service containers to run with `runner-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install PostgreSQL client
+      run: sudo apt-get update -y && sudo apt-get install -y postgresql-client
+
+    - name: Wait for PostgreSQL to start
+      run: |
+        until pg_isready -h localhost -p 5432 -U postgres -d postgres; do
+          echo "Waiting for PostgreSQL to start..."
+          sleep 5
+        done
+
+    - name: Set up Database
+      run: |
+        touch ~/.pgpass
+        echo "localhost:5432:postgres:postgres:postgres" >> ~/.pgpass
+        chmod 600 ~/.pgpass
+        psql -h localhost -U postgres -d postgres -c "CREATE DATABASE testing;"
+        psql -h localhost -U postgres -d postgres -c "CREATE USER testing WITH PASSWORD 'testing';"
+        psql -h localhost -U postgres -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE testing TO testing;"
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Perform Database Migrations
+      run: |
+        export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testing
+        export FLASK_APP=app.py
+        export FLASK_ENV='testing'
+        export APP_SETTINGS=config.TestingConfig
+
+        flask db upgrade
+
+    - name: Calculate Code Coverage (Current Branch)
+      run: |
+        export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testing
+        export FLASK_APP=app.py
+        export FLASK_ENV='testing'
+        export APP_SETTINGS=config.TestingConfig
+        coverage run -m pytest -vv
+        mv .coverage .current.coverage
+      continue-on-error: true
+
+    - name: Check Code Coverage (Main Branch)
+      run: |
+        cat .current.coverage
+        git fetch origin
+        git checkout main
+        export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testing
+        export FLASK_APP=app.py
+        export FLASK_ENV='testing'
+        export APP_SETTINGS=config.TestingConfig
+        coverage run -m pytest -vv
+        mv .coverage .main.coverage
+      continue-on-error: true
+
+    - name: Check Coverage
+      if: always()
+      run: |
+        cat .main.coverage
+        python -c "import coverage; current_coverage = coverage.Coverage(data_file='.current.coverage'); main_coverage = coverage.Coverage(data_file='.main.coverage'); current_coverage.load(); main_coverage.load(); current_total = current_coverage.report(omit=['*site-packages*']); main_total = main_coverage.report(omit=['*site-packages*']); diff = current_total - main_total; print(f'Current coverage: {current_total:.2f}%'); print(f'Main coverage: {main_total:.2f}%'); print(f'Coverage difference: {diff:.2f}%'); sys.exit(0) if diff >= 0 else sys.exit(1)"

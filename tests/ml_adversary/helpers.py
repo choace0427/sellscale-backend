@@ -1,7 +1,7 @@
 # Description: Helper methods for testing the ml_adversary module.
 
 from app import db, app
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,

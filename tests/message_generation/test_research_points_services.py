@@ -1,12 +1,12 @@
 from app import db, app
 from src.research.services import get_all_research_point_types, create_research_point
 from src.research.models import ResearchPointType, ResearchType
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.message_generation.services import *
 from app import db
 import mock
 import json
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_archetype,
@@ -50,8 +50,8 @@ def test_create_research_point():
     db.session.commit()
 
     point_id = create_research_point(
-        payload_id=rp.id, 
-        research_point_type=ResearchPointType.SERP_NEWS_SUMMARY, 
+        payload_id=rp.id,
+        research_point_type=ResearchPointType.SERP_NEWS_SUMMARY,
         text="test",
         research_point_metadata={"test": "test"}
     )

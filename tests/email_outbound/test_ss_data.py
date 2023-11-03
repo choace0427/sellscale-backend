@@ -1,5 +1,5 @@
-from decorators import use_app_context
-from test_utils import test_app
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app
 from app import db
 
 from src.email_outbound.ss_data import SSData

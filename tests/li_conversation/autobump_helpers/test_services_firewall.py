@@ -1,5 +1,5 @@
 from app import db
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.li_conversation.autobump_helpers.services_firewall import (
     rule_cant_be_blank,
     rule_default_framework,
@@ -10,7 +10,7 @@ from src.li_conversation.autobump_helpers.services_firewall import (
     rule_no_profanity,
     run_autobump_firewall,
 )
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,

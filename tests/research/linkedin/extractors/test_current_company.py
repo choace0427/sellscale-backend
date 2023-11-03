@@ -1,5 +1,5 @@
-from decorators import use_app_context
-from test_utils import test_app
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app
 from app import app
 import mock
 
@@ -34,4 +34,3 @@ def test_get_current_company_description(openai_mock):
     assert response.get("raw_data") == {"company_name": None, "company_description": None}
     assert response.get("prompt") == ""
     assert response.get("response") == ""
-    

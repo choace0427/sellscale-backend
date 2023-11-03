@@ -1,5 +1,5 @@
 from app import db
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
@@ -43,7 +43,7 @@ from model_import import (
     OutboundCampaignStatus,
     GeneratedMessageType,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 import mock
 import src.utils.slack
 from app import app

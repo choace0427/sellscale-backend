@@ -1,11 +1,11 @@
 from app import db, app
-from test_utils import test_app
+from tests.test_utils.test_utils import test_app
 from model_import import Echo, Prospect, ProspectStatus
 from datetime import datetime, timedelta
 import pytest
 from config import TestingConfig
-from decorators import use_app_context
-from test_utils import basic_client, basic_client_sdr, basic_prospect, basic_archetype
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import basic_client, basic_client_sdr, basic_prospect, basic_archetype
 import json
 
 

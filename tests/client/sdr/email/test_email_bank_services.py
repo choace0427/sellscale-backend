@@ -1,8 +1,8 @@
 from app import app, db
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.client.sdr.email.models import EmailType, SDREmailBank
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank, email_belongs_to_sdr, get_sdr_email_banks, update_sdr_email_bank
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,

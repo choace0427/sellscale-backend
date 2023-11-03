@@ -1,5 +1,5 @@
 from app import db, app
-from test_utils import test_app
+from tests.test_utils.test_utils import test_app
 from src.ml_adversary.services import (
     run_adversary,
     get_mistake_fix_from_adversary_output,
@@ -9,14 +9,14 @@ from src.ml_adversary.services import (
     edit_adversary_training_point,
 )
 from model_import import (AdversaryTrainingPoint, GeneratedMessage, AdversaryFineTuneHistory)
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 import mock
 import pytest
 
 from helpers import (
-    fake_openai_response, 
-    fake_openai_response_fail, 
-    fake_adversary_response, 
+    fake_openai_response,
+    fake_openai_response_fail,
+    fake_adversary_response,
     setup_generated_message
 )
 
@@ -30,7 +30,7 @@ def test_run_adversary(openai_patch):
         run_adversary(prompt="test prompt", completion="")
 
     tune_history: AdversaryFineTuneHistory = AdversaryFineTuneHistory.query.filter_by(active=True).first()
-    current_model = tune_history.model_name    
+    current_model = tune_history.model_name
     openai_prompt = "instruction: Given the prompt and the completion, find the mistake in the completion, if any. If mistake found, propose a fix.\n---\nprompt: \"\"\"test prompt\"\"\"\n---\ncompletion: \"\"\"test completion\"\"\"\n---\nmistake:"
 
     # Test that we can run the adversary
@@ -92,7 +92,7 @@ def test_preview_fix_fail(openai_patch):
     _, status_code = response[0], response[1]
     assert status_code == 400
     assert openai_patch.called == 1
-    
+
 
 @use_app_context
 def test_create_adversary_training_point():

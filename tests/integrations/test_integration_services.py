@@ -1,7 +1,7 @@
 from app import app, db
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from model_import import Client, ClientArchetype, ClientSDR, GNLPModel, ProspectOverallStatus
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     get_login_token,

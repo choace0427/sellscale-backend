@@ -1,13 +1,13 @@
 from app import db, app
 from src.bump_framework.models import BumpLength
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
     basic_archetype,
     basic_bump_framework,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.bump_framework.services import (
     clone_bump_framework,
     get_bump_frameworks_for_sdr,

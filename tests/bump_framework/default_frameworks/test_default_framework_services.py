@@ -3,13 +3,13 @@ from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
 from src.bump_framework.models import JunctionBumpFrameworkClientArchetype
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
     basic_archetype,
 )
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from model_import import BumpFramework
 
 @use_app_context

@@ -106,7 +106,7 @@ The following steps assume that you have the above prerequisites installed - any
 
 6.  Download [Postico 2](https://eggerapps.at/postico2/) - or your own PostgresSQL navigator of choice - to validate that the databases have been created (For Postico 2: New Server -> Fill in Database field with `sellscale` -> Connect. Repeat for `testing`).
 
-7.  Create a `.env` file and paste the following example. Ensure that the `DATABASE_URL` points to your `sellscale` db.
+7.  Create a `.production.env` file and paste the following example. Ensure that the `DATABASE_URL` points to your `sellscale` db.
 
     ```
     export FLASK_APP=app.py
@@ -121,7 +121,7 @@ The following steps assume that you have the above prerequisites installed - any
     export HUGGING_FACE_KEY='<YOUR_KEY_HERE>'
     ```
 
-8.  Create a `.envtesting` file and paste the following example. Ensure that the `DATABASE_URL` points to your `testing` db.
+8.  Create a `.testing.env` file and paste the following example. Ensure that the `DATABASE_URL` points to your `testing` db.
 
     ```
     export FLASK_APP=app.py

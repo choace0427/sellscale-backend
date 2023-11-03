@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 from app import db
 from config import TestingConfig
@@ -76,8 +77,10 @@ from datetime import datetime, time, timedelta
 from src.email_scheduling.models import EmailMessagingSchedule
 
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.prospecting.icp_score.models import ICPScoringRuleset
 from src.utils.datetime.dateutils import get_current_monday_friday
 
+ENV = os.environ.get("FLASK_ENV")
 
 @pytest.fixture
 def test_app():
@@ -85,10 +88,15 @@ def test_app():
 
     app.config.from_object(TestingConfig)
     sql_url = app.config["SQLALCHEMY_DATABASE_URI"]
-    if "/testing" not in sql_url:
+    if (ENV != "testing") or ('production' in sql_url):
         raise Exception(
-            "You are not in the correct environment! Switch to TESTING environment and ensure that /testing database exists locally."
+            "You are not in the correct environment! Switch to TESTING environment and ensure that a database exists locally."
         )
+
+    # if "/testing" not in sql_url:
+    #     raise Exception(
+    #         "You are not in the correct environment! Switch to TESTING environment and ensure that /testing database exists locally."
+    #     )
 
     with app.app_context():
         clear_all_entities(TextGeneration)
@@ -144,6 +152,7 @@ def test_app():
         clear_all_entities(GNLPModel)
         clear_all_entities(GNLPModelFineTuneJobs)
         clear_all_entities(StackRankedMessageGenerationConfiguration)
+        clear_all_entities(ICPScoringRuleset)
         clear_all_entities(ClientArchetype)
         clear_all_entities(PhantomBusterSalesNavigatorLaunch)
         clear_all_entities(PhantomBusterSalesNavigatorConfig)

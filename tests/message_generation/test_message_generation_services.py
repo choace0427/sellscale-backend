@@ -1,8 +1,8 @@
 import json
 
 import mock
-from decorators import use_app_context
-from test_utils import (
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import (
     basic_archetype,
     basic_client,
     basic_client_sdr,

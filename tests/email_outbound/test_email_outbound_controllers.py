@@ -3,7 +3,7 @@ from src.email_outbound.models import EmailCustomizedFieldTypes
 from model_import import GeneratedMessage, GeneratedMessageType
 from src.ml.models import GNLPModelType
 from src.email_outbound.services import create_prospect_email
-from test_utils import (
+from tests.test_utils.test_utils import (
     basic_client,
     basic_client_sdr,
     basic_archetype,
@@ -13,8 +13,8 @@ from test_utils import (
     basic_prospect_email,
     basic_outbound_campaign
 )
-from decorators import use_app_context
-from test_utils import test_app
+from tests.test_utils.decorators import use_app_context
+from tests.test_utils.test_utils import test_app
 from src.email_outbound.models import (
     EmailSchema,
     ProspectEmail,

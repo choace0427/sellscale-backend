@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 from app import app, db
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.client.models import SLASchedule
 from src.client.sdr.services_client_sdr import create_sla_schedule, get_sdr_blacklist_words, get_sla_schedules_for_sdr, load_sla_schedules, update_custom_conversion_pct, update_sdr_blacklist_words, update_sla_schedule
 from src.utils.datetime.dateutils import get_current_monday_friday
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,

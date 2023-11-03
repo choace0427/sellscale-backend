@@ -2,12 +2,12 @@ import mock
 from app import app, db
 
 from model_import import Client, PersonaSplitRequestTask, PersonaSplitRequest
-from decorators import use_app_context
+from tests.test_utils.decorators import use_app_context
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage
 from src.personas.services import get_unassignable_prospects_using_icp_heuristic, unassign_prospects
 from src.prospecting.models import Prospect
-from test_utils import (
+from tests.test_utils.test_utils import (
     test_app,
     basic_client,
     basic_client_sdr,
