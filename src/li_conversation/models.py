@@ -51,6 +51,7 @@ class LinkedinInitialMessageTemplate(db.Model):
             "sellscale_generated": self.sellscale_generated,
             "additional_instructions": self.additional_instructions,
             "research_points": self.research_points,
+            "title": self.title,
         }
 
 
