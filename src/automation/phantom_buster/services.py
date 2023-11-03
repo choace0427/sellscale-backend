@@ -274,8 +274,18 @@ def collect_and_load_sales_navigator_results(self) -> None:
         result_raw = phantom.get_output_by_container_id(launch.pb_container_id)
         result_processed = process_phantom_result_raw(result_raw)
 
-        # If the result exists, then load the result into the database, and mark the launch as complete
-        if result_raw:
+        status = phantom.get_status()
+
+        if status.startswith("error_"):
+            # If the agent has errored, then mark the launch as failed
+
+            launch.status = SalesNavigatorLaunchStatus.FAILED
+            agent.in_use = False
+            db.session.commit()
+
+        elif result_raw:
+            # If the result exists, then load the result into the database, and mark the launch as complete
+
             # Load the result into the database
             launch.result_raw = result_raw
             launch.result_processed = result_processed

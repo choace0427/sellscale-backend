@@ -434,7 +434,8 @@ def update_all_phantom_buster_run_statuses():
 def update_phantom_buster_run_status(phantom_id: str):
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=phantom_id)
     last_run_date = pb_agent.get_last_run_date()
-    error_message = pb_agent.get_error_message()
+    status = pb_agent.get_status()
+    error_message = 'Session cookie not valid anymore. Please update the cookie.' if status == 'error_invalid_cookie' else None
 
     pb_config = PhantomBusterConfig.query.filter(
         PhantomBusterConfig.phantom_uuid == phantom_id

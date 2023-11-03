@@ -173,8 +173,8 @@ class PhantomBusterAgent:
     def get_last_run_date(self):
         data = self.get_agent_data()
         return datetime.datetime.fromtimestamp(data.get("updatedAt") / 1000.0)
-
-    def get_error_message(self):
+    
+    def get_status(self):
         url = self.FETCH_AGENT_OUTPUT.format(phantom_uuid=self.id)
         payload = {}
         headers = {
@@ -184,11 +184,17 @@ class PhantomBusterAgent:
 
         response = requests.request("GET", url, headers=headers, data=payload)
         data = response.json()
-        output = data.get("output")
 
-        if "Session cookie not valid" in output:
-            return "Session cookie not valid anymore. Please update the cookie."
-        return None
+        output = data.get("output")
+        status = data.get("status")
+
+        if output and "Session cookie not valid" in output:
+            return "error_invalid_cookie"
+        elif output and "Process finished with an error" in output:
+            return "error_unknown"
+        
+        return status
+
 
     def get_arguments(self):
         url = self.FETCH_AGENT_URL.format(phantom_uuid=self.id)
