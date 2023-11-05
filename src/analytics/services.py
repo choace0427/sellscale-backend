@@ -308,21 +308,21 @@ def get_outreach_over_time(
 def get_all_campaign_analytics_for_client_campaigns_page(client_id: int):
     query = """
         select 
-            client_archetype.archetype "Campaign",
+            concat(client_archetype.emoji, ' ', client_archetype.archetype) "Campaign",
             client_sdr.name "Account",
             count(distinct prospect.id) "Sourced",
-            concat(round(100 * cast(count(distinct prospect.id) filter (where (
+            round(100 * cast(count(distinct prospect.id) filter (where (
                 prospect_email_status_records.to_status = 'SENT_OUTREACH' or 
                 prospect_status_records.to_status = 'SENT_OUTREACH'
-            )) as float) / (count(distinct prospect.id) + 0.001)), '%') "Contacted%",
-            concat(round(100 * cast(count(distinct prospect.id) filter (where (
+            )) as float) / (count(distinct prospect.id) + 0.001)) "Contacted%",
+            round(100 * cast(count(distinct prospect.id) filter (where (
                 prospect_email_status_records.to_status = 'EMAIL_OPENED' or 
                 prospect_status_records.to_status = 'ACCEPTED'
-            )) as float) / (count(distinct prospect.id) + 0.001)), '%') "Open%",
-            concat(round(100 * cast(count(distinct prospect.id) filter (where (
+            )) as float) / (count(distinct prospect.id) + 0.001)) "Open%",
+            round(100 * cast(count(distinct prospect.id) filter (where (
                 prospect_email_status_records.to_status = 'ACTIVE_CONVO' or 
                 prospect_status_records.to_status = 'ACTIVE_CONVO'
-            )) as float) / (count(distinct prospect.id) + 0.001)), '%') "Reply%",
+            )) as float) / (count(distinct prospect.id) + 0.001)) "Reply%",
             count(distinct prospect.id) filter (where (
                 prospect_email_status_records.to_status = 'DEMO_SET' or 
                 prospect_status_records.to_status = 'DEMO_SET'
@@ -344,7 +344,9 @@ def get_all_campaign_analytics_for_client_campaigns_page(client_id: int):
                     then 'Complete'
                 else
                     'Active'
-            end "Status"
+            end "Status",
+            client_sdr.img_url "img_url",
+            array_agg(distinct generated_message.message_type) filter (where generated_message.message_type is not null) "Channel"
         from 
             client_archetype
             join prospect on prospect.archetype_id = client_archetype.id
@@ -352,8 +354,9 @@ def get_all_campaign_analytics_for_client_campaigns_page(client_id: int):
             left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
             left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
             left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+            left join generated_message on generated_message.prospect_id = prospect.id and generated_message.message_status = 'SENT'
         where client_archetype.client_id = {client_id}
-        group by 1,2, client_archetype.active;
+        group by 1,2, client_archetype.active, client_sdr.img_url
     """.format(
         client_id=client_id
     )
@@ -372,6 +375,8 @@ def get_all_campaign_analytics_for_client_campaigns_page(client_id: int):
                 "reply": row[5],
                 "demo_set": row[6],
                 "status": row[7],
+                "img_url": row[8],
+                "channel": row[9]
             }
         )
 
