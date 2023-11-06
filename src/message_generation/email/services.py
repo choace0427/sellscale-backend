@@ -82,7 +82,10 @@ def ai_initial_email_prompt(
     # Collect research points
     prospect_research: list[
         ResearchPoints
-    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    ] = ResearchPoints.get_research_points_by_prospect_id(
+        prospect_id=prospect_id,
+        email_sequence_step_id=template_id,
+    )
     research_points = ""
     for point in prospect_research:
         research_points += f"- {point.value}\n"
@@ -242,7 +245,10 @@ def ai_followup_email_prompt(
     # Collect research points
     prospect_research: list[
         ResearchPoints
-    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    ] = ResearchPoints.get_research_points_by_prospect_id(
+        prospect_id=prospect_id,
+        email_sequence_step_id=override_sequence_id,
+    )
     research_points = ""
     for point in prospect_research:
         research_points += f"- {point.value}\n"

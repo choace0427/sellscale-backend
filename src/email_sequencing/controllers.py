@@ -17,6 +17,7 @@ from src.email_sequencing.services import (
     activate_email_subject_line_template,
     undefault_all_sequence_steps_in_status
 )
+from src.research.models import ResearchPointType
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.ml.services import (
@@ -112,6 +113,11 @@ def post_create_sequence_step(client_sdr_id: int):
         )
         or None
     )
+    transformer_blocklist = (
+        get_request_parameter(
+            "transformer_blocklist", request, json=True, required=False, parameter_type=list
+        )
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -123,6 +129,16 @@ def post_create_sequence_step(client_sdr_id: int):
     if not found_key:
         return jsonify({"error": "Invalid overall status."}), 400
 
+    # If transformer blocklist is not None, convert to enum
+    if transformer_blocklist:
+        transformer_blocklist_enum = []
+        for blocklist_item in transformer_blocklist:
+            for key, val in ResearchPointType.__members__.items():
+                if key == blocklist_item:
+                    transformer_blocklist_enum.append(val)
+                    break
+        transformer_blocklist = transformer_blocklist_enum
+
     sequence_step_id = create_email_sequence_step(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
@@ -132,6 +148,7 @@ def post_create_sequence_step(client_sdr_id: int):
         bumped_count=bumped_count,
         substatus=substatus,
         default=default,
+        transformer_blocklist=transformer_blocklist,
     )
     if sequence_step_id:
         return (
@@ -183,6 +200,21 @@ def patch_sequence_step(client_sdr_id: int):
         )
         or None
     )
+    transformer_blocklist = (
+        get_request_parameter(
+            "transformer_blocklist", request, json=True, required=False, parameter_type=list
+        )
+    )
+
+    # If transformer blocklist is not None, convert to enum
+    if transformer_blocklist:
+        transformer_blocklist_enum = []
+        for blocklist_item in transformer_blocklist:
+            for key, val in ResearchPointType.__members__.items():
+                if key == blocklist_item:
+                    transformer_blocklist_enum.append(val)
+                    break
+        transformer_blocklist = transformer_blocklist_enum
 
     sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(sequence_step_id)
     if not sequence_step:

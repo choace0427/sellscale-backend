@@ -1,9 +1,11 @@
 from app import db
 from sqlalchemy import CheckConstraint
+import sqlalchemy as sa
 
 from src.client.models import ClientArchetype
 
 from src.prospecting.models import ProspectOverallStatus
+from src.research.models import ResearchPointType
 
 
 class EmailSubjectLineTemplate(db.Model):
@@ -71,6 +73,11 @@ class EmailSequenceStep(db.Model):
 
     sequence_delay_days = db.Column(db.Integer, nullable=True, default=0)
 
+    transformer_blocklist = db.Column(
+        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        nullable=True,
+    )  # use this list to blocklist transformer durings message generation
+
     # Define a CheckConstraint to enforce the minimum value
     __table_args__ = (
         CheckConstraint('sequence_delay_days >= 0', name='check_sequence_delay_days_positive'),
@@ -97,5 +104,6 @@ class EmailSequenceStep(db.Model):
             "template": self.template,
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
-            "sequence_delay_days": self.sequence_delay_days
+            "sequence_delay_days": self.sequence_delay_days,
+            "transformer_blocklist": self.transformer_blocklist
         }

@@ -103,6 +103,7 @@ class ResearchPoints(db.Model):
         prospect_id: int,
         bump_framework_id: Optional[int] = None,
         bump_framework_template_id: Optional[int] = None,
+        email_sequence_step_id: Optional[int] = None,
     ) -> list:
         from model_import import ClientArchetype, Prospect
         from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates
@@ -148,6 +149,21 @@ class ResearchPoints(db.Model):
                     for p in research_points
                     if p.research_point_type
                     not in bump_framework_template.transformer_blocklist
+                ]
+
+        # Filter out points that are in the email sequence step blocklist
+        if email_sequence_step_id:
+            from src.email_sequencing.models import EmailSequenceStep
+
+            email_sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
+                email_sequence_step_id
+            )
+            if email_sequence_step and email_sequence_step.transformer_blocklist:
+                research_points = [
+                    p
+                    for p in research_points
+                    if p.research_point_type
+                    not in email_sequence_step.transformer_blocklist
                 ]
 
         # Filter out points that are in the archetype blocklist

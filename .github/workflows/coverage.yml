@@ -87,6 +87,7 @@ jobs:
       run: |
         git fetch origin
         git checkout main
+        git pull
         export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testing
         export FLASK_APP=app.py
         export FLASK_ENV='testing'

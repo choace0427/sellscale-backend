@@ -55,3 +55,16 @@ def test_datetime_interval_generator():
     assert next(interval) == datetime(2020, 1, 1)
     assert next(interval) == datetime(2020, 1, 2)
     assert next(interval, None) == None
+
+
+def test_get_working_hours_in_utc():
+    start_time, end_time = get_working_hours_in_utc(
+        timezone_string="America/Los_Angeles"
+    )
+    now = datetime.now(timezone.utc)
+    assert start_time == now.replace(hour=16, minute=0, second=0, microsecond=0)
+    assert end_time == start_time + timedelta(hours=8)
+
+@freeze_time("2020-01-01")
+def test_is_weekend():
+    assert is_weekend(timezone_string="America/Los_Angeles") == False
