@@ -341,6 +341,17 @@ def run_collect_and_send_email_messaging_schedule_entries():
             priority=1,
         )
 
+def run_find_and_run_queued_question_enrichment_row_job():
+    from src.prospecting.question_enrichment.services import find_and_run_queued_question_enrichment_row
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        find_and_run_queued_question_enrichment_row.delay(
+            20 # num_rows
+        )
+
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
@@ -366,6 +377,7 @@ scheduler.add_job(
     seconds=30,
 )
 scheduler.add_job(func=process_queue, trigger="interval", seconds=30)
+scheduler.add_job(func=run_find_and_run_queued_question_enrichment_row_job, trigger="interval", seconds=20)
 
 # Minute triggers
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
