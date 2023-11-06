@@ -210,8 +210,7 @@ def modify_email_sequence_step(
     if sequence_delay_days and sequence_delay_days > 0:
         sequence_step.sequence_delay_days = sequence_delay_days
 
-    if transformer_blocklist:
-        sequence_step.transformer_blocklist = transformer_blocklist
+    sequence_step.transformer_blocklist = transformer_blocklist
 
     overall_status = sequence_step.overall_status
     substatus = sequence_step.substatus
