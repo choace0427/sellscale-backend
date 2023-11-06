@@ -231,6 +231,7 @@ def patch_sequence_step(client_sdr_id: int):
         sequence_delay_days=sequence_delay_days,
         bumped_count=bumped_count,
         default=default,
+        transformer_blocklist=transformer_blocklist,
     )
 
     return jsonify({"message": "Sequence step updated."}), 200 if modified else 400
