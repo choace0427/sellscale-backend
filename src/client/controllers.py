@@ -290,6 +290,24 @@ def create_archetype(client_sdr_id: int):
 
     return ca
 
+# toggle template mode active for archetype
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/toggle_template_mode", methods=["PATCH"])
+@require_user
+def patch_toggle_template_mode(client_sdr_id: int, archetype_id: int):
+    template_mode = get_request_parameter(
+        "template_mode", request, json=True, required=True, parameter_type=bool
+    )
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+        return "Failed to find archetype", 404
+    
+    client_archetype.template_mode = template_mode
+    db.session.add(client_archetype)
+    db.session.commit()
+
+    return jsonify({"message": "Success"}), 200
+
 
 @CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/prospects", methods=["GET"])
 @require_user
