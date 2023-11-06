@@ -105,5 +105,5 @@ class EmailSequenceStep(db.Model):
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
             "sequence_delay_days": self.sequence_delay_days,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist] if self.transformer_blocklist else []
         }
