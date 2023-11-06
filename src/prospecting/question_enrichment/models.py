@@ -1,5 +1,5 @@
 from app import db
-
+import enum
 class QuestionEnrichmentRequest(db.Model):
     __tablename__ = "question_enrichment_request"
 
@@ -15,6 +15,12 @@ class QuestionEnrichmentRequest(db.Model):
             "question": self.question
         }
 
+
+class QuestionEnrichmentRowStatus(enum.Enum):
+    QUEUED = "QUEUED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETE = "COMPLETE"
+    ERROR = "ERROR"
 class QuestionEnrichmentRow(db.Model):
     __tablename__ = "question_enrichment_row"
 
@@ -22,7 +28,9 @@ class QuestionEnrichmentRow(db.Model):
     prospect_id = db.Column(db.Integer, nullable=False)
 
     question = db.Column(db.String, nullable=False)
-    output = db.Column(db.Boolean, nullable=False)
+    output = db.Column(db.Boolean, nullable=True)
+
+    status = db.Column(db.Enum(QuestionEnrichmentRowStatus), nullable=False)
 
     retries = db.Column(db.Integer, nullable=False)
     error = db.Column(db.String, nullable=True)
