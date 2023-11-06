@@ -37,3 +37,25 @@ class ChannelWarmup(db.Model):
             "warmup_enabled": self.warmup_enabled,
             "reputation": self.reputation,
         }
+
+class ClientWarmup(db.Model):
+    __tablename__ = "client_warmup"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+
+    date = db.Column(db.Date, nullable=False)
+
+    linkedin_warmup = db.Column(db.Boolean, nullable=False, default=False)
+    email_warmup = db.Column(db.Boolean, nullable=False, default=False)
+    total_warmup = db.Column(db.Boolean, nullable=False, default=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "date": self.date,
+            "linkedin_warmup": self.linkedin_warmup,
+            "email_warmup": self.email_warmup,
+            "total_warmup": self.total_warmup,
+        }
