@@ -15,7 +15,7 @@ from src.utils.slack import URL_MAP
 
 from celery import Celery
 from src.utils.slack import send_slack_message
-import chromadb
+# import chromadb
 
 if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
     import sentry_sdk
@@ -146,7 +146,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = sqlalchemy_engine_options
 db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
 
-chroma_client = chromadb.HttpClient(host='https://vector-db-zakq.onrender.com', port=8000)
+# chroma_client = chromadb.HttpClient(host='https://vector-db-zakq.onrender.com', port=8000)
 
 from model_import import *
 
