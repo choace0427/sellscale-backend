@@ -47,9 +47,9 @@ class ClientWarmup(db.Model):
 
     date = db.Column(db.Date, nullable=False)
 
-    linkedin_warmup = db.Column(db.Boolean, nullable=False, default=False)
-    email_warmup = db.Column(db.Boolean, nullable=False, default=False)
-    total_warmup = db.Column(db.Boolean, nullable=False, default=False)
+    linkedin_warmup_volume = db.Column(db.Integer, nullable=False, default=False)
+    email_warmup_volume = db.Column(db.Integer, nullable=False, default=False)
+    total_warmup_volume = db.Column(db.Integer, nullable=False, default=False)
 
     def to_dict(self):
         return {

@@ -2,7 +2,7 @@ from app import db
 
 from flask import Blueprint, request, jsonify
 from src.authentication.decorators import require_user
-from src.channel_warmup.models import ChannelWarmup
+from src.channel_warmup.models import ChannelWarmup, ClientWarmup
 from src.channel_warmup.services import pass_through_smartlead_warmup_request
 from src.channel_warmup.services import (
     set_channel_warmups_for_sdr,
@@ -52,5 +52,20 @@ def get_channel_warmups(client_sdr_id: int):
 
     return (
         jsonify({"status": "success", "sdrs": sdrs}),
+        200,
+    )
+
+@CHANNEL_WARMUP.route('/client_warmup', methods=['GET'])
+@require_user
+def get_client_historical_warmups(client_sdr_id: int):
+    """Fetches the client warmup for a given SDR."""
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client_id = client_sdr.client_id
+
+    results = ClientWarmup.query.filter_by(client_id=client_id).order_by(ClientWarmup.date.desc()).all()
+
+    return (
+        jsonify({"status": "success", "warmups": [x.to_dict() for x in results]}),
         200,
     )
