@@ -16,11 +16,12 @@ class DecimalEncoder(json.JSONEncoder):
   
 
 def get_collection(name: str):
-    openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-        api_key=os.environ.get("OPENAI_API_KEY"),
-        model_name="text-embedding-ada-002"
-    )
-    return chroma_client.get_or_create_collection(name=name, embedding_function=openai_ef)
+    ef = embedding_functions.DefaultEmbeddingFunction()
+    # ef = embedding_functions.OpenAIEmbeddingFunction(
+    #     api_key=os.environ.get("OPENAI_API_KEY"),
+    #     model_name="text-embedding-ada-002"
+    # )
+    return chroma_client.get_or_create_collection(name=name, embedding_function=ef)
 
 
 def populate_individuals(limit: int):
@@ -58,14 +59,14 @@ def populate_individuals(limit: int):
   return True
 
 
-def fetch_individuals(queries: list[str], amount: int):
+def fetch_individuals(queries: list[str], keywords: dict, amount: int):
     
     collection = get_collection("individual")
 
     results = collection.query(
         query_texts=queries,
         n_results=amount,
-        where={"first_name": "Bobby"},
+        where=keywords,#{"first_name": "Bobby"}
         #where_document={"$contains":"search_string"}
     )
 
