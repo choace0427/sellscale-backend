@@ -146,10 +146,3 @@ class BumpFrameworkTemplates(db.Model):
             "labels": self.labels,
             "tone": self.tone,
         }
-
-    # 'role-have-to-do-with': {
-    #     "name": "Does your role have to do with?",
-    #     "raw_prompt": "Do a short follow-up acknowledging they're busy using their role description - and that we'd love to chat about any [relevant painpoints their role may face]\n\nWhich pain points would this persona have? (bullet points)\nAnswer: \n- _________________",
-    #     "human_readable_prompt": "Connect with their role and ask them if their role has anything to do with what you want to connect with them on",
-    #     "length": 'MEDIUM',
-    # },
