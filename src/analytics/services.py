@@ -247,7 +247,11 @@ def get_outreach_over_time(
             count(distinct prospect.id) filter (
                 where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
                     prospect_email_status_records.to_status = 'ACTIVE_CONVO'
-            ) active_convo
+            ) active_convo,
+            count(distinct prospect.id) filter (
+                where prospect_status_records.to_status = 'DEMO_SET' or
+                    prospect_email_status_records.to_status = 'DEMO_SET'
+            ) demo_set
         from client_archetype
             join client_sdr on client_sdr.id = client_archetype.client_sdr_id
             join prospect on prospect.client_sdr_id = client_sdr.id
@@ -268,12 +272,14 @@ def get_outreach_over_time(
     sent_outreach = []
     opened = []
     active_convo = []
+    demos = []
 
     for row in data:
         dates.append(row[0])
         sent_outreach.append(row[1])
         opened.append(row[2])
         active_convo.append(row[3])
+        demos.append(row[4])
 
     modes = {
         "week": {
@@ -283,6 +289,7 @@ def get_outreach_over_time(
                 "outbound": sent_outreach[len(sent_outreach) - 7 :],
                 "acceptances": opened[len(opened) - 7 :],
                 "replies": active_convo[len(active_convo) - 7 :],
+                "demos": demos[len(demos) - 7 :],
             },
         },
         "month": {
@@ -291,6 +298,7 @@ def get_outreach_over_time(
                 "outbound": sent_outreach[len(sent_outreach) - 30 :],
                 "acceptances": opened[len(opened) - 30 :],
                 "replies": active_convo[len(active_convo) - 30 :],
+                "demos": demos[len(demos) - 30 :],
             },
         },
         "year": {
@@ -299,6 +307,7 @@ def get_outreach_over_time(
                 "outbound": sent_outreach,
                 "acceptances": opened,
                 "replies": active_convo,
+                "demos": demos,
             },
         },
     }
