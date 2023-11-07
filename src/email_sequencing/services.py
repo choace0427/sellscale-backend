@@ -534,21 +534,21 @@ def modify_email_template_pool_item(
     Returns:
         bool: Whether the email template pool item was modified
     """
-    template: EmailTemplatePool = EmailTemplatePool.query.filter(
+    template_entry: EmailTemplatePool = EmailTemplatePool.query.filter(
         EmailTemplatePool.id == email_template_pool_item_id,
     ).first()
-    if not template:
+    if not template_entry:
         return False
 
-    template.name = name
-    template.template = template
-    template.description = description
-    template.transformer_blocklist = transformer_blocklist
-    template.labels = labels
-    template.tone = tone
-    template.active = active
+    template_entry.name = name
+    template_entry.template = template
+    template_entry.description = description
+    template_entry.transformer_blocklist = transformer_blocklist
+    template_entry.labels = labels
+    template_entry.tone = tone
+    template_entry.active = active
 
-    db.session.add(template)
+    db.session.add(template_entry)
     db.session.commit()
 
     return True
