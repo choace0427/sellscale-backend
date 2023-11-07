@@ -43,7 +43,6 @@ from src.email_outbound.ss_data import SSData
 from src.automation.slack_notification import send_status_change_slack_block
 import markdown
 
-
 def create_prospect_email(
     prospect_id: int,
     outbound_campaign_id: int,

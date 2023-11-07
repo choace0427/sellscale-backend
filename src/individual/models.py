@@ -79,9 +79,9 @@ class Individual(db.Model):
 
     linkedin_similar_profiles = db.Column(db.ARRAY(db.JSON), nullable=True)
 
-    def to_dict(self):
+    def to_dict(self, include_company=True):
         
-        if self.company_id:
+        if self.company_id and include_company:
             company: Company = Company.query.get(self.company_id)
             company_data = company.to_dict()
         else:
