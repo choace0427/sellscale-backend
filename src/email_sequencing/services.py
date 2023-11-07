@@ -503,7 +503,7 @@ def create_email_template_pool_item(
         tone=tone,
     )
     db.session.add(template)
-    db.session.commit
+    db.session.commit()
 
     return True, template.id
 
