@@ -448,12 +448,13 @@ def update_phantom_buster_run_status(phantom_id: str):
         db.session.commit()
 
 
-def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
+def update_phantom_buster_li_at(client_sdr_id: int, li_at: str, user_agent: str = None):
     """Updates a PhantomBuster's LinkedIn authentication token
 
     Args:
         client_sdr_id (int): ID of the client SDR
         li_at (str): LinkedIn authentication token
+        user_agent (str): User agent
 
     Returns:
         status_code (int), message (str): HTTP status code
@@ -467,6 +468,10 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
     for pb in pbs:
         pb_id = pb.phantom_uuid
         pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=pb_id)
+
+        if user_agent:
+            pb_agent.update_argument('userAgent', user_agent)
+
         arguments = pb_agent.get_arguments()
         if "sessionCookie" in arguments:
             pb_agent.update_argument(key="sessionCookie", new_value=li_at)
@@ -476,6 +481,10 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str):
         return "No client sdr found with this id", 400
 
     sdr.li_at_token = li_at
+    
+    if user_agent:
+        sdr.user_agent = user_agent
+
     db.session.add(sdr)
     db.session.commit()
 

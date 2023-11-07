@@ -79,6 +79,7 @@ class LinkedIn(object):
         debug=False,
         proxies={},
         cookies=None,
+        user_agent=None,
     ):
         """Constructor method"""
         self.client = Client(
@@ -95,11 +96,11 @@ class LinkedIn(object):
         self.client_sdr_id = client_sdr_id
 
         if authenticate:
-            if cookies:
+            if cookies and user_agent:
                 # If the cookies are expired, the API won't work anymore since
                 # `username` and `password` are not used at all in this case.
                 cookies = cookiejar_from_dict(json.loads(cookies))
-                self.client._set_session_cookies(cookies)
+                self.client._set_session_cookies(cookies, user_agent)
             else:
                 self.client.authenticate(self.client_sdr)
 

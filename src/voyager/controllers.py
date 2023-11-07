@@ -37,13 +37,20 @@ def get_self_profile(client_sdr_id: int):
     )
     cookies = cookies.replace(':""', ':"').replace('"",', '",') if cookies else None
 
+    user_agent = (
+        get_request_parameter(
+            "user_agent", request, json=False, required=False, parameter_type=str
+        )
+        or None
+    )
+
     if cookies:
         send_slack_message(
             message=f"<{client_sdr_id}> Passed in cookies: {cookies}",
             webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
         )
 
-    api = LinkedIn(client_sdr_id=client_sdr_id, cookies=cookies)
+    api = LinkedIn(client_sdr_id=client_sdr_id, cookies=cookies, user_agent=user_agent)
     profile = api.get_user_profile(use_cache=False)
 
     send_slack_message(
@@ -298,8 +305,11 @@ def update_auth_tokens(client_sdr_id: int):
     cookies = get_request_parameter(
         "cookies", request, json=True, required=True, parameter_type=str
     )
+    user_agent = get_request_parameter(
+        "user_agent", request, json=True, required=True, parameter_type=str
+    )
 
-    status_text, status = update_linkedin_cookies(client_sdr_id, cookies)
+    status_text, status = update_linkedin_cookies(client_sdr_id, cookies, user_agent)
 
     return jsonify({"message": status_text}), status
 

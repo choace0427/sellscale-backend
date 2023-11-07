@@ -93,12 +93,13 @@ def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
     return None
 
 
-def update_linkedin_cookies(client_sdr_id: int, cookies: str):
+def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
     """Updates LinkedIn cookies for Voyager
 
     Args:
         client_sdr_id (int): ID of the client SDR
         cookies (str): LinkedIn cookies
+        user_agent (str): User agent
 
     Returns:
         status_code (int), message (str): HTTP status code
@@ -115,10 +116,12 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str):
     sdr.li_at_token = li_at_token
     sdr.li_at_token = cookies
 
+    sdr.user_agent = user_agent
+
     # Update the pb agent
     if os.environ.get("FLASK_ENV") == "production":
         response = update_phantom_buster_li_at(
-            client_sdr_id=client_sdr_id, li_at=sdr.li_at_token
+            client_sdr_id=client_sdr_id, li_at=sdr.li_at_token, user_agent=user_agent,
         )
 
     db.session.add(sdr)

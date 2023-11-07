@@ -27,13 +27,13 @@ class Client(object):
     LINKEDIN_BASE_URL = "https://www.linkedin.com"
     API_BASE_URL = f"{LINKEDIN_BASE_URL}/voyager/api"
     REQUEST_HEADERS = {
-        "user-agent": " ".join(
-            [
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5)",
-                "AppleWebKit/537.36 (KHTML, like Gecko)",
-                "Chrome/83.0.4103.116 Safari/537.36",
-            ]
-        ),
+        # "user-agent": " ".join(
+        #     [
+        #         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5)",
+        #         "AppleWebKit/537.36 (KHTML, like Gecko)",
+        #         "Chrome/83.0.4103.116 Safari/537.36",
+        #     ]
+        # ),
         # "accept": "application/vnd.linkedin.normalized+json+2.1",
         "accept-language": "en-AU,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
         "x-li-lang": "en_US",
@@ -86,14 +86,24 @@ class Client(object):
         
         return cookies_jar
 
-    def _set_session_cookies(self, cookies):
+    def _set_session_cookies(self, cookies, user_agent: str = None):
         """
-        Set cookies of the current session and save them to a file named as the username.
+        Set cookies and user-agent of the current session
         """
         self.session.cookies = cookies
         self.session.headers["csrf-token"] = self.session.cookies["JSESSIONID"].strip(
             '"'
         )
+
+        if not user_agent:
+            user_agent = " ".join(
+                [
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5)",
+                    "AppleWebKit/537.36 (KHTML, like Gecko)",
+                    "Chrome/83.0.4103.116 Safari/537.36",
+                ]
+            ),
+        self.session.headers["user-agent"] = user_agent
 
     @property
     def cookies(self):
@@ -102,6 +112,7 @@ class Client(object):
     def authenticate(self, client_sdr: ClientSDR):
         if self._use_cookie_cache:
             self.logger.debug("Attempting to use cached cookies")
+            user_agent = client_sdr.user_agent
             if client_sdr.li_at_token and client_sdr.li_at_token != 'INVALID':
                 cookies = self._get_cookies_for_sdr_store(client_sdr.li_at_token)
             else:
@@ -114,9 +125,9 @@ class Client(object):
                 except:
                     cookies = None
 
-            if cookies:
+            if cookies and user_agent:
                 self.logger.debug("Using cached cookies")
-                self._set_session_cookies(cookies)
+                self._set_session_cookies(cookies, user_agent)
                 self._fetch_metadata()
                 return
 
@@ -164,7 +175,7 @@ class Client(object):
         Authenticate with Linkedin.
         Return a session object that is authenticated.
         """
-        self._set_session_cookies(self._request_session_cookies())
+        self._set_session_cookies(self._request_session_cookies(), user_agent = None)
 
         payload = {  # TODO: get username and password from client_sdr?
             "session_key": 'aaronncassar@gmail.com',
@@ -191,7 +202,7 @@ class Client(object):
         if res.status_code != 200:
             raise Exception()
 
-        self._set_session_cookies(res.cookies)
+        self._set_session_cookies(res.cookies, user_agent = None)
         ClientSDR.query.filter(
             ClientSDR.id == client_sdr.id
         ).update({"li_cookies": json.dumps(res.cookies.get_dict())})

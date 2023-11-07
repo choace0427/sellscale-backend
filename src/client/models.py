@@ -375,6 +375,7 @@ class ClientSDR(db.Model):
     li_cover_img_url = db.Column(db.String, nullable=True)
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
+    user_agent = db.Column(db.String, nullable=True)
 
     # Conversion goals
     conversion_sent_pct = db.Column(db.Float, nullable=True)
