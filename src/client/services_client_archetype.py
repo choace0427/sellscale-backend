@@ -121,8 +121,8 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
             client_archetype.archetype "name",
             client_archetype.active,
             count(distinct prospect.id) "num_prospects",
-            count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is null) "num_unused_li_prospects",
-            count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is null)"num_unused_email_prospects",
+            count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is null and prospect.overall_status = 'PROSPECTED') "num_unused_li_prospects",
+            count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is null) "num_unused_email_prospects",
             cast(count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is null) as float) / (count(distinct prospect.id) + 0.0001) "percent_unused_li_prospects",
             cast(count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is null) as float) / (count(distinct prospect.id)+ 0.0001) "percent_unused_li_prospects"
         from client_archetype

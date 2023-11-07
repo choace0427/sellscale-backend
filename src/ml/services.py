@@ -15,7 +15,11 @@ from app import db, celery
 import os
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect, ProspectStatus
-from src.message_generation.models import GeneratedMessage, GeneratedMessageEmailType, GeneratedMessageType
+from src.message_generation.models import (
+    GeneratedMessage,
+    GeneratedMessageEmailType,
+    GeneratedMessageType,
+)
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
     GNLPModel,
@@ -260,7 +264,9 @@ def get_aree_fix_basic(
             template = template.template
         elif message.email_type == GeneratedMessageEmailType.SUBJECT_LINE:
             subject_line_id = message.email_subject_line_template_id
-            subject_line: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(subject_line_id)
+            subject_line: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(
+                subject_line_id
+            )
             template = subject_line.subject_line
 
         instruction = """Given the email and a list of problems identified in the email, please fix the email. Make as few changes as possible.

@@ -1741,7 +1741,7 @@ def ai_initial_li_msg_prompt(
     prompt = f"""
 You are a sales development representative writing on behalf of the salesperson.
 
-Please write an initial LinkedIn connection message using the template and only include the information if is is in the template. Stick to the template strictly.
+Please write an initial LinkedIn connection message using the template and only include the information if is in the template. Stick to the template strictly.
 
 Note - you do not need to include all info.
 
@@ -1761,11 +1761,11 @@ Final instructions
 Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
 
 IMPORTANT:
-Stick to the template very strictly. Do not change this template at all. Do not deviate from the template:
+Stick to the template very strictly. Do not change this template at all.  Similar to madlibs, only fill in text where there's a double bracket (ex. [[personalization]] ).
 --- START TEMPLATE ---
 {template}
 --- END TEMPLATE ---
-    """
+    Output:"""
 
     return prompt
 
