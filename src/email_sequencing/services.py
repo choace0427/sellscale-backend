@@ -1,23 +1,14 @@
-from src.prospecting.services import calculate_prospect_overall_status
-from src.email_outbound.services import update_prospect_email_outreach_status
-from src.message_generation.services import add_generated_msg_queue
-from src.prospecting.nylas.services import nylas_get_messages, nylas_send_email
-from src.email_outbound.models import ProspectEmailOutreachStatus
-from src.utils.slack import send_slack_message, URL_MAP
 from model_import import (
     EmailSequenceStep,
     EmailSubjectLineTemplate,
-    ProspectEmail,
-    ProspectEmailStatusRecords,
 )
-from app import db, celery
-from src.client.models import ClientArchetype, ClientSDR, Prospect
+from app import db
+from src.client.models import ClientArchetype
+from src.email_sequencing.models import EmailTemplatePool, EmailTemplateType
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from typing import List, Optional
-from sqlalchemy.sql.expression import func, or_
-import datetime
-from sqlalchemy.orm import joinedload
-import markdown
+
+from src.research.models import ResearchPointType
 
 
 def get_email_sequence_step_for_sdr(
@@ -378,18 +369,6 @@ def create_email_subject_line_template(
     Returns:
         int: The id of the newly created email subject line template
     """
-    # Mark all other email subject line templates as inactive
-    # if active:
-    #     all_templates: list[
-    #         EmailSubjectLineTemplate
-    #     ] = EmailSubjectLineTemplate.query.filter(
-    #         EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
-    #         EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
-    #     ).all()
-    #     for t in all_templates:
-    #         t.active = False
-    #         db.session.add(t)
-
     # Create the email subject line template
     template = EmailSubjectLineTemplate(
         client_sdr_id=client_sdr_id,
@@ -434,18 +413,6 @@ def modify_email_subject_line_template(
 
     if subject_line:
         template.subject_line = subject_line
-
-    # if active is not None:
-    #     # If active, then we also deactivate all other email subject line templates
-    #     if active:
-    #         all_templates: list[
-    #             EmailSubjectLineTemplate
-    #         ] = EmailSubjectLineTemplate.query.filter(
-    #             EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
-    #             EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
-    #         ).all()
-    #         for t in all_templates:
-    #             t.active = False
 
     template.active = active
 
@@ -493,6 +460,94 @@ def activate_email_subject_line_template(
         EmailSubjectLineTemplate.client_sdr_id == client_sdr_id,
     ).first()
     template.active = True
+    db.session.add(template)
+    db.session.commit()
+
+    return True
+
+
+def create_email_template_pool_item(
+    name: str,
+    template: str,
+    template_type: EmailTemplateType,
+    description: Optional[str] = "",
+    transformer_blocklist: Optional[list[ResearchPointType]] = [],
+    labels: Optional[list[str]] = [],
+    tone: Optional[str] = "",
+    active: bool = True,
+) -> tuple[bool, int]:
+    """Create a new email template pool item
+
+    Args:
+        name (str): The name of the email template pool item
+        template (str): The template of the email template pool item
+        template_type (EmailTemplateType): The type of the email template pool item
+        description (Optional[str], optional): The description of the email template pool item. Defaults to "".
+        transformer_blocklist (Optional[list[ResearchPointType]], optional): The blocklist of transformer types. Defaults to [].
+        labels (Optional[list[str]], optional): The labels of the email template pool item. Defaults to [].
+        tone (Optional[str], optional): The tone of the email template pool item. Defaults to "".
+        active (bool, optional): Whether the email template pool item is active. Defaults to True.
+
+    Returns:
+        tuple[bool, int]: Whether the email template pool item was created and the id of the newly created email template pool item
+    """
+    # Create the email template pool item
+    template = EmailTemplatePool(
+        name=name,
+        description=description,
+        template=template,
+        template_type=template_type,
+        active=active,
+        transformer_blocklist=transformer_blocklist,
+        labels=labels,
+        tone=tone,
+    )
+    db.session.add(template)
+    db.session.commit
+
+    return True, template.id
+
+
+def modify_email_template_pool_item(
+    email_template_pool_item_id: int,
+    name: Optional[str] = None,
+    template: Optional[str] = None,
+    description: Optional[str] = None,
+    transformer_blocklist: Optional[list[ResearchPointType]] = None,
+    labels: Optional[list[str]] = None,
+    tone: Optional[str] = None,
+    active: Optional[bool] = None,
+) -> bool:
+    """Modify a email template pool item
+
+    Args:
+        email_template_pool_item_id (int): The id of the email template pool item
+        name (Optional[str]): The name of the email template pool item
+        template (Optional[str]): The template of the email template pool item
+        template_type (Optional[EmailTemplateType]): The type of the email template pool item
+        description (Optional[str], optional): The description of the email template pool item. Defaults to "".
+        transformer_blocklist (Optional[list[ResearchPointType]], optional): The blocklist of transformer types. Defaults to [].
+        labels (Optional[list[str]], optional): The labels of the email template pool item. Defaults to [].
+        tone (Optional[str], optional): The tone of the email template pool item. Defaults to "".
+        active (Optional[bool], optional): Whether the email template pool item is active. Defaults to True.
+
+    Returns:
+        bool: Whether the email template pool item was modified
+    """
+    template: EmailTemplatePool = EmailTemplatePool.query.filter(
+        EmailTemplatePool.id == email_template_pool_item_id,
+    ).first()
+    if not template:
+        return False
+
+    template.name = name
+    template.template = template
+    template.description = description
+    template.transformer_blocklist = transformer_blocklist
+    template.labels = labels
+    template.tone = tone
+    template.active = active
+
     db.session.add(template)
     db.session.commit()
 

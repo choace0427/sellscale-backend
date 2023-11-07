@@ -1,3 +1,4 @@
+import enum
 from app import db
 from sqlalchemy import CheckConstraint
 import sqlalchemy as sa
@@ -106,4 +107,42 @@ class EmailSequenceStep(db.Model):
             "times_accepted": self.times_accepted,
             "sequence_delay_days": self.sequence_delay_days,
             "transformer_blocklist": [t.value for t in self.transformer_blocklist] if self.transformer_blocklist else []
+        }
+
+
+class EmailTemplateType(enum.Enum):
+    SUBJECT_LINE = "SUBJECT_LINE"
+    BODY = "BODY"
+
+
+class EmailTemplatePool(db.Model):
+    __tablename__ = "email_template_pool"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.String(4000), nullable=True)
+
+    template = db.Column(db.String, nullable=False)
+    template_type = db.Column(db.Enum(EmailTemplateType), nullable=False)
+    active = db.Column(db.Boolean, nullable=False, default=True)
+
+    transformer_blocklist = db.Column(
+        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        nullable=True,
+        default=[],
+    )  # use this list to blocklist transformer durings message generation
+
+    labels = db.Column(db.ARRAY(db.String), nullable=True)
+    tone = db.Column(db.String, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "template": self.template,
+            "active": self.active,
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist] if self.transformer_blocklist else [],
+            "labels": self.labels,
+            "tone": self.tone
         }

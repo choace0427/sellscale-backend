@@ -2,10 +2,11 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import EmailSequenceStep
-from src.email_sequencing.models import EmailSubjectLineTemplate
+from src.email_sequencing.models import EmailSubjectLineTemplate, EmailTemplatePool, EmailTemplateType
 from src.email_sequencing.services import (
     activate_sequence_step,
     create_email_sequence_step,
+    create_email_template_pool_item,
     deactivate_sequence_step,
     get_sequence_step_count_for_sdr,
     get_email_sequence_step_for_sdr,
@@ -13,6 +14,7 @@ from src.email_sequencing.services import (
     get_email_subject_line_template,
     create_email_subject_line_template,
     modify_email_subject_line_template,
+    modify_email_template_pool_item,
     deactivate_email_subject_line_template,
     activate_email_subject_line_template,
     undefault_all_sequence_steps_in_status
@@ -20,11 +22,6 @@ from src.email_sequencing.services import (
 from src.research.models import ResearchPointType
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
-from src.ml.services import (
-    determine_account_research_from_convo_and_bump_framework,
-    determine_best_bump_framework_from_convo,
-)
-
 from model_import import ProspectOverallStatus
 
 
@@ -417,61 +414,139 @@ def post_activate_email_subject_line_template(client_sdr_id: int):
     return jsonify({"status": "error", "message": "Could not activate email subject line template."}), 400
 
 
-# @BUMP_FRAMEWORK_BLUEPRINT.route("/autofill_research", methods=["POST"])
-# @require_user
-# def post_autofill_research_bump_framework(client_sdr_id: int):
-#     """Autofill account research based on a sequence step and convo history"""
+@EMAIL_SEQUENCING_BLUEPRINT.route("/pool", methods=["GET"])
+@require_user
+def get_email_pool(client_sdr_id: int):
+    """Gets all templates in the email pool"""
+    templates: list[EmailTemplatePool] = EmailTemplatePool.query.all()
 
-#     prospect_id = get_request_parameter(
-#         "prospect_id", request, json=True, required=True
-#     )
-#     convo_history = get_request_parameter(
-#         "convo_history", request, json=True, required=True
-#     )
-#     bump_framework_desc = get_request_parameter(
-#         "bump_framework_desc", request, json=True, required=True
-#     )
-#     account_research = get_request_parameter(
-#         "account_research", request, json=True, required=True
-#     )
-
-#     research_indexes = determine_account_research_from_convo_and_bump_framework(
-#         prospect_id, convo_history, bump_framework_desc, account_research
-#     )
-
-#     return (
-#         jsonify(
-#             {
-#                 "message": "Determined best account research points",
-#                 "data": research_indexes,
-#             }
-#         ),
-#         200,
-#     )
+    return jsonify({"status": "success", "data": {"templates": [template.to_dict() for template in templates]}}), 200
 
 
-# @BUMP_FRAMEWORK_BLUEPRINT.route("/autoselect_framework", methods=["POST"])
-# @require_user
-# def post_autoselect_bump_framework(client_sdr_id: int):
-#     """Autoselect sequence step based on convo history"""
+@EMAIL_SEQUENCING_BLUEPRINT.route("/pool", methods=["POST"])
+@require_user
+def post_email_pool(client_sdr_id: int):
+    """Adds a template to the email pool"""
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+    template = get_request_parameter(
+        "template", request, json=True, required=True, parameter_type=str
+    )
+    template_type = get_request_parameter(
+        "template_type", request, json=True, required=True, parameter_type=str
+    )
+    description = get_request_parameter(
+        "description", request, json=True, required=False, parameter_type=str
+    )
+    transformer_blocklist = (
+        get_request_parameter(
+            "transformer_blocklist", request, json=True, required=False, parameter_type=list
+        )
+    )
+    labels = (
+        get_request_parameter(
+            "labels", request, json=True, required=False, parameter_type=list
+        )
+    )
+    tone = (
+        get_request_parameter(
+            "tone", request, json=True, required=False, parameter_type=str
+        )
+    )
 
-#     convo_history = get_request_parameter(
-#         "convo_history", request, json=True, required=True
-#     )
-#     bump_framework_ids = get_request_parameter(
-#         "bump_framework_ids", request, json=True, required=True
-#     )
+    # Convert transformer blocklist to enum
+    if transformer_blocklist:
+        transformer_blocklist_enum = []
+        for blocklist_item in transformer_blocklist:
+            for key, val in ResearchPointType.__members__.items():
+                if key == blocklist_item:
+                    transformer_blocklist_enum.append(val)
+                    break
+        transformer_blocklist = transformer_blocklist_enum
 
-#     framework_index = determine_best_bump_framework_from_convo(
-#         convo_history, bump_framework_ids
-#     )
+    # Convert template_type to enum
+    template_type_enum = None
+    for key, val in EmailTemplateType.__members__.items():
+        if key == template_type:
+            template_type_enum = val
+            break
+    template_type = template_type_enum
 
-#     return (
-#         jsonify(
-#             {
-#                 "message": "Determined index of best sequence step",
-#                 "data": framework_index,
-#             }
-#         ),
-#         200,
-#     )
+    success, id = create_email_template_pool_item(
+        name=name,
+        template=template,
+        template_type=template_type,
+        description=description,
+        transformer_blocklist=transformer_blocklist,
+        labels=labels,
+        tone=tone,
+        active=True
+    )
+    if success:
+        return jsonify({"status": "success", "data": {"id": id}}), 200
+
+    return jsonify({"status": "error", "message": "Could not create email template pool item."}), 400
+
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/pool", methods=["PATCH"])
+@require_user
+def patch_email_pool(client_sdr_id: int):
+    """Modifies a template in the email pool"""
+    pool_template_id = get_request_parameter(
+        "pool_template_id", request, json=True, required=True, parameter_type=int
+    )
+    name = get_request_parameter(
+        "name", request, json=True, required=False, parameter_type=str
+    )
+    template = get_request_parameter(
+        "template", request, json=True, required=False, parameter_type=str
+    )
+    description = get_request_parameter(
+        "description", request, json=True, required=False, parameter_type=str
+    )
+    transformer_blocklist = (
+        get_request_parameter(
+            "transformer_blocklist", request, json=True, required=False, parameter_type=list
+        )
+    )
+    labels = (
+        get_request_parameter(
+            "labels", request, json=True, required=False, parameter_type=list
+        )
+    )
+    tone = (
+        get_request_parameter(
+            "tone", request, json=True, required=False, parameter_type=str
+        )
+    )
+    active = (
+        get_request_parameter(
+            "active", request, json=True, required=False, parameter_type=bool
+        )
+    )
+
+    # Convert transformer blocklist to enum
+    if transformer_blocklist:
+        transformer_blocklist_enum = []
+        for blocklist_item in transformer_blocklist:
+            for key, val in ResearchPointType.__members__.items():
+                if key == blocklist_item:
+                    transformer_blocklist_enum.append(val)
+                    break
+        transformer_blocklist = transformer_blocklist_enum
+
+    success = modify_email_template_pool_item(
+        email_template_pool_item_id=pool_template_id,
+        name=name,
+        template=template,
+        description=description,
+        transformer_blocklist=transformer_blocklist,
+        labels=labels,
+        tone=tone,
+        active=active
+    )
+    if success:
+        return jsonify({"status": "success", "message": "Email template pool item updated."}), 200
+
+    return jsonify({"status": "error", "message": "Could not update email template pool item."}), 400
