@@ -204,6 +204,9 @@ def register_blueprints(app):
     from src.email_scheduling.controllers import EMAIL_SCHEDULING_BLUEPRINT
     from src.channel_warmup.controllers import CHANNEL_WARMUP
     from src.prospecting.question_enrichment.controllers import QUESTION_ENRICHMENT_BLUEPRINT
+    from src.li_conversation.controllers_linkedin_template import (
+        LINKEDIN_TEMPLATE_BLUEPRINT,
+    )
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -253,6 +256,9 @@ def register_blueprints(app):
     app.register_blueprint(CHANNEL_WARMUP, url_prefix="/email/warmup")
     app.register_blueprint(
         QUESTION_ENRICHMENT_BLUEPRINT, url_prefix="/question_enrichment"
+    )
+    app.register_blueprint(
+        LINKEDIN_TEMPLATE_BLUEPRINT, url_prefix="/linkedin_template"
     )
 
     db.init_app(app)

@@ -74,6 +74,7 @@ from src.editor.models import Editor, EditorTypes
 from src.li_conversation.models import (
     LinkedinConversationEntry,
     LinkedinConversationScrapeQueue,
+    LinkedinInitialMessageTemplateLibrary
 )
 from src.daily_notifications.models import (
     DailyNotification,
