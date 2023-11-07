@@ -114,7 +114,6 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
 
     li_at_token = json.loads(cookies).get("li_at")
     sdr.li_at_token = li_at_token
-    sdr.li_at_token = cookies
 
     sdr.user_agent = user_agent
 
