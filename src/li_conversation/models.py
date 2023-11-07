@@ -6,6 +6,44 @@ from app import db
 from src.prospecting.models import Prospect
 from sqlalchemy.sql.expression import func
 
+from src.research.models import ResearchPointType
+import sqlalchemy as sa
+
+class LinkedinInitialMessageTemplateLibrary(db.Model):
+    __tablename__ = "linkedin_initial_message_template_library"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    tag = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False)
+    raw_prompt = db.Column(db.String, nullable=False)
+    human_readable_prompt = db.Column(db.String, nullable=False)
+    length = db.Column(db.String, nullable=False)
+    tag = db.Column(db.String, nullable=True)
+
+    labels = db.Column(db.ARRAY(db.String), nullable=True)
+    tone = db.Column(db.String, nullable=True)
+
+    active = db.Column(db.Boolean, nullable=False, default=True)
+
+    transformer_blocklist = db.Column(
+        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        nullable=True,
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "tag": self.tag,
+            "name": self.name,
+            "raw_prompt": self.raw_prompt,
+            "human_readable_prompt": self.human_readable_prompt,
+            "length": self.length,
+            "active": self.active,
+            "labels": self.labels,
+            "tone": self.tone,
+            "transformer_blocklist": self.transformer_blocklist,
+        }
 
 class LinkedinInitialMessageTemplate(db.Model):
     __tablename__ = "linkedin_initial_message_template"
