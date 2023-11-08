@@ -26,7 +26,7 @@ def post_generate_initial_email(client_sdr_id: int):
         "test_template", request, json=True, required=False, parameter_type=str
     )
     subject_line_template_id = get_request_parameter(
-        "subject_line_template_id", request, json=True, required=True, parameter_type=int
+        "subject_line_template_id", request, json=True, required=False, parameter_type=int
     )
     subject_line_template = get_request_parameter(
         "subject_line_template", request, json=True, required=False, parameter_type=str
@@ -55,23 +55,23 @@ def post_generate_initial_email(client_sdr_id: int):
         subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.filter_by(
             id=subject_line_template_id).first()
 
-        subject_line_strict = False
-        if subject_line_template:
-            subject_line_strict = "[[" not in subject_line_template.subject_line and "{{" not in subject_line_template.subject_line
+    subject_line_strict = False
+    if subject_line_template:
+        subject_line_strict = "[[" not in subject_line_template.subject_line and "{{" not in subject_line_template.subject_line
 
-        if subject_line_strict:
-            subject_prompt = "No AI template detected in subject line template. Using exact template."
-            subject_line = subject_line_template.subject_line
-        else:
-            subject_prompt = ai_subject_line_prompt(
-                client_sdr_id=client_sdr_id,
-                prospect_id=prospect_id,
-                email_body=email_body,
-                subject_line_template_id=subject_line_template_id,
-                test_template=subject_line_template
-            )
-            subject_line = generate_subject_line(subject_prompt)
-            subject_line = subject_line.get('subject_line')
+    if subject_line_strict:
+        subject_prompt = "No AI template detected in subject line template. Using exact template."
+        subject_line = subject_line_template.subject_line
+    else:
+        subject_prompt = ai_subject_line_prompt(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            email_body=email_body,
+            subject_line_template_id=subject_line_template_id,
+            test_template=subject_line_template
+        )
+        subject_line = generate_subject_line(subject_prompt)
+        subject_line = subject_line.get('subject_line')
 
     body_spam_results = run_algorithmic_spam_detection(text=email_body)
     subject_spam_results = run_algorithmic_spam_detection(text=subject_line)
