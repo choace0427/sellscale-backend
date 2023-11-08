@@ -3,7 +3,7 @@ from typing import Optional
 from app import db, celery
 from sqlalchemy import or_
 
-from src.client.models import Client, ClientSDR, LinkedInSLAChange, WarmupScheduleLinkedIn, SLASchedule
+from src.client.models import Client, ClientSDR, SLASchedule
 from src.utils.datetime.dateutils import get_current_monday_friday
 from src.utils.slack import send_slack_message, URL_MAP
 from src.voyager.linkedin import LinkedIn

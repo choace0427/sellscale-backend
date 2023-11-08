@@ -110,6 +110,7 @@ class LinkedIn(object):
         evade(self.request_count)
 
         url = f"{self.client.API_BASE_URL if not base_request else self.client.LINKEDIN_BASE_URL}{uri}"
+
         try:
             res = self.client.session.get(url, **kwargs)
 
@@ -527,7 +528,7 @@ class LinkedIn(object):
 
         if limit == 20:
             res = self._fetch(f"/messaging/conversations", params=params)
-            if res.status_code == 403:
+            if res and res.status_code == 403:
                 sdr = self.client_sdr
                 send_slack_message(
                     message=f"SDR {sdr.name} (#{sdr.id}) returned a 403 response from LinkedIn. Investigate?",
