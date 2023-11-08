@@ -23,7 +23,7 @@ def spf_record_valid(domain: str) -> tuple[str, bool]:
                     return spf_record, False
 
                 return spf_record, True
-    except dns.resolver.NXDOMAIN:
+    except:
         return "", False
 
     return "", False
@@ -48,7 +48,7 @@ def dmarc_record_valid(domain: str) -> tuple[str, bool]:
                 return dmarc_record, False
 
             return dmarc_record, True
-    except dns.resolver.NXDOMAIN:
+    except:
         return "", False
 
     return "", False
@@ -73,7 +73,7 @@ def dkim_record_valid(domain: str) -> tuple[str, bool]:
                 return dkim_record, False
 
             return dkim_record, True
-    except dns.resolver.NXDOMAIN:
+    except:
         return "", False
 
     return "", False
