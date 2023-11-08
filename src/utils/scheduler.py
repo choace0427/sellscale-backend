@@ -315,14 +315,14 @@ def run_collect_and_generate_email_messaging_schedule_entries():
         )
 
 
-def run_set_channel_warmups():
-    from src.channel_warmup.services import set_channel_warmups_for_all_active_sdrs
+def run_set_warmup_snapshots():
+    from src.warmup_snapshot.services import set_warmup_snapshots_for_all_active_sdrs
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        set_channel_warmups_for_all_active_sdrs.delay()
+        set_warmup_snapshots_for_all_active_sdrs.delay()
 
 
 def run_collect_and_send_email_messaging_schedule_entries():
@@ -406,7 +406,7 @@ scheduler.add_job(
 )
 scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 scheduler.add_job(func=run_hourly_email_finder_job, trigger="interval", hours=1)
-scheduler.add_job(func=run_set_channel_warmups, trigger="interval", hours=3)
+scheduler.add_job(func=run_set_warmup_snapshots, trigger="interval", hours=3)
 
 # Daily triggers
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)

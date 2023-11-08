@@ -2,19 +2,15 @@ from app import db
 
 from flask import Blueprint, request, jsonify
 from src.authentication.decorators import require_user
-from src.channel_warmup.models import ChannelWarmup, ClientWarmup
-from src.channel_warmup.services import pass_through_smartlead_warmup_request
-from src.channel_warmup.services import (
-    set_channel_warmups_for_sdr,
-    set_channel_warmups_for_all_active_sdrs,
-)
+from src.warmup_snapshot.models import WarmupSnapshot
+from src.warmup_snapshot.services import pass_through_smartlead_warmup_request
 from src.client.models import ClientSDR
 
 
-CHANNEL_WARMUP = Blueprint("email/warmup", __name__)
+WARMUP_SNAPSHOT = Blueprint("email/warmup", __name__)
 
 
-@CHANNEL_WARMUP.route("/smartlead", methods=["GET"])
+@WARMUP_SNAPSHOT.route("/smartlead", methods=["GET"])
 @require_user
 def get_smartlead_warmup_passthrough_api(client_sdr_id: int):
     """Passes through the Smartlead warmup API."""
@@ -24,9 +20,9 @@ def get_smartlead_warmup_passthrough_api(client_sdr_id: int):
     return jsonify({"status": "success", "inboxes": results}), 200
 
 
-@CHANNEL_WARMUP.route("/channel_warmups", methods=["GET"])
+@WARMUP_SNAPSHOT.route("/channel_warmups", methods=["GET"])
 @require_user
-def get_channel_warmups(client_sdr_id: int):
+def get_warmup_snapshots(client_sdr_id: int):
     """Fetches all channel warmups for SDRs at the same client as a given SDR."""
 
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
@@ -35,8 +31,8 @@ def get_channel_warmups(client_sdr_id: int):
     client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
     client_sdr_ids = [x.id for x in client_sdrs]
 
-    results = ChannelWarmup.query.filter(
-        ChannelWarmup.client_sdr_id.in_(client_sdr_ids)
+    results = WarmupSnapshot.query.filter(
+        WarmupSnapshot.client_sdr_id.in_(client_sdr_ids)
     ).all()
 
     # make an array like this:
@@ -52,20 +48,5 @@ def get_channel_warmups(client_sdr_id: int):
 
     return (
         jsonify({"status": "success", "sdrs": sdrs}),
-        200,
-    )
-
-@CHANNEL_WARMUP.route('/client_warmup', methods=['GET'])
-@require_user
-def get_client_historical_warmups(client_sdr_id: int):
-    """Fetches the client warmup for a given SDR."""
-
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
-    client_id = client_sdr.client_id
-
-    results = ClientWarmup.query.filter_by(client_id=client_id).order_by(ClientWarmup.date.desc()).all()
-
-    return (
-        jsonify({"status": "success", "warmups": [x.to_dict() for x in results]}),
         200,
     )
