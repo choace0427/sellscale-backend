@@ -96,13 +96,8 @@ class Client(object):
         )
 
         if not user_agent:
-            user_agent = " ".join(
-                [
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5)",
-                    "AppleWebKit/537.36 (KHTML, like Gecko)",
-                    "Chrome/83.0.4103.116 Safari/537.36",
-                ]
-            ),
+            user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+        
         self.session.headers["user-agent"] = user_agent
 
     @property
@@ -125,7 +120,9 @@ class Client(object):
                 except:
                     cookies = None
 
-            if cookies and user_agent:
+            
+
+            if cookies:
                 self.logger.debug("Using cached cookies")
                 self._set_session_cookies(cookies, user_agent)
                 self._fetch_metadata()
