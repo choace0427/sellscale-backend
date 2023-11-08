@@ -51,6 +51,7 @@ def post_generate_initial_email(client_sdr_id: int):
 
     # Get the initial email subject prompt and generate the subject line
     # Get the EmailSubjectLineTemplate if it exists
+    subject_line = subject_line_template
     if subject_line_template_id:
         subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.filter_by(
             id=subject_line_template_id).first()
