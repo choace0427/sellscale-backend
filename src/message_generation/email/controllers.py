@@ -54,14 +54,15 @@ def post_generate_initial_email(client_sdr_id: int):
     if subject_line_template_id:
         subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.filter_by(
             id=subject_line_template_id).first()
+        subject_line = subject_line_template.subject_line
 
     subject_line_strict = False
     if subject_line_template:
-        subject_line_strict = "[[" not in subject_line_template.subject_line and "{{" not in subject_line_template.subject_line
+        subject_line_strict = "[[" not in subject_line and "{{" not in subject_line
 
     if subject_line_strict:
         subject_prompt = "No AI template detected in subject line template. Using exact template."
-        subject_line = subject_line_template.subject_line
+        subject_line = subject_line
     else:
         subject_prompt = ai_subject_line_prompt(
             client_sdr_id=client_sdr_id,
