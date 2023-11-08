@@ -8,7 +8,7 @@ from src.prospecting.models import *
 from src.email_outbound.models import *
 
 from datetime import datetime, timedelta
-from sqlalchemy import and_, or_, not_
+from sqlalchemy import and_, or_, not_, func, distinct
 
 
 def get_weekly_client_sdr_outbound_goal_map():
@@ -390,3 +390,52 @@ def get_all_campaign_analytics_for_client_campaigns_page(client_id: int):
         )
 
     return data_arr
+
+def get_upload_analytics_for_client(client_id):
+    # Initialize response dictionary
+    analytics = {
+        "top_line_scraped": 0,
+        "top_line_uploaded": 0,
+        "top_line_scored": 0,
+        "contacts_over_time": [],
+        "uploads": []
+    }
+
+    # Query for analytics
+    prospects = Prospect.query.filter_by(client_id=client_id).all()
+    archetypes = ClientArchetype.query.filter_by(client_id=client_id).all()
+
+    # Count top line metrics
+    analytics["top_line_scraped"] = len(prospects)
+    analytics["top_line_uploaded"] = len(prospects)  # Assuming scraped equals uploaded
+    analytics["top_line_scored"] = len([p for p in prospects if p.icp_fit_score is not None and p.icp_fit_score >= 0])
+
+    # Contacts over time (cumulative)
+    start_date = min([p.created_at.date() for p in prospects if p.created_at], default=datetime.now().date())
+    end_date = datetime.now().date()
+    week = timedelta(days=7)
+    cumulative_count = 0
+
+    while start_date <= end_date:
+        week_end = start_date + week
+        count = len([p for p in prospects if p.created_at and start_date <= p.created_at.date() < week_end])
+        cumulative_count += count
+        analytics["contacts_over_time"].append({"x": start_date.strftime("%Y-%m-%d"), "y": cumulative_count})
+        start_date += week
+
+    # Aggregate uploads by creation date
+    for archetype in archetypes:
+        archetype_prospects = [p for p in prospects if p.archetype_id == archetype.id]
+        upload_dates = {p.created_at.date() for p in archetype_prospects if p.created_at}
+        client_sdr = ClientSDR.query.get(archetype.client_sdr_id)
+        for upload_date in upload_dates:
+            upload_data = {
+                "upload name": archetype.emoji + ' ' + archetype.archetype,
+                'account': client_sdr.name,
+                "scraped": len([p for p in archetype_prospects if p.created_at and p.created_at.date() == upload_date]),
+                "status": "Complete",  # Assuming all uploads are complete
+                "upload date": upload_date.strftime("%Y-%m-%d")
+            }
+            analytics["uploads"].append(upload_data)
+
+    return analytics

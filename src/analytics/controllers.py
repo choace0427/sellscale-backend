@@ -5,6 +5,7 @@ from src.analytics.services import (
     get_all_campaign_analytics_for_client_campaigns_page,
     get_outreach_over_time,
     get_sdr_pipeline_all_details,
+    get_upload_analytics_for_client,
 )
 from src.authentication.decorators import require_user
 from model_import import ClientSDR
@@ -70,5 +71,17 @@ def get_client_campaign_analytics(client_sdr_id: int):
         return {"message": "Invalid client SDR ID"}, 400
 
     details = get_all_campaign_analytics_for_client_campaigns_page(client_id=client_sdr.client_id)
+
+    return {"message": "Success", "analytics": details}, 200
+
+@ANALYTICS_BLUEPRINT.route("/client_upload_analytics", methods=["GET"])
+@require_user
+def get_client_upload_analytics(client_sdr_id: int):
+    """Endpoint to get all campaign analytics for the SDRs in the given SDR's client"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return {"message": "Invalid client SDR ID"}, 400
+
+    details = get_upload_analytics_for_client(client_id=client_sdr.client_id)
 
     return {"message": "Success", "analytics": details}, 200
