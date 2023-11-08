@@ -192,4 +192,4 @@ yarl==1.8.2
 zipp==3.8.1
 backoff==1.8.0
 markdown==3.4.4
-chromadb-client==0.4.16.dev0
+#chromadb-client==0.4.16.dev0

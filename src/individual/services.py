@@ -885,43 +885,43 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         
         query = ""
 
-        if ruleset.included_individual_title_keywords:
-            query += "; title: "+(", ".join(ruleset.included_individual_title_keywords))
+        # if ruleset.included_individual_title_keywords:
+        #     query += "; title: "+(", ".join(ruleset.included_individual_title_keywords))
 
-        if ruleset.included_individual_industry_keywords:
-            query += "; industry: "+(", ".join(ruleset.included_individual_industry_keywords))
+        # if ruleset.included_individual_industry_keywords:
+        #     query += "; industry: "+(", ".join(ruleset.included_individual_industry_keywords))
         
-        if ruleset.included_company_name_keywords:
-            query += "; company: "+(", ".join(ruleset.included_company_name_keywords))
+        # if ruleset.included_company_name_keywords:
+        #     query += "; company: "+(", ".join(ruleset.included_company_name_keywords))
 
-        if ruleset.included_individual_generalized_keywords:
-            query += "; bio: "+(", ".join(ruleset.included_individual_generalized_keywords))
+        # if ruleset.included_individual_generalized_keywords:
+        #     query += "; bio: "+(", ".join(ruleset.included_individual_generalized_keywords))
 
-        if ruleset.included_individual_locations_keywords:
-            query += "; location: "+(", ".join(ruleset.included_individual_locations_keywords))
+        # if ruleset.included_individual_locations_keywords:
+        #     query += "; location: "+(", ".join(ruleset.included_individual_locations_keywords))
 
-        if ruleset.included_individual_skills_keywords:
-            query += "; skills: "+(", ".join(ruleset.included_individual_skills_keywords))
+        # if ruleset.included_individual_skills_keywords:
+        #     query += "; skills: "+(", ".join(ruleset.included_individual_skills_keywords))
 
-        if ruleset.included_company_generalized_keywords:
-            query += "; company bio: "+(", ".join(ruleset.included_company_generalized_keywords))
+        # if ruleset.included_company_generalized_keywords:
+        #     query += "; company bio: "+(", ".join(ruleset.included_company_generalized_keywords))
         
         
-        ids: list[int] = fetch_individuals(
-            queries=[query],
-            keywords={},
-            amount=limit
-        )
+        # ids: list[int] = fetch_individuals(
+        #     queries=[query],
+        #     keywords={},
+        #     amount=limit
+        # )
 
-        individuals_query = individuals_query.filter(Individual.id.in_(ids))
+        # individuals_query = individuals_query.filter(Individual.id.in_(ids))
 
         # # Title
-        # if ruleset.included_individual_title_keywords:
-        #     keyword_filters = [
-        #         Individual.title.ilike(f"%{keyword}%")
-        #         for keyword in ruleset.included_individual_title_keywords
-        #     ]
-        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
+        if ruleset.included_individual_title_keywords:
+            keyword_filters = [
+                Individual.title.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_title_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_title_keywords:
             exclude_filters = [
@@ -931,12 +931,12 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # # Industry
-        # if ruleset.included_individual_industry_keywords:
-        #     keyword_filters = [
-        #         Individual.industry.ilike(f"%{keyword}%")
-        #         for keyword in ruleset.included_individual_industry_keywords
-        #     ]
-        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
+        if ruleset.included_individual_industry_keywords:
+            keyword_filters = [
+                Individual.industry.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_industry_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_industry_keywords:
             exclude_filters = [
@@ -946,12 +946,12 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # # Company
-        # if ruleset.included_company_name_keywords:
-        #     keyword_filters = [
-        #         Individual.company_name.ilike(f"%{keyword}%")
-        #         for keyword in ruleset.included_company_name_keywords
-        #     ]
-        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
+        if ruleset.included_company_name_keywords:
+            keyword_filters = [
+                Individual.company_name.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_company_name_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_company_name_keywords:
             exclude_filters = [
@@ -961,12 +961,12 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # # Bio
-        # if ruleset.included_individual_generalized_keywords:
-        #     keyword_filters = [
-        #         Individual.bio.ilike(f"%{keyword}%")
-        #         for keyword in ruleset.included_individual_generalized_keywords
-        #     ]
-        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
+        if ruleset.included_individual_generalized_keywords:
+            keyword_filters = [
+                Individual.bio.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_generalized_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_generalized_keywords:
             exclude_filters = [
@@ -976,13 +976,13 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # # Location
-        # if ruleset.included_individual_locations_keywords:
-        #     keyword_filters = [
-        #         text("CAST(individual.location AS TEXT) ILIKE :keyword").bindparams(
-        #             keyword=rf"%{keyword}%")
-        #         for keyword in ruleset.included_individual_locations_keywords
-        #     ]
-        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
+        if ruleset.included_individual_locations_keywords:
+            keyword_filters = [
+                text("CAST(individual.location AS TEXT) ILIKE :keyword").bindparams(
+                    keyword=rf"%{keyword}%")
+                for keyword in ruleset.included_individual_locations_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_locations_keywords:
             exclude_filters = [
@@ -993,13 +993,13 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # # Skills
-        # if ruleset.included_individual_skills_keywords:
-        #     keyword_filters = [
-        #         Individual.skills.any(skill.ilike(f"%{keyword}%"))
-        #         for keyword in ruleset.included_individual_skills_keywords
-        #         for skill in Individual.skills
-        #     ]
-        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
+        if ruleset.included_individual_skills_keywords:
+            keyword_filters = [
+                Individual.skills.any(skill.ilike(f"%{keyword}%"))
+                for keyword in ruleset.included_individual_skills_keywords
+                for skill in Individual.skills
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_individual_skills_keywords:
             exclude_filters = [
@@ -1010,12 +1010,12 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
         # # Company Description
-        # if ruleset.included_company_generalized_keywords:
-        #     keyword_filters = [
-        #         Company.description.ilike(f"%{keyword}%")
-        #         for keyword in ruleset.included_company_generalized_keywords
-        #     ]
-        #     individuals_query = individuals_query.filter(or_(*keyword_filters))
+        if ruleset.included_company_generalized_keywords:
+            keyword_filters = [
+                Company.description.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_company_generalized_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
 
         if ruleset.excluded_company_generalized_keywords:
             exclude_filters = [
