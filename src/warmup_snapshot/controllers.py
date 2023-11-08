@@ -20,7 +20,7 @@ def get_smartlead_warmup_passthrough_api(client_sdr_id: int):
     return jsonify({"status": "success", "inboxes": results}), 200
 
 
-@WARMUP_SNAPSHOT.route("/channel_warmups", methods=["GET"])
+@WARMUP_SNAPSHOT.route("/snapshots", methods=["GET"])
 @require_user
 def get_warmup_snapshots(client_sdr_id: int):
     """Fetches all channel warmups for SDRs at the same client as a given SDR."""
@@ -36,12 +36,12 @@ def get_warmup_snapshots(client_sdr_id: int):
     ).all()
 
     # make an array like this:
-    # [{sdr_name: 'Hristina Bell', title: 'GTM Leader', profile_pic: 'URL', channels: [warmup.to_dict()]}]
+    # [{sdr_name: 'Hristina Bell', title: 'GTM Leader', profile_pic: 'URL', snapshots: [warmup.to_dict()]}]
 
     sdrs = []
     for client_sdr in client_sdrs:
         sdr = client_sdr.to_dict()
-        sdr["channels"] = [
+        sdr["snapshots"] = [
             x.to_dict() for x in results if x.client_sdr_id == client_sdr.id
         ]
         sdrs.append(sdr)
