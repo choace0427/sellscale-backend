@@ -2,7 +2,8 @@ from http.client import ACCEPTED
 import re
 from typing import Optional
 from app import db
-from model_import import LinkedinInitialMessageTemplateLibrary
+from model_import import LinkedinInitialMessageTemplateLibrary, Client
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.prospecting.models import ProspectOverallStatus
 
 
@@ -63,3 +64,66 @@ def get_all_linkedin_initial_message_templates():
     frameworks = LinkedinInitialMessageTemplateLibrary.query.filter_by(active=True).all()
 
     return [bft.to_dict() for bft in frameworks]
+
+def adjust_template_for_client(
+    client_id: int,
+    template_id: int
+) -> str:
+    client: Client = Client.query.get(client_id)
+    template: LinkedinInitialMessageTemplateLibrary = LinkedinInitialMessageTemplateLibrary.query.get(template_id)
+
+    client_company = client.company
+    client_description = client.description
+
+    template_raw_prompt = template.raw_prompt
+    template_tone = template.tone
+
+    adjustment_prompt = """Here is information about my company:
+Company: {company_name}
+Description: {company_description}
+
+--------------
+Here is a template I want to use:
+"{template_raw_prompt}"
+
+Template Tone: {template_tone}
+
+-------------
+Instruction: Adjust specific fields in this template to be better fit for our company.
+
+Important Notes:
+- keep the new template under 300 characters
+- do not adjust too much; follow a similar structure and only customize the parts I mentioned.
+- only alter the following fields:
+1. [[ pain point ]]
+2. [[ our company ]]
+- Do NOT adjust any other fields like [[first name]] and [[title]] and [[colloquialized title]]
+- keep the template tone and length the same
+- do not deviate too much from the original template
+
+-------------
+New template:""".format(
+        company_name=client_company,
+        company_description=client_description,
+        template_raw_prompt=template_raw_prompt,
+        template_tone=template_tone
+    )
+
+    try: 
+        completion = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    'role': 'user',
+                    'content': adjustment_prompt
+                }
+            ],
+            model='gpt-4',
+            max_tokens=200
+        )
+
+        cleaned_completion = completion.replace('"', '')
+
+        return cleaned_completion
+    except Exception as e:
+        return template_raw_prompt
+

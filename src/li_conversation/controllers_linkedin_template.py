@@ -1,8 +1,11 @@
 from flask import Blueprint, request, jsonify
+from httpx import Client
 from src.authentication.decorators import require_user
+from src.client.models import ClientSDR, Client
 from src.utils.request_helpers import get_request_parameter
 from model_import import LinkedinInitialMessageTemplateLibrary
 from src.li_conversation.services_linkedin_initial_message_templates import (
+    adjust_template_for_client,
     create_new_linkedin_initial_message_template,
     toggle_linkedin_initial_message_template_active_status,
     update_linkedin_initial_message_template,
@@ -67,3 +70,24 @@ def post_toggle_linkedin_initial_message_template_active_status(template_id: int
     """Toggles active status of a LinkedIn initial message template"""
     toggle_linkedin_initial_message_template_active_status(li_template_id=template_id)
     return jsonify({"message": "Successfully toggled LinkedIn initial message template active status"}), 200
+
+@LINKEDIN_TEMPLATE_BLUEPRINT.route("/adjust_template_for_client", methods=['POST'])
+@require_user
+def adjust_linkedin_initial_message_template_for_client(client_sdr_id: int):
+    """Adjusts a LinkedIn initial message template for a client"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    template_id: int = get_request_parameter("template_id", request, json=True, required=True, parameter_type=int)
+
+    if not client_sdr:
+        return jsonify({"message": "Client SDR not found"}), 404
+    
+    client_id = client_sdr.client_id
+    
+    adjusted_template = adjust_template_for_client(
+        client_id=client_id,
+        template_id=template_id,
+    )
+
+    return jsonify({"adjusted_template": adjusted_template}), 200
+
+    
