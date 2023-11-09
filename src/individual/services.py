@@ -858,7 +858,7 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
 
     from src.prospecting.icp_score.models import ICPScoringRuleset
     from model_import import ClientArchetype
-    from src.vector_db.services import fetch_individuals
+    # from src.vector_db.services import fetch_individuals
 
     ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
         ICPScoringRuleset.client_archetype_id == client_archetype_id,
