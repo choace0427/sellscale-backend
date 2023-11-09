@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from model_import import ClientSDR
 import requests
@@ -80,7 +81,21 @@ def set_warmup_snapshots_for_all_active_sdrs(self):
 
 
 @celery.task(bind=True)
-def set_warmup_snapshot_for_sdr(self, client_sdr_id):
+def set_warmup_snapshots_for_client(self, client_id: int):
+    active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
+        client_id=client_id,
+        active=True,
+    ).all()
+    for active_sdr in active_sdrs:
+        print(f"Setting channel warmups for {active_sdr.name}")
+        # set_warmup_snapshot_for_sdr.delay(active_sdr.id)
+        set_warmup_snapshot_for_sdr(active_sdr.id)
+
+    return True
+
+
+@celery.task(bind=True)
+def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
     try:
         client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
         if not client_sdr:
