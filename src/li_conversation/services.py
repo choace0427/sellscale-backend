@@ -1717,7 +1717,9 @@ def ai_initial_li_msg_prompt(
     #     override_prospect_id=prospect_id,
     # )
 
-    found_points = get_prospect_research_points(prospect_id, research_points)
+    # Grab 3 random points from the research points
+    random_sample_points = random.sample(research_points, min(len(research_points), 3))
+    found_points = get_prospect_research_points(prospect_id, random_sample_points)
 
     name = prospect.full_name
     industry = prospect.industry
