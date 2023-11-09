@@ -1,8 +1,9 @@
 from http.client import ACCEPTED
 import re
 from typing import Optional
-from app import db
+from app import db, celery
 from model_import import LinkedinInitialMessageTemplateLibrary, Client
+from src.li_conversation.models import LinkedinInitialMessageTemplate
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.prospecting.models import ProspectOverallStatus
 
@@ -127,3 +128,36 @@ New template:""".format(
     except Exception as e:
         return template_raw_prompt
 
+@celery.task(name="update_linkedin_initial_message_template_library")
+def backfill_linkedin_initial_message_template_library_stats():
+    # Fetch update data with provided SQL query
+    fetch_query = """
+    SELECT 
+        li_init_template_id,
+        COUNT(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SENT_OUTREACH') AS new_times_used,
+        COUNT(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACCEPTED') AS new_times_accepted
+    FROM generated_message
+    JOIN prospect ON prospect.approved_outreach_message_id = generated_message.id
+    JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
+    WHERE li_init_template_id IS NOT NULL
+    GROUP BY li_init_template_id;
+    """
+    result = db.session.execute(fetch_query)
+    data = result.fetchall()
+
+    # Prepare data for bulk update
+    update_data = [
+        {
+            'id': li_init_template_id,
+            'times_used': new_times_used,
+            'times_accepted': new_times_accepted
+        } for li_init_template_id, new_times_used, new_times_accepted in data
+    ]
+
+    # Bulk update LinkedinInitialMessageTemplateLibrary
+    db.session.bulk_update_mappings(LinkedinInitialMessageTemplate, update_data)
+
+    # Commit changes
+    db.session.commit()
+
+    return True

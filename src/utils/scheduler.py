@@ -354,12 +354,14 @@ def run_find_and_run_queued_question_enrichment_row_job():
 
 def run_analytics_backfill_jobs():
     from src.voyager.services import run_fast_analytics_backfill
+    from src.li_conversation.services_linkedin_initial_message_templates import backfill_linkedin_initial_message_template_library_stats
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         run_fast_analytics_backfill.delay()
+        backfill_linkedin_initial_message_template_library_stats.delay()
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(

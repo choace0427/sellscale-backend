@@ -20,7 +20,9 @@ from src.li_conversation.services import wizard_of_oz_send_li_message
 from src.li_conversation.conversation_analyzer.analyzer import (
     run_all_conversation_analyzers,
 )
-
+from src.li_conversation.services_linkedin_initial_message_templates import (
+    backfill_linkedin_initial_message_template_library_stats
+)
 
 LI_CONVERSATION_SCRAPE_INTERVAL = 2
 LI_CONVERASTION_BLUEPRINT = Blueprint("li_conversation", __name__)
