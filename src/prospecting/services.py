@@ -2873,7 +2873,7 @@ def generate_prospect_upload_report(archetype_state: dict):
     random.shuffle(results)
     for result in results:
         if any(result.title == title for title, count in top_10_titles):
-            example_profiles.append(f"[{result.full_name} ({result.title} @ {result.company})](https://www.{result.linkedin_url})")
+            example_profiles.append(f"<https://www.{result.linkedin_url}|{result.full_name} ({result.title} @ {result.company})>")
     example_profiles_str = ', '.join(example_profiles[:3])
 
     try:
