@@ -8,6 +8,7 @@ from src.email_sequencing.services import (
     create_email_sequence_step,
     create_email_template_pool_item,
     deactivate_sequence_step,
+    get_email_template_pool_items,
     get_sequence_step_count_for_sdr,
     get_email_sequence_step_for_sdr,
     modify_email_sequence_step,
@@ -418,7 +419,22 @@ def post_activate_email_subject_line_template(client_sdr_id: int):
 @require_user
 def get_email_pool(client_sdr_id: int):
     """Gets all templates in the email pool"""
-    templates: list[EmailTemplatePool] = EmailTemplatePool.query.all()
+    template_type = get_request_parameter(
+        "template_type", request, json=False, required=False, parameter_type=str
+    )
+
+    # Convert template_type to enum
+    template_type_enum = None
+    for key, val in EmailTemplateType.__members__.items():
+        if key == template_type:
+            template_type_enum = val
+            break
+    template_type = template_type_enum
+
+    templates: list[EmailTemplatePool] = get_email_template_pool_items(
+        template_type=template_type,
+        active_only=True,
+    )
 
     return jsonify({"status": "success", "data": {"templates": [template.to_dict() for template in templates]}}), 200
 

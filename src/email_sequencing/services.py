@@ -466,6 +466,36 @@ def activate_email_subject_line_template(
     return True
 
 
+def get_email_template_pool_items(
+    template_type: Optional[EmailTemplateType] = None,
+    active_only: Optional[bool] = True,
+) -> list[EmailTemplatePool]:
+    """Gets all email template pool items
+
+    Args:
+        template_type (Optional[EmailTemplateType], optional): The type of the email template pool item. Defaults to None.
+        active_only (Optional[bool], optional): Whether to only return active email template pool items. Defaults to True.
+
+    Returns:
+        list[EmailTemplatePool]: A list of email template pool items
+    """
+    templates: list[EmailTemplatePool] = EmailTemplatePool.query
+
+    # If template_type is specified, filter by template_type
+    if template_type:
+        templates = templates.filter(EmailTemplatePool.template_type == template_type)
+
+    # If activeOnly is specified, filter by active
+    if active_only:
+        templates = templates.filter(EmailTemplatePool.active == True)
+
+    templates: list[EmailTemplatePool] = templates.order_by(
+        EmailTemplatePool.id.asc(),
+    ).all()
+
+    return templates
+
+
 def create_email_template_pool_item(
     name: str,
     template: str,
