@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Union
 from regex import P
+from src.company.models import Company
 from sqlalchemy import nullslast
 from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
 from src.email_outbound.email_store.services import (
@@ -77,6 +78,9 @@ from src.utils.converters.string_converters import needs_title_casing
 import datetime
 from datetime import timedelta
 from flask import jsonify
+from collections import Counter
+import statistics
+import random
 
 
 def search_prospects(
@@ -2825,3 +2829,133 @@ def extract_colloquialized_company_name(self, prospect_id: int):
             self.retry(exc=e)
         else:
             raise e
+
+
+@celery.task
+def generate_prospect_upload_report(archetype_state: dict):
+
+    archetype_id = archetype_state.get("archetype_id")
+    client_id = archetype_state.get("client_id")
+    client_sdr_id = archetype_state.get("client_sdr_id")
+    current_prospect_ids = archetype_state.get("current_prospect_ids")
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+
+    results: list = Prospect.query.join(
+        Company, Company.id == Prospect.company_id
+    ).filter(
+        Prospect.client_sdr_id == client_sdr.id,
+        Prospect.archetype_id == archetype.id,
+        Prospect.id.notin_(current_prospect_ids),
+    ).add_columns(
+        Prospect.id,
+        Prospect.title,
+        Prospect.full_name,
+        Prospect.company,
+        Prospect.linkedin_url,
+        Company.employees
+    ).all()
+
+    # Top 3 titles
+    titles = [result.title for result in results]
+    title_counts = Counter(titles)
+    top_titles_str = ', '.join(title for title, count in title_counts.most_common(3))
+
+    # Stats on company size
+    employee_counts = [result.employees for result in results]
+    company_size_str = f"{min(employee_counts):,} - {max(employee_counts):,}, median {round(statistics.median(employee_counts)):,}"
+
+    # Pull the example profiles from prospects with a title in the top 10
+    example_profiles = []
+    top_10_titles = title_counts.most_common(10)
+    random.shuffle(results)
+    for result in results:
+        if any(result.title == title for title, count in top_10_titles):
+            example_profiles.append(f"[{result.full_name} ({result.title} @ {result.company})](https://www.{result.linkedin_url})")
+    example_profiles_str = ', '.join(example_profiles[:3])
+
+    try:
+        send_slack_message(
+            message="",
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "🚢 {x} new prospects added to prospect list!".format(
+                            x=len(results)
+                        ),
+                        "emoji": True,
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "User: {user} ({company})".format(
+                                user=client_sdr.name, company=client.company
+                            ),
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "Persona: {persona}".format(
+                                persona=archetype.archetype
+                            ),
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "Top Titles: {top_titles}".format(
+                                top_titles=top_titles_str
+                            ),
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "Company Size: {company_size}".format(
+                                company_size=company_size_str
+                            ),
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "Example Profiles: {example_profiles}".format(
+                                example_profiles=example_profiles_str
+                            ),
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "View contacts on SellScale",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Convo in Sight",
+                            "emoji": True,
+                        },
+                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
+                            auth_token=client_sdr.auth_token
+                        ),
+                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
+                            auth_token=client_sdr.auth_token
+                        ),
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+            webhook_urls=[
+                URL_MAP["operations-prospect-uploads"],
+                client.pipeline_notifications_webhook_url,
+            ],
+        )
+    except Exception as e:
+        print("Failed to send slack notification: {}".format(e))
+
+    return True
+

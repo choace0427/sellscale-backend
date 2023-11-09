@@ -1,4 +1,6 @@
 from typing import Optional
+
+from src.prospecting.services import generate_prospect_upload_report
 from src.email_scheduling.services import populate_email_messaging_schedule_entries
 
 from src.individual.services import add_individual_from_iscraper_cache, individual_similar_profile_crawler, upload_job_for_individual, convert_to_prospect
@@ -53,7 +55,13 @@ PROCESS_TYPE_MAP = {
         "priority": 1,
         "queue": 'email_scheduler',
         "routing_key": 'email_scheduler',
-    }
+    },
+    "generate_prospect_upload_report": {
+        "function": generate_prospect_upload_report,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
 }
 ###############################
 

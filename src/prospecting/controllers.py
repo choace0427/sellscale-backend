@@ -1,5 +1,6 @@
 from typing import List
 
+from src.automation.orchestrator import add_process_for_future
 from src.prospecting.models import ExistingContact
 from src.prospecting.services import (
     get_prospect_li_history,
@@ -925,70 +926,25 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
         priority=1,
     )
 
-    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
-    try:
-        send_slack_message(
-            message="",
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "🚢 {x} new prospects added to prospect list!".format(
-                            x=len(csv_payload)
-                        ),
-                        "emoji": True,
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "User: {user} ({company})".format(
-                                user=client_sdr.name, company=client.company
-                            ),
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "Persona: {persona}".format(
-                                persona=archetype.archetype
-                            ),
-                        },
-                    ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "View contacts on SellScale",
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "View Convo in Sight",
-                            "emoji": True,
-                        },
-                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
-                            auth_token=client_sdr.auth_token
-                        ),
-                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
-                            auth_token=client_sdr.auth_token
-                        ),
-                        "action_id": "button-action",
-                    },
-                },
-            ],
-            webhook_urls=[
-                URL_MAP["operations-prospect-uploads"],
-                client.pipeline_notifications_webhook_url,
-            ],
-        )
-    except Exception as e:
-        print("Failed to send slack notification: {}".format(e))
+
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr.id,
+        Prospect.archetype_id == archetype.id,
+    ).all()
+
+    # Schedule a job to generate a report for the prospect upload
+    add_process_for_future(
+        type='generate_prospect_upload_report',
+        args={"archetype_state": {
+            "archetype_id": archetype.id,
+            "client_id": client.id,
+            "client_sdr_id": client_sdr.id,
+            "current_prospect_ids": [p.id for p in prospects],
+        }},
+        minutes=120,# 2 hours from now
+    )
 
     return "Upload job scheduled.", 200
 
