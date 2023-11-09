@@ -2642,7 +2642,12 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON')) "LI-DEMO",
-            client_archetype.emoji
+            client_archetype.emoji,
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH' OR prospect_status_records.to_status = 'SENT_OUTREACH') "TOTAL-SENT",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED' OR prospect_status_records.to_status = 'ACCEPTED') "TOTAL-OPENED",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status = 'ACTIVE_CONVO') "TOTAL-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'DEMO_SET' OR prospect_status_records.to_status = 'DEMO_SET') "TOTAL-DEMO",
+            count(DISTINCT prospect.id) "TOTAL-PROSPECTS"
         FROM
             client_archetype
             LEFT JOIN prospect ON prospect.archetype_id = client_archetype.id
@@ -2673,6 +2678,11 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         9: "li_replied",
         10: "li_demo",
         11: "emoji",
+        12: "total_sent",
+        13: "total_opened",
+        14: "total_replied",
+        15: "total_demo",
+        16: "total_prospects",
     }
 
     # Convert and format output
