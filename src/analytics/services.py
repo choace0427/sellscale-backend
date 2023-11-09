@@ -249,6 +249,10 @@ def get_outreach_over_time(
                     prospect_email_status_records.to_status = 'ACTIVE_CONVO'
             ) active_convo,
             count(distinct prospect.id) filter (
+                where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
+                    prospect_email_status_records.to_status = 'DEMO_SET'
+            ) positive_reply,
+            count(distinct prospect.id) filter (
                 where prospect_status_records.to_status = 'DEMO_SET' or
                     prospect_email_status_records.to_status = 'DEMO_SET'
             ) demo_set
@@ -272,6 +276,7 @@ def get_outreach_over_time(
     sent_outreach = []
     opened = []
     active_convo = []
+    positive_reply = []
     demos = []
 
     for row in data:
@@ -279,7 +284,8 @@ def get_outreach_over_time(
         sent_outreach.append(row[1])
         opened.append(row[2])
         active_convo.append(row[3])
-        demos.append(row[4])
+        positive_reply.append(row[4])
+        demos.append(row[5])
 
     modes = {
         "week": {
@@ -289,6 +295,7 @@ def get_outreach_over_time(
                 "outbound": sent_outreach[len(sent_outreach) - 7 :],
                 "acceptances": opened[len(opened) - 7 :],
                 "replies": active_convo[len(active_convo) - 7 :],
+                "positive_replies": positive_reply[len(positive_reply) - 7 :],
                 "demos": demos[len(demos) - 7 :],
             },
         },
@@ -298,6 +305,7 @@ def get_outreach_over_time(
                 "outbound": sent_outreach[len(sent_outreach) - 30 :],
                 "acceptances": opened[len(opened) - 30 :],
                 "replies": active_convo[len(active_convo) - 30 :],
+                "positive_replies": positive_reply[len(positive_reply) - 30 :],
                 "demos": demos[len(demos) - 30 :],
             },
         },
@@ -307,6 +315,7 @@ def get_outreach_over_time(
                 "outbound": sent_outreach,
                 "acceptances": opened,
                 "replies": active_convo,
+                "positive_replies": positive_reply,
                 "demos": demos,
             },
         },

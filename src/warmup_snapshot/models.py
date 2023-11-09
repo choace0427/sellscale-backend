@@ -7,8 +7,8 @@ from src.prospecting.models import ProspectChannels
 from sqlalchemy.dialects import postgresql
 
 
-class ChannelWarmup(db.Model):
-    __tablename__ = "channel_warmup"
+class WarmupSnapshot(db.Model):
+    __tablename__ = "warmup_snapshot"
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -26,6 +26,13 @@ class ChannelWarmup(db.Model):
     warmup_enabled = db.Column(db.Boolean, nullable=False, default=False)
     reputation = db.Column(db.Float, nullable=True)
 
+    dmarc_record = db.Column(db.String, nullable=True)
+    dmarc_record_valid = db.Column(db.Boolean, nullable=True)
+    spf_record = db.Column(db.String, nullable=True)
+    spf_record_valid = db.Column(db.Boolean, nullable=True)
+    dkim_record = db.Column(db.String, nullable=True)
+    dkim_record_valid = db.Column(db.Boolean, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -36,26 +43,11 @@ class ChannelWarmup(db.Model):
             "daily_limit": self.daily_limit,
             "warmup_enabled": self.warmup_enabled,
             "reputation": self.reputation,
-        }
 
-class ClientWarmup(db.Model):
-    __tablename__ = "client_warmup"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
-
-    date = db.Column(db.Date, nullable=False)
-
-    linkedin_warmup_volume = db.Column(db.Integer, nullable=False, default=False)
-    email_warmup_volume = db.Column(db.Integer, nullable=False, default=False)
-    total_warmup_volume = db.Column(db.Integer, nullable=False, default=False)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "date": self.date,
-            "linkedin_warmup": self.linkedin_warmup,
-            "email_warmup": self.email_warmup,
-            "total_warmup": self.total_warmup,
+            "dmarc_record": self.dmarc_record,
+            "dmarc_record_valid": self.dmarc_record_valid,
+            "spf_record": self.spf_record,
+            "spf_record_valid": self.spf_record_valid,
+            "dkim_record": self.dkim_record,
+            "dkim_record_valid": self.dkim_record_valid,
         }

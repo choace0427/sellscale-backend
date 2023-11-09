@@ -202,7 +202,7 @@ def register_blueprints(app):
     from src.client.archetype.controllers import CLIENT_ARCHETYPE_BLUEPRINT
     from src.client.sdr.email.controllers import SDR_EMAIL_BLUEPRINT
     from src.email_scheduling.controllers import EMAIL_SCHEDULING_BLUEPRINT
-    from src.channel_warmup.controllers import CHANNEL_WARMUP
+    from src.warmup_snapshot.controllers import WARMUP_SNAPSHOT
     from src.prospecting.question_enrichment.controllers import QUESTION_ENRICHMENT_BLUEPRINT
     from src.li_conversation.controllers_linkedin_template import (
         LINKEDIN_TEMPLATE_BLUEPRINT,
@@ -253,7 +253,7 @@ def register_blueprints(app):
     app.register_blueprint(ICP_SCORING_BLUEPRINT, url_prefix="/icp_scoring")
     app.register_blueprint(SDR_EMAIL_BLUEPRINT, url_prefix="/client/sdr/email")
     app.register_blueprint(EMAIL_SCHEDULING_BLUEPRINT, url_prefix="/email/schedule")
-    app.register_blueprint(CHANNEL_WARMUP, url_prefix="/email/warmup")
+    app.register_blueprint(WARMUP_SNAPSHOT, url_prefix="/email/warmup")
     app.register_blueprint(
         QUESTION_ENRICHMENT_BLUEPRINT, url_prefix="/question_enrichment"
     )

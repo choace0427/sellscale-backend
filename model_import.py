@@ -110,7 +110,7 @@ from src.automation.models import (
     PhantomBusterSalesNavigatorConfig,
     PhantomBusterSalesNavigatorLaunch,
 )
-from src.channel_warmup.models import ChannelWarmup
+from src.warmup_snapshot.models import WarmupSnapshot
 from src.prospecting.question_enrichment.models import (
     QuestionEnrichmentRequest,
     QuestionEnrichmentRow,

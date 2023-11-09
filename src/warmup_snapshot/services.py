@@ -1,11 +1,9 @@
-import datetime
 import json
-import subprocess
 
-from httpx import Client
 from model_import import ClientSDR
 import requests
-from src.channel_warmup.models import ChannelWarmup
+from src.utils.domains.pythondns import dkim_record_valid, dmarc_record_valid, spf_record_valid
+from src.warmup_snapshot.models import WarmupSnapshot
 from src.utils.abstract.attr_utils import deep_get
 from app import db, celery
 
@@ -74,15 +72,15 @@ def pass_through_smartlead_warmup_request(client_sdr_id: int) -> list[dict]:
 
 
 @celery.task(bind=True)
-def set_channel_warmups_for_all_active_sdrs(self):
+def set_warmup_snapshots_for_all_active_sdrs(self):
     active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True).all()
     for active_sdr in active_sdrs:
         print(f"Setting channel warmups for {active_sdr.name}")
-        set_channel_warmups_for_sdr.delay(active_sdr.id)
+        set_warmup_snapshot_for_sdr.delay(active_sdr.id)
 
 
 @celery.task(bind=True)
-def set_channel_warmups_for_sdr(self, client_sdr_id):
+def set_warmup_snapshot_for_sdr(self, client_sdr_id):
     try:
         client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
         if not client_sdr:
@@ -91,7 +89,7 @@ def set_channel_warmups_for_sdr(self, client_sdr_id):
         print(f"Setting channel warmups for {name}")
 
         # Clear all warmups
-        ChannelWarmup.query.filter_by(client_sdr_id=client_sdr_id).delete()
+        WarmupSnapshot.query.filter_by(client_sdr_id=client_sdr_id).delete()
 
         # Create Email Warmups
         email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
@@ -103,7 +101,19 @@ def set_channel_warmups_for_sdr(self, client_sdr_id):
             daily_sent_count = email_warmup["daily_sent_count"]
             daily_limit = email_warmup["message_per_day"]
 
-            email_channel_warmup: ChannelWarmup = ChannelWarmup(
+            # Get SPF, DMARC, DKIM Record
+            domain = email.split("@")[1]
+            spf_record, spf_valid = spf_record_valid(
+                domain=domain
+            )
+            dmarc_record, dmarc_valid = dmarc_record_valid(
+                domain=domain
+            )
+            dkim_record, dkim_valid = dkim_record_valid(
+                domain=domain
+            )
+
+            email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
                 client_sdr_id=client_sdr_id,
                 channel_type="EMAIL",
                 daily_sent_count=daily_sent_count,
@@ -111,24 +121,30 @@ def set_channel_warmups_for_sdr(self, client_sdr_id):
                 warmup_enabled=True,
                 reputation=warmup_reputation,
                 account_name=email,
+                dmarc_record=dmarc_record,
+                dmarc_record_valid=dmarc_valid,
+                spf_record=spf_record,
+                spf_record_valid=spf_valid,
+                dkim_record=dkim_record,
+                dkim_record_valid=dkim_valid,
             )
-            db.session.add(email_channel_warmup)
+            db.session.add(email_warmup_snapshot)
             db.session.commit()
 
         print(f"Finished setting channel warmups for {name}")
 
         # Create Linkedin Warmups
         linkedin_query = """
-        select 
-            'LINKEDIN' channel_type, 
+        select
+            'LINKEDIN' channel_type,
             count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' and prospect_status_records.created_at > NOW() - '24 hours'::INTERVAL) daily_sent_count,
             client_sdr.weekly_li_outbound_target / 5 daily_limit,
             case when client_sdr.created_at > NOW() - '30 days'::INTERVAL then TRUE else FALSE END warmup_enabled,
             100 warmup_reputation,
             concat(client_sdr.name, ' LinkedIn') account_name
-            
+
         from
-            client_sdr 
+            client_sdr
             join prospect on prospect.client_sdr_id = client_sdr.id
             join prospect_status_records on prospect_status_records.prospect_id = prospect.id
         where client_sdr.id = {client_sdr_id}
@@ -139,7 +155,7 @@ def set_channel_warmups_for_sdr(self, client_sdr_id):
         )
         linkedin_warmups = db.session.execute(linkedin_query).fetchall()
         if len(linkedin_warmups) > 0:
-            linkedin_channel_warmup: ChannelWarmup = ChannelWarmup(
+            linkedin_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
                 client_sdr_id=client_sdr_id,
                 channel_type="LINKEDIN",
                 daily_sent_count=linkedin_warmups[0][1],
@@ -148,7 +164,7 @@ def set_channel_warmups_for_sdr(self, client_sdr_id):
                 reputation=linkedin_warmups[0][4],
                 account_name=linkedin_warmups[0][5],
             )
-            db.session.add(linkedin_channel_warmup)
+            db.session.add(linkedin_warmup_snapshot)
             db.session.commit()
 
         print(f"Finished setting channel warmups for {name}")
