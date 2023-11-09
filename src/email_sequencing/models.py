@@ -141,6 +141,7 @@ class EmailTemplatePool(db.Model):
             "name": self.name,
             "description": self.description,
             "template": self.template,
+            "template_type": self.template_type.value,
             "active": self.active,
             "transformer_blocklist": [t.value for t in self.transformer_blocklist] if self.transformer_blocklist else [],
             "labels": self.labels,

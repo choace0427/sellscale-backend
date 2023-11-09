@@ -5,6 +5,8 @@ from model_import import EmailSequenceStep
 from src.email_sequencing.models import EmailSubjectLineTemplate, EmailTemplatePool, EmailTemplateType
 from src.email_sequencing.services import (
     activate_sequence_step,
+    copy_email_template_body_item,
+    copy_email_template_subject_line_item,
     create_email_sequence_step,
     create_email_template_pool_item,
     deactivate_sequence_step,
@@ -566,3 +568,77 @@ def patch_email_pool(client_sdr_id: int):
         return jsonify({"status": "success", "message": "Email template pool item updated."}), 200
 
     return jsonify({"status": "error", "message": "Could not update email template pool item."}), 400
+
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/pool/copy", methods=["POST"])
+@require_user
+def post_copy_email_pool_entry(client_sdr_id: int):
+    """Copies a template in the email pool to the SDR's sequence"""
+    template_type = get_request_parameter(
+        "template_type", request, json=True, required=True, parameter_type=str
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    template_pool_id = get_request_parameter(
+        "template_pool_id", request, json=True, required=True, parameter_type=int
+    )
+
+    if template_type == "SUBJECT_LINE":
+        success = copy_email_template_subject_line_item(
+            client_sdr_id=client_sdr_id,
+            client_archetype_id=archetype_id,
+            template_pool_id=template_pool_id
+        )
+        if success:
+            return jsonify({"status": "success", "message": "Email subject line template copied."}), 200
+    elif template_type == "BODY":
+        overall_status = get_request_parameter(
+            "overall_status", request, json=True, required=True, parameter_type=str
+        )
+        substatus = get_request_parameter(
+            "substatus", request, json=True, required=False, parameter_type=str
+        )
+        bumped_count = get_request_parameter(
+            "bumped_count", request, json=True, required=False, parameter_type=int
+        )
+        transformer_blocklist = (
+            get_request_parameter(
+                "transformer_blocklist", request, json=True, required=False, parameter_type=list
+            )
+        )
+
+        # Convert overall status to enum
+        overall_status_enum = None
+        for key, val in ProspectOverallStatus.__members__.items():
+            if key == overall_status:
+                overall_status_enum = val
+                break
+        overall_status = overall_status_enum
+
+        # Convert transformer blocklist to enum
+        if transformer_blocklist:
+            transformer_blocklist_enum = []
+            for blocklist_item in transformer_blocklist:
+                for key, val in ResearchPointType.__members__.items():
+                    if key == blocklist_item:
+                        transformer_blocklist_enum.append(val)
+                        break
+            transformer_blocklist = transformer_blocklist_enum
+
+        success = copy_email_template_body_item(
+            client_sdr_id=client_sdr_id,
+            client_archetype_id=archetype_id,
+            template_pool_id=template_pool_id,
+            overall_status=overall_status,
+            substatus=substatus,
+            bumped_count=bumped_count,
+            transformer_blocklist=transformer_blocklist
+        )
+        if success:
+            return jsonify({"status": "success", "message": "Email body template copied."}), 200
+    else:
+        return jsonify({"status": "error", "message": "Invalid template type."}), 400
+
+    return jsonify({"status": "error", "message": "Could not copy email template library item."}), 400
+

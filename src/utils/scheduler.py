@@ -352,6 +352,14 @@ def run_find_and_run_queued_question_enrichment_row_job():
             20 # num_rows
         )
 
+def run_analytics_backfill_jobs():
+    from src.voyager.services import run_fast_analytics_backfill
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        run_fast_analytics_backfill.delay()
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
@@ -406,6 +414,7 @@ scheduler.add_job(
 )
 scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 scheduler.add_job(func=run_hourly_email_finder_job, trigger="interval", hours=1)
+scheduler.add_job(func=run_analytics_backfill_jobs, trigger="interval", hours=1)
 scheduler.add_job(func=run_set_warmup_snapshots, trigger="interval", hours=3)
 
 # Daily triggers
