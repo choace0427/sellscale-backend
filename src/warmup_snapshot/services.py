@@ -88,8 +88,10 @@ def set_warmup_snapshots_for_client(self, client_id: int):
     ).all()
     for active_sdr in active_sdrs:
         print(f"Setting channel warmups for {active_sdr.name}")
-        set_warmup_snapshot_for_sdr.delay(active_sdr.id)
-        # set_warmup_snapshot_for_sdr(active_sdr.id)
+        # set_warmup_snapshot_for_sdr.delay(active_sdr.id)
+        set_warmup_snapshot_for_sdr(active_sdr.id)
+
+    return True
 
 
 @celery.task(bind=True)
