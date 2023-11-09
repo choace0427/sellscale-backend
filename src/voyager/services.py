@@ -4,6 +4,7 @@ import time
 import datetime as dt
 import random
 import os
+from tqdm import tqdm
 
 from tomlkit import datetime
 from src.bump_framework.models import BumpFramework
@@ -398,9 +399,41 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 
     return "OK", 200
 
+@celery.task(name="run_fast_analytics_backfill")
+def run_fast_analytics_backfill():
+    # Fetch and process data
+    fetch_query = """
+    SELECT 
+        bump_framework.id,
+        COUNT(DISTINCT a.thread_urn_id) AS new_etl_num_times_used,
+        COUNT(DISTINCT b.thread_urn_id) FILTER (WHERE b.connection_degree <> 'You') AS new_etl_num_times_converted
+    FROM bump_framework
+    JOIN linkedin_conversation_entry a ON a.bump_framework_id = bump_framework.id
+    JOIN linkedin_conversation_entry b ON b.thread_urn_id = a.thread_urn_id
+    GROUP BY bump_framework.id;
+    """
+    result = db.session.execute(fetch_query)
+    data = result.fetchall()
 
-# DELETE ME
+    # Bulk update bump frameworks
+    update_data = [
+        {
+            'id': id,
+            'etl_num_times_used': new_used,
+            'etl_num_times_converted': new_converted
+        } for id, new_used, new_converted in data
+    ]
+
+    db.session.bulk_update_mappings(BumpFramework, update_data)
+
+    # Commit final changes
+    db.session.commit()
+
+    return True
+
+
 def run_backfill_bf_analytics() -> bool:
+
     # Get all LIConvoEntries that have a bump framework
     convo_entries: list[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter(
@@ -415,7 +448,6 @@ def run_backfill_bf_analytics() -> bool:
         convo_urn_ids.add(entry.conversation_url.split("/")[-2])
 
     print(len(convo_urn_ids))
-    from tqdm import tqdm
 
     # Get entire conversations for the unique urns
     for convo_urn_id in convo_urn_ids:

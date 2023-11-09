@@ -10,6 +10,7 @@ from src.voyager.services import (
     fetch_conversation,
     get_profile_urn_id,
     clear_linkedin_cookies,
+    run_fast_analytics_backfill #  do not remove this import for celery to work
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
