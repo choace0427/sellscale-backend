@@ -249,7 +249,7 @@ def get_outreach_over_time(
                     prospect_email_status_records.to_status = 'ACTIVE_CONVO'
             ) active_convo,
             count(distinct prospect.id) filter (
-                where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
+                where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING') or
                     prospect_email_status_records.to_status = 'DEMO_SET'
             ) positive_reply,
             count(distinct prospect.id) filter (
