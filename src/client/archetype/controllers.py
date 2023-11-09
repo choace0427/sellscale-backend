@@ -162,7 +162,7 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
         return jsonify({"status": "error", "message": "Invalid archetype"}), 400
     elif archetype.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
-    
+
     template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(template_id)
     template.title = title or template.title
     template.message = message or template.message
@@ -179,7 +179,7 @@ def patch_archetype_li_template(client_sdr_id: int, archetype_id: int):
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/li_template", methods=["POST"])
 @require_user
 def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
-    
+
     title = get_request_parameter(
         "title", request, json=True, required=True, parameter_type=str
     )
@@ -264,9 +264,9 @@ def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id:
         template_str = template.message
     else:
         template = None
-    
+
     from src.li_conversation.services import detect_template_research_points
-    
+
     research_points = detect_template_research_points(template_str)
     if research_points:
         if template:
@@ -275,3 +275,41 @@ def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id:
         return jsonify({"status": "success", "data": research_points}), 200
     else:
         return jsonify({"status": "error", "message": "Failed to detect research points"}), 500
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/linkedin/active", methods=["POST"])
+@require_user
+def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
+    active = get_request_parameter(
+        "active", request, json=True, required=True, parameter_type=bool
+    )
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
+
+    archetype.linkedin_active = active
+    db.session.commit()
+
+    return jsonify({"status": "success"}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/email/active", methods=["POST"])
+@require_user
+def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
+    active = get_request_parameter(
+        "active", request, json=True, required=True, parameter_type=bool
+    )
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+    elif archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Bad archetype, not authorized"}), 403
+
+    archetype.email_active = active
+    db.session.commit()
+
+    return jsonify({"status": "success"}), 200
