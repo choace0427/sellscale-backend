@@ -105,6 +105,8 @@ class ClientArchetype(db.Model):
     emoji = db.Column(db.String, nullable=True, default="👋")
 
     active = db.Column(db.Boolean, nullable=True, default=True)
+    linkedin_active = db.Column(db.Boolean, nullable=True, default=False)
+    email_active = db.Column(db.Boolean, nullable=True, default=False)
 
     transformer_blocklist = db.Column(
         db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
@@ -163,6 +165,8 @@ class ClientArchetype(db.Model):
             "archetype": self.archetype,
             "filters": self.filters,
             "active": self.active,
+            "linkedin_active": self.linkedin_active,
+            "email_active": self.email_active,
             "transformer_blocklist": [t.value for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
