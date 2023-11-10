@@ -15,7 +15,6 @@ from src.utils.slack import URL_MAP
 
 from celery import Celery
 from src.utils.slack import send_slack_message
-#import chromadb
 
 if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
     import sentry_sdk
