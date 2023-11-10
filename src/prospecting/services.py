@@ -2865,7 +2865,8 @@ def generate_prospect_upload_report(archetype_state: dict):
 
     # Stats on company size
     employee_counts = [result.employees for result in results]
-    company_size_str = f"{min(employee_counts):,} - {max(employee_counts):,}, median {round(statistics.median(employee_counts)):,}"
+    #company_size_str = f"{min(employee_counts):,} - {max(employee_counts):,}, median {round(statistics.median(employee_counts)):,}"
+    company_size_str = f"{round(statistics.median(employee_counts)):,}"
 
     # Pull the example profiles from prospects with a title in the top 10
     example_profiles = []
@@ -2914,16 +2915,16 @@ def generate_prospect_upload_report(archetype_state: dict):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": "Company Size: {company_size}".format(
+                            "text": "Company Median Size: {company_size}".format(
                                 company_size=company_size_str
                             ),
                         },
-                        {
-                            "type": "mrkdwn",
-                            "text": "Example Profiles: {example_profiles}".format(
-                                example_profiles=example_profiles_str
-                            ),
-                        },
+                        # {
+                        #     "type": "mrkdwn",
+                        #     "text": "Example Profiles: {example_profiles}".format(
+                        #         example_profiles=example_profiles_str
+                        #     ),
+                        # },
                     ],
                 },
                 {
