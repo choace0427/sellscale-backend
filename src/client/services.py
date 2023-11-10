@@ -2627,6 +2627,8 @@ def get_personas_page_details(client_sdr_id: int):
 
 
 def get_personas_page_campaigns(client_sdr_id: int) -> dict:
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
 
     results = db.session.execute(
         """
@@ -2639,6 +2641,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             client_archetype.email_active,
             client_sdr.name,
             client_sdr.img_url,
+            client_sdr.id client_sdr_id,
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
@@ -2660,12 +2663,11 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
             LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
         WHERE
-            client_archetype.client_sdr_id = {client_sdr_id}
-            AND client_archetype.is_unassigned_contact_archetype != TRUE
+            client_archetype.client_id = {client_id}
         GROUP BY
-            2, client_sdr.name, client_sdr.img_url;
+            2, client_sdr.name, client_sdr.img_url, client_sdr.id, client_archetype.emoji
         """.format(
-            client_sdr_id=client_sdr_id
+            client_id=client_id
         )
     ).fetchall()
 
@@ -2679,19 +2681,22 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         5: "email_active",
         6: "sdr_name",
         7: "sdr_img_url",
-        8: "email_sent",
-        9: "email_opened",
-        10: "email_reply",
-        11: "li_sent",
-        12: "li_opened",
-        13: "li_reply",
-        14: "li_demo",
-        15: "emoji",
-        16: "total_sent",
-        17: "total_opened",
-        18: "total_reply",
-        19: "total_demo",
-        20: "total_prospects",
+        8: "sdr_id",
+        9: "sdr_name",
+        10: "sdr_img_url",
+        11: "email_sent",
+        12: "email_opened",
+        13: "email_reply",
+        14: "li_sent",
+        15: "li_opened",
+        16: "li_reply",
+        17: "li_demo",
+        18: "emoji",
+        19: "total_sent",
+        20: "total_opened",
+        21: "total_reply",
+        22: "total_demo",
+        23: "total_prospects",
     }
 
     # Convert and format output
