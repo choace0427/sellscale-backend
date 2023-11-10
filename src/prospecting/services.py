@@ -300,12 +300,16 @@ def get_prospects_for_icp_table(
                 prospect.icp_fit_reason,
                 prospect.industry,
                 prospect.id,
-                prospect.status
+                prospect.overall_status status,
+                case 
+                    when prospect_status_records.id is not null then TRUE
+                    else FALSE
+                end has_been_sent_outreach
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                    and prospect_status_records.to_status = 'SENT_OUTREACH'
             where prospect.archetype_id = {client_archetype_id}
-                and client_sdr.id = {client_sdr_id}
-                and prospect.overall_status <> 'REMOVED'
             order by
                 {order_by}
                 1 asc
@@ -337,6 +341,7 @@ def get_prospects_for_icp_table(
                 "industry": r[6],
                 "id": r[7],
                 "status": r[8],
+                "has_been_sent_outreach": r[9],
             }
         )
 
