@@ -8,7 +8,8 @@ from src.client.models import Client, ClientSDR
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.ml.services import mark_queued_and_classify
-from src.prospecting.models import Prospect, ProspectStatus
+from src.prospecting.icp_score.services import move_selected_prospects_to_unassigned
+from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 
 from src.utils.slack import URL_MAP, send_slack_message
 
@@ -737,6 +738,15 @@ def hard_deactivate_client_archetype(
                     p_email.personalized_body = None
 
     db.session.commit()
+
+    prospected_prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == archetype.id,
+        Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+    ).all()
+    prospect_ids = [prospect.id for prospect in prospected_prospects]
+    move_selected_prospects_to_unassigned(
+        prospect_ids=prospect_ids,
+    )
 
     return True
 
