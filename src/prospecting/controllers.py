@@ -3,8 +3,11 @@ from typing import List
 from src.automation.orchestrator import add_process_for_future
 from src.prospecting.models import ExistingContact
 from src.prospecting.services import (
+    bulk_mark_not_qualified,
     get_prospect_li_history,
     get_prospects_for_icp_table,
+    global_prospected_contacts,
+    move_prospect_to_persona,
     patch_prospect,
     prospect_removal_check_from_csv_payload,
 )
@@ -1500,3 +1503,49 @@ def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
     )
 
     return jsonify({"message": "Success", "data": feedback_id}), 200
+
+@PROSPECTING_BLUEPRINT.route("/global_contacts", methods=["GET"])
+@require_user
+def get_global_contacts(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    if not client_sdr:
+        return jsonify({"message": "Client SDR not found"}), 404
+    
+    client_id: int = client_sdr.client_id
+    contacts = global_prospected_contacts(
+        client_id=client_id,
+    )
+
+    return jsonify({"message": "Success", "data": contacts}), 200
+
+@PROSPECTING_BLUEPRINT.route("/global_contacts/move_to_persona", methods=["POST"])
+@require_user
+def post_move_global_contacts_to_persona(client_sdr_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
+    new_archetype_id = get_request_parameter(
+        "new_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success = move_prospect_to_persona(
+        client_sdr_id=client_sdr_id,
+        prospect_ids=prospect_ids,
+        new_archetype_id=new_archetype_id,
+    )
+
+    return jsonify({"message": "Success"}), 200
+
+@PROSPECTING_BLUEPRINT.route("/global_contacts/remove", methods=["POST"])
+@require_user
+def post_remove_global_contacts(client_sdr_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
+
+    success = bulk_mark_not_qualified(
+        client_sdr_id=client_sdr_id,
+        prospect_ids=prospect_ids,
+    )
+
+    return jsonify({"message": "Success"}), 200

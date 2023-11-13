@@ -2965,3 +2965,85 @@ def generate_prospect_upload_report(archetype_state: dict):
 
     return True
 
+def global_prospected_contacts(client_id: int):
+    """
+    Returns a list of all prospects that have been prospected but not yet approved for outreach for a given client.
+    """
+    query = """
+        select 
+            prospect.id "prospect_id",
+            prospect.full_name "prospect_name",
+            prospect.title "prospect_title",
+            prospect.company "prospect_company",
+            prospect.industry "prospect_industry",
+            prospect.linkedin_url "prospect_linkedin_url",
+            prospect.status "outreach_status",
+            client_archetype.archetype "persona",
+            client_sdr.name "user_name",
+            prospect.created_at "date_uploaded"
+        from prospect
+            join client_archetype on client_archetype.id = prospect.archetype_id
+            join client_sdr on client_sdr.id = prospect.client_sdr_id
+        where prospect.client_id = {client_id}
+            and prospect.overall_status = 'PROSPECTED'
+            and prospect.approved_prospect_email_id is null
+            and prospect.approved_outreach_message_id is null;
+    """.format(client_id=client_id)
+
+    results = db.session.execute(query).fetchall()
+
+    entries = {
+        0: "prospect_id",
+        1: "prospect_name",
+        2: "prospect_title",
+        3: "prospect_company",
+        4: "prospect_industry",
+        5: "prospect_linkedin_url",
+        6: "outreach_status",
+        7: "persona",
+        8: "user_name",
+        9: "date_uploaded"
+    }
+
+    return [dict(zip(entries.values(), result)) for result in results]
+
+def move_prospect_to_persona(
+    client_sdr_id: int, prospect_ids: list[int], new_archetype_id: int
+):
+    archetype: ClientArchetype = ClientArchetype.query.get(new_archetype_id)
+    if not archetype:
+        return False
+    
+    new_client_sdr_id = archetype.client_sdr_id
+
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(prospect_ids),
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+    ).all()
+
+    for prospect in prospects:
+        prospect.archetype_id = new_archetype_id
+        prospect.client_sdr_id = new_client_sdr_id
+        prospect.status = ProspectStatus.PROSPECTED
+        prospect.overall_status = ProspectOverallStatus.PROSPECTED
+
+        db.session.add(prospect)
+    db.session.commit()
+
+    return True
+
+def bulk_mark_not_qualified(client_sdr_id: int, prospect_ids: list[int]):
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.id.in_(prospect_ids),
+        Prospect.client_sdr_id == client_sdr_id,
+    ).all()
+
+    for prospect in prospects:
+        prospect.status = ProspectStatus.NOT_QUALIFIED
+        prospect.overall_status = ProspectOverallStatus.REMOVED
+
+        db.session.add(prospect)
+    db.session.commit()
+
+    return True
