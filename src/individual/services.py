@@ -210,7 +210,7 @@ def individual_similar_profile_crawler(individual_id: int):
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def add_individual_from_linkedin_url(
-    self, url: str
+    self, url: str, upload_id: Optional[int] = None
 ) -> tuple[bool, int or str, bool or None]:
 
     from src.research.linkedin.services import research_personal_profile_details
@@ -256,7 +256,7 @@ def add_individual_from_linkedin_url(
                 return False, "Could not cache payload."
 
         # Add individual from cache
-        return add_individual_from_iscraper_cache(linkedin_url)
+        return add_individual_from_iscraper_cache(linkedin_url, upload_id)
 
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
@@ -283,8 +283,7 @@ def backfill_iscraper_cache(start_index: int, end_index: int):
 
 
 @celery.task
-def add_individual_from_iscraper_cache(li_url: str):
-
+def add_individual_from_iscraper_cache(li_url: str, upload_id: Optional[int] = None):
     iscraper_cache: IScraperPayloadCache = (
         IScraperPayloadCache.get_iscraper_payload_cache_by_linkedin_url(
             linkedin_url=li_url,
@@ -398,6 +397,7 @@ def add_individual_from_iscraper_cache(li_url: str):
         recent_job_location=deep_get(
             cache, "position_groups.0.profile_positions.0.location"
         ),
+        upload_id=upload_id,
     )
 
     return True if individual_id else False, individual_id, created
@@ -529,6 +529,7 @@ def add_individual(
     recent_job_end_date: Optional[datetime.date],
     recent_job_description: Optional[str],
     recent_job_location: Optional[dict],
+    upload_id: Optional[int] = None,
 ) -> tuple[Optional[int], bool]:
     """
     Adds an individual to the database, or updates an existing individual if
@@ -692,6 +693,8 @@ def add_individual(
             existing_individual.recent_job_description = recent_job_description
         if recent_job_location:
             existing_individual.recent_job_location = recent_job_location
+        if upload_id:
+            existing_individual.upload_id = upload_id
 
         db.session.commit()
         return existing_individual.id, False
@@ -751,6 +754,7 @@ def add_individual(
             recent_job_end_date=recent_job_end_date,
             recent_job_description=recent_job_description,
             recent_job_location=recent_job_location,
+            upload_id=upload_id,
         )
         db.session.add(individual)
         db.session.commit()
@@ -847,7 +851,7 @@ def upload_job_for_individual(
             upload.added_size = upload.added_size + 1 if upload.added_size else 1
             db.session.commit()
 
-    result = add_individual_from_linkedin_url(profile_url)
+    result = add_individual_from_linkedin_url(profile_url, upload_id=upload_id)
     if type(result) is tuple:
         return result
 

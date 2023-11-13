@@ -6,6 +6,10 @@ class Individual(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
+    upload_id = db.Column(
+        db.Integer, db.ForeignKey("individuals_upload.id"), nullable=True
+    )
+
     full_name = db.Column(db.String, nullable=True)
     first_name = db.Column(db.String, nullable=True)
     last_name = db.Column(db.String, nullable=True)
@@ -161,6 +165,11 @@ class IndividualsUpload(db.Model):
     upload_size = db.Column(db.Integer, nullable=False)
     payload_data = db.Column(db.ARRAY(db.JSON), nullable=False)
 
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -170,4 +179,6 @@ class IndividualsUpload(db.Model):
             "upload_size": self.upload_size,
             "payload_data": self.payload_data,
             "created_at": self.created_at,
+            "client_id": self.client_id,
+            "client_archetype_id": self.client_archetype_id,
         }
