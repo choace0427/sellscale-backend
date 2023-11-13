@@ -1,5 +1,7 @@
 from enum import Enum
 import random
+
+import sqlalchemy
 from src.client.sdr.email.models import EmailType
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
 from src.client.sdr.services_client_sdr import (
@@ -7,6 +9,7 @@ from src.client.sdr.services_client_sdr import (
     deactivate_sla_schedules,
     load_sla_schedules,
 )
+from sqlalchemy import cast, String
 from src.company.models import Company
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
@@ -2463,38 +2466,45 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
     
     prospects: list[Prospect] = (
-    Prospect.query
-        .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
-        .join(Company, Individual.company_id == Company.id)         # Join with Company
-        .filter(
-            Prospect.client_id == client_id,
-            Prospect.overall_status.in_(allStatuses),
-            or_(
-                *(
-                    [
-                        Prospect.company.ilike(f"%{company}%")
-                        for company in client.do_not_contact_company_names
-                    ]
-                    + [
-                        Prospect.company.ilike(f"%{keyword}%")
-                        for keyword in client.do_not_contact_keywords_in_company_names
-                    ]
-                    + [
-                        Prospect.industry.ilike(f"%{industry}%")
-                        for industry in client.do_not_contact_industries
-                    ]
-                    + [
-                        Prospect.title.ilike(f"%{title}%")
-                        for title in client.do_not_contact_titles
-                    ]
-                )
-            ),
-        )
-        .limit(50)
-        .all()
+        Prospect.query
+            .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
+            .join(Company, Individual.company_id == Company.id)         # Join with Company
+            .filter(
+                Prospect.client_id == client_id,
+                Prospect.overall_status.in_(allStatuses),
+                or_(
+                    *(
+                        [
+                            Prospect.company.ilike(f"%{company}%")
+                            for company in client.do_not_contact_company_names
+                        ]
+                        + [
+                            Prospect.company.ilike(f"%{keyword}%")
+                            for keyword in client.do_not_contact_keywords_in_company_names
+                        ]
+                        + [
+                            Prospect.industry.ilike(f"%{industry}%")
+                            for industry in client.do_not_contact_industries
+                        ]
+                        + [
+                            Prospect.title.ilike(f"%{title}%")
+                            for title in client.do_not_contact_titles
+                        ]
+                        + [
+                            cast(Company.locations, String).ilike(f"%{location}%")
+                            for location in client.do_not_contact_location_keywords
+                        ]
+                        + [
+                            cast(Individual.location, String).ilike(f"%{location}%")
+                            for location in client.do_not_contact_prospect_location_keywords
+                        ]
+                    )
+                ),
+            )
+            .all()
     )
 
-    return [prospect.to_dict() for prospect in prospects]
+    return [prospect.simple_to_dict() for prospect in prospects]
 
 
 def remove_prospects_caught_by_client_filters(client_sdr_id: int):
@@ -2567,13 +2577,20 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
                         Prospect.title.ilike(f"%{title}%")
                         for title in client_sdr.do_not_contact_titles
                     ]
+                    + [
+                        cast(Company.locations, String).ilike(f"%{location}%")
+                        for location in client_sdr.do_not_contact_location_keywords
+                    ]
+                    + [
+                        cast(Individual.location, String).ilike(f"%{location}%")
+                        for location in client_sdr.do_not_contact_prospect_location_keywords
+                    ]
                 )
             ),
         )
-        .limit(50)
         .all()
     )
-    return [prospect.to_dict() for prospect in prospects]
+    return [prospect.simple_to_dict() for prospect in prospects]
 
 
 def remove_prospects_caught_by_sdr_client_filters(client_sdr_id: int):

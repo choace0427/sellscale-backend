@@ -487,6 +487,51 @@ class Prospect(db.Model):
 
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
+    
+    def simple_to_dict(self):
+        return {
+            "id": self.id,
+            "full_name": self.full_name,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "company": self.company,
+            "title": self.title,
+            "email": self.email,
+            "industry": self.industry,
+            "icp_fit_score": self.icp_fit_score,
+            "icp_fit_reason": self.icp_fit_reason,
+            "li_public_id": self.linkedin_url.split("/in/")[1].split("/")[0]
+            if self.linkedin_url
+            else None,
+            "img_url": self.img_url,
+            "archetype_id": self.archetype_id,
+            "hidden_until": self.hidden_until,
+            "hidden_reason": self.hidden_reason.value
+            if self.hidden_reason is not None
+            else None,
+            "demo_date": self.demo_date,
+            "deactivate_ai_engagement": self.deactivate_ai_engagement,
+            "is_lead": self.is_lead,
+            "overall_status": self.overall_status.value,
+            "linkedin_status": self.status.value,
+            "li_urn_id": self.li_urn_id,
+            "li_conversation_urn_id": self.li_conversation_urn_id,
+            "li_last_message_timestamp": self.li_last_message_timestamp,
+            "li_is_last_message_from_sdr": self.li_is_last_message_from_sdr,
+            "li_last_message_from_prospect": self.li_last_message_from_prospect,
+            "li_last_message_from_sdr": self.li_last_message_from_sdr,
+            "li_unread_messages": self.li_unread_messages,
+            "email_last_message_timestamp": self.email_last_message_timestamp,
+            "email_is_last_message_from_sdr": self.email_is_last_message_from_sdr,
+            "email_last_message_from_prospect": self.email_last_message_from_prospect,
+            "email_last_message_from_sdr": self.email_last_message_from_sdr,
+            "email_unread_messages": self.email_unread_messages,
+            "active": self.active,
+            "in_icp_sample": self.in_icp_sample,
+            "icp_fit_score_override": self.icp_fit_score_override,
+            "contract_size": self.contract_size,
+            "is_lookalike_profile": self.is_lookalike_profile,
+        }
 
     def to_dict(
         self,
