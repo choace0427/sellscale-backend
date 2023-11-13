@@ -45,6 +45,9 @@ class Client(db.Model):
     do_not_contact_industries = db.Column(db.ARRAY(db.String), nullable=True)
     do_not_contact_location_keywords = db.Column(db.ARRAY(db.String), nullable=True)
     do_not_contact_titles = db.Column(db.ARRAY(db.String), nullable=True)
+    do_not_contact_prospect_location_keywords = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
 
     value_prop_key_points = db.Column(db.String, nullable=True)
     tone_attributes = db.Column(db.ARRAY(db.String), nullable=True)
@@ -317,6 +320,9 @@ class ClientSDR(db.Model):
     do_not_contact_industries = db.Column(db.ARRAY(db.String), nullable=True)
     do_not_contact_location_keywords = db.Column(db.ARRAY(db.String), nullable=True)
     do_not_contact_titles = db.Column(db.ARRAY(db.String), nullable=True)    
+    do_not_contact_prospect_location_keywords = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
 
     manual_warning_message = db.Column(db.String, nullable=True)
 
