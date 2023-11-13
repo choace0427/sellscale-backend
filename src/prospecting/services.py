@@ -1098,6 +1098,17 @@ def add_prospect(
             client.do_not_contact_keywords_in_company_names
             and company.lower()
             in [x.lower() for x in client.do_not_contact_keywords_in_company_names]
+        ) or (
+            client.do_not_contact_industries
+            and not industry or 
+                (
+                industry and industry.lower()
+                in [x.lower() for x in client.do_not_contact_industries]
+            )
+        ) or (
+            client.do_not_contact_titles
+            and title and title.lower()
+            in [x.lower() for x in client.do_not_contact_titles]
         ):
             status = ProspectStatus.NOT_QUALIFIED
             overall_status = ProspectOverallStatus.REMOVED

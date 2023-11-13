@@ -2072,6 +2072,21 @@ def post_do_not_contact_filters(client_sdr_id: int):
     do_not_contact_company_names = get_request_parameter(
         "do_not_contact_company_names", request, json=True, required=False
     )
+    do_not_contact_industries = get_request_parameter(
+        "do_not_contact_industries", request, json=True, required=False
+    )
+    do_not_contact_location_keywords = get_request_parameter(
+        "do_not_contact_location_keywords", request, json=True, required=False
+    )
+    do_not_contact_titles = get_request_parameter(
+        "do_not_contact_titles", request, json=True, required=False
+    )
+    do_not_contact_prospect_location_keywords = get_request_parameter(
+        "do_not_contact_prospect_location_keywords",
+        request,
+        json=True,
+        required=False,
+    )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
@@ -2080,6 +2095,10 @@ def post_do_not_contact_filters(client_sdr_id: int):
         client_id=client_id,
         do_not_contact_keywords_in_company_names=do_not_contact_keywords_in_company_names,
         do_not_contact_company_names=do_not_contact_company_names,
+        do_not_contact_industries=do_not_contact_industries,
+        do_not_contact_location_keywords=do_not_contact_location_keywords,
+        do_not_contact_titles=do_not_contact_titles,
+        do_not_contact_prospect_location_keywords=do_not_contact_prospect_location_keywords,
     )
     if not success:
         return "Failed to update do not contact filters", 400
@@ -2132,11 +2151,30 @@ def post_sdr_do_not_contact_filters(client_sdr_id: int):
     do_not_contact_company_names = get_request_parameter(
         "do_not_contact_company_names", request, json=True, required=False
     )
+    do_not_contact_industries = get_request_parameter(
+        "do_not_contact_industries", request, json=True, required=False
+    )
+    do_not_contact_location_keywords = get_request_parameter(
+        "do_not_contact_location_keywords", request, json=True, required=False
+    )
+    do_not_contact_titles = get_request_parameter(
+        "do_not_contact_titles", request, json=True, required=False
+    )
+    do_not_contact_prospect_location_keywords = get_request_parameter(
+        "do_not_contact_prospect_location_keywords",
+        request,
+        json=True,
+        required=False,
+    )
 
     success = update_sdr_do_not_contact_filters(
         client_sdr_id=client_sdr_id,
         do_not_contact_keywords_in_company_names=do_not_contact_keywords_in_company_names,
         do_not_contact_company_names=do_not_contact_company_names,
+        do_not_contact_industries=do_not_contact_industries,
+        do_not_contact_location_keywords=do_not_contact_location_keywords,
+        do_not_contact_titles=do_not_contact_titles,
+        do_not_contact_prospect_location_keywords=do_not_contact_prospect_location_keywords,
     )
     if not success:
         return "Failed to update do not contact filters", 400
