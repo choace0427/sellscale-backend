@@ -696,7 +696,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     
     
     # Enabled template mode SDRs
-    enabled_sdrs = [34, 87]
+    enabled_sdrs = [34, 127]
     
     # If we don't have a bump framework template, use the legacy system
     if not bump_framework or (client_sdr.id not in enabled_sdrs): 
