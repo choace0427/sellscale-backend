@@ -17,11 +17,21 @@ def get_archetypes(client_sdr_id: int):
     active_only = get_request_parameter(
         "active_only", request, json=False, required=False, parameter_type=bool
     )
+    client_wide = get_request_parameter(
+        "client_wide", request, json=False, required=False, parameter_type=bool
+    )
 
-    archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-        ClientArchetype.client_sdr_id == client_sdr_id,
-        ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
-    ).all()
+    if client_wide:
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+            ClientArchetype.client_id == sdr.client_id,
+            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+        ).all()
+    else:
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+            ClientArchetype.client_sdr_id == client_sdr_id,
+            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+        ).all()
 
     return jsonify({"status": "success", "data": [archetype.to_dict() for archetype in archetypes]}), 200
 
