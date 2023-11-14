@@ -47,6 +47,7 @@ def get_archetypes_custom(
             "linkedin_active": archetype.linkedin_active,
             "email_active": archetype.email_active,
             "sdr_name": sdr.name,
+            "sdr_img_url": sdr.img_url,
             "contact_count": contact_count,
         }
         payload.append(archetype_data)
