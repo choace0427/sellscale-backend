@@ -669,6 +669,125 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     bump_framework_template_id: Optional[int] = None,
 ):
     from model_import import Prospect
+    
+    # First the first message from the SDR
+    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
+    if not msg:
+        raise Exception("No message from SDR found in convo_history")
+    sender = msg.author
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    # user_title = client_sdr.title or "sales rep"
+    company = client.company
+    # archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    # bump_framework_template: BumpFrameworkTemplates = (
+    #     BumpFrameworkTemplates.query.get(bump_framework_template_id)
+    #     if bump_framework_template_id
+    #     else None
+    # )
+    if bump_framework_id:
+        bump_framework: Optional[BumpFramework] = BumpFramework.query.get(
+            bump_framework_id
+        )
+    else:
+        bump_framework = None
+    
+    
+    # Enabled template mode SDRs
+    enabled_sdrs = [34, 87]
+    
+    # If we don't have a bump framework template, use the legacy system
+    if not bump_framework or (client_sdr.id not in enabled_sdrs): 
+        return generate_chat_gpt_response_to_conversation_thread_helper_legacy(
+            prospect_id=prospect_id,
+            convo_history=convo_history,
+            bump_framework_id=bump_framework_id,
+            account_research_copy=account_research_copy,
+            override_bump_length=override_bump_length,
+            use_cache=use_cache,
+            bump_framework_template_id=bump_framework_template_id,
+        )
+    
+    ###################################
+    ##### Use new template system #####
+    ###################################
+
+    transcript = "\n\n".join(
+        [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
+    )
+    convo_history = transcript + "\n\n" + sender + " (" + str(datetime.now())[0:10] + "):"
+    
+    if bump_framework.use_account_research:
+        # Grab 3 random points from the research points
+        research_points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect_id=prospect_id, bump_framework_id=bump_framework_id)
+        found_points = [research_point.to_dict() for research_point in research_points]
+        random_sample_points = random.sample(found_points, min(len(found_points), 3))
+        notes = "\n".join([point.get('value') for point in random_sample_points])
+    else:
+        notes = ""
+
+    name = prospect.full_name
+    industry = prospect.industry
+    title = prospect.title
+    company = prospect.company
+    additional_instructions = bump_framework.human_feedback
+    template = bump_framework.description
+    
+    prompt = f"""
+You are a sales development representative writing on behalf of the salesperson.
+
+Please write a follow up message on LinkedIn using the template and only include the information if is in the template. Stick to the template strictly.
+
+Note - you do not need to include all info.
+
+Prospect info --
+Prospect Name: {name}
+Prospect Title: {title}
+Prospect Industry: {industry}
+Prospect Company Name: {company}
+Prospect Notes:
+"{notes}"
+
+Final instructions
+- Make the message flow with the rest of the conversation.
+{additional_instructions}
+
+Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
+
+IMPORTANT:
+Stick to the template very strictly. Do not change this template at all.  Similar to madlibs, only fill in text where there's a double bracket (ex. [[personalization]] ).
+--- START TEMPLATE ---
+{template}
+--- END TEMPLATE ---
+    
+Conversation history:
+{convo_history}"""
+
+    response = get_text_generation(
+        [{"role": "user", "content": prompt}],
+        max_tokens=200,
+        model="gpt-4",
+        type="LI_MSG_OTHER",
+        prospect_id=prospect_id,
+        client_sdr_id=prospect.client_sdr_id,
+        use_cache=use_cache,
+    )
+    
+    return response, prompt
+
+
+def generate_chat_gpt_response_to_conversation_thread_helper_legacy(
+    prospect_id: int,
+    convo_history: List[LinkedInConvoMessage],
+    bump_framework_id: Optional[int] = None,
+    account_research_copy: str = "",
+    override_bump_length: Optional[BumpLength] = None,
+    use_cache: bool = False,
+    bump_framework_template_id: Optional[int] = None,
+):
+    from model_import import Prospect
 
     # First the first message from the SDR
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
