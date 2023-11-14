@@ -2465,10 +2465,11 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     allStatuses.remove(ProspectOverallStatus.REMOVED.name)
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
     
-    prospects: list[Prospect] = (
+    prospects_with_locations: list = (
         Prospect.query
             .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
             .join(Company, Individual.company_id == Company.id)         # Join with Company
+            .add_columns(Individual.location.cast(String).label("individual_location"), Company.locations.cast(String).label("company_location"))
             .filter(
                 Prospect.client_id == client_id,
                 Prospect.overall_status.in_(allStatuses),
@@ -2484,27 +2485,77 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
                         ]
                         + [
                             Prospect.industry.ilike(f"%{industry}%")
-                            for industry in client.do_not_contact_industries
+                            for industry in client.do_not_contact_industries or []
                         ]
                         + [
                             Prospect.title.ilike(f"%{title}%")
-                            for title in client.do_not_contact_titles
+                            for title in client.do_not_contact_titles or []
                         ]
                         + [
                             cast(Company.locations, String).ilike(f"%{location}%")
-                            for location in client.do_not_contact_location_keywords
+                            for location in client.do_not_contact_location_keywords or []
                         ]
                         + [
                             cast(Individual.location, String).ilike(f"%{location}%")
-                            for location in client.do_not_contact_prospect_location_keywords
+                            for location in client.do_not_contact_prospect_location_keywords or []
                         ]
                     )
                 ),
             )
+            .limit(500)
             .all()
     )
 
-    return [prospect.simple_to_dict() for prospect in prospects]
+
+
+    # add another column to every entry called 'matched filter' and set it to the filter(s) that matched in an array.
+    #   also mentioned which specific word matched
+    prospect_dicts = []
+    for prospect, individual_location, company_location in prospects_with_locations:
+        prospect_dict = prospect.simple_to_dict()
+        prospect_dict["individual_location"] = individual_location
+        prospect_dict["company_location"] = company_location
+
+        # Your existing logic to add matched filters
+        matched_filters = []
+        matched_filter_words = []
+        if client.do_not_contact_company_names:
+            for company in client.do_not_contact_company_names:
+                if company.lower() in prospect_dict["company"].lower():
+                    matched_filters.append("Company Name")
+                    matched_filter_words.append("Company: " + company)
+        if client.do_not_contact_keywords_in_company_names:
+            for keyword in client.do_not_contact_keywords_in_company_names:
+                if keyword.lower() in prospect_dict["company"].lower():
+                    matched_filters.append("Company Keyword")
+                    matched_filter_words.append("Keyword: " + keyword)
+        if client.do_not_contact_industries:
+            for industry in client.do_not_contact_industries:
+                if industry.lower() in prospect_dict["industry"].lower():
+                    matched_filters.append("Industry")
+                    matched_filter_words.append("Industry: " + industry)
+        if client.do_not_contact_titles:
+            for title in client.do_not_contact_titles:
+                if title.lower() in prospect_dict["title"].lower():
+                    matched_filters.append("Title")
+                    matched_filter_words.append("Title: " + title)
+        if client.do_not_contact_location_keywords:
+            for location in client.do_not_contact_location_keywords:
+                if prospect_dict["company_location"] and location.lower() in prospect_dict["company_location"].lower():
+                    matched_filters.append("Location")
+                    matched_filter_words.append("Company Location: " + location)
+        if client.do_not_contact_prospect_location_keywords:
+            for location in client.do_not_contact_prospect_location_keywords:
+                if prospect_dict["individual_location"] and location.lower() in prospect_dict["individual_location"].lower():
+                    matched_filters.append("Prospect Location")
+                    matched_filter_words.append("Prospect Location: " + location)
+        prospect_dict["matched_filters"] = matched_filters
+        prospect_dict["matched_filter_words"] = matched_filter_words
+
+        prospect_dicts.append(prospect_dict)
+
+    return prospect_dicts
+
 
 
 def remove_prospects_caught_by_client_filters(client_sdr_id: int):
@@ -2552,45 +2603,93 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
     allStatuses = [status.name for status in ProspectOverallStatus]
     allStatuses.remove(ProspectOverallStatus.REMOVED.name)
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
-    prospects: list[Prospect] = (
-    Prospect.query
-        .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
-        .join(Company, Individual.company_id == Company.id)         # Join with Company
-        .filter(
-            Prospect.client_sdr_id == client_sdr_id,
-            Prospect.overall_status.in_(allStatuses),
-            or_(
-                *(
-                    [
-                        Prospect.company.ilike(f"%{company}%")
-                        for company in client_sdr.do_not_contact_company_names
-                    ]
-                    + [
-                        Prospect.company.ilike(f"%{keyword}%")
-                        for keyword in client_sdr.do_not_contact_keywords_in_company_names
-                    ]
-                    + [
-                        Prospect.industry.ilike(f"%{industry}%")
-                        for industry in client_sdr.do_not_contact_industries
-                    ]
-                    + [
-                        Prospect.title.ilike(f"%{title}%")
-                        for title in client_sdr.do_not_contact_titles
-                    ]
-                    + [
-                        cast(Company.locations, String).ilike(f"%{location}%")
-                        for location in client_sdr.do_not_contact_location_keywords
-                    ]
-                    + [
-                        cast(Individual.location, String).ilike(f"%{location}%")
-                        for location in client_sdr.do_not_contact_prospect_location_keywords
-                    ]
-                )
-            ),
-        )
-        .all()
+    prospects_with_locations: list = (
+        Prospect.query
+            .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
+            .join(Company, Individual.company_id == Company.id)         # Join with Company
+            .add_columns(Individual.location.cast(String).label("individual_location"), Company.locations.cast(String).label("company_location"))
+            .filter(
+                Prospect.client_sdr_id == client_sdr_id,
+                Prospect.overall_status.in_(allStatuses),
+                or_(
+                    *(
+                        [
+                            Prospect.company.ilike(f"%{company}%")
+                            for company in client_sdr.do_not_contact_company_names
+                        ]
+                        + [
+                            Prospect.company.ilike(f"%{keyword}%")
+                            for keyword in client_sdr.do_not_contact_keywords_in_company_names
+                        ]
+                        + [
+                            Prospect.industry.ilike(f"%{industry}%")
+                            for industry in client_sdr.do_not_contact_industries or []
+                        ]
+                        + [
+                            Prospect.title.ilike(f"%{title}%")
+                            for title in client_sdr.do_not_contact_titles or []
+                        ]
+                        + [
+                            cast(Company.locations, String).ilike(f"%{location}%")
+                            for location in client_sdr.do_not_contact_location_keywords or []
+                        ]
+                        + [
+                            cast(Individual.location, String).ilike(f"%{location}%")
+                            for location in client_sdr.do_not_contact_prospect_location_keywords or []
+                        ]
+                    )
+                ),
+            )
+            .limit(500)
+            .all()
     )
-    return [prospect.simple_to_dict() for prospect in prospects]
+
+    # add another column to every entry called 'matched filter' and set it to the filter(s) that matched in an array.
+    #   also mentioned which specific word matched
+    prospect_dicts = []
+    for prospect, individual_location, company_location in prospects_with_locations:
+        prospect_dict = prospect.simple_to_dict()
+        prospect_dict["individual_location"] = individual_location
+        prospect_dict["company_location"] = company_location
+
+        matched_filters = []
+        matched_filter_words = []
+        if client_sdr.do_not_contact_company_names:
+            for company in client_sdr.do_not_contact_company_names:
+                if company.lower() in prospect_dict["company"].lower():
+                    matched_filters.append("Company Name")
+                    matched_filter_words.append(company)
+        if client_sdr.do_not_contact_keywords_in_company_names:
+            for keyword in client_sdr.do_not_contact_keywords_in_company_names:
+                if keyword.lower() in prospect_dict["company"].lower():
+                    matched_filters.append("Company Keyword")
+                    matched_filter_words.append(keyword)
+        if client_sdr.do_not_contact_industries:
+            for industry in client_sdr.do_not_contact_industries:
+                if industry.lower() in prospect_dict["industry"].lower():
+                    matched_filters.append("Industry")
+                    matched_filter_words.append(industry)
+        if client_sdr.do_not_contact_titles:
+            for title in client_sdr.do_not_contact_titles:
+                if title.lower() in prospect_dict["title"].lower():
+                    matched_filters.append("Title")
+                    matched_filter_words.append(title)
+        if client_sdr.do_not_contact_location_keywords:
+            for location in client_sdr.do_not_contact_location_keywords:
+                if prospect_dict["company_location"] and location.lower() in prospect_dict["company_location"].lower():
+                    matched_filters.append("Location")
+                    matched_filter_words.append(location)
+        if client_sdr.do_not_contact_prospect_location_keywords:
+            for location in client_sdr.do_not_contact_prospect_location_keywords:
+                if prospect_dict["individual_location"] and location.lower() in prospect_dict["individual_location"].lower():
+                    matched_filters.append("Prospect Location")
+                    matched_filter_words.append(location)
+        prospect_dict["matched_filters"] = matched_filters
+        prospect_dict["matched_filter_words"] = matched_filter_words
+
+        prospect_dicts.append(prospect_dict)
+
+    return prospect_dicts
 
 
 def remove_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
