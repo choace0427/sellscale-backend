@@ -495,6 +495,7 @@ def create_outbound_campaign(
     ctas: Optional[list] = None,
     priority_rating: Optional[int] = 0,
     warm_emails: Optional[bool] = False,
+    is_daily_generation: Optional[bool] = False,
 ) -> OutboundCampaign:
     """Creates a new outbound campaign
 
@@ -513,6 +514,7 @@ def create_outbound_campaign(
         status (OutboundCampaignStatus): Status of the campaign
         priority_rating (int): Priority level of the campaign
         warm_emails (bool): Whether to send emails to warm prospects or not
+        is_daily_generation (bool): Whether this campaign is a daily generation or not
 
     Returns:
         OutboundCampaign: The newly created outbound campaign
@@ -575,6 +577,7 @@ def create_outbound_campaign(
         status=OutboundCampaignStatus.PENDING,
         uuid=uuid,
         priority_rating=priority_rating,
+        is_daily_generation=is_daily_generation,
     )
     db.session.add(campaign)
     db.session.commit()

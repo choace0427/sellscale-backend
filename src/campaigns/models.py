@@ -63,6 +63,7 @@ class OutboundCampaign(db.Model):
     cost = db.Column(db.Float, nullable=True)
 
     priority_rating = db.Column(db.Integer, nullable=True, default=0)
+    is_daily_generation = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self) -> dict:
         return {
@@ -81,6 +82,7 @@ class OutboundCampaign(db.Model):
             "receipt_link": self.receipt_link,
             "cost": self.cost,
             "priority_rating": self.priority_rating,
+            "is_daily_generation": self.is_daily_generation,
         }
 
     def calculate_cost(self) -> float:

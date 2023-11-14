@@ -230,6 +230,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                         campaign_start_date=start_date,
                         campaign_end_date=end_date,
                         ctas=[cta.id for cta in ctas],
+                        is_daily_generation=daily
                     )
                     if not oc:
                         send_slack_message(
@@ -354,6 +355,7 @@ def get_available_sla_count(
     """
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     start_date = start_date or datetime.today()
+    tomorrow = start_date + timedelta(days=1)
 
     monday, sunday = get_current_monday_sunday(start_date)
 
@@ -382,18 +384,43 @@ def get_available_sla_count(
 
     # Return the difference between the SLA and the number of prospects in campaigns
     if campaign_type == GeneratedMessageType.LINKEDIN:
+        if per_day:
+            # Get Campaign that starts today and ends tomorrow and is a daily generation
+            campaign: OutboundCampaign = OutboundCampaign.query.filter(
+                OutboundCampaign.client_sdr_id == client_sdr_id,
+                OutboundCampaign.campaign_type == campaign_type,
+                OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
+                func.date(OutboundCampaign.campaign_start_date) == start_date,
+                func.date(OutboundCampaign.campaign_end_date) == tomorrow,
+                OutboundCampaign.is_daily_generation == True,
+            ).first()
+            if campaign:
+                return -1, -1, f"Daily SLA for LinkedIn has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
+
+            return sla_schedule.linkedin_volume // 5, sla_schedule.linkedin_volume, ""
+
         if sla_schedule.linkedin_volume < num_prospects:
             return -1, -1, f"SLA for LinkedIn has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
 
-        if per_day:
-            return sla_schedule.linkedin_volume // 5, sla_schedule.linkedin_volume, ""
         return sla_schedule.linkedin_volume - num_prospects, sla_schedule.linkedin_volume, ""
     elif campaign_type == GeneratedMessageType.EMAIL:
+        if per_day:
+            # Get Campaign that starts today and ends tomorrow and is a daily generation
+            campaign: OutboundCampaign = OutboundCampaign.query.filter(
+                OutboundCampaign.client_sdr_id == client_sdr_id,
+                OutboundCampaign.campaign_type == campaign_type,
+                OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
+                func.date(OutboundCampaign.campaign_start_date) == start_date,
+                func.date(OutboundCampaign.campaign_end_date) == tomorrow,
+                OutboundCampaign.is_daily_generation == True,
+            ).first()
+            if campaign:
+                return -1, -1, f"Daily SLA for Email has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
+            return sla_schedule.email_volume // 5, sla_schedule.email_volume, ""
+
         if sla_schedule.email_volume < num_prospects:
             return -1, -1, f"SLA for Email has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
 
-        if per_day:
-            return sla_schedule.email_volume // 5, sla_schedule.email_volume, ""
         return sla_schedule.email_volume - num_prospects, sla_schedule.email_volume, ""
 
     return -1, -1, f"Something went wrong. This should never happen."
