@@ -1,3 +1,4 @@
+from enum import Enum
 from src.company.models import Company
 from app import db
 
@@ -154,6 +155,9 @@ class Individual(db.Model):
             "similar_profiles": self.linkedin_similar_profiles,
         }
 
+class IndividualsUploadStatus(Enum):
+    FILTER_AND_UPLOAD = "FILTER_AND_UPLOAD"
+    COMPLETE = "COMPLETE"
 
 class IndividualsUpload(db.Model):
     __tablename__ = "individuals_upload"
@@ -168,6 +172,12 @@ class IndividualsUpload(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
     client_archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
+
+    status = db.Column(
+        db.Enum(IndividualsUploadStatus),
+        nullable=False,
+        default=IndividualsUploadStatus.FILTER_AND_UPLOAD,
     )
 
     def to_dict(self):

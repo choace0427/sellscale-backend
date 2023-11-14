@@ -765,7 +765,7 @@ def get_uploads():
     uploads: list[IndividualsUpload] = IndividualsUpload.query.order_by(
         IndividualsUpload.id.desc(),
     ).limit(100).all()
-    return [upload.to_dict() for upload in reversed(uploads)]
+    return [upload.to_dict() for upload in uploads]
 
 
 def start_upload(name: str, data: list[dict], client_id: Optional[int] = None, client_archetype_id: Optional[int] = None):
