@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Optional
 from app import db
 
@@ -7,7 +8,7 @@ from src.prospecting.models import Prospect
 from src.utils.slack import URL_MAP, send_slack_message
 
 
-def get_archetypes_custom(
+def get_archetype_generation_upcoming(
     client_sdr_id: int,
     active_only: Optional[bool] = False,
     client_wide: Optional[bool] = False,
@@ -22,35 +23,60 @@ def get_archetypes_custom(
     Returns:
         list[dict]: archetypes
     """
+    from src.message_generation.models import GeneratedMessageType
+    from src.campaigns.autopilot.services import get_available_sla_count
+
+    # Get the SDRs to return archetype information for
+    sdrs = [client_sdr_id]
     if client_wide:
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-            ClientArchetype.client_id == sdr.client_id,
-            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
-        ).all()
-    else:
-        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-            ClientArchetype.client_sdr_id == client_sdr_id,
-            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+        sdrs: list[ClientSDR] = ClientSDR.query.filter(
+            ClientSDR.client_id == sdr.client_id,
+            ClientSDR.active == True
         ).all()
 
+    # Loop through the SDRs
     payload = []
-    for archetype in archetypes:
-        sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
-        contact_count: Prospect = Prospect.query.filter(
-            Prospect.archetype_id == archetype.id
-        ).count()
-        archetype_data = {
-            "id": archetype.id,
-            "archetype": archetype.archetype,
-            "active": archetype.active,
-            "linkedin_active": archetype.linkedin_active,
-            "email_active": archetype.email_active,
-            "sdr_name": sdr.name,
-            "sdr_img_url": sdr.img_url,
-            "contact_count": contact_count,
-        }
-        payload.append(archetype_data)
+    for sdr in sdrs:
+        # Get the archetypes for this SDR that are active and have LinkedIn active
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+            ClientArchetype.client_sdr_id == sdr.id,
+            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+            ClientArchetype.linkedin_active == True,
+        ).all()
+
+        # Get the total available SLA per day for this SDR
+        tomorrow = datetime.now() + timedelta(days=1)
+        available_sla, _, _ = get_available_sla_count(
+            client_sdr_id=sdr.id,
+            campaign_type=GeneratedMessageType.LINKEDIN,
+            start_date=tomorrow,
+            per_day=True
+        )
+        sla_per_campaign = available_sla // len(archetypes)
+        leftover_sla = available_sla % len(archetypes)
+
+        # Calculate the SLA per archetype
+        sla_counts = [sla_per_campaign] * (len(archetypes) - leftover_sla) + [sla_per_campaign + 1] * leftover_sla
+
+
+        for index, archetype in enumerate(archetypes):
+            contact_count: Prospect = Prospect.query.filter(
+                Prospect.archetype_id == archetype.id
+            ).count()
+
+            archetype_data = {
+                "id": archetype.id,
+                "archetype": archetype.archetype,
+                "active": archetype.active,
+                "linkedin_active": archetype.linkedin_active,
+                "email_active": archetype.email_active,
+                "sdr_name": sdr.name,
+                "sdr_img_url": sdr.img_url,
+                "contact_count": contact_count,
+                "daily_sla_count": sla_counts[index],
+            }
+            payload.append(archetype_data)
 
     return payload
 
