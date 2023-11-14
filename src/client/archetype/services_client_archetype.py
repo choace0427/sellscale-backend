@@ -1,9 +1,58 @@
+from typing import Optional
 from app import db
 
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.models import Prospect
 from src.utils.slack import URL_MAP, send_slack_message
+
+
+def get_archetypes_custom(
+    client_sdr_id: int,
+    active_only: Optional[bool] = False,
+    client_wide: Optional[bool] = False,
+) -> list[dict]:
+    """Get archetypes. Custom format for "Upcoming Generations" in the UI.
+
+    Args:
+        client_sdr_id (int): client sdr id
+        active_only (Optional[bool], optional): active only. Defaults to False.
+        client_wide (Optional[bool], optional): client wide. Defaults to False.
+
+    Returns:
+        list[dict]: archetypes
+    """
+    if client_wide:
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+            ClientArchetype.client_id == sdr.client_id,
+            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+        ).all()
+    else:
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+            ClientArchetype.client_sdr_id == client_sdr_id,
+            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+        ).all()
+
+    payload = []
+    for archetype in archetypes:
+        sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+        contact_count: Prospect = Prospect.query.filter(
+            Prospect.archetype_id == archetype.id
+        ).count()
+        archetype_data = {
+            "id": archetype.id,
+            "archetype": archetype.archetype,
+            "active": archetype.active,
+            "linkedin_active": archetype.linkedin_active,
+            "email_active": archetype.email_active,
+            "sdr_name": sdr.name,
+            "sdr_img_url": sdr.img_url,
+            "contact_count": contact_count,
+        }
+        payload.append(archetype_data)
+
+    return payload
 
 
 def bulk_action_move_prospects_to_archetype(

@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from app import db
 
 from src.authentication.decorators import require_user
-from src.client.archetype.services_client_archetype import bulk_action_move_prospects_to_archetype, bulk_action_withdraw_prospect_invitations
+from src.client.archetype.services_client_archetype import bulk_action_move_prospects_to_archetype, bulk_action_withdraw_prospect_invitations, get_archetypes_custom
 from src.client.models import ClientArchetype, ClientSDR
 from src.li_conversation.models import LinkedinInitialMessageTemplate
 from src.utils.request_helpers import get_request_parameter
@@ -13,7 +13,7 @@ CLIENT_ARCHETYPE_BLUEPRINT = Blueprint("client/archetype", __name__)
 
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/", methods=["GET"])
 @require_user
-def get_archetypes(client_sdr_id: int):
+def get_archetypes_endpoint(client_sdr_id: int):
     active_only = get_request_parameter(
         "active_only", request, json=False, required=False, parameter_type=bool
     )
@@ -21,19 +21,13 @@ def get_archetypes(client_sdr_id: int):
         "client_wide", request, json=False, required=False, parameter_type=bool
     )
 
-    if client_wide:
-        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-            ClientArchetype.client_id == sdr.client_id,
-            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
-        ).all()
-    else:
-        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-            ClientArchetype.client_sdr_id == client_sdr_id,
-            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
-        ).all()
+    result = get_archetypes_custom(
+        client_sdr_id=client_sdr_id,
+        active_only=active_only,
+        client_wide=client_wide,
+    )
 
-    return jsonify({"status": "success", "data": [archetype.to_dict() for archetype in archetypes]}), 200
+    return jsonify({"status": "success", "data": result}), 200
 
 
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/bulk_action/move", methods=["POST"])
