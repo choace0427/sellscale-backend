@@ -11,6 +11,21 @@ from src.utils.request_helpers import get_request_parameter
 CLIENT_ARCHETYPE_BLUEPRINT = Blueprint("client/archetype", __name__)
 
 
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/", methods=["GET"])
+@require_user
+def get_archetypes(client_sdr_id: int):
+    active_only = get_request_parameter(
+        "active_only", request, json=False, required=False, parameter_type=bool
+    )
+
+    archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+    ).all()
+
+    return jsonify({"status": "success", "data": [archetype.to_dict() for archetype in archetypes]}), 200
+
+
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/bulk_action/move", methods=["POST"])
 @require_user
 def post_archetype_bulk_action_move_prospects(client_sdr_id: int):
