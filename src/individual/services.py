@@ -768,7 +768,7 @@ def get_uploads():
     return [upload.to_dict() for upload in reversed(uploads)]
 
 
-def start_upload(name: str, data: list[dict]):
+def start_upload(name: str, data: list[dict], client_id: Optional[int] = None, client_archetype_id: Optional[int] = None):
 
     from src.automation.orchestrator import add_process_list
 
@@ -777,6 +777,8 @@ def start_upload(name: str, data: list[dict]):
         total_size=len(data),
         upload_size=0,
         payload_data=data,
+        client_id=client_id,
+        client_archetype_id=client_archetype_id,
     )
     db.session.add(upload)
     db.session.commit()

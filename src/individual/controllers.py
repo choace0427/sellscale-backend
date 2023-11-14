@@ -37,7 +37,14 @@ def post_individuals_upload():
         "data", request, json=True, required=True, parameter_type=list
     ) or []
 
-    uploads = start_upload(name, data)
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=False, parameter_type=int
+    )
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=False, parameter_type=int
+    )
+
+    uploads = start_upload(name, data, client_id, client_archetype_id)
 
     return (
         jsonify(
