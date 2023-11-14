@@ -679,8 +679,11 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
-    # user_title = client_sdr.title or "sales rep"
-    company = client.company
+    user_name = client_sdr.name
+    user_title = client_sdr.title or "sales rep"
+    user_company = client.company
+    user_tagline = client.tagline
+    user_company_description = client.description
     # archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     # bump_framework_template: BumpFrameworkTemplates = (
     #     BumpFrameworkTemplates.query.get(bump_framework_template_id)
@@ -696,7 +699,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     
     
     # Enabled template mode SDRs
-    enabled_sdrs = [34, 127]
+    enabled_sdrs = [34, 127, 115]
     
     # If we don't have a bump framework template, use the legacy system
     if not bump_framework or (client_sdr.id not in enabled_sdrs): 
@@ -736,31 +739,38 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     template = bump_framework.description
     
     prompt = f"""
-You are a sales development representative writing on behalf of the salesperson.
+You are a sales development representative writing on behalf of the SDR.
 
-Please write a follow up message on LinkedIn using the template and only include the information if is in the template. Stick to the template strictly.
+Write a personalized follow up message on LinkedIn that's short enough I could read on an iphone easily.
+
+Try to follow the structure as strictly as possible - use creativity only where there is [[double brackets]]. use as few words as possible when filling in [[brackets]].
+
+Here's the structure
+{template}
 
 Note - you do not need to include all info.
+
+SDR info --
+Your Name: {user_name}
+Your Title: {user_title}
+
+Your Company info:
+Your Company Name: {user_company}
+Your Company Tagline: {user_tagline}
+Your Company description: {user_company_description}
 
 Prospect info --
 Prospect Name: {name}
 Prospect Title: {title}
-Prospect Industry: {industry}
 Prospect Company Name: {company}
-Prospect Notes:
+More research:
 "{notes}"
 
 Final instructions
 - Make the message flow with the rest of the conversation.
+- Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed".
+- Don't make any [[brackets]] longer than 1 sentence when filled in.
 {additional_instructions}
-
-Here's the template, everything in brackets should be replaced by you. For example: [[prospect_name]] should be replaced by the prospect's name.
-
-IMPORTANT:
-Stick to the template very strictly. Do not change this template at all.  Similar to madlibs, only fill in text where there's a double bracket (ex. [[personalization]] ).
---- START TEMPLATE ---
-{template}
---- END TEMPLATE ---
     
 Conversation history:
 {convo_history}"""
@@ -774,6 +784,9 @@ Conversation history:
         client_sdr_id=prospect.client_sdr_id,
         use_cache=use_cache,
     )
+    
+    print(prompt)
+    print(response)
     
     return response, prompt
 
