@@ -176,7 +176,7 @@ class IndividualsUpload(db.Model):
 
     status = db.Column(
         db.Enum(IndividualsUploadStatus),
-        nullable=False,
+        nullable=True,
         default=IndividualsUploadStatus.FILTER_AND_UPLOAD,
     )
 
