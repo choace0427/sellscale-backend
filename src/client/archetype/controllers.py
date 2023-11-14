@@ -2,8 +2,7 @@ from flask import Blueprint, jsonify, request
 from app import db
 
 from src.authentication.decorators import require_user
-from src.client.archetype.services_client_archetype import bulk_action_move_prospects_to_archetype, bulk_action_withdraw_prospect_invitations
-from src.client.controllers import get_archetypes
+from src.client.archetype.services_client_archetype import bulk_action_move_prospects_to_archetype, bulk_action_withdraw_prospect_invitations, get_archetypes_custom
 from src.client.models import ClientArchetype, ClientSDR
 from src.li_conversation.models import LinkedinInitialMessageTemplate
 from src.utils.request_helpers import get_request_parameter
@@ -22,7 +21,7 @@ def get_archetypes_endpoint(client_sdr_id: int):
         "client_wide", request, json=False, required=False, parameter_type=bool
     )
 
-    result = get_archetypes(
+    result = get_archetypes_custom(
         client_sdr_id=client_sdr_id,
         active_only=active_only,
         client_wide=client_wide,
