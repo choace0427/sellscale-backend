@@ -12,10 +12,6 @@ from tests.test_utils.test_utils import (
     basic_research_payload,
     get_login_token,
 )
-from src.prospecting.services import (
-    match_prospect_as_sent_outreach,
-    mark_prospects_as_queued_for_outreach,
-)
 from model_import import (
     Prospect,
     ProspectStatus,

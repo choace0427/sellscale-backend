@@ -34,7 +34,6 @@ from src.prospecting.services import (
     mark_prospect_as_removed,
     search_prospects,
     get_prospects,
-    batch_mark_prospects_as_sent_outreach,
     mark_prospects_as_queued_for_outreach,
     create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,

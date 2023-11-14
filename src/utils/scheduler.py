@@ -341,6 +341,7 @@ def run_collect_and_send_email_messaging_schedule_entries():
             priority=1,
         )
 
+
 def run_find_and_run_queued_question_enrichment_row_job():
     from src.prospecting.question_enrichment.services import find_and_run_queued_question_enrichment_row
 
@@ -352,6 +353,7 @@ def run_find_and_run_queued_question_enrichment_row_job():
             20 # num_rows
         )
 
+
 def run_analytics_backfill_jobs():
     from src.voyager.services import run_fast_analytics_backfill
     from src.li_conversation.services_linkedin_initial_message_templates import backfill_linkedin_initial_message_template_library_stats
@@ -362,6 +364,17 @@ def run_analytics_backfill_jobs():
     ):
         run_fast_analytics_backfill.delay()
         backfill_linkedin_initial_message_template_library_stats.delay()
+
+
+def run_daily_collect_and_generate_campaigns_for_sdr():
+    from src.campaigns.autopilot.services import daily_collect_and_generate_campaigns_for_sdr
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        daily_collect_and_generate_campaigns_for_sdr.delay()
+
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
@@ -423,6 +436,7 @@ scheduler.add_job(func=run_set_warmup_snapshots, trigger="interval", hours=3)
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
+scheduler.add_job(run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)

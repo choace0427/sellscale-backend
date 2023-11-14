@@ -21,7 +21,7 @@ from model_import import (
 )
 from src.campaigns.autopilot.services import (
     collect_and_generate_autopilot_campaign_for_sdr,
-    get_sla_count,
+    get_available_sla_count,
 )
 import mock
 
@@ -141,14 +141,14 @@ def test_get_sla_count():
     )
 
     # Get SLA of the campaign's week
-    sla_count = get_sla_count(
+    sla_count = get_available_sla_count(
         client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, oc.campaign_start_date.date()
     )
     assert sla_count == 1
 
     # Next monday is 1 week before the campaign start date, which is set to next monday.
     this_monday = oc.campaign_start_date - timedelta(days=7)
-    sla_count = get_sla_count(
+    sla_count = get_available_sla_count(
         client_sdr.id, archetype.id, GeneratedMessageType.EMAIL, this_monday.date()
     )
     assert sla_count == 0

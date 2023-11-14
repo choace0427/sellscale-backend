@@ -301,7 +301,7 @@ def get_prospects_for_icp_table(
                 prospect.industry,
                 prospect.id,
                 prospect.overall_status status,
-                case 
+                case
                     when prospect_status_records.id is not null then TRUE
                     else FALSE
                 end has_been_sent_outreach
@@ -1321,22 +1321,6 @@ def create_prospect_from_linkedin_link(
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-def batch_mark_prospects_as_sent_outreach(prospect_ids: list, client_sdr_id: int):
-    from src.prospecting.models import Prospect
-
-    updates = []
-
-    for prospect_id in prospect_ids:
-        match_prospect_as_sent_outreach.delay(
-            prospect_id=prospect_id,
-            client_sdr_id=client_sdr_id,
-        )
-
-        updates.append(prospect_id)
-
-    return updates
-
-
 def mark_prospects_as_queued_for_outreach(
     prospect_ids: list, client_sdr_id: int
 ) -> tuple[bool, dict]:
@@ -1400,7 +1384,6 @@ def mark_generated_message_as_queued_for_outreach(self, message_id: int):
             return False
 
         message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
-        message.date_sent = datetime.datetime.utcnow()
 
         db.session.add(message)
         db.session.commit()
@@ -1408,35 +1391,6 @@ def mark_generated_message_as_queued_for_outreach(self, message_id: int):
         return True
     except Exception as e:
         raise self.retry(exc=e, countdown=3**self.request.retries)
-
-
-@celery.task(bind=True, max_retries=3)
-def match_prospect_as_sent_outreach(self, prospect_id: int, client_sdr_id: int):
-    try:
-        prospect: Prospect = Prospect.query.get(prospect_id)
-
-        prospect.client_sdr_id = client_sdr_id
-        approved_outreach_message_id = prospect.approved_outreach_message_id
-        db.session.add(prospect)
-        db.session.commit()
-
-        if not prospect or not approved_outreach_message_id:
-            return
-
-        update_prospect_status_linkedin(
-            prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH
-        )
-
-        message: GeneratedMessage = GeneratedMessage.query.get(
-            approved_outreach_message_id
-        )
-        message.message_status = GeneratedMessageStatus.SENT
-        message.date_sent = datetime.now()
-        db.session.add(message)
-
-        db.session.commit()
-    except Exception as e:
-        raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
 def batch_update_prospect_statuses(updates: list):
@@ -2804,10 +2758,10 @@ def extract_colloquialized_company_name(self, prospect_id: int):
             return prospect.colloquialized_company
 
         prompt = """
-        Colloquialize this company name into something I can insert in an email. 
+        Colloquialize this company name into something I can insert in an email.
 
         Important Notes:
-        - remove 'LLC' or 'Inc' or other uneeded endings. 
+        - remove 'LLC' or 'Inc' or other uneeded endings.
         - If it's all uppercase, proper case it
 
         It should work in this sentence:
