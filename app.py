@@ -206,6 +206,7 @@ def register_blueprints(app):
     from src.li_conversation.controllers_linkedin_template import (
         LINKEDIN_TEMPLATE_BLUEPRINT,
     )
+    from src.smartlead.controllers import SMARTLEAD_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -259,6 +260,7 @@ def register_blueprints(app):
     app.register_blueprint(
         LINKEDIN_TEMPLATE_BLUEPRINT, url_prefix="/linkedin_template"
     )
+    app.register_blueprint(SMARTLEAD_BLUEPRINT, url_prefix="/smart_email")
 
     db.init_app(app)
 

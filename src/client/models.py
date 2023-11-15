@@ -369,6 +369,8 @@ class ClientSDR(db.Model):
     disable_ai_on_message_send = db.Column(db.Boolean, nullable=True, default=False)
 
     blacklisted_words = db.Column(db.ARRAY(db.String), nullable=True)
+    
+    meta_data = db.Column(db.JSON, nullable=True)
 
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
@@ -469,6 +471,7 @@ class ClientSDR(db.Model):
             "conversion_reply_pct": self.conversion_reply_pct,
             "conversion_demo_pct": self.conversion_demo_pct,
             "emails": [email.to_dict() for email in email_bank] if email_bank else None,
+            "meta_data": self.meta_data,
         }
 
 
