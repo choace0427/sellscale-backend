@@ -44,6 +44,7 @@ URL_MAP = {
     "operations-auto-bump-email": "https://hooks.slack.com/services/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",
     "operations-nylas-connection": "https://hooks.slack.com/services/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",
     "operations-icrawler": "https://hooks.slack.com/services/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",
+    "ops-outbound-warming": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {

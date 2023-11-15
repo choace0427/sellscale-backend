@@ -67,7 +67,7 @@ def get_email_warmings_for_sdr(client_sdr_id: int) -> list[EmailWarming]:
                   }
                 }
               ],
-              webhook_urls=[URL_MAP["eng-sandbox"]],
+              webhook_urls=[URL_MAP["ops-outbound-warming"]],
           )
       
   sdr.meta_data.update({"email_warmings": [warming.to_dict() for warming in warmings]})
