@@ -406,7 +406,7 @@ def create_client_archetype(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     campaign_url = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + client_sdr.auth_token + "&redirect=campaigns"
     send_slack_message(
-        message=f"*⭐️ New campaign created*\nSellScale AI just created a new campaign for *{archetype}*.\n> User: *{client_sdr.name}*\n> Channel: *Linkedin*\n_Finding new prospects shortly_. <" + campaign_url + "|View Campaign →>",
+        message=f"*⭐️ New campaign created*\nSellScale AI just created a new campaign for *{archetype}*.\n> User: *{client_sdr.name}*\n_Finding new prospects shortly_. <" + campaign_url + "|View Campaign →>",
         webhook_urls=[webhook_url],
     )
 
