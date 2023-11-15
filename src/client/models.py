@@ -157,6 +157,8 @@ class ClientArchetype(db.Model):
 
     template_mode = db.Column(db.Boolean, nullable=True)
 
+    sent_activation_notification = db.Column(db.Boolean, nullable=True, default=False)
+
     def to_dict(self) -> dict:
 
         from src.message_generation.models import GeneratedMessageCTA
