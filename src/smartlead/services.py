@@ -14,9 +14,10 @@ def get_all_email_warmings() -> list[EmailWarming]:
   sl = Smartlead()
   emails = sl.get_emails()
   
+  print(emails)
+  
   warmings = []
   for email in emails:
-    print(email)
     warming = EmailWarming(
       id=email.get("id"),
       name=email.get("from_name"),
