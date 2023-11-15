@@ -401,6 +401,15 @@ def create_client_archetype(
     db.session.commit()
     archetype_id = client_archetype.id
 
+    client: Client = Client.query.get(client_id)
+    webhook_url: str = client.pipeline_notifications_webhook_url
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    campaign_url = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + client_sdr.auth_token + "&redirect=campaigns"
+    send_slack_message(
+        message=f"*⭐️ New campaign created*\nSellScale AI just created a new campaign for *{archetype}*.\n> User: *{client_sdr.name}*\n> Channel: *Linkedin*\n_Finding new prospects shortly_. <" + campaign_url + "|View Campaign →>",
+        webhook_urls=[webhook_url],
+    )
+
     if base_archetype_id:
         _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
         base_model: GNLPModel = GNLPModel.query.get(model_id)
