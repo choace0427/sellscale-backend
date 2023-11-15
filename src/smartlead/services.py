@@ -14,8 +14,6 @@ def get_all_email_warmings() -> list[EmailWarming]:
   sl = Smartlead()
   emails = sl.get_emails()
   
-  print(emails)
-  
   warmings = []
   for email in emails:
     warming = EmailWarming(
@@ -73,7 +71,7 @@ def get_email_warmings_for_sdr(client_sdr_id: int) -> list[EmailWarming]:
           )
   
   if sdr.meta_data:
-      sdr.meta_data.set("email_warmings", [warming.to_dict() for warming in warmings])
+      sdr.meta_data["email_warmings"] = [warming.to_dict() for warming in warmings]
   else:
       sdr.meta_data = {"email_warmings": [warming.to_dict() for warming in warmings]}
   db.session.commit()
