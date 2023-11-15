@@ -610,6 +610,7 @@ def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> b
     Returns:
         bool: success
     """
+    import pdb; pdb.set_trace()
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return False

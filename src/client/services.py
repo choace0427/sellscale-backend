@@ -639,14 +639,6 @@ def toggle_client_sdr_autopilot_enabled(client_sdr_id: int):
     if not sdr:
         return None
 
-    # Can't enable if there is no pattern:
-    if not sdr.autopilot_enabled:
-        num_patterns = StackRankedMessageGenerationConfiguration.query.filter(
-            StackRankedMessageGenerationConfiguration.client_id == sdr.client_id
-        ).count()
-        if num_patterns == 0:
-            return None
-
     sdr.autopilot_enabled = not sdr.autopilot_enabled
     db.session.add(sdr)
     db.session.commit()
