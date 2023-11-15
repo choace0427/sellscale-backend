@@ -69,8 +69,11 @@ def get_email_warmings_for_sdr(client_sdr_id: int) -> list[EmailWarming]:
               ],
               webhook_urls=[URL_MAP["ops-outbound-warming"]],
           )
-      
-  sdr.meta_data.update({"email_warmings": [warming.to_dict() for warming in warmings]})
+  
+  if sdr.meta_data:
+      sdr.meta_data.set("email_warmings", [warming.to_dict() for warming in warmings])
+  else:
+      sdr.meta_data = {"email_warmings": [warming.to_dict() for warming in warmings]}
   db.session.commit()
       
   return warmings
