@@ -71,7 +71,10 @@ def get_current_monday_sunday(
     # Get the sunday of the current week
     end_date = start_date + timedelta(days=6)
 
-    return start_date.date(), end_date.date()
+    try:
+        return start_date.date(), end_date.date()
+    except:
+        return start_date, end_date
 
 
 def get_current_monday_friday(
