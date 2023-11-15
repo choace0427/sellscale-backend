@@ -383,6 +383,12 @@ def get_available_sla_count(
         return -1, -1, f"No SLA Schedule entry for SDR '{sdr.name}' between {monday} - {sunday}."
 
     # Return the difference between the SLA and the number of prospects in campaigns
+    try:
+        start_date = start_date.date()
+        tomorrow = tomorrow.date()
+    except:
+        pass
+
     if campaign_type == GeneratedMessageType.LINKEDIN:
         if per_day:
             # Get Campaign that starts today and ends tomorrow and is a daily generation
@@ -390,8 +396,8 @@ def get_available_sla_count(
                 OutboundCampaign.client_sdr_id == client_sdr_id,
                 OutboundCampaign.campaign_type == campaign_type,
                 OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
-                func.date(OutboundCampaign.campaign_start_date) == start_date.date(),
-                func.date(OutboundCampaign.campaign_end_date) == tomorrow.date(),
+                func.date(OutboundCampaign.campaign_start_date) == start_date,
+                func.date(OutboundCampaign.campaign_end_date) == tomorrow,
                 OutboundCampaign.is_daily_generation == True,
             ).first()
             if campaign:
@@ -410,8 +416,8 @@ def get_available_sla_count(
                 OutboundCampaign.client_sdr_id == client_sdr_id,
                 OutboundCampaign.campaign_type == campaign_type,
                 OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
-                func.date(OutboundCampaign.campaign_start_date) == start_date.date(),
-                func.date(OutboundCampaign.campaign_end_date) == tomorrow.date(),
+                func.date(OutboundCampaign.campaign_start_date) == start_date,
+                func.date(OutboundCampaign.campaign_end_date) == tomorrow,
                 OutboundCampaign.is_daily_generation == True,
             ).first()
             if campaign:
