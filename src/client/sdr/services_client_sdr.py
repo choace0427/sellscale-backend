@@ -4,7 +4,7 @@ from app import db, celery
 from sqlalchemy import or_
 
 from src.client.models import Client, ClientSDR, SLASchedule
-from src.utils.datetime.dateutils import get_current_monday_friday
+from src.utils.datetime.dateutils import get_current_monday_friday, get_current_monday_sunday
 from src.utils.slack import send_slack_message, URL_MAP
 from src.voyager.linkedin import LinkedIn
 
@@ -279,7 +279,7 @@ def create_sla_schedule(
 ) -> int:
     """Creates an SLA schedule for a Client SDR.
 
-    The start dates will automatically adjust to be the Monday of the specified week, and the Friday of the same week.
+    The start dates will automatically adjust to be the Monday of the specified week, and the Sunday of the same week.
 
     Args:
         client_sdr_id (int): The id of the Client SDR
@@ -296,10 +296,10 @@ def create_sla_schedule(
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     # Get the monday of the start date's given week
-    start_date, end_date = get_current_monday_friday(start_date)
+    start_date, end_date = get_current_monday_sunday(start_date)
 
     # Get the monday of the SDR creation week
-    sdr_monday, _ = get_current_monday_friday(sdr.created_at)
+    sdr_monday, _ = get_current_monday_sunday(sdr.created_at)
 
     # Calculate the week number
     week = (start_date - sdr_monday).days // 7
