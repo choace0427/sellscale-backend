@@ -2881,6 +2881,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         19: "total_replied",
         20: "total_demo",
         21: "total_prospects",
+        22: "smartlead_campaign_id",
+        23: "meta_data",
     }
 
     # Convert and format output
