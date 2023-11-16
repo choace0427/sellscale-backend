@@ -2754,6 +2754,8 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.persona_lookalike_profile_3.label("lookalike_profile_3"),
             ClientArchetype.persona_lookalike_profile_4.label("lookalike_profile_4"),
             ClientArchetype.persona_lookalike_profile_5.label("lookalike_profile_5"),
+            ClientArchetype.smartlead_campaign_id,
+            ClientArchetype.meta_data,
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.avg(Prospect.icp_fit_score)
             .filter(Prospect.icp_fit_score.isnot(None))
