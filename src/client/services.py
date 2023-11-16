@@ -2838,7 +2838,9 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED' OR prospect_status_records.to_status = 'ACCEPTED') "TOTAL-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status = 'ACTIVE_CONVO') "TOTAL-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'DEMO_SET' OR prospect_status_records.to_status = 'DEMO_SET') "TOTAL-DEMO",
-            count(DISTINCT prospect.id) "TOTAL-PROSPECTS"
+            count(DISTINCT prospect.id) "TOTAL-PROSPECTS",
+            client_archetype.smartlead_campaign_id,
+            client_archetype.meta_data
         FROM
             client_archetype
             JOIN client_sdr ON client_sdr.id = client_archetype.client_sdr_id
