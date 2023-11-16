@@ -23,6 +23,11 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}?api_key={self.api_key}"
         response = requests.get(url)
         return response.json()
+      
+    def get_campaign_analytics(self, campaign_id):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/analytics?api_key={self.api_key}"
+        response = requests.get(url)
+        return response.json()
 
     def get_campaign_email_accounts(self, campaign_id):
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"

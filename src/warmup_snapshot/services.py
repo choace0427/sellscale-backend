@@ -1,6 +1,7 @@
 import json
 from typing import Optional
 
+from src.smartlead.services import get_email_warmings_for_sdr
 from model_import import ClientSDR
 import requests
 from src.utils.domains.pythondns import dkim_record_valid, dmarc_record_valid, spf_record_valid
@@ -127,6 +128,8 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             dkim_record, dkim_valid = dkim_record_valid(
                 domain=domain
             )
+            
+            warming_details = get_email_warmings_for_sdr(client_sdr_id)
 
             email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
                 client_sdr_id=client_sdr_id,
@@ -142,6 +145,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
                 spf_record_valid=spf_valid,
                 dkim_record=dkim_record,
                 dkim_record_valid=dkim_valid,
+                warming_details=[warming.to_dict() for warming in warming_details]
             )
             db.session.add(email_warmup_snapshot)
             db.session.commit()
