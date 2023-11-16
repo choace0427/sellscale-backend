@@ -12,7 +12,10 @@ from model_import import (
 from src.client.models import SLASchedule
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
-from src.utils.datetime.dateutils import get_current_monday_sunday, get_next_next_monday_sunday
+from src.utils.datetime.dateutils import (
+    get_current_monday_sunday,
+    get_next_next_monday_sunday,
+)
 from src.campaigns.services import (
     create_outbound_campaign,
     generate_campaign,
@@ -74,8 +77,7 @@ def daily_collect_and_generate_campaigns_for_sdr(self):
 
     # Get all SDRs for each client that has auto_generate_li_messages
     sdrs: list[ClientSDR] = ClientSDR.query.filter(
-        ClientSDR.client_id.in_(client_ids),
-        ClientSDR.active == True
+        ClientSDR.client_id.in_(client_ids), ClientSDR.active == True
     ).all()
 
     for sdr in sdrs:
@@ -126,9 +128,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
         #     )
 
         # 3a. Default to Getting date of next next monday, and next next sunday (campaign timespan)
-        start_date, end_date = get_next_next_monday_sunday(
-            datetime.today()
-        )
+        start_date, end_date = get_next_next_monday_sunday(datetime.today())
 
         # 3b. If custom_start_date is provided, then use the monday and sunday of that week
         if custom_start_date:
@@ -162,9 +162,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
         email_campaigns_generated = []
 
         # 5. Generate campaign for LinkedIn given SLAs for the SDR
-        if (
-            sla_schedule.linkedin_volume > 0
-        ):
+        if sla_schedule.linkedin_volume > 0:
             # 5a. Get current date and date 10 days from now
             current_date = datetime.utcnow()
             in_10_days = current_date + timedelta(days=10)
@@ -174,7 +172,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                 client_sdr_id=client_sdr_id,
                 campaign_type=GeneratedMessageType.LINKEDIN,
                 start_date=start_date,
-                per_day=True,
+                per_day=daily,
             )
             if available_sla == -1:
                 send_slack_message(
@@ -190,11 +188,12 @@ def collect_and_generate_autopilot_campaign_for_sdr(
 
             # 5b. Create a list of SLA counts for each archetype.
             # Example: 90 SLA, 3 archetypes -> [30, 30, 30]. 90 SLA, 4 archetypes -> [22, 22, 23, 23]
-            sla_counts = [sla_per_campaign] * (len(linkedin_archetypes) - leftover_sla) + [sla_per_campaign + 1] * leftover_sla
+            sla_counts = [sla_per_campaign] * (
+                len(linkedin_archetypes) - leftover_sla
+            ) + [sla_per_campaign + 1] * leftover_sla
 
             # 5c. Loop through the active LinkedIn archetypes and generate campaigns for each
             for index, archetype in enumerate(linkedin_archetypes):
-
                 # 5d. Check if the current archetype is in "template mode." Non-template mode archetypes require a non-expiring CTA
                 ctas = []
                 if not archetype.template_mode:
@@ -238,7 +237,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                         campaign_start_date=start_date,
                         campaign_end_date=end_date,
                         ctas=[cta.id for cta in ctas],
-                        is_daily_generation=daily
+                        is_daily_generation=daily,
                     )
                     if not oc:
                         send_slack_message(
@@ -263,9 +262,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
 
         # 6. Generate campaign for Email given SLAs for the SDR
         # TODO: GET PARITY WITH ABOVE WHEN UNCOMMENTED
-        if (
-            sla_schedule.email_volume > 0 and False
-        ):  # Email
+        if sla_schedule.email_volume > 0 and False:  # Email
             # Check that SLA has not been filled:
             sla_count = get_sla_count(
                 client_sdr_id,
@@ -321,7 +318,10 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                 )
 
         # 7. Send appropriate slack messages
-        if len(linkedin_campaigns_generated) == 0 and len(email_campaigns_generated) == 0:
+        if (
+            len(linkedin_campaigns_generated) == 0
+            and len(email_campaigns_generated) == 0
+        ):
             return (
                 False,
                 f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): Neither Email nor LinkedIn generated.",
@@ -388,7 +388,11 @@ def get_available_sla_count(
         func.date(SLASchedule.end_date) <= sunday,
     ).first()
     if not sla_schedule:
-        return -1, -1, f"No SLA Schedule entry for SDR '{sdr.name}' between {monday} - {sunday}."
+        return (
+            -1,
+            -1,
+            f"No SLA Schedule entry for SDR '{sdr.name}' between {monday} - {sunday}.",
+        )
 
     # Return the difference between the SLA and the number of prospects in campaigns
     try:
@@ -409,14 +413,26 @@ def get_available_sla_count(
                 OutboundCampaign.is_daily_generation == True,
             ).first()
             if campaign:
-                return -1, -1, f"Daily SLA for LinkedIn has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
+                return (
+                    -1,
+                    -1,
+                    f"Daily SLA for LinkedIn has been filled for SDR '{sdr.name}' between {monday} - {sunday}.",
+                )
 
             return sla_schedule.linkedin_volume // 5, sla_schedule.linkedin_volume, ""
 
         if sla_schedule.linkedin_volume < num_prospects:
-            return -1, -1, f"SLA for LinkedIn has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
+            return (
+                -1,
+                -1,
+                f"SLA for LinkedIn has been filled for SDR '{sdr.name}' between {monday} - {sunday}.",
+            )
 
-        return sla_schedule.linkedin_volume - num_prospects, sla_schedule.linkedin_volume, ""
+        return (
+            sla_schedule.linkedin_volume - num_prospects,
+            sla_schedule.linkedin_volume,
+            "",
+        )
     elif campaign_type == GeneratedMessageType.EMAIL:
         if per_day:
             # Get Campaign that starts today and ends tomorrow and is a daily generation
@@ -429,11 +445,19 @@ def get_available_sla_count(
                 OutboundCampaign.is_daily_generation == True,
             ).first()
             if campaign:
-                return -1, -1, f"Daily SLA for Email has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
+                return (
+                    -1,
+                    -1,
+                    f"Daily SLA for Email has been filled for SDR '{sdr.name}' between {monday} - {sunday}.",
+                )
             return sla_schedule.email_volume // 5, sla_schedule.email_volume, ""
 
         if sla_schedule.email_volume < num_prospects:
-            return -1, -1, f"SLA for Email has been filled for SDR '{sdr.name}' between {monday} - {sunday}."
+            return (
+                -1,
+                -1,
+                f"SLA for Email has been filled for SDR '{sdr.name}' between {monday} - {sunday}.",
+            )
 
         return sla_schedule.email_volume - num_prospects, sla_schedule.email_volume, ""
 

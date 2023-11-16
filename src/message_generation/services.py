@@ -536,7 +536,7 @@ def generate_linkedin_outreaches_with_configurations(
             client_sdr_id=prospect.client_sdr_id,
             prospect_id=prospect_id,
             template=template.message,
-            additional_instructions=template.additional_instructions or '',
+            additional_instructions=template.additional_instructions or "",
             research_points=template.research_points or [],
         )
 
@@ -792,14 +792,6 @@ def approve_message(message_id: int):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.message_status = GeneratedMessageStatus.APPROVED
 
-    # try:
-    #     mistake, fix, _ = run_adversary(message.prompt, message.completion)
-    #     message.adversary_identified_mistake = mistake
-    #     message.adversary_identified_fix = fix
-    # except:
-    #     # TODO: Include logging here in future
-    #     pass
-
     db.session.add(message)
 
     message_id = message.id
@@ -811,6 +803,11 @@ def approve_message(message_id: int):
 
     db.session.commit()
     run_message_rule_engine(message_id=message_id)
+
+    # If the message has no problems, mark it as "human approved"
+    if not message.problems or len(message.problems) == 0:
+        message.ai_approved = True
+        db.session.commit()
 
     return True
 
@@ -1509,7 +1506,6 @@ def mark_random_new_prospect_email(prospect_id: int):
 
 
 def mark_prospect_email_approved(prospect_email_id: int, ai_approved: bool = False):
-
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect_id = prospect_email.prospect_id
 
@@ -2377,7 +2373,6 @@ def send_sent_by_sellscale_notification(
 
 @celery.task
 def generate_message_bumps():
-
     # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
     sdrs: List[ClientSDR] = (
         ClientSDR.query.filter(
@@ -2425,7 +2420,6 @@ def generate_message_bumps():
             # CHECK: If the prospect is in ACCEPTED stage and the message delay on the archetype is not quite up
             #      then we don't generate a bump
             if prospect.status == ProspectStatus.ACCEPTED:
-
                 # If the archetype has a message delay, check if it's been long enough by referencing status records
                 if archetype and archetype.first_message_delay_days:
                     # Get the first status record
@@ -2490,7 +2484,6 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
     """
 
     try:
-
         latest_convo_entries = get_li_convo_history(prospect_id)
         if len(latest_convo_entries) == 0:
             return False
@@ -2623,7 +2616,6 @@ def generate_followup_response(
     bump_framework_template_id: Optional[BumpFrameworkTemplates] = None,
 ):
     try:
-
         # Get bump frameworks
         prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -2657,7 +2649,6 @@ def generate_followup_response(
             )
 
         if len(bump_frameworks) > 0:
-
             # Determine the best bump framework
             if len(bump_frameworks) == 1:
                 framework_index = 0
@@ -2785,7 +2776,6 @@ def get_li_convo_history(prospect_id: int) -> List[LinkedInConvoMessage]:
 
 
 def get_prospect_bump(client_sdr_id: int, prospect_id: int):
-
     bump_msg: GeneratedMessageAutoBump = (
         GeneratedMessageAutoBump.query.filter(
             GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
@@ -2801,7 +2791,6 @@ def get_prospect_bump(client_sdr_id: int, prospect_id: int):
 
 
 def delete_prospect_bump(client_sdr_id: int, prospect_id: int):
-
     bump_msgs: List[GeneratedMessageAutoBump] = GeneratedMessageAutoBump.query.filter(
         GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
         GeneratedMessageAutoBump.prospect_id == prospect_id,
@@ -2975,12 +2964,9 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
 
     ### Use new template-based generation ###
     prospect: Prospect = Prospect.query.get(prospect_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(
-        prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
     if archetype.template_mode:
-
-
         if not template_id:
             template: LinkedinInitialMessageTemplate = (
                 LinkedinInitialMessageTemplate.get_random(prospect.archetype_id)
@@ -2994,11 +2980,11 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
             client_sdr_id=prospect.client_sdr_id,
             prospect_id=prospect_id,
             template=template.message,
-            additional_instructions=template.additional_instructions or '',
+            additional_instructions=template.additional_instructions or "",
             research_points=template.research_points or [],
         )
 
-        #print("prompt", prompt)
+        # print("prompt", prompt)
 
         completion = get_text_generation(
             [{"role": "user", "content": prompt}],
@@ -3344,19 +3330,21 @@ def get_cta_types():
     ]
 
 
-def get_prospect_research_points(prospect_id: int, research_points: list[str]) -> list[dict]:
+def get_prospect_research_points(
+    prospect_id: int, research_points: list[str]
+) -> list[dict]:
     """
     Gets the research points for a prospect, filtered by the research points given
     """
-    
-    get_research_and_bullet_points_new(
-        prospect_id=prospect_id, test_mode=False)
 
-    all_research_points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(
-        prospect_id)
-    
-    #print("all_research_points", [point.research_point_type.name for point in all_research_points])
-    
+    get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+
+    all_research_points: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+
+    # print("all_research_points", [point.research_point_type.name for point in all_research_points])
+
     found_research_points = [
         research_point
         for research_point in all_research_points
@@ -3364,5 +3352,3 @@ def get_prospect_research_points(prospect_id: int, research_points: list[str]) -
     ]
 
     return [research_point.to_dict() for research_point in found_research_points]
-
-
