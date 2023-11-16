@@ -90,11 +90,11 @@ def get_warmup_percentage(warming_stats_by_date: list) -> int:
     WARMUP_LENGTH = 14
   
     first = warming_stats_by_date[0]
-    last = warming_stats_by_date[-1]
+    # last = warming_stats_by_date[-1]
     
     # Convert date strings to datetime objects
     date_first = datetime.datetime.strptime(first.get('date'), '%Y-%m-%d')
-    date_last = datetime.datetime.strptime(last.get('date'), '%Y-%m-%d')
+    date_last = datetime.datetime.utcnow() #.strptime(last.get('date'), '%Y-%m-%d')
 
     # Calculate the difference between the two dates
     date_difference = date_last - date_first

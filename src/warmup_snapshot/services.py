@@ -86,7 +86,7 @@ def set_warmup_snapshots_for_all_active_sdrs(self):
     add_process_list(
         type="set_warmup_snapshot_for_sdr",
         args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
-        buffer_wait_minutes=1,
+        buffer_wait_minutes=5,
         append_to_end=True,
     )
 
@@ -108,7 +108,7 @@ def set_warmup_snapshots_for_client(self, client_id: int):
     add_process_list(
         type="set_warmup_snapshot_for_sdr",
         args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
-        buffer_wait_minutes=1,
+        buffer_wait_minutes=5,
         append_to_end=True,
     )
 
@@ -209,5 +209,5 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
         print(f"Finished setting channel warmups for {name}")
         return True
     except Exception as e:
-        print("Error setting warmups for sdr", client_sdr_id)
+        print("Error setting warmups for sdr", client_sdr_id, e)
         return False
