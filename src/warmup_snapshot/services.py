@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 
-from src.smartlead.services import get_email_warmings_for_sdr
+from src.smartlead.services import get_email_warmings_for_sdr, sync_campaign_analytics
 from model_import import ClientSDR
 import requests
 from src.utils.domains.pythondns import dkim_record_valid, dmarc_record_valid, spf_record_valid
@@ -120,7 +120,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
     try:
         client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
         if not client_sdr:
-            return
+            return False, "Client SDR not found"
         name: str = client_sdr.name
         print(f"Setting channel warmups for {name}")
 
@@ -129,6 +129,10 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
 
         # Create Email Warmups
         email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
+        
+        # Sync campaign analytics
+        sync_campaign_analytics(client_sdr_id)
+        
         for email_warmup in email_warmups:
             email = email_warmup["from_email"]
             warmup_reputation = email_warmup["email_warmup_details"][
@@ -207,7 +211,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             db.session.commit()
 
         print(f"Finished setting channel warmups for {name}")
-        return True
+        return True, "Success"
     except Exception as e:
         print("Error setting warmups for sdr", client_sdr_id, e)
-        return False
+        return False, "Error", e

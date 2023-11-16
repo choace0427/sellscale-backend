@@ -164,6 +164,10 @@ class ClientArchetype(db.Model):
     template_mode = db.Column(db.Boolean, nullable=True)
 
     sent_activation_notification = db.Column(db.Boolean, nullable=True, default=False)
+    
+    smartlead_campaign_id = db.Column(db.Integer, nullable=True)
+    
+    meta_data = db.Column(db.JSON, nullable=True)
 
     def to_dict(self) -> dict:
 
@@ -214,6 +218,8 @@ class ClientArchetype(db.Model):
             "lookalike_profile_4": self.persona_lookalike_profile_4,
             "lookalike_profile_5": self.persona_lookalike_profile_5,
             "template_mode": self.template_mode,
+            "smartlead_campaign_id": self.smartlead_campaign_id,
+            "meta_data": self.meta_data,
         }
 
 
