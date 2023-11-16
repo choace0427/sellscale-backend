@@ -75,22 +75,42 @@ def pass_through_smartlead_warmup_request(client_sdr_id: int) -> list[dict]:
 
 @celery.task(bind=True)
 def set_warmup_snapshots_for_all_active_sdrs(self):
+  
+    from src.automation.orchestrator import add_process_list
+  
     active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True).all()
-    for active_sdr in active_sdrs:
-        print(f"Setting channel warmups for {active_sdr.name}")
-        set_warmup_snapshot_for_sdr.delay(active_sdr.id)
+    # for active_sdr in active_sdrs:
+    #     print(f"Setting channel warmups for {active_sdr.name}")
+    #     set_warmup_snapshot_for_sdr.delay(active_sdr.id)
+        
+    add_process_list(
+        type="set_warmup_snapshot_for_sdr",
+        args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
+        buffer_wait_minutes=1,
+        append_to_end=True,
+    )
 
 
 @celery.task(bind=True)
 def set_warmup_snapshots_for_client(self, client_id: int):
+  
+    from src.automation.orchestrator import add_process_list
+  
     active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
         client_id=client_id,
         active=True,
     ).all()
-    for active_sdr in active_sdrs:
-        print(f"Setting channel warmups for {active_sdr.name}")
-        # set_warmup_snapshot_for_sdr.delay(active_sdr.id)
-        set_warmup_snapshot_for_sdr(active_sdr.id)
+    # for active_sdr in active_sdrs:
+    #     print(f"Setting channel warmups for {active_sdr.name}")
+    #     # set_warmup_snapshot_for_sdr.delay(active_sdr.id)
+    #     set_warmup_snapshot_for_sdr(active_sdr.id)
+
+    add_process_list(
+        type="set_warmup_snapshot_for_sdr",
+        args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
+        buffer_wait_minutes=1,
+        append_to_end=True,
+    )
 
     return True
 
@@ -187,6 +207,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             db.session.commit()
 
         print(f"Finished setting channel warmups for {name}")
+        return True
     except Exception as e:
         print("Error setting warmups for sdr", client_sdr_id)
-        raise e
+        return False

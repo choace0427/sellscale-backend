@@ -1,5 +1,7 @@
 from typing import Optional
 
+from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
+
 from src.prospecting.services import generate_prospect_upload_report
 from src.email_scheduling.services import populate_email_messaging_schedule_entries
 
@@ -58,6 +60,12 @@ PROCESS_TYPE_MAP = {
     },
     "generate_prospect_upload_report": {
         "function": generate_prospect_upload_report,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "set_warmup_snapshot_for_sdr": {
+        "function": set_warmup_snapshot_for_sdr,
         "priority": 10,
         "queue": None,
         "routing_key": None,
