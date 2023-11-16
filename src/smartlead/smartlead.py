@@ -2,49 +2,60 @@
 import requests
 import json
 import os
+import time
 
 class Smartlead:
+    DELAY_SECONDS = 1.0
     BASE_URL = 'https://server.smartlead.ai/api/v1'
 
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
         
     def get_emails(self, offset=0, limit=100):
-      url = f"{self.BASE_URL}/email-accounts/?api_key={self.api_key}&offset={offset}&limit={limit}"
-      response = requests.get(url)
-      return response.json()
+        time.sleep(self.DELAY_SECONDS)
+        url = f"{self.BASE_URL}/email-accounts/?api_key={self.api_key}&offset={offset}&limit={limit}"
+        response = requests.get(url)
+        return response.json()
 
     def get_campaign_sequences(self, campaign_id):
+        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
         response = requests.get(url)
         return response.json()
 
     def get_campaign(self, campaign_id):
+        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}?api_key={self.api_key}"
         response = requests.get(url)
         return response.json()
       
     def get_campaign_analytics(self, campaign_id):
+        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/analytics?api_key={self.api_key}"
         response = requests.get(url)
         return response.json()
 
     def get_campaign_email_accounts(self, campaign_id):
+        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"
         response = requests.get(url)
         return response.json()
 
     def get_campaign_leads(self, campaign_id, offset=0, limit=10):
+        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
         return response.json()
       
     def get_warmup_stats(self, email_account_id):
+        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
+        print(response.status_code)
         return response.json()
     
     def post_campaign_leads(self, campaign_id, lead_list):
+        time.sleep(self.DELAY_SECONDS)
         """`lead_list` format is 
             
         lead_list = [

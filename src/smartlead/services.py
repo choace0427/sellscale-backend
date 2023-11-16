@@ -15,7 +15,6 @@ def get_all_email_warmings() -> list[EmailWarming]:
   
   warmings = []
   for email in emails:
-    
     warmup_stats = sl.get_warmup_stats(email.get("id"))
     warming = EmailWarming(
       id=email.get("id"),
