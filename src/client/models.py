@@ -70,6 +70,10 @@ class Client(db.Model):
     existing_clients = db.Column(db.String, nullable=True)
     impressive_facts = db.Column(db.String, nullable=True)
 
+    # Autogeneration
+    auto_generate_li_messages = db.Column(db.Boolean, nullable=True, default=False)
+    auto_send_li_messages = db.Column(db.Boolean, nullable=True, default=False)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -96,6 +100,8 @@ class Client(db.Model):
             "example_outbound_copy": self.example_outbound_copy,
             "existing_clients": self.existing_clients,
             "impressive_facts": self.impressive_facts,
+            "auto_generate_li_messages": self.auto_generate_li_messages,
+            "auto_send_li_messages": self.auto_send_li_messages,
         }
 
 
@@ -321,7 +327,7 @@ class ClientSDR(db.Model):
     do_not_contact_company_names = db.Column(db.ARRAY(db.String), nullable=True)
     do_not_contact_industries = db.Column(db.ARRAY(db.String), nullable=True)
     do_not_contact_location_keywords = db.Column(db.ARRAY(db.String), nullable=True)
-    do_not_contact_titles = db.Column(db.ARRAY(db.String), nullable=True)    
+    do_not_contact_titles = db.Column(db.ARRAY(db.String), nullable=True)
     do_not_contact_prospect_location_keywords = db.Column(
         db.ARRAY(db.String), nullable=True
     )
@@ -371,7 +377,7 @@ class ClientSDR(db.Model):
     disable_ai_on_message_send = db.Column(db.Boolean, nullable=True, default=False)
 
     blacklisted_words = db.Column(db.ARRAY(db.String), nullable=True)
-    
+
     meta_data = db.Column(db.JSON, nullable=True)
 
     conversion_percentages = db.Column(db.JSON, nullable=True)

@@ -2089,7 +2089,7 @@ def update_do_not_contact_filters(
     client: Client = Client.query.get(client_id)
     if not client:
         return None
-    
+
     client.do_not_contact_keywords_in_company_names = (
         do_not_contact_keywords_in_company_names
     )
@@ -2465,7 +2465,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     allStatuses = [status.name for status in ProspectOverallStatus]
     allStatuses.remove(ProspectOverallStatus.REMOVED.name)
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
-    
+
     prospects_with_locations: list = (
         Prospect.query
             .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
@@ -3709,5 +3709,33 @@ def update_client_sdr_cc_bcc_emails(
     if bcc_emails is not None:
         client_sdr.weekly_report_bcc_emails = bcc_emails
     db.session.add(client_sdr)
+    db.session.commit()
+    return True
+
+
+def update_client_auto_generate_li_messages_setting(
+    client_sdr_id: int,
+    auto_generate_li_messages: bool,
+):
+    """
+    Updates the auto generate LI messages setting for a client SDR
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    client.auto_generate_li_messages = auto_generate_li_messages
+    db.session.commit()
+    return True
+
+
+def update_client_auto_send_li_messages(
+    client_sdr_id: int,
+    auto_send_li_messages: bool,
+):
+    """
+    Updates the auto send LI messages setting for a client SDR
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    client.auto_send_li_messages = auto_send_li_messages
     db.session.commit()
     return True

@@ -20,6 +20,7 @@ from src.client.services import (
     toggle_client_sdr_auto_bump,
     toggle_client_sdr_auto_send_campaigns_enabled,
     toggle_is_onboarding,
+    update_client_auto_generate_li_messages_setting,
     update_client_sdr_cc_bcc_emails,
     update_phantom_buster_launch_schedule,
     write_client_pre_onboarding_survey,
@@ -130,6 +131,22 @@ from app import db
 import os
 
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
+
+
+@CLIENT_BLUEPRINT.route("/linkedin/auto_generate", methods=["PATCH"])
+@require_user
+def patch_linkedin_auto_generate(client_sdr_id: int):
+    auto_generate = get_request_parameter(
+        "auto_generate", request, json=True, required=True, parameter_type=bool
+    )
+
+    success = update_client_auto_generate_li_messages_setting(
+        client_sdr_id=client_sdr_id,
+        auto_generate_li_messages=auto_generate
+    )
+    if not success:
+        return "Failed to update client SDR", 404
+    return "OK", 200
 
 
 @CLIENT_BLUEPRINT.route("/submit-error", methods=["POST"])

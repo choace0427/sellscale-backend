@@ -65,9 +65,17 @@ def daily_collect_and_generate_campaigns_for_sdr(self):
     if datetime.today().weekday() in [5, 6]:
         return
 
-    # Right now only applicable for Doppler SDRs
+    # Get active clients that have auto_generate_li_messages enabled
+    clients: list[Client] = Client.query.filter(
+        Client.active == True,
+        Client.auto_generate_li_messages == True,
+    ).all()
+    client_ids = [client.id for client in clients]
+
+    # Get all SDRs for each client that has auto_generate_li_messages
     sdrs: list[ClientSDR] = ClientSDR.query.filter(
-        ClientSDR.client_id == 46, ClientSDR.active == True
+        ClientSDR.client_id.in_(client_ids),
+        ClientSDR.active == True
     ).all()
 
     for sdr in sdrs:
