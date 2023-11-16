@@ -343,20 +343,22 @@ def run_collect_and_send_email_messaging_schedule_entries():
 
 
 def run_find_and_run_queued_question_enrichment_row_job():
-    from src.prospecting.question_enrichment.services import find_and_run_queued_question_enrichment_row
+    from src.prospecting.question_enrichment.services import (
+        find_and_run_queued_question_enrichment_row,
+    )
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        find_and_run_queued_question_enrichment_row.delay(
-            20 # num_rows
-        )
+        find_and_run_queued_question_enrichment_row.delay(20)  # num_rows
 
 
 def run_analytics_backfill_jobs():
     from src.voyager.services import run_fast_analytics_backfill
-    from src.li_conversation.services_linkedin_initial_message_templates import backfill_linkedin_initial_message_template_library_stats
+    from src.li_conversation.services_linkedin_initial_message_templates import (
+        backfill_linkedin_initial_message_template_library_stats,
+    )
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -367,7 +369,9 @@ def run_analytics_backfill_jobs():
 
 
 def run_daily_collect_and_generate_campaigns_for_sdr():
-    from src.campaigns.autopilot.services import daily_collect_and_generate_campaigns_for_sdr
+    from src.campaigns.autopilot.services import (
+        daily_collect_and_generate_campaigns_for_sdr,
+    )
 
     if (
         os.environ.get("FLASK_ENV") == "production"
@@ -400,7 +404,11 @@ scheduler.add_job(
     seconds=30,
 )
 scheduler.add_job(func=process_queue, trigger="interval", seconds=30)
-scheduler.add_job(func=run_find_and_run_queued_question_enrichment_row_job, trigger="interval", seconds=20)
+scheduler.add_job(
+    func=run_find_and_run_queued_question_enrichment_row_job,
+    trigger="interval",
+    seconds=20,
+)
 
 # Minute triggers
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
@@ -436,7 +444,9 @@ scheduler.add_job(func=run_set_warmup_snapshots, trigger="interval", hours=3)
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
-scheduler.add_job(run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger)
+scheduler.add_job(
+    run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger
+)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
