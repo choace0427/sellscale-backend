@@ -67,6 +67,10 @@ def get_email_warmings_for_sdr(client_sdr_id: int) -> list[EmailWarming]:
       old_warmings = []
   
   warmings: list[EmailWarming] = get_all_email_warmings(sdr.name)
+  send_slack_message(
+      message=f"TEMP: Got warmings. Response: {[warming.to_dict() for warming in warmings]}",
+      webhook_urls=[URL_MAP["ops-outbound-warming"]],
+  )
       
   for warming in warmings:
     for old_warming in old_warmings:

@@ -6,6 +6,8 @@ import json
 import os
 import time
 
+from src.utils.slack import send_slack_message, URL_MAP
+
 class Smartlead:
     DELAY_SECONDS = 1.0
     BASE_URL = 'https://server.smartlead.ai/api/v1'
@@ -53,6 +55,12 @@ class Smartlead:
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
+        
+        send_slack_message(
+            message=f"TEMP: Smartlead API call: {url}. Response: {response.text}",
+            webhook_urls=[URL_MAP["ops-outbound-warming"]],
+        )
+        
         return response.json()
       
     def get_leads_export(self, campaign_id):
