@@ -1,6 +1,11 @@
 import datetime
 from typing import List, Optional, Tuple
 
+from src.prospecting.services import update_prospect_status_email
+
+from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
+from src.prospecting.models import Prospect
+
 from src.utils.slack import send_slack_message, URL_MAP
 
 from src.client.models import ClientArchetype, ClientSDR
@@ -138,4 +143,92 @@ def set_campaign_id(archetype_id: int, campaign_id: int) -> bool:
     
     return True
     
+
+def sync_campaign_leads(client_sdr_id: int) -> bool:
+  
+    archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+    ).all()
     
+    for archetype in archetypes:
+        if(archetype.smartlead_campaign_id == None): continue
+        
+        sl = Smartlead()
+        leads = sl.get_leads_export(archetype.smartlead_campaign_id)
+        
+        for lead in leads:
+            sync_prospect_with_lead(
+                client_id=archetype.client_id,
+                archetype_id=archetype.id,
+                client_sdr_id=client_sdr_id,
+                lead=lead
+            )
+            
+        
+
+def sync_prospect_with_lead(
+    client_id: int,
+    archetype_id: int,
+    client_sdr_id: int,
+    lead: dict
+):
+  
+    prospect: Prospect = Prospect.query.filter(
+        Prospect.email == lead.get("email"),
+        Prospect.client_sdr_id == client_sdr_id,
+    ).first()
+    
+    if not prospect:
+        # Create a new prospect
+        from src.prospecting.services import add_prospect
+        p_id = add_prospect(
+            client_id=client_id,
+            archetype_id=archetype_id,
+            client_sdr_id=client_sdr_id,
+            email=lead.get("email"),
+        )
+        prospect: Prospect = Prospect.query.get(p_id)
+    
+    prospect_email_id = prospect.approved_prospect_email_id
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    
+    if not prospect_email:
+        # Create a new prospect email
+        prospect_email: ProspectEmail = ProspectEmail(
+            prospect_id=prospect.id,
+            email_status=ProspectEmailStatus.APPROVED,
+            outreach_status=ProspectEmailOutreachStatus.NOT_SENT,
+        )
+        db.session.add(prospect_email)
+        db.session.commit()
+        
+        prospect.approved_prospect_email_id = prospect_email.id
+        prospect_email_id = prospect_email.id
+        db.session.commit()
+    
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    if lead.get("is_sent") and prospect_email.outreach_status == ProspectEmailOutreachStatus.NOT_SENT:
+        update_prospect_status_email(
+            prospect_id=prospect.id,
+            new_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+        )
+        
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    if lead.get("is_opened") and prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH:
+        update_prospect_status_email(
+            prospect_id=prospect.id,
+            new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+        )
+        
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    if lead.get("is_replied") and prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED:
+        update_prospect_status_email(
+            prospect_id=prospect.id,
+            new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+        )
+        
+    return True
+    
+    
+    
+  

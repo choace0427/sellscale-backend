@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 
-from src.smartlead.services import get_email_warmings_for_sdr, sync_campaign_analytics
+from src.smartlead.services import get_email_warmings_for_sdr, sync_campaign_analytics, sync_campaign_leads
 from model_import import ClientSDR
 import requests
 from src.utils.domains.pythondns import dkim_record_valid, dmarc_record_valid, spf_record_valid
@@ -130,8 +130,9 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
         # Create Email Warmups
         email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
         
-        # Sync campaign analytics
+        # Sync campaign data
         sync_campaign_analytics(client_sdr_id)
+        sync_campaign_leads(client_sdr_id)
         
         for email_warmup in email_warmups:
             email = email_warmup["from_email"]

@@ -1,5 +1,7 @@
 
+import csv
 import requests
+from io import StringIO
 import json
 import os
 import time
@@ -51,8 +53,44 @@ class Smartlead:
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
-        print(response.status_code)
         return response.json()
+      
+    def get_leads_export(self, campaign_id):
+        time.sleep(self.DELAY_SECONDS)
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads-export?api_key={self.api_key}"
+        response = requests.get(url)
+        if response.status_code != 200: return []
+        
+        # Read the CSV file
+        csv_data = StringIO(response.text)
+        reader = csv.DictReader(csv_data)
+        
+        result = []
+        for row in reader:
+          record = {}
+          
+          last_email_sent = int(row["last_email_sequence_sent"])
+          opened = int(row["open_count"])
+          replied = int(row["reply_count"])
+          clicked = int(row["click_count"])
+          
+          record["email"] = row["email"]
+          record["is_unsubscribed"] = row["is_unsubscribed"] == "true"
+          record["is_interested"] = row["is_interested"] == "true"
+          record["is_clicked"] = clicked > 0
+
+          if last_email_sent > 0:
+              record["is_sent"] = True
+              if opened > 0:
+                  record["is_opened"] = True
+                  if replied > 0:
+                      record["is_replied"] = True
+                      
+          result.append(record)
+          
+        return result
+        
+        
     
     def post_campaign_leads(self, campaign_id, lead_list):
         time.sleep(self.DELAY_SECONDS)
