@@ -44,6 +44,20 @@ def get_all_email_warmings(sdr_name: str) -> list[EmailWarming]:
   return warmings
 
 
+@celery.task
+def sync_email_warmings(client_sdr_id: int, email: str):
+    
+    from src.warmup_snapshot.models import WarmupSnapshot
+    
+    warmings = get_email_warmings_for_sdr(client_sdr_id)
+    snapshot: WarmupSnapshot = WarmupSnapshot.query.filter_by(account_name=email).first()
+    
+    snapshot.warming_details = [warming.to_dict() for warming in warmings]
+    db.session.commit()
+    
+    return True, "Success"
+    
+
 def get_email_warmings_for_sdr(client_sdr_id: int) -> list[EmailWarming]:
   
   sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -156,16 +170,20 @@ def sync_campaign_leads(client_sdr_id: int) -> bool:
         sl = Smartlead()
         leads = sl.get_leads_export(archetype.smartlead_campaign_id)
         
-        for lead in leads:
-            sync_prospect_with_lead(
-                client_id=archetype.client_id,
-                archetype_id=archetype.id,
-                client_sdr_id=client_sdr_id,
-                lead=lead
-            )
+        from src.automation.orchestrator import add_process_list
+        add_process_list(
+            type="sync_prospect_with_lead",
+            args_list=[{
+              "client_id": archetype.client_id,
+              "archetype_id": archetype.id,
+              "client_sdr_id": client_sdr_id,
+              "lead": lead,
+            } for lead in leads],
+            buffer_wait_minutes=1,
+        )
             
         
-
+@celery.task
 def sync_prospect_with_lead(
     client_id: int,
     archetype_id: int,
@@ -227,7 +245,7 @@ def sync_prospect_with_lead(
             new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
         )
         
-    return True
+    return True, "Success"
     
     
     

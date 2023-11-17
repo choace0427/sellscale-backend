@@ -153,8 +153,6 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             dkim_record, dkim_valid = dkim_record_valid(
                 domain=domain
             )
-            
-            warming_details = get_email_warmings_for_sdr(client_sdr_id)
 
             email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
                 client_sdr_id=client_sdr_id,
@@ -170,10 +168,17 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
                 spf_record_valid=spf_valid,
                 dkim_record=dkim_record,
                 dkim_record_valid=dkim_valid,
-                warming_details=[warming.to_dict() for warming in warming_details]
+                warming_details=None,
             )
             db.session.add(email_warmup_snapshot)
             db.session.commit()
+            
+            from src.automation.orchestrator import add_process_for_future
+            add_process_for_future(
+                type="sync_email_warmings",
+                args={ "client_sdr_id": client_sdr_id, "email": email },
+                minutes=1,
+            )
 
         print(f"Finished setting channel warmups for {name}")
 

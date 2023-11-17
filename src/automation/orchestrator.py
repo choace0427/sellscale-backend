@@ -1,5 +1,6 @@
 from typing import Optional
 
+from src.smartlead.services import sync_prospect_with_lead, sync_email_warmings
 from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 
 from src.prospecting.services import generate_prospect_upload_report
@@ -66,6 +67,18 @@ PROCESS_TYPE_MAP = {
     },
     "set_warmup_snapshot_for_sdr": {
         "function": set_warmup_snapshot_for_sdr,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "sync_prospect_with_lead": {
+        "function": sync_prospect_with_lead,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "sync_email_warmings": {
+        "function": sync_email_warmings,
         "priority": 10,
         "queue": None,
         "routing_key": None,
