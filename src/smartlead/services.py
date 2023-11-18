@@ -269,7 +269,7 @@ def sync_prospects_to_campaign(client_sdr_id: int, archetype_id: int):
     
     prospect_chunks = chunk_list(prospects, 100)# max 100 leads can be added at a time with API
     for chunk in prospect_chunks:
-        sl.add_campaign_leads(
+        result = sl.add_campaign_leads(
             campaign_id=archetype.smartlead_campaign_id,
             leads=[Lead(
               first_name=prospect.first_name,
@@ -284,6 +284,7 @@ def sync_prospects_to_campaign(client_sdr_id: int, archetype_id: int):
               company_url=prospect.company_url,
             ) for prospect in chunk],
         )
+        # print(result)
     
     send_slack_message(
       message=f"Imported {len(prospects)} prospects to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
