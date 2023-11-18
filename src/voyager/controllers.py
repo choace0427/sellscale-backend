@@ -378,3 +378,35 @@ def get_sales_nav(client_sdr_id: int):
     result = api.graphql_get_sales_nav(keyword, yoe)
 
     return jsonify({"message": "Success", "data": result}), 200
+
+
+@VOYAGER_BLUEPRINT.route("/raw_company", methods=["GET"])
+@require_user
+def get_raw_company(client_sdr_id: int):
+
+    company_public_id = get_request_parameter(
+        "company_public_id", request, json=False, required=True
+    )
+
+    api = LinkedIn(client_sdr_id)
+    company = api.get_company(company_public_id)
+    if not api.is_valid():
+        return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+
+    return jsonify({"message": "Success", "data": company}), 200
+  
+  
+@VOYAGER_BLUEPRINT.route("/raw_company_updates", methods=["GET"])
+@require_user
+def get_raw_company_updates(client_sdr_id: int):
+
+    company_public_id = get_request_parameter(
+        "company_public_id", request, json=False, required=True
+    )
+
+    api = LinkedIn(client_sdr_id)
+    updates = api.get_company_updates(public_id=company_public_id)
+    if not api.is_valid():
+        return jsonify({"message": "Invalid LinkedIn cookies"}), 403
+
+    return jsonify({"message": "Success", "data": updates}), 200

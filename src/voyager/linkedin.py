@@ -780,3 +780,79 @@ class LinkedIn(object):
         return make_search(keyword, years_of_experience)
 
 
+    def get_company_updates(
+        self, public_id=None, urn_id=None, max_results=None, results=None
+    ):
+        """Fetch company updates (news activity) for a given LinkedIn company.
+
+        :param public_id: LinkedIn public ID for a company
+        :type public_id: str, optional
+        :param urn_id: LinkedIn URN ID for a company
+        :type urn_id: str, optional
+
+        :return: List of company update objects
+        :rtype: list
+        """
+
+        if results is None:
+            results = []
+
+        params = {
+            "companyUniversalName": {public_id or urn_id},
+            "q": "companyFeedByUniversalName",
+            "moduleKey": "member-share",
+            "count": 100,
+            "start": len(results),
+        }
+
+        res = self._fetch(f"/feed/updates", params=params)
+
+        data = res.json()
+
+        if (
+            len(data["elements"]) == 0
+            or (max_results is not None and len(results) >= max_results)
+            or (
+                max_results is not None
+                and len(results) / max_results >= 200
+            )
+        ):
+            return results
+
+        results.extend(data["elements"])
+        self.logger.debug(f"results grew: {len(results)}")
+
+        return self.get_company_updates(
+            public_id=public_id,
+            urn_id=urn_id,
+            results=results,
+            max_results=max_results,
+        )
+    
+    
+    def get_company(self, public_id):
+        """Fetch data about a given LinkedIn company.
+
+        :param public_id: LinkedIn public ID for a company
+        :type public_id: str
+
+        :return: Company data
+        :rtype: dict
+        """
+        params = {
+            "decorationId": "com.linkedin.voyager.deco.organization.web.WebFullCompanyMain-12",
+            "q": "universalName",
+            "universalName": public_id,
+        }
+
+        res = self._fetch(f"/organization/companies", params=params)
+
+        data = res.json()
+
+        if data and "status" in data and data["status"] != 200:
+            self.logger.info("request failed: {}".format(data["message"]))
+            return {}
+
+        company = data["elements"][0]
+
+        return company
