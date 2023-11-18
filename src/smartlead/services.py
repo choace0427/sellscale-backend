@@ -1,6 +1,8 @@
 import datetime
 from typing import List, Optional, Tuple
 
+from src.utils.lists import chunk_list
+
 from src.prospecting.services import update_prospect_status_email
 
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
@@ -9,7 +11,7 @@ from src.prospecting.models import Prospect
 from src.utils.slack import send_slack_message, URL_MAP
 
 from src.client.models import ClientArchetype, ClientSDR
-from src.smartlead.smartlead import Smartlead, EmailWarming
+from src.smartlead.smartlead import Lead, Smartlead, EmailWarming
 
 from app import db, celery
 
@@ -252,5 +254,42 @@ def sync_prospect_with_lead(
     return True, "Success"
     
     
+def sync_prospects_to_campaign(client_sdr_id: int, archetype_id: int):
+  
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if(archetype.smartlead_campaign_id == None): return
     
+    prospects: list[Prospect] = Prospect.query.filter(Prospect.archetype_id == archetype_id).all()
+    
+    sl = Smartlead()
+    
+    leads = sl.get_leads_export(archetype.smartlead_campaign_id)
+    # Filter out all prospects that are already in the campaign
+    prospects = [prospect for prospect in prospects if prospect.email not in [lead.get("email") for lead in leads]]
+    
+    prospect_chunks = chunk_list(prospects, 100)# max 100 leads can be added at a time with API
+    for chunk in prospect_chunks:
+        sl.add_campaign_leads(
+            campaign_id=archetype.smartlead_campaign_id,
+            leads=[Lead(
+              first_name=prospect.first_name,
+              last_name=prospect.last_name,
+              email=prospect.email,
+              phone_number=None,
+              company_name=prospect.company,
+              website=None,
+              location=None,
+              custom_fields={ "source": "SellScale" },
+              linkedin_profile=prospect.linkedin_url,
+              company_url=prospect.company_url,
+            ) for prospect in chunk],
+        )
+    
+    send_slack_message(
+      message=f"Imported {len(prospects)} prospects to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
+      webhook_urls=[URL_MAP["ops-outbound-warming"]],
+    )
+    
+    return True, len(prospects)
+  
   

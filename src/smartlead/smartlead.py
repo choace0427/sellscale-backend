@@ -8,6 +8,69 @@ import time
 
 from src.utils.slack import send_slack_message, URL_MAP
 
+
+class EmailWarming:
+    def __init__(self, id: int, name: str, email: str, status: str, total_sent: int, total_spam: int, warmup_reputation: str, sent_count: int, spam_count: int, inbox_count: int, warmup_email_received_count: int, stats_by_date: list, percent_complete: int):
+        self.id = id
+        self.name = name
+        self.email = email
+        self.status = status
+        self.total_sent = total_sent
+        self.total_spam = total_spam
+        self.warmup_reputation = warmup_reputation
+        self.sent_count = sent_count
+        self.spam_count = spam_count
+        self.inbox_count = inbox_count
+        self.warmup_email_received_count = warmup_email_received_count
+        self.stats_by_date = stats_by_date
+        self.percent_complete = percent_complete
+        
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "status": self.status,
+            "total_sent": self.total_sent,
+            "total_spam": self.total_spam,
+            "warmup_reputation": self.warmup_reputation,
+            "sent_count": self.sent_count,
+            "spam_count": self.spam_count,
+            "inbox_count": self.inbox_count,
+            "warmup_email_received_count": self.warmup_email_received_count,
+            "stats_by_date": self.stats_by_date,
+            "percent_complete": self.percent_complete
+        }
+
+
+class Lead:
+    def __init__(self, first_name: str, last_name: str, email: str, phone_number: int, company_name: str, website: str, location: str, custom_fields: dict, linkedin_profile: str, company_url: str):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.phone_number = phone_number
+        self.company_name = company_name
+        self.website = website
+        self.location = location
+        self.custom_fields = custom_fields
+        self.linkedin_profile = linkedin_profile
+        self.company_url = company_url
+
+    def to_dict(self):
+        return {
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "phone_number": self.phone_number,
+            "company_name": self.company_name,
+            "website": self.website,
+            "location": self.location,
+            "custom_fields": self.custom_fields,
+            "linkedin_profile": self.linkedin_profile,
+            "company_url": self.company_url,
+        }
+        
+
 class Smartlead:
     DELAY_SECONDS = 1.0
     BASE_URL = 'https://server.smartlead.ai/api/v1'
@@ -49,6 +112,20 @@ class Smartlead:
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
+        return response.json()
+      
+    def add_campaign_leads(self, campaign_id, leads: list[Lead]):# max 100 leads at a time
+        time.sleep(self.DELAY_SECONDS)
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads"
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+            },
+            json={
+                "lead_list": [lead.to_dict() for lead in leads],
+            },
+        )
         return response.json()
       
     def get_warmup_stats(self, email_account_id):
@@ -142,39 +219,5 @@ class Smartlead:
         headers = {'Content-Type': 'application/json'}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         return response.json()
-
-
-class EmailWarming:
-    def __init__(self, id: int, name: str, email: str, status: str, total_sent: int, total_spam: int, warmup_reputation: str, sent_count: int, spam_count: int, inbox_count: int, warmup_email_received_count: int, stats_by_date: list, percent_complete: int):
-        self.id = id
-        self.name = name
-        self.email = email
-        self.status = status
-        self.total_sent = total_sent
-        self.total_spam = total_spam
-        self.warmup_reputation = warmup_reputation
-        self.sent_count = sent_count
-        self.spam_count = spam_count
-        self.inbox_count = inbox_count
-        self.warmup_email_received_count = warmup_email_received_count
-        self.stats_by_date = stats_by_date
-        self.percent_complete = percent_complete
-        
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "email": self.email,
-            "status": self.status,
-            "total_sent": self.total_sent,
-            "total_spam": self.total_spam,
-            "warmup_reputation": self.warmup_reputation,
-            "sent_count": self.sent_count,
-            "spam_count": self.spam_count,
-            "inbox_count": self.inbox_count,
-            "warmup_email_received_count": self.warmup_email_received_count,
-            "stats_by_date": self.stats_by_date,
-            "percent_complete": self.percent_complete
-        }
 
 
