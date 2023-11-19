@@ -121,7 +121,9 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
     # Update the pb agent
     if os.environ.get("FLASK_ENV") == "production":
         response = update_phantom_buster_li_at(
-            client_sdr_id=client_sdr_id, li_at=sdr.li_at_token, user_agent=user_agent,
+            client_sdr_id=client_sdr_id,
+            li_at=sdr.li_at_token,
+            user_agent=user_agent,
         )
 
     db.session.add(sdr)
@@ -262,7 +264,6 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
     update_profile_picture(api.client_sdr_id, prospect_id, convo)
 
     if not convo or len(convo) == 0:
-
         send_slack_message(
             message=f"Attempted to update (& auto detect status) for a li convo that's empty! Prospect: {prospect.full_name} (#{prospect.id})",
             webhook_urls=[URL_MAP["csm-convo-sorter"]],
@@ -272,7 +273,6 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 
     bulk_objects = []
     for message in tqdm(convo):
-
         first_name = (
             message.get("from", {})
             .get("com.linkedin.voyager.messaging.MessagingMember", {})
@@ -399,6 +399,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 
     return "OK", 200
 
+
 @celery.task(name="run_fast_analytics_backfill")
 def run_fast_analytics_backfill():
     # Fetch and process data
@@ -418,10 +419,11 @@ def run_fast_analytics_backfill():
     # Bulk update bump frameworks
     update_data = [
         {
-            'id': id,
-            'etl_num_times_used': new_used,
-            'etl_num_times_converted': new_converted
-        } for id, new_used, new_converted in data
+            "id": id,
+            "etl_num_times_used": new_used,
+            "etl_num_times_converted": new_converted,
+        }
+        for id, new_used, new_converted in data
     ]
 
     db.session.bulk_update_mappings(BumpFramework, update_data)
@@ -433,7 +435,6 @@ def run_fast_analytics_backfill():
 
 
 def run_backfill_bf_analytics() -> bool:
-
     # Get all LIConvoEntries that have a bump framework
     convo_entries: list[LinkedinConversationEntry] = (
         LinkedinConversationEntry.query.filter(
@@ -513,7 +514,6 @@ def run_conversation_bump_analytics(convo_urn_id: str) -> bool:
 
 
 def update_prospect_status(prospect_id: int, convo_urn_id: str):
-
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     # Update convo URN id if needed
@@ -904,7 +904,6 @@ def get_prospect_status_from_convo(
 
 
 def fetch_li_prospects_for_sdr(client_sdr_id: int):
-
     prospects = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
         or_(
@@ -936,7 +935,6 @@ def fetch_li_prospects_for_sdr(client_sdr_id: int):
 
 
 def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
-
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -950,7 +948,6 @@ def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
     sdr_updated = False
     prospect_updated = False
     for message in tqdm(convo):
-
         urn_id = (
             message.get("from", {})
             .get("com.linkedin.voyager.messaging.MessagingMember", {})
@@ -1010,7 +1007,6 @@ def update_profile_picture(client_sdr_id: int, prospect_id: int, convo):
 
 
 def queue_withdraw_li_invites(client_sdr_id: int, prospect_ids: list[int]):
-
     from src.automation.orchestrator import add_process_list
 
     return add_process_list(
@@ -1029,7 +1025,6 @@ def queue_withdraw_li_invites(client_sdr_id: int, prospect_ids: list[int]):
 
 @celery.task
 def withdraw_li_invite(client_sdr_id: int, prospect_id: int):
-
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 

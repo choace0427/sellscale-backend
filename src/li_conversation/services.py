@@ -15,7 +15,10 @@ from src.message_generation.models import (
     SendStatus,
     StackRankedMessageGenerationConfiguration,
 )
-from src.message_generation.services import get_li_convo_history, get_prospect_research_points
+from src.message_generation.services import (
+    get_li_convo_history,
+    get_prospect_research_points,
+)
 from src.prospecting.models import (
     ProspectHiddenReason,
     ProspectOverallStatus,
@@ -279,9 +282,11 @@ def create_linkedin_conversation_entry(
             message_cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(
                 initial_message.message_cta
             )
-            research_points: list[ResearchPoints] = ResearchPoints.query.filter(
-                ResearchPoints.id.in_(initial_message.research_points)
-            ).all()
+            research_points: list[ResearchPoints] = []
+            if initial_message.research_points:
+                research_points = ResearchPoints.query.filter(
+                    ResearchPoints.id.in_(initial_message.research_points)
+                ).all()
             stack_ranked_config: StackRankedMessageGenerationConfiguration = (
                 StackRankedMessageGenerationConfiguration.query.get(
                     initial_message.stack_ranked_message_generation_configuration_id
@@ -669,7 +674,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     bump_framework_template_id: Optional[int] = None,
 ):
     from model_import import Prospect
-    
+
     # First the first message from the SDR
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
@@ -696,13 +701,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         )
     else:
         bump_framework = None
-    
-    
+
     # Enabled template mode SDRs
     enabled_sdrs = [34, 127, 115]
-    
+
     # If we don't have a bump framework template, use the legacy system
-    if not bump_framework or (client_sdr.id not in enabled_sdrs): 
+    if not bump_framework or (client_sdr.id not in enabled_sdrs):
         return generate_chat_gpt_response_to_conversation_thread_helper_legacy(
             prospect_id=prospect_id,
             convo_history=convo_history,
@@ -712,7 +716,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             use_cache=use_cache,
             bump_framework_template_id=bump_framework_template_id,
         )
-    
+
     ###################################
     ##### Use new template system #####
     ###################################
@@ -720,14 +724,20 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     transcript = "\n\n".join(
         [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
     )
-    convo_history = transcript + "\n\n" + sender + " (" + str(datetime.now())[0:10] + "):"
-    
+    convo_history = (
+        transcript + "\n\n" + sender + " (" + str(datetime.now())[0:10] + "):"
+    )
+
     if bump_framework.use_account_research:
         # Grab 3 random points from the research points
-        research_points: list[ResearchPoints] = ResearchPoints.get_research_points_by_prospect_id(prospect_id=prospect_id, bump_framework_id=bump_framework_id)
+        research_points: list[
+            ResearchPoints
+        ] = ResearchPoints.get_research_points_by_prospect_id(
+            prospect_id=prospect_id, bump_framework_id=bump_framework_id
+        )
         found_points = [research_point.to_dict() for research_point in research_points]
         random_sample_points = random.sample(found_points, min(len(found_points), 3))
-        notes = "\n".join([point.get('value') for point in random_sample_points])
+        notes = "\n".join([point.get("value") for point in random_sample_points])
     else:
         notes = ""
 
@@ -737,7 +747,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     company = prospect.company
     additional_instructions = bump_framework.human_feedback
     template = bump_framework.description
-    
+
     prompt = f"""
 You are a sales development representative writing on behalf of the SDR.
 
@@ -784,10 +794,10 @@ Conversation history:
         client_sdr_id=prospect.client_sdr_id,
         use_cache=use_cache,
     )
-    
+
     print(prompt)
     print(response)
-    
+
     return response, prompt
 
 
@@ -1111,7 +1121,6 @@ scrape_time_offset = 30 * 60  # 30 minutes in seconds
 
 @celery.task
 def scrape_conversations_inbox():
-
     client_sdr: List[ClientSDR] = ClientSDR.query.filter(
         ClientSDR.active == True,
         ClientSDR.li_at_token is not None,
@@ -1121,7 +1130,6 @@ def scrape_conversations_inbox():
     ).all()
 
     for sdr in client_sdr:
-
         # Scrape every 3 hours instead #
 
         # Sent the next scrape to be 1 day from now (+/- scrape_time_offset)
@@ -1182,7 +1190,6 @@ def scrape_conversations_inbox():
                 .filter_by(conversation_urn_id=convo_urn_id)
                 .first()
             ):
-
                 prospect: Prospect = Prospect.query.filter(
                     Prospect.li_urn_id == profile_urn_id
                 ).first()
@@ -1219,7 +1226,6 @@ def scrape_conversations_inbox():
 
 @celery.task
 def scrape_conversation_queue():
-
     from src.voyager.services import update_conversation_entries
     from src.client.services import populate_prospect_events
 
@@ -1839,7 +1845,7 @@ def ai_initial_li_msg_prompt(
     prospect: Prospect = Prospect.query.get(prospect_id)
     # client_archetype: ClientArchetype = ClientArchetype.query.get(
     #     prospect.archetype_id)
-    
+
     # prompt, _, _, _, _, _ = get_sample_prompt_from_config_details(
     #     generated_message_type="LINKEDIN",
     #     research_point_types=[x.value for x in ResearchPointType],
@@ -1857,7 +1863,7 @@ def ai_initial_li_msg_prompt(
     industry = prospect.industry
     title = prospect.title
     company = prospect.company
-    notes = "\n".join([point.get('value') for point in found_points])
+    notes = "\n".join([point.get("value") for point in found_points])
 
     # parts = prompt.split("<>")
     # for part in parts:
@@ -1871,7 +1877,7 @@ def ai_initial_li_msg_prompt(
     #         company = part.replace('company: ', '')
     #     elif part.startswith('notes: '):
     #         notes = part.replace('notes: ', '')
-      
+
     prompt = f"""
 You are a sales development representative writing on behalf of the salesperson.
 
@@ -1903,12 +1909,11 @@ Stick to the template very strictly. Do not change this template at all.  Simila
 
     return prompt
 
-    
+
 def detect_template_research_points(template: str):
-    
     all_research_points = [member.value for member in ResearchPointType]
-    points_str = '\n'.join(all_research_points)
-    
+    points_str = "\n".join(all_research_points)
+
     prompt = f"""
 
 I have message template and I want to detect the research points that should be utilized in order to fill in the template.
@@ -1941,7 +1946,3 @@ Please only respond with a JSON array of the research points that should be used
         research_points = None
 
     return research_points
-
-
-
-
