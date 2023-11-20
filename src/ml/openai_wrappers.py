@@ -9,9 +9,21 @@ import openai
 import os
 from typing import Optional, Union
 
-OPENAI_KEY = os.environ.get("OPENAI_KEY")
-openai.api_key = OPENAI_KEY
+if os.environ.get("AZURE_OPENAI") == 'true':
+    print("Using Azure-OpenAI API")
+    openai.api_type = "azure"
+    openai.api_base = os.environ.get("AZURE_OPENAI_BASE")
+    openai.api_version = os.environ.get("AZURE_OPENAI_VERSION")
+    openai.api_key = os.environ.get("AZURE_OPENAI_KEY")
+    USE_AZURE_ENGINE = True
+else:
+    print("Using OpenAI API")
+    openai.api_key = os.environ.get("OPENAI_KEY")
+    USE_AZURE_ENGINE = False
+    
 
+AZURE_OPENAI_GPT_4_ENGINE = os.environ.get("AZURE_OPENAI_GPT_4_ENGINE")
+AZURE_OPENAI_GPT_3_5_ENGINE = os.environ.get("AZURE_OPENAI_GPT_3_5_ENGINE")
 
 OPENAI_COMPLETION_DAVINCI_3_MODEL = "text-davinci-003"
 NEWEST_COMPLETION_MODEL = OPENAI_COMPLETION_DAVINCI_3_MODEL
@@ -221,7 +233,8 @@ def attempt_chat_completion(
     while attempts < max_attempts:
         try:
             response = openai.ChatCompletion.create(
-                model=model,
+                engine=AZURE_OPENAI_GPT_4_ENGINE if USE_AZURE_ENGINE else None,
+                model=None if USE_AZURE_ENGINE else model,
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
