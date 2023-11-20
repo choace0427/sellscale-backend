@@ -145,7 +145,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = sqlalchemy_engine_options
 db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
 
-#chroma_client = chromadb.HttpClient(host='https://vector-db-zakq.onrender.com', port=8000)
+# chroma_client = chromadb.HttpClient(host='https://vector-db-zakq.onrender.com', port=8000)
 
 from model_import import *
 
@@ -202,11 +202,14 @@ def register_blueprints(app):
     from src.client.sdr.email.controllers import SDR_EMAIL_BLUEPRINT
     from src.email_scheduling.controllers import EMAIL_SCHEDULING_BLUEPRINT
     from src.warmup_snapshot.controllers import WARMUP_SNAPSHOT
-    from src.prospecting.question_enrichment.controllers import QUESTION_ENRICHMENT_BLUEPRINT
+    from src.prospecting.question_enrichment.controllers import (
+        QUESTION_ENRICHMENT_BLUEPRINT,
+    )
     from src.li_conversation.controllers_linkedin_template import (
         LINKEDIN_TEMPLATE_BLUEPRINT,
     )
     from src.smartlead.controllers import SMARTLEAD_BLUEPRINT
+    from src.triggers.controllers import TRIGGERS_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -257,10 +260,9 @@ def register_blueprints(app):
     app.register_blueprint(
         QUESTION_ENRICHMENT_BLUEPRINT, url_prefix="/question_enrichment"
     )
-    app.register_blueprint(
-        LINKEDIN_TEMPLATE_BLUEPRINT, url_prefix="/linkedin_template"
-    )
+    app.register_blueprint(LINKEDIN_TEMPLATE_BLUEPRINT, url_prefix="/linkedin_template")
     app.register_blueprint(SMARTLEAD_BLUEPRINT, url_prefix="/smart_email")
+    app.register_blueprint(TRIGGERS_BLUEPRINT, url_prefix="/triggers")
 
     db.init_app(app)
 
