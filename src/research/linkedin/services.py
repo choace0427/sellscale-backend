@@ -450,7 +450,7 @@ def reset_prospect_research_and_messages(prospect_id: int):
 
     reset_prospect_approved_status(prospect_id=prospect_id)
     delete_message_generation_by_prospect_id(prospect_id=prospect_id)
-    delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
+    # delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
 
 
 def reset_batch_of_prospect_research_and_messages(prospect_ids: list):
