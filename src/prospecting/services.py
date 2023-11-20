@@ -485,6 +485,17 @@ def update_prospect_status_linkedin(
         and "ACTIVE_CONVO" in current_status.value
     ):
         prospect_name = p.full_name
+        
+        days_ago_str = ""
+        try:
+            input_date = datetime.datetime.strptime(p.li_last_message_timestamp)
+            current_date = datetime.datetime.utcnow()
+            days = (current_date - input_date).days
+            days_ago_str = f"({days} days ago)"
+        except:
+            days_ago_str = ""
+        
+        last_sdr_message_timeline = f"{client_sdr.name}'s last message {days_ago_str}"
 
         direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
             auth_token=auth_token,
@@ -534,6 +545,20 @@ def update_prospect_status_linkedin(
                             "emoji": True,
                         },
                     ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": '{timeline}\n"{sdr_message}"'.format(
+                            timeline=last_sdr_message_timeline,
+                            sdr_message=p.li_last_message_from_sdr.replace(
+                                "\n", " "
+                            )
+                            if p.li_last_message_from_sdr
+                            else "-",
+                        ),
+                    },
                 },
                 {"type": "divider"},
                 {
