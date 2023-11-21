@@ -72,12 +72,16 @@ class TriggerRun(db.Model):
     run_message = db.Column(db.String, nullable=True)
 
     def to_dict(self):
+        prospects_found = TriggerProspect.query.filter_by(trigger_run_id=self.id).all()
+
         return {
             "id": self.id,
             "trigger_id": self.trigger_id,
             "run_at": self.run_at,
             "run_status": self.run_status,
             "run_message": self.run_message,
+            "num_prospects": len(prospects_found),
+            "companies": list(set([prospect.company for prospect in prospects_found])),
         }
 
 

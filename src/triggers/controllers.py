@@ -36,7 +36,7 @@ def create_trigger_run(client_sdr_id: int, trigger_id):
         id=trigger_id, client_sdr_id=client_sdr_id
     ).first_or_404()
     new_run = TriggerRun(
-        trigger_id=trigger.id, run_status="Queued", run_at=datetime.datetime.utcnow()
+        trigger_id=trigger.id, run_status="Running", run_at=datetime.datetime.utcnow()
     )
     db.session.add(new_run)
     db.session.commit()
@@ -60,10 +60,69 @@ def add_trigger_run_prospects(client_sdr_id: int, trigger_run_id):
         .filter(TriggerRun.id == trigger_run_id, Trigger.client_sdr_id == client_sdr_id)
         .first_or_404()
     )
+    trigger_run_id = trigger_run.id
+
+    # mark trigger run as running
+    trigger_run.run_status = "Uploading contacts"
+    db.session.add(trigger_run)
+    db.session.commit()
+
+    trigger_run = TriggerRun.query.get(trigger_run_id)
 
     for prospect_data in prospects:
+        # ensure that the prospect doesn't already exist by checking linkedin_url
+        existing_prospect = (
+            TriggerProspect.query.join(TriggerRun, Trigger)
+            .filter(
+                TriggerProspect.linkedin_url == prospect_data["linkedin_url"],
+                Trigger.client_sdr_id == client_sdr_id,
+            )
+            .first()
+        )
+        if existing_prospect:
+            continue
+
         prospect = TriggerProspect(trigger_run_id=trigger_run.id, **prospect_data)
         db.session.add(prospect)
 
+    # mark trigger run as complete and set the completed_at timestamp
+    trigger_run.run_status = "Completed"
+    trigger_run.completed_at = datetime.datetime.utcnow()
+
     db.session.commit()
     return {"message": "Prospects added successfully"}, 201
+
+
+@TRIGGERS_BLUEPRINT.route("/trigger/get_runs/<int:trigger_id>", methods=["GET"])
+@require_user
+def get_trigger_runs(client_sdr_id: int, trigger_id):
+    trigger_runs = (
+        TriggerRun.query.join(Trigger)
+        .filter(
+            TriggerRun.trigger_id == trigger_id, Trigger.client_sdr_id == client_sdr_id
+        )
+        .order_by(TriggerRun.id.desc())
+        .limit(10)
+        .all()
+    )
+    return {
+        "trigger_runs": [trigger_run.to_dict() for trigger_run in trigger_runs]
+    }, 200
+
+
+@TRIGGERS_BLUEPRINT.route(
+    "/trigger/get_prospects/<int:trigger_run_id>", methods=["GET"]
+)
+@require_user
+def get_trigger_prospects(client_sdr_id: int, trigger_run_id):
+    trigger_prospects = (
+        TriggerProspect.query.join(TriggerRun, Trigger)
+        .filter(TriggerRun.id == trigger_run_id, Trigger.client_sdr_id == client_sdr_id)
+        .order_by(TriggerProspect.id.desc())
+        .all()
+    )
+    return {
+        "trigger_prospects": [
+            trigger_prospect.to_dict() for trigger_prospect in trigger_prospects
+        ]
+    }, 200
