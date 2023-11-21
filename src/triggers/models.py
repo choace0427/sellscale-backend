@@ -56,3 +56,54 @@ class Trigger(db.Model):
                 retval["client_archetype"] = archetype.to_dict()
 
         return retval
+
+
+class TriggerRun(db.Model):
+    __tablename__ = "trigger_run"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    trigger_id = db.Column(db.Integer, db.ForeignKey("trigger.id"), nullable=False)
+    trigger = db.relationship("Trigger", backref="trigger_runs")
+
+    run_at = db.Column(db.DateTime, nullable=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    run_status = db.Column(db.String, nullable=False)
+    run_message = db.Column(db.String, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "trigger_id": self.trigger_id,
+            "run_at": self.run_at,
+            "run_status": self.run_status,
+            "run_message": self.run_message,
+        }
+
+
+class TriggerProspect(db.Model):
+    __tablename__ = "trigger_prospect"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    first_name = db.Column(db.String, nullable=True)
+    last_name = db.Column(db.String, nullable=True)
+    title = db.Column(db.String, nullable=True)
+    company = db.Column(db.String, nullable=True)
+    linkedin_url = db.Column(db.String, nullable=True)
+    custom_data = db.Column(db.String, nullable=True)
+
+    trigger_run_id = db.Column(
+        db.Integer, db.ForeignKey("trigger_run.id"), nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "title": self.title,
+            "company": self.company,
+            "linkedin_url": self.linkedin_url,
+            "custom_data": self.custom_data,
+        }
