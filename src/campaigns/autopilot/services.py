@@ -6,6 +6,8 @@ from model_import import (
     ClientArchetype,
     GeneratedMessageType,
     GeneratedMessageCTA,
+    GeneratedMessage,
+    GeneratedMessageStatus,
     OutboundCampaign,
     OutboundCampaignStatus,
 )
@@ -19,6 +21,7 @@ from src.utils.datetime.dateutils import (
 from src.campaigns.services import (
     create_outbound_campaign,
     generate_campaign,
+    mark_campaign_as_initial_review_complete,
     smart_get_prospects_for_campaign,
 )
 from typing import Optional
@@ -462,3 +465,59 @@ def get_available_sla_count(
         return sla_schedule.email_volume - num_prospects, sla_schedule.email_volume, ""
 
     return -1, -1, f"Something went wrong. This should never happen."
+
+
+def auto_send_campaign(campaign_id: int):
+    HOURS_AGO = 4
+    COMPLETE_THRESHOLD = 0.95
+    SUCCESS_THRESHOLD = 0.75
+  
+    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+    messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
+        GeneratedMessage.outbound_campaign_id == campaign_id,
+    ).all()
+    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(campaign.client_archetype_id)
+    
+    
+    # Check if campaign was created at least 4 hours ago
+    if campaign.created_at + timedelta(hours=HOURS_AGO) > datetime.utcnow():
+        send_slack_message(
+            f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Campaign was created less than {HOURS_AGO} hours ago.\n\nSolution: Wait until the campaign is at least {HOURS_AGO} hours old before sending.",
+            [URL_MAP["ops-auto-send-campaign"]],
+        )
+        return False
+      
+    # Check if 95% of the messages have been generated
+    num_generated = len([message for message in messages if message.message_status != GeneratedMessageStatus.DRAFT])
+    if num_generated / len(messages) < COMPLETE_THRESHOLD:
+        send_slack_message(
+            f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Not all the generations in this campaign are complete.\n\nSolution: Solution: Manually inspect the campaign. Relay relevant details to engineers for fix.",
+            [URL_MAP["ops-auto-send-campaign"]],
+        )
+        return False
+      
+    # Check if 75% of the messages have been approved
+    num_approved = len([message for message in messages if message.message_status == GeneratedMessageStatus.APPROVED])
+    if num_approved / len(messages) < SUCCESS_THRESHOLD:
+        send_slack_message(
+            f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: >{(1-SUCCESS_THRESHOLD)*100}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
+            [URL_MAP["ops-auto-send-campaign"]],
+        )
+        return False
+      
+
+    # Remove prospects that aren't approved
+    campaign.prospect_ids = [message.prospect_id for message in messages if message.message_status == GeneratedMessageStatus.APPROVED]
+    db.session.commit()
+    
+    invalid_prospect_ids: list[int] = [message.prospect_id for message in messages if message.message_status != GeneratedMessageStatus.APPROVED]
+    from src.research.linkedin.services import reset_batch_of_prospect_research_and_messages
+    reset_batch_of_prospect_research_and_messages(invalid_prospect_ids)
+    
+    # Send the campaign
+    mark_campaign_as_initial_review_complete(campaign_id=campaign_id)
+    
+    return True
+    
+    
