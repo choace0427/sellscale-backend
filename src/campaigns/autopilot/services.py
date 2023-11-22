@@ -475,6 +475,7 @@ def auto_send_campaign(campaign_id: int):
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
         GeneratedMessage.outbound_campaign_id == campaign_id,
+        GeneratedMessage.message_status != GeneratedMessageStatus.DRAFT,
     ).all()
     sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
     archetype: ClientArchetype = ClientArchetype.query.get(campaign.client_archetype_id)
@@ -489,13 +490,13 @@ def auto_send_campaign(campaign_id: int):
         return False
       
     # Check if 95% of the messages have been generated
-    num_generated = len([message for message in messages if message.message_status != GeneratedMessageStatus.DRAFT])
-    if num_generated / len(messages) < COMPLETE_THRESHOLD:
-        send_slack_message(
-            f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Not all the generations in this campaign are complete.\n\nSolution: Solution: Manually inspect the campaign. Relay relevant details to engineers for fix.",
-            [URL_MAP["ops-auto-send-campaign"]],
-        )
-        return False
+    # num_generated = len([message for message in messages if message.message_status != GeneratedMessageStatus.DRAFT])
+    # if num_generated / len(messages) < COMPLETE_THRESHOLD:
+    #     send_slack_message(
+    #         f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Not all the generations in this campaign are complete.\n\nSolution: Solution: Manually inspect the campaign. Relay relevant details to engineers for fix.",
+    #         [URL_MAP["ops-auto-send-campaign"]],
+    #     )
+    #     return False
       
     # Check if 75% of the messages have been approved
     num_approved = len([message for message in messages if message.message_status == GeneratedMessageStatus.APPROVED])
