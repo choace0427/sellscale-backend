@@ -1155,6 +1155,8 @@ def add_prospect(
             linkedin_url=linkedin_url,
             linkedin_bio=linkedin_bio,
             title=title,
+            original_title=title,
+            original_company=company,
             twitter_url=twitter_url,
             status=status,
             email=email,

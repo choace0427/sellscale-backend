@@ -384,6 +384,9 @@ class Prospect(db.Model):
     company_url = db.Column(db.String, nullable=True)
     employee_count = db.Column(db.String, nullable=True)
 
+    original_company = db.Column(db.String, nullable=True)
+    original_title = db.Column(db.String, nullable=True)
+
     first_name = db.Column(db.String, nullable=True)
     last_name = db.Column(db.String, nullable=True)
     full_name = db.Column(db.String, nullable=True)
@@ -487,7 +490,7 @@ class Prospect(db.Model):
 
     def get_by_id(prospect_id: int):
         return Prospect.query.filter_by(id=prospect_id).first()
-    
+
     def simple_to_dict(self):
         return {
             "id": self.id,
@@ -1131,7 +1134,6 @@ class ExistingContact(db.Model):
     used = db.Column(db.Boolean, default=False)
 
     def to_dict(self, include_individual=True) -> dict:
-
         if self.individual_id and include_individual:
             individual: Individual = Individual.query.get(self.individual_id)
             individual_data = individual.to_dict()
