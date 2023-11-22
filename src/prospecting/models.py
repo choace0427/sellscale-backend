@@ -535,6 +535,10 @@ class Prospect(db.Model):
             "icp_fit_score_override": self.icp_fit_score_override,
             "contract_size": self.contract_size,
             "is_lookalike_profile": self.is_lookalike_profile,
+            "original_company": self.original_company,
+            "original_title": self.original_title,
+            "colloquialized_company": self.colloquialized_company,
+            "colloquialized_title": self.colloquialized_title,
         }
 
     def to_dict(

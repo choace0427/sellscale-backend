@@ -485,7 +485,7 @@ def update_prospect_status_linkedin(
         and "ACTIVE_CONVO" in current_status.value
     ):
         prospect_name = p.full_name
-        
+
         days_ago_str = ""
         try:
             input_date = datetime.datetime.strptime(p.li_last_message_timestamp)
@@ -494,7 +494,7 @@ def update_prospect_status_linkedin(
             days_ago_str = f"({days} days ago)"
         except:
             days_ago_str = ""
-        
+
         last_sdr_message_timeline = f"{client_sdr.name}'s last message {days_ago_str}"
 
         direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
@@ -552,9 +552,7 @@ def update_prospect_status_linkedin(
                         "type": "mrkdwn",
                         "text": '{timeline}\n"{sdr_message}"'.format(
                             timeline=last_sdr_message_timeline,
-                            sdr_message=p.li_last_message_from_sdr.replace(
-                                "\n", " "
-                            )
+                            sdr_message=p.li_last_message_from_sdr.replace("\n", " ")
                             if p.li_last_message_from_sdr
                             else "-",
                         ),
@@ -1115,32 +1113,39 @@ def add_prospect(
 
     client: Client = Client.query.get(client_id)
     if company:
+        do_not_contact_titles = client.do_not_contact_titles or []
+        do_not_contact_industries = client.do_not_contact_industries or []
         if (
-            client.do_not_contact_company_names
-            and company.lower()
-            in [x.lower() for x in client.do_not_contact_company_names]
-        ) or (
-            client.do_not_contact_keywords_in_company_names
-            and company.lower()
-            in [x.lower() for x in client.do_not_contact_keywords_in_company_names]
-        ) or (
-            client.do_not_contact_industries
-            and not industry or 
-                (
-                industry and industry.lower()
-                in [x.lower() for x in client.do_not_contact_industries]
+            (
+                client.do_not_contact_company_names
+                and company.lower()
+                in [x.lower() for x in client.do_not_contact_company_names]
             )
-        ) or (
-            client.do_not_contact_titles
-            and title and title.lower()
-            in [x.lower() for x in client.do_not_contact_titles]
+            or (
+                client.do_not_contact_keywords_in_company_names
+                and company.lower()
+                in [x.lower() for x in client.do_not_contact_keywords_in_company_names]
+            )
+            or (
+                client.do_not_contact_industries
+                and not industry
+                or (
+                    industry
+                    and industry.lower()
+                    in [x.lower() for x in do_not_contact_industries]
+                )
+            )
+            or (
+                client.do_not_contact_titles
+                and title
+                and title.lower() in [x.lower() for x in do_not_contact_titles]
+            )
         ):
             status = ProspectStatus.NOT_QUALIFIED
             overall_status = ProspectOverallStatus.REMOVED
 
     can_create_prospect = not prospect_exists or allow_duplicates
     if can_create_prospect:
-
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
         prospect: Prospect = Prospect(
             client_id=client_id,
@@ -1155,8 +1160,6 @@ def add_prospect(
             linkedin_url=linkedin_url,
             linkedin_bio=linkedin_bio,
             title=title,
-            original_title=title,
-            original_company=company,
             twitter_url=twitter_url,
             status=status,
             email=email,
@@ -1211,6 +1214,9 @@ def add_prospect(
         apply_icp_scoring_ruleset_filters_task(
             client_archetype_id=archetype_id, prospect_ids=[p_id]
         )
+
+    extract_colloquialized_company_name.delay(p_id)
+    extract_colloquialized_prospect_title.delay(p_id)
 
     return p_id
 
@@ -1690,7 +1696,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
             "details": {
                 "id": p.id,
                 "full_name": p.full_name,
-                "title": p.title,
+                "title": p.original_title,
                 "company": p.company,
                 "address": "",
                 "status": p.status.value,
@@ -2051,7 +2057,6 @@ def update_prospect_demo_date(
 
     date = datetime.datetime.fromisoformat(demo_date[:-1])
     if send_reminder:
-
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
         send_delayed_slack_message(
@@ -2071,7 +2076,6 @@ def update_prospect_demo_date(
 
 @celery.task
 def auto_mark_uninterested_bumped_prospects():
-
     client_archetypes: List[ClientArchetype] = ClientArchetype.query.all()
 
     for client_archetype in client_archetypes:
@@ -2138,7 +2142,6 @@ def find_prospect_id_from_li_or_email(
 
 
 def get_prospect_li_history(prospect_id: int):
-
     from model_import import ProspectStatusRecords, DemoFeedback, GeneratedMessageStatus
 
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -2365,7 +2368,6 @@ def add_prospect_referral(referral_id: int, referred_id: int, meta_data=None) ->
 
 
 def get_prospects_for_icp(archetype_id: int):
-
     data = db.session.execute(
         f"""
         select
@@ -2436,7 +2438,6 @@ def get_prospects_for_icp(archetype_id: int):
 
 
 def get_prospects_for_income_pipeline(client_sdr_id: int):
-
     data = db.session.execute(
         f"""
         select
@@ -2586,7 +2587,6 @@ def add_existing_contact(
 
 
 def get_existing_contacts(client_sdr_id: int, limit: int, offset: int, search: str):
-
     from src.prospecting.models import ExistingContact
 
     existing_contacts: List[ExistingContact] = (
@@ -2616,12 +2616,10 @@ def get_existing_contacts(client_sdr_id: int, limit: int, offset: int, search: s
 
 
 def add_existing_contacts_to_persona(persona_id: int, contact_ids: list[int]):
-
     from src.prospecting.models import ExistingContact, ProspectStatus
 
     added_count = 0
     for contact_id in contact_ids:
-
         existing_contact: ExistingContact = ExistingContact.query.get(contact_id)
         if not existing_contact:
             continue
@@ -2703,7 +2701,6 @@ def add_prospect_message_feedback(
     rating: int,
     feedback: str,
 ) -> int:
-
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -2775,6 +2772,78 @@ def add_prospect_message_feedback(
 
 
 @celery.task(bind=True, max_retries=3)
+def extract_colloquialized_prospect_title(self, prospect_id: int):
+    try:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if not prospect or not prospect.title:
+            return None
+
+        if prospect.colloquialized_title:
+            return prospect.colloquialized_title
+
+        prompt = """
+        Colloquialize this prospect's title into something I can insert in an email.
+
+        Important Notes:
+        - simplify the title so it's not too long or verbose
+        - If it's all uppercase, proper case it
+
+        It should work in this sentence:
+        "Hi! Considering your role as a [[title]], I thought you might be interested in our offering"
+
+        examples:
+        "Vice President of Manafacturing and Sales" -> "VP of Sales"
+        "Chief Executive Officer" -> "CEO"
+        "Chief Technology Officer" -> "CTO"
+        "General Manager | Innovation & Digital" -> "GM of Innovation"
+        "Director of Sales and Marketing" -> "director of sales"
+
+        Important: The new title should be short, ~4-5 words max.
+
+        IMPORTANT:
+        Only respond with the colloquialized title.  Nothing else.
+
+        Title: {title}
+        Colloquialized:""".format(
+            title=prospect.title
+        )
+
+        completion = wrapped_chat_gpt_completion(
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        if (
+            len(completion) > len(prospect.title)
+            or "?" in completion
+            or '"' in completion
+            or not completion
+        ):
+            raise Exception("Invalid response")
+
+        original_title = prospect.title + ""
+        prospect.colloquialized_title = completion
+        prospect.title = completion
+        prospect.original_title = original_title
+        db.session.add(prospect)
+        db.session.commit()
+
+        db.session.close()
+
+        return completion
+    except Exception as e:
+        if self.request.retries < self.max_retries:
+            self.retry(exc=e)
+        else:
+            db.session.rollback()
+            original_title = prospect.title + ""
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            prospect.colloquialized_title = prospect.title
+            prospect.original_title = original_title
+            db.session.add(prospect)
+            db.session.commit()
+
+
+@celery.task(bind=True, max_retries=3)
 def extract_colloquialized_company_name(self, prospect_id: int):
     try:
         prospect: Prospect = Prospect.query.get(prospect_id)
@@ -2795,7 +2864,8 @@ def extract_colloquialized_company_name(self, prospect_id: int):
         "How are things going at [[company_name]]"?
 
         IMPORTANT:
-        Only respond with the colloquialized name.  Nothing else.
+        - In your response, only include the colloquialized company name.  Nothing else.
+        - Do not include the example sentence in your response. Only the new company name.         
 
         Company Name: {company_name}
         Colloquialized:""".format(
@@ -2806,16 +2876,20 @@ def extract_colloquialized_company_name(self, prospect_id: int):
             messages=[{"role": "user", "content": prompt}]
         )
 
+        print("Completion: {}".format(completion))
+
         if (
             len(completion) > len(prospect.company)
             or "?" in completion
             or '"' in completion
             or not completion
         ):
-            raise Exception("Invalid response")
+            raise Exception("Invalid response: {}".format(completion))
 
+        original_company = prospect.company + ""
         prospect.colloquialized_company = completion
         prospect.company = completion
+        prospect.original_company = original_company
         db.session.add(prospect)
         db.session.commit()
 
@@ -2823,15 +2897,21 @@ def extract_colloquialized_company_name(self, prospect_id: int):
 
         return completion
     except Exception as e:
+        print(e)
         if self.request.retries < self.max_retries:
             self.retry(exc=e)
         else:
-            raise e
+            db.session.rollback()
+            original_company = prospect.company + ""
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            prospect.colloquialized_company = prospect.company
+            prospect.original_company = original_company
+            db.session.add(prospect)
+            db.session.commit()
 
 
 @celery.task
 def generate_prospect_upload_report(archetype_state: dict):
-
     archetype_id = archetype_state.get("archetype_id")
     client_id = archetype_state.get("client_id")
     client_sdr_id = archetype_state.get("client_sdr_id")
@@ -2841,29 +2921,32 @@ def generate_prospect_upload_report(archetype_state: dict):
     client: Client = Client.query.get(client_id)
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
 
-    results: list = Prospect.query.join(
-        Company, Company.id == Prospect.company_id
-    ).filter(
-        Prospect.client_sdr_id == client_sdr.id,
-        Prospect.archetype_id == archetype.id,
-        Prospect.id.notin_(current_prospect_ids),
-    ).add_columns(
-        Prospect.id,
-        Prospect.title,
-        Prospect.full_name,
-        Prospect.company,
-        Prospect.linkedin_url,
-        Company.employees
-    ).all()
+    results: list = (
+        Prospect.query.join(Company, Company.id == Prospect.company_id)
+        .filter(
+            Prospect.client_sdr_id == client_sdr.id,
+            Prospect.archetype_id == archetype.id,
+            Prospect.id.notin_(current_prospect_ids),
+        )
+        .add_columns(
+            Prospect.id,
+            Prospect.title,
+            Prospect.full_name,
+            Prospect.company,
+            Prospect.linkedin_url,
+            Company.employees,
+        )
+        .all()
+    )
 
     # Top 3 titles
     titles = [result.title for result in results]
     title_counts = Counter(titles)
-    top_titles_str = ', '.join(title for title, count in title_counts.most_common(3))
+    top_titles_str = ", ".join(title for title, count in title_counts.most_common(3))
 
     # Stats on company size
     employee_counts = [result.employees for result in results]
-    #company_size_str = f"{min(employee_counts):,} - {max(employee_counts):,}, median {round(statistics.median(employee_counts)):,}"
+    # company_size_str = f"{min(employee_counts):,} - {max(employee_counts):,}, median {round(statistics.median(employee_counts)):,}"
     company_size_str = f"{round(statistics.median(employee_counts)):,}"
 
     # Pull the example profiles from prospects with a title in the top 10
@@ -2872,8 +2955,10 @@ def generate_prospect_upload_report(archetype_state: dict):
     random.shuffle(results)
     for result in results:
         if any(result.title == title for title, count in top_10_titles):
-            example_profiles.append(f"<https://www.{result.linkedin_url}|{result.full_name} ({result.title} @ {result.company})>")
-    example_profiles_str = ', '.join(example_profiles[:3])
+            example_profiles.append(
+                f"<https://www.{result.linkedin_url}|{result.full_name} ({result.title} @ {result.company})>"
+            )
+    example_profiles_str = ", ".join(example_profiles[:3])
 
     try:
         send_slack_message(
@@ -2958,6 +3043,7 @@ def generate_prospect_upload_report(archetype_state: dict):
 
     return True
 
+
 def global_prospected_contacts(client_id: int):
     """
     Returns a list of all prospects that have been prospected but not yet approved for outreach for a given client.
@@ -2981,7 +3067,9 @@ def global_prospected_contacts(client_id: int):
             and prospect.overall_status = 'PROSPECTED'
             and prospect.approved_prospect_email_id is null
             and prospect.approved_outreach_message_id is null;
-    """.format(client_id=client_id)
+    """.format(
+        client_id=client_id
+    )
 
     results = db.session.execute(query).fetchall()
 
@@ -2995,10 +3083,11 @@ def global_prospected_contacts(client_id: int):
         6: "outreach_status",
         7: "persona",
         8: "user_name",
-        9: "date_uploaded"
+        9: "date_uploaded",
     }
 
     return [dict(zip(entries.values(), result)) for result in results]
+
 
 def move_prospect_to_persona(
     client_sdr_id: int, prospect_ids: list[int], new_archetype_id: int
@@ -3006,7 +3095,7 @@ def move_prospect_to_persona(
     archetype: ClientArchetype = ClientArchetype.query.get(new_archetype_id)
     if not archetype:
         return False
-    
+
     new_client_sdr_id = archetype.client_sdr_id
 
     prospects: list[Prospect] = Prospect.query.filter(
@@ -3025,6 +3114,7 @@ def move_prospect_to_persona(
     db.session.commit()
 
     return True
+
 
 def bulk_mark_not_qualified(client_sdr_id: int, prospect_ids: list[int]):
     prospects: list[Prospect] = Prospect.query.filter(
