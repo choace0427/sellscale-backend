@@ -743,8 +743,16 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
 
     name = prospect.full_name
     industry = prospect.industry
-    title = prospect.title
-    company = prospect.company
+    title = (
+        prospect.colloquialized_title
+        if prospect.colloquialized_title
+        else prospect.title
+    )
+    company = (
+        prospect.colloquialized_company
+        if prospect.colloquialized_company
+        else prospect.company
+    )
     additional_instructions = bump_framework.human_feedback
     template = bump_framework.description
 
@@ -1861,8 +1869,16 @@ def ai_initial_li_msg_prompt(
 
     name = prospect.full_name
     industry = prospect.industry
-    title = prospect.title
-    company = prospect.company
+    title = (
+        prospect.colloquialized_title
+        if prospect.colloquialized_title
+        else prospect.title
+    )
+    company = (
+        prospect.colloquialized_company
+        if prospect.colloquialized_company
+        else prospect.company
+    )
     notes = "\n".join([point.get("value") for point in found_points])
 
     # parts = prompt.split("<>")
