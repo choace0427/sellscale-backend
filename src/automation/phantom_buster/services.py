@@ -66,6 +66,26 @@ def get_sales_navigator_launches(
     return [launch.to_dict() for launch in launches]
 
 
+def reset_sales_navigator_launch(
+    launch_id: int,
+    client_sdr_id: int,
+):
+    launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+    )
+
+    if launch.client_sdr_id != client_sdr_id:
+        return False, "Invalid access"
+
+    launch.status = SalesNavigatorLaunchStatus.QUEUED
+    launch.pb_container_id = None
+    launch.result_raw = None
+    launch.result_processed = None
+    launch.error_message = None
+    launch.launch_date = None
+    db.session.commit()
+
+
 def get_sales_navigator_launch_result(
     client_sdr_id: int, launch_id: int
 ) -> tuple[list, list]:
@@ -313,18 +333,17 @@ def collect_and_load_sales_navigator_results(self) -> None:
                 webhook_urls=[URL_MAP["csm-individuals"]],
             )
 
-            if launch.process_type == 'individual':
+            if launch.process_type == "individual":
                 # Upload individuals to SellScale
                 trigger_upload_individuals_job_from_linkedin_sales_nav_scrape(launch_id)
 
-            elif launch.process_type == 'prospect' or launch.process_type is None:
+            elif launch.process_type == "prospect" or launch.process_type is None:
                 # Upload prospects to SellScale
                 # TODO - disabled for now due to race condition bug
                 # trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(launch_id)
                 pass
 
     return
-
 
 
 def trigger_upload_individuals_job_from_linkedin_sales_nav_scrape(
