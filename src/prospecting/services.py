@@ -2815,6 +2815,7 @@ def extract_colloquialized_company_name(self, prospect_id: int):
             raise Exception("Invalid response")
 
         prospect.colloquialized_company = completion
+        prospect.company = completion
         db.session.add(prospect)
         db.session.commit()
 
