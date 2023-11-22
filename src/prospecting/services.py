@@ -2822,7 +2822,6 @@ def extract_colloquialized_prospect_title(self, prospect_id: int):
 
         original_title = prospect.title + ""
         prospect.colloquialized_title = completion
-        prospect.title = completion
         prospect.original_title = original_title
         db.session.add(prospect)
         db.session.commit()
@@ -2888,7 +2887,6 @@ def extract_colloquialized_company_name(self, prospect_id: int):
 
         original_company = prospect.company + ""
         prospect.colloquialized_company = completion
-        prospect.company = completion
         prospect.original_company = original_company
         db.session.add(prospect)
         db.session.commit()
