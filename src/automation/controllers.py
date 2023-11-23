@@ -73,13 +73,12 @@ def configure_phantom_agents():
         "linkedin_session_cookie", request, json=True, required=True
     )
 
-    inbox_scraper_pb_config, auto_connect_pb_config = create_new_auto_connect_phantom(
+    auto_connect_pb_config = create_new_auto_connect_phantom(
         client_sdr_id=client_sdr_id, linkedin_session_cookie=linkedin_session_cookie
     )
 
     return jsonify(
         {
-            "inbox_scraper_pb_config": inbox_scraper_pb_config,
             "auto_connect_pb_config": auto_connect_pb_config,
         }
     )

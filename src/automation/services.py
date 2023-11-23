@@ -365,36 +365,14 @@ def create_new_auto_connect_phantom(client_sdr_id: int, linkedin_session_cookie:
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return None, None
-    client_sdr_name = client_sdr.name
     client_sdr.li_at_token = linkedin_session_cookie
     client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
     client_id = client.id
-    company_name = client.company
 
-    inbox_scraper_agent_id, inbox_scraper_agent_name = create_inbox_scraper_agent(
-        client_sdr_id, linkedin_session_cookie
-    )
     auto_connect_agent_id, auto_connect_agent_name = create_auto_connect_agent(
         client_sdr_id, linkedin_session_cookie
     )
 
-    agent_groups = get_all_agent_groups()
-    agent_groups.append(
-        {
-            "id": "{} - {}".format(company_name, client_sdr_name),
-            "name": "{} - {}".format(company_name, client_sdr_name),
-            "agents": [inbox_scraper_agent_id, auto_connect_agent_id],
-        }
-    )
-    success = save_agent_groups(agent_groups)
-
-    inbox_scraper_pb_config = create_phantom_buster_config(
-        client_id=client_id,
-        client_sdr_id=client_sdr_id,
-        phantom_name=inbox_scraper_agent_name,
-        phantom_uuid=inbox_scraper_agent_id,
-        phantom_type=PhantomBusterType.INBOX_SCRAPER,
-    )
     auto_connect_pb_config = create_phantom_buster_config(
         client_id=client_id,
         client_sdr_id=client_sdr_id,
@@ -403,7 +381,7 @@ def create_new_auto_connect_phantom(client_sdr_id: int, linkedin_session_cookie:
         phantom_type=PhantomBusterType.OUTBOUND_ENGINE,
     )
 
-    return inbox_scraper_pb_config, auto_connect_pb_config
+    return auto_connect_pb_config
 
 
 def get_all_phantom_buster_ids():
