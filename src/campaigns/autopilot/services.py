@@ -499,7 +499,7 @@ def auto_send_campaign(campaign_id: int):
     #     return False
       
     # Check if 75% of the messages have been approved
-    num_approved = len([message for message in messages if message.message_status == GeneratedMessageStatus.APPROVED])
+    num_approved = len([message for message in messages if message.ai_approved])
     if num_approved / len(messages) < SUCCESS_THRESHOLD:
         send_slack_message(
             f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: >{(1-SUCCESS_THRESHOLD)*100}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
@@ -509,10 +509,10 @@ def auto_send_campaign(campaign_id: int):
       
 
     # Remove prospects that aren't approved
-    campaign.prospect_ids = [message.prospect_id for message in messages if message.message_status == GeneratedMessageStatus.APPROVED]
+    campaign.prospect_ids = [message.prospect_id for message in messages if message.ai_approved]
     db.session.commit()
     
-    invalid_prospect_ids: list[int] = [message.prospect_id for message in messages if message.message_status != GeneratedMessageStatus.APPROVED]
+    invalid_prospect_ids: list[int] = [message.prospect_id for message in messages if not message.ai_approved]
     from src.research.linkedin.services import reset_batch_of_prospect_research_and_messages
     reset_batch_of_prospect_research_and_messages(invalid_prospect_ids)
     
