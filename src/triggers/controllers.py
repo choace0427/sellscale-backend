@@ -16,8 +16,8 @@ def index():
 @TRIGGERS_BLUEPRINT.route("/all", methods=["GET"])
 @require_user
 def get_triggers(client_sdr_id: int):
-    triggers: list = Trigger.query.filter_by(client_sdr_id=client_sdr_id).all()
-    return {"triggers": [trigger.to_dict() for trigger in triggers]}, 200
+    triggers: list[Trigger] = Trigger.query.filter_by(client_sdr_id=client_sdr_id).all()
+    return {"triggers": [trigger.to_dict(True) for trigger in triggers]}, 200
 
 
 @TRIGGERS_BLUEPRINT.route("/trigger/<int:trigger_id>", methods=["GET"])

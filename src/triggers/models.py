@@ -55,6 +55,16 @@ class Trigger(db.Model):
             if archetype:
                 retval["client_archetype"] = archetype.to_dict()
 
+            num_prospects_scraped = (
+                TriggerProspect.query.join(TriggerRun)
+                .filter(TriggerRun.trigger_id == self.id)
+                .all()
+            )
+            retval["num_prospects_scraped"] = len(num_prospects_scraped)
+            retval["num_prospect_companies"] = len(
+                list(set([prospect.company for prospect in num_prospects_scraped]))
+            )
+
         return retval
 
 
