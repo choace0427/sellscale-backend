@@ -404,9 +404,15 @@ def create_client_archetype(
     client: Client = Client.query.get(client_id)
     webhook_url: str = client.pipeline_notifications_webhook_url
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    campaign_url = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token=" + client_sdr.auth_token + "&redirect=campaigns"
+    campaign_url = (
+        "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+        + client_sdr.auth_token
+        + "&redirect=campaigns"
+    )
     send_slack_message(
-        message=f"*⭐️ New campaign created*\nSellScale AI just created a new campaign for *{archetype}*.\n> User: *{client_sdr.name}*\n_Finding new prospects shortly_. <" + campaign_url + "|View Campaign →>",
+        message=f"*⭐️ New campaign created*\nSellScale AI just created a new campaign for *{archetype}*.\n> User: *{client_sdr.name}*\n_Finding new prospects shortly_. <"
+        + campaign_url
+        + "|View Campaign →>",
         webhook_urls=[webhook_url],
     )
 
@@ -519,6 +525,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
     if not c:
         return None
 
+    print("Creating client sdr")
     sdr = ClientSDR(
         client_id=client_id,
         name=name,
@@ -544,7 +551,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
         do_not_contact_industries=[],
         do_not_contact_location_keywords=[],
         do_not_contact_titles=[],
-        do_not_contact_prospect_location_keywords=[]
+        do_not_contact_prospect_location_keywords=[],
     )
     db.session.add(sdr)
     db.session.commit()
@@ -553,32 +560,22 @@ def create_client_sdr(client_id: int, name: str, email: str):
     sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     sdr.regenerate_uuid()
 
+    print("Creating unassigned contacts archetype")
     create_sight_onboarding(sdr.id)
+
+    print("Creating unassigned contacts archetype")
     create_unassigned_contacts_archetype(sdr.id)
 
+    print("Creating default bump frameworks")
     create_sdr_email_bank(
         client_sdr_id=sdr.id,
         email_address=email,
         email_type=EmailType.ANCHOR,
     )
 
+    print("Creating default bump frameworks")
     # Load SLA schedules (will be generated with warmup SLA values)
     load_sla_schedules(sdr.id)
-
-    # Create a default persona for them
-    # result = create_client_archetype(
-    #     client_id=client_id,
-    #     client_sdr_id=sdr.id,
-    #     archetype="Default Persona",
-    #     filters=None,
-    #     base_archetype_id=None,
-    #     disable_ai_after_prospect_engaged=False,
-    #     persona_fit_reason="",
-    #     icp_matching_prompt="",
-    #     persona_contact_objective="",
-    #     is_unassigned_contact_archetype=False,
-    #     active=True,
-    # )
 
     return {"client_sdr_id": sdr.id}
 
@@ -1393,7 +1390,6 @@ def nylas_account_details(client_sdr_id: int):
 
 
 def get_nylas_all_events(client_sdr_id: int):
-
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     response = requests.get(
         # Only events in the next 70 days
@@ -1413,7 +1409,6 @@ def get_nylas_all_events(client_sdr_id: int):
 
 
 def get_nylas_single_event(client_sdr_id: int, nylas_event_id: str):
-
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     response = requests.get(
         # Only events in the next 70 days
@@ -1464,7 +1459,6 @@ def find_sdr_events(client_sdr_id: int) -> List[ProspectEvent]:
 
 
 def find_prospect_events(client_sdr_id: int, prospect_id: int):
-
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id or not prospect.email:
         return None
@@ -1495,7 +1489,6 @@ def find_prospect_events(client_sdr_id: int, prospect_id: int):
 
 
 def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
-
     sdr: ClientSDR = ClientSDR.query.filter_by(
         nylas_account_id=nylas_account_id
     ).first()
@@ -1538,7 +1531,6 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
         db.session.commit()
 
     else:
-
         prospect_id = get_prospect_id_from_nylas_event(sdr.id, event)
         if not prospect_id:
             return False
@@ -1570,7 +1562,6 @@ def populate_single_prospect_event(nylas_account_id: str, nylas_event_id: str):
 
 
 def get_prospect_id_from_nylas_event(client_sdr_id, nylas_event):
-
     event_str = json.dumps(nylas_event)
     prospects: List[Prospect] = Prospect.query.filter_by(
         client_sdr_id=client_sdr_id
@@ -1594,7 +1585,6 @@ def get_prospect_id_from_nylas_event(client_sdr_id, nylas_event):
 
 
 def populate_prospect_events(client_sdr_id: int, prospect_id: int):
-
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr.auto_calendar_sync:
         return 0, 0
@@ -1608,7 +1598,6 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
     calendar_events = find_prospect_events(client_sdr_id, prospect_id) or []
     soonest_event = None
     for event in calendar_events:
-
         # Find soonest event
         if soonest_event:
             s_start_time, s_end_time = convert_nylas_date(soonest_event)
@@ -1627,7 +1616,6 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
 
         # Check if event already exists
         if event.get("id") in [x.nylas_event_id for x in prospect_events]:
-
             # Update existing event
             existing_event = next(
                 (e for e in prospect_events if e.nylas_event_id == event.get("id")),
@@ -1652,7 +1640,6 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
                 updated_count += 1
 
         else:
-
             start_time, end_time = convert_nylas_date(event)
 
             prospect_event = ProspectEvent(
@@ -1688,7 +1675,6 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
 
 
 def convert_nylas_date(event):
-
     start_time = event.get("when", {}).get("start_time", 0)
     end_time = event.get("when", {}).get("end_time", 0)
     if event.get("when", {}).get("date"):
@@ -1713,7 +1699,6 @@ def convert_nylas_date(event):
 
 
 def get_sdr_calendar_availability(client_sdr_id: int, start_time: int, end_time: int):
-
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     response = requests.post(
         "https://api.nylas.com/calendars/free-busy",
@@ -2473,47 +2458,50 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
 
     prospects_with_locations: list = (
-        Prospect.query
-            .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
-            .join(Company, Individual.company_id == Company.id)         # Join with Company
-            .add_columns(Individual.location.cast(String).label("individual_location"), Company.locations.cast(String).label("company_location"))
-            .filter(
-                Prospect.client_id == client_id,
-                Prospect.overall_status.in_(allStatuses),
-                or_(
-                    *(
-                        [
-                            Prospect.company.ilike(f"%{company}%")
-                            for company in client.do_not_contact_company_names
-                        ]
-                        + [
-                            Prospect.company.ilike(f"%{keyword}%")
-                            for keyword in client.do_not_contact_keywords_in_company_names
-                        ]
-                        + [
-                            Prospect.industry.ilike(f"%{industry}%")
-                            for industry in client.do_not_contact_industries or []
-                        ]
-                        + [
-                            Prospect.title.ilike(f"%{title}%")
-                            for title in client.do_not_contact_titles or []
-                        ]
-                        + [
-                            cast(Company.locations, String).ilike(f"%{location}%")
-                            for location in client.do_not_contact_location_keywords or []
-                        ]
-                        + [
-                            cast(Individual.location, String).ilike(f"%{location}%")
-                            for location in client.do_not_contact_prospect_location_keywords or []
-                        ]
-                    )
-                ),
-            )
-            .limit(500)
-            .all()
+        Prospect.query.join(
+            Individual, Prospect.individual_id == Individual.id
+        )  # Join with Individual
+        .join(Company, Individual.company_id == Company.id)  # Join with Company
+        .add_columns(
+            Individual.location.cast(String).label("individual_location"),
+            Company.locations.cast(String).label("company_location"),
+        )
+        .filter(
+            Prospect.client_id == client_id,
+            Prospect.overall_status.in_(allStatuses),
+            or_(
+                *(
+                    [
+                        Prospect.company.ilike(f"%{company}%")
+                        for company in client.do_not_contact_company_names
+                    ]
+                    + [
+                        Prospect.company.ilike(f"%{keyword}%")
+                        for keyword in client.do_not_contact_keywords_in_company_names
+                    ]
+                    + [
+                        Prospect.industry.ilike(f"%{industry}%")
+                        for industry in client.do_not_contact_industries or []
+                    ]
+                    + [
+                        Prospect.title.ilike(f"%{title}%")
+                        for title in client.do_not_contact_titles or []
+                    ]
+                    + [
+                        cast(Company.locations, String).ilike(f"%{location}%")
+                        for location in client.do_not_contact_location_keywords or []
+                    ]
+                    + [
+                        cast(Individual.location, String).ilike(f"%{location}%")
+                        for location in client.do_not_contact_prospect_location_keywords
+                        or []
+                    ]
+                )
+            ),
+        )
+        .limit(500)
+        .all()
     )
-
-
 
     # add another column to every entry called 'matched filter' and set it to the filter(s) that matched in an array.
     #   also mentioned which specific word matched
@@ -2548,12 +2536,18 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
                     matched_filter_words.append("Title: " + title)
         if client.do_not_contact_location_keywords:
             for location in client.do_not_contact_location_keywords:
-                if prospect_dict["company_location"] and location.lower() in prospect_dict["company_location"].lower():
+                if (
+                    prospect_dict["company_location"]
+                    and location.lower() in prospect_dict["company_location"].lower()
+                ):
                     matched_filters.append("Location")
                     matched_filter_words.append("Company Location: " + location)
         if client.do_not_contact_prospect_location_keywords:
             for location in client.do_not_contact_prospect_location_keywords:
-                if prospect_dict["individual_location"] and location.lower() in prospect_dict["individual_location"].lower():
+                if (
+                    prospect_dict["individual_location"]
+                    and location.lower() in prospect_dict["individual_location"].lower()
+                ):
                     matched_filters.append("Prospect Location")
                     matched_filter_words.append("Prospect Location: " + location)
         prospect_dict["matched_filters"] = matched_filters
@@ -2562,7 +2556,6 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         prospect_dicts.append(prospect_dict)
 
     return prospect_dicts
-
 
 
 def remove_prospects_caught_by_client_filters(client_sdr_id: int):
@@ -2611,44 +2604,50 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
     allStatuses.remove(ProspectOverallStatus.REMOVED.name)
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
     prospects_with_locations: list = (
-        Prospect.query
-            .join(Individual, Prospect.individual_id == Individual.id)  # Join with Individual
-            .join(Company, Individual.company_id == Company.id)         # Join with Company
-            .add_columns(Individual.location.cast(String).label("individual_location"), Company.locations.cast(String).label("company_location"))
-            .filter(
-                Prospect.client_sdr_id == client_sdr_id,
-                Prospect.overall_status.in_(allStatuses),
-                or_(
-                    *(
-                        [
-                            Prospect.company.ilike(f"%{company}%")
-                            for company in client_sdr.do_not_contact_company_names
-                        ]
-                        + [
-                            Prospect.company.ilike(f"%{keyword}%")
-                            for keyword in client_sdr.do_not_contact_keywords_in_company_names
-                        ]
-                        + [
-                            Prospect.industry.ilike(f"%{industry}%")
-                            for industry in client_sdr.do_not_contact_industries or []
-                        ]
-                        + [
-                            Prospect.title.ilike(f"%{title}%")
-                            for title in client_sdr.do_not_contact_titles or []
-                        ]
-                        + [
-                            cast(Company.locations, String).ilike(f"%{location}%")
-                            for location in client_sdr.do_not_contact_location_keywords or []
-                        ]
-                        + [
-                            cast(Individual.location, String).ilike(f"%{location}%")
-                            for location in client_sdr.do_not_contact_prospect_location_keywords or []
-                        ]
-                    )
-                ),
-            )
-            .limit(500)
-            .all()
+        Prospect.query.join(
+            Individual, Prospect.individual_id == Individual.id
+        )  # Join with Individual
+        .join(Company, Individual.company_id == Company.id)  # Join with Company
+        .add_columns(
+            Individual.location.cast(String).label("individual_location"),
+            Company.locations.cast(String).label("company_location"),
+        )
+        .filter(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.overall_status.in_(allStatuses),
+            or_(
+                *(
+                    [
+                        Prospect.company.ilike(f"%{company}%")
+                        for company in client_sdr.do_not_contact_company_names
+                    ]
+                    + [
+                        Prospect.company.ilike(f"%{keyword}%")
+                        for keyword in client_sdr.do_not_contact_keywords_in_company_names
+                    ]
+                    + [
+                        Prospect.industry.ilike(f"%{industry}%")
+                        for industry in client_sdr.do_not_contact_industries or []
+                    ]
+                    + [
+                        Prospect.title.ilike(f"%{title}%")
+                        for title in client_sdr.do_not_contact_titles or []
+                    ]
+                    + [
+                        cast(Company.locations, String).ilike(f"%{location}%")
+                        for location in client_sdr.do_not_contact_location_keywords
+                        or []
+                    ]
+                    + [
+                        cast(Individual.location, String).ilike(f"%{location}%")
+                        for location in client_sdr.do_not_contact_prospect_location_keywords
+                        or []
+                    ]
+                )
+            ),
+        )
+        .limit(500)
+        .all()
     )
 
     # add another column to every entry called 'matched filter' and set it to the filter(s) that matched in an array.
@@ -2683,12 +2682,18 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
                     matched_filter_words.append(title)
         if client_sdr.do_not_contact_location_keywords:
             for location in client_sdr.do_not_contact_location_keywords:
-                if prospect_dict["company_location"] and location.lower() in prospect_dict["company_location"].lower():
+                if (
+                    prospect_dict["company_location"]
+                    and location.lower() in prospect_dict["company_location"].lower()
+                ):
                     matched_filters.append("Location")
                     matched_filter_words.append(location)
         if client_sdr.do_not_contact_prospect_location_keywords:
             for location in client_sdr.do_not_contact_prospect_location_keywords:
-                if prospect_dict["individual_location"] and location.lower() in prospect_dict["individual_location"].lower():
+                if (
+                    prospect_dict["individual_location"]
+                    and location.lower() in prospect_dict["individual_location"].lower()
+                ):
                     matched_filters.append("Prospect Location")
                     matched_filter_words.append(location)
         prospect_dict["matched_filters"] = matched_filters
@@ -3071,7 +3076,6 @@ def update_client_sdr_supersight_link(client_id: int, super_sight_link: str):
 
 
 def onboarding_setup_completion_report(client_sdr_id: int):
-
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(sdr.client_id)
 
@@ -3196,7 +3200,6 @@ def get_persona_setup_status_map_for_persona(persona_id: int):
 
 
 def get_client_sdr_table_info(client_sdr_id: int):
-
     query = f"""
       select
         client_sdr.name "SDR Name",

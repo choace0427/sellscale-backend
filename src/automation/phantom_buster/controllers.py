@@ -8,6 +8,7 @@ from src.automation.phantom_buster.services import (
     get_sales_navigator_launch_result,
     get_sales_navigator_launches,
     register_phantom_buster_sales_navigator_url,
+    reset_sales_navigator_launch,
 )
 from src.utils.converters.dictionary_converters import dictionary_normalization
 
@@ -86,6 +87,23 @@ def post_sales_navigator_launch(client_sdr_id):
         )
 
     return jsonify({"status": "success", "message": "Launch registered"}), 200
+
+
+@PHANTOM_BUSTER_BLUEPRINT.route(
+    "/sales_navigator/launch/<int:launch_id>/reset", methods=["POST"]
+)
+@require_user
+def reset_sales_navigator_launch_endpoint(client_sdr_id: int, launch_id: int):
+    """Resets the specific launch data for a given launch ID"""
+    launch: PhantomBusterSalesNavigatorLaunch = (
+        PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+    )
+    if launch.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    reset_sales_navigator_launch(launch_id=launch_id, client_sdr_id=client_sdr_id)
+
+    return jsonify({"status": "success", "message": "Launch reset"}), 200
 
 
 @PHANTOM_BUSTER_BLUEPRINT.route(

@@ -30,16 +30,20 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
 
     # Create the default bump frameworks
     templates: list[BumpFrameworkTemplates] = BumpFrameworkTemplates.query.all()
-    
+
     for template in templates:
         create_bump_framework(
             client_sdr_id=client_sdr_id,
             client_archetype_id=client_archetype_id,
             title=template.name,
             description=template.raw_prompt,
-            overall_status=template.overall_statuses[0] if len(template.overall_statuses) > 0 else None,
+            overall_status=template.overall_statuses[0]
+            if template.overall_statuses and len(template.overall_statuses) > 0
+            else None,
             length=template.length,
-            bumped_count=template.bumped_counts[0] if len(template.bumped_counts) > 0 else None,
+            bumped_count=template.bumped_counts[0]
+            if template.bumped_counts and len(template.bumped_counts) > 0
+            else None,
             active=True,
             substatus=None,
             default=True,
