@@ -502,10 +502,9 @@ def auto_send_campaign(campaign_id: int):
     num_approved = len([message for message in messages if message.ai_approved])
     if num_approved / len(messages) < SUCCESS_THRESHOLD:
         send_slack_message(
-            f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: >{(1-SUCCESS_THRESHOLD)*100}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
+            f"🟡 Campaign #{campaign.id} warning for {sdr.name} for the `{archetype.archetype}` persona.\nReason: >{(1-SUCCESS_THRESHOLD)*100}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
             [URL_MAP["ops-auto-send-campaign"]],
         )
-        return False
       
 
     # Remove prospects that aren't approved
@@ -522,3 +521,37 @@ def auto_send_campaign(campaign_id: int):
     return True
     
     
+def auto_send_all_campaigns():
+  
+    query = f"""
+with d as (
+	SELECT
+		s.name sdr_name,
+		c.id campaign_id,
+		c.name campaign_name,
+		c.status campaign_status,
+		c.campaign_start_date generation_date,
+		c.campaign_end_date approval_date,
+		c.prospect_ids prospect_ids,
+		c.uuid campaign_uuid,
+		count(array_length(g.problems, 1) > 0)
+	FROM
+		outbound_campaign AS c
+		LEFT JOIN client_sdr AS s ON c.client_sdr_id = s.id
+		LEFT JOIN generated_message AS g ON g.prospect_id = ANY (c.prospect_ids)
+	WHERE
+		c.is_daily_generation = TRUE
+		AND c.status <> 'COMPLETE'
+		AND g.message_status = 'APPROVED'
+	GROUP BY
+		1,
+		2
+) select array_agg(campaign_id) from d;
+    """
+    
+    campaign_ids = db.session.execute(query).fetchone()[0]
+    for campaign_id in campaign_ids:
+        print(f"Sending campaign #{campaign_id}...")
+        auto_send_campaign(campaign_id)
+        
+    return True
