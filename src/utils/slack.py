@@ -46,6 +46,7 @@ URL_MAP = {
     "operations-icrawler": "https://hooks.slack.com/services/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",
     "ops-outbound-warming": "https://hooks.slack.com/services/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",
     "ops-auto-send-campaign": "https://hooks.slack.com/services/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",
+    "csm-drywall": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {

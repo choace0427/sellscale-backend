@@ -1,7 +1,9 @@
-from app import db
+import datetime
+from app import db, celery
 from src.utils.slack import URL_MAP, send_slack_message
 
 
+@celery.task(name="drywall_notification")
 def notify_clients_with_no_updates():
     # SQL Query
     sql = """
@@ -36,27 +38,41 @@ def notify_clients_with_no_updates():
     if not clients:
         return "No clients with no updates in the last 24 hours."
 
-    # Format Message
-    message_lines = [
-        "*Attention: These clients have had no updates in the last 24 hours*"
-    ]
-    for company, hours_since_last_ping in clients:
-        message_lines.append(f"- {company}: {hours_since_last_ping}")
+    message_header = (
+        "*Attention: These clients have had no updates in the last 24 hours on: "
+        + datetime.datetime.now().strftime("%m/%d/%Y")
+        + "*"
+    )
 
-    message = "\n".join(message_lines)
-
-    # Send Slack Notification
     send_slack_message(
-        message=message,
-        webhook_urls=[URL_MAP["eng-sandbox"]],
+        message=message_header,
+        webhook_urls=[URL_MAP["csm-drywall"]],
         blocks=[
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": message,
+                    "text": message_header,
                 },
             }
         ],
     )
+
+    for company, hours_since_last_ping in clients:
+        update = f"- {company}: {hours_since_last_ping}"
+
+        send_slack_message(
+            message=update,
+            webhook_urls=[URL_MAP["csm-drywall"]],
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": update,
+                    },
+                }
+            ],
+        )
+
     return "Notification sent successfully."

@@ -380,6 +380,15 @@ def run_daily_collect_and_generate_campaigns_for_sdr():
         daily_collect_and_generate_campaigns_for_sdr.delay()
 
 
+def run_daily_drywall_notifications():
+    from src.analytics.drywall_notification import notify_clients_with_no_updates
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        notify_clients_with_no_updates.delay()
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
@@ -447,6 +456,7 @@ scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 scheduler.add_job(
     run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger
 )
+scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
