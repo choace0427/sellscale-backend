@@ -220,3 +220,13 @@ def whisper_analysis():
             "analyzed_transcript": response,
         }
     )
+
+
+@AUTOMATION_BLUEPRINT.route("/send_resend_email", methods=["POST"])
+def send_resend_email():
+    from src.automation.resend import send_email
+
+    html = get_request_parameter("html", request, json=True, required=True)
+
+    send_email(html=html)
+    return "OK", 200
