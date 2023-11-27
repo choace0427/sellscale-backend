@@ -1084,10 +1084,10 @@ VALID_NEXT_LINKEDIN_STATUSES = {
     ProspectStatus.DEMO_SET: [
         ProspectStatus.DEMO_WON,
         ProspectStatus.DEMO_LOSS,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
     ],
     ProspectStatus.NOT_INTERESTED: [
         ProspectStatus.ACTIVE_CONVO,
-        # ProspectStatus.SCHEDULING,
         ProspectStatus.DEMO_SET,
         ProspectStatus.NOT_QUALIFIED,
     ],
