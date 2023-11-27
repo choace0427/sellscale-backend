@@ -3057,14 +3057,15 @@ def global_prospected_contacts(client_id: int):
             prospect.status "outreach_status",
             client_archetype.archetype "persona",
             client_sdr.name "user_name",
-            prospect.created_at "date_uploaded"
+            prospect.created_at "date_uploaded",
+            prospect.overall_status "overall_status"
         from prospect
             join client_archetype on client_archetype.id = prospect.archetype_id
             join client_sdr on client_sdr.id = prospect.client_sdr_id
         where prospect.client_id = {client_id}
             and prospect.overall_status = 'PROSPECTED'
             and prospect.approved_prospect_email_id is null
-            and prospect.approved_outreach_message_id is null;
+            and prospect.approved_outreach_message_id is null
     """.format(
         client_id=client_id
     )
@@ -3082,6 +3083,7 @@ def global_prospected_contacts(client_id: int):
         7: "persona",
         8: "user_name",
         9: "date_uploaded",
+        10: "overall_status",
     }
 
     return [dict(zip(entries.values(), result)) for result in results]
