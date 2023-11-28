@@ -10,6 +10,7 @@ from src.prospecting.services import (
     move_prospect_to_persona,
     patch_prospect,
     prospect_removal_check_from_csv_payload,
+    send_attempting_reschedule_notification,
 )
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
@@ -59,7 +60,7 @@ from src.prospecting.services import (
     get_li_message_from_contents,
     add_prospect_message_feedback,
     extract_colloquialized_company_name,
-    extract_colloquialized_prospect_title
+    extract_colloquialized_prospect_title,
 )
 from src.prospecting.prospect_status_services import (
     get_valid_next_prospect_statuses,
@@ -206,6 +207,21 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
         ),
         200,
     )
+
+
+@PROSPECTING_BLUEPRINT.route(
+    "/<prospect_id>/send_attempting_reschedule_notification", methods=["POST"]
+)
+@require_user
+def send_attempting_reschedule_notification_endpoint(
+    client_sdr_id: int, prospect_id: int
+):
+    """Send attempting reschedule notification"""
+    success = send_attempting_reschedule_notification(client_sdr_id, prospect_id)
+
+    if success:
+        return jsonify({"message": "Success"}), 200
+    return jsonify({"message": "Failed to update"}), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>", methods=["PATCH"])
@@ -411,7 +427,6 @@ def get_email_messages(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/email", methods=["POST"])
 @require_user
 def post_send_email(client_sdr_id: int, prospect_id: int):
-
     subject = get_request_parameter("subject", request, json=True, required=True)
     body = get_request_parameter("body", request, json=True, required=True)
     ai_generated = get_request_parameter(
@@ -451,7 +466,6 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/send_to_purgatory", methods=["POST"])
 @require_user
 def post_send_to_purgatory(client_sdr_id: int, prospect_id: int):
-
     days = get_request_parameter("days", request, json=False, required=True)
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
@@ -929,7 +943,9 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
         priority=1,
     )
 
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
     client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
 
     prospects: list[Prospect] = Prospect.query.filter(
@@ -939,14 +955,16 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
 
     # Schedule a job to generate a report for the prospect upload
     add_process_for_future(
-        type='generate_prospect_upload_report',
-        args={"archetype_state": {
-            "archetype_id": archetype.id,
-            "client_id": client.id,
-            "client_sdr_id": client_sdr.id,
-            "current_prospect_ids": [p.id for p in prospects],
-        }},
-        minutes=120,# 2 hours from now
+        type="generate_prospect_upload_report",
+        args={
+            "archetype_state": {
+                "archetype_id": archetype.id,
+                "client_id": client.id,
+                "client_sdr_id": client_sdr.id,
+                "current_prospect_ids": [p.id for p in prospects],
+            }
+        },
+        minutes=120,  # 2 hours from now
     )
 
     return "Upload job scheduled.", 200
@@ -1184,7 +1202,6 @@ def get_demo_date(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/li_history", methods=["GET"])
 @require_user
 def get_li_history(client_sdr_id: int, prospect_id: int):
-
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 404
@@ -1279,7 +1296,6 @@ def post_prospect_add_referral(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("/icp_fit", methods=["GET"])
 @require_user
 def get_icp_fit_for_archetype(client_sdr_id: int):
-
     archetype_id = get_request_parameter(
         "archetype_id", request, json=False, required=True, parameter_type=str
     )
@@ -1295,7 +1311,6 @@ def get_icp_fit_for_archetype(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/income_pipeline", methods=["GET"])
 @require_user
 def get_prospects_for_income_pipeline_endpoint(client_sdr_id: int):
-
     data = get_prospects_for_income_pipeline(client_sdr_id)
 
     return jsonify({"message": "Success", "data": data}), 200
@@ -1304,7 +1319,6 @@ def get_prospects_for_income_pipeline_endpoint(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/existing_contacts", methods=["POST"])
 @require_user
 def post_existing_contacts(client_sdr_id: int):
-
     existing_contacts = get_request_parameter(
         "data", request, json=True, required=True, parameter_type=list
     )
@@ -1360,7 +1374,6 @@ def post_existing_contacts(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/existing_contacts", methods=["GET"])
 @require_user
 def get_existing_contacts_endpoint(client_sdr_id: int):
-
     limit = get_request_parameter(
         "limit",
         request,
@@ -1407,7 +1420,6 @@ def get_existing_contacts_endpoint(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/existing_contacts/add_to_persona", methods=["POST"])
 @require_user
 def post_add_existing_contacts_to_persona(client_sdr_id: int):
-
     persona_id = get_request_parameter(
         "persona_id", request, json=True, required=True, parameter_type=int
     )
@@ -1452,7 +1464,6 @@ def post_prospect_removal_check(client_sdr_id: int):
 )
 @require_user
 def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
-
     content = get_request_parameter(
         "content", request, json=True, required=True, parameter_type=str
     )
@@ -1465,7 +1476,6 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<int:prospect_id>/li_msgs/", methods=["GET"])
 @require_user
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
-
     from model_import import LinkedinConversationEntry
 
     convo: List[
@@ -1478,7 +1488,6 @@ def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("<int:prospect_id>/msg_feedback/", methods=["POST"])
 @require_user
 def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
-
     li_msg_id = (
         get_request_parameter(
             "li_msg_id", request, json=True, required=False, parameter_type=int
@@ -1504,19 +1513,23 @@ def post_add_msg_feedback(client_sdr_id: int, prospect_id: int):
 
     return jsonify({"message": "Success", "data": feedback_id}), 200
 
+
 @PROSPECTING_BLUEPRINT.route("/global_contacts", methods=["GET"])
 @require_user
 def get_global_contacts(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
     if not client_sdr:
         return jsonify({"message": "Client SDR not found"}), 404
-    
+
     client_id: int = client_sdr.client_id
     contacts = global_prospected_contacts(
         client_id=client_id,
     )
 
     return jsonify({"message": "Success", "data": contacts}), 200
+
 
 @PROSPECTING_BLUEPRINT.route("/global_contacts/move_to_persona", methods=["POST"])
 @require_user
@@ -1535,6 +1548,7 @@ def post_move_global_contacts_to_persona(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success"}), 200
+
 
 @PROSPECTING_BLUEPRINT.route("/global_contacts/remove", methods=["POST"])
 @require_user

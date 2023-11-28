@@ -758,6 +758,93 @@ def update_prospect_status_linkedin(
     return True, "Success"
 
 
+def send_attempting_reschedule_notification(client_sdr_id: int, prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    if not prospect or not client_sdr or prospect.client_sdr_id != client_sdr.id:
+        return False
+
+    send_slack_message(
+        message="",
+        webhook_urls=[client.pipeline_notifications_webhook_url],
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "📅 Attempting to Reschedule Demo with {prospect_name}".format(
+                        prospect_name=prospect.full_name
+                    ),
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "SellScale has detected that {prospect_name} missed a scheduled meeting. We are attempting to reschedule the meeting.".format(
+                        prospect_name=prospect.full_name
+                    ),
+                },
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "plain_text",
+                        "text": "🧳 Title: "
+                        + str(prospect.title)
+                        + " @ "
+                        + str(prospect.company)[0:20]
+                        + ("..." if len(prospect.company) > 20 else ""),
+                        "emoji": True,
+                    },
+                    {
+                        "type": "plain_text",
+                        "text": "📌 SDR: " + client_sdr.name,
+                        "emoji": True,
+                    },
+                ],
+            },
+            # original demo date
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "📅 Original Demo Date: {demo_date}".format(
+                        demo_date=prospect.demo_date.strftime("%m/%d/%Y")
+                        if prospect.demo_date
+                        else "Unknown"
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": " ",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Prospect in Sight",
+                        "emoji": True,
+                    },
+                    "value": "click_me_123",
+                    "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                        auth_token=client_sdr.auth_token,
+                        prospect_id=prospect.id,
+                    ),
+                    "action_id": "button-action",
+                },
+            },
+        ],
+    )
+
+
 def update_prospect_status_linkedin_multi_step(
     prospect_id: int, statuses: list, override_status: bool = False
 ):
