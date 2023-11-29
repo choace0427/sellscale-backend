@@ -89,7 +89,7 @@ def runTrigger(trigger_id: int):
     
     pipeline_data = PipelineData([], [], {})
     for block in blocks:
-        pipeline_data = runBlock(trigger.client_sdr_id, trigger.client_archetype_id, trigger.keyword_blacklist, block, pipeline_data)
+        pipeline_data = runBlock(trigger.client_sdr_id, trigger.client_archetype_id, trigger.keyword_blacklist or [], block, pipeline_data)
     
     # Update blacklist, by removing old entries and adding new ones
     blacklist = trigger.keyword_blacklist or {}
