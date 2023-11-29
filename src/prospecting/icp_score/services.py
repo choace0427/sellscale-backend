@@ -921,7 +921,6 @@ def apply_icp_scoring_ruleset_filters(
         max_threads = 5
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-
             futures = []
             for (
                 prospect_id,
@@ -1095,10 +1094,9 @@ def move_selected_prospects_to_unassigned(prospect_ids: list[int]):
         db.session.close()
     else:
         for prospect in prospects:
-            move_prospect_to_unassigned.apply_async(
-                args=[prospect.id, client_sdr_unassigned_archetype.id],
-                queue="icp_scoring",
-                routing_key="icp_scoring",
+            move_prospect_to_unassigned.delay(
+                prospect_id=prospect.id,
+                client_sdr_unassigned_archetype_id=client_sdr_unassigned_archetype.id,
             )
 
     return True
@@ -1320,13 +1318,11 @@ def clone_icp_ruleset(source_archetype_id: int, target_archetype_id: int):
 
 
 def generate_new_icp_filters(client_archetype_id: int, message: str):
-    
     icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id
     ).first()
     if not icp_scoring_ruleset:
         return False
-    
 
     # Use message to improve the ICP scoring ruleset
     prompt = f"""
@@ -1358,7 +1354,6 @@ Company Generalized Keywords: {icp_scoring_ruleset.included_company_generalized_
 ## Updated Filters
 """
 
-
     response = get_text_generation(
         [
             {"role": "user", "content": prompt},
@@ -1376,19 +1371,48 @@ Company Generalized Keywords: {icp_scoring_ruleset.included_company_generalized_
 
     # Define the mapping of keys to attribute names in the ICPScoringRuleset class
     key_to_attribute = {
-        "Prospect Years of Experience": ("individual_years_of_experience_start", "individual_years_of_experience_end"),
+        "Prospect Years of Experience": (
+            "individual_years_of_experience_start",
+            "individual_years_of_experience_end",
+        ),
         "Company Size": ("company_size_start", "company_size_end"),
-        "Prospect Title Keywords": ("included_individual_title_keywords", "excluded_individual_title_keywords"),
-        "Prospect Industry Keywords": ("included_individual_industry_keywords", "excluded_individual_industry_keywords"),
-        "Prospect Location Keywords": ("included_individual_locations_keywords", "excluded_individual_locations_keywords"),
-        "Prospect Skills Keywords": ("included_individual_skills_keywords", "excluded_individual_skills_keywords"),
-        "Prospect Generalized Keywords": ("included_individual_generalized_keywords", "excluded_individual_generalized_keywords"),
-        "Company Name Keywords": ("included_company_name_keywords", "excluded_company_name_keywords"),
-        "Company Location Keywords": ("included_company_locations_keywords", "excluded_company_locations_keywords"),
-        "Company Industry Keywords": ("included_company_industries_keywords", "excluded_company_industries_keywords"),
-        "Company Generalized Keywords": ("included_company_generalized_keywords", "excluded_company_generalized_keywords"),
+        "Prospect Title Keywords": (
+            "included_individual_title_keywords",
+            "excluded_individual_title_keywords",
+        ),
+        "Prospect Industry Keywords": (
+            "included_individual_industry_keywords",
+            "excluded_individual_industry_keywords",
+        ),
+        "Prospect Location Keywords": (
+            "included_individual_locations_keywords",
+            "excluded_individual_locations_keywords",
+        ),
+        "Prospect Skills Keywords": (
+            "included_individual_skills_keywords",
+            "excluded_individual_skills_keywords",
+        ),
+        "Prospect Generalized Keywords": (
+            "included_individual_generalized_keywords",
+            "excluded_individual_generalized_keywords",
+        ),
+        "Company Name Keywords": (
+            "included_company_name_keywords",
+            "excluded_company_name_keywords",
+        ),
+        "Company Location Keywords": (
+            "included_company_locations_keywords",
+            "excluded_company_locations_keywords",
+        ),
+        "Company Industry Keywords": (
+            "included_company_industries_keywords",
+            "excluded_company_industries_keywords",
+        ),
+        "Company Generalized Keywords": (
+            "included_company_generalized_keywords",
+            "excluded_company_generalized_keywords",
+        ),
     }
-
 
     # Iterate over the lines and populate the icp_dict
     for line in lines:
@@ -1397,14 +1421,16 @@ Company Generalized Keywords: {icp_scoring_ruleset.included_company_generalized_
             attributes = key_to_attribute.get(key)
             if attributes:
                 # Split the values based on brackets and remove leading/trailing whitespace
-                values = [v.strip() for v in value.strip('[]').split(', ')]
+                values = [v.strip() for v in value.strip("[]").split(", ")]
                 if len(values) == 2:
                     start, end = values
                     try:
-                        icp_dict[attributes[0]] = int(
-                            start) if start and start != 'None' else None
-                        icp_dict[attributes[1]] = int(
-                            end) if end and end != 'None' else None
+                        icp_dict[attributes[0]] = (
+                            int(start) if start and start != "None" else None
+                        )
+                        icp_dict[attributes[1]] = (
+                            int(end) if end and end != "None" else None
+                        )
                     except ValueError:
                         icp_dict[attributes[0]] = None
                         icp_dict[attributes[1]] = None
@@ -1421,23 +1447,22 @@ Company Generalized Keywords: {icp_scoring_ruleset.included_company_generalized_
 
 
 def update_icp_filters(client_archetype_id: int, filters):
-    
     icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id
     ).first()
     if icp_scoring_ruleset:
         # Update the attributes with the values from icp_dict
         for key, value in filters.items():
-
-            if key == 'client_archetype_id':
+            if key == "client_archetype_id":
                 continue
 
-            if value == ['None'] or value == [''] or value == []:
+            if value == ["None"] or value == [""] or value == []:
                 setattr(icp_scoring_ruleset, key, None)
             else:
                 if isinstance(value, list):
-                    setattr(icp_scoring_ruleset, key, [
-                        s.replace('"', '') for s in value])
+                    setattr(
+                        icp_scoring_ruleset, key, [s.replace('"', "") for s in value]
+                    )
                 else:
                     setattr(icp_scoring_ruleset, key, value)
 
@@ -1447,5 +1472,3 @@ def update_icp_filters(client_archetype_id: int, filters):
         return True
     else:
         return False
-    
-
