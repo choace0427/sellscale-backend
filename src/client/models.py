@@ -22,6 +22,7 @@ class Client(db.Model):
     active = db.Column(db.Boolean, nullable=True)
 
     pipeline_notifications_webhook_url = db.Column(db.String, nullable=True)
+    last_slack_msg_date = db.Column(db.DateTime, nullable=True)
 
     notification_allowlist = db.Column(
         db.ARRAY(sa.Enum(ProspectStatus, create_constraint=False)),
@@ -164,13 +165,12 @@ class ClientArchetype(db.Model):
     template_mode = db.Column(db.Boolean, nullable=True)
 
     sent_activation_notification = db.Column(db.Boolean, nullable=True, default=False)
-    
+
     smartlead_campaign_id = db.Column(db.Integer, nullable=True)
-    
+
     meta_data = db.Column(db.JSON, nullable=True)
 
     def to_dict(self) -> dict:
-
         from src.message_generation.models import GeneratedMessageCTA
 
         ctas: list[

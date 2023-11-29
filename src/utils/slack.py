@@ -4,6 +4,7 @@ import linecache
 import sys
 import requests
 from datetime import datetime
+from model_import import Client
 
 URL_MAP = {
     "autodetect-scheduling": "https://hooks.slack.com/services/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",
@@ -66,6 +67,14 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
     for url in webhook_urls:
         webhook = WebhookClient(url)
         webhook.send(text=message, blocks=blocks)
+
+    # find clients with webhooks that match the webhook_urls
+    client_with_webhooks: list[Client] = Client.query.filter(
+        Client.webhook_url.in_(webhook_urls)
+    ).all()
+    for client in client_with_webhooks:
+        client.last_message_sent = datetime.now()
+        client.save()
 
     return True
 
