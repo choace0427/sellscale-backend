@@ -1,5 +1,7 @@
 from app import db
 from enum import Enum
+from typing import TypedDict
+import jsonpickle
 
 from src.client.models import ClientArchetype
 
@@ -22,8 +24,12 @@ class Trigger(db.Model):
     next_run = db.Column(db.DateTime, nullable=True)
     interval_in_minutes = db.Column(db.Integer, nullable=True)
 
-    trigger_type = db.Column(db.Enum(TriggerType), nullable=False)
+    # Deprecated
+    trigger_type = db.Column(db.Enum(TriggerType), nullable=True)
     trigger_config = db.Column(db.JSON, nullable=False, default={})
+    #
+
+    blocks = db.Column(db.ARRAY(db.JSON), nullable=True)
 
     client_sdr_id = db.Column(
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
@@ -32,6 +38,8 @@ class Trigger(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
     active = db.Column(db.Boolean, nullable=False, default=True)
+    
+    keyword_blacklist = db.Column(db.JSON, nullable=True)
 
     def to_dict(self, include_rich_info: bool = False):
         retval = {
@@ -46,6 +54,8 @@ class Trigger(db.Model):
             "trigger_config": self.trigger_config,
             "client_archetype_id": self.client_archetype_id,
             "active": self.active,
+            "blocks": self.blocks,
+            "keyword_blacklist": self.keyword_blacklist,
         }
 
         if include_rich_info:
@@ -121,3 +131,139 @@ class TriggerProspect(db.Model):
             "linkedin_url": self.linkedin_url,
             "custom_data": self.custom_data,
         }
+
+
+# Trigger Blocks #
+
+MetaDataRecord = Enum('MetaDataRecord', [
+  'SOURCE_PROSPECTS_FOUND',
+  'SOURCE_COMPANIES_FOUND',
+  'SOURCE_COMPANY_TYPE',
+  'SOURCE_COMPANY_QUERY',
+  'CURRENT_PROSPECTS_FOUND',
+  'CURRENT_COMPANIES_FOUND',
+  'PROSPECTS_UPLOADED',
+])
+
+BlockType = Enum('BlockType', ['SOURCE', 'FILTER', 'ACTION'])
+SourceType = Enum('SourceType', ['GOOGLE_COMPANY_NEWS', 'EXTRACT_PROSPECTS_FROM_COMPANIES'])
+ActionType = Enum('ActionType', ['SEND_SLACK_MESSAGE', 'UPLOAD_PROSPECTS'])
+
+class CustomDataDict(TypedDict):
+    key: str
+    value: str
+
+class PipelineProspect:
+    def __init__(self, first_name: str, last_name: str, title: str, company: str, linkedin_url: str, custom_data: CustomDataDict):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.title = title
+        self.company = company
+        self.linkedin_url = linkedin_url
+        self.custom_data = custom_data
+    def to_dict(self):
+        return {
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "title": self.title,
+            "company": self.company,
+            "linkedin_url": self.linkedin_url,
+            "custom_data": self.custom_data,
+        }
+
+class PipelineCompany:
+    def __init__(self, img_url: str, article_title: str, article_snippet: str, article_link: str, article_date: str, company_name: str):
+        self.img_url = img_url
+        self.article_title = article_title
+        self.article_snippet = article_snippet
+        self.article_link = article_link
+        self.article_date = article_date
+        self.company_name = company_name
+    def to_dict(self):
+        return {
+            "img_url": self.img_url,
+            "article_title": self.article_title,
+            "article_snippet": self.article_snippet,
+            "article_link": self.article_link,
+            "article_date": self.article_date,
+            "company_name": self.company_name,
+        }
+ 
+class FilterCriteria:
+    def __init__(self, prospect_titles: list[str] = [], company_names: list[str] = [], article_titles: list[str] = [], article_snippets: list[str] = [], prospect_query: str = '', company_query: str = ''):
+        self.prospect_titles = prospect_titles
+        self.company_names = company_names
+        self.article_titles = article_titles
+        self.article_snippets = article_snippets
+        self.prospect_query = prospect_query
+        self.company_query = company_query
+    def to_dict(self):
+        return {
+            "prospect_titles": self.prospect_titles,
+            "company_names": self.company_names,
+            "article_titles": self.article_titles,
+            "article_snippets": self.article_snippets,
+            "prospect_query": self.prospect_query,
+            "company_query": self.company_query,
+        }
+
+class PipelineData:
+    def __init__(self, prospects: list[PipelineProspect], companies: list[PipelineCompany], meta_data: CustomDataDict):
+        self.prospects = prospects
+        self.companies = companies
+        self.meta_data = meta_data
+    def to_dict(self):
+        return {
+            "prospects": [prospect.to_dict() for prospect in self.prospects],
+            "companies": [company.to_dict() for company in self.companies],
+            "meta_data": self.meta_data,
+        }
+
+class Block:
+    def __init__(self, type: BlockType):
+        self.type = type
+    def to_dict(self):
+        return {
+            "type": self.type.name,
+        }
+  
+class SourceBlock(Block):
+    def __init__(self, source: SourceType, data: CustomDataDict):
+        super().__init__(BlockType.SOURCE)
+        self.source = source
+        self.data = data
+    def to_dict(self):
+        return {
+            "type": self.type.name,
+            "source": self.source.name,
+            "data": self.data,
+        }
+
+class FilterBlock(Block):
+    def __init__(self, criteria: FilterCriteria):
+        super().__init__(BlockType.FILTER)
+        self.criteria = criteria
+    def to_dict(self):
+        return {
+            "type": self.type.name,
+            "criteria": self.criteria.to_dict(),
+        }
+
+class ActionBlock(Block):
+    def __init__(self, action: ActionType, data: CustomDataDict):
+        super().__init__(BlockType.ACTION)
+        self.action = action
+        self.data = data
+    def to_dict(self):
+        return {
+            "type": self.type.name,
+            "action": self.action.name,
+            "data": self.data,
+        }
+
+
+def convertBlocksToDict(blocks: list[Block]):
+    return [jsonpickle.encode(block) for block in blocks]
+  
+def convertDictToBlocks(blocks: list[dict]) -> list[Block]:
+    return [jsonpickle.decode(block) for block in blocks]
