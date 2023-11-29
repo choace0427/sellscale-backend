@@ -89,38 +89,37 @@ def runTrigger(trigger_id: int):
     
     pipeline_data = PipelineData([], [], {})
     for block in blocks:
-        pipeline_data = runBlock(trigger.client_sdr_id, trigger.client_archetype_id, block, pipeline_data)
+        pipeline_data = runBlock(trigger.client_sdr_id, trigger.client_archetype_id, trigger.keyword_blacklist, block, pipeline_data)
     
     # Update blacklist, by removing old entries and adding new ones
     blacklist = trigger.keyword_blacklist or {}
     current_date = datetime.datetime.utcnow()
     two_weeks_ago = datetime.datetime.utcnow() - datetime.timedelta(days=14)
 
-    # Use a dictionary comprehension to filter out old entries
     blacklist = {
         key: value
         for key, value in blacklist.items()
         if datetime.datetime.utcfromtimestamp(value['date']) > two_weeks_ago
     }
-    print(blacklist)
     
     for company in pipeline_data.companies:
-        if not blacklist[company.company_name]:
-            blacklist[company.company_name] = { "word": company.company_name, "date": current_date }
+        if not (company.company_name in blacklist):
+            blacklist[company.company_name] = { "word": company.company_name, "date": current_date.timestamp() }
     
     for prospect in pipeline_data.prospects:
         name = f"{prospect.first_name} {prospect.last_name}"
-        if not blacklist[name]:
-            blacklist[name] = { "word": name, "date": current_date }
+        if not (name in blacklist):
+            blacklist[name] = { "word": name, "date": current_date.timestamp() }
         
-    print(blacklist)
+    trigger.keyword_blacklist = blacklist
+    db.session.commit()
         
     return True, len(blocks), pipeline_data.to_dict()
 
 
-def runBlock(client_sdr_id: int, client_archetype_id: int, block: Block, pipeline_data: PipelineData) -> PipelineData:
+def runBlock(client_sdr_id: int, client_archetype_id: int, blacklist: list, block: Block, pipeline_data: PipelineData) -> PipelineData:
     if isinstance(block, SourceBlock):
-        return runSourceBlock(block, pipeline_data)
+        return runSourceBlock(blacklist, block, pipeline_data)
     elif isinstance(block, FilterBlock):
         return runFilterBlock(block, pipeline_data)
     elif isinstance(block, ActionBlock):
@@ -129,7 +128,7 @@ def runBlock(client_sdr_id: int, client_archetype_id: int, block: Block, pipelin
         raise Exception("Unknown block type: {}".format(type(block)))
     
 
-def runSourceBlock(block: SourceBlock, pipeline_data: PipelineData) -> PipelineData:
+def runSourceBlock(blacklist: list, block: SourceBlock, pipeline_data: PipelineData) -> PipelineData:
     prospects = pipeline_data.prospects or []
     companies = pipeline_data.companies or []
     meta_data = pipeline_data.meta_data or {}
@@ -137,7 +136,7 @@ def runSourceBlock(block: SourceBlock, pipeline_data: PipelineData) -> PipelineD
     if block.source == SourceType.GOOGLE_COMPANY_NEWS:
         query = block.data.get("company_query", "")
       
-        companies = source_companies_from_google_news(query)
+        companies = source_companies_from_google_news(blacklist, query)
         
         # Update meta data accordingly
         meta_data[MetaDataRecord.SOURCE_COMPANY_QUERY.name] = query
@@ -148,7 +147,7 @@ def runSourceBlock(block: SourceBlock, pipeline_data: PipelineData) -> PipelineD
     elif block.source == SourceType.EXTRACT_PROSPECTS_FROM_COMPANIES:
         titles = block.data.get("prospect_titles", [])
       
-        prospects = source_prospects_from_companies(companies, titles)
+        prospects = source_prospects_from_companies(blacklist, companies, titles)
         
         # Update meta data accordingly
         meta_data[MetaDataRecord.SOURCE_PROSPECTS_FOUND.name] = len(prospects)
@@ -324,12 +323,12 @@ def qualify_prospect_titles(prospects: list[PipelineProspect], titles: list[str]
     return result_prospects
 
 
-def source_prospects_from_companies(companies: list[PipelineCompany], titles: list[str]):
+def source_prospects_from_companies(blacklist: list, companies: list[PipelineCompany], titles: list[str]):
   
     profiles_data = extract_linkedin_profiles(
         companies, titles
     )
-    return enrich_linkedin_profiles(profiles_data)
+    return enrich_linkedin_profiles(blacklist, profiles_data)
 
 
 def extract_linkedin_profiles(companies: list[PipelineCompany], titles: list[str]):
@@ -366,8 +365,8 @@ def extract_linkedin_profiles(companies: list[PipelineCompany], titles: list[str
     return profiles_data
 
 
-def enrich_linkedin_profiles(profiles: list):
-    MAX_NUM_PROFILES_TO_PROCESS = 100
+def enrich_linkedin_profiles(blacklist: list, profiles: list):
+    MAX_NUM_PROFILES_TO_PROCESS = 10
 
     prospects: list[PipelineProspect] = []
 
@@ -396,6 +395,10 @@ def enrich_linkedin_profiles(profiles: list):
         industry = iscraper_response.get("industry", "")
         profile_picture = iscraper_response.get("profile_picture", "")
         raw_json = json.dumps(iscraper_response)
+        
+        # If the profile is already in the blacklist, skip it
+        if f"{first_name} {last_name}" in blacklist:
+            continue
 
         # Prepare the enriched row
         prospect = PipelineProspect(
@@ -412,7 +415,7 @@ def enrich_linkedin_profiles(profiles: list):
     return prospects
 
 
-def source_companies_from_google_news(query: str) -> list[PipelineCompany]:
+def source_companies_from_google_news(blacklist: list, query: str) -> list[PipelineCompany]:
   
     # Fetch recent news articles related to the event
     news_results = search_google_news_raw(query, "nws")
@@ -434,6 +437,10 @@ def source_companies_from_google_news(query: str) -> list[PipelineCompany]:
 
         # If company name is not found, skip the article
         if "none" in company_name.lower():
+            continue
+          
+        # If company name is in the blacklist, skip the article
+        if company_name in blacklist:
             continue
 
         # Append the details to the CSV data list
