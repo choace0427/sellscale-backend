@@ -5,29 +5,45 @@ from src.utils.slack import URL_MAP, send_slack_message
 
 @celery.task(name="drywall_notification")
 def notify_clients_with_no_updates():
-    # SQL Query
+    # SQL Query - Old query, delete if no longer needed after December 4th, 2023
+    # sql = """
+    # with d as (
+    #     select
+    #         client.company,
+    #         count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET') and prospect_status_records.created_at > NOW() - '48 hours'::INTERVAL) "# Notifications in 48 Hours",
+    #         max(prospect_status_records.created_at) filter (where prospect_status_records.to_status  in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')) "Latest Notification"
+    #     from client
+    #         join client_sdr on client_sdr.client_id = client.id
+    #         join prospect on prospect.client_sdr_id = client_sdr.id
+    #         join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+    #     where
+    #         client.active and client_sdr.active and client.id <> 1
+    #     group by 1
+    # )
+    # select
+    #     company,
+    #     concat(
+    #         EXTRACT('days' from NOW() - d."Latest Notification") * 24 + EXTRACT('hours' from NOW() - d."Latest Notification"),
+    #         ' hours ago'
+    #     ) "Days Since Last Ping"
+    # from d
+    # where d."# Notifications in 48 Hours" = 0;
+    # """
+    # SQL Query - old query, delete if no longer needed after December 4th, 2023
+
+    # using client.last_slack_msg_date
     sql = """
-    with d as (
         select 
-            client.company,
-            count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET') and prospect_status_records.created_at > NOW() - '48 hours'::INTERVAL) "# Notifications in 48 Hours",
-            max(prospect_status_records.created_at) filter (where prospect_status_records.to_status  in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')) "Latest Notification"
+            client.company "Company",
+            concat(
+                EXTRACT('days' from NOW() - client.last_slack_msg_date) * 24 + EXTRACT('hours' from NOW() - client.last_slack_msg_date),
+                ' hours ago'
+            ) "Hours Since Last Ping"
         from client
             join client_sdr on client_sdr.client_id = client.id
-            join prospect on prospect.client_sdr_id = client_sdr.id
-            join prospect_status_records on prospect_status_records.prospect_id = prospect.id
-        where 
-            client.active and client_sdr.active and client.id <> 1
-        group by 1
-    )
-    select 
-        company,
-        concat(
-            EXTRACT('days' from NOW() - d."Latest Notification") * 24 + EXTRACT('hours' from NOW() - d."Latest Notification"),
-            ' hours ago'
-        ) "Days Since Last Ping"
-    from d
-    where d."# Notifications in 48 Hours" = 0;
+        where client.active and client_sdr.active
+            and client.last_slack_msg_date < NOW() - '24 hours'::INTERVAL
+        group by 1,2;
     """
 
     # Execute Query
