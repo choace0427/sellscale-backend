@@ -1,10 +1,18 @@
 import json
 from typing import Optional
 
-from src.smartlead.services import get_email_warmings_for_sdr, sync_campaign_analytics, sync_campaign_leads
+from src.smartlead.services import (
+    get_email_warmings_for_sdr,
+    sync_campaign_analytics,
+    sync_campaign_leads,
+)
 from model_import import ClientSDR
 import requests
-from src.utils.domains.pythondns import dkim_record_valid, dmarc_record_valid, spf_record_valid
+from src.utils.domains.pythondns import (
+    dkim_record_valid,
+    dmarc_record_valid,
+    spf_record_valid,
+)
 from src.warmup_snapshot.models import WarmupSnapshot
 from src.utils.abstract.attr_utils import deep_get
 from app import db, celery
@@ -75,14 +83,13 @@ def pass_through_smartlead_warmup_request(client_sdr_id: int) -> list[dict]:
 
 @celery.task(bind=True)
 def set_warmup_snapshots_for_all_active_sdrs(self):
-  
     from src.automation.orchestrator import add_process_list
-  
+
     active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True).all()
     # for active_sdr in active_sdrs:
     #     print(f"Setting channel warmups for {active_sdr.name}")
     #     set_warmup_snapshot_for_sdr.delay(active_sdr.id)
-        
+
     add_process_list(
         type="set_warmup_snapshot_for_sdr",
         args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
@@ -93,9 +100,8 @@ def set_warmup_snapshots_for_all_active_sdrs(self):
 
 @celery.task(bind=True)
 def set_warmup_snapshots_for_client(self, client_id: int):
-  
     from src.automation.orchestrator import add_process_list
-  
+
     active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
         client_id=client_id,
         active=True,
@@ -129,11 +135,12 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
 
         # Create Email Warmups
         email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
-        
+
         # Sync campaign data
         sync_campaign_analytics(client_sdr_id)
         sync_campaign_leads(client_sdr_id)
-        
+
+        seen_sdr_emails = set()
         for email_warmup in email_warmups:
             email = email_warmup["from_email"]
             warmup_reputation = email_warmup["email_warmup_details"][
@@ -144,15 +151,9 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
 
             # Get SPF, DMARC, DKIM Record
             domain = email.split("@")[1]
-            spf_record, spf_valid = spf_record_valid(
-                domain=domain
-            )
-            dmarc_record, dmarc_valid = dmarc_record_valid(
-                domain=domain
-            )
-            dkim_record, dkim_valid = dkim_record_valid(
-                domain=domain
-            )
+            spf_record, spf_valid = spf_record_valid(domain=domain)
+            dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain)
+            dkim_record, dkim_valid = dkim_record_valid(domain=domain)
 
             email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
                 client_sdr_id=client_sdr_id,
@@ -172,13 +173,19 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             )
             db.session.add(email_warmup_snapshot)
             db.session.commit()
-            
-            from src.automation.orchestrator import add_process_for_future
-            add_process_for_future(
-                type="sync_email_warmings",
-                args={ "client_sdr_id": client_sdr_id, "email": email },
-                minutes=1,
-            )
+
+            if email in seen_sdr_emails:
+                continue
+            else:
+                seen_sdr_emails.add(email)
+
+                from src.automation.orchestrator import add_process_for_future
+
+                add_process_for_future(
+                    type="sync_email_warmings",
+                    args={"client_sdr_id": client_sdr_id, "email": email},
+                    minutes=1,
+                )
 
         print(f"Finished setting channel warmups for {name}")
 

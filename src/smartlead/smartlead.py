@@ -1,4 +1,3 @@
-
 import csv
 import requests
 from io import StringIO
@@ -10,7 +9,22 @@ from src.utils.slack import send_slack_message, URL_MAP
 
 
 class EmailWarming:
-    def __init__(self, id: int, name: str, email: str, status: str, total_sent: int, total_spam: int, warmup_reputation: str, sent_count: int, spam_count: int, inbox_count: int, warmup_email_received_count: int, stats_by_date: list, percent_complete: int):
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        email: str,
+        status: str,
+        total_sent: int,
+        total_spam: int,
+        warmup_reputation: str,
+        sent_count: int,
+        spam_count: int,
+        inbox_count: int,
+        warmup_email_received_count: int,
+        stats_by_date: list,
+        percent_complete: int,
+    ):
         self.id = id
         self.name = name
         self.email = email
@@ -24,7 +38,7 @@ class EmailWarming:
         self.warmup_email_received_count = warmup_email_received_count
         self.stats_by_date = stats_by_date
         self.percent_complete = percent_complete
-        
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -39,12 +53,24 @@ class EmailWarming:
             "inbox_count": self.inbox_count,
             "warmup_email_received_count": self.warmup_email_received_count,
             "stats_by_date": self.stats_by_date,
-            "percent_complete": self.percent_complete
+            "percent_complete": self.percent_complete,
         }
 
 
 class Lead:
-    def __init__(self, first_name: str, last_name: str, email: str, phone_number: int, company_name: str, website: str, location: str, custom_fields: dict, linkedin_profile: str, company_url: str):
+    def __init__(
+        self,
+        first_name: str,
+        last_name: str,
+        email: str,
+        phone_number: int,
+        company_name: str,
+        website: str,
+        location: str,
+        custom_fields: dict,
+        linkedin_profile: str,
+        company_url: str,
+    ):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
@@ -69,15 +95,15 @@ class Lead:
             "linkedin_profile": self.linkedin_profile,
             "company_url": self.company_url,
         }
-        
+
 
 class Smartlead:
     DELAY_SECONDS = 1.0
-    BASE_URL = 'https://server.smartlead.ai/api/v1'
+    BASE_URL = "https://server.smartlead.ai/api/v1"
 
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
-        
+
     def get_emails(self, offset=0, limit=100):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/?api_key={self.api_key}&offset={offset}&limit={limit}"
@@ -86,7 +112,9 @@ class Smartlead:
 
     def get_campaign_sequences(self, campaign_id):
         time.sleep(self.DELAY_SECONDS)
-        url = f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
+        url = (
+            f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
+        )
         response = requests.get(url)
         return response.json()
 
@@ -95,10 +123,12 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}?api_key={self.api_key}"
         response = requests.get(url)
         return response.json()
-      
+
     def get_campaign_analytics(self, campaign_id):
         time.sleep(self.DELAY_SECONDS)
-        url = f"{self.BASE_URL}/campaigns/{campaign_id}/analytics?api_key={self.api_key}"
+        url = (
+            f"{self.BASE_URL}/campaigns/{campaign_id}/analytics?api_key={self.api_key}"
+        )
         response = requests.get(url)
         return response.json()
 
@@ -113,8 +143,10 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
         return response.json()
-      
-    def add_campaign_leads(self, campaign_id, leads: list[Lead]):# max 100 leads at a time
+
+    def add_campaign_leads(
+        self, campaign_id, leads: list[Lead]
+    ):  # max 100 leads at a time
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads"
         response = requests.post(
@@ -127,60 +159,59 @@ class Smartlead:
             },
         )
         return response.json()
-      
+
     def get_warmup_stats(self, email_account_id):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
-        
+
         send_slack_message(
             message=f"TEMP: Smartlead API call: {url}. Response: {response.text}",
             webhook_urls=[URL_MAP["ops-outbound-warming"]],
         )
-        
+
         return response.json()
-      
+
     def get_leads_export(self, campaign_id):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads-export?api_key={self.api_key}"
         response = requests.get(url)
-        if response.status_code != 200: return []
-        
+        if response.status_code != 200:
+            return []
+
         # Read the CSV file
         csv_data = StringIO(response.text)
         reader = csv.DictReader(csv_data)
-        
+
         result = []
         for row in reader:
-          record = {}
-          
-          last_email_sent = int(row["last_email_sequence_sent"])
-          opened = int(row["open_count"])
-          replied = int(row["reply_count"])
-          clicked = int(row["click_count"])
-          
-          record["email"] = row["email"]
-          record["is_unsubscribed"] = row["is_unsubscribed"] == "true"
-          record["is_interested"] = row["is_interested"] == "true"
-          record["is_clicked"] = clicked > 0
+            record = {}
 
-          if last_email_sent > 0:
-              record["is_sent"] = True
-              if opened > 0:
-                  record["is_opened"] = True
-                  if replied > 0:
-                      record["is_replied"] = True
-                      
-          result.append(record)
-          
+            last_email_sent = int(row["last_email_sequence_sent"])
+            opened = int(row["open_count"])
+            replied = int(row["reply_count"])
+            clicked = int(row["click_count"])
+
+            record["email"] = row["email"]
+            record["is_unsubscribed"] = row["is_unsubscribed"] == "true"
+            record["is_interested"] = row["is_interested"] == "true"
+            record["is_clicked"] = clicked > 0
+
+            if last_email_sent > 0:
+                record["is_sent"] = True
+                if opened > 0:
+                    record["is_opened"] = True
+                    if replied > 0:
+                        record["is_replied"] = True
+
+            result.append(record)
+
         return result
-        
-        
-    
+
     def post_campaign_leads(self, campaign_id, lead_list):
         time.sleep(self.DELAY_SECONDS)
-        """`lead_list` format is 
-            
+        """`lead_list` format is
+
         lead_list = [
             {
                 "first_name": "Cristiano",
@@ -203,21 +234,18 @@ class Smartlead:
         settings = {
             "ignore_global_block_list": True,
             "ignore_unsubscribe_list": True,
-            "ignore_duplicate_leads_in_other_campaign": False
+            "ignore_duplicate_leads_in_other_campaign": False,
         }
         if not isinstance(lead_list, list) or not isinstance(settings, dict):
-            raise ValueError("lead_list must be a list and settings must be a dictionary.")
+            raise ValueError(
+                "lead_list must be a list and settings must be a dictionary."
+            )
 
         if len(lead_list) > 100:
             raise ValueError("You can only send a maximum of 100 leads at a time.")
 
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}"
-        data = {
-            "lead_list": lead_list,
-            "settings": settings
-        }
-        headers = {'Content-Type': 'application/json'}
+        data = {"lead_list": lead_list, "settings": settings}
+        headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         return response.json()
-
-
