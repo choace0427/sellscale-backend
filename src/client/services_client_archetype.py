@@ -155,7 +155,6 @@ def get_archetype_details_for_sdr(client_sdr_id: int):
 
 
 def get_archetype_activity(client_sdr_id: int) -> list[dict]:
-
     interval = "1 day"
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -237,7 +236,6 @@ def overall_activity_for_client(client_sdr_id: int):
 
 
 def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dict:
-
     results = db.session.execute(
         """
         SELECT
@@ -704,7 +702,6 @@ def hard_deactivate_client_archetype(
             prospect.status == ProspectStatus.PROSPECTED
             or prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH
         ):
-
             # If the prospect has a generated message, mark it as BLOCKED and remove the ID from Prospect
             if prospect.approved_outreach_message_id:
                 gm: GeneratedMessage = GeneratedMessage.query.get(
