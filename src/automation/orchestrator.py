@@ -6,7 +6,12 @@ from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 from src.prospecting.services import generate_prospect_upload_report
 from src.email_scheduling.services import populate_email_messaging_schedule_entries
 
-from src.individual.services import add_individual_from_iscraper_cache, individual_similar_profile_crawler, upload_job_for_individual, convert_to_prospect
+from src.individual.services import (
+    add_individual_from_iscraper_cache,
+    individual_similar_profile_crawler,
+    upload_job_for_individual,
+    convert_to_prospect,
+)
 from src.voyager.services import withdraw_li_invite
 
 from src.utils.datetime.dateutils import get_future_datetime
@@ -38,8 +43,8 @@ PROCESS_TYPE_MAP = {
     "run_icrawler": {
         "function": individual_similar_profile_crawler,
         "priority": 10,
-        "queue": 'icrawler',
-        "routing_key": 'icrawler',
+        "queue": "icrawler",
+        "routing_key": "icrawler",
     },
     "upload_job_for_individual": {
         "function": upload_job_for_individual,
@@ -50,14 +55,14 @@ PROCESS_TYPE_MAP = {
     "convert_to_prospect": {
         "function": convert_to_prospect,
         "priority": 10,
-        "queue": 'individual-to-prospect',
-        "routing_key": 'individual-to-prospect',
+        "queue": "individual-to-prospect",
+        "routing_key": "individual-to-prospect",
     },
     "populate_email_messaging_schedule_entries": {
         "function": populate_email_messaging_schedule_entries,
         "priority": 1,
-        "queue": 'email_scheduler',
-        "routing_key": 'email_scheduler',
+        "queue": "email_scheduler",
+        "routing_key": "email_scheduler",
     },
     "generate_prospect_upload_report": {
         "function": generate_prospect_upload_report,
@@ -94,7 +99,9 @@ def process_queue():
     It executes any processes that are ready.
     """
     now = datetime.utcnow()
-    wait_time = now - timedelta(hours=1) # The stale time for a process to be considered stuck
+    wait_time = now - timedelta(
+        hours=1
+    )  # The stale time for a process to be considered stuck
 
     # Scenarios:
     # 1. Process is QUEUED (or RETRY) and is ready to be executed
@@ -107,12 +114,12 @@ def process_queue():
                     ProcessQueue.status == ProcessQueueStatus.QUEUED,
                     ProcessQueue.status == ProcessQueueStatus.RETRY,
                     ProcessQueue.status == None,
-                )
+                ),
             ),
             and_(
                 ProcessQueue.executed_at < wait_time,
                 ProcessQueue.status == ProcessQueueStatus.IN_PROGRESS,
-            )
+            ),
         )
     ).all()
 
@@ -156,7 +163,7 @@ def handle_process(process_id: int, type: str, meta_data: Optional[dict]) -> boo
         queue=process_data.get("queue", None),
         routing_key=process_data.get("routing_key", None),
         priority=process_data.get("priority", 5),
-        link=remove_process_from_queue.s(process_id)
+        link=remove_process_from_queue.s(process_id),
     )
 
     return True
@@ -195,6 +202,7 @@ def add_process_to_queue(
 
     return process.to_dict()
 
+
 @celery.task
 def remove_process_from_queue(result: list, process_id: int):
     """Removes a process from the queue after it has been executed, depending on the result
@@ -218,7 +226,8 @@ def remove_process_from_queue(result: list, process_id: int):
         db.session.delete(process)
         db.session.commit()
         raise Exception(
-            f"Process return value was not correct, result was not a list. Function: {job}")
+            f"Process return value was not correct, result was not a list. Function: {job}"
+        )
 
     # Make sure that the first element of the list is a boolean
     result = result[0]
@@ -228,7 +237,8 @@ def remove_process_from_queue(result: list, process_id: int):
         db.session.delete(process)
         db.session.commit()
         raise Exception(
-            f"Process return value was not correct. Tuple's first value was not a boolean. Function: {job}")
+            f"Process return value was not correct. Tuple's first value was not a boolean. Function: {job}"
+        )
 
     if result:
         db.session.delete(process)
@@ -269,8 +279,7 @@ def add_process_for_future(
     return add_process_to_queue(
         type=type,
         meta_data={"args": args},
-        execution_date=get_future_datetime(
-            months, days, minutes, relative_time),
+        execution_date=get_future_datetime(months, days, minutes, relative_time),
         commit=commit,
     )
 
@@ -319,7 +328,7 @@ def add_process_list(
     processes = []
 
     chunks = [
-        args_list[i: i + chunk_size] for i in range(0, len(args_list), chunk_size)
+        args_list[i : i + chunk_size] for i in range(0, len(args_list), chunk_size)
     ]
 
     total_wait_days = init_wait_days
