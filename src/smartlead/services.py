@@ -59,6 +59,8 @@ def get_all_email_warmings(sdr_name: str) -> list[EmailWarming]:
 def sync_email_warmings(client_sdr_id: int, email: str):
     from src.warmup_snapshot.models import WarmupSnapshot
 
+    return True, "Success"
+
     warmings = get_email_warmings_for_sdr(client_sdr_id)
     snapshot: WarmupSnapshot = WarmupSnapshot.query.filter_by(
         account_name=email
