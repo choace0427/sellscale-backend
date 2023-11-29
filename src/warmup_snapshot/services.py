@@ -176,15 +176,15 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             db.session.add(email_warmup_snapshot)
             db.session.commit()
 
-            if email in seen_sdr_emails:
-                continue
-            else:
-                seen_sdr_emails.add(email)
-                add_process_for_future(
-                    type="sync_email_warmings",
-                    args={"client_sdr_id": client_sdr_id, "email": email},
-                    minutes=1,
-                )
+            # if email in seen_sdr_emails:
+            #     continue
+            # else:
+            #     seen_sdr_emails.add(email)
+            #     add_process_for_future(
+            #         type="sync_email_warmings",
+            #         args={"client_sdr_id": client_sdr_id, "email": email},
+            #         minutes=1,
+            #     )
 
         print(f"Finished setting channel warmups for {name}")
 
