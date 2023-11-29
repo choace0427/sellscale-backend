@@ -68,14 +68,16 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
         webhook.send(text=message, blocks=blocks)
 
     from model_import import Client
+    from app import db
 
-    # find clients with webhooks that match the webhook_urls
-    client_with_webhooks: list[Client] = Client.query.filter(
-        Client.webhook_url.in_(webhook_urls)
-    ).all()
-    for client in client_with_webhooks:
-        client.last_message_sent = datetime.now()
-        client.save()
+    for webhook in webhook_urls:
+        client: Client = Client.query.filter(
+            Client.pipeline_notifications_webhook_url == webhook
+        ).first()
+        if client:
+            client.last_slack_msg_date = datetime.now()
+            db.session.add(client)
+    db.session.commit()
 
     return True
 
