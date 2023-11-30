@@ -89,11 +89,10 @@ def trigger_runner(trigger_id: int):
     from src.automation.orchestrator import add_process_for_future
   
     # Run the trigger #
+    trigger: Trigger = Trigger.query.get(trigger_id)
     success, run_id = runTrigger(trigger_id)
   
     if success:
-        trigger: Trigger = Trigger.query.get(trigger_id)
-      
         current_datetime = datetime.datetime.utcnow()
         new_datetime = current_datetime + datetime.timedelta(minutes=trigger.interval_in_minutes)
         
@@ -117,7 +116,7 @@ def trigger_runner(trigger_id: int):
   
 def runTrigger(trigger_id: int):
     new_run = TriggerRun(
-        trigger_id=trigger.id, run_status="Running", run_at=datetime.datetime.utcnow()
+        trigger_id=trigger_id, run_status="Running", run_at=datetime.datetime.utcnow()
     )
     db.session.add(new_run)
     db.session.commit()

@@ -2,7 +2,7 @@ from app import db
 from enum import Enum
 from typing import TypedDict
 
-# import jsonpickle
+import jsonpickle
 
 from src.client.models import ClientArchetype
 
@@ -314,8 +314,8 @@ class ActionBlock(Block):
         }
 
 
-# def convertBlocksToDict(blocks: list[Block]):
-#     return [jsonpickle.encode(block) for block in blocks]
+def convertBlocksToDict(blocks: list[Block]):
+    return [jsonpickle.encode(block) for block in blocks]
 
-# def convertDictToBlocks(blocks: list[dict]) -> list[Block]:
-#     return [jsonpickle.decode(block) for block in blocks]
+def convertDictToBlocks(blocks: list[dict]) -> list[Block]:
+    return [jsonpickle.decode(block) for block in blocks]
