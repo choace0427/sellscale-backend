@@ -181,6 +181,7 @@ def sync_all_campaign_leads() -> bool:
     return True
 
 
+@celery.task
 def sync_campaign_leads(client_sdr_id: int) -> bool:
     """Syncs all leads in a campaign with the corresponding prospects, for a given SDR
 

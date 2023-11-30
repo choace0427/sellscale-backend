@@ -34,7 +34,7 @@ def get_email_warmings(client_sdr_id: int):
 def post_sync_campaigns(client_sdr_id: int):
     from src.smartlead.services import sync_campaign_leads
 
-    sync_campaign_leads(client_sdr_id=client_sdr_id)
+    sync_campaign_leads.delay(client_sdr_id)
 
     return jsonify({"message": "Success", "data": {}}), 200
 
