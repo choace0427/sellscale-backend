@@ -23,6 +23,7 @@ def send_status_change_slack_block(
     metadata: dict = None,
     last_email_message: str = None,
     footer_note: Optional[str] = None,
+    custom_webhook_urls: list[str] = None,
 ) -> None:
     """Sends a status change message to the appropriate slack channel
 
@@ -34,6 +35,7 @@ def send_status_change_slack_block(
         metadata (dict, optional): Metadata. Defaults to None.
         last_email_message (str, optional): The last email message. Defaults to None.
         footer_note (str, optional): The footer note. Defaults to None.
+        custom_webhook_urls (list[str], optional): Custom webhook urls. Defaults to None.
 
     Raises:
         ValueError: Raise a ValueError if the status doesn't belong to the outreach type
@@ -66,13 +68,11 @@ def send_status_change_slack_block(
     # Find available webhook urls
     webhook_urls = [URL_MAP["sellscale_pipeline_all_clients"]]
     if client.pipeline_notifications_webhook_url and (
-        (
-              outreach_type == ProspectChannels.LINKEDIN 
-              and client.notification_allowlist
-        )
+        (outreach_type == ProspectChannels.LINKEDIN and client.notification_allowlist)
         or (outreach_type == ProspectChannels.EMAIL)
     ):
         webhook_urls.append(client.pipeline_notifications_webhook_url)
+
     if (
         client_sdr
         and client_sdr.pipeline_notifications_webhook_url
@@ -86,13 +86,9 @@ def send_status_change_slack_block(
     ):
         webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
 
-    # Add webhook url regardless of allowlist if channel type is email
-    # todo(Aakash) remove this!
-    if outreach_type == ProspectChannels.EMAIL and prospect.client_id == 19:
-        if client_sdr and client_sdr.pipeline_notifications_webhook_url:
-            webhook_urls.append(client_sdr.pipeline_notifications_webhook_url)
-        if client and client.pipeline_notifications_webhook_url:
-            webhook_urls.append(client.pipeline_notifications_webhook_url)
+    # If custom webhook urls are provided, use them instead
+    if custom_webhook_urls:
+        webhook_urls = custom_webhook_urls
 
     # Get last messages using URN ID
     has_messages = False

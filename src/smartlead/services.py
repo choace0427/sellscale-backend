@@ -59,8 +59,6 @@ def get_all_email_warmings(sdr_name: str) -> list[EmailWarming]:
 def sync_email_warmings(client_sdr_id: int, email: str):
     from src.warmup_snapshot.models import WarmupSnapshot
 
-    return True, "Success"
-
     warmings = get_email_warmings_for_sdr(client_sdr_id)
     snapshot: WarmupSnapshot = WarmupSnapshot.query.filter_by(
         account_name=email
@@ -124,22 +122,6 @@ def get_warmup_percentage(sent_count: int) -> int:
     return min(round((sent_count / TOTAL_SENT) * 100, 0), 100)
 
 
-# def get_warmup_percentage(warming_stats_by_date: list) -> int:
-#     WARMUP_LENGTH = 14
-
-#     first = warming_stats_by_date[0]
-#     # last = warming_stats_by_date[-1]
-
-#     # Convert date strings to datetime objects
-#     date_first = datetime.datetime.strptime(first.get('date'), '%Y-%m-%d')
-#     date_last = datetime.datetime.utcnow() #.strptime(last.get('date'), '%Y-%m-%d')
-
-#     # Calculate the difference between the two dates
-#     date_difference = date_last - date_first
-
-#     return min(round((date_difference.days / WARMUP_LENGTH) * 100, 0), 100)
-
-
 def sync_campaign_analytics(client_sdr_id: int) -> bool:
     archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
@@ -165,6 +147,15 @@ def sync_campaign_analytics(client_sdr_id: int) -> bool:
 
 
 def set_campaign_id(archetype_id: int, campaign_id: int) -> bool:
+    """Sets the Smartlead campaign ID for a given archetype
+
+    Args:
+        archetype_id (int): ID of the archetype
+        campaign_id (int): ID of the Smartlead campaign
+
+    Returns:
+        bool: True if successful
+    """
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     archetype.smartlead_campaign_id = campaign_id
     db.session.commit()
@@ -172,9 +163,42 @@ def set_campaign_id(archetype_id: int, campaign_id: int) -> bool:
     return True
 
 
+@celery.task
+def sync_all_campaign_leads() -> bool:
+    """Syncs all leads in all campaigns with the corresponding prospects, for all SDRs
+
+    Returns:
+        bool: True if successful
+    """
+    # Get all active SDRs
+    sdrs: list[ClientSDR] = ClientSDR.query.filter(
+        ClientSDR.active == True,
+    )
+
+    for sdr in sdrs:
+        sync_campaign_leads(client_sdr_id=sdr.id)
+
+    return True
+
+
 def sync_campaign_leads(client_sdr_id: int) -> bool:
+    """Syncs all leads in a campaign with the corresponding prospects, for a given SDR
+
+    Args:
+        client_sdr_id (int): The ID of the SDR
+
+    Raises:
+        Exception: If no smartlead campaign ID is found for the SDR
+
+    Returns:
+        bool: True if successful
+    """
+
+    from src.automation.orchestrator import add_process_to_queue
+
     archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.active == True,
     ).all()
 
     for archetype in archetypes:
@@ -186,8 +210,6 @@ def sync_campaign_leads(client_sdr_id: int) -> bool:
         statistics = statistics.get("data")
         if not statistics:
             raise Exception("No smartlead campaign statistics found")
-
-        from src.automation.orchestrator import add_process_list, add_process_to_queue
 
         for lead in statistics:
             args = {
@@ -203,25 +225,22 @@ def sync_campaign_leads(client_sdr_id: int) -> bool:
                 commit=True,
             )
 
-        # add_process_list(
-        #     type="sync_prospect_with_lead",
-        #     args_list=[
-        #         {
-        #             "client_id": archetype.client_id,
-        #             "archetype_id": archetype.id,
-        #             "client_sdr_id": client_sdr_id,
-        #             "lead": lead,
-        #         }
-        #         for lead in leads
-        #     ],
-        #     buffer_wait_minutes=1,
-        # )
-
 
 @celery.task
 def sync_prospect_with_lead(
     client_id: int, archetype_id: int, client_sdr_id: int, lead: dict
-):
+) -> tuple[bool, str]:
+    """Syncs a prospect with a lead from a Smartlead campaign
+
+    Args:
+        client_id (int): Not used. Only for Celery
+        archetype_id (int): Not used. Only for Celery
+        client_sdr_id (int): The ID of the SDR
+        lead (dict): The lead from the Smartlead campaign, which is a SmartleadCampaignStatisticEntry object
+
+    Returns:
+        tuple[bool, str]: A tuple with the first value being True if successful, and the second being a message
+    """
     # 0. Turn the lead into a SmartleadCampaignStatisticEntry object
     lead: SmartleadCampaignStatisticEntry = SmartleadCampaignStatisticEntry(**lead)
 
@@ -231,6 +250,7 @@ def sync_prospect_with_lead(
         Prospect.client_sdr_id == client_sdr_id,
     ).first()
     if not prospect:
+        print(f"Prospect not found: {lead.lead_email}")
         return False, "Prospect not found"
 
     # 2. Get the corresponding prospect email. If not found, create a new one
@@ -260,7 +280,7 @@ def sync_prospect_with_lead(
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
-            quietly=True,
+            custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
         )
 
     # 3b. If the lead has opened the email and had previously not, update the prospect email status
@@ -273,7 +293,7 @@ def sync_prospect_with_lead(
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
-            quietly=True,
+            custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
         )
 
     # 3c. If the lead has replied to the email and had previously not, update the prospect email status
@@ -287,7 +307,7 @@ def sync_prospect_with_lead(
             update_prospect_status_email(
                 prospect_id=prospect.id,
                 new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                quietly=True,
+                custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
             )
         elif (
             prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
@@ -297,14 +317,15 @@ def sync_prospect_with_lead(
             update_prospect_status_email(
                 prospect_id=prospect.id,
                 new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
-                quietly=True,
+                custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
             )
             update_prospect_status_email(
                 prospect_id=prospect.id,
                 new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                quietly=True,
+                custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
             )
 
+    print(f"Actions finished for: {prospect.email}")
     return True, "Success"
 
 

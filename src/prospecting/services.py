@@ -910,6 +910,7 @@ def update_prospect_status_email(
     override_status: bool = False,
     manually_send_to_purgatory: bool = False,
     quietly: Optional[bool] = False,
+    custom_webhook_urls: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Updates the prospect email outreach status
 
@@ -918,6 +919,7 @@ def update_prospect_status_email(
         new_status (ProspectEmailOutreachStatus): New status to update to
         override_status (bool, optional): _description_. Defaults to False.
         quietly (Optional[bool], optional): Don't send slack notifs. Defaults to False.
+        custom_webhook_urls (Optional[str], optional): Custom Slack webhook URLs to send slack notifs to. Defaults to None.
 
     Returns:
         tuple[bool, str]: (success, message)
@@ -966,6 +968,7 @@ def update_prospect_status_email(
                 new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
                 custom_message=" responded to your email! 🙌🏽",
                 metadata={},
+                custom_webhook_urls=custom_webhook_urls,
             )
     elif new_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
         create_engagement_feed_item(
@@ -981,6 +984,7 @@ def update_prospect_status_email(
                 new_status=ProspectEmailOutreachStatus.SCHEDULING,
                 custom_message=" is scheduling! 🙏🔥",
                 metadata={},
+                custom_webhook_urls=custom_webhook_urls,
             )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
         create_engagement_feed_item(
@@ -996,6 +1000,7 @@ def update_prospect_status_email(
                 new_status=ProspectEmailOutreachStatus.DEMO_SET,
                 custom_message=" set a time to demo!! 🎉🎉🎉",
                 metadata={},
+                custom_webhook_urls=custom_webhook_urls,
             )
 
     # Commit the changes

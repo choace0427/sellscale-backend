@@ -10,7 +10,7 @@ import os
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 
-SMARTLEAD_BLUEPRINT = Blueprint("smart_email", __name__)
+SMARTLEAD_BLUEPRINT = Blueprint("smartlead", __name__)
 
 
 @SMARTLEAD_BLUEPRINT.route("/email_warmings", methods=["GET"])
@@ -27,6 +27,16 @@ def get_email_warmings(client_sdr_id: int):
         ),
         200,
     )
+
+
+@SMARTLEAD_BLUEPRINT.route("/campaigns", methods=["POST"])
+@require_user
+def post_sync_campaigns(client_sdr_id: int):
+    from src.smartlead.services import sync_campaign_leads
+
+    sync_campaign_leads(client_sdr_id=client_sdr_id)
+
+    return jsonify({"message": "Success", "data": {}}), 200
 
 
 @SMARTLEAD_BLUEPRINT.route("/set_campaign", methods=["POST"])

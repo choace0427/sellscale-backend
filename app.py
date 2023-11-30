@@ -262,7 +262,7 @@ def register_blueprints(app):
         QUESTION_ENRICHMENT_BLUEPRINT, url_prefix="/question_enrichment"
     )
     app.register_blueprint(LINKEDIN_TEMPLATE_BLUEPRINT, url_prefix="/linkedin_template")
-    app.register_blueprint(SMARTLEAD_BLUEPRINT, url_prefix="/smart_email")
+    app.register_blueprint(SMARTLEAD_BLUEPRINT, url_prefix="/smartlead")
     app.register_blueprint(TRIGGERS_BLUEPRINT, url_prefix="/triggers")
     app.register_blueprint(WEEKLY_REPORT_BLUEPRINT, url_prefix="/weekly_report")
 
