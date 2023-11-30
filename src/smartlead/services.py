@@ -163,6 +163,21 @@ def set_campaign_id(archetype_id: int, campaign_id: int) -> bool:
     return True
 
 
+def get_campaign_sequence_by_id(campaign_id: int) -> list[dict]:
+    """Gets the sequence of a Smartlead campaign
+
+    Args:
+        campaign_id (int): ID of the Smartlead campaign
+
+    Returns:
+        dict: The sequence of the Smartlead campaign
+    """
+    sl = Smartlead()
+    sequence = sl.get_campaign_sequence_by_id(campaign_id)
+
+    return sequence
+
+
 @celery.task
 def sync_all_campaign_leads() -> bool:
     """Syncs all leads in all campaigns with the corresponding prospects, for all SDRs
@@ -176,13 +191,13 @@ def sync_all_campaign_leads() -> bool:
     )
 
     for sdr in sdrs:
-        sync_campaign_leads(client_sdr_id=sdr.id)
+        sync_campaign_leads_for_sdr(client_sdr_id=sdr.id)
 
     return True
 
 
 @celery.task
-def sync_campaign_leads(client_sdr_id: int) -> bool:
+def sync_campaign_leads_for_sdr(client_sdr_id: int) -> bool:
     """Syncs all leads in a campaign with the corresponding prospects, for a given SDR
 
     Args:
