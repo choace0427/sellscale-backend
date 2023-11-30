@@ -1,3 +1,4 @@
+from typing import Optional
 from app import db
 from app import db, celery
 from model_import import ResearchPayload, ResearchPoints, ResearchType
@@ -77,8 +78,8 @@ def run_create_custom_research_entries(
                 print(f"Could not find prospect for {li_url} or {email}")
                 continue
 
-            research_point_id = create_custom_research_point(
-                prospect_id=prospect_id, label=label, value=value
+            research_point_ids = create_custom_research_points(
+                prospect_id=prospect_id, label=label, value={ "custom": value }
             )
 
         db.session.commit()
@@ -88,25 +89,26 @@ def run_create_custom_research_entries(
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-def create_custom_research_point(prospect_id: int, label: str, value: str):
+def create_custom_research_points(prospect_id: int, label: Optional[str], data: dict) -> list[int]:
     """Creates a custom research point"""
+    
+    payload_id = create_research_payload(prospect_id, ResearchType.CUSTOM_DATA, data)
 
-    latest_payload: ResearchPayload = ResearchPayload.query.filter(
-        ResearchPayload.prospect_id == prospect_id,
-    ).order_by(ResearchPayload.created_at.desc()).first()
-    if not latest_payload: return None
+    ids = []
+    for key, value in data.items():
+        research_point = ResearchPoints(
+            research_payload_id=payload_id,
+            research_point_type=ResearchPointType.CUSTOM,
+            value=json.dumps({
+                "label": label or key,
+                "value": value
+            }),
+        )
+        db.session.add(research_point)
+        db.session.commit()
+        ids.append(research_point.id)
 
-    research_point = ResearchPoints(
-        research_payload_id=latest_payload.id,
-        research_point_type=ResearchPointType.CUSTOM,
-        value=json.dumps({
-            "label": label,
-            "value": value
-        }),
-    )
-    db.session.add(research_point)
-
-    return research_point.id
+    return ids
 
 
 def flag_research_point(research_point_id: int):

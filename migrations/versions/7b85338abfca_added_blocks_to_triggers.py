@@ -1,7 +1,7 @@
 """Added blocks to triggers
 
 Revision ID: 7b85338abfca
-Revises: 5fca5c77e7e7
+Revises: 45b5ac9ac641
 Create Date: 2023-11-27 16:19:49.779830
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '7b85338abfca'
-down_revision = '5fca5c77e7e7'
+down_revision = '45b5ac9ac641'
 branch_labels = None
 depends_on = None
 

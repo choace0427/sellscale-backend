@@ -16,7 +16,7 @@ from src.prospecting.services import (
 )
 from src.research.account_research import generate_prospect_research
 from src.research.models import IScraperPayloadType
-from src.research.services import create_custom_research_point, create_iscraper_payload_cache
+from src.research.services import create_custom_research_points, create_iscraper_payload_cache
 from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
 from sqlalchemy import bindparam, update
@@ -424,9 +424,10 @@ def create_prospect_from_linkedin_link(
                 priority=5,
             )
             
-            # research_point_id = create_custom_research_point(
-            #     prospect_id=new_prospect_id, label=label, value=value
-            # )
+            custom_data = prospect_upload.csv_row_data.get("custom_data", {})
+            research_point_ids = create_custom_research_points(
+                prospect_id=new_prospect_id, label=None, value=custom_data
+            )
             
             return True
         else:

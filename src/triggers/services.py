@@ -569,6 +569,7 @@ def qualify_prospects(prospects: list[PipelineProspect], qualifying_question: st
 
     return results
 
+
 def send_finished_slack_message(client_sdr_id: int, trigger_id: int, pipeline_data: PipelineData):
   
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
