@@ -1,5 +1,6 @@
 import datetime
 from flask import Blueprint, request
+from src.triggers.services import runTrigger
 from src.authentication.decorators import require_user
 from src.triggers.models import Trigger, TriggerProspect, TriggerRun
 from app import db
@@ -32,15 +33,18 @@ def get_trigger_data(client_sdr_id: int, trigger_id):
 @TRIGGERS_BLUEPRINT.route("/trigger/run/<int:trigger_id>", methods=["POST"])
 @require_user
 def create_trigger_run(client_sdr_id: int, trigger_id):
-    trigger = Trigger.query.filter_by(
-        id=trigger_id, client_sdr_id=client_sdr_id
-    ).first_or_404()
-    new_run = TriggerRun(
-        trigger_id=trigger.id, run_status="Running", run_at=datetime.datetime.utcnow()
-    )
-    db.session.add(new_run)
-    db.session.commit()
-    return {"trigger_run_id": new_run.id}, 201
+    # trigger = Trigger.query.filter_by(
+    #     id=trigger_id, client_sdr_id=client_sdr_id
+    # ).first_or_404()
+    # new_run = TriggerRun(
+    #     trigger_id=trigger.id, run_status="Running", run_at=datetime.datetime.utcnow()
+    # )
+    # db.session.add(new_run)
+    # db.session.commit()
+    
+    success, run_id = runTrigger(trigger_id)
+    
+    return {"trigger_run_id": run_id}, 201
 
 
 @TRIGGERS_BLUEPRINT.route(

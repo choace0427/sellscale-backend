@@ -5,11 +5,12 @@ import time
 import requests
 from model_import import (
     ClientSDR,
+    Client,
 )
 
 from src.utils.slack import URL_MAP, send_slack_message
-from src.triggers.models import ActionType, Block, FilterBlock, FilterCriteria, MetaDataRecord, PipelineCompany, PipelineData, ActionBlock, PipelineProspect, SourceBlock, SourceType, Trigger, convertBlocksToDict, convertDictToBlocks
-from app import db
+from src.triggers.models import ActionType, Block, FilterBlock, FilterCriteria, MetaDataRecord, PipelineCompany, PipelineData, ActionBlock, PipelineProspect, SourceBlock, SourceType, Trigger, TriggerProspect, TriggerRun, convertBlocksToDict, convertDictToBlocks
+from app import db, celery
 from src.ml.openai_wrappers import (wrapped_chat_gpt_completion,)
 from src.research.website.serp_helpers import search_google_news_raw
 from src.research.linkedin.services import research_personal_profile_details
@@ -66,6 +67,7 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int):
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         active=True,
+        interval_in_minutes=1440,
         blocks=convertBlocksToDict([
             source_block_1,
             action_block_1,
@@ -80,16 +82,56 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int):
     db.session.commit()
     
     return trigger.id
+
+
+@celery.task
+def trigger_runner(trigger_id: int):
+    from src.automation.orchestrator import add_process_for_future
   
+    # Run the trigger #
+    success, run_id = runTrigger(trigger_id)
+  
+    if success:
+        trigger: Trigger = Trigger.query.get(trigger_id)
+      
+        current_datetime = datetime.datetime.utcnow()
+        new_datetime = current_datetime + datetime.timedelta(minutes=trigger.interval_in_minutes)
+        
+        trigger.last_run = current_datetime
+        trigger.next_run = new_datetime
+        
+        db.session.commit()
+        
+    # Run self #
+    add_process_for_future(
+        type="trigger_runner",
+        args={
+            "trigger_id": trigger_id,
+        },
+        minutes=trigger.interval_in_minutes
+    )
+    
+    return True, run_id
+    
+
   
 def runTrigger(trigger_id: int):
+    new_run = TriggerRun(
+        trigger_id=trigger.id, run_status="Running", run_at=datetime.datetime.utcnow()
+    )
+    db.session.add(new_run)
+    db.session.commit()
+    run_id = new_run.id
+    
+    # Run the trigger #
+    
     trigger: Trigger = Trigger.query.get(trigger_id)
     
     blocks = convertDictToBlocks(trigger.blocks or [])
     
     pipeline_data = PipelineData([], [], {})
     for block in blocks:
-        pipeline_data = runBlock(trigger.client_sdr_id, trigger.client_archetype_id, trigger.keyword_blacklist or [], block, pipeline_data)
+        pipeline_data = runBlock(run_id, trigger.client_sdr_id, trigger.client_archetype_id, trigger.keyword_blacklist or [], block, pipeline_data)
     
     # Update blacklist, by removing old entries and adding new ones
     blacklist = trigger.keyword_blacklist or {}
@@ -113,17 +155,20 @@ def runTrigger(trigger_id: int):
         
     trigger.keyword_blacklist = blacklist
     db.session.commit()
+    
+    # Send slack notif
+    send_finished_slack_message(trigger.client_sdr_id, trigger.id, pipeline_data)
         
-    return True, len(blocks), pipeline_data.to_dict()
+    return True, run_id
 
 
-def runBlock(client_sdr_id: int, client_archetype_id: int, blacklist: list, block: Block, pipeline_data: PipelineData) -> PipelineData:
+def runBlock(run_id: int, client_sdr_id: int, client_archetype_id: int, blacklist: list, block: Block, pipeline_data: PipelineData) -> PipelineData:
     if isinstance(block, SourceBlock):
         return runSourceBlock(blacklist, block, pipeline_data)
     elif isinstance(block, FilterBlock):
         return runFilterBlock(block, pipeline_data)
     elif isinstance(block, ActionBlock):
-        return runActionBlock(client_sdr_id, client_archetype_id, block, pipeline_data)
+        return runActionBlock(run_id, client_sdr_id, client_archetype_id, block, pipeline_data)
     else:
         raise Exception("Unknown block type: {}".format(type(block)))
     
@@ -179,7 +224,7 @@ def runFilterBlock(block: FilterBlock, pipeline_data: PipelineData) -> PipelineD
     )
 
 
-def runActionBlock(client_sdr_id: int, client_archetype_id: int, block: ActionBlock, pipeline_data: PipelineData) -> PipelineData:
+def runActionBlock(run_id: int, client_sdr_id: int, client_archetype_id: int, block: ActionBlock, pipeline_data: PipelineData) -> PipelineData:
     prospects = pipeline_data.prospects or []
     companies = pipeline_data.companies or []
     meta_data = pipeline_data.meta_data or {}
@@ -192,7 +237,7 @@ def runActionBlock(client_sdr_id: int, client_archetype_id: int, block: ActionBl
         
     elif block.action == ActionType.UPLOAD_PROSPECTS:
       
-        amount = action_upload_prospects(prospects, client_sdr_id, client_archetype_id)
+        amount = action_upload_prospects(prospects, run_id, client_sdr_id, client_archetype_id)
         
         meta_data[MetaDataRecord.PROSPECTS_UPLOADED.name] = amount
     
@@ -215,7 +260,7 @@ def action_send_slack_message(message: str, webhook_urls: list[str], meta_data: 
     )
     
 
-def action_upload_prospects(prospects: list[PipelineProspect], client_sdr_id: int, client_archetype_id: int):
+def action_upload_prospects(prospects: list[PipelineProspect], run_id: int, client_sdr_id: int, client_archetype_id: int):
     if len(prospects) == 0: return 0
     
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -241,6 +286,20 @@ def action_upload_prospects(prospects: list[PipelineProspect], client_sdr_id: in
         "Authorization": "Bearer {userToken}".format(userToken=sdr.auth_token),
     }
     response = requests.request("POST", url, headers=headers, data=payload)
+    
+    # Create trigger prospect records after upload
+    for prospect in prospects:
+        trigger_prospect = TriggerProspect(
+            trigger_run_id=run_id,
+            first_name=prospect.first_name,
+            last_name=prospect.last_name,
+            title=prospect.title,
+            company=prospect.company,
+            linkedin_url=prospect.linkedin_url,
+            custom_data=json.dumps(prospect.custom_data),
+        )
+        db.session.add(trigger_prospect)
+    db.session.commit()
     
     return len(prospects)
 
@@ -359,6 +418,7 @@ def extract_linkedin_profiles(companies: list[PipelineCompany], titles: list[str
                     "company_name": company.company_name,  # Original data
                     "linkedin_title": title,  # LinkedIn profile title
                     "profile_url": profile.get("link"),  # LinkedIn profile URL
+                    "sourced": f"{company.company_name} was recently in the news titled '{company.article_title}' posted {company.article_date}. The article summary is: '{company.article_snippet}'",
                 }
                 profiles_data.append(profile_data)
 
@@ -366,7 +426,7 @@ def extract_linkedin_profiles(companies: list[PipelineCompany], titles: list[str
 
 
 def enrich_linkedin_profiles(blacklist: list, profiles: list):
-    MAX_NUM_PROFILES_TO_PROCESS = 10
+    MAX_NUM_PROFILES_TO_PROCESS = 100
 
     prospects: list[PipelineProspect] = []
 
@@ -407,7 +467,9 @@ def enrich_linkedin_profiles(blacklist: list, profiles: list):
             title=title,
             company=company,
             linkedin_url=profile_url,
-            custom_data={},
+            custom_data={
+                "sourced": row["sourced"],
+            },
         )
 
         prospects.append(prospect)
@@ -504,4 +566,87 @@ def qualify_prospects(prospects: list[PipelineProspect], qualifying_question: st
             results.append(row)
 
     return results
+
+def send_finished_slack_message(client_sdr_id: int, trigger_id: int, pipeline_data: PipelineData):
+  
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(sdr.client_id)
+    trigger: Trigger = Trigger.query.get(trigger_id)
+  
+    count = 0
+    for company in pipeline_data.companies:
+        count += 1
+        if count > 3:
+            break
+          
+        prospects = [prospect for prospect in pipeline_data.prospects if prospect.company == company.company_name]
+        
+        prospects_details = "\n".join(
+            [
+                f"> - <{prospect.linkedin_url}|*{prospect.first_name} {prospect.last_name}*> - {prospect.title}"
+                for prospect in prospects[0:3]
+            ]
+        )
+
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"Trigger ⚡️: {trigger.name}",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": """> :newspaper: *<{url}|'{title}'>*\n> {snippet}\n> _- {date}_""".format(
+                        url=company.article_link,
+                        title=company.article_title,
+                        snippet=company.article_snippet.replace("\n", "\n> "),
+                        date=company.article_date,
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Company:* {company.company_name}",
+                },
+            },
+            {"type": "divider"},
+            {
+                # context
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f":white_check_mark: Location: US",#  :white_check_mark: Industry: {event['industry']}
+                    }
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*{len(prospects)} prospects found*",
+                },
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": prospects_details},
+            },
+            {
+                "type": "divider",
+            },
+        ]
+
+        result = send_slack_message(
+            message="hello",
+            webhook_urls=[URL_MAP["eng-sandbox"]]
+            + ([client.pipeline_notifications_webhook_url] if client.pipeline_notifications_webhook_url else []),
+            blocks=blocks,
+        )
   

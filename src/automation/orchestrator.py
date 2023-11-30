@@ -3,6 +3,8 @@ from typing import Optional
 from src.smartlead.services import sync_prospect_with_lead, sync_email_warmings
 from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 
+from src.triggers.services import trigger_runner
+
 from src.prospecting.services import generate_prospect_upload_report
 from src.email_scheduling.services import populate_email_messaging_schedule_entries
 
@@ -79,6 +81,12 @@ PROCESS_TYPE_MAP = {
     },
     "sync_email_warmings": {
         "function": sync_email_warmings,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "trigger_runner": {
+        "function": trigger_runner,
         "priority": 10,
         "queue": None,
         "routing_key": None,
