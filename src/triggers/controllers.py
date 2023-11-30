@@ -24,7 +24,7 @@ def get_triggers(client_sdr_id: int):
 @TRIGGERS_BLUEPRINT.route("/trigger/<int:trigger_id>", methods=["GET"])
 @require_user
 def get_trigger_data(client_sdr_id: int, trigger_id):
-    trigger = Trigger.query.filter_by(
+    trigger: Trigger = Trigger.query.filter_by(
         id=trigger_id, client_sdr_id=client_sdr_id
     ).first_or_404()
     return trigger.to_dict(), 200

@@ -55,7 +55,7 @@ class Trigger(db.Model):
             "trigger_config": self.trigger_config,
             "client_archetype_id": self.client_archetype_id,
             "active": self.active,
-            "blocks": self.blocks,
+            "blocks": [block.to_dict() for block in convertDictToBlocks(self.blocks or [])],
             "keyword_blacklist": self.keyword_blacklist,
         }
 
@@ -316,6 +316,7 @@ class ActionBlock(Block):
 
 def convertBlocksToDict(blocks: list[Block]):
     return [jsonpickle.encode(block) for block in blocks]
+
 
 def convertDictToBlocks(blocks: list[dict]) -> list[Block]:
     return [jsonpickle.decode(block) for block in blocks]
