@@ -5,13 +5,11 @@ import resend
 resend.api_key = "re_bFWa8smr_9pFd7krp6MnnUAYmvF1KYDDv"
 
 
-def send_email(html: str):
+def send_email(html: str, title: str, to_emails: list[str] = []):
     params = {
         "from": "ai@sellscale.com",
-        "to": ["aakash@sellscale.com"],
-        "subject": "[MOCK DATA] Weekly Report - {date}".format(
-            date=datetime.datetime.now().strftime("%Y-%m-%d")
-        ),
+        "to": to_emails,
+        "subject": title,
         "html": html,
     }
 
