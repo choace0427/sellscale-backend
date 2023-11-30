@@ -36,9 +36,8 @@ def get_email_warmings(client_sdr_id: int):
 @require_user
 def get_campaigns_sequence(client_sdr_id: int):
     campaign_id = get_request_parameter(
-        "campaign_id", request, json=True, required=True, parameter_type=int
+        "campaign_id", request, json=False, required=True, parameter_type=int
     )
-
     sequence = get_campaign_sequence_by_id(campaign_id=campaign_id)
 
     return (
