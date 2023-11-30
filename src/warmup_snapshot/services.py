@@ -4,7 +4,7 @@ from typing import Optional
 from src.smartlead.services import (
     get_email_warmings_for_sdr,
     sync_campaign_analytics,
-    sync_campaign_leads,
+    sync_campaign_leads_for_sdr,
 )
 from model_import import ClientSDR
 import requests
@@ -140,7 +140,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
 
         # Sync campaign data
         sync_campaign_analytics(client_sdr_id)
-        sync_campaign_leads(client_sdr_id)
+        sync_campaign_leads_for_sdr(client_sdr_id)
 
         seen_sdr_emails = set()
         for email_warmup in email_warmups:

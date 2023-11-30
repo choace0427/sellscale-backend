@@ -168,6 +168,16 @@ class Smartlead:
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
+    def get_campaign_sequence_by_id(self, campaign_id):
+        time.sleep(self.DELAY_SECONDS)
+        url = (
+            f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
+        )
+        response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_campaign_sequence_by_id(campaign_id)
+        return response.json()
+
     def get_campaign_statistics_by_id(self, campaign_id):
         time.sleep(self.DELAY_SECONDS)
         url = f"https://server.smartlead.ai/api/v1/campaigns/{campaign_id}/statistics?api_key={self.api_key}"

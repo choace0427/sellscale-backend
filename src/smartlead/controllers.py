@@ -3,14 +3,17 @@ from flask import Blueprint, request, jsonify
 from src.smartlead.services import (
     get_email_warmings_for_sdr,
     set_campaign_id,
+    sync_campaign_leads_for_sdr,
     sync_prospects_to_campaign,
 )
 from app import db
 import os
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
+from src.smartlead.services import get_campaign_sequence_by_id
 
-SMARTLEAD_BLUEPRINT = Blueprint("smart_email", __name__)
+
+SMARTLEAD_BLUEPRINT = Blueprint("smartlead", __name__)
 
 
 @SMARTLEAD_BLUEPRINT.route("/email_warmings", methods=["GET"])
@@ -27,6 +30,33 @@ def get_email_warmings(client_sdr_id: int):
         ),
         200,
     )
+
+
+@SMARTLEAD_BLUEPRINT.route("/campaigns/sequence", methods=["GET"])
+@require_user
+def get_campaigns_sequence(client_sdr_id: int):
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=False, required=True, parameter_type=int
+    )
+    sequence = get_campaign_sequence_by_id(campaign_id=campaign_id)
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {"sequence": sequence},
+            }
+        ),
+        200,
+    )
+
+
+@SMARTLEAD_BLUEPRINT.route("/campaigns", methods=["POST"])
+@require_user
+def post_sync_campaigns(client_sdr_id: int):
+    sync_campaign_leads_for_sdr.delay(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": {}}), 200
 
 
 @SMARTLEAD_BLUEPRINT.route("/set_campaign", methods=["POST"])
