@@ -16,7 +16,10 @@ from src.prospecting.services import (
 )
 from src.research.account_research import generate_prospect_research
 from src.research.models import IScraperPayloadType
-from src.research.services import create_custom_research_points, create_iscraper_payload_cache
+from src.research.services import (
+    create_custom_research_points,
+    create_iscraper_payload_cache,
+)
 from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
 from sqlalchemy import bindparam, update
@@ -302,7 +305,6 @@ def create_prospect_from_linkedin_link(
 
         # If don't have a li_url but we have an email (and name, company?), search for the li_url
         if not linkedin_url and email:
-
             company = prospect_upload.csv_row_data.get("company", "")
 
             full_name = prospect_upload.csv_row_data.get("full_name", "")
@@ -423,12 +425,12 @@ def create_prospect_from_linkedin_link(
                 routing_key="prospecting",
                 priority=5,
             )
-            
+
             custom_data = prospect_upload.csv_row_data.get("custom_data", {})
             research_point_ids = create_custom_research_points(
                 prospect_id=new_prospect_id, label=None, value=custom_data
             )
-            
+
             return True
         else:
             prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED
