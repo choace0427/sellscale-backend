@@ -959,13 +959,14 @@ def update_prospect_status_email(
             channel_type=ProspectChannels.EMAIL.value,
             engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.EMAIL,
-            prospect=p,
-            new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-            custom_message=" responded to your email! 🙌🏽",
-            metadata={},
-        )
+        if not quietly:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=p,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                custom_message=" responded to your email! 🙌🏽",
+                metadata={},
+            )
     elif new_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
@@ -973,13 +974,14 @@ def update_prospect_status_email(
             channel_type=ProspectChannels.EMAIL.value,
             engagement_type=EngagementFeedType.SCHEDULING.value,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.EMAIL,
-            prospect=p,
-            new_status=ProspectEmailOutreachStatus.SCHEDULING,
-            custom_message=" is scheduling! 🙏🔥",
-            metadata={},
-        )
+        if not quietly:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=p,
+                new_status=ProspectEmailOutreachStatus.SCHEDULING,
+                custom_message=" is scheduling! 🙏🔥",
+                metadata={},
+            )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
@@ -987,13 +989,14 @@ def update_prospect_status_email(
             channel_type=ProspectChannels.EMAIL.value,
             engagement_type=EngagementFeedType.SET_TIME_TO_DEMO.value,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.EMAIL,
-            prospect=p,
-            new_status=ProspectEmailOutreachStatus.DEMO_SET,
-            custom_message=" set a time to demo!! 🎉🎉🎉",
-            metadata={},
-        )
+        if not quietly:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=p,
+                new_status=ProspectEmailOutreachStatus.DEMO_SET,
+                custom_message=" set a time to demo!! 🎉🎉🎉",
+                metadata={},
+            )
 
     # Commit the changes
     db.session.add(p_email)
@@ -2951,7 +2954,7 @@ def extract_colloquialized_company_name(self, prospect_id: int):
 
         IMPORTANT:
         - In your response, only include the colloquialized company name.  Nothing else.
-        - Do not include the example sentence in your response. Only the new company name.         
+        - Do not include the example sentence in your response. Only the new company name.
 
         Company Name: {company_name}
         Colloquialized:""".format(
@@ -3134,7 +3137,7 @@ def global_prospected_contacts(client_id: int):
     Returns a list of all prospects that have been prospected but not yet approved for outreach for a given client.
     """
     query = """
-        select 
+        select
             prospect.id "prospect_id",
             prospect.full_name "prospect_name",
             prospect.title "prospect_title",

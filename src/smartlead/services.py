@@ -80,11 +80,6 @@ def get_email_warmings_for_sdr(client_sdr_id: int) -> list[EmailWarming]:
         old_warmings = []
 
     warmings: list[EmailWarming] = get_all_email_warmings(sdr.name)
-    send_slack_message(
-        message=f"TEMP: Got warmings. Response: {[warming.to_dict() for warming in warmings]}",
-        webhook_urls=[URL_MAP["ops-outbound-warming"]],
-    )
-
     for warming in warmings:
         for old_warming in old_warmings:
             if warming.id == old_warming.get("id"):
@@ -283,16 +278,32 @@ def sync_prospect_with_lead(
 
     # 3c. If the lead has replied to the email and had previously not, update the prospect email status
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
-    if (
-        lead.reply_time
-        and prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED
+    if lead.reply_time and (
+        prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED
+        or prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     ):
         print('Updating prospect email status to "ACTIVE_CONVO"')
-        update_prospect_status_email(
-            prospect_id=prospect.id,
-            new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-            quietly=True,
-        )
+        if prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED:
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                quietly=True,
+            )
+        elif (
+            prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+        ):
+            # TODO: One day, we may use smartlead's behavior with OOOs having a reply_time but no open_time to create OOO special behavior
+            # For now, we'll just mark it as EMAIL_OPENED, and then ACTIVE_CONVO
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+                quietly=True,
+            )
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                quietly=True,
+            )
 
     return True, "Success"
 
