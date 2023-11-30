@@ -153,11 +153,14 @@ def runTrigger(trigger_id: int):
             blacklist[name] = { "word": name, "date": current_date.timestamp() }
         
     trigger.keyword_blacklist = blacklist
+    
+    new_run.run_status = 'Completed'
+    new_run.completed_at = datetime.datetime.utcnow()
     db.session.commit()
     
     # Send slack notif
     send_finished_slack_message(trigger.client_sdr_id, trigger.id, pipeline_data)
-        
+    
     return True, run_id
 
 
