@@ -16,41 +16,41 @@ from src.utils.slack import URL_MAP
 from celery import Celery
 from src.utils.slack import send_slack_message
 
-if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
-    import sentry_sdk
-    from sentry_sdk.integrations.tornado import TornadoIntegration
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.flask import FlaskIntegration
-    from sentry_sdk.integrations.redis import RedisIntegration
-    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+# if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
+#     import sentry_sdk
+#     from sentry_sdk.integrations.tornado import TornadoIntegration
+#     from sentry_sdk.integrations.celery import CeleryIntegration
+#     from sentry_sdk.integrations.flask import FlaskIntegration
+#     from sentry_sdk.integrations.redis import RedisIntegration
+#     from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
-    sentry_sdk.init(
-        dsn="https://e8251e81ed8847a69607f976b423e17c@o4504749544767488.ingest.sentry.io/4504749545619456",
-        integrations=[
-            FlaskIntegration(),
-            CeleryIntegration(),
-            TornadoIntegration(),
-            RedisIntegration(),
-            SqlalchemyIntegration(),
-        ],
-        auto_enabling_integrations=False,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        # We recommend adjusting this value in production.
-        traces_sample_rate=1.0,
-    )
+#     sentry_sdk.init(
+#         dsn="https://e8251e81ed8847a69607f976b423e17c@o4504749544767488.ingest.sentry.io/4504749545619456",
+#         integrations=[
+#             FlaskIntegration(),
+#             CeleryIntegration(),
+#             TornadoIntegration(),
+#             RedisIntegration(),
+#             SqlalchemyIntegration(),
+#         ],
+#         auto_enabling_integrations=False,
+#         # Set traces_sample_rate to 1.0 to capture 100%
+#         # of transactions for performance monitoring.
+#         # We recommend adjusting this value in production.
+#         traces_sample_rate=1.0,
+#     )
 
-    def sentry_excepthook(exc_type, exc_value, exc_traceback):
-        with sentry_sdk.push_scope() as scope:
-            # You can add additional context or tags here if needed
-            scope.set_tag("exception_type", exc_type)
-            scope.set_extra("traceback", exc_traceback)
+#     def sentry_excepthook(exc_type, exc_value, exc_traceback):
+#         with sentry_sdk.push_scope() as scope:
+#             # You can add additional context or tags here if needed
+#             scope.set_tag("exception_type", exc_type)
+#             scope.set_extra("traceback", exc_traceback)
 
-        # Capture the exception with Sentry
-        sentry_sdk.capture_exception(exc_value)
+#         # Capture the exception with Sentry
+#         sentry_sdk.capture_exception(exc_value)
 
-    # Set the custom excepthook function as the default excepthook
-    sys.excepthook = sentry_excepthook
+#     # Set the custom excepthook function as the default excepthook
+#     sys.excepthook = sentry_excepthook
 
 
 def make_celery(app):
@@ -210,6 +210,7 @@ def register_blueprints(app):
     )
     from src.smartlead.controllers import SMARTLEAD_BLUEPRINT
     from src.triggers.controllers import TRIGGERS_BLUEPRINT
+    from src.weekly_report.controllers import WEEKLY_REPORT_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -263,6 +264,7 @@ def register_blueprints(app):
     app.register_blueprint(LINKEDIN_TEMPLATE_BLUEPRINT, url_prefix="/linkedin_template")
     app.register_blueprint(SMARTLEAD_BLUEPRINT, url_prefix="/smart_email")
     app.register_blueprint(TRIGGERS_BLUEPRINT, url_prefix="/triggers")
+    app.register_blueprint(WEEKLY_REPORT_BLUEPRINT, url_prefix="/weekly_report")
 
     db.init_app(app)
 

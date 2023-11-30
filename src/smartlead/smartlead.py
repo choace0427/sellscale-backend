@@ -1,4 +1,5 @@
 import csv
+from typing import Optional
 import requests
 from io import StringIO
 import json
@@ -97,6 +98,69 @@ class Lead:
         }
 
 
+class SmartleadCampaignStatisticEntry:
+    """This class represents a data entry from the Smartlead Campaign Statistics API."""
+
+    def __init__(
+        self,
+        lead_name: Optional[str] = None,
+        lead_email: Optional[str] = None,
+        lead_category: Optional[str] = None,
+        sequence_number: Optional[int] = None,
+        stats_id: Optional[int] = None,
+        email_campaign_seq_id: Optional[int] = None,
+        seq_variant_id: Optional[int] = None,
+        email_subject: Optional[str] = None,
+        email_message: Optional[str] = None,
+        sent_time: Optional[str] = None,
+        open_time: Optional[str] = None,
+        click_time: Optional[str] = None,
+        reply_time: Optional[str] = None,
+        open_count: Optional[int] = None,
+        click_count: Optional[int] = None,
+        is_unsubscribed: Optional[bool] = None,
+        is_bounced: Optional[bool] = None,
+    ):
+        self.lead_name = lead_name
+        self.lead_email = lead_email
+        self.lead_category = lead_category
+        self.sequence_number = sequence_number
+        self.stats_id = stats_id
+        self.email_campaign_seq_id = email_campaign_seq_id
+        self.seq_variant_id = seq_variant_id
+        self.email_subject = email_subject
+        self.email_message = email_message
+        self.sent_time = sent_time
+        self.open_time = open_time
+        self.click_time = click_time
+        self.reply_time = reply_time
+        self.open_count = open_count
+        self.click_count = click_count
+        self.is_unsubscribed = is_unsubscribed
+        self.is_bounced = is_bounced
+
+    def to_dict(self):
+        return {
+            "lead_name": self.lead_name,
+            "lead_email": self.lead_email,
+            "lead_category": self.lead_category,
+            "sequence_number": self.sequence_number,
+            "stats_id": self.stats_id,
+            "email_campaign_seq_id": self.email_campaign_seq_id,
+            "seq_variant_id": self.seq_variant_id,
+            "email_subject": self.email_subject,
+            "email_message": self.email_message,
+            "sent_time": self.sent_time,
+            "open_time": self.open_time,
+            "click_time": self.click_time,
+            "reply_time": self.reply_time,
+            "open_count": self.open_count,
+            "click_count": self.click_count,
+            "is_unsubscribed": self.is_unsubscribed,
+            "is_bounced": self.is_bounced,
+        }
+
+
 class Smartlead:
     DELAY_SECONDS = 1.0
     BASE_URL = "https://server.smartlead.ai/api/v1"
@@ -104,10 +168,21 @@ class Smartlead:
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
+    def get_campaign_statistics_by_id(self, campaign_id):
+        time.sleep(self.DELAY_SECONDS)
+        url = f"https://server.smartlead.ai/api/v1/campaigns/{campaign_id}/statistics?api_key={self.api_key}"
+        response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_campaign_statistics_by_id(campaign_id)
+
+        return response.json()
+
     def get_emails(self, offset=0, limit=100):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_emails(offset, limit)
         return response.json()
 
     def get_campaign_sequences(self, campaign_id):
@@ -116,12 +191,16 @@ class Smartlead:
             f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
         )
         response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_campaign_sequences(campaign_id)
         return response.json()
 
     def get_campaign(self, campaign_id):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}?api_key={self.api_key}"
         response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_campaign(campaign_id)
         return response.json()
 
     def get_campaign_analytics(self, campaign_id):
@@ -130,18 +209,24 @@ class Smartlead:
             f"{self.BASE_URL}/campaigns/{campaign_id}/analytics?api_key={self.api_key}"
         )
         response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_campaign_analytics(campaign_id)
         return response.json()
 
     def get_campaign_email_accounts(self, campaign_id):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"
         response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_campaign_email_accounts(campaign_id)
         return response.json()
 
     def get_campaign_leads(self, campaign_id, offset=0, limit=10):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_campaign_leads(campaign_id, offset, limit)
         return response.json()
 
     def add_campaign_leads(
@@ -158,24 +243,25 @@ class Smartlead:
                 "lead_list": [lead.to_dict() for lead in leads],
             },
         )
+        if response.status_code == 429:
+            return self.add_campaign_leads(campaign_id, leads)
         return response.json()
 
     def get_warmup_stats(self, email_account_id):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
-
-        send_slack_message(
-            message=f"TEMP: Smartlead API call: {url}. Response: {response.text}",
-            webhook_urls=[URL_MAP["ops-outbound-warming"]],
-        )
-
+        if response.status_code == 429:
+            return self.get_warmup_stats(email_account_id)
         return response.json()
 
     def get_leads_export(self, campaign_id):
         time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads-export?api_key={self.api_key}"
         response = requests.get(url)
+        if response.status_code == 429:
+            return self.get_leads_export(campaign_id)
+
         if response.status_code != 200:
             return []
 
@@ -248,4 +334,6 @@ class Smartlead:
         data = {"lead_list": lead_list, "settings": settings}
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            return self.post_campaign_leads(campaign_id, lead_list)
         return response.json()

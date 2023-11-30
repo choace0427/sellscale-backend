@@ -15,7 +15,12 @@ from src.prospecting.models import Prospect
 from src.utils.slack import send_slack_message, URL_MAP
 
 from src.client.models import ClientArchetype, ClientSDR
-from src.smartlead.smartlead import Lead, Smartlead, EmailWarming
+from src.smartlead.smartlead import (
+    Lead,
+    Smartlead,
+    EmailWarming,
+    SmartleadCampaignStatisticEntry,
+)
 
 from app import db, celery
 
@@ -54,6 +59,8 @@ def get_all_email_warmings(sdr_name: str) -> list[EmailWarming]:
 def sync_email_warmings(client_sdr_id: int, email: str):
     from src.warmup_snapshot.models import WarmupSnapshot
 
+    return True, "Success"
+
     warmings = get_email_warmings_for_sdr(client_sdr_id)
     snapshot: WarmupSnapshot = WarmupSnapshot.query.filter_by(
         account_name=email
@@ -73,11 +80,6 @@ def get_email_warmings_for_sdr(client_sdr_id: int) -> list[EmailWarming]:
         old_warmings = []
 
     warmings: list[EmailWarming] = get_all_email_warmings(sdr.name)
-    send_slack_message(
-        message=f"TEMP: Got warmings. Response: {[warming.to_dict() for warming in warmings]}",
-        webhook_urls=[URL_MAP["ops-outbound-warming"]],
-    )
-
     for warming in warmings:
         for old_warming in old_warmings:
             if warming.id == old_warming.get("id"):
@@ -180,49 +182,60 @@ def sync_campaign_leads(client_sdr_id: int) -> bool:
             continue
 
         sl = Smartlead()
-        leads = sl.get_leads_export(archetype.smartlead_campaign_id)
+        statistics = sl.get_campaign_statistics_by_id(archetype.smartlead_campaign_id)
+        statistics = statistics.get("data")
+        if not statistics:
+            raise Exception("No smartlead campaign statistics found")
 
-        from src.automation.orchestrator import add_process_list
+        from src.automation.orchestrator import add_process_list, add_process_to_queue
 
-        add_process_list(
-            type="sync_prospect_with_lead",
-            args_list=[
-                {
-                    "client_id": archetype.client_id,
-                    "archetype_id": archetype.id,
-                    "client_sdr_id": client_sdr_id,
-                    "lead": lead,
-                }
-                for lead in leads
-            ],
-            buffer_wait_minutes=1,
-        )
+        for lead in statistics:
+            args = {
+                "client_id": archetype.client_id,
+                "archetype_id": archetype.id,
+                "client_sdr_id": client_sdr_id,
+                "lead": lead,
+            }
+            add_process_to_queue(
+                type="sync_prospect_with_lead",
+                meta_data={"args": args},
+                execution_date=datetime.datetime.utcnow(),
+                commit=True,
+            )
+
+        # add_process_list(
+        #     type="sync_prospect_with_lead",
+        #     args_list=[
+        #         {
+        #             "client_id": archetype.client_id,
+        #             "archetype_id": archetype.id,
+        #             "client_sdr_id": client_sdr_id,
+        #             "lead": lead,
+        #         }
+        #         for lead in leads
+        #     ],
+        #     buffer_wait_minutes=1,
+        # )
 
 
 @celery.task
 def sync_prospect_with_lead(
     client_id: int, archetype_id: int, client_sdr_id: int, lead: dict
 ):
+    # 0. Turn the lead into a SmartleadCampaignStatisticEntry object
+    lead: SmartleadCampaignStatisticEntry = SmartleadCampaignStatisticEntry(**lead)
+
+    # 1. Try to find the prospect by email. If not found, return False
     prospect: Prospect = Prospect.query.filter(
-        Prospect.email == lead.get("email"),
+        Prospect.email == lead.lead_email,
         Prospect.client_sdr_id == client_sdr_id,
     ).first()
-
     if not prospect:
-        # Create a new prospect
-        from src.prospecting.services import add_prospect
+        return False, "Prospect not found"
 
-        p_id = add_prospect(
-            client_id=client_id,
-            archetype_id=archetype_id,
-            client_sdr_id=client_sdr_id,
-            email=lead.get("email"),
-        )
-        prospect: Prospect = Prospect.query.get(p_id)
-
+    # 2. Get the corresponding prospect email. If not found, create a new one
     prospect_email_id = prospect.approved_prospect_email_id
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
-
     if not prospect_email:
         # Create a new prospect email
         prospect_email: ProspectEmail = ProspectEmail(
@@ -236,36 +249,61 @@ def sync_prospect_with_lead(
         prospect.approved_prospect_email_id = prospect_email.id
         prospect_email_id = prospect_email.id
         db.session.commit()
-
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+
+    # 3a. If the lead was sent an email and had previously not, update the prospect email status
     if (
-        lead.get("is_sent")
+        lead.sent_time
         and prospect_email.outreach_status == ProspectEmailOutreachStatus.NOT_SENT
     ):
+        print('Updating prospect email status to "SENT_OUTREACH"')
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+            quietly=True,
         )
 
+    # 3b. If the lead has opened the email and had previously not, update the prospect email status
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     if (
-        lead.get("is_opened")
+        lead.open_time
         and prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     ):
+        print('Updating prospect email status to "EMAIL_OPENED"')
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+            quietly=True,
         )
 
+    # 3c. If the lead has replied to the email and had previously not, update the prospect email status
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
-    if (
-        lead.get("is_replied")
-        and prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED
+    if lead.reply_time and (
+        prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED
+        or prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     ):
-        update_prospect_status_email(
-            prospect_id=prospect.id,
-            new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-        )
+        print('Updating prospect email status to "ACTIVE_CONVO"')
+        if prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED:
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                quietly=True,
+            )
+        elif (
+            prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
+        ):
+            # TODO: One day, we may use smartlead's behavior with OOOs having a reply_time but no open_time to create OOO special behavior
+            # For now, we'll just mark it as EMAIL_OPENED, and then ACTIVE_CONVO
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+                quietly=True,
+            )
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                quietly=True,
+            )
 
     return True, "Success"
 

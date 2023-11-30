@@ -124,6 +124,8 @@ def set_warmup_snapshots_for_client(self, client_id: int):
 @celery.task(bind=True)
 def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
     try:
+        from src.automation.orchestrator import add_process_for_future
+
         client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
         if not client_sdr:
             return False, "Client SDR not found"
@@ -174,18 +176,15 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             db.session.add(email_warmup_snapshot)
             db.session.commit()
 
-            if email in seen_sdr_emails:
-                continue
-            else:
-                seen_sdr_emails.add(email)
-
-                from src.automation.orchestrator import add_process_for_future
-
-                add_process_for_future(
-                    type="sync_email_warmings",
-                    args={"client_sdr_id": client_sdr_id, "email": email},
-                    minutes=1,
-                )
+            # if email in seen_sdr_emails:
+            #     continue
+            # else:
+            #     seen_sdr_emails.add(email)
+            #     add_process_for_future(
+            #         type="sync_email_warmings",
+            #         args={"client_sdr_id": client_sdr_id, "email": email},
+            #         minutes=1,
+            #     )
 
         print(f"Finished setting channel warmups for {name}")
 
