@@ -156,9 +156,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
                 channel_type="EMAIL",
                 account_name=email,
             ).first()
-            previous_total_sent_count = (
-                old_warmup.previous_total_sent_count if old_warmup else 0
-            )
+            previous_total_sent_count = old_warmup.total_sent_count if old_warmup else 0
 
             # Create the new warmup
             email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
@@ -189,6 +187,14 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
         send_warmup_snapshot_update(client_sdr_id=client_sdr_id)
 
         print(f"Finished setting channel warmups for {name}")
+
+        # Delete LinkedIn Warmups
+        linkedin_warmups = WarmupSnapshot.query.filter_by(
+            client_sdr_id=client_sdr_id, channel_type="LINKEDIN"
+        ).all()
+        for linkedin_warmup in linkedin_warmups:
+            db.session.delete(linkedin_warmup)
+            db.session.commit()
 
         # Create Linkedin Warmups
         linkedin_query = """
@@ -242,7 +248,8 @@ def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
     """
     # Get warmups for the client SDR
     warmups: list[WarmupSnapshot] = WarmupSnapshot.query.filter_by(
-        client_sdr_id=client_sdr_id
+        client_sdr_id=client_sdr_id,
+        channel_type="EMAIL",
     ).all()
 
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
@@ -262,8 +269,7 @@ def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"🔥 *{warmup.account_name}* {previous_perc} -> {current_perc}",
-                        "emoji": True,
+                        "text": f"🔥 *{warmup.account_name}* {previous_perc}% -> {current_perc}%",
                     },
                 }
             )
@@ -275,8 +281,7 @@ def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"📈 *{warmup.account_name}* {previous_perc} -> {current_perc}",
-                        "emoji": True,
+                        "text": f"📈 *{warmup.account_name}* {previous_perc}% -> {current_perc}%",
                     },
                 }
             )
@@ -290,7 +295,6 @@ def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
                 "text": {
                     "type": "mrkdwn",
                     "text": f"Warmup Snapshot updated for {client_sdr.name}",
-                    "emoji": True,
                 },
             }
         ]
@@ -302,7 +306,6 @@ def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
                 "text": {
                     "type": "mrkdwn",
                     "text": f"🟢 Already warmed accounts: {', '.join(already_warmed_accounts)}",
-                    "emoji": True,
                 },
             }
         ],

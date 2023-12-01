@@ -66,7 +66,7 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
 
     for url in webhook_urls:
         webhook = WebhookClient(url)
-        webhook.send(text=message, blocks=blocks)
+        response = webhook.send(text=message, blocks=blocks)
 
     from model_import import Client
     from app import db
