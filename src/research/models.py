@@ -200,7 +200,6 @@ class IScraperPayloadCache(db.Model):
     linkedin_url = db.Column(db.String, nullable=False)
     payload = db.Column(JSONB, nullable=False)
     payload_type = db.Column(db.Enum(IScraperPayloadType), nullable=False)
-    temp = db.Column(db.Boolean, nullable=True)
 
     def get_iscraper_payload_cache_by_linkedin_url(linkedin_url: str):
         return (
