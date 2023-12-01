@@ -265,7 +265,7 @@ def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"🔥 *{warmup.account_name}* {previous_perc}% -> {current_perc}%",
+                        "text": f"🔥 *{warmup.account_name}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
                     },
                 }
             )
@@ -277,10 +277,17 @@ def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"📈 *{warmup.account_name}* {previous_perc}% -> {current_perc}%",
+                        "text": f"📈 *{warmup.account_name}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
                     },
                 }
             )
+
+    if (
+        len(warmed_blocks) == 0
+        and len(not_warmed_blocks) == 0
+        and len(already_warmed_accounts) == 0
+    ):
+        return False
 
     send_slack_message(
         message=f"Warmup Snapshot updated for {client_sdr.name}",
