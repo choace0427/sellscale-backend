@@ -336,5 +336,25 @@ def send_email_with_data(
 def send_all_emails(test_mode: bool = True, to_emails: list[str] = []) -> bool:
     client_sdr_ids = get_active_sdr_id()
     for client_sdr_id in client_sdr_ids:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+        name = client_sdr.name
+        to_email = client_sdr.email
+        cc_emails = client_sdr.weekly_report_cc_emails
+        bcc_emails = client_sdr.weekly_report_bcc_emails
+
+        if "team@sellscale.com" not in bcc_emails:
+            bcc_emails.append("team@sellscale.com")
+
+        print(
+            "📧 Sending weekly report to {name} at {to_email}".format(
+                name=name, to_email=to_emails
+            )
+        )
+        print("CC: {cc_emails}".format(cc_emails=cc_emails))
+        print("BCC: {bcc_emails}".format(bcc_emails=bcc_emails))
+        print("")
+
+        # todo(Aakash) Update this
         send_email_with_data(client_sdr_id, test_mode, to_emails)
     return True
