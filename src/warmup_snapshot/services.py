@@ -94,8 +94,6 @@ def set_warmup_snapshots_for_all_active_sdrs(self):
     add_process_list(
         type="set_warmup_snapshot_for_sdr",
         args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
-        buffer_wait_minutes=5,
-        append_to_end=True,
     )
 
 
@@ -115,8 +113,6 @@ def set_warmup_snapshots_for_client(self, client_id: int):
     add_process_list(
         type="set_warmup_snapshot_for_sdr",
         args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
-        buffer_wait_minutes=5,
-        append_to_end=True,
     )
 
     return True
