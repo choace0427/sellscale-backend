@@ -499,7 +499,7 @@ def extract_linkedin_profiles(companies: list[PipelineCompany], titles: list[str
 
 
 def enrich_linkedin_profiles(blacklist: list, profiles: list):
-    MAX_NUM_PROFILES_TO_PROCESS = 100
+    MAX_NUM_PROFILES_TO_PROCESS = 5
 
     prospects: list[PipelineProspect] = []
 
