@@ -1,7 +1,6 @@
 from typing import List
 from flask import Blueprint, request, jsonify
 from src.smartlead.services import (
-    get_email_warmings_for_sdr,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
     sync_prospects_to_campaign,
@@ -14,22 +13,6 @@ from src.smartlead.services import get_campaign_sequence_by_id
 
 
 SMARTLEAD_BLUEPRINT = Blueprint("smartlead", __name__)
-
-
-@SMARTLEAD_BLUEPRINT.route("/email_warmings", methods=["GET"])
-@require_user
-def get_email_warmings(client_sdr_id: int):
-    email_warmings = get_email_warmings_for_sdr(client_sdr_id)
-
-    return (
-        jsonify(
-            {
-                "message": "Success",
-                "data": [warming.to_dict() for warming in email_warmings],
-            }
-        ),
-        200,
-    )
 
 
 @SMARTLEAD_BLUEPRINT.route("/campaigns/sequence", methods=["GET"])

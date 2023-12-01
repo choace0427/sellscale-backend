@@ -2,17 +2,18 @@ import json
 from typing import Optional
 
 from src.smartlead.services import (
-    get_email_warmings_for_sdr,
-    sync_campaign_analytics,
-    sync_campaign_leads_for_sdr,
+    get_email_warmings,
+    get_warmup_percentage,
 )
 from model_import import ClientSDR
 import requests
+from src.smartlead.smartlead import Smartlead
 from src.utils.domains.pythondns import (
     dkim_record_valid,
     dmarc_record_valid,
     spf_record_valid,
 )
+from src.utils.slack import URL_MAP, send_slack_message
 from src.warmup_snapshot.models import WarmupSnapshot
 from src.utils.abstract.attr_utils import deep_get
 from app import db, celery
@@ -132,22 +133,12 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
         name: str = client_sdr.name
         print(f"Setting channel warmups for {name}")
 
-        # Clear all warmups
-        WarmupSnapshot.query.filter_by(client_sdr_id=client_sdr_id).delete()
-
         # Create Email Warmups
-        email_warmups = pass_through_smartlead_warmup_request(client_sdr_id)
-
-        # Sync campaign data
-        sync_campaign_analytics(client_sdr_id)
-        sync_campaign_leads_for_sdr(client_sdr_id)
-
-        seen_sdr_emails = set()
+        email_warmups = get_email_warmings(client_sdr_id=client_sdr_id)
         for email_warmup in email_warmups:
             email = email_warmup["from_email"]
-            warmup_reputation = email_warmup["email_warmup_details"][
-                "warmup_reputation"
-            ]
+            warmup_reputation = email_warmup["warmup_details"]["warmup_reputation"]
+            total_sent_count = email_warmup["warmup_details"]["total_sent_count"]
             daily_sent_count = email_warmup["daily_sent_count"]
             daily_limit = email_warmup["message_per_day"]
 
@@ -157,11 +148,24 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain)
             dkim_record, dkim_valid = dkim_record_valid(domain=domain)
 
+            # Get the old warmup
+            old_warmup: WarmupSnapshot = WarmupSnapshot.query.filter_by(
+                client_sdr_id=client_sdr_id,
+                channel_type="EMAIL",
+                account_name=email,
+            ).first()
+            previous_total_sent_count = (
+                old_warmup.previous_total_sent_count if old_warmup else 0
+            )
+
+            # Create the new warmup
             email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
                 client_sdr_id=client_sdr_id,
                 channel_type="EMAIL",
                 daily_sent_count=daily_sent_count,
                 daily_limit=daily_limit,
+                total_sent_count=total_sent_count,
+                previous_total_sent_count=previous_total_sent_count,
                 warmup_enabled=True,
                 reputation=warmup_reputation,
                 account_name=email,
@@ -171,20 +175,16 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
                 spf_record_valid=spf_valid,
                 dkim_record=dkim_record,
                 dkim_record_valid=dkim_valid,
-                warming_details=None,
             )
             db.session.add(email_warmup_snapshot)
             db.session.commit()
 
-            # if email in seen_sdr_emails:
-            #     continue
-            # else:
-            #     seen_sdr_emails.add(email)
-            #     add_process_for_future(
-            #         type="sync_email_warmings",
-            #         args={"client_sdr_id": client_sdr_id, "email": email},
-            #         minutes=1,
-            #     )
+            # Delete the old warmup
+            if old_warmup:
+                db.session.delete(old_warmup)
+                db.session.commit()
+
+        send_warmup_snapshot_update(client_sdr_id=client_sdr_id)
 
         print(f"Finished setting channel warmups for {name}")
 
@@ -227,3 +227,83 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
     except Exception as e:
         print("Error setting warmups for sdr", client_sdr_id, e)
         return False, "Error", e
+
+
+def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
+    """Sends a slack notification for the warmup snapshot update.
+
+    Args:
+        client_sdr_id (int): ID of the client SDR.
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    # Get warmups for the client SDR
+    warmups: list[WarmupSnapshot] = WarmupSnapshot.query.filter_by(
+        client_sdr_id=client_sdr_id
+    ).all()
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+
+    already_warmed_accounts = []
+    warmed_blocks = []
+    not_warmed_blocks = []
+    for warmup in warmups:
+        total_sent_count = warmup.total_sent_count
+        previous_total_sent_count = warmup.previous_total_sent_count
+        current_perc = get_warmup_percentage(total_sent_count)
+        previous_perc = get_warmup_percentage(previous_total_sent_count)
+
+        if current_perc == 100 and previous_perc < 100:
+            warmed_blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"🔥 *{warmup.account_name}* {previous_perc} -> {current_perc}",
+                        "emoji": True,
+                    },
+                }
+            )
+        elif current_perc == 100 and previous_perc == 100:
+            already_warmed_accounts.append(warmup.account_name)
+        elif current_perc < 100 and previous_perc < 100:
+            not_warmed_blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"📈 *{warmup.account_name}* {previous_perc} -> {current_perc}",
+                        "emoji": True,
+                    },
+                }
+            )
+
+    send_slack_message(
+        message=f"Warmup Snapshot updated for {client_sdr.name}",
+        webhook_urls=[URL_MAP["ops-outbound-warming"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Warmup Snapshot updated for {client_sdr.name}",
+                    "emoji": True,
+                },
+            }
+        ]
+        + warmed_blocks
+        + not_warmed_blocks
+        + [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"🟢 Already warmed accounts: {', '.join(already_warmed_accounts)}",
+                    "emoji": True,
+                },
+            }
+        ],
+    )
+
+    return True

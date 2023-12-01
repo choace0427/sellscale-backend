@@ -6,8 +6,6 @@ import json
 import os
 import time
 
-from src.utils.slack import send_slack_message, URL_MAP
-
 
 class EmailWarming:
     def __init__(
@@ -24,7 +22,6 @@ class EmailWarming:
         inbox_count: int,
         warmup_email_received_count: int,
         stats_by_date: list,
-        percent_complete: int,
     ):
         self.id = id
         self.name = name
@@ -38,7 +35,6 @@ class EmailWarming:
         self.inbox_count = inbox_count
         self.warmup_email_received_count = warmup_email_received_count
         self.stats_by_date = stats_by_date
-        self.percent_complete = percent_complete
 
     def to_dict(self):
         return {
@@ -54,7 +50,6 @@ class EmailWarming:
             "inbox_count": self.inbox_count,
             "warmup_email_received_count": self.warmup_email_received_count,
             "stats_by_date": self.stats_by_date,
-            "percent_complete": self.percent_complete,
         }
 
 

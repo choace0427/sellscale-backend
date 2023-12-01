@@ -20,6 +20,8 @@ class WarmupSnapshot(db.Model):
 
     account_name = db.Column(db.String, nullable=True)
 
+    total_sent_count = db.Column(db.Integer, nullable=False)
+    previous_total_sent_count = db.Column(db.Integer, nullable=False)
     daily_sent_count = db.Column(db.Integer, nullable=False)
     daily_limit = db.Column(db.Integer, nullable=False)
 
@@ -32,7 +34,6 @@ class WarmupSnapshot(db.Model):
     spf_record_valid = db.Column(db.Boolean, nullable=True)
     dkim_record = db.Column(db.String, nullable=True)
     dkim_record_valid = db.Column(db.Boolean, nullable=True)
-    warming_details = db.Column(db.JSON, nullable=True)
 
     def to_dict(self):
         return {
@@ -44,8 +45,6 @@ class WarmupSnapshot(db.Model):
             "daily_limit": self.daily_limit,
             "warmup_enabled": self.warmup_enabled,
             "reputation": self.reputation,
-            "warming_details": self.warming_details,
-
             "dmarc_record": self.dmarc_record,
             "dmarc_record_valid": self.dmarc_record_valid,
             "spf_record": self.spf_record,
