@@ -145,6 +145,6 @@ def get_sales_navigator_launch_endpoint(client_sdr_id: int, launch_id: int):
 @PHANTOM_BUSTER_BLUEPRINT.route("/sales_navigator/webhook", methods=["POST"])
 def sales_navigator_webhook():
     """Webhook for sales navigator"""
-    collect_and_load_sales_navigator_results.delay()
+    collect_and_load_sales_navigator_results()
 
     return jsonify({"status": "success", "data": {}}), 200
