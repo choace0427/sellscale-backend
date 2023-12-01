@@ -63,6 +63,12 @@ class WeeklyReportActiveCampaign:
     campaign_completion_percent: float
     campaign_channel: str
 
+    num_sent: int
+    num_opens: int
+    num_replies: int
+    num_positive_replies: int
+    num_demos: int
+
     def __init__(
         self,
         campaign_emoji: str,
@@ -70,12 +76,22 @@ class WeeklyReportActiveCampaign:
         campaign_id: int,
         campaign_completion_percent: float,
         campaign_channel: str,
+        num_sent: int,
+        num_opens: int,
+        num_replies: int,
+        num_positive_replies: int,
+        num_demos: int,
     ):
         self.campaign_emoji = campaign_emoji
         self.campaign_name = campaign_name
         self.campaign_id = campaign_id
         self.campaign_completion_percent = campaign_completion_percent
         self.campaign_channel = campaign_channel
+        self.num_sent = num_sent
+        self.num_opens = num_opens
+        self.num_replies = num_replies
+        self.num_positive_replies = num_positive_replies
+        self.num_demos = num_demos
 
     def to_dict(self):
         return {
@@ -84,6 +100,11 @@ class WeeklyReportActiveCampaign:
             "campaign_id": self.campaign_id,
             "campaign_completion_percent": self.campaign_completion_percent,
             "campaign_channel": self.campaign_channel,
+            "num_sent": self.num_sent,
+            "num_opens": self.num_opens,
+            "num_replies": self.num_replies,
+            "num_positive_replies": self.num_positive_replies,
+            "num_demos": self.num_demos,
         }
 
 

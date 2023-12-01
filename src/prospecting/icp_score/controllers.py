@@ -1,4 +1,4 @@
-from src.client.models import ClientArchetype, ClientSDR
+from src.client.models import ClientArchetype, ClientSDR, Client
 from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user
 from app import db
@@ -32,9 +32,11 @@ def get_runs(client_sdr_id: int):
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
         return {"status": "error", "message": "Unauthorized"}, 401
 
-    jobs: list[ICPScoringJobQueue] = ICPScoringJobQueue.query.filter_by(
-        client_archetype_id=client_archetype_id
-    ).order_by(ICPScoringJobQueue.id.desc()).all()
+    jobs: list[ICPScoringJobQueue] = (
+        ICPScoringJobQueue.query.filter_by(client_archetype_id=client_archetype_id)
+        .order_by(ICPScoringJobQueue.id.desc())
+        .all()
+    )
 
     jobs_dicts = [job.to_dict() for job in jobs]
 
@@ -58,11 +60,10 @@ def post_manual_trigger_rerun(client_sdr_id: int):
         client_archetype_id=client_archetype_id,
         icp_scoring_job_queue_id=icp_scoring_job_queue_id,
         prospect_ids=prospect_ids,
-        manual_trigger=True
+        manual_trigger=True,
     )
 
     return {"status": "success"}, 200
-
 
 
 @ICP_SCORING_BLUEPRINT.route("/get_ruleset", methods=["GET"])
@@ -218,7 +219,7 @@ def run_on_prospects(client_sdr_id: int):
     success = apply_icp_scoring_ruleset_filters_task(
         client_archetype_id=client_archetype_id,
         prospect_ids=prospect_ids,
-        manual_trigger=True
+        manual_trigger=True,
     )
 
     if success:
@@ -232,9 +233,11 @@ def post_move_selected_prospects_to_unassigned(client_sdr_id: int):
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True
     )
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+
     not_client_sdrs_prospects: Prospect = Prospect.query.filter(
-        Prospect.id.in_(prospect_ids),
-        Prospect.client_sdr_id != client_sdr_id,
+        Prospect.id.in_(prospect_ids), Prospect.client_id != client_sdr.client_id
     ).all()
     if not_client_sdrs_prospects:
         return "Unauthorized - selected prospects do not belong to this user.", 401
@@ -293,13 +296,13 @@ def post_generate_new_icp_filters(client_sdr_id: int):
         "client_archetype_id", request, json=True, required=True
     )
 
-    message = get_request_parameter(
-        "message", request, json=True, required=True
+    message = get_request_parameter("message", request, json=True, required=True)
+
+    result = generate_new_icp_filters(
+        client_archetype_id=client_archetype_id, message=message
     )
 
-    result = generate_new_icp_filters(client_archetype_id=client_archetype_id, message=message)
-
-    return jsonify({"message": "Success", "data": result }), 200
+    return jsonify({"message": "Success", "data": result}), 200
 
 
 @ICP_SCORING_BLUEPRINT.route("/update_icp_filters", methods=["POST"])
@@ -309,13 +312,10 @@ def post_update_icp_filters(client_sdr_id: int):
         "client_archetype_id", request, json=True, required=True
     )
 
-    filters = get_request_parameter(
-        "filters", request, json=True, required=True
-    )
+    filters = get_request_parameter("filters", request, json=True, required=True)
 
     result = update_icp_filters(
-        client_archetype_id=client_archetype_id,
-        filters=filters
+        client_archetype_id=client_archetype_id, filters=filters
     )
 
     return jsonify({"message": "Success", "data": result}), 200

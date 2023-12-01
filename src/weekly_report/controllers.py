@@ -18,7 +18,8 @@ WEEKLY_REPORT_BLUEPRINT = Blueprint("weekly_report", __name__)
 
 @WEEKLY_REPORT_BLUEPRINT.route("/<client_sdr_id>/send", methods=["POST"])
 def index(client_sdr_id: int):
-    success = send_email_with_data(client_sdr_id=client_sdr_id)
+    to_emails = get_request_parameter("to_emails", request, json=True, required=True)
+    success = send_email_with_data(client_sdr_id=client_sdr_id, to_emails=to_emails)
 
     if success:
         return jsonify({"message": "Email sent successfully!"}), 200

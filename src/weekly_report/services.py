@@ -66,10 +66,18 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         round(
             cast(count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is not null or prospect.approved_prospect_email_id is not null) as float) / count(distinct prospect.id) * 1000
         ) / 10 completion_percent,
-        count(distinct prospect.id) filter (where prospect.overall_status = 'PROSPECTED') prospects_left
+        count(distinct prospect.id) filter (where prospect.overall_status = 'PROSPECTED') prospects_left,
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent_all_time,
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'EMAIL_OPENED') num_opened_all_time,
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied_all_time,
+        count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or prospect_email_status_records.to_status = 'DEMO_SET') num_positive_reply_all_time,
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') num_demo_all_time
             
     from client_archetype
         join prospect on prospect.archetype_id = client_archetype.id
+        left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        left join prospect_email on prospect_email.prospect_id = prospect.approved_prospect_email_id
+        left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
     where client_archetype.active and client_archetype.client_sdr_id = {client_sdr_id}
     group by 1,2,3,4;
     """.format(
@@ -169,6 +177,11 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
             campaign_id=campaign.id,
             campaign_completion_percent=campaign.completion_percent,
             campaign_channel=campaign.channel,
+            num_sent=campaign.num_sent_all_time,
+            num_opens=campaign.num_opened_all_time,
+            num_replies=campaign.num_replied_all_time,
+            num_positive_replies=campaign.num_positive_reply_all_time,
+            num_demos=campaign.num_demo_all_time,
         )
         for campaign in active_campaigns_data
     ]
@@ -261,11 +274,6 @@ def send_email_with_data(
         title = "[TEST MODE] " + title
     else:
         title = title
-
-    if test_mode:
-        send_to = "aakash@sellscale.com"
-    else:
-        send_to = ""
 
     send_email(
         html=html,

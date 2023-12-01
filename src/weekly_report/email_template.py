@@ -198,7 +198,8 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
   """
 
     CAMPAIGN_BLOCK = """
-        <div style="border:2px solid #cfe5fe;gap:4px;background-color:#f4f9ff;border-radius:6px;padding:12px 0px;margin-top:30px">
+        <div style="border:2px solid #cfe5fe;gap:4px;background-color:#f4f9ff;border-radius:6px;padding:12px 0px;margin-top:12px; width: 100%;">
+        
           <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
             <tbody style="width:100%">
               <tr style="width:100%">
@@ -206,7 +207,7 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
                   <div style="width:100%;display:flex;text-align:left;padding:6px;padding-left:24px">
                     <div style="flex:1;font-weight:bold; text-align: center; width: 15%; padding-top: 8px; border: solid 2px #2F98C1; border-radius: 8px;">
                       <p style="font-size: 18px; margin: 0;">{completion_percent}%</p>
-                      <p style="font-size: 9px; color: gray; margin: 0;">PROGRESS</p>
+                      <p style="font-size: 8px; color: gray; margin: 0;">COMPLETE</p>
                     </div>
                     <div style="flex:6; font-weight:bold; width: 85%; padding-left: 12px;">
                       <span style="border-radius:12px;background-color:{color};padding:4px;padding-left:12px;padding-right:12px;font-size:10px;color:white">{channel}</span>
@@ -218,6 +219,39 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
               </tr>
             </tbody>
           </table>
+
+          <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
+            <tbody style="width:100%">
+              <tr style="width:100%">
+                <div style="width:100%;display:flex; flex-direction: row; text-align:left;padding:2px;">
+                  
+                  <!-- show num_sent, num_opens, num_replies, num_positive_replies, num_demos side by side with equal width -->
+                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
+                    <p style="font-size: 18px; margin: 0;">{num_sent} <span style="font-size: 9px; color: gray; margin: 0;"><b>SENT</b></span></p>
+                  </div>
+                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
+                    <p style="font-size: 18px; margin: 0;">{num_opens} <span style="font-size: 9px; color: gray; margin: 0;"><b>OPEN</b></span></p>
+                  </div>
+                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
+                    <p style="font-size: 18px; margin: 0;">{num_replies} <span style="font-size: 9px; color: gray; margin: 0;"><b>REPLIED</b></span></p>
+                  </div>
+                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
+                    <p style="font-size: 18px; margin: 0;">{num_demos} <span style="font-size: 9px; color: gray; margin: 0;"><b>DEMO</b></span></p>
+                  </div>
+                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
+                    <p style="font-size: 12px; color: gray; margin: 0;">
+                      <a href="#" style="padding: 4px; padding-left: 12px; padding-right: 12px; background-color: #2E98C1; color: white; border-radius: 8px;">
+                        View Convos →
+                      </a>
+                    </p>
+                  </div>
+                  
+                </div>
+              </tr>
+            </tbody>
+          </table>
+
+
         </div>
     """
 
@@ -232,10 +266,16 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
     for campaign in data:
         blocks += CAMPAIGN_BLOCK.format(
             completion_percent=round(campaign.campaign_completion_percent, 0),
-            campaign_name=campaign.campaign_name,
+            campaign_name=campaign.campaign_name[:46]
+            + ("..." if len(campaign.campaign_name) > 46 else ""),
             campaign_emoji=campaign.campaign_emoji,
             color="#2F98C1" if campaign.campaign_channel == "LINKEDIN" else "#FF98C1",
             channel=campaign.campaign_channel,
+            num_sent=campaign.num_sent,
+            num_opens=campaign.num_opens,
+            num_replies=campaign.num_replies,
+            num_positive_replies=campaign.num_positive_replies,
+            num_demos=campaign.num_demos,
         )
     blocks += END_BLOCK
 
@@ -483,7 +523,7 @@ def generate_next_week_top_prospects(data: list[NextWeekSampleProspects]):
                   <tbody style="width:100%">
                     <tr style="width:100%">
                       <td data-id="__react-email-column" style="width:fit-content;margin-left:-4px">
-                        <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center;width:100%">👥 Next Week&#x27;s&#x27; Sample Prospects</p>
+                        <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center;width:100%">📸 Snapshot of your next week</p>
                       </td>
                     </tr>
                   </tbody>
@@ -686,14 +726,23 @@ def generate_weekly_update_email(data: WeeklyReportData):
               <div style="font-family:Helvetica, Arial, sans-serif;background-color:#fff;padding:30px 0px">
                 <div style="max-width:660px;margin:auto;margin-bottom:60px;text-align:center"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ0b5lrIs317CdpSkXImMEzyw8FwGX5ogdiKTT4xwGb&amp;s" width="250px" style="margin-top:20px" />
                   {USER_NAME_BLOCK}
+
                   {DATE_BLOCK}
+
                   {WARMUP_BLOCK}
-                  {CUMULATIVE_DEMOS_BLOCK}
-                  {ACTIVE_CAMPAIGNS_BLOCK}
+
                   {BAR_GRAPH_BLOCK}
+
+                  {ACTIVE_CAMPAIGNS_BLOCK}
+
+                  {CUMULATIVE_DEMOS_BLOCK}
+
                   {RECENT_CONVOS_BLOCK}
+
+                  <!-- {AUTO_REMOVED_BLOCK} -->
+
                   {TOP_PROSPECTS_BLOCK}
-                  {AUTO_REMOVED_BLOCK}
+
                   {VISIT_DASHBOARD_BLOCK}
                 </div>
                 {FOOTER_BLOCK}
