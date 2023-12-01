@@ -2,7 +2,11 @@ from typing import Optional
 from app import db
 from app import db, celery
 from model_import import ResearchPayload, ResearchPoints, ResearchType
-from src.research.models import ResearchPointType, IScraperPayloadCache, IScraperPayloadType
+from src.research.models import (
+    ResearchPointType,
+    IScraperPayloadCache,
+    IScraperPayloadType,
+)
 from sqlalchemy import text
 
 import json
@@ -21,6 +25,7 @@ def create_iscraper_payload_cache(
     db.session.commit()
 
     return iscraper_payload_cache.id
+
 
 def create_research_payload(
     prospect_id: int, research_type: ResearchType, payload: dict
@@ -54,7 +59,6 @@ def create_research_point(
     return research_point.id
 
 
-
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def run_create_custom_research_entries(
     self,
@@ -73,13 +77,15 @@ def run_create_custom_research_entries(
 
             li_url = entry.get("li_url")
             email = entry.get("email")
-            prospect_id = find_prospect_id_from_li_or_email(client_sdr_id, li_url, email)
+            prospect_id = find_prospect_id_from_li_or_email(
+                client_sdr_id, li_url, email
+            )
             if not prospect_id:
                 print(f"Could not find prospect for {li_url} or {email}")
                 continue
 
             research_point_ids = create_custom_research_points(
-                prospect_id=prospect_id, label=label, value={ "custom": value }
+                prospect_id=prospect_id, label=label, data={"custom": value}
             )
 
         db.session.commit()
@@ -89,9 +95,11 @@ def run_create_custom_research_entries(
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
-def create_custom_research_points(prospect_id: int, label: Optional[str], data: dict) -> list[int]:
+def create_custom_research_points(
+    prospect_id: int, label: Optional[str], data: dict
+) -> list[int]:
     """Creates a custom research point"""
-    
+
     payload_id = create_research_payload(prospect_id, ResearchType.CUSTOM_DATA, data)
 
     ids = []
@@ -99,10 +107,7 @@ def create_custom_research_points(prospect_id: int, label: Optional[str], data: 
         research_point = ResearchPoints(
             research_payload_id=payload_id,
             research_point_type=ResearchPointType.CUSTOM,
-            value=json.dumps({
-                "label": label or key,
-                "value": value
-            }),
+            value=json.dumps({"label": label or key, "value": value}),
         )
         db.session.add(research_point)
         db.session.commit()
@@ -227,12 +232,11 @@ def get_all_research_point_types():
             "description": "Used to create custom research points",
             "example": "{ 'label': 'Favorite Food', 'value': 'Pizza' }",
             "deprecated": False,
-        }
+        },
     ]
 
 
 def research_point_acceptance_rate():
-
     data = db.session.execute(
         text(
             """
