@@ -47,7 +47,15 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
     action_block_1 = ActionBlock(
         action=ActionType.SEND_SLACK_MESSAGE,
         data={
-            "slack_message": "Found [[METADATA.SOURCE_COMPANIES_FOUND]] companies for [[METADATA.SOURCE_COMPANY_TYPE]] search with query: [[METADATA.SOURCE_COMPANY_QUERY]]",
+            "slack_message": [
+                {
+                    "text": {
+                        "text": "Found [[METADATA.SOURCE_COMPANIES_FOUND]] companies for [[METADATA.SOURCE_COMPANY_TYPE]] search with query: [[METADATA.SOURCE_COMPANY_QUERY]]",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                }
+            ],
             "slack_webhook_urls": [URL_MAP["eng-sandbox"]],
         },
     )
@@ -73,7 +81,15 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
     action_block_2 = ActionBlock(
         action=ActionType.SEND_SLACK_MESSAGE,
         data={
-            "slack_message": "Prospects found after filter: [[METADATA.CURRENT_PROSPECTS_FOUND]].",
+            "slack_message": [
+                {
+                    "text": {
+                        "text": "Prospects found after filter: [[METADATA.CURRENT_PROSPECTS_FOUND]].",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                }
+            ],
             "slack_webhook_urls": [URL_MAP["eng-sandbox"]],
         },
     )
@@ -84,7 +100,15 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
     action_block_4 = ActionBlock(
         action=ActionType.SEND_SLACK_MESSAGE,
         data={
-            "slack_message": "Uploaded [[METADATA.PROSPECTS_UPLOADED]] prospects!",
+            "slack_message": [
+                {
+                    "text": {
+                        "text": "Uploaded [[METADATA.PROSPECTS_UPLOADED]] prospects!",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                }
+            ],
             "slack_webhook_urls": [URL_MAP["eng-sandbox"]],
         },
     )
