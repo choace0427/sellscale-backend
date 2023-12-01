@@ -41,6 +41,8 @@ class WarmupSnapshot(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "channel_type": self.channel_type.value,
             "account_name": self.account_name,
+            "total_sent_count": self.total_sent_count,
+            "previous_total_sent_count": self.previous_total_sent_count,
             "daily_sent_count": self.daily_sent_count,
             "daily_limit": self.daily_limit,
             "warmup_enabled": self.warmup_enabled,
