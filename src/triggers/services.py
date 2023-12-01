@@ -290,7 +290,7 @@ def runActionBlock(
     meta_data = pipeline_data.meta_data or {}
 
     if block.action == ActionType.SEND_SLACK_MESSAGE:
-        message = block.data.get("slack_message", "")
+        message = block.data.get("slack_message", [])
         webhook_urls = block.data.get("slack_webhook_urls", [])
         success = action_send_slack_message(message, webhook_urls, meta_data)
 
@@ -313,9 +313,14 @@ def runActionBlock(
 ####################################################################################################
 
 
-def action_send_slack_message(message: str, webhook_urls: list[str], meta_data: dict):
+def action_send_slack_message(blocks: list, webhook_urls: list[str], meta_data: dict):
+    json_string = json.dumps(blocks)
+    json_string = replace_metadata(json_string, meta_data)
+    parsed_blocks = json.loads(json_string)
+
     return send_slack_message(
-        message=replace_metadata(message, meta_data),
+        message="Slack message",
+        blocks=parsed_blocks,
         webhook_urls=webhook_urls,
     )
 
