@@ -26,6 +26,8 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
     )
     warmup_data = db.engine.execute(warmup_query).fetchone()
 
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
     cumulative_and_last_week_pipeline_query = """
     select 
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent_all_time,
@@ -45,9 +47,9 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         left join prospect_email on prospect_email.prospect_id = prospect.id
         left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
     where 
-        client_sdr_id = {client_sdr_id}
+        client_sdr.client_id = {client_id}
     """.format(
-        client_sdr_id=client_sdr_id
+        client_id=client_id
     )
     cumulative_and_last_week_pipeline_data = db.engine.execute(
         cumulative_and_last_week_pipeline_query
@@ -85,6 +87,24 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
     )
     active_campaigns_data = db.engine.execute(active_campaigns_query).fetchall()
 
+    demo_responses_query = """
+    select 
+        prospect.full_name,
+        prospect.company,
+        client_sdr.name user_name,
+        max(prospect.li_last_message_from_prospect)
+    from prospect
+        join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        join client_sdr on client_sdr.id = prospect.client_sdr_id
+    where prospect_status_records.to_status in ('DEMO_SET')
+        and prospect_status_records.created_at > NOW() - '7 days'::INTERVAL
+        and prospect.client_sdr_id = {client_sdr_id}
+    group by 1,2,3;
+    """.format(
+        client_sdr_id=client_sdr_id
+    )
+    demo_responses_data = db.engine.execute(demo_responses_query).fetchall()
+
     prospect_responses_query = """
     select 
         prospect.full_name,
@@ -94,7 +114,7 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
     from prospect
         join prospect_status_records on prospect_status_records.prospect_id = prospect.id
         join client_sdr on client_sdr.id = prospect.client_sdr_id
-    where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'DEMO_SET')
+    where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION')
         and prospect_status_records.created_at > NOW() - '7 days'::INTERVAL
         and prospect.client_sdr_id = {client_sdr_id}
     group by 1,2,3;
@@ -140,14 +160,30 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
     prospects_removed_query = """
         select count(distinct prospect.id)
         from prospect
-            join prospect_status_records on prospect_status_records.prospect_id = prospect.id
         where prospect.client_sdr_id = {client_sdr_id}
-            and prospect_status_records.created_at > NOW() - '7 days'::INTERVAL
-            and prospect_status_records.to_status in ('NOT_QUALIFIED', 'NOT_INTERESTED');
+            and prospect.created_at > NOW() - '7 days'::INTERVAL
     """.format(
         client_sdr_id=client_sdr_id
     )
-    prospects_removed_data = db.engine.execute(prospects_removed_query).fetchone()
+    num_prospects_added_data = db.engine.execute(prospects_removed_query).fetchone()
+
+    email_str_query = """
+        select 
+            string_agg(
+                concat(
+                    case when reputation = 100 then '🟢' else '🟡' end,
+                    ' ',
+                    account_name
+                ),
+                ', '
+            ) email_str
+        from warmup_snapshot
+        where warmup_snapshot.client_sdr_id = {client_sdr_id}
+            and channel_type = 'EMAIL';
+    """.format(
+        client_sdr_id=client_sdr_id
+    )
+    email_str = db.engine.execute(email_str_query).fetchone().email_str
 
     # Create Structured Data
     warmup_payload = WeeklyReportWarmupPayload(
@@ -155,6 +191,7 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         email_outbound_per_week=warmup_data.email_warming,
         linkedin_outbound_per_week_next_week=warmup_data.linkedin_warming_next_week,
         email_outbound_per_week_next_week=warmup_data.email_warming_next_week,
+        active_emails_str=email_str,
     )
     cumulative_client_pipeline = WeeklyReportPipelineData(
         num_sent=cumulative_and_last_week_pipeline_data.num_sent_all_time,
@@ -185,6 +222,16 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         )
         for campaign in active_campaigns_data
     ]
+    demo_responses = [
+        ProspectResponse(
+            prospect_name=prospect.full_name,
+            prospect_company=prospect.company,
+            user_name=prospect.user_name,
+            message=prospect.max,
+        )
+        for prospect in demo_responses_data
+        if len(prospect.max) > 5
+    ]
     prospect_responses = [
         ProspectResponse(
             prospect_name=prospect.full_name,
@@ -193,6 +240,7 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
             message=prospect.max,
         )
         for prospect in prospect_responses_data
+        if len(prospect.max) > 5
     ]
     next_week_sample_prospects = [
         NextWeekSampleProspects(
@@ -212,7 +260,7 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         )
         for entry in next_week_sample_prospects_data
     ]
-    num_prospects_removed = prospects_removed_data.count
+    num_prospects_added = num_prospects_added_data.count
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     user_name = client_sdr.name
@@ -231,9 +279,10 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         cumulative_client_pipeline=cumulative_client_pipeline,
         last_week_client_pipeline=last_week_client_pipeline,
         active_campaigns=active_campaigns,
+        demo_responses=demo_responses,
         prospect_responses=prospect_responses,
         next_week_sample_prospects=next_week_sample_prospects,
-        num_prospects_removed=num_prospects_removed,
+        num_prospects_added=num_prospects_added,
         auth_token=client_sdr.auth_token,
         user_name=user_name,
         date_start=date_start,

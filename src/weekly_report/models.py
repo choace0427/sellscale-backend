@@ -3,6 +3,7 @@ class WeeklyReportWarmupPayload:
     email_outbound_per_week: int
     linkedin_outbound_per_week_next_week: int
     email_outbound_per_week_next_week: int
+    active_emails_str: int
 
     def __init__(
         self,
@@ -10,11 +11,13 @@ class WeeklyReportWarmupPayload:
         email_outbound_per_week: int,
         linkedin_outbound_per_week_next_week: int,
         email_outbound_per_week_next_week: int,
+        active_emails_str: int,
     ):
         self.linkedin_outbound_per_week = linkedin_outbound_per_week
         self.email_outbound_per_week = email_outbound_per_week
         self.email_outbound_per_week_next_week = email_outbound_per_week_next_week
         self.linkedin_outbound_per_week_next_week = linkedin_outbound_per_week_next_week
+        self.active_emails_str = active_emails_str
 
     def to_dict(self):
         return {
@@ -22,7 +25,9 @@ class WeeklyReportWarmupPayload:
             "email_outbound_per_week": self.email_outbound_per_week,
             "linkedin_outbound_per_week_next_week": self.linkedin_outbound_per_week_next_week,
             "email_outbound_per_week_next_week": self.email_outbound_per_week_next_week,
+            "active_emails_str": self.active_emails_str,
         }
+        
 
 
 class WeeklyReportPipelineData:
@@ -196,9 +201,10 @@ class WeeklyReportData:
     cumulative_client_pipeline: WeeklyReportPipelineData
     last_week_client_pipeline: WeeklyReportPipelineData
     active_campaigns: list[WeeklyReportActiveCampaign]
+    demo_responses: list[ProspectResponse]
     prospect_responses: list[ProspectResponse]
     next_week_sample_prospects: list[NextWeekSampleProspects]
-    num_prospects_removed: int
+    num_prospects_added: int
     auth_token: str
     user_name: str
     date_start: str
@@ -211,9 +217,10 @@ class WeeklyReportData:
         cumulative_client_pipeline: WeeklyReportPipelineData,
         last_week_client_pipeline: WeeklyReportPipelineData,
         active_campaigns: list[WeeklyReportActiveCampaign],
+        demo_responses: list[ProspectResponse],
         prospect_responses: list[ProspectResponse],
         next_week_sample_prospects: list[NextWeekSampleProspects],
-        num_prospects_removed: int,
+        num_prospects_added: int,
         auth_token: str,
         user_name: str,
         date_start: str,
@@ -224,9 +231,10 @@ class WeeklyReportData:
         self.cumulative_client_pipeline = cumulative_client_pipeline
         self.last_week_client_pipeline = last_week_client_pipeline
         self.active_campaigns = active_campaigns
+        self.demo_responses = demo_responses
         self.prospect_responses = prospect_responses
         self.next_week_sample_prospects = next_week_sample_prospects
-        self.num_prospects_removed = num_prospects_removed
+        self.num_prospects_added = num_prospects_added
         self.auth_token = auth_token
         self.user_name = user_name
         self.date_start = date_start
@@ -241,6 +249,9 @@ class WeeklyReportData:
             "active_campaigns": [
                 campaign.to_dict() for campaign in self.active_campaigns
             ],
+            "demo_responses": [
+                demo_response.to_dict() for demo_response in self.demo_responses
+            ],
             "prospect_responses": [
                 prospect_response.to_dict()
                 for prospect_response in self.prospect_responses
@@ -249,7 +260,7 @@ class WeeklyReportData:
                 next_week_sample_prospect.to_dict()
                 for next_week_sample_prospect in self.next_week_sample_prospects
             ],
-            "num_prospects_removed": self.num_prospects_removed,
+            "num_prospects_removed": self.num_prospects_added,
             "auth_token": self.auth_token,
             "user_name": self.user_name,
             "date_start": self.date_start,

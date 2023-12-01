@@ -29,8 +29,12 @@ def generate_warmup_block(
     email_warmup: int,
     linkedin_warmup_next_Week: int,
     email_warmup_next_week: int,
+    active_emails_str: str,
 ):
     if not (linkedin_warmup > 0 or email_warmup > 0):
+        return ""
+
+    if linkedin_warmup == linkedin_warmup_next_Week:
         return ""
 
     WARMUP_BLOCK_START = """
@@ -38,31 +42,17 @@ def generate_warmup_block(
         <tbody>
           <tr>
             <td>
-              <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
-                <tbody style="width:100%">
-                  <tr style="width:100%">
-                    <td data-id="__react-email-column" style="background-color:#fff8f3;border-radius:8px;padding:0px 3px">
-                      <p style="font-size:16px;line-height:24px;margin:16px 0;color:#fb7400;font-weight:800;text-align:center">🔥 Warming Report</p>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
   """
 
     LINKEDIN_BLOCK = """         
-              <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="border-bottom:1px solid #fff3ea;padding:7px 7px;gap:4px">
+              <table align="left" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="border-bottom:1px solid #fff3ea;padding:7px 7px;gap:4px">
                 <tbody style="width:100%">
                   <tr style="width:100%">
-                    <td data-id="__react-email-column" style="width:fit-content">
-                      <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="width:fit-content">
-                        <tbody style="width:100%">
-                          <tr style="width:100%"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/LinkedIn_logo_initials.png/640px-LinkedIn_logo_initials.png" height="14" width="14" /><span style="font-size:12px;font-weight:700;margin-left:10px;margin-right:10px">LinkedIn:</span><span style="font-size:12px;font-weight:700;color:#837f8a">warming {linkedin_warmup_this_week} invites/week</span></tr>
-                        </tbody>
-                      </table>
-                    </td>
-                    <div style="padding:12px 10px">
+                    <div>
                       <td data-id="__react-email-column">
-                        <div style="gap:14px;background-color:#fff3ea;border-radius:14px;padding:3px 14px"><span style="font-size:12px;font-weight:900;color:#fb7400;margin-right:8px">Next Week:</span><span style="font-size:12px">{linkedin_warmup_next_week} invites/week</span></div>
+                        <div style="background-color:#fff3ea;border-radius:4px; padding:3px 14px">
+                          <b>🔥 LinkedIn Warming:</b> Sending {linkedin_warmup_this_week}/invites per week | Next week: {linkedin_warmup_next_week}
+                        </div>
                       </td>
                     </div>
                   </tr>
@@ -74,19 +64,14 @@ def generate_warmup_block(
     )
 
     EMAIL_BLOCK = """
-            <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="border-bottom:1px solid #fff3ea;padding:7px 7px;gap:4px">
+            <table align="left" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="border-bottom:1px solid #fff3ea;padding:7px 7px;gap:4px">
               <tbody style="width:100%">
                 <tr style="width:100%">
-                  <td data-id="__react-email-column" style="width:fit-content">
-                    <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="width:fit-content">
-                      <tbody style="width:100%">
-                        <tr style="width:100%"><img src="https://cdn4.iconfinder.com/data/icons/social-media-logos-6/512/112-gmail_email_mail-512.png" height="14" width="14" /><span style="font-size:12px;font-weight:700;margin-left:10px;margin-right:10px">Email:</span><span style="font-size:12px;font-weight:700;color:#837f8a">warming {email_warmup_this_week} invites/week</span></tr>
-                      </tbody>
-                    </table>
-                  </td>
-                  <div style="padding:12px 10px">
+                  <div>
                     <td data-id="__react-email-column">
-                      <div style="gap:14px;background-color:#fff3ea;border-radius:14px;padding:3px 14px"><span style="font-size:12px;font-weight:900;color:#fb7400;margin-right:8px">Next Week:</span><span style="font-size:12px">{email_warmup_next_week} invites/week</span></div>
+                      <div style="background-color:#fff3ea;border-radius:4px; padding:3px 14px">
+                        <b>🔥 Email Warming:</b> {active_emails_str}
+                      </div>
                     </td>
                   </div>
                 </tr>
@@ -95,6 +80,7 @@ def generate_warmup_block(
   """.format(
         email_warmup_this_week=email_warmup,
         email_warmup_next_week=email_warmup_next_week,
+        active_emails_str=active_emails_str,
     )
 
     END_BLOCK = """
@@ -107,7 +93,7 @@ def generate_warmup_block(
     blocks = WARMUP_BLOCK_START
     if linkedin_warmup > 0:
         blocks += LINKEDIN_BLOCK
-    if email_warmup > 0:
+    if email_warmup > 0 and active_emails_str and active_emails_str != "":
         blocks += EMAIL_BLOCK
     blocks += END_BLOCK
 
@@ -204,14 +190,10 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
             <tbody style="width:100%">
               <tr style="width:100%">
                 <td data-id="__react-email-column" style="width:100%">
-                  <div style="width:100%;display:flex;text-align:left;padding:6px;padding-left:24px">
-                    <div style="flex:1;font-weight:bold; text-align: center; width: 15%; padding-top: 8px; border: solid 2px #2F98C1; border-radius: 8px;">
-                      <p style="font-size: 18px; margin: 0;">{completion_percent}%</p>
-                      <p style="font-size: 8px; color: gray; margin: 0;">COMPLETE</p>
-                    </div>
-                    <div style="flex:6; font-weight:bold; width: 85%; padding-left: 12px;">
+                  <div style="width:100%;display:flex;text-align:left;padding:6px;padding-left:8px">
+                    <div style="flex:6; font-weight:bold; width: 85%;">
                       <span style="border-radius:12px;background-color:{color};padding:4px;padding-left:12px;padding-right:12px;font-size:10px;color:white">{channel}</span>
-                      <p>{campaign_emoji} {campaign_name}</p>
+                      <p style="font-size: 18px; margin: 0px; margin-top: 4px;">{campaign_emoji} {campaign_name}</p>
                     </div>
                     
                   </div>
@@ -226,26 +208,15 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
                 <div style="width:100%;display:flex; flex-direction: row; text-align:left;padding:2px;">
                   
                   <!-- show num_sent, num_opens, num_replies, num_positive_replies, num_demos side by side with equal width -->
-                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
-                    <p style="font-size: 18px; margin: 0;">{num_sent} <span style="font-size: 9px; color: gray; margin: 0;"><b>SENT</b></span></p>
+                  <div style="flex:1; text-align: center; width: 33%; padding-top: 0px; border-radius: 8px;">
+                    <p style="font-size: 16px; margin: 0;">{open_percent}% <span style="font-size: 9px; color: gray; margin: 0;"><b>OPEN</b></span></p>
                   </div>
-                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
-                    <p style="font-size: 18px; margin: 0;">{num_opens} <span style="font-size: 9px; color: gray; margin: 0;"><b>OPEN</b></span></p>
+                  <div style="flex:1; text-align: center; width: 34%; padding-top: 0px; border-radius: 8px;">
+                    <p style="font-size: 16px; margin: 0;">{reply_percent}% <span style="font-size: 9px; color: gray; margin: 0;"><b>REPLIED</b></span></p>
                   </div>
-                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
-                    <p style="font-size: 18px; margin: 0;">{num_replies} <span style="font-size: 9px; color: gray; margin: 0;"><b>REPLIED</b></span></p>
+                  <div style="flex:1; text-align: center; width: 33%; padding-top: 0px; border-radius: 8px;">
+                    <p style="font-size: 16px; margin: 0;">{num_demos} <span style="font-size: 9px; color: gray; margin: 0;"><b>DEMOS</b></span></p>
                   </div>
-                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
-                    <p style="font-size: 18px; margin: 0;">{num_demos} <span style="font-size: 9px; color: gray; margin: 0;"><b>DEMO</b></span></p>
-                  </div>
-                  <div style="flex:1; text-align: center; width: 20%; padding-top: 2px; border-radius: 8px;">
-                    <p style="font-size: 12px; color: gray; margin: 0;">
-                      <a href="#" style="padding: 4px; padding-left: 12px; padding-right: 12px; background-color: #2E98C1; color: white; border-radius: 8px;">
-                        View Convos →
-                      </a>
-                    </p>
-                  </div>
-                  
                 </div>
               </tr>
             </tbody>
@@ -266,15 +237,18 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
     for campaign in data:
         blocks += CAMPAIGN_BLOCK.format(
             completion_percent=round(campaign.campaign_completion_percent, 0),
-            campaign_name=campaign.campaign_name[:46]
-            + ("..." if len(campaign.campaign_name) > 46 else ""),
+            campaign_name=campaign.campaign_name[:36]
+            + ("..." if len(campaign.campaign_name) > 36 else ""),
             campaign_emoji=campaign.campaign_emoji,
             color="#2F98C1" if campaign.campaign_channel == "LINKEDIN" else "#FF98C1",
             channel=campaign.campaign_channel,
             num_sent=campaign.num_sent,
-            num_opens=campaign.num_opens,
-            num_replies=campaign.num_replies,
-            num_positive_replies=campaign.num_positive_replies,
+            open_percent=round(
+                campaign.num_opens / (campaign.num_sent + 0.001) * 100, 1
+            ),
+            reply_percent=round(
+                campaign.num_replies / (campaign.num_sent + 0.001) * 100, 1
+            ),
             num_demos=campaign.num_demos,
         )
     blocks += END_BLOCK
@@ -282,7 +256,7 @@ def generate_active_campaigns_block(data: list[WeeklyReportActiveCampaign]):
     return blocks
 
 
-def generate_pipeline_this_week_graph(data: WeeklyReportPipelineData):
+def generate_pipeline_this_week_graph(data: WeeklyReportPipelineData, company: str):
     if not data.num_sent > 0:
         return ""
 
@@ -295,15 +269,21 @@ def generate_pipeline_this_week_graph(data: WeeklyReportPipelineData):
     MAX_HEIGHT = 240
     num_sent_height = 240
     num_sent_margin_top = 0
-    num_opens_height = round(num_opens / (num_sent + 0.001) * MAX_HEIGHT)
+    num_opens_height = min(
+        round(num_opens / (num_sent + 0.001) * MAX_HEIGHT), MAX_HEIGHT
+    )
     num_opens_margin_top = MAX_HEIGHT - num_opens_height
-    num_replies_height = round(num_replies / (num_sent + 0.001) * MAX_HEIGHT)
+    num_replies_height = min(
+        round(num_replies / (num_sent + 0.001) * MAX_HEIGHT), MAX_HEIGHT
+    )
     num_replies_margin_top = MAX_HEIGHT - num_replies_height
-    num_positive_response_height = round(
-        num_positive_response / (num_sent + 0.001) * MAX_HEIGHT
+    num_positive_response_height = min(
+        round(num_positive_response / (num_sent + 0.001) * MAX_HEIGHT), MAX_HEIGHT
     )
     num_positive_response_margin_top = MAX_HEIGHT - num_positive_response_height
-    num_demos_height = round(num_demos / (num_sent + 0.001) * MAX_HEIGHT)
+    num_demos_height = min(
+        round(num_demos / (num_sent + 0.001) * MAX_HEIGHT), MAX_HEIGHT
+    )
     num_demos_margin_top = MAX_HEIGHT - num_demos_height
 
     BAR_GRAPH_BLOCK = """
@@ -311,7 +291,7 @@ def generate_pipeline_this_week_graph(data: WeeklyReportPipelineData):
         <tbody>
           <tr>
             <td>
-              <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center">🚀 Your pipeline this week</p>
+              <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center">🚀 {company} Pipeline This Week</p>
               <div style="border:2px solid #edebef;border-radius:8px;width:100%;margin-top:12px;padding:14px 0px">
                 <div>
                   <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
@@ -428,10 +408,11 @@ def generate_pipeline_this_week_graph(data: WeeklyReportPipelineData):
         num_positive_response_margin_top=num_positive_response_margin_top,
         num_demos_height=num_demos_height,
         num_demos_margin_top=num_demos_margin_top,
+        company=company,
     )
 
 
-def generate_recent_convos_block(data: list[ProspectResponse]):
+def generate_recent_convos_block(title: str, data: list[ProspectResponse]):
     if len(data) == 0:
         return ""
 
@@ -449,7 +430,7 @@ def generate_recent_convos_block(data: list[ProspectResponse]):
                       <tbody style="width:100%">
                         <tr style="width:100%">
                           <td data-id="__react-email-column">
-                            <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center">😍 Your Positive Responses</p>
+                            <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center">{title}</p>
                           </td>
                         </tr>
                       </tbody>
@@ -496,7 +477,7 @@ def generate_recent_convos_block(data: list[ProspectResponse]):
     </table>
   """
 
-    blocks = RECENT_CONVOS_BLOCK
+    blocks = RECENT_CONVOS_BLOCK.format(title=title)
     for prospect in data:
         blocks += POSITIVE_RESPONSE_BLOCK.format(
             name=prospect.prospect_name,
@@ -606,8 +587,8 @@ def generate_next_week_top_prospects(data: list[NextWeekSampleProspects]):
     return blocks
 
 
-def generate_automatically_removed_block(num_removed: int):
-    if not num_removed > 0:
+def generate_automatically_added_block(num_added: int):
+    if not num_added > 0:
         return ""
 
     AUTO_REMOVED_BLOCK = """
@@ -620,7 +601,7 @@ def generate_automatically_removed_block(num_removed: int):
                 <tbody style="width:100%">
                   <tr style="width:100%">
                     <td data-id="__react-email-column" style="width:fit-content;margin-left:-4px">
-                      <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center;width:100%">👥 Prospect List</p>
+                      <p style="font-size:22px;line-height:24px;margin:16px 0;color:#464646;font-weight:800;text-align:center;width:100%">🔎 Added Prospects</p>
                     </td>
                   </tr>
                 </tbody>
@@ -633,8 +614,8 @@ def generate_automatically_removed_block(num_removed: int):
                     <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="border:2px solid #edebef;border-style:dashed;border-radius:8px">
                       <tbody style="width:100%">
                         <tr style="width:100%">
-                          <p style="font-size:14px;line-height:24px;margin:16px 0;font-weight:700">Automatically removed {num_removed} prospects from pipeline</p>
-                          <p style="font-size:12px;line-height:24px;margin:16px 0;color:#837f8a">SellScale automatically removes prospects that are <br />not good fits for your target ICP.</p>
+                          <p style="font-size:14px;line-height:24px;margin:16px 0;font-weight:700">Automatically added {num_removed} prospects to pipeline</p>
+                          <p style="font-size:12px;line-height:24px;margin:16px 0;color:#837f8a">SellScale automatically added prospects that are <br /> good fits for your target ICP.</p>
                         </tr>
                       </tbody>
                     </table>
@@ -648,7 +629,7 @@ def generate_automatically_removed_block(num_removed: int):
     </table>
   """
 
-    return AUTO_REMOVED_BLOCK.format(num_removed=num_removed)
+    return AUTO_REMOVED_BLOCK.format(num_removed=num_added)
 
 
 def generate_visit_dashboard_block(auth_token: str):
@@ -731,17 +712,19 @@ def generate_weekly_update_email(data: WeeklyReportData):
 
                   {WARMUP_BLOCK}
 
+                  {DEMOS_BLOCK}
+
                   {BAR_GRAPH_BLOCK}
 
                   {ACTIVE_CAMPAIGNS_BLOCK}
 
-                  {CUMULATIVE_DEMOS_BLOCK}
-
                   {RECENT_CONVOS_BLOCK}
 
-                  <!-- {AUTO_REMOVED_BLOCK} -->
+                  {AUTO_ADDED_BLOCK}
 
                   {TOP_PROSPECTS_BLOCK}
+
+                  {CUMULATIVE_DEMOS_BLOCK}
 
                   {VISIT_DASHBOARD_BLOCK}
                 </div>
@@ -762,6 +745,7 @@ def generate_weekly_update_email(data: WeeklyReportData):
             data.warmup_payload.email_outbound_per_week,
             data.warmup_payload.linkedin_outbound_per_week_next_week,
             data.warmup_payload.email_outbound_per_week_next_week,
+            data.warmup_payload.active_emails_str,
         ),
         CUMULATIVE_DEMOS_BLOCK=generate_cumulative_demos_block(
             num_sent=data.cumulative_client_pipeline.num_sent,
@@ -772,14 +756,20 @@ def generate_weekly_update_email(data: WeeklyReportData):
         ),
         ACTIVE_CAMPAIGNS_BLOCK=generate_active_campaigns_block(data.active_campaigns),
         BAR_GRAPH_BLOCK=generate_pipeline_this_week_graph(
-            data.last_week_client_pipeline
+            data.last_week_client_pipeline,
+            company=data.company,
         ),
-        RECENT_CONVOS_BLOCK=generate_recent_convos_block(data=data.prospect_responses),
+        DEMOS_BLOCK=generate_recent_convos_block(
+            title="🎉 New Demos", data=data.demo_responses
+        ),
+        RECENT_CONVOS_BLOCK=generate_recent_convos_block(
+            title="😍 Your Positive Responses", data=data.prospect_responses
+        ),
         TOP_PROSPECTS_BLOCK=generate_next_week_top_prospects(
             data=data.next_week_sample_prospects
         ),
-        AUTO_REMOVED_BLOCK=generate_automatically_removed_block(
-            num_removed=data.num_prospects_removed
+        AUTO_ADDED_BLOCK=generate_automatically_added_block(
+            num_added=data.num_prospects_added
         ),
         VISIT_DASHBOARD_BLOCK=generate_visit_dashboard_block(
             auth_token=data.auth_token
