@@ -320,3 +320,17 @@ def convertBlocksToDict(blocks: list[Block]):
 
 def convertDictToBlocks(blocks: list[dict]) -> list[Block]:
     return [jsonpickle.decode(block) for block in blocks]
+
+
+def get_blocks_from_output_dict(blocks: list[dict]) -> list[Block]:
+    output = []
+    for block in blocks:
+        if block.get('type') == "SOURCE":
+            output.append(SourceBlock(SourceType[block.get('source')], block.get('data')))
+        elif block.get('type') == "FILTER":
+            output.append(FilterBlock(FilterCriteria(**block.get('criteria'))))
+        elif block.get('type') == "ACTION":
+            output.append(ActionBlock(ActionType[block.get('action')], block.get('data')))
+    return output
+    
+    

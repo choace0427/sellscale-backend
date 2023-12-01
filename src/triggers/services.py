@@ -37,7 +37,7 @@ from src.research.linkedin.services import research_personal_profile_details
 from src.utils.abstract.attr_utils import deep_get
 
 
-def createTrigger(client_sdr_id: int, client_archetype_id: int):
+def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
     source_block_1 = SourceBlock(
         source=SourceType.GOOGLE_COMPANY_NEWS,
         data={

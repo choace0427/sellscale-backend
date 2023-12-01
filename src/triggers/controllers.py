@@ -1,8 +1,14 @@
 import datetime
 from flask import Blueprint, request
-from src.triggers.services import runTrigger
+from src.triggers.services import createTrigger, runTrigger
 from src.authentication.decorators import require_user
-from src.triggers.models import Trigger, TriggerProspect, TriggerRun
+from src.triggers.models import (
+    Trigger,
+    TriggerProspect,
+    TriggerRun,
+    convertBlocksToDict,
+    get_blocks_from_output_dict,
+)
 from app import db
 from src.utils.request_helpers import get_request_parameter
 
@@ -41,9 +47,9 @@ def create_trigger_run(client_sdr_id: int, trigger_id):
     # )
     # db.session.add(new_run)
     # db.session.commit()
-    
+
     success, run_id = runTrigger(trigger_id)
-    
+
     return {"trigger_run_id": run_id}, 201
 
 
@@ -130,3 +136,59 @@ def get_trigger_prospects(client_sdr_id: int, trigger_run_id):
             trigger_prospect.to_dict() for trigger_prospect in trigger_prospects
         ]
     }, 200
+
+
+@TRIGGERS_BLUEPRINT.route("/trigger", methods=["POST"])
+@require_user
+def post_create_trigger(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+
+    trigger_id = createTrigger(client_sdr_id, archetype_id)
+
+    return {"trigger_id": trigger_id}, 201
+
+
+@TRIGGERS_BLUEPRINT.route("/trigger/<int:trigger_id>", methods=["POST"])
+@require_user
+def post_update_trigger(client_sdr_id: int, trigger_id: int):
+    emoji = get_request_parameter(
+        "emoji", request, json=True, required=False, parameter_type=str
+    )
+    name = get_request_parameter(
+        "name", request, json=True, required=False, parameter_type=str
+    )
+    description = get_request_parameter(
+        "description", request, json=True, required=False, parameter_type=str
+    )
+    interval_in_minutes = get_request_parameter(
+        "interval_in_minutes", request, json=True, required=False, parameter_type=int
+    )
+    active = get_request_parameter(
+        "active", request, json=True, required=False, parameter_type=bool
+    )
+    blocks = get_request_parameter("blocks", request, json=True, required=False, parameter_type=list)
+
+    trigger: Trigger = Trigger.query.filter_by(
+        id=trigger_id, client_sdr_id=client_sdr_id
+    ).first()
+    if not trigger:
+        return {"message": "Trigger not found"}, 404
+
+    if emoji:
+        trigger.emoji = emoji
+    if name:
+        trigger.name = name
+    if description:
+        trigger.description = description
+    if interval_in_minutes:
+        trigger.interval_in_minutes = interval_in_minutes
+    if active:
+        trigger.active = active
+    if blocks:
+        trigger.blocks = convertBlocksToDict(get_blocks_from_output_dict(blocks))
+    db.session.add(trigger)
+    db.session.commit()
+
+    return trigger.to_dict(), 200
