@@ -20,8 +20,8 @@ class WarmupSnapshot(db.Model):
 
     account_name = db.Column(db.String, nullable=True)
 
-    total_sent_count = db.Column(db.Integer, nullable=False)
-    previous_total_sent_count = db.Column(db.Integer, nullable=False)
+    total_sent_count = db.Column(db.Integer, nullable=True)
+    previous_total_sent_count = db.Column(db.Integer, nullable=True)
     daily_sent_count = db.Column(db.Integer, nullable=False)
     daily_limit = db.Column(db.Integer, nullable=False)
 
