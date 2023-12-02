@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_socketio import SocketIO, emit
 
 from flask_sqlalchemy import SQLAlchemy
 from src.setup.TimestampedModel import TimestampedModel
@@ -125,12 +126,15 @@ def make_celery(app):
 
 
 app = Flask(__name__)
+
+app.config["SECRET_KEY"] = "secret!!"
+socketio = SocketIO(app, cors_allowed_origins="*", cors_credentials=False)
+
 app.config.update(
     CELERY_BROKER_URL=os.environ.get("CELERY_REDIS_URL"),
 )
 celery = make_celery(app)
 cors = CORS(app)
-
 app.config["CORS_HEADERS"] = "Content-Type"
 
 app.config.from_object(os.environ["APP_SETTINGS"])
@@ -144,6 +148,17 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = sqlalchemy_engine_options
 
 db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
+
+
+@socketio.on("connect")
+def handle_connect():
+    print("Client connected")
+
+
+@socketio.on("ping-event")
+def handle_my_custom_event(json):
+    print("received json: " + str(json))
+
 
 # chroma_client = chromadb.HttpClient(host='https://vector-db-zakq.onrender.com', port=8000)
 
@@ -282,4 +297,4 @@ def health_check():
 register_blueprints(app)
 
 if __name__ == "__main__":
-    app.run()
+    socketio.run(app, debug=True)

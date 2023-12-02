@@ -569,6 +569,10 @@ def enrich_linkedin_profiles(blacklist: list, profiles: list):
             },
         )
 
+        # Don't add if the prospect is already in the list
+        if prospect in prospects:
+            continue
+
         prospects.append(prospect)
 
     return prospects
