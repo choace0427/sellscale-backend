@@ -1,6 +1,8 @@
 import datetime
 from typing import List, Optional, Tuple
 
+from bs4 import BeautifulSoup
+
 from src.utils.lists import chunk_list
 
 from src.prospecting.services import update_prospect_status_email
@@ -204,7 +206,7 @@ def sync_prospect_with_lead(
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
-            custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
+            # custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
         )
 
     # 3b. If the lead has opened the email and had previously not, update the prospect email status
@@ -217,7 +219,7 @@ def sync_prospect_with_lead(
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
-            custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
+            # custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
         )
 
     # 3c. If the lead has replied to the email and had previously not, update the prospect email status
@@ -226,12 +228,49 @@ def sync_prospect_with_lead(
         prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED
         or prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     ):
+        # 3c.1. Get the prospect's message
+        sl = Smartlead()
+        lead_data = sl.get_lead_by_email_address(lead.lead_email)
+        lead_id = lead_data["id"]
+        archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+        message_history = sl.get_message_history_using_lead_and_campaign_id(
+            lead_id=lead_id, campaign_id=archetype.smartlead_campaign_id
+        )
+        history = message_history["history"]
+        prospect_message: str = None
+        for item in history:
+            if item["type"] == "REPLY":
+                prospect_message = item["email_body"]
+                prospect_message_newlined = prospect_message.replace("<br>", "\n")
+                bs = BeautifulSoup(prospect_message_newlined, "html.parser")
+                remove_past_convo = bs.find("div", {"class": "gmail_quote"})
+                if remove_past_convo:
+                    remove_past_convo.decompose()
+                prospect_message_newlined = bs.get_text()
+                prospect_message = prospect_message_newlined[:150] + "..."
+
+        # 3c.2. Get the sent message
+        sent_message = lead.email_message
+        bs = BeautifulSoup(lead.email_message, "html.parser")
+        remove_past_convo = bs.find("div", {"class": "gmail_quote"})
+        if remove_past_convo:
+            remove_past_convo.decompose()
+        sent_message = bs.get_text()
+        sent_message = sent_message[:150] + "..."
+
+        metadata = {
+            "prospect_email": lead.lead_email,
+            "email_title": lead.email_subject,
+            "email_snippet": sent_message,
+            "prospect_message": prospect_message,
+        }
         print('Updating prospect email status to "ACTIVE_CONVO"')
         if prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED:
             update_prospect_status_email(
                 prospect_id=prospect.id,
                 new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
+                # custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
+                metadata=metadata,
             )
         elif (
             prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
@@ -241,12 +280,13 @@ def sync_prospect_with_lead(
             update_prospect_status_email(
                 prospect_id=prospect.id,
                 new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
-                custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
+                # custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
             )
             update_prospect_status_email(
                 prospect_id=prospect.id,
                 new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
+                # custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
+                metadata=metadata,
             )
 
     print(f"Actions finished for: {prospect.email}")

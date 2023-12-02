@@ -195,7 +195,7 @@ def run_sales_navigator_launches():
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        collect_and_trigger_phantom_buster_sales_navigator_launches.delay()
+        collect_and_trigger_phantom_buster_sales_navigator_launches()
 
 
 def run_sales_navigator_reset():

@@ -152,6 +152,8 @@ def send_status_change_slack_block(
         email_address = metadata.get("prospect_email")
         subject = metadata.get("email_title")
         email_snippet = metadata.get("email_snippet")
+        prospect_message = metadata.get("prospect_message")
+
         if email_address:
             message_blocks.append(
                 {
@@ -175,7 +177,17 @@ def send_status_change_slack_block(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Email body:\n```{email_snippet}...```",
+                        "text": f"Sent email:\n>{email_snippet}",
+                    },
+                },
+            )
+        if prospect_message:
+            message_blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Prospect reply:\n>{prospect_message}",
                     },
                 },
             )

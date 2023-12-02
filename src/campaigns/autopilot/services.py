@@ -11,6 +11,7 @@ from model_import import (
     OutboundCampaign,
     OutboundCampaignStatus,
 )
+from tqdm import tqdm
 from src.client.models import SLASchedule
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
@@ -471,7 +472,7 @@ def auto_send_campaign(campaign_id: int):
     HOURS_AGO = 4
     COMPLETE_THRESHOLD = 0.95
     SUCCESS_THRESHOLD = 0.75
-  
+
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
         GeneratedMessage.outbound_campaign_id == campaign_id,
@@ -479,8 +480,7 @@ def auto_send_campaign(campaign_id: int):
     ).all()
     sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
     archetype: ClientArchetype = ClientArchetype.query.get(campaign.client_archetype_id)
-    
-    
+
     # Check if campaign was created at least 4 hours ago
     if campaign.created_at + timedelta(hours=HOURS_AGO) > datetime.utcnow():
         send_slack_message(
@@ -488,7 +488,7 @@ def auto_send_campaign(campaign_id: int):
             [URL_MAP["ops-auto-send-campaign"]],
         )
         return False
-      
+
     # Check if 95% of the messages have been generated
     # num_generated = len([message for message in messages if message.message_status != GeneratedMessageStatus.DRAFT])
     # if num_generated / len(messages) < COMPLETE_THRESHOLD:
@@ -497,7 +497,7 @@ def auto_send_campaign(campaign_id: int):
     #         [URL_MAP["ops-auto-send-campaign"]],
     #     )
     #     return False
-      
+
     # Check if 75% of the messages have been approved
     num_approved = len([message for message in messages if message.ai_approved])
     if num_approved / len(messages) < SUCCESS_THRESHOLD:
@@ -505,24 +505,29 @@ def auto_send_campaign(campaign_id: int):
             f"🟡 Campaign #{campaign.id} warning for {sdr.name} for the `{archetype.archetype}` persona.\nReason: >{(1-SUCCESS_THRESHOLD)*100}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
             [URL_MAP["ops-auto-send-campaign"]],
         )
-      
 
     # Remove prospects that aren't approved
-    campaign.prospect_ids = [message.prospect_id for message in messages if message.ai_approved]
+    campaign.prospect_ids = [
+        message.prospect_id for message in messages if message.ai_approved
+    ]
     db.session.commit()
-    
-    invalid_prospect_ids: list[int] = [message.prospect_id for message in messages if not message.ai_approved]
-    from src.research.linkedin.services import reset_batch_of_prospect_research_and_messages
+
+    invalid_prospect_ids: list[int] = [
+        message.prospect_id for message in messages if not message.ai_approved
+    ]
+    from src.research.linkedin.services import (
+        reset_batch_of_prospect_research_and_messages,
+    )
+
     reset_batch_of_prospect_research_and_messages(invalid_prospect_ids)
-    
+
     # Send the campaign
     mark_campaign_as_initial_review_complete(campaign_id=campaign_id)
-    
+
     return True
-    
-    
+
+
 def auto_send_all_campaigns():
-  
     query = f"""
 with d as (
 	SELECT
@@ -548,10 +553,42 @@ with d as (
 		2
 ) select array_agg(campaign_id) from d;
     """
-    
+
     campaign_ids = db.session.execute(query).fetchone()[0]
     for campaign_id in campaign_ids:
         print(f"Sending campaign #{campaign_id}...")
         auto_send_campaign(campaign_id)
-        
+
     return True
+
+
+def send_approved_messages_in_complete_campaigns():
+    query = """
+        with d as (
+            select 
+                generated_message.id,
+                prospect.status,
+                generated_message.message_status,
+                client_sdr.name,
+                generated_message.completion
+            from outbound_campaign
+                join prospect on prospect.id = any(outbound_campaign.prospect_ids)
+                join generated_message on generated_message.id = prospect.approved_outreach_message_id
+                join client_sdr on client_sdr.id = prospect.client_sdr_id
+            where outbound_campaign.created_at > NOW() - '128 hours'::INTERVAL
+                and outbound_campaign.status = 'COMPLETE'
+                and message_status not in ('SENT', 'QUEUED_FOR_OUTREACH', 'FAILED_TO_SEND', 'DRAFT')
+                and prospect.status not in ('PROSPECTED')
+        )
+        select *
+        from d;
+    """
+
+    data = db.session.execute(query).fetchall()
+
+    for row in tqdm(data):
+        generated_message = GeneratedMessage.query.get(row[0])
+
+        generated_message.message_status = GeneratedMessageStatus.QUEUED_FOR_OUTREACH
+        db.session.add(generated_message)
+        db.session.commit()

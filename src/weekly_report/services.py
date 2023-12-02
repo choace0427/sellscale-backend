@@ -2,6 +2,7 @@ import datetime
 from app import db
 from src.automation.resend import send_email
 from src.client.models import ClientArchetype, ClientSDR, Client
+from src.onboarding.services import is_onboarding_complete
 from src.weekly_report.email_template import (
     generate_weekly_update_email,
 )
@@ -305,7 +306,11 @@ def get_active_sdr_id() -> list[int]:
 
 
 def send_email_with_data(
-    client_sdr_id: int, test_mode: bool = True, to_emails: list[str] = []
+    client_sdr_id: int,
+    test_mode: bool = True,
+    to_emails: list[str] = [],
+    cc_emails: list[str] = [],
+    bcc_emails: list[str] = [],
 ) -> bool:
     data = generate_weekly_report_data_payload(client_sdr_id)
     html = generate_weekly_update_email(data)
@@ -319,15 +324,12 @@ def send_email_with_data(
         first_name=first_name, date=date_in_title
     )
 
-    if test_mode:
-        title = "[TEST MODE] " + title
-    else:
-        title = title
-
     send_email(
         html=html,
         title=title,
         to_emails=to_emails,
+        cc_emails=cc_emails,
+        bcc_emails=bcc_emails,
     )
 
     return True
@@ -338,23 +340,28 @@ def send_all_emails(test_mode: bool = True, to_emails: list[str] = []) -> bool:
     for client_sdr_id in client_sdr_ids:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-        name = client_sdr.name
-        to_email = client_sdr.email
-        cc_emails = client_sdr.weekly_report_cc_emails
-        bcc_emails = client_sdr.weekly_report_bcc_emails
+        if client_sdr.is_onboarding:
+            continue
 
-        if "team@sellscale.com" not in bcc_emails:
+        name = client_sdr.name
+
+        cc_emails = []
+        bcc_emails = []
+
+        if not test_mode:
+            to_emails = [client_sdr.email]
+            cc_emails = client_sdr.weekly_report_cc_emails
+            bcc_emails = client_sdr.weekly_report_bcc_emails
+
+        if "team@sellscale.com" not in bcc_emails and not test_mode:
             bcc_emails.append("team@sellscale.com")
 
-        print(
-            "📧 Sending weekly report to {name} at {to_email}".format(
-                name=name, to_email=to_emails
-            )
-        )
+        print("Sending email to {name}...".format(name=name))
+        print("To: {to_emails}".format(to_emails=to_emails))
         print("CC: {cc_emails}".format(cc_emails=cc_emails))
         print("BCC: {bcc_emails}".format(bcc_emails=bcc_emails))
         print("")
 
         # todo(Aakash) Update this
-        send_email_with_data(client_sdr_id, test_mode, to_emails)
+        send_email_with_data(client_sdr_id, test_mode, to_emails, cc_emails, bcc_emails)
     return True
