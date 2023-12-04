@@ -4,7 +4,10 @@ from app import db, celery
 from sqlalchemy import or_
 
 from src.client.models import Client, ClientSDR, SLASchedule
-from src.utils.datetime.dateutils import get_current_monday_friday, get_current_monday_sunday
+from src.utils.datetime.dateutils import (
+    get_current_monday_friday,
+    get_current_monday_sunday,
+)
 from src.utils.slack import send_slack_message, URL_MAP
 from src.voyager.linkedin import LinkedIn
 
@@ -27,8 +30,14 @@ def compute_sdr_linkedin_health(
     Returns:
         tuple[bool, float, dict]: A boolean indicating whether the computation was successful, the LinkedIn health, and the LinkedIn health details
     """
-    bad_title_words = ['sdr', 'bdr', 'account executive', 'sales executive'
-                       'account exec', 'business development', 'sales development']
+    bad_title_words = [
+        "sdr",
+        "bdr",
+        "account executive",
+        "sales executive" "account exec",
+        "business development",
+        "sales development",
+    ]
 
     # Get the SDR
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -55,37 +64,49 @@ def compute_sdr_linkedin_health(
         for word in bad_title_words:
             if word in title.lower():
                 title_fail_reason = "Your title contains the word '{}'. Avoid sales-y words in your title.".format(
-                    word)
+                    word
+                )
                 sdr.li_health_good_title = False
                 break
 
         # Cover photo
         background_image = mini_profile.get("backgroundImage")
-        background_image = background_image.get(
-            "com.linkedin.common.VectorImage") if background_image else None
+        background_image = (
+            background_image.get("com.linkedin.common.VectorImage")
+            if background_image
+            else None
+        )
         if background_image:
             root_url = background_image.get("rootUrl")
             artifacts = background_image.get("artifacts")
             last_artifact = artifacts[-1] if artifacts else None
-            background_image_url = root_url + \
-                last_artifact.get(
-                    "fileIdentifyingUrlPathSegment") if last_artifact else None
+            background_image_url = (
+                root_url + last_artifact.get("fileIdentifyingUrlPathSegment")
+                if last_artifact
+                else None
+            )
             sdr.li_cover_img_url = background_image_url
             sdr.li_health_cover_image = True
 
         # Profile picture
         profile_picture = mini_profile.get("picture")
-        profile_picture = profile_picture.get(
-            "com.linkedin.common.VectorImage") if profile_picture else None
+        profile_picture = (
+            profile_picture.get("com.linkedin.common.VectorImage")
+            if profile_picture
+            else None
+        )
         if profile_picture:
             root_url = profile_picture.get("rootUrl")
             artifacts = profile_picture.get("artifacts")
             last_artifact = artifacts[-1] if artifacts else None
-            profile_picture_url = root_url + \
-                last_artifact.get(
-                    "fileIdentifyingUrlPathSegment") if last_artifact else None
-            profile_picture_expire = last_artifact.get(
-                "expiresAt") if last_artifact else None
+            profile_picture_url = (
+                root_url + last_artifact.get("fileIdentifyingUrlPathSegment")
+                if last_artifact
+                else None
+            )
+            profile_picture_expire = (
+                last_artifact.get("expiresAt") if last_artifact else None
+            )
             sdr.img_url = profile_picture_url
             sdr.img_expire = profile_picture_expire
             sdr.li_health_profile_photo = True
@@ -114,23 +135,35 @@ def compute_sdr_linkedin_health(
         {
             "criteria": "Good Title",
             "status": sdr.li_health_good_title,
-            "message": "Good LinkedIn title" if sdr.li_health_good_title else (title_fail_reason if title_fail_reason else "Your title may appear sales-y. Avoid sales-y words in your title.")
+            "message": "Good LinkedIn title"
+            if sdr.li_health_good_title
+            else (
+                title_fail_reason
+                if title_fail_reason
+                else "Your title may appear sales-y. Avoid sales-y words in your title."
+            ),
         },
         {
             "criteria": "Premium Account",
             "status": sdr.li_health_premium,
-            "message": "Premium LinkedIn account" if sdr.li_health_premium else "You do not have a premium LinkedIn account. Consider upgrading to a premium account.",
+            "message": "Premium LinkedIn account"
+            if sdr.li_health_premium
+            else "You do not have a premium LinkedIn account. Consider upgrading to a premium account.",
         },
         {
             "criteria": "Profile Picture",
             "status": sdr.li_health_profile_photo,
-            "message": "Profile picture found" if sdr.li_health_profile_photo else "You do not have a profile picture. Consider adding one.",
+            "message": "Profile picture found"
+            if sdr.li_health_profile_photo
+            else "You do not have a profile picture. Consider adding one.",
         },
         {
             "criteria": "Cover Photo",
             "status": sdr.li_health_cover_image,
-            "message": "Cover photo found" if sdr.li_health_cover_image else "You do not have a cover photo. Consider adding one.",
-        }
+            "message": "Cover photo found"
+            if sdr.li_health_cover_image
+            else "You do not have a cover photo. Consider adding one.",
+        },
     ]
 
     return True, sdr.li_health, details
@@ -172,9 +205,7 @@ def get_sdr_blacklist_words(client_sdr_id: int) -> list[str]:
 
 
 def update_sdr_sla_targets(
-        client_sdr_id: int,
-        weekly_linkedin_target: int,
-        weekly_email_target: int
+    client_sdr_id: int, weekly_linkedin_target: int, weekly_email_target: int
 ) -> tuple[bool, str]:
     """Updates the SLA targets for a Client SDR
 
@@ -204,7 +235,7 @@ def update_sdr_sla_targets(
     sla_schedule: SLASchedule = SLASchedule.query.filter(
         SLASchedule.client_sdr_id == client_sdr_id,
         SLASchedule.start_date <= monday,
-        SLASchedule.end_date >= monday
+        SLASchedule.end_date >= monday,
     ).first()
     if sla_schedule:
         if sla_schedule.linkedin_volume >= LINKEDIN_WARM_THRESHOLD:
@@ -216,8 +247,7 @@ def update_sdr_sla_targets(
 
     # Adjust future week's SLA schedules, if they are at MAX then bump it up to the new target
     sla_schedules: list[SLASchedule] = SLASchedule.query.filter(
-        SLASchedule.client_sdr_id == client_sdr_id,
-        SLASchedule.start_date > monday
+        SLASchedule.client_sdr_id == client_sdr_id, SLASchedule.start_date > monday
     ).all()
     for schedule in sla_schedules:
         if schedule.linkedin_volume == old_weekly_linkedin_target:
@@ -245,9 +275,7 @@ def get_sla_schedules_for_sdr(
         list[dict]: The SLA schedules for the Client SDR
     """
     # Get all SLA schedules for the Client SDR
-    schedule: SLASchedule = SLASchedule.query.filter_by(
-        client_sdr_id=client_sdr_id
-    )
+    schedule: SLASchedule = SLASchedule.query.filter_by(client_sdr_id=client_sdr_id)
 
     # If timeframes are specified, then filter by the timeframes
     if start_date:
@@ -256,9 +284,7 @@ def get_sla_schedules_for_sdr(
         schedule = schedule.filter(SLASchedule.end_date <= end_date)
 
     # Order by most recent first
-    schedule = schedule.order_by(
-        SLASchedule.created_at.desc()
-    ).all()
+    schedule = schedule.order_by(SLASchedule.created_at.desc()).all()
 
     # Convert to dicts
     schedule_dicts = []
@@ -315,7 +341,7 @@ def create_sla_schedule(
         linkedin_special_notes=linkedin_special_notes,
         email_volume=email_volume,
         email_special_notes=email_special_notes,
-        week=week
+        week=week,
     )
     db.session.add(sla_schedule)
     db.session.commit()
@@ -329,12 +355,12 @@ def automatic_sla_schedule_loader(self):
 
     # Get the IDs of all active Clients
     active_client_ids: list[int] = [
-        client.id for client in Client.query.filter_by(active=True).all()]
+        client.id for client in Client.query.filter_by(active=True).all()
+    ]
 
     # Get all active SDRs
     sdrs: list[ClientSDR] = ClientSDR.query.filter(
-        ClientSDR.active == True,
-        ClientSDR.client_id.in_(active_client_ids)
+        ClientSDR.active == True, ClientSDR.client_id.in_(active_client_ids)
     ).all()
 
     # Update the SLA for each SDR
@@ -343,14 +369,12 @@ def automatic_sla_schedule_loader(self):
 
     send_slack_message(
         message="All Active SDRs have had their SLA schedules (attempted to) updated.",
-        webhook_urls=[URL_MAP["operations-sla-updater"]]
+        webhook_urls=[URL_MAP["operations-sla-updater"]],
     )
     return True
 
 
-def load_sla_schedules(
-    client_sdr_id: int
-) -> tuple[bool, list[int]]:
+def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
     """'Loads' SLA schedules. This function will check for 3 weeks worth of SLA schedules into the future for a given
     SDR, and if there are not 5 weeks worth of SLA schedules, it will create them.
 
@@ -363,49 +387,67 @@ def load_sla_schedules(
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     # Get the furthest into the future SLA schedule
-    furthest_sla_schedule: SLASchedule = SLASchedule.query.filter_by(
-        client_sdr_id=client_sdr_id
-    ).order_by(
-        SLASchedule.start_date.desc()
-    ).first()
+    furthest_sla_schedule: SLASchedule = (
+        SLASchedule.query.filter_by(client_sdr_id=client_sdr_id)
+        .order_by(SLASchedule.start_date.desc())
+        .first()
+    )
 
     # If there are no SLA schedules, then we create 3 weeks worth of SLA schedules
     if not furthest_sla_schedule:
         week_0_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow(),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[0], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(
+                LINKEDIN_WARUMP_CONSERVATIVE[1],
+                client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_1_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=7),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[1], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(
+                LINKEDIN_WARUMP_CONSERVATIVE[2],
+                client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_2_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=14),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[2], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(
+                LINKEDIN_WARUMP_CONSERVATIVE[3],
+                client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_3_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=21),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[3], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(
+                LINKEDIN_WARUMP_CONSERVATIVE[4],
+                client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_4_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
             start_date=datetime.utcnow() + timedelta(days=28),
-            linkedin_volume=min(LINKEDIN_WARUMP_CONSERVATIVE[4], client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD) # Take the minimum in case the target is less than the conservative schedule
+            linkedin_volume=min(
+                LINKEDIN_WARUMP_CONSERVATIVE[4],
+                client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
 
-        load_sla_alert(client_sdr_id, [week_0_id, week_1_id, week_2_id, week_3_id, week_4_id])
+        load_sla_alert(
+            client_sdr_id, [week_0_id, week_1_id, week_2_id, week_3_id, week_4_id]
+        )
         return True, [week_0_id, week_1_id, week_2_id, week_3_id, week_4_id]
 
     # Determine how many schedules we should have
     # We determine by taking today's date, finding the Monday of this week, and calculating 4 weeks from that Monday
     monday, _ = get_current_monday_friday(datetime.utcnow())
     four_weeks_from_monday = monday + timedelta(days=28)
-    weeks_needed = (four_weeks_from_monday -
-                    furthest_sla_schedule.start_date.date()).days // 7
+    weeks_needed = (
+        four_weeks_from_monday - furthest_sla_schedule.start_date.date()
+    ).days // 7
 
     # If there are less than 5 weeks between the furthest SLA schedule and today, then we create the missing SLA schedules
     if weeks_needed > 0:
@@ -416,10 +458,15 @@ def load_sla_schedules(
 
         for i in range(weeks_needed):
             # LINKEDIN: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we bump to the weekly target
-            if li_volume > LINKEDIN_WARUMP_CONSERVATIVE[0] and li_volume < LINKEDIN_WARUMP_CONSERVATIVE[-1]:
+            if (
+                li_volume > LINKEDIN_WARUMP_CONSERVATIVE[0]
+                and li_volume < LINKEDIN_WARUMP_CONSERVATIVE[-1]
+            ):
                 for schedule_li_volume in LINKEDIN_WARUMP_CONSERVATIVE:
                     if schedule_li_volume > li_volume:
-                        li_volume = min(schedule_li_volume, client_sdr.weekly_li_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+                        li_volume = min(
+                            schedule_li_volume, client_sdr.weekly_li_outbound_target
+                        )  # Take the minimum in case the target is less than the conservative schedule
                         break
 
             # LINKEDIN: If we are at the end of the conservative schedule, then we should bump to the weekly target
@@ -427,10 +474,16 @@ def load_sla_schedules(
                 li_volume = client_sdr.weekly_li_outbound_target
 
             # EMAIL: If our volume is in the range of the conservative schedule, then we should bump the volume. Otherwise, we bump to the weekly target
-            if email_volume > EMAIL_WARMUP_CONSERVATIVE[0] and email_volume < EMAIL_WARMUP_CONSERVATIVE[-1]:
+            if (
+                email_volume > EMAIL_WARMUP_CONSERVATIVE[0]
+                and email_volume < EMAIL_WARMUP_CONSERVATIVE[-1]
+            ):
                 for schedule_email_volume in EMAIL_WARMUP_CONSERVATIVE:
                     if schedule_email_volume > email_volume:
-                        email_volume = min(schedule_email_volume, client_sdr.weekly_email_outbound_target) # Take the minimum in case the target is less than the conservative schedule
+                        email_volume = min(
+                            schedule_email_volume,
+                            client_sdr.weekly_email_outbound_target,
+                        )  # Take the minimum in case the target is less than the conservative schedule
                         break
 
             # EMAIL: If we are at the end of the conservative schedule, then we should bump to the weekly target
@@ -439,9 +492,10 @@ def load_sla_schedules(
 
             schedule_id = create_sla_schedule(
                 client_sdr_id=client_sdr_id,
-                start_date=furthest_sla_schedule.start_date + timedelta(days=7 * (i + 1)),
+                start_date=furthest_sla_schedule.start_date
+                + timedelta(days=7 * (i + 1)),
                 linkedin_volume=li_volume,
-                email_volume=email_volume
+                email_volume=email_volume,
             )
             new_schedule_ids.append(schedule_id)
 
@@ -450,16 +504,14 @@ def load_sla_schedules(
 
     send_slack_message(
         message="No SLA schedules created for {}. Schedules are up to date.".format(
-            client_sdr.name),
-        webhook_urls=[URL_MAP["operations-sla-updater"]]
+            client_sdr.name
+        ),
+        webhook_urls=[URL_MAP["operations-sla-updater"]],
     )
     return True, []
 
 
-def load_sla_alert(
-    client_sdr_id: int,
-    new_schedule_ids: list[int]
-) -> bool:
+def load_sla_alert(client_sdr_id: int, new_schedule_ids: list[int]) -> bool:
     """Helps `load_sla_schedules` by sending a slack alert
 
     Args:
@@ -483,15 +535,16 @@ def load_sla_alert(
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "SLA schedules automatically created for *{}*.".format(client_sdr.name)
-            }
+                "text": "SLA schedules automatically created for *{}*.".format(
+                    client_sdr.name
+                ),
+            },
         }
     ]
 
     # Add the schedules to the slack message
     for schedule in schedules:
-        week_num = (schedule.start_date.date() -
-                    client_sdr.created_at.date()).days // 7
+        week_num = (schedule.start_date.date() - client_sdr.created_at.date()).days // 7
         blocks.append(
             {
                 "type": "section",
@@ -502,16 +555,16 @@ def load_sla_alert(
                         schedule.end_date.date().strftime("%B %d, %Y"),
                         week_num,
                         schedule.linkedin_volume,
-                        schedule.email_volume
-                    )
-                }
+                        schedule.email_volume,
+                    ),
+                },
             }
         )
 
     send_slack_message(
         message="SLA schedules created for {}.".format(client_sdr_id),
         webhook_urls=[URL_MAP["operations-sla-updater"]],
-        blocks=blocks
+        blocks=blocks,
     )
 
     return True
@@ -547,7 +600,10 @@ def update_sla_schedule(
         sla_schedule: SLASchedule = SLASchedule.query.get(sla_schedule_id)
     else:
         if not start_date:
-            return False, "If no SLA schedule id is specified, then the start date must be specified."
+            return (
+                False,
+                "If no SLA schedule id is specified, then the start date must be specified.",
+            )
         sla_schedule: SLASchedule = SLASchedule.query.filter(
             SLASchedule.client_sdr_id == client_sdr_id,
             SLASchedule.start_date <= start_date,
@@ -555,10 +611,14 @@ def update_sla_schedule(
         ).first()
 
         if not sla_schedule:
-            sla_schedule: SLASchedule = SLASchedule.query.filter(
-                SLASchedule.client_sdr_id == client_sdr_id,
-                SLASchedule.start_date <= start_date,
-            ).order_by(SLASchedule.start_date.desc()).first()
+            sla_schedule: SLASchedule = (
+                SLASchedule.query.filter(
+                    SLASchedule.client_sdr_id == client_sdr_id,
+                    SLASchedule.start_date <= start_date,
+                )
+                .order_by(SLASchedule.start_date.desc())
+                .first()
+            )
 
     # Make sure that the schedule is not for a past week (current week OK)
     monday, _ = get_current_monday_friday(datetime.utcnow())
@@ -597,8 +657,7 @@ def deactivate_sla_schedules(
     # Get the SLA schedules that starts on this Monday
     monday, _ = get_current_monday_friday(datetime.utcnow())
     sla_schedule: SLASchedule = SLASchedule.query.filter(
-        SLASchedule.client_sdr_id == client_sdr_id,
-        SLASchedule.start_date == monday
+        SLASchedule.client_sdr_id == client_sdr_id, SLASchedule.start_date == monday
     ).first()
 
     # Make note that the SDR was deactivated
