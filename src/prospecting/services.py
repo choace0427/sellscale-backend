@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Union
 from regex import P
+from src.client.sdr.services_client_sdr import load_sla_schedules
 from src.company.models import Company
 from sqlalchemy import nullslast
 from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
@@ -1483,6 +1484,9 @@ def mark_prospects_as_queued_for_outreach(
         }
     campaign_id = messages[0].outbound_campaign_id
     messages_ids = [message.id for message in messages]
+
+    # Create SLA Schedules
+    load_sla_schedules(client_sdr_id=client_sdr_id)
 
     # Update prospects
     for id in prospect_ids:

@@ -574,8 +574,6 @@ def create_client_sdr(client_id: int, name: str, email: str):
     )
 
     print("Creating default bump frameworks")
-    # Load SLA schedules (will be generated with warmup SLA values)
-    load_sla_schedules(sdr.id)
 
     return {"client_sdr_id": sdr.id}
 
