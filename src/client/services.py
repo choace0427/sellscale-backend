@@ -111,6 +111,7 @@ def create_client(
         do_not_contact_location_keywords=[],
         do_not_contact_titles=[],
         do_not_contact_prospect_location_keywords=[],
+        auto_generate_li_messages=True,
     )
     db.session.add(c)
     db.session.commit()
