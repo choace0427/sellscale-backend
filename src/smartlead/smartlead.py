@@ -164,98 +164,96 @@ class Smartlead:
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
     def get_lead_by_email_address(self, email_address):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/leads/?api_key={self.api_key}&email={email_address}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_lead_by_email_address(email_address)
         return response.json()
 
     def get_message_history_using_lead_and_campaign_id(self, lead_id, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/message-history?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_message_history_using_lead_and_campaign_id(
                 lead_id, campaign_id
             )
         return response.json()
 
     def get_campaign_sequence_by_id(self, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = (
             f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
         )
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_sequence_by_id(campaign_id)
         return response.json()
 
     def get_campaign_statistics_by_id(self, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = f"https://server.smartlead.ai/api/v1/campaigns/{campaign_id}/statistics?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_statistics_by_id(campaign_id)
-
         return response.json()
 
     def get_emails(self, offset=0, limit=100):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_emails(offset, limit)
         return response.json()
 
     def get_campaign_sequences(self, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = (
             f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
         )
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_sequences(campaign_id)
         return response.json()
 
     def get_campaign(self, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_campaign(campaign_id)
         return response.json()
 
     def get_campaign_analytics(self, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = (
             f"{self.BASE_URL}/campaigns/{campaign_id}/analytics?api_key={self.api_key}"
         )
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_analytics(campaign_id)
         return response.json()
 
     def get_campaign_email_accounts(self, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_email_accounts(campaign_id)
         return response.json()
 
     def get_campaign_leads(self, campaign_id, offset=0, limit=10):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_leads(campaign_id, offset, limit)
         return response.json()
 
     def add_campaign_leads(
         self, campaign_id, leads: list[Lead]
     ):  # max 100 leads at a time
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads"
         response = requests.post(
             url,
@@ -267,22 +265,23 @@ class Smartlead:
             },
         )
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.add_campaign_leads(campaign_id, leads)
         return response.json()
 
     def get_warmup_stats(self, email_account_id):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_warmup_stats(email_account_id)
         return response.json()
 
     def get_leads_export(self, campaign_id):
-        time.sleep(self.DELAY_SECONDS)
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads-export?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.get_leads_export(campaign_id)
 
         if response.status_code != 200:
@@ -318,7 +317,6 @@ class Smartlead:
         return result
 
     def post_campaign_leads(self, campaign_id, lead_list):
-        time.sleep(self.DELAY_SECONDS)
         """`lead_list` format is
 
         lead_list = [
@@ -358,5 +356,6 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
             return self.post_campaign_leads(campaign_id, lead_list)
         return response.json()

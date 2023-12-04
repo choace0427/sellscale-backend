@@ -1,6 +1,8 @@
 from typing import List
 from flask import Blueprint, request, jsonify
 from src.smartlead.services import (
+    get_message_history_for_prospect,
+    get_replied_prospects,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
     sync_prospects_to_campaign,
@@ -40,6 +42,45 @@ def post_sync_campaigns(client_sdr_id: int):
     sync_campaign_leads_for_sdr.delay(client_sdr_id)
 
     return jsonify({"message": "Success", "data": {}}), 200
+
+
+@SMARTLEAD_BLUEPRINT.route("/prospect/replied", methods=["GET"])
+@require_user
+def get_prospects_replied(client_sdr_id: int):
+    replied_prospects = get_replied_prospects(client_sdr_id=client_sdr_id)
+
+    return (
+        jsonify(
+            {"message": "Success", "data": {"replied_prospects": replied_prospects}}
+        ),
+        200,
+    )
+
+
+@SMARTLEAD_BLUEPRINT.route("/prospect/conversation")
+@require_user
+def get_prospect_conversation(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True, parameter_type=int
+    )
+    smartlead_campaign_id = get_request_parameter(
+        "smartlead_campaign_id", request, json=False, required=True, parameter_type=int
+    )
+
+    conversation = get_message_history_for_prospect(
+        prospect_id=prospect_id,
+        smartlead_campaign_id=smartlead_campaign_id,
+    )
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {"conversation": conversation},
+            }
+        ),
+        200,
+    )
 
 
 @SMARTLEAD_BLUEPRINT.route("/set_campaign", methods=["POST"])
