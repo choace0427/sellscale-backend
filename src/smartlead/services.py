@@ -38,7 +38,7 @@ def get_replied_prospects(client_sdr_id: int) -> list[dict]:
     # Get all prospects that have replied
     query = f"""SELECT
 	p.id,
-    p.name,
+    p.full_name,
     p.title,
     p.img_url,
     p.icp_fit_score,
