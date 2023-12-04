@@ -14,13 +14,19 @@ class ICPScoringJobQueue(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
     client_archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
     prospect_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
 
-    run_status = db.Column(db.Enum(ICPScoringJobQueueStatus), nullable=False, default=ICPScoringJobQueueStatus.PENDING.value)
+    run_status = db.Column(
+        db.Enum(ICPScoringJobQueueStatus),
+        nullable=False,
+        default=ICPScoringJobQueueStatus.PENDING.value,
+    )
     error_message = db.Column(db.String, nullable=True)
     attempts = db.Column(db.Integer, nullable=False, default=0)
 
@@ -96,6 +102,13 @@ class ICPScoringRuleset(db.Model):
         db.ARRAY(db.String), nullable=True
     )
     excluded_company_generalized_keywords = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+
+    included_individual_educatio_keywords = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+    excluded_individual_education_keywords = db.Column(
         db.ARRAY(db.String), nullable=True
     )
 
