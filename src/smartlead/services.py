@@ -38,6 +38,10 @@ def get_replied_prospects(client_sdr_id: int) -> list[dict]:
     # Get all prospects that have replied
     query = f"""SELECT
 	p.id,
+    p.name,
+    p.title,
+    p.img_url,
+    p.icp_fit_score,
 	a.smartlead_campaign_id
 FROM
 	prospect p
@@ -54,7 +58,11 @@ WHERE
         replied_prospects.append(
             {
                 "prospect_id": id[0],
-                "smartlead_campaign_id": id[1],
+                "prospect_name": id[1],
+                "prospect_title": id[2],
+                "prospect_img_url": id[3],
+                "prospect_icp_fit_score": id[4],
+                "smartlead_campaign_id": id[5],
             }
         )
 
