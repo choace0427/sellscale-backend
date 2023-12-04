@@ -137,4 +137,6 @@ class ICPScoringRuleset(db.Model):
             "excluded_company_industries_keywords": self.excluded_company_industries_keywords,
             "included_company_generalized_keywords": self.included_company_generalized_keywords,
             "excluded_company_generalized_keywords": self.excluded_company_generalized_keywords,
+            "included_individual_education_keywords": self.included_individual_education_keywords,
+            "excluded_individual_education_keywords": self.excluded_individual_education_keywords,
         }

@@ -475,6 +475,8 @@ def create_client_archetype(
         excluded_company_industries_keywords=[],
         included_company_generalized_keywords=[],
         excluded_company_generalized_keywords=[],
+        included_individual_education_keywords=[],
+        excluded_individual_education_keywords=[],
     )
 
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
