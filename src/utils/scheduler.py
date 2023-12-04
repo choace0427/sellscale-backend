@@ -400,6 +400,18 @@ def run_sync_all_campaign_leads():
         sync_campaign_leads_for_sdr.delay()
 
 
+def run_auto_send_campaigns_and_send_approved_messages_job():
+    from src.campaigns.autopilot.services import (
+        auto_send_campaigns_and_send_approved_messages_job,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        auto_send_campaigns_and_send_approved_messages_job.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
@@ -459,6 +471,11 @@ scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 scheduler.add_job(func=run_hourly_email_finder_job, trigger="interval", hours=1)
 scheduler.add_job(func=run_analytics_backfill_jobs, trigger="interval", hours=1)
 scheduler.add_job(func=run_set_warmup_snapshots, trigger="interval", hours=3)
+scheduler.add_job(
+    func=run_auto_send_campaigns_and_send_approved_messages_job,
+    trigger="interval",
+    hours=3,
+)
 
 # Daily triggers
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)

@@ -6,6 +6,9 @@ from src.campaigns.services import (
     mark_campaign_as_ready_to_send,
     mark_campaign_as_initial_review_complete,
 )
+from src.campaigns.autopilot.services import (
+    auto_send_campaigns_and_send_approved_messages_job,
+)
 from src.client.sdr.services_client_sdr import load_sla_schedules
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
