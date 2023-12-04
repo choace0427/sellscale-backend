@@ -1268,6 +1268,7 @@ def add_prospect(
             contract_size=archetype.contract_size,
             is_lookalike_profile=is_lookalike_profile,
             individual_id=individual_id,
+            icp_fit_score=2,
         )
         db.session.add(prospect)
         db.session.commit()
