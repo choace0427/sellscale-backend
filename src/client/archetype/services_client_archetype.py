@@ -29,8 +29,7 @@ def get_archetype_generation_upcoming(
     if client_wide:
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         sdrs: list[ClientSDR] = ClientSDR.query.filter(
-            ClientSDR.client_id == sdr.client_id,
-            ClientSDR.active == True
+            ClientSDR.client_id == sdr.client_id, ClientSDR.active == True
         ).all()
 
     # Loop through the SDRs
@@ -39,7 +38,9 @@ def get_archetype_generation_upcoming(
         # Get the archetypes for this SDR that are active and have LinkedIn active
         archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
             ClientArchetype.client_sdr_id == sdr.id,
-            ClientArchetype.active == True if active_only else ClientArchetype.active == ClientArchetype.active,
+            ClientArchetype.active == True
+            if active_only
+            else ClientArchetype.active == ClientArchetype.active,
             ClientArchetype.linkedin_active == True,
         ).all()
 
@@ -52,11 +53,15 @@ def get_archetype_generation_upcoming(
             func.date(SLASchedule.end_date) >= tomorrow.date(),
         ).first()
         available_sla = sla_schedule.linkedin_volume // 5 if sla_schedule else 0
-        sla_per_campaign = available_sla // len(archetypes)
-        leftover_sla = available_sla % len(archetypes)
+        sla_per_campaign = (
+            available_sla // len(archetypes) if len(archetypes) > 0 else 0
+        )
+        leftover_sla = available_sla % len(archetypes) if len(archetypes) > 0 else 0
 
         # Calculate the SLA per archetype
-        sla_counts = [sla_per_campaign] * (len(archetypes) - leftover_sla) + [sla_per_campaign + 1] * leftover_sla
+        sla_counts = [sla_per_campaign] * (len(archetypes) - leftover_sla) + [
+            sla_per_campaign + 1
+        ] * leftover_sla
 
         for index, archetype in enumerate(archetypes):
             contact_count: Prospect = Prospect.query.filter(
