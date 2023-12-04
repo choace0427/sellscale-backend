@@ -105,7 +105,7 @@ class ICPScoringRuleset(db.Model):
         db.ARRAY(db.String), nullable=True
     )
 
-    included_individual_educatio_keywords = db.Column(
+    included_individual_education_keywords = db.Column(
         db.ARRAY(db.String), nullable=True
     )
     excluded_individual_education_keywords = db.Column(
