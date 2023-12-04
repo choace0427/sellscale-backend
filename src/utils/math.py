@@ -1,2 +1,8 @@
+import hashlib
+
+
 def get_unique_int(x: int, y: int) -> int:
-    return ((x + y) * (x + y + 1)) / 2 + min(x, y) - 1000000000
+    # Generate a unique randomized int from two int without collisions under 2^25
+    return int.from_bytes(hashlib.sha256(f"{x}{y}".encode("utf-8")).digest(), "big") % (
+        2**25
+    )
