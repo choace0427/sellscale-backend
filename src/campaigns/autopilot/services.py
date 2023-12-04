@@ -187,6 +187,10 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                     False,
                     f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): {message}",
                 )
+
+            # increase SLA by 25% and round up
+            available_sla = int(available_sla * 1.25)
+
             sla_per_campaign = available_sla // len(linkedin_archetypes)
             leftover_sla = available_sla % len(linkedin_archetypes)
 
@@ -539,6 +543,8 @@ def auto_send_campaigns_and_send_approved_messages_job(self):
         )
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
 
 
 def auto_send_all_campaigns():
