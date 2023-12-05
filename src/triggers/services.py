@@ -159,13 +159,13 @@ def trigger_runner(trigger_id: int):
         db.session.commit()
 
     # Run self #
-    # add_process_for_future(
-    #     type="trigger_runner",
-    #     args={
-    #         "trigger_id": trigger_id,
-    #     },
-    #     minutes=trigger.interval_in_minutes,
-    # )
+    add_process_for_future(
+        type="trigger_runner",
+        args={
+            "trigger_id": trigger_id,
+        },
+        minutes=trigger.interval_in_minutes or 1440,
+    )
 
     return True, run_id
 
