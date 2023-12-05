@@ -64,7 +64,7 @@ def get_prospect_conversation(client_sdr_id: int):
         "prospect_id", request, json=False, required=True, parameter_type=int
     )
     smartlead_campaign_id = get_request_parameter(
-        "smartlead_campaign_id", request, json=False, required=True, parameter_type=int
+        "smartlead_campaign_id", request, json=False, required=False, parameter_type=int
     )
 
     conversation = get_message_history_for_prospect(
