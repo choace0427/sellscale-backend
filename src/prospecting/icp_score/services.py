@@ -35,6 +35,8 @@ class EnrichedProspectCompany:
     prospect_positions: list
     prospect_years_of_experience: int
     prospect_dump: str
+    prospect_education_1: str
+    prospect_education_2: str
 
     company_name: str
     company_location: str
@@ -68,6 +70,8 @@ def update_icp_scoring_ruleset(
     excluded_company_industries_keywords: list,
     included_company_generalized_keywords: list,
     excluded_company_generalized_keywords: list,
+    included_individual_education_keywords: list,
+    excluded_individual_education_keywords: list,
 ):
     icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id
@@ -141,6 +145,12 @@ def update_icp_scoring_ruleset(
     icp_scoring_ruleset.excluded_company_generalized_keywords = (
         excluded_company_generalized_keywords
     )
+    icp_scoring_ruleset.included_individual_education_keywords = (
+        included_individual_education_keywords
+    )
+    icp_scoring_ruleset.excluded_individual_education_keywords = (
+        excluded_individual_education_keywords
+    )
 
     db.session.add(icp_scoring_ruleset)
     db.session.commit()
@@ -211,6 +221,11 @@ def count_num_icp_attributes(client_archetype_id: int):
         or icp_scoring_ruleset.excluded_company_generalized_keywords
     ):
         count += 1
+    if (
+        icp_scoring_ruleset.included_individual_education_keywords
+        or icp_scoring_ruleset.excluded_individual_education_keywords
+    ):
+        count += 1
 
     return count
 
@@ -233,6 +248,8 @@ def get_raw_enriched_prospect_companies_list(
             Prospect.company.label("company_name"),
             Prospect.employee_count.label("employee_count"),
             Prospect.linkedin_url.label("linkedin_url"),
+            Prospect.education_1.label("education_1"),
+            Prospect.education_2.label("education_2"),
         )
         .outerjoin(ResearchPayload, Prospect.id == ResearchPayload.prospect_id)
         .filter(Prospect.archetype_id == client_archetype_id)
@@ -244,6 +261,8 @@ def get_raw_enriched_prospect_companies_list(
             Prospect.company,
             Prospect.employee_count,
             Prospect.linkedin_url,
+            Prospect.education_1,
+            Prospect.education_2,
         )
     )
 
@@ -306,6 +325,8 @@ def get_raw_enriched_prospect_companies_list(
             + " "
             + str(personal_bio)
         )
+        processed[prospect_id].prospect_education_1 = entry[8]
+        processed[prospect_id].prospect_education_2 = entry[9]
 
         processed[prospect_id].company_name = company_name
         processed[prospect_id].company_location = (
@@ -555,6 +576,47 @@ def score_one_prospect(
         elif icp_scoring_ruleset.included_individual_locations_keywords:
             score -= num_attributes
             reasoning += "(❌ prospect location: No Match) "
+
+        # Prospect Education
+        educations = []
+        if enriched_prospect_company.prospect_education_1:
+            educations.append(enriched_prospect_company.prospect_education_1)
+        if enriched_prospect_company.prospect_education_2:
+            educations.append(enriched_prospect_company.prospect_education_2)
+        if (
+            icp_scoring_ruleset.excluded_individual_education_keywords
+            and educations
+            and any(
+                keyword.lower() in education.lower()
+                for education in educations
+                for keyword in icp_scoring_ruleset.excluded_individual_education_keywords
+            )
+        ):
+            score -= num_attributes
+            invalid_education = ""
+            for keyword in icp_scoring_ruleset.excluded_individual_education_keywords:
+                for education in educations:
+                    if keyword.lower() in education.lower():
+                        invalid_education = keyword
+                        break
+            reasoning += "(❌ prospect education: " + invalid_education + ") "
+        elif (
+            icp_scoring_ruleset.included_individual_education_keywords
+            and educations
+            and any(
+                keyword.lower() in education.lower()
+                for education in educations
+                for keyword in icp_scoring_ruleset.included_individual_education_keywords
+            )
+        ):
+            score += 1
+            valid_education = ""
+            for keyword in icp_scoring_ruleset.included_individual_education_keywords:
+                for education in educations:
+                    if keyword.lower() in education.lower():
+                        valid_education = keyword
+                        break
+            reasoning += "(✅ prospect education: " + valid_education + ") "
 
         # Prospect Generalized Keywords
         if (
@@ -1107,7 +1169,7 @@ def move_prospect_to_unassigned(
     self, prospect_id: int, client_sdr_unassigned_archetype_id: int
 ):
     try:
-        prospect = Prospect.query.filter_by(id=prospect_id).first()
+        prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         if not prospect:
             return False
 
@@ -1118,7 +1180,7 @@ def move_prospect_to_unassigned(
         prospect.icp_fit_reason = "🟨 Moved to Unassigned Persona."
         db.session.add(prospect)
         db.session.commit()
-    except:
+    except Exception as e:
         db.session.rollback()
         db.session.close()
         raise self.retry(exc=e, countdown=2**self.request.retries)
@@ -1245,6 +1307,8 @@ def set_icp_scores_to_predicted_values(client_archetype_id: int):
         excluded_company_industries_keywords=[],
         included_company_generalized_keywords=[],
         excluded_company_generalized_keywords=[],
+        included_individual_education_keywords=[],
+        excluded_individual_education_keywords=[],
     )
 
     return success
@@ -1275,6 +1339,8 @@ def clear_icp_ruleset(client_archetype_id: int):
         excluded_company_industries_keywords=[],
         included_company_generalized_keywords=[],
         excluded_company_generalized_keywords=[],
+        included_individual_education_keywords=[],
+        excluded_individual_education_keywords=[],
     )
 
     return success
@@ -1312,6 +1378,8 @@ def clone_icp_ruleset(source_archetype_id: int, target_archetype_id: int):
         excluded_company_industries_keywords=icp_ruleset.excluded_company_industries_keywords,
         included_company_generalized_keywords=icp_ruleset.included_company_generalized_keywords,
         excluded_company_generalized_keywords=icp_ruleset.excluded_company_generalized_keywords,
+        included_individual_education_keywords=icp_ruleset.included_individual_education_keywords,
+        excluded_individual_education_keywords=icp_ruleset.excluded_individual_education_keywords,
     )
 
     return success
@@ -1343,6 +1411,7 @@ Prospect Industry Keywords: {icp_scoring_ruleset.included_individual_industry_ke
 Prospect Location Keywords: {icp_scoring_ruleset.included_individual_locations_keywords}
 Prospect Skills Keywords: {icp_scoring_ruleset.included_individual_skills_keywords}
 Prospect Generalized Keywords: {icp_scoring_ruleset.included_individual_generalized_keywords}
+Prospect Education: {icp_scoring_ruleset.included_individual_education_keywords}
 Company Name Keywords: {icp_scoring_ruleset.included_company_name_keywords}
 Company Location Keywords: {icp_scoring_ruleset.included_company_locations_keywords}
 Company Industry Keywords: {icp_scoring_ruleset.included_company_industries_keywords}
@@ -1391,6 +1460,10 @@ Company Generalized Keywords: {icp_scoring_ruleset.included_company_generalized_
         "Prospect Skills Keywords": (
             "included_individual_skills_keywords",
             "excluded_individual_skills_keywords",
+        ),
+        "Prospect Education Keywords": (
+            "included_individual_education_keywords",
+            "excluded_individual_education_keywords",
         ),
         "Prospect Generalized Keywords": (
             "included_individual_generalized_keywords",

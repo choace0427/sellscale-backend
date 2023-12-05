@@ -187,6 +187,10 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                     False,
                     f"Autopilot Campaign not created for {client_sdr.name} (#{client_sdr.id}): {message}",
                 )
+
+            # increase SLA by 25% and round up
+            available_sla = int(available_sla * 1.25)
+
             sla_per_campaign = available_sla // len(linkedin_archetypes)
             leftover_sla = available_sla % len(linkedin_archetypes)
 
@@ -525,6 +529,22 @@ def auto_send_campaign(campaign_id: int):
     mark_campaign_as_initial_review_complete(campaign_id=campaign_id)
 
     return True
+
+
+@celery.task(bind=True, max_retries=3)
+def auto_send_campaigns_and_send_approved_messages_job(self):
+    try:
+        auto_send_all_campaigns()
+        send_approved_messages_in_complete_campaigns()
+    except Exception as e:
+        send_slack_message(
+            f"❌ Error in auto_send_campaigns_and_send_approved_messages_job: {e}",
+            [URL_MAP["ops-auto-send-campaign"]],
+        )
+        db.session.rollback()
+        raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
 
 
 def auto_send_all_campaigns():

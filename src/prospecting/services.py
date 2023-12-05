@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Union
 from regex import P
+from src.client.sdr.services_client_sdr import load_sla_schedules
 from src.company.models import Company
 from sqlalchemy import nullslast
 from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
@@ -1134,6 +1135,8 @@ def add_prospect(
     individual_id: Optional[int] = None,
     score_prospect: bool = True,
     research_payload: bool = True,
+    education_1: Optional[str] = None,
+    education_2: Optional[str] = None,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -1267,6 +1270,9 @@ def add_prospect(
             contract_size=archetype.contract_size,
             is_lookalike_profile=is_lookalike_profile,
             individual_id=individual_id,
+            icp_fit_score=2,
+            education_1=education_1,
+            education_2=education_2,
         )
         db.session.add(prospect)
         db.session.commit()
@@ -1415,6 +1421,9 @@ def create_prospect_from_linkedin_link(
         title = deep_get(payload, "sub_title")
         twitter_url = None
 
+        education_1 = deep_get(payload, "education.0.school.name")
+        education_2 = deep_get(payload, "education.1.school.name")
+
         # Health Check fields
         followers_count = deep_get(payload, "network_info.followers_count") or 0
 
@@ -1438,6 +1447,8 @@ def create_prospect_from_linkedin_link(
             set_status=set_status,
             set_note=set_note,
             is_lookalike_profile=is_lookalike_profile,
+            education_1=education_1,
+            education_2=education_2,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
@@ -1483,6 +1494,9 @@ def mark_prospects_as_queued_for_outreach(
         }
     campaign_id = messages[0].outbound_campaign_id
     messages_ids = [message.id for message in messages]
+
+    # Create SLA Schedules
+    load_sla_schedules(client_sdr_id=client_sdr_id)
 
     # Update prospects
     for id in prospect_ids:

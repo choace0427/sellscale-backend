@@ -26,6 +26,82 @@ from src.smartlead.smartlead import (
 from app import db, celery
 
 
+def get_replied_prospects(client_sdr_id: int) -> list[dict]:
+    """Gets the prospect IDs that have replied (via Smartlead) for a given SDR.
+
+    Args:
+        client_sdr_id (int): The ID of the SDR
+
+    Returns:
+        list[dict]: A list of emails
+    """
+    # Get all prospects that have replied
+    query = f"""SELECT
+	p.id,
+    p.full_name,
+    p.title,
+    p.img_url,
+    p.icp_fit_score,
+	a.smartlead_campaign_id
+FROM
+	prospect p
+	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
+	LEFT JOIN client_archetype a ON p.archetype_id = a.id
+WHERE
+	pe.outreach_status = 'ACTIVE_CONVO'
+	AND p.client_sdr_id = {client_sdr_id}
+	AND a.smartlead_campaign_id IS NOT NULL;;
+"""
+    ids = db.session.execute(query).fetchall()
+    replied_prospects = []
+    for id in ids:
+        replied_prospects.append(
+            {
+                "prospect_id": id[0],
+                "prospect_name": id[1],
+                "prospect_title": id[2],
+                "prospect_img_url": id[3],
+                "prospect_icp_fit_score": id[4],
+                "smartlead_campaign_id": id[5],
+            }
+        )
+
+    return replied_prospects
+
+
+def get_message_history_for_prospect(
+    prospect_id: int,
+    smartlead_campaign_id: Optional[int] = None,
+) -> list[dict]:
+    """Gets the message history for a given prospect
+
+    Args:
+        prospect_id (int): The ID of the prospect
+        smartlead_campaign_id (Optional[int], optional): The ID of the Smartlead campaign. Defaults to None.
+
+    Returns:
+        list[dict]: A list of messages
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    sl = Smartlead()
+    smartlead_lead = sl.get_lead_by_email_address(prospect.email)
+    smartlead_prospect_id = smartlead_lead.get("id")
+    if not smartlead_prospect_id:
+        return []
+
+    if not smartlead_campaign_id:
+        archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+        smartlead_campaign_id = archetype.smartlead_campaign_id
+
+    message_history = sl.get_message_history_using_lead_and_campaign_id(
+        lead_id=smartlead_prospect_id, campaign_id=smartlead_campaign_id
+    )
+    history = message_history["history"]
+
+    return history
+
+
 def get_email_warmings(client_sdr_id: Optional[int] = None) -> list[dict]:
     """Gets all email warmings, or all email warmings for a given SDR
 

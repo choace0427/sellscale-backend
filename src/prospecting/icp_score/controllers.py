@@ -168,6 +168,12 @@ def update_ruleset(client_sdr_id: int):
     excluded_company_generalized_keywords = get_request_parameter(
         "excluded_company_generalized_keywords", request, json=True, required=False
     )
+    included_individual_education_keywords = get_request_parameter(
+        "included_individual_education_keywords", request, json=True, required=False
+    )
+    excluded_individual_education_keywords = get_request_parameter(
+        "excluded_individual_education_keywords", request, json=True, required=False
+    )
 
     updated_score = update_icp_scoring_ruleset(
         client_archetype_id=client_archetype_id,
@@ -193,6 +199,8 @@ def update_ruleset(client_sdr_id: int):
         excluded_company_industries_keywords=excluded_company_industries_keywords,
         included_company_generalized_keywords=included_company_generalized_keywords,
         excluded_company_generalized_keywords=excluded_company_generalized_keywords,
+        included_individual_education_keywords=included_individual_education_keywords,
+        excluded_individual_education_keywords=excluded_individual_education_keywords,
     )
 
     if updated_score:

@@ -6,6 +6,10 @@ from src.campaigns.services import (
     mark_campaign_as_ready_to_send,
     mark_campaign_as_initial_review_complete,
 )
+from src.campaigns.autopilot.services import (
+    auto_send_campaigns_and_send_approved_messages_job,
+)
+from src.client.sdr.services_client_sdr import load_sla_schedules
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
 from model_import import OutboundCampaign
@@ -303,7 +307,7 @@ def create_new_campaign(client_sdr_id: int):
             campaign_start_date=campaign_start_date,
             campaign_end_date=campaign_end_date,
             priority_rating=priority_rating,
-            warm_emails=warm_emails
+            warm_emails=warm_emails,
         )
         return jsonify({"campaign_id": campaign.id}), 200
     except Exception as e:
@@ -363,22 +367,32 @@ def create_new_instant_campaign(client_sdr_id: int):
         )
         campaign_id = campaign.id
 
-        change_campaign_status(campaign_id = campaign_id, status = OutboundCampaignStatus.COMPLETE)
+        change_campaign_status(
+            campaign_id=campaign_id, status=OutboundCampaignStatus.COMPLETE
+        )
+
+        # Create SLA Schedules
+        load_sla_schedules(client_sdr_id=client_sdr_id)
 
         msg_ids = []
         for message in messages:
-            msg_id = send_li_outreach_connection(message["prospect_id"], message["message"], campaign_id, config_id)
+            msg_id = send_li_outreach_connection(
+                message["prospect_id"], message["message"], campaign_id, config_id
+            )
             msg_ids.append(msg_id)
 
-        return jsonify(
-            {
-                "status": "success",
-                "data": {
-                    "campaign_id": campaign_id,
-                    "message_ids": msg_ids,
-                },
-            }
-        ), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "data": {
+                        "campaign_id": campaign_id,
+                        "message_ids": msg_ids,
+                    },
+                }
+            ),
+            200,
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -628,9 +642,7 @@ def generate_all_autopilot_campaigns_endpoint():
     )
     start_date = convert_string_to_datetime(start_date) if start_date else None
 
-    collect_and_generate_all_autopilot_campaigns(
-        start_date=start_date
-    )
+    collect_and_generate_all_autopilot_campaigns(start_date=start_date)
     return "OK", 200
 
 

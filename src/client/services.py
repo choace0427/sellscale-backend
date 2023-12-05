@@ -111,6 +111,7 @@ def create_client(
         do_not_contact_location_keywords=[],
         do_not_contact_titles=[],
         do_not_contact_prospect_location_keywords=[],
+        auto_generate_li_messages=True,
     )
     db.session.add(c)
     db.session.commit()
@@ -474,6 +475,8 @@ def create_client_archetype(
         excluded_company_industries_keywords=[],
         included_company_generalized_keywords=[],
         excluded_company_generalized_keywords=[],
+        included_individual_education_keywords=[],
+        excluded_individual_education_keywords=[],
     )
 
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
@@ -574,8 +577,6 @@ def create_client_sdr(client_id: int, name: str, email: str):
     )
 
     print("Creating default bump frameworks")
-    # Load SLA schedules (will be generated with warmup SLA values)
-    load_sla_schedules(sdr.id)
 
     return {"client_sdr_id": sdr.id}
 
