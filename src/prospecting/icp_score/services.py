@@ -1169,7 +1169,7 @@ def move_prospect_to_unassigned(
     self, prospect_id: int, client_sdr_unassigned_archetype_id: int
 ):
     try:
-        prospect = Prospect.query.filter_by(id=prospect_id).first()
+        prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         if not prospect:
             return False
 
@@ -1180,7 +1180,7 @@ def move_prospect_to_unassigned(
         prospect.icp_fit_reason = "🟨 Moved to Unassigned Persona."
         db.session.add(prospect)
         db.session.commit()
-    except:
+    except Exception as e:
         db.session.rollback()
         db.session.close()
         raise self.retry(exc=e, countdown=2**self.request.retries)
