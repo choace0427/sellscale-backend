@@ -365,6 +365,12 @@ def sync_campaign_leads_for_sdr(client_sdr_id: int) -> bool:
             raise Exception("No smartlead campaign statistics found")
 
         for lead in statistics:
+            # sync_prospect_with_lead(
+            #     client_id=archetype.client_id,
+            #     archetype_id=archetype.id,
+            #     client_sdr_id=client_sdr_id,
+            #     lead=lead,
+            # )
             args = {
                 "client_id": archetype.client_id,
                 "archetype_id": archetype.id,
@@ -471,10 +477,14 @@ def sync_prospect_with_lead(
         prospect_message: str = None
         for item in reversed(history):
             if item["type"] == "REPLY":
+                sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
                 # 3c.2. Determine if the reply is new
                 time = item["time"]
                 time = convert_string_to_datetime_or_none(content=time)
-                if time > prospect_email.last_reply_time:
+                if (
+                    not prospect_email.last_reply_time
+                    or time > prospect_email.last_reply_time
+                ):
                     prospect_email.last_reply_time = time
                     prospect_email.hidden_until = None
                     db.session.commit()
@@ -503,11 +513,35 @@ def sync_prospect_with_lead(
                                 "type": "section",
                                 "text": {
                                     "type": "mrkdwn",
-                                    "text": '*{prospect_first_name}*:\n_"{prospect_message}"_'.format(
+                                    "text": "*{prospect_first_name}*:\n>{prospect_message}".format(
                                         prospect_first_name=prospect.first_name,
                                         prospect_message=prospect_message[:150],
                                     ),
                                 },
+                            },
+                            {
+                                "type": "context",
+                                "elements": [
+                                    {
+                                        "type": "plain_text",
+                                        "text": "🎯 Campaign: "
+                                        + str(archetype.archetype),
+                                    },
+                                    {
+                                        "type": "plain_text",
+                                        "text": "🧳 Title: "
+                                        + str(prospect.title)
+                                        + " @ "
+                                        + str(prospect.company)[0:20]
+                                        + ("..." if len(prospect.company) > 20 else ""),
+                                        "emoji": True,
+                                    },
+                                    {
+                                        "type": "plain_text",
+                                        "text": "📌 SDR: " + sdr.name,
+                                        "emoji": True,
+                                    },
+                                ],
                             },
                         ],
                     )
