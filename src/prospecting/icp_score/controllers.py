@@ -12,6 +12,7 @@ from src.prospecting.icp_score.services import (
     apply_icp_scoring_ruleset_filters_task,
     clear_icp_ruleset,
     set_icp_scores_to_predicted_values,
+    update_icp_titles_from_sales_nav_url,
 )
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.icp_score.models import ICPScoringJobQueue, ICPScoringRuleset
@@ -327,3 +328,21 @@ def post_update_icp_filters(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success", "data": result}), 200
+
+
+@ICP_SCORING_BLUEPRINT.route("/update_icp_filters_from_sales_nav_url", methods=["POST"])
+@require_user
+def update_icp_filters_from_sales_nav_url(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True
+    )
+
+    sales_nav_url = get_request_parameter(
+        "sales_nav_url", request, json=True, required=True
+    )
+
+    success = update_icp_titles_from_sales_nav_url(
+        client_archetype_id=client_archetype_id, sales_nav_url=sales_nav_url
+    )
+
+    return jsonify({"message": "Success", "data": success}), 200

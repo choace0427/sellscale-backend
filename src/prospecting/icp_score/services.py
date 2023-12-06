@@ -1,4 +1,5 @@
 import datetime
+import json
 from multiprocessing import process
 from typing import Counter, Optional
 
@@ -1545,3 +1546,47 @@ def update_icp_filters(client_archetype_id: int, filters):
         return True
     else:
         return False
+
+
+def update_icp_titles_from_sales_nav_url(client_archetype_id: int, sales_nav_url: str):
+    icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=client_archetype_id
+    ).first()
+    if not icp_scoring_ruleset:
+        return False
+
+    response = get_text_generation(
+        [
+            {
+                "role": "user",
+                "content": f"""
+Using this Sales Navigator URL:
+```
+{sales_nav_url}
+```
+
+Return a list of the job titles by parsing the URL above and return in a valid JSON formatted as {{data: [titles array]}}
+
+Respond with only the JSON.
+
+JSON:""",
+            },
+        ],
+        max_tokens=600,
+        model="gpt-4",
+        type="ICP_CLASSIFY",
+    )
+
+    titles = []
+    try:
+        data: dict = json.loads(response)
+        titles = data.get("data", [])
+    except:
+        return False
+
+    icp_scoring_ruleset.included_individual_title_keywords = (
+        icp_scoring_ruleset.included_individual_title_keywords or []
+    ) + titles
+    db.session.commit()
+
+    return True
