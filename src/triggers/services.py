@@ -38,6 +38,9 @@ from src.utils.abstract.attr_utils import deep_get
 
 
 def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    webhook_urls = [sdr.pipeline_notifications_webhook_url]
+
     source_block_1 = SourceBlock(
         source=SourceType.GOOGLE_COMPANY_NEWS,
         data={
@@ -56,7 +59,7 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
                     "type": "section",
                 }
             ],
-            "slack_webhook_urls": [URL_MAP["eng-sandbox"]],
+            "slack_webhook_urls": webhook_urls,
         },
     )
     filter_block_1 = FilterBlock(
@@ -90,7 +93,7 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
                     "type": "section",
                 }
             ],
-            "slack_webhook_urls": [URL_MAP["eng-sandbox"]],
+            "slack_webhook_urls": webhook_urls,
         },
     )
     action_block_3 = ActionBlock(
@@ -109,7 +112,7 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
                     "type": "section",
                 }
             ],
-            "slack_webhook_urls": [URL_MAP["eng-sandbox"]],
+            "slack_webhook_urls": webhook_urls,
         },
     )
 
@@ -316,6 +319,10 @@ def runActionBlock(
     if block.action == ActionType.SEND_SLACK_MESSAGE:
         message = block.data.get("slack_message", [])
         webhook_urls = block.data.get("slack_webhook_urls", [])
+        if not webhook_urls or len(webhook_urls) == 0:
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            webhook_urls = [sdr.pipeline_notifications_webhook_url]
+
         success = action_send_slack_message(message, webhook_urls, meta_data)
 
     elif block.action == ActionType.UPLOAD_PROSPECTS:
@@ -751,7 +758,7 @@ def send_finished_slack_message(
 
         result = send_slack_message(
             message="hello",
-            webhook_urls=[URL_MAP["eng-sandbox"]]
+            webhook_urls=[sdr.pipeline_notifications_webhook_url]
             + (
                 [client.pipeline_notifications_webhook_url]
                 if client.pipeline_notifications_webhook_url
