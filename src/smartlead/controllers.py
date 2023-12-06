@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from src.smartlead.services import (
     get_message_history_for_prospect,
     get_replied_prospects,
+    reply_to_prospect,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
     sync_prospects_to_campaign,
@@ -84,6 +85,39 @@ def get_prospect_conversation(client_sdr_id: int):
             {
                 "message": "Success",
                 "data": {"conversation": conversation},
+            }
+        ),
+        200,
+    )
+
+
+@SMARTLEAD_BLUEPRINT.route("/prospect/conversation", methods=["POST"])
+@require_user
+def post_prospect_conversation(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True, parameter_type=int
+    )
+    email_body = get_request_parameter(
+        "email_body", request, json=True, required=True, parameter_type=str
+    )
+
+    success = reply_to_prospect(prospect_id=prospect_id, email_body=email_body)
+    if not success:
+        return (
+            jsonify(
+                {
+                    "message": "Failed",
+                    "data": {"success": success},
+                }
+            ),
+            400,
+        )
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {"success": success},
             }
         ),
         200,

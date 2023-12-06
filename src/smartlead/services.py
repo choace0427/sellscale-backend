@@ -102,6 +102,51 @@ def get_message_history_for_prospect(
     return history
 
 
+def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
+    """Replies to a prospect via Smartlead
+
+    Args:
+        prospect_id (int): The ID of the prospect
+        email_body (str): The body of the email
+
+    Returns:
+        bool: True if successful
+    """
+    # Get the prospect, archetype, and smartlead campaign ID
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    campaign_id = archetype.smartlead_campaign_id
+
+    # Get the message history for the prospect
+    message_history = get_message_history_for_prospect(prospect_id=prospect_id)
+    if not message_history:
+        return False
+
+    sl = Smartlead()
+
+    # Work backwards, we are replying to the last message sent
+    last_message = message_history[-1]
+    stats_id = last_message["stats_id"]
+    reply_message_id = last_message["message_id"]
+    reply_email_time = last_message["time"]
+    reply_email_body = last_message["email_body"]
+
+    response = sl.reply_to_lead(
+        campaign_id=campaign_id,
+        email_stats_id=stats_id,
+        email_body=email_body,
+        reply_message_id=reply_message_id,
+        reply_email_time=reply_email_time,
+        reply_email_body=reply_email_body,
+    )
+    if not response:
+        return False
+
+    return True
+
+
 def get_email_warmings(client_sdr_id: Optional[int] = None) -> list[dict]:
     """Gets all email warmings, or all email warmings for a given SDR
 
