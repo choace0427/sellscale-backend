@@ -1285,6 +1285,10 @@ def add_prospect(
             get_research_and_bullet_points_new(prospect_id=p_id, test_mode=False)
         else:
             get_research_and_bullet_points_new.delay(prospect_id=p_id, test_mode=False)
+
+        from src.client.services import remove_prospects_caught_by_filters
+
+        remove_prospects_caught_by_filters.delay(client_sdr_id=client_sdr_id)
     else:
         return None
 

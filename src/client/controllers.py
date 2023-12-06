@@ -10,6 +10,7 @@ from src.personas.services import (
     clone_persona,
 )
 from src.prospecting.models import Prospect
+from src.client.services import remove_prospects_caught_by_filters
 from src.client.services import (
     edit_demo_feedback,
     import_pre_onboarding,

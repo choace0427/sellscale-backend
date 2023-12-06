@@ -2559,6 +2559,12 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     return prospect_dicts
 
 
+@celery.task
+def remove_prospects_caught_by_filters(client_sdr_id: int):
+    remove_prospects_caught_by_client_filters(client_sdr_id)
+    remove_prospects_caught_by_sdr_client_filters(client_sdr_id)
+
+
 def remove_prospects_caught_by_client_filters(client_sdr_id: int):
     """Remove the prospects caught by the do not contact filters for a Client.
     Checks if the prospect's company's name is not ilike any of the do not contact companies
