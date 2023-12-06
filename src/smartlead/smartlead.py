@@ -163,6 +163,38 @@ class Smartlead:
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
+    def reply_to_lead(
+        self,
+        campaign_id: int,
+        email_stats_id: str,
+        email_body: str,
+        reply_message_id: str,
+        reply_email_time: str,
+        reply_email_body: str,
+    ):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/reply-email-thread?api_key={self.api_key}"
+        data = {
+            "email_stats_id": email_stats_id,
+            "email_body": email_body,
+            "reply_message_id": reply_message_id,
+            "reply_email_time": reply_email_time,
+            "reply_email_body": reply_email_body,
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.reply_to_lead(
+                campaign_id,
+                email_stats_id,
+                email_body,
+                reply_message_id,
+                reply_email_time,
+                reply_email_body,
+            )
+        if response.status_code == 200:
+            return True
+
     def get_lead_by_email_address(self, email_address):
         url = f"{self.BASE_URL}/leads/?api_key={self.api_key}&email={email_address}"
         response = requests.get(url)

@@ -48,6 +48,7 @@ URL_MAP = {
     "ops-auto-send-campaign": "https://hooks.slack.com/services/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",
     "csm-drywall": "https://hooks.slack.com/services/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",
     "ops-email-notifications": "https://hooks.slack.com/services/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",
+    "ops-scheduling_needed": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {
