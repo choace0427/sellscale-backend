@@ -8,6 +8,9 @@ from src.analytics.services import (
     get_upload_analytics_for_client,
 )
 from src.analytics.drywall_notification import notify_clients_with_no_updates
+from src.analytics.scheduling_needed_notification import (
+    notify_clients_regarding_scheduling,
+)
 from src.authentication.decorators import require_user
 from model_import import ClientSDR
 
