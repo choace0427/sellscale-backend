@@ -95,7 +95,7 @@ def get_prospect_conversation(client_sdr_id: int):
 @require_user
 def post_prospect_conversation(client_sdr_id: int):
     prospect_id = get_request_parameter(
-        "prospect_id", request, json=False, required=True, parameter_type=int
+        "prospect_id", request, json=True, required=True, parameter_type=int
     )
     email_body = get_request_parameter(
         "email_body", request, json=True, required=True, parameter_type=str
