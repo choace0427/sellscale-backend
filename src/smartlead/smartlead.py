@@ -192,7 +192,8 @@ class Smartlead:
                 reply_email_time,
                 reply_email_body,
             )
-        return response.json()
+        if response.status_code == 200:
+            return True
 
     def get_lead_by_email_address(self, email_address):
         url = f"{self.BASE_URL}/leads/?api_key={self.api_key}&email={email_address}"
