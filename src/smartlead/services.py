@@ -118,6 +118,7 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
         return False
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     campaign_id = archetype.smartlead_campaign_id
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     # Get the message history for the prospect
     message_history = get_message_history_for_prospect(prospect_id=prospect_id)
@@ -133,6 +134,7 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     reply_email_time = last_message["time"]
     reply_email_body = last_message["email_body"]
 
+    # Send the reply
     response = sl.reply_to_lead(
         campaign_id=campaign_id,
         email_stats_id=stats_id,
@@ -143,6 +145,94 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     )
     if not response:
         return False
+
+    # SLACK NOTIFICATION
+    # Get the pretty email body
+    reply_email_body = reply_email_body.replace("<br>", "\n")
+    bs = BeautifulSoup(reply_email_body, "html.parser")
+    remove_past_convo = bs.find("div", {"class": "gmail_quote"})
+    if remove_past_convo:
+        remove_past_convo.decompose()
+    reply_email_body = bs.get_text()
+
+    # Get the pretty reply
+    message = email_body.replace("<br>", "\n")
+    bs = BeautifulSoup(message, "html.parser")
+    remove_past_convo = bs.find("div", {"class": "gmail_quote"})
+    if remove_past_convo:
+        remove_past_convo.decompose()
+    message = bs.get_text()
+
+    send_slack_message(
+        message="SellScale AI just replied to prospect!",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "💬 SellScale AI just replied to "
+                    + prospect.full_name
+                    + " on Email",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": '*{prospect_first_name}*:\n_"{prospect_message}"_\n\n*{first_name} (AI)*:\n_"{ai_response}"_'.format(
+                        prospect_first_name=prospect.first_name,
+                        prospect_message=reply_email_body[:150],
+                        ai_response=message[:150],
+                        first_name=client_sdr.name.split(" ")[0],
+                    ),
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "plain_text",
+                        "text": "🧳 Title: "
+                        + str(prospect.title)
+                        + " @ "
+                        + str(prospect.company)[0:20]
+                        + ("..." if len(prospect.company) > 20 else ""),
+                        "emoji": True,
+                    },
+                    # {
+                    #     "type": "plain_text",
+                    #     "text": "🪜 Status: "
+                    #     + prospect.status.value.replace("_", " ").lower(),
+                    #     "emoji": True,
+                    # },
+                    {
+                        "type": "plain_text",
+                        "text": "📌 SDR: " + client_sdr.name,
+                        "emoji": True,
+                    },
+                ],
+            },
+            # {
+            #     "type": "section",
+            #     "block_id": "sectionBlockWithLinkButton",
+            #     "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
+            #     "accessory": {
+            #         "type": "button",
+            #         "text": {
+            #             "type": "plain_text",
+            #             "text": "View Convo",
+            #             "emoji": True,
+            #         },
+            #         "value": direct_link,
+            #         "url": direct_link,
+            #         "action_id": "button-action",
+            #     },
+            # },
+        ],
+    )
 
     return True
 
