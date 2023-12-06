@@ -172,7 +172,7 @@ class Smartlead:
         reply_email_time: str,
         reply_email_body: str,
     ):
-        url = f"{self.BASE_URL}/campaigns/{campaign_id}/reply-to-lead?api_key={self.api_key}"
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/reply-email-thread?api_key={self.api_key}"
         data = {
             "email_stats_id": email_stats_id,
             "email_body": email_body,
