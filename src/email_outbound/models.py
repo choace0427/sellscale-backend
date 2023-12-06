@@ -249,12 +249,16 @@ class ProspectEmail(db.Model):
     )
     personalized_body = db.Column(db.Integer, db.ForeignKey("generated_message.id"))
 
-    date_scheduled_to_send = db.Column(db.DateTime, nullable=True)# in UTC
+    date_scheduled_to_send = db.Column(db.DateTime, nullable=True)  # in UTC
     date_sent = db.Column(db.DateTime, nullable=True)
     batch_id = db.Column(db.String, nullable=True)
 
     nylas_thread_id = db.Column(db.String, nullable=True)
     times_bumped = db.Column(db.Integer, nullable=True, default=0)
+
+    # In UTC, used to hide prospects from the UI until a certain date
+    hidden_until = db.Column(db.DateTime, nullable=True)
+    last_reply_time = db.Column(db.DateTime, nullable=True)
 
     def to_dict(self):
         from src.message_generation.models import GeneratedMessage

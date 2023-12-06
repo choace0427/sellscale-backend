@@ -2,6 +2,10 @@ import datetime
 from typing import List, Optional, Tuple
 
 from bs4 import BeautifulSoup
+from src.utils.datetime.dateparse_utils import (
+    convert_string_to_datetime,
+    convert_string_to_datetime_or_none,
+)
 
 from src.utils.lists import chunk_list
 
@@ -128,11 +132,15 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     sl = Smartlead()
 
     # Work backwards, we are replying to the last message sent
-    last_message = message_history[-1]
-    stats_id = last_message["stats_id"]
-    reply_message_id = last_message["message_id"]
-    reply_email_time = last_message["time"]
-    reply_email_body = last_message["email_body"]
+    # The last message will be the last REPLY message
+    for message in reversed(message_history):
+        if message["type"] == "REPLY":
+            last_message = message
+            stats_id = last_message["stats_id"]
+            reply_message_id = last_message["message_id"]
+            reply_email_time = last_message["time"]
+            reply_email_body = last_message["email_body"]
+            break
 
     # Send the reply
     response = sl.reply_to_lead(
@@ -163,6 +171,7 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
         remove_past_convo.decompose()
     message = bs.get_text()
 
+    # Send the Slack message
     send_slack_message(
         message="SellScale AI just replied to prospect!",
         webhook_urls=[URL_MAP["eng-sandbox"]],
@@ -233,6 +242,13 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
             # },
         ],
     )
+
+    # Mark the prospect email as hidden until 3 days from now
+    p_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
+    p_email.hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=3)
+    db.session.commit()
 
     return True
 
@@ -433,13 +449,76 @@ def sync_prospect_with_lead(
             # custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
         )
 
-    # 3c. If the lead has replied to the email and had previously not, update the prospect email status
+    # 3c. Special case: Lead has replied to the email, and the lead has replied before, we need to check for new message
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    if lead.reply_time and (
+        prospect_email.outreach_status == ProspectEmailOutreachStatus.SCHEDULING
+        or prospect_email.outreach_status == ProspectEmailOutreachStatus.ACTIVE_CONVO
+        or prospect_email.outreach_status == ProspectEmailOutreachStatus.DEMO_SET
+        or prospect_email.outreach_status == ProspectEmailOutreachStatus.DEMO_WON
+        or prospect_email.outreach_status == ProspectEmailOutreachStatus.DEMO_LOST
+    ):
+        print("Checking for new reply from prospect")
+        # 3c.1. Get the latest reply
+        sl = Smartlead()
+        lead_data = sl.get_lead_by_email_address(lead.lead_email)
+        lead_id = lead_data["id"]
+        archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+        message_history = sl.get_message_history_using_lead_and_campaign_id(
+            lead_id=lead_id, campaign_id=archetype.smartlead_campaign_id
+        )
+        history = message_history["history"]
+        prospect_message: str = None
+        for item in reversed(history):
+            if item["type"] == "REPLY":
+                # 3c.2. Determine if the reply is new
+                time = item["time"]
+                time = convert_string_to_datetime_or_none(content=time)
+                if time > prospect_email.last_reply_time:
+                    prospect_email.last_reply_time = time
+                    prospect_email.hidden_until = None
+                    db.session.commit()
+
+                    # Beautify the email body
+                    prospect_message = item["email_body"]
+                    prospect_message = prospect_message.replace("<br>", "\n")
+                    bs = BeautifulSoup(prospect_message, "html.parser")
+                    remove_past_convo = bs.find("div", {"class": "gmail_quote"})
+                    if remove_past_convo:
+                        remove_past_convo.decompose()
+                    prospect_message = bs.get_text()
+
+                    send_slack_message(
+                        message="SellScale AI just received a new reply from prospect!",
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                        blocks=[
+                            {
+                                "type": "header",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": f"{prospect.full_name} just sent a new reply on Email",
+                                },
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": '*{prospect_first_name}*:\n_"{prospect_message}"_'.format(
+                                        prospect_first_name=prospect.first_name,
+                                        prospect_message=prospect_message[:150],
+                                    ),
+                                },
+                            },
+                        ],
+                    )
+            break
+
+    # 3d. If the lead has replied to the email and had previously not, update the prospect email status
     if lead.reply_time and (
         prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED
         or prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH
     ):
-        # 3c.1. Get the prospect's message
+        # 3d.1. Get the prospect's message
         sl = Smartlead()
         lead_data = sl.get_lead_by_email_address(lead.lead_email)
         lead_id = lead_data["id"]
@@ -460,7 +539,7 @@ def sync_prospect_with_lead(
                 prospect_message_newlined = bs.get_text()
                 prospect_message = prospect_message_newlined[:150] + "..."
 
-        # 3c.2. Get the sent message
+        # 3d.2. Get the sent message
         sent_message = lead.email_message
         bs = BeautifulSoup(lead.email_message, "html.parser")
         remove_past_convo = bs.find("div", {"class": "gmail_quote"})

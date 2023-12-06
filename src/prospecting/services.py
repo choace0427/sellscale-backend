@@ -3245,3 +3245,41 @@ def bulk_mark_not_qualified(client_sdr_id: int, prospect_ids: list[int]):
     db.session.commit()
 
     return True
+
+
+def snooze_prospect_email(
+    prospect_id: int,
+    num_days: Optional[int] = 3,
+    specific_time: Optional[datetime.datetime] = None,
+) -> bool:
+    """Snoozes a prospect email for a given number of days.
+
+    Args:
+        prospect_id (int): ID of the Prospect
+        num_days (Optional[int], optional): Number of days to snooze for. Defaults to 3.
+        specific_time (Optional[datetime], optional): Specific time to snooze to. Defaults to None.
+
+    Returns:
+        bool: True if successful
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
+    if not prospect_email:
+        return False
+
+    if specific_time:
+        prospect_email.hidden_until = specific_time
+    else:
+        prospect_email.hidden_until = datetime.datetime.utcnow() + timedelta(
+            days=num_days
+        )
+
+    db.session.add(prospect_email)
+    db.session.commit()
+
+    return True

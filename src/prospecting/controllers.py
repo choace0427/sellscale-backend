@@ -11,6 +11,7 @@ from src.prospecting.services import (
     patch_prospect,
     prospect_removal_check_from_csv_payload,
     send_attempting_reschedule_notification,
+    snooze_prospect_email,
 )
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
@@ -72,6 +73,7 @@ from src.prospecting.upload.services import (
     collect_and_run_celery_jobs_for_upload,
     run_and_assign_health_score,
 )
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 from src.utils.request_helpers import get_request_parameter
 
 from tqdm import tqdm
@@ -461,6 +463,29 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         )
 
     return jsonify({"message": "Success", "data": result}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("<prospect_id>/email/snooze", methods=["POST"])
+@require_user
+def post_snooze_email(client_sdr_id: int, prospect_id: int):
+    num_days = get_request_parameter(
+        "num_days", request, json=True, required=False, parameter_type=int
+    )
+    specific_time = get_request_parameter(
+        "specific_time", request, json=True, required=False, parameter_type=str
+    )
+    if specific_time:
+        specific_time = convert_string_to_datetime_or_none(content=specific_time)
+
+    success = snooze_prospect_email(
+        prospect_id=prospect_id,
+        num_days=num_days,
+        specific_time=specific_time,
+    )
+    if not success:
+        return jsonify({"message": "Failed to snooze"}), 400
+
+    return jsonify({"message": "Success"}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("<prospect_id>/send_to_purgatory", methods=["POST"])
