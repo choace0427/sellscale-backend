@@ -1,3 +1,4 @@
+from re import L
 from numpy import positive
 from src.weekly_report.models import (
     NextWeekSampleProspects,
@@ -22,6 +23,17 @@ def generate_date_block(date_start: str, date_end: str):
   """
 
     return DATE_BLOCK.format(date_start=date_start, date_end=date_end)
+
+
+def generate_linkedin_token_valid_block(linkedin_token_valid: bool):
+    if linkedin_token_valid:
+        return ""
+
+    LINKEDIN_TOKEN_INVALID_BLOCK = """
+    <p style="font-size:16px;line-height:24px;margin:16px 0;text-align:center;color: red; border: solid 2px red; padding: 3px;"><b>Warning: LinkedIn is not connected.<b> Please visit SellScale Sight > Settings > Linkedin Connection for steps on how to connect.</p>
+  """
+
+    return LINKEDIN_TOKEN_INVALID_BLOCK
 
 
 def generate_warmup_block(
@@ -710,6 +722,8 @@ def generate_weekly_update_email(data: WeeklyReportData):
 
                   {DATE_BLOCK}
 
+                  {LINKEDIN_TOKEN_VALID_BLOCK}
+
                   {WARMUP_BLOCK}
 
                   {DEMOS_BLOCK}
@@ -739,6 +753,9 @@ def generate_weekly_update_email(data: WeeklyReportData):
         USER_NAME_BLOCK=generate_user_name_block(user_name=data.user_name),
         DATE_BLOCK=generate_date_block(
             date_start=data.date_start, date_end=data.date_end
+        ),
+        LINKEDIN_TOKEN_VALID_BLOCK=generate_linkedin_token_valid_block(
+            data.linkedin_token_valid
         ),
         WARMUP_BLOCK=generate_warmup_block(
             data.warmup_payload.linkedin_outbound_per_week,
