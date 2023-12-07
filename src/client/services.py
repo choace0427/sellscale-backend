@@ -555,6 +555,8 @@ def create_client_sdr(client_id: int, name: str, email: str):
         do_not_contact_location_keywords=[],
         do_not_contact_titles=[],
         do_not_contact_prospect_location_keywords=[],
+        autopilot_enabled=True,
+        auto_send_campaigns_enabled=True,
     )
     db.session.add(sdr)
     db.session.commit()

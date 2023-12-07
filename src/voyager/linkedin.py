@@ -13,6 +13,7 @@ from operator import itemgetter
 from time import sleep, time
 from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
+from src.automation.resend import send_email
 from src.voyager.hackathon_services import make_search
 from app import db
 from sqlalchemy.orm import Session
@@ -128,7 +129,6 @@ class LinkedIn(object):
 
             return res
         except Exception as e:
-            
             send_slack_message(
                 message=f"<{self.client_sdr_id}> Error on fetch, {str(e)}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
@@ -136,11 +136,13 @@ class LinkedIn(object):
 
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
             if sdr:
-
                 if sdr.li_at_token != "INVALID":
                     send_slack_message(
                         message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
                         webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+                    )
+                    send_linkedin_disconnected_email(
+                        client_sdr_id=sdr.id,
                     )
 
                 sdr.li_at_token = "INVALID"
@@ -171,7 +173,6 @@ class LinkedIn(object):
 
             return res
         except Exception as e:
-            
             send_slack_message(
                 message=f"<{self.client_sdr_id}> Error on post, {str(e)}",
                 webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
@@ -179,11 +180,13 @@ class LinkedIn(object):
 
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
             if sdr:
-
                 if sdr.li_at_token != "INVALID":
                     send_slack_message(
                         message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
                         webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+                    )
+                    send_linkedin_disconnected_email(
+                        client_sdr_id=sdr.id,
                     )
 
                 sdr.li_at_token = "INVALID"
@@ -321,7 +324,6 @@ class LinkedIn(object):
 
         return profile
 
-
     def remove_connection(self, public_profile_id, invite_urn_id):
         """Remove a given profile as a connection.
 
@@ -333,8 +335,7 @@ class LinkedIn(object):
         """
         res = self._post(
             f"/identity/profiles/{public_profile_id}/profileActions?action=disconnect",
-            headers={
-                "accept": "application/vnd.linkedin.normalized+json+2.1"},
+            headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         # res = self._post(
         #     f"/voyagerRelationshipsDashInvitations/urn%3Ali%3Afsd_invitation%3A{invite_urn_id}?action=withdraw",
@@ -343,7 +344,6 @@ class LinkedIn(object):
         # )
 
         return res.status_code == 200, res.status_code, res.text
-    
 
     def get_invitations(self, start=0, limit=3):
         """Fetch connection invitations for the currently logged in user.
@@ -374,7 +374,6 @@ class LinkedIn(object):
         response_payload = res.json()
         return [element["invitation"] for element in response_payload["elements"]]
 
-
     def get_urn_id_from_public_id(self, public_id):
         """Get the profile URN ID for a given profile public ID.
         :param public_id: LinkedIn public ID for a profile
@@ -393,7 +392,7 @@ class LinkedIn(object):
             res = self._fetch(f"/me")
             if res is None or res.status_code == 403 or res.status_code == 401:
                 sdr = self.client_sdr
-                status_code = res.status_code if res else 'Unknown'
+                status_code = res.status_code if res else "Unknown"
                 send_slack_message(
                     message=f"SDR {sdr.name} (#{sdr.id}) returned a {status_code} response from LinkedIn. Investigate?\n{self.client.session.cookies}\n{self.client.session.headers}",
                     webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
@@ -629,13 +628,8 @@ class LinkedIn(object):
 
         return res.json()
 
-
     def graphql_search_people(
-            self,
-            job_title: str,
-            regions: list[str],
-            limit: Optional[int],
-            offset: int
+        self, job_title: str, regions: list[str], limit: Optional[int], offset: int
     ) -> list[dict]:
         """Get list of user's urns by job_title and regions."""
         count = self._MAX_SEARCH_COUNT
@@ -654,12 +648,14 @@ class LinkedIn(object):
             }
 
             res = self._fetch(
-                (f"/graphql?variables=(start:{default_params['start']},origin:{default_params['origin']},"
-                 f"query:(keywords:{job_title},flagshipSearchIntent:SEARCH_SRP,"
-                 f"queryParameters:List((key:geoUrn,value:List({','.join(regions)})),"
-                 f"(key:resultType,value:List(PEOPLE))),"
-                 f"includeFiltersInResponse:false))&=&queryId=voyagerSearchDashClusters"
-                 f".b0928897b71bd00a5a7291755dcd64f0"),
+                (
+                    f"/graphql?variables=(start:{default_params['start']},origin:{default_params['origin']},"
+                    f"query:(keywords:{job_title},flagshipSearchIntent:SEARCH_SRP,"
+                    f"queryParameters:List((key:geoUrn,value:List({','.join(regions)})),"
+                    f"(key:resultType,value:List(PEOPLE))),"
+                    f"includeFiltersInResponse:false))&=&queryId=voyagerSearchDashClusters"
+                    f".b0928897b71bd00a5a7291755dcd64f0"
+                ),
                 headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
             )
 
@@ -669,12 +665,17 @@ class LinkedIn(object):
             elements = data.get("included", [])
 
             for element in elements:
-                if element.get("template", None) and element.get("template") == "UNIVERSAL":
-                    urn_id = element["entityUrn"].split("(")[-1].split(":")[-1].split(",")[0]
+                if (
+                    element.get("template", None)
+                    and element.get("template") == "UNIVERSAL"
+                ):
+                    urn_id = (
+                        element["entityUrn"].split("(")[-1].split(":")[-1].split(",")[0]
+                    )
                     element_dict = {
                         "entity_urn": urn_id,
                         "full_name": element["title"]["text"],
-                        "profile_url": element["navigationContext"]["url"]
+                        "profile_url": element["navigationContext"]["url"],
                     }
                     new_elements.append(element_dict)
 
@@ -684,8 +685,8 @@ class LinkedIn(object):
             # NOTE: we could also check for the `total` returned in the response.
             # This is in data["data"]["paging"]["total"]
             if (
-                    (-1 < limit <= len(results))  # if our results exceed set limit
-                    or len(results) / count >= self._MAX_REPEATED_REQUESTS
+                (-1 < limit <= len(results))  # if our results exceed set limit
+                or len(results) / count >= self._MAX_REPEATED_REQUESTS
             ) or len(new_elements) == 0:
                 break
 
@@ -693,12 +694,7 @@ class LinkedIn(object):
 
         return results
 
-
-    def graphql_get_connections(
-            self,
-            limit: Optional[int],
-            offset: int
-    ) -> list[dict]:
+    def graphql_get_connections(self, limit: Optional[int], offset: int) -> list[dict]:
         """Get list of user's urns by job_title and regions."""
         count = self._MAX_SEARCH_COUNT
         if limit is None:
@@ -716,29 +712,36 @@ class LinkedIn(object):
             }
 
             res = self._fetch(
-                (f"/graphql?variables=(start:{default_params['start']},origin:MEMBER_PROFILE_CANNED_SEARCH,"
-                 f"query:(flagshipSearchIntent:SEARCH_SRP,"
-                 f"queryParameters:List((key:network,value:List(F)),"
-                 f"(key:resultType,value:List(PEOPLE))),"
-                 f"includeFiltersInResponse:false))&=&queryId=voyagerSearchDashClusters"
-                 f".b0928897b71bd00a5a7291755dcd64f0"),
+                (
+                    f"/graphql?variables=(start:{default_params['start']},origin:MEMBER_PROFILE_CANNED_SEARCH,"
+                    f"query:(flagshipSearchIntent:SEARCH_SRP,"
+                    f"queryParameters:List((key:network,value:List(F)),"
+                    f"(key:resultType,value:List(PEOPLE))),"
+                    f"includeFiltersInResponse:false))&=&queryId=voyagerSearchDashClusters"
+                    f".b0928897b71bd00a5a7291755dcd64f0"
+                ),
                 headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
             )
 
             data = json.loads(res.text)
 
-            print(data['data'].keys())
+            print(data["data"].keys())
 
             new_elements = []
             elements = data.get("included", [])
 
             for element in elements:
-                if element.get("template", None) and element.get("template") == "UNIVERSAL":
-                    urn_id = element["entityUrn"].split("(")[-1].split(":")[-1].split(",")[0]
+                if (
+                    element.get("template", None)
+                    and element.get("template") == "UNIVERSAL"
+                ):
+                    urn_id = (
+                        element["entityUrn"].split("(")[-1].split(":")[-1].split(",")[0]
+                    )
                     element_dict = {
                         "entity_urn": urn_id,
                         "full_name": element["title"]["text"],
-                        "profile_url": element["navigationContext"]["url"]
+                        "profile_url": element["navigationContext"]["url"],
                     }
                     new_elements.append(element_dict)
 
@@ -748,20 +751,19 @@ class LinkedIn(object):
             # NOTE: we could also check for the `total` returned in the response.
             # This is in data["data"]["paging"]["total"]
             if (
-                    (-1 < limit <= len(results))  # if our results exceed set limit
-                    or len(results) / count >= self._MAX_REPEATED_REQUESTS
+                (-1 < limit <= len(results))  # if our results exceed set limit
+                or len(results) / count >= self._MAX_REPEATED_REQUESTS
             ) or len(new_elements) == 0:
                 break
 
             self.logger.debug(f"results grew to {len(results)}")
 
         return results
-
 
     def graphql_get_sales_nav(
-            self,
-            keyword,
-            years_of_experience,
+        self,
+        keyword,
+        years_of_experience,
     ) -> list[dict]:
         """."""
 
@@ -778,7 +780,6 @@ class LinkedIn(object):
         # print(data['data'].keys())
 
         return make_search(keyword, years_of_experience)
-
 
     def get_company_updates(
         self, public_id=None, urn_id=None, max_results=None, results=None
@@ -812,10 +813,7 @@ class LinkedIn(object):
         if (
             len(data["elements"]) == 0
             or (max_results is not None and len(results) >= max_results)
-            or (
-                max_results is not None
-                and len(results) / max_results >= 200
-            )
+            or (max_results is not None and len(results) / max_results >= 200)
         ):
             return results
 
@@ -828,8 +826,7 @@ class LinkedIn(object):
             results=results,
             max_results=max_results,
         )
-    
-    
+
     def get_company(self, public_id):
         """Fetch data about a given LinkedIn company.
 
@@ -856,3 +853,41 @@ class LinkedIn(object):
         company = data["elements"][0]
 
         return company
+
+
+def send_linkedin_disconnected_email(
+    client_sdr_id: int,
+):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    from model_import import Client
+
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    # Hi CSM Team, {name} is no longer connected to LinkedIn. Please reconnect them. Thanks! - SellScale Ai
+    # centered
+    send_email(
+        html="""
+    <table style="width: 80%; margin: 0 auto; background-color: white; box-shadow: 2px 2px 5px #888888; border-collapse: collapse; border: 1px solid #ccc;">
+        <tr>
+            <td colspan="2" style="background-color: black; height: 10px;"></td>
+        </tr>
+        <tr>
+            <td colspan="2" style="padding: 20px;">
+                <p style="font-size: 18px; text-align: left;">Hi CSM Team,</p>
+                <p style="font-size: 18px; text-align: left;"><b>{name}</b> from <b>{company}</b> is no longer connected to LinkedIn because their token is Invalid. Please reconnect them. Thanks!</p>
+                <p style="font-size: 18px; text-align: left;">- SellScale Ai</p>
+            </td>
+        </tr>
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEF5nLNhiZ_QEjpPOu7rLb2m-ShJN60p3ig9v-bUzAwA&s" style="width: 200px; height: auto; margin: 0 auto; display: block; margin-bottom: 18px" />
+    </table>
+    """.format(
+            name=client_sdr.name,
+            company=client.company,
+        ),
+        title="LinkedIn Disconnected - {name} ({company})".format(
+            name=client_sdr.name,
+            company=client.company,
+        ),
+        to_emails=["team@sellscale.com"],
+    )
