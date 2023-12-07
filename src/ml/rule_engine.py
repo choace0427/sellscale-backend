@@ -126,6 +126,7 @@ def run_message_rule_engine_on_linkedin_completion(
     )
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
+    rule_no_ingratiation(completion, problems, highlighted_words)
 
     if run_arree:
         completion = get_aree_fix_basic(completion=completion, problems=problems)
@@ -163,7 +164,7 @@ def run_message_rule_engine(message_id: int):
         completion = re.sub(r">", "> ", completion)
 
         # Remove HTML tags
-        soup = BeautifulSoup(completion, 'html.parser')
+        soup = BeautifulSoup(completion, "html.parser")
 
         # Get the text without HTML tags
         completion = soup.get_text()
@@ -217,7 +218,10 @@ def run_message_rule_engine(message_id: int):
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
 
     # Only run for Email Subject Lines
-    if message.message_type == GeneratedMessageType.EMAIL and message.email_type == GeneratedMessageEmailType.SUBJECT_LINE:
+    if (
+        message.message_type == GeneratedMessageType.EMAIL
+        and message.email_type == GeneratedMessageEmailType.SUBJECT_LINE
+    ):
         rule_subject_line_character_limit(completion, problems)
 
     # Only run for linkedin:
@@ -705,6 +709,24 @@ def rule_catch_no_i_have(
     ):
         problems.append("Uses first person 'I have'.")
         highlighted_words.append("i have")
+
+
+def rule_no_ingratiation(completion: str, problems: list, highlighted_words: list):
+    """Rule: No Ingratiation
+
+    No ingratiation allowed in the completion.
+    """
+    ingratiating_words = [
+        "impressive",
+        "truly",
+    ]
+
+    for word in ingratiating_words:
+        if word in completion:
+            problems.append(
+                f"Contains ingratiating phrase: '{word}'. Avoid using this phrase."
+            )
+            highlighted_words.append(word)
 
 
 def rule_catch_has_6_or_more_consecutive_upper_case(
