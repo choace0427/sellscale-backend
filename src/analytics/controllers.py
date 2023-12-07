@@ -14,6 +14,9 @@ from src.analytics.drywall_notification import notify_clients_with_no_updates
 from src.analytics.scheduling_needed_notification import (
     notify_clients_regarding_scheduling,
 )
+from src.analytics.daily_message_generation_sample import (
+    send_report_email,
+)
 from src.authentication.decorators import require_user
 from model_import import ClientSDR
 

@@ -424,6 +424,18 @@ def run_daily_auto_notify_about_scheduling():
         notify_clients_regarding_scheduling.delay()
 
 
+def run_daily_auto_send_report_email():
+    from src.analytics.daily_message_generation_sample import (
+        send_report_email,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        send_report_email.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
@@ -499,6 +511,7 @@ scheduler.add_job(
 )
 scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
+scheduler.add_job(run_daily_auto_send_report_email, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
