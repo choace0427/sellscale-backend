@@ -30,7 +30,7 @@ from src.smartlead.smartlead import (
 from app import db, celery
 
 
-def get_replied_prospects(client_sdr_id: int) -> list[dict]:
+def get_smartlead_inbox(client_sdr_id: int) -> dict:
     """Gets the prospect IDs that have replied (via Smartlead) for a given SDR.
 
     Args:
@@ -40,7 +40,7 @@ def get_replied_prospects(client_sdr_id: int) -> list[dict]:
         list[dict]: A list of emails
     """
     # Get all prospects that have replied
-    query = f"""SELECT
+    inbox_query = f"""SELECT
 	p.id,
     p.full_name,
     p.title,
@@ -53,10 +53,12 @@ FROM
 	LEFT JOIN client_archetype a ON p.archetype_id = a.id
 WHERE
 	pe.outreach_status = 'ACTIVE_CONVO'
+	AND (pe.hidden_until IS NULL
+		OR pe.hidden_until < now())
 	AND p.client_sdr_id = {client_sdr_id}
 	AND a.smartlead_campaign_id IS NOT NULL;;
 """
-    ids = db.session.execute(query).fetchall()
+    ids = db.session.execute(inbox_query).fetchall()
     replied_prospects = []
     for id in ids:
         replied_prospects.append(
@@ -70,7 +72,41 @@ WHERE
             }
         )
 
-    return replied_prospects
+    snoozed_query = f"""SELECT
+	p.id,
+    p.full_name,
+    p.title,
+    p.img_url,
+    p.icp_fit_score,
+	a.smartlead_campaign_id
+FROM
+	prospect p
+	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
+	LEFT JOIN client_archetype a ON p.archetype_id = a.id
+WHERE
+	pe.outreach_status = 'ACTIVE_CONVO'
+	AND pe.hidden_until > now())
+	AND p.client_sdr_id = {client_sdr_id}
+	AND a.smartlead_campaign_id IS NOT NULL;;
+"""
+    ids = db.session.execute(snoozed_query).fetchall()
+    snoozed_prospects = []
+    for id in ids:
+        snoozed_prospects.append(
+            {
+                "prospect_id": id[0],
+                "prospect_name": id[1],
+                "prospect_title": id[2],
+                "prospect_img_url": id[3],
+                "prospect_icp_fit_score": id[4],
+                "smartlead_campaign_id": id[5],
+            }
+        )
+
+    return {
+        "inbox": replied_prospects,
+        "snoozed": snoozed_prospects,
+    }
 
 
 def get_message_history_for_prospect(
