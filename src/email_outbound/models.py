@@ -70,9 +70,11 @@ class ProspectEmailOutreachStatus(enum.Enum):
 
     EMAIL_OPENED = "EMAIL_OPENED"
     ACCEPTED = "ACCEPTED"
-    ACTIVE_CONVO = "ACTIVE_CONVO"
     SCHEDULING = "SCHEDULING"
     BUMPED = "BUMPED"
+
+    NOT_QUALIFIED = "NOT_QUALIFIED"
+    ACTIVE_CONVO = "ACTIVE_CONVO"
 
     NOT_INTERESTED = "NOT_INTERESTED"
     UNSUBSCRIBED = "UNSUBSCRIBED"
@@ -107,6 +109,7 @@ class ProspectEmailOutreachStatus(enum.Enum):
             ProspectEmailOutreachStatus.EMAIL_OPENED,
             ProspectEmailOutreachStatus.ACCEPTED,
             ProspectEmailOutreachStatus.BUMPED,
+            ProspectEmailOutreachStatus.NOT_QUALIFIED,
             ProspectEmailOutreachStatus.ACTIVE_CONVO,
             ProspectEmailOutreachStatus.SCHEDULING,
             ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
@@ -405,6 +408,7 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
     ProspectEmailOutreachStatus.SENT_OUTREACH: [
         ProspectEmailOutreachStatus.UNKNOWN,
         ProspectEmailOutreachStatus.NOT_SENT,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.UNSUBSCRIBED: [
         ProspectEmailOutreachStatus.SENT_OUTREACH,
@@ -415,34 +419,40 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
         ProspectEmailOutreachStatus.SENT_OUTREACH,
     ],
     ProspectEmailOutreachStatus.EMAIL_OPENED: [
-        ProspectEmailOutreachStatus.SENT_OUTREACH
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACCEPTED: [
         ProspectEmailOutreachStatus.EMAIL_OPENED,
         ProspectEmailOutreachStatus.SENT_OUTREACH,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.BUMPED: [
         ProspectEmailOutreachStatus.EMAIL_OPENED,
         ProspectEmailOutreachStatus.SENT_OUTREACH,
         ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO: [
         ProspectEmailOutreachStatus.ACCEPTED,
         ProspectEmailOutreachStatus.EMAIL_OPENED,
         ProspectEmailOutreachStatus.SENT_OUTREACH,
         ProspectEmailOutreachStatus.BUMPED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.SCHEDULING: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.ACCEPTED,
         ProspectEmailOutreachStatus.EMAIL_OPENED,
         ProspectEmailOutreachStatus.BUMPED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.NOT_INTERESTED: [
         ProspectEmailOutreachStatus.ACCEPTED,
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.BUMPED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.DEMO_SET: [
         ProspectEmailOutreachStatus.ACCEPTED,
@@ -450,6 +460,7 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.BUMPED,
     ],
+    ProspectEmailOutreachStatus.NOT_QUALIFIED: [],
     ProspectEmailOutreachStatus.DEMO_WON: [ProspectEmailOutreachStatus.DEMO_SET],
     ProspectEmailOutreachStatus.DEMO_LOST: [ProspectEmailOutreachStatus.DEMO_SET],
 }
