@@ -216,6 +216,7 @@ def run_message_rule_engine(message_id: int):
     )
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
+    rule_no_ingratiation(completion, problems, highlighted_words)
 
     # Only run for Email Subject Lines
     if (
