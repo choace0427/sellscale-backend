@@ -391,13 +391,13 @@ def run_daily_drywall_notifications():
 
 
 def run_sync_all_campaign_leads():
-    from src.smartlead.services import sync_campaign_leads_for_sdr
+    from src.smartlead.services import sync_all_campaign_leads
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        sync_campaign_leads_for_sdr.delay()
+        sync_all_campaign_leads.delay()
 
 
 def run_auto_send_campaigns_and_send_approved_messages_job():
