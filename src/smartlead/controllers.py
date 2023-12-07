@@ -2,7 +2,7 @@ from typing import List
 from flask import Blueprint, request, jsonify
 from src.smartlead.services import (
     get_message_history_for_prospect,
-    get_replied_prospects,
+    get_smartlead_inbox,
     reply_to_prospect,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
@@ -48,12 +48,10 @@ def post_sync_campaigns(client_sdr_id: int):
 @SMARTLEAD_BLUEPRINT.route("/prospect/replied", methods=["GET"])
 @require_user
 def get_prospects_replied(client_sdr_id: int):
-    replied_prospects = get_replied_prospects(client_sdr_id=client_sdr_id)
+    inbox = get_smartlead_inbox(client_sdr_id=client_sdr_id)
 
     return (
-        jsonify(
-            {"message": "Success", "data": {"replied_prospects": replied_prospects}}
-        ),
+        jsonify({"message": "Success", "data": {"inbox": inbox}}),
         200,
     )
 

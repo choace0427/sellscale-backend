@@ -414,7 +414,7 @@ def create_client_archetype(
         message=f"*⭐️ New campaign created*\nSellScale AI just created a new campaign for *{archetype}*.\n> User: *{client_sdr.name}*\n_Finding new prospects shortly_. <"
         + campaign_url
         + "|View Campaign →>",
-        webhook_urls=[webhook_url],
+        webhook_urls=[webhook_url] if webhook_url else [],
     )
 
     if base_archetype_id:
@@ -555,6 +555,8 @@ def create_client_sdr(client_id: int, name: str, email: str):
         do_not_contact_location_keywords=[],
         do_not_contact_titles=[],
         do_not_contact_prospect_location_keywords=[],
+        autopilot_enabled=True,
+        auto_send_campaigns_enabled=True,
     )
     db.session.add(sdr)
     db.session.commit()
@@ -2557,6 +2559,12 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         prospect_dicts.append(prospect_dict)
 
     return prospect_dicts
+
+
+@celery.task
+def remove_prospects_caught_by_filters(client_sdr_id: int):
+    remove_prospects_caught_by_client_filters(client_sdr_id)
+    remove_prospects_caught_by_sdr_client_filters(client_sdr_id)
 
 
 def remove_prospects_caught_by_client_filters(client_sdr_id: int):

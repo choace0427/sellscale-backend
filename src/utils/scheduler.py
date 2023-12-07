@@ -412,6 +412,18 @@ def run_auto_send_campaigns_and_send_approved_messages_job():
         auto_send_campaigns_and_send_approved_messages_job.delay()
 
 
+def run_daily_auto_notify_about_scheduling():
+    from src.analytics.scheduling_needed_notification import (
+        notify_clients_regarding_scheduling,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        notify_clients_regarding_scheduling.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
@@ -481,6 +493,7 @@ scheduler.add_job(
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
+scheduler.add_job(run_daily_auto_notify_about_scheduling, trigger=daily_trigger)
 scheduler.add_job(
     run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger
 )

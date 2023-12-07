@@ -43,6 +43,7 @@ from src.email_outbound.ss_data import SSData
 from src.automation.slack_notification import send_status_change_slack_block
 import markdown
 
+
 def create_prospect_email(
     prospect_id: int,
     outbound_campaign_id: int,
@@ -121,8 +122,12 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
             prospect.approved_prospect_email_id
         )
 
-        subject_line: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_subject_line)
-        body: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
+        subject_line: GeneratedMessage = GeneratedMessage.query.get(
+            prospect_email.personalized_subject_line
+        )
+        body: GeneratedMessage = GeneratedMessage.query.get(
+            prospect_email.personalized_body
+        )
 
         # If the body is not approved, then we need to delete them and then delete the prospect_email
         if body.message_status != GeneratedMessageStatus.APPROVED:
@@ -136,7 +141,8 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         # Check that we haven't been queued already
         exists: ProcessQueue = ProcessQueue.query.filter(
             ProcessQueue.type == "populate_email_messaging_schedule_entries",
-            ProcessQueue.meta_data == {
+            ProcessQueue.meta_data
+            == {
                 "args": {
                     "client_sdr_id": outbound_campaign.client_sdr_id,
                     "prospect_email_id": prospect_email.id,
@@ -146,7 +152,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                     "initial_email_body_template_id": body.email_sequence_step_template_id,
                     "initial_email_send_date": None,
                 }
-            }
+            },
         ).first()
         if exists:
             continue
@@ -163,7 +169,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                 "initial_email_body_template_id": body.email_sequence_step_template_id,
                 "initial_email_send_date": None,
             },
-            minutes=index
+            minutes=index,
         )
 
         # populate_email_messaging_schedule_entries(

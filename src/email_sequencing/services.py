@@ -1,11 +1,13 @@
+import datetime
 from model_import import (
     EmailSequenceStep,
     EmailSubjectLineTemplate,
 )
 from app import db
 from src.client.models import ClientArchetype
+from src.email_outbound.models import ProspectEmail
 from src.email_sequencing.models import EmailTemplatePool, EmailTemplateType
-from src.prospecting.models import ProspectOverallStatus, ProspectStatus
+from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from typing import List, Optional
 
 from src.research.models import ResearchPointType
@@ -240,8 +242,7 @@ def modify_email_sequence_step(
 
 
 def undefault_all_sequence_steps_in_status(
-    client_sdr_id: int,
-    sequence_step_id: int
+    client_sdr_id: int, sequence_step_id: int
 ) -> bool:
     """Marks all sequence steps in the same status as the given sequence step as no longer default
 
@@ -605,7 +606,10 @@ def copy_email_template_subject_line_item(
     template_pool_item: EmailTemplatePool = EmailTemplatePool.query.filter(
         EmailTemplatePool.id == template_pool_id,
     ).first()
-    if not template_pool_item or template_pool_item.template_type != EmailTemplateType.SUBJECT_LINE:
+    if (
+        not template_pool_item
+        or template_pool_item.template_type != EmailTemplateType.SUBJECT_LINE
+    ):
         return False
 
     # Create the email subject line template
@@ -647,7 +651,10 @@ def copy_email_template_body_item(
     template_pool_item: EmailTemplatePool = EmailTemplatePool.query.filter(
         EmailTemplatePool.id == template_pool_id,
     ).first()
-    if not template_pool_item or template_pool_item.template_type != EmailTemplateType.BODY:
+    if (
+        not template_pool_item
+        or template_pool_item.template_type != EmailTemplateType.BODY
+    ):
         return False
 
     # Create the email sequence step

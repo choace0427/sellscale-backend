@@ -6,28 +6,33 @@ from src.utils.slack import URL_MAP, send_slack_message
 @celery.task(name="scheduling_notification")
 def notify_clients_regarding_scheduling():
     sql = """
-        select 
-            client.company, 
-            client_sdr.name, 
-            prospect.full_name, 
-            prospect.company,
-            prospect.company_url,
-            prospect.linkedin_url,
-            prospect.li_last_message_from_prospect,
-            prospect_status_records.created_at,
-            prospect.linkedin_url,
-            client_sdr.auth_token,
-            prospect.id "prospect_id",
-            client.pipeline_notifications_webhook_url
-        from prospect
-            join client_sdr on client_sdr.id = prospect.client_sdr_id
-            join client on client.id = client_sdr.client_id
-            join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
-                and prospect_status_records.to_status = 'ACTIVE_CONVO_SCHEDULING'
-        where prospect.status = 'ACTIVE_CONVO_SCHEDULING'
-            and client_sdr.active and client.active
-            and client.id <> 1
-            and mod(EXTRACT('days' from NOW() - prospect_status_records.created_at), 3) = 0
+        with d as (
+            select 
+                client.company, 
+                client_sdr.name, 
+                prospect.full_name, 
+                prospect.company,
+                prospect.company_url,
+                prospect.linkedin_url,
+                prospect.li_last_message_from_prospect,
+                prospect_status_records.created_at,
+                prospect.linkedin_url,
+                client_sdr.auth_token,
+                prospect.id "prospect_id",
+                client.pipeline_notifications_webhook_url
+            from prospect
+                join client_sdr on client_sdr.id = prospect.client_sdr_id
+                join client on client.id = client_sdr.client_id
+                join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+                    and prospect_status_records.to_status = 'ACTIVE_CONVO_SCHEDULING'
+            where prospect.status = 'ACTIVE_CONVO_SCHEDULING'
+                and client_sdr.active and client.active
+                and client.id <> 1
+                and mod(EXTRACT('days' from NOW() - prospect_status_records.created_at), 3) = 0
+    )
+    select *
+    from d
+    where d.created_at <= NOW() - INTERVAL '3 days'
     """
 
     # Execute Query
@@ -41,28 +46,6 @@ def notify_clients_regarding_scheduling():
             webhook_urls=[URL_MAP["ops-scheduling_needed"]],
         )
 
-    # :alarm_clock: There are 5 prospect trying to schedule with
-    # @Shiv Patel
-    # @Shiv Patel
-    # - please let us know if any are unqualified, booked, or still trying to schedule.
-    # --
-    # Prospect 1
-    # :bust_in_silhouette: Claire Wood (Research Director @ FleishmanHillard TRUE Global Intelligence)
-    # Status:  :fire: Schedulingfor 11 days
-    # Last message from prospect | View convo ->
-    # Hi, Shivang,
-    # Shoot me an email and we can set up some time to chat. I'm interested in hearing more about the capabilities.
-    # Claire.wood@trueglobalintelligence.com
-    # --
-    # Prospect 2
-    # :bust_in_silhouette: Claire Wood (Research Director @ FleishmanHillard TRUE Global Intelligence)
-    # Status:  :fire: Schedulingfor 11 days
-    # Last message from prospect | View convo ->
-    # Hi, Shivang,
-    # Shoot me an email and we can set up some time to chat. I'm interested in hearing more about the capabilities.
-    # Claire.wood@trueglobalintelligence.com
-    # -- (edited)
-
     entries_grouped_by_sdr = {}
     for client in clients:
         if client.name not in entries_grouped_by_sdr:
@@ -71,13 +54,14 @@ def notify_clients_regarding_scheduling():
 
     sent_prospect_ids = []
     for sdr in entries_grouped_by_sdr:
-        message = f":alarm_clock: There are {len(entries_grouped_by_sdr[sdr])} prospect trying to schedule with {sdr}"
+        unique_names = len(set([c.full_name for c in entries_grouped_by_sdr[sdr]]))
+        message = f":alarm_clock: {unique_names} prospect trying to schedule {sdr} for `3+ Days`"
         blocks = [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f":alarm_clock: There are {len(entries_grouped_by_sdr[sdr])} prospect trying to schedule with {sdr}",
+                    "text": f":alarm_clock: {unique_names} prospect trying to schedule {sdr} for `3+ Days`",
                     "emoji": True,
                 },
             },
