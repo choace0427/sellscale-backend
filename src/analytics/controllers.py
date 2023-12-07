@@ -1,4 +1,7 @@
+from http import client
 from flask import Blueprint, request, jsonify
+from src.analytics.campaign_drilldown import get_campaign_drilldown_data
+from src.client.models import ClientArchetype
 from src.utils.request_helpers import get_request_parameter
 from src.analytics.services import (
     get_all_campaign_analytics_for_client,
@@ -91,5 +94,20 @@ def get_client_upload_analytics(client_sdr_id: int):
         return {"message": "Invalid client SDR ID"}, 400
 
     details = get_upload_analytics_for_client(client_id=client_sdr.client_id)
+
+    return {"message": "Success", "analytics": details}, 200
+
+
+@ANALYTICS_BLUEPRINT.route(
+    "/get_campaign_drilldown/<int:archetype_id>", methods=["GET"]
+)
+@require_user
+def get_campaign_drilldown(client_sdr_id: int, archetype_id: int):
+    """Endpoint to get all campaign analytics for the SDRs in the given SDR's client"""
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if client_archetype.client_sdr_id != client_sdr_id:
+        return {"message": "Client archetype does not belong to client SDR"}, 400
+
+    details = get_campaign_drilldown_data(archetype_id=archetype_id)
 
     return {"message": "Success", "analytics": details}, 200
