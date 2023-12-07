@@ -85,7 +85,7 @@ FROM
 	LEFT JOIN client_archetype a ON p.archetype_id = a.id
 WHERE
 	pe.outreach_status = 'ACTIVE_CONVO'
-	AND pe.hidden_until > now())
+	AND pe.hidden_until > now()
 	AND p.client_sdr_id = {client_sdr_id}
 	AND a.smartlead_campaign_id IS NOT NULL;;
 """
