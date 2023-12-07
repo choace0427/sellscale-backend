@@ -39,7 +39,8 @@ from src.utils.abstract.attr_utils import deep_get
 
 def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    webhook_urls = [sdr.pipeline_notifications_webhook_url]
+    client: Client = Client.query.get(sdr.client_id)
+    webhook_urls = [client.pipeline_notifications_webhook_url]
 
     source_block_1 = SourceBlock(
         source=SourceType.GOOGLE_COMPANY_NEWS,
@@ -319,9 +320,10 @@ def runActionBlock(
     if block.action == ActionType.SEND_SLACK_MESSAGE:
         message = block.data.get("slack_message", [])
         webhook_urls = block.data.get("slack_webhook_urls", [])
-        if not webhook_urls or len(webhook_urls) == 0:
+        if True:  # not webhook_urls or len(webhook_urls) == 0:
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-            webhook_urls = [sdr.pipeline_notifications_webhook_url]
+            client: Client = Client.query.get(sdr.client_id)
+            webhook_urls = [client.pipeline_notifications_webhook_url]
 
         success = action_send_slack_message(message, webhook_urls, meta_data)
 
@@ -758,11 +760,6 @@ def send_finished_slack_message(
 
         result = send_slack_message(
             message="hello",
-            webhook_urls=[sdr.pipeline_notifications_webhook_url]
-            + (
-                [client.pipeline_notifications_webhook_url]
-                if client.pipeline_notifications_webhook_url
-                else []
-            ),
+            webhook_urls=[client.pipeline_notifications_webhook_url],
             blocks=blocks,
         )
