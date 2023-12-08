@@ -144,6 +144,9 @@ class LinkedIn(object):
                     send_linkedin_disconnected_email(
                         client_sdr_id=sdr.id,
                     )
+                    send_linkedin_disconnected_slack_message(
+                        client_sdr_id=sdr.id,
+                    )
 
                 sdr.li_at_token = "INVALID"
                 db.session.add(sdr)
@@ -186,6 +189,9 @@ class LinkedIn(object):
                         webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
                     )
                     send_linkedin_disconnected_email(
+                        client_sdr_id=sdr.id,
+                    )
+                    send_linkedin_disconnected_slack_message(
                         client_sdr_id=sdr.id,
                     )
 
@@ -890,4 +896,21 @@ def send_linkedin_disconnected_email(
             company=client.company,
         ),
         to_emails=["team@sellscale.com"],
+    )
+
+
+def send_linkedin_disconnected_slack_message(
+    client_sdr_id: int,
+):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sdr_name = client_sdr.name
+
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=settings".format(
+        auth_token=client_sdr.auth_token
+    )
+    browser_extension_url = "https://chromewebstore.google.com/detail/sellscale-browser-extensi/hicchmdfaadkadnmmkdjmcilgaplfeoa?pli=1"
+
+    send_slack_message(
+        message=f"🚨 *LinkedIn Disconnected from SellScale @{client_sdr_name}* 🚨\n_Please follow the steps below to reconnect your LinkedIn_\n> 1. *<{direct_link}|Click here>* to log into SellScale.\n>2. You'll see a popup that says `Linkedin Disconnected (Reconnect)` on the top right.\n>3. Click on `Reconnect`.\n>4. Download & Open the <{browser_extension_url}|SellScale Chrome Extension> and press `Reconnect LinkedIn\nAfter that, you should see a `connected` screen!",
+        webhook_urls=[URL_MAP["csm-urgent-alerts"]],
     )
