@@ -79,7 +79,8 @@ WHERE
     p.title,
     p.img_url,
     p.icp_fit_score,
-	a.smartlead_campaign_id
+	a.smartlead_campaign_id,
+    pe.hidden_until
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
@@ -101,12 +102,44 @@ WHERE
                 "prospect_img_url": id[3],
                 "prospect_icp_fit_score": id[4],
                 "smartlead_campaign_id": id[5],
+                "hidden_until": id[6],
+            }
+        )
+
+        demo_query = f"""SELECT
+	p.id,
+    p.full_name,
+    p.title,
+    p.img_url,
+    p.icp_fit_score,
+	a.smartlead_campaign_id
+FROM
+	prospect p
+	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
+	LEFT JOIN client_archetype a ON p.archetype_id = a.id
+WHERE
+	pe.outreach_status = 'DEMO_SET'
+	AND p.client_sdr_id = {client_sdr_id}
+	AND a.smartlead_campaign_id IS NOT NULL;;
+"""
+    ids = db.session.execute(demo_query).fetchall()
+    demo_prospects = []
+    for id in ids:
+        demo_prospects.append(
+            {
+                "prospect_id": id[0],
+                "prospect_name": id[1],
+                "prospect_title": id[2],
+                "prospect_img_url": id[3],
+                "prospect_icp_fit_score": id[4],
+                "smartlead_campaign_id": id[5],
             }
         )
 
     return {
         "inbox": replied_prospects,
         "snoozed": snoozed_prospects,
+        "demo": demo_prospects,
     }
 
 
