@@ -1,4 +1,5 @@
 import datetime
+import re
 from typing import List, Optional, Tuple
 
 from bs4 import BeautifulSoup
@@ -20,7 +21,7 @@ from src.prospecting.models import Prospect
 
 from src.utils.slack import send_slack_message, URL_MAP
 
-from src.client.models import ClientArchetype, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.smartlead.smartlead import (
     Lead,
     Smartlead,
@@ -207,10 +208,14 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
         remove_past_convo.decompose()
     message = bs.get_text()
 
+    webhook_urls: List[str] = []
+    client: Client = Client.query.get(prospect.client_id)
+    webhook_urls.append(client.pipeline_notifications_webhook_url)
+
     # Send the Slack message
     send_slack_message(
         message="SellScale AI just replied to prospect!",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
+        webhook_urls=webhook_urls,
         blocks=[
             {
                 "type": "header",
@@ -533,6 +538,9 @@ def sync_prospect_with_lead(
                     if remove_past_convo:
                         remove_past_convo.decompose()
                     prospect_message = bs.get_text()
+                    prospect_message = prospect_message[:150] + "..."
+                    prospect_message = re.sub("\n+", "\n", prospect_message)
+                    prospect_message = prospect_message.strip("\n")
 
                     send_slack_message(
                         message="SellScale AI just received a new reply from prospect!",
@@ -608,6 +616,11 @@ def sync_prospect_with_lead(
                     remove_past_convo.decompose()
                 prospect_message_newlined = bs.get_text()
                 prospect_message = prospect_message_newlined[:150] + "..."
+                prospect_message = re.sub("\n+", "\n", prospect_message)
+                prospect_message = prospect_message.strip("\n")
+                reply_time = item["time"]
+                reply_time = convert_string_to_datetime_or_none(content=reply_time)
+                break
 
         # 3d.2. Get the sent message
         sent_message = lead.email_message
@@ -648,6 +661,9 @@ def sync_prospect_with_lead(
                 # custom_webhook_urls=[URL_MAP["ops-email-notifications"]],
                 metadata=metadata,
             )
+
+        prospect_email.last_reply_time = reply_time
+        db.session.commit()
 
     print(f"Actions finished for: {prospect.email}")
     return True, "Success"

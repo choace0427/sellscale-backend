@@ -498,7 +498,7 @@ scheduler.add_job(func=run_set_warmup_snapshots, trigger="interval", hours=3)
 scheduler.add_job(
     func=run_auto_send_campaigns_and_send_approved_messages_job,
     trigger="interval",
-    hours=3,
+    hours=1,
 )
 
 # Daily triggers
