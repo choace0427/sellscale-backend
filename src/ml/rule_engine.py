@@ -6,6 +6,7 @@ import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
 from src.client.models import ClientSDR
+from src.li_conversation.autobump_helpers.services_firewall import rule_no_blacklist_words
 from src.message_generation.models import GeneratedMessageCTA, GeneratedMessageEmailType
 from src.ml.services import get_aree_fix_basic
 from src.utils.string.string_utils import (
@@ -217,6 +218,7 @@ def run_message_rule_engine(message_id: int):
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
     rule_no_ingratiation(completion, problems, highlighted_words)
+    
 
     # Only run for Email Subject Lines
     if (
