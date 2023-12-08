@@ -149,10 +149,10 @@ def send_status_change_slack_block(
 
     # If email, include email information
     if outreach_type == ProspectChannels.EMAIL:
-        email_address = metadata.get("prospect_email")
-        subject = metadata.get("email_title")
-        email_snippet = metadata.get("email_snippet")
-        prospect_message = metadata.get("prospect_message")
+        email_address = metadata.get("prospect_email") if metadata else None
+        subject = metadata.get("email_title") if metadata else None
+        email_snippet = metadata.get("email_snippet") if metadata else None
+        prospect_message = metadata.get("prospect_message") if metadata else None
 
         if email_address:
             message_blocks.append(

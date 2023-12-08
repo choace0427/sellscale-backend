@@ -28,6 +28,11 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
     warmup_data = db.engine.execute(warmup_query).fetchone()
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    linkedin_token_valid = (
+        client_sdr.li_at_token and client_sdr.li_at_token != "INVALID"
+    )
+
     client_id = client_sdr.client_id
     cumulative_and_last_week_pipeline_query = """
     select 
@@ -289,6 +294,7 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         date_start=date_start,
         date_end=date_end,
         company=company,
+        linkedin_token_valid=linkedin_token_valid,
     )
 
 

@@ -27,7 +27,6 @@ class WeeklyReportWarmupPayload:
             "email_outbound_per_week_next_week": self.email_outbound_per_week_next_week,
             "active_emails_str": self.active_emails_str,
         }
-        
 
 
 class WeeklyReportPipelineData:
@@ -210,6 +209,7 @@ class WeeklyReportData:
     date_start: str
     date_end: str
     company: str
+    linkedin_token_valid: bool
 
     def __init__(
         self,
@@ -226,6 +226,7 @@ class WeeklyReportData:
         date_start: str,
         date_end: str,
         company: str,
+        linkedin_token_valid: bool,
     ):
         self.warmup_payload = warmup_payload
         self.cumulative_client_pipeline = cumulative_client_pipeline
@@ -240,6 +241,7 @@ class WeeklyReportData:
         self.date_start = date_start
         self.date_end = date_end
         self.company = company
+        self.linkedin_token_valid = linkedin_token_valid
 
     def to_dict(self):
         return {
@@ -266,4 +268,5 @@ class WeeklyReportData:
             "date_start": self.date_start,
             "date_end": self.date_end,
             "company": self.company,
+            "linkedin_token_valid": self.linkedin_token_valid,
         }

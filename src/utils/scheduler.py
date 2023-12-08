@@ -391,13 +391,13 @@ def run_daily_drywall_notifications():
 
 
 def run_sync_all_campaign_leads():
-    from src.smartlead.services import sync_campaign_leads_for_sdr
+    from src.smartlead.services import sync_all_campaign_leads
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
-        sync_campaign_leads_for_sdr.delay()
+        sync_all_campaign_leads.delay()
 
 
 def run_auto_send_campaigns_and_send_approved_messages_job():
@@ -422,6 +422,18 @@ def run_daily_auto_notify_about_scheduling():
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         notify_clients_regarding_scheduling.delay()
+
+
+def run_daily_auto_send_report_email():
+    from src.analytics.daily_message_generation_sample import (
+        send_report_email,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        send_report_email.delay()
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
@@ -499,6 +511,7 @@ scheduler.add_job(
 )
 scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
+scheduler.add_job(run_daily_auto_send_report_email, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)

@@ -364,7 +364,7 @@ def sync_all_campaign_leads() -> bool:
     )
 
     for sdr in sdrs:
-        sync_campaign_leads_for_sdr(client_sdr_id=sdr.id)
+        sync_campaign_leads_for_sdr.delay(client_sdr_id=sdr.id)
 
     return True
 
