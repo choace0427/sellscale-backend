@@ -106,7 +106,7 @@ WHERE
             }
         )
 
-        demo_query = f"""SELECT
+    demo_query = f"""SELECT
 	p.id,
     p.full_name,
     p.title,
