@@ -519,6 +519,12 @@ def auto_send_campaign(campaign_id: int):
     invalid_prospect_ids: list[int] = [
         message.prospect_id for message in messages if not message.ai_approved
     ]
+
+    invalid_message_ids = list[int] = [
+        message.id for message in messages if not message.ai_approved
+    ]
+    send_slack_message_for_invalid_messages(invalid_message_ids)
+
     from src.research.linkedin.services import (
         reset_batch_of_prospect_research_and_messages,
     )
@@ -529,6 +535,24 @@ def auto_send_campaign(campaign_id: int):
     mark_campaign_as_initial_review_complete(campaign_id=campaign_id)
 
     return True
+
+
+def send_slack_message_for_invalid_messages(message_ids: list[int]):
+    messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
+        GeneratedMessage.id.in_(message_ids)
+    ).all()
+
+    for message in messages:
+        prospect_id = message.prospect_id
+        prospect = Prospect.query.get(prospect_id)
+        client_sdr = ClientSDR.query.get(prospect.client_sdr_id)
+
+        problems = "\n- ".join(message.problems)
+
+        send_slack_message(
+            f"🗑 *Auto-Deleted Message During Autosend for {client_sdr.name}*\n*Prospect:* `{prospect.full_name}`\n*Message:*\n```{message.completion}```\n*Problems:* \n`- {problems}`",
+            [URL_MAP["ops-auto-send-auto-deleted-messages"]],
+        )
 
 
 @celery.task(bind=True, max_retries=3)
@@ -543,8 +567,6 @@ def auto_send_campaigns_and_send_approved_messages_job(self):
         )
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
-
-
 
 
 def auto_send_all_campaigns():
