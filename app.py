@@ -229,6 +229,7 @@ def register_blueprints(app):
     from src.smartlead.controllers import SMARTLEAD_BLUEPRINT
     from src.triggers.controllers import TRIGGERS_BLUEPRINT
     from src.weekly_report.controllers import WEEKLY_REPORT_BLUEPRINT
+    from src.sockets.controllers import SOCKETS_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -283,6 +284,7 @@ def register_blueprints(app):
     app.register_blueprint(SMARTLEAD_BLUEPRINT, url_prefix="/smartlead")
     app.register_blueprint(TRIGGERS_BLUEPRINT, url_prefix="/triggers")
     app.register_blueprint(WEEKLY_REPORT_BLUEPRINT, url_prefix="/weekly_report")
+    app.register_blueprint(SOCKETS_BLUEPRINT, url_prefix="/sockets")
 
     db.init_app(app)
 

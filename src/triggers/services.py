@@ -3,6 +3,7 @@ import json
 import os
 import time
 import requests
+from src.sockets.services import send_socket_message
 from model_import import (
     ClientSDR,
     Client,
@@ -190,6 +191,11 @@ def runTrigger(trigger_id: int):
 
     pipeline_data = PipelineData([], [], {})
     for block in blocks:
+        send_socket_message(
+            "trigger-log",
+            {"message": f"Running block: {block}"},
+            f"trigger-${trigger_id}",
+        )
         pipeline_data = runBlock(
             run_id,
             trigger.client_sdr_id,
