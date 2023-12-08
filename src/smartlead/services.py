@@ -21,7 +21,7 @@ from src.prospecting.models import Prospect
 
 from src.utils.slack import send_slack_message, URL_MAP
 
-from src.client.models import ClientArchetype, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.smartlead.smartlead import (
     Lead,
     Smartlead,
@@ -208,10 +208,14 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
         remove_past_convo.decompose()
     message = bs.get_text()
 
+    webhook_urls: List[str] = []
+    client: Client = Client.query.get(prospect.client_id)
+    webhook_urls.append(client.pipeline_notifications_webhook_url)
+
     # Send the Slack message
     send_slack_message(
         message="SellScale AI just replied to prospect!",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
+        webhook_urls=webhook_urls,
         blocks=[
             {
                 "type": "header",
