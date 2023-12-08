@@ -14,6 +14,7 @@ def send_socket_message(event: str, payload: dict, room_id: Optional[str] = None
             "room_id": room_id,
             "payload": payload,
         },
+        headers={"Content-Type": "application/json"},
     )
 
     return (True,)
