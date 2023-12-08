@@ -73,12 +73,17 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
     from app import db
 
     for webhook in webhook_urls:
-        client: Client = Client.query.filter(
-            Client.pipeline_notifications_webhook_url == webhook
-        ).first()
-        if client:
-            client.last_slack_msg_date = datetime.now()
-            db.session.add(client)
+        if len(webhook) < 10:
+            continue
+
+        clients: list[Client] = Client.query.filter(
+            Client.pipeline_notifications_webhook_url.like(f"%{webhook}%")
+        ).all()
+
+        for client in clients:
+            if client:
+                client.last_slack_msg_date = datetime.now()
+                db.session.add(client)
     db.session.commit()
 
     return True
