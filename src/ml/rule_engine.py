@@ -6,7 +6,9 @@ import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
 from src.client.models import ClientSDR
-from src.li_conversation.autobump_helpers.services_firewall import rule_no_blacklist_words
+from src.li_conversation.autobump_helpers.services_firewall import (
+    rule_no_blacklist_words,
+)
 from src.message_generation.models import GeneratedMessageCTA, GeneratedMessageEmailType
 from src.ml.services import get_aree_fix_basic
 from src.utils.string.string_utils import (
@@ -218,7 +220,7 @@ def run_message_rule_engine(message_id: int):
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
     rule_no_ingratiation(completion, problems, highlighted_words)
-    
+    rule_no_sdr_blacklist_words(completion, problems, highlighted_words, client_sdr_id)
 
     # Only run for Email Subject Lines
     if (
@@ -323,6 +325,45 @@ def rule_no_symbols(
         problems.append(
             "Completion contains uncommon symbols: {}".format(", ".join(match))
         )
+
+    return
+
+
+def rule_no_sdr_blacklist_words(
+    completion: str,
+    problems: list,
+    highlighted_words: list,
+    client_sdr_id: int,
+):
+    """Rule: No SDR Blacklist Words
+
+    No SDR blacklist words allowed in the completion.
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    blacklist_words = client_sdr.blacklisted_words
+    if not blacklist_words or len(blacklist_words) == 0:
+        return
+
+    # Check the message for blacklist words
+    detected_blacklist_words = []
+    for word in completion.split():
+        stripped_word = re.sub(
+            "[^0-9a-zA-Z]+",
+            "",
+            word,
+        ).strip()
+        if word.lower() in blacklist_words:
+            detected_blacklist_words.append("'" + word + "'")
+        elif stripped_word.lower() in blacklist_words:
+            detected_blacklist_words.append("'" + stripped_word + "'")
+
+    if detected_blacklist_words:
+        problems.append(
+            "Message contains a blacklisted phrase: "
+            + ", ".join(detected_blacklist_words)
+            + " Please rephrase without these phrases."
+        )
+        highlighted_words.extend(detected_blacklist_words)
 
     return
 
