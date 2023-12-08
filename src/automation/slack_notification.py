@@ -131,16 +131,20 @@ def send_status_change_slack_block(
         }
     )
 
+    email_address = metadata.get("prospect_email") if metadata else None
     message_blocks.append(
         {  # Add prospect title and (optional) last message
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Title:* {title}\n*Company:* {company}{last_message}".format(
+                "text": "*Title:* {title}\n*Company:* {company}{last_message}{email_address}".format(
                     title=prospect.title,
                     company=prospect.company,
                     last_message="\n*Last message:* {}...".format(last_email_message)
                     if last_email_message
+                    else "",
+                    email_address="\n*Prospect Email:* {}".format(email_address)
+                    if email_address
                     else "",
                 ),
             },
@@ -149,26 +153,15 @@ def send_status_change_slack_block(
 
     # If email, include email information
     if outreach_type == ProspectChannels.EMAIL:
-        email_address = metadata.get("prospect_email") if metadata else None
         subject = metadata.get("email_title") if metadata else None
         email_snippet = metadata.get("email_snippet") if metadata else None
         prospect_message = metadata.get("prospect_message") if metadata else None
 
-        if email_address:
-            message_blocks.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"Prospect email: {email_address}",
-                    },
-                },
-            )
         if subject:
             message_blocks.append(
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": f"Email subject: {subject}"},
+                    "text": {"type": "mrkdwn", "text": f"*Email Subject*:\n>{subject}"},
                 },
             )
         if email_snippet:
@@ -177,17 +170,19 @@ def send_status_change_slack_block(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Sent email:\n>{email_snippet}",
+                        "text": f"*Sent Email*:\n>{email_snippet}",
                     },
                 },
             )
         if prospect_message:
+            # We need to make sure that newlines aren't escaping the > (quote) in the slack message
+            prospect_message = prospect_message.replace("\n", "\n>")
             message_blocks.append(
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Prospect reply:\n>{prospect_message}",
+                        "text": f"*Prospect Reply*:\n>{prospect_message}",
                     },
                 },
             )

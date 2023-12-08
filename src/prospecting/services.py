@@ -1020,7 +1020,6 @@ def update_prospect_status_email(
     db.session.commit()
 
     # Update the prospect overall status
-    print("calculating prospect overall status")
     calculate_prospect_overall_status(prospect_id=prospect_id)
 
     return True, "Success"
@@ -1941,7 +1940,6 @@ def calculate_prospect_overall_status(prospect_id: int):
         prospect_email_overall_status,
         prospect_li_overall_status,
     ]
-    print("all_channel_statuses", all_channel_statuses)
     all_channel_statuses = [x for x in all_channel_statuses if x is not None]
 
     # get max status based on .get_rank()
