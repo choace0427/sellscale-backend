@@ -557,7 +557,7 @@ def extract_linkedin_profiles(
 ):
     send_socket_message(
         "trigger-log",
-        {"message": f"Fetching leads..."},
+        {"message": f"Fetching {len(companies)*len(titles)*10} leads..."},
         f"trigger-{trigger_id}",
     )
 
@@ -576,7 +576,7 @@ def extract_linkedin_profiles(
             organic_results = search_results.get("organic_results", [])
 
             # Process search results
-            for profile in organic_results:
+            for profile in organic_results[:10]:
                 # Extract relevant profile details
                 profile_data = {
                     "img_url": company.img_url,  # Original data
