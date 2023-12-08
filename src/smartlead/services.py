@@ -402,24 +402,24 @@ def sync_campaign_leads_for_sdr(client_sdr_id: int) -> bool:
             raise Exception("No smartlead campaign statistics found")
 
         for lead in statistics:
-            sync_prospect_with_lead(
-                client_id=archetype.client_id,
-                archetype_id=archetype.id,
-                client_sdr_id=client_sdr_id,
-                lead=lead,
-            )
-            # args = {
-            #     "client_id": archetype.client_id,
-            #     "archetype_id": archetype.id,
-            #     "client_sdr_id": client_sdr_id,
-            #     "lead": lead,
-            # }
-            # add_process_to_queue(
-            #     type="sync_prospect_with_lead",
-            #     meta_data={"args": args},
-            #     execution_date=datetime.datetime.utcnow(),
-            #     commit=True,
+            # sync_prospect_with_lead(
+            #     client_id=archetype.client_id,
+            #     archetype_id=archetype.id,
+            #     client_sdr_id=client_sdr_id,
+            #     lead=lead,
             # )
+            args = {
+                "client_id": archetype.client_id,
+                "archetype_id": archetype.id,
+                "client_sdr_id": client_sdr_id,
+                "lead": lead,
+            }
+            add_process_to_queue(
+                type="sync_prospect_with_lead",
+                meta_data={"args": args},
+                execution_date=datetime.datetime.utcnow(),
+                commit=True,
+            )
 
 
 @celery.task
