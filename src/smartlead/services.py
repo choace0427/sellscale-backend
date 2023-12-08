@@ -243,7 +243,11 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
 
     webhook_urls: List[str] = []
     client: Client = Client.query.get(prospect.client_id)
-    webhook_urls.append(client.pipeline_notifications_webhook_url)
+    webhook_urls.append(
+        client.pipeline_notifications_webhook_url
+        if (client and client.pipeline_notifications_webhook_url)
+        else URL_MAP["eng-sandbox"]
+    )
 
     # Send the Slack message
     send_slack_message(
