@@ -233,6 +233,12 @@ def runTrigger(trigger_id: int):
     # Send slack notif
     send_finished_slack_message(trigger.client_sdr_id, trigger.id, pipeline_data)
 
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Done!"},
+        f"trigger-{trigger_id}",
+    )
+
     return True, run_id
 
 
@@ -383,6 +389,12 @@ def action_upload_prospects(
     client_sdr_id: int,
     client_archetype_id: int,
 ):
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Uploading {len(prospects)} prospects..."},
+        f"trigger-{trigger_id}",
+    )
+
     if len(prospects) == 0:
         return 0
 
@@ -764,6 +776,12 @@ def qualify_prospects(
 def send_finished_slack_message(
     client_sdr_id: int, trigger_id: int, pipeline_data: PipelineData
 ):
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Sending completion message..."},
+        f"trigger-{trigger_id}",
+    )
+
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(sdr.client_id)
     trigger: Trigger = Trigger.query.get(trigger_id)
