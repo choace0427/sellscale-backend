@@ -191,12 +191,8 @@ def runTrigger(trigger_id: int):
 
     pipeline_data = PipelineData([], [], {})
     for block in blocks:
-        send_socket_message(
-            "trigger-log",
-            {"message": f"Running block: {block}"},
-            f"trigger-${trigger_id}",
-        )
         pipeline_data = runBlock(
+            trigger_id,
             run_id,
             trigger.client_sdr_id,
             trigger.client_archetype_id,
@@ -241,6 +237,7 @@ def runTrigger(trigger_id: int):
 
 
 def runBlock(
+    trigger_id: int,
     run_id: int,
     client_sdr_id: int,
     client_archetype_id: int,
@@ -249,19 +246,19 @@ def runBlock(
     pipeline_data: PipelineData,
 ) -> PipelineData:
     if isinstance(block, SourceBlock):
-        return runSourceBlock(blacklist, block, pipeline_data)
+        return runSourceBlock(trigger_id, blacklist, block, pipeline_data)
     elif isinstance(block, FilterBlock):
-        return runFilterBlock(block, pipeline_data)
+        return runFilterBlock(trigger_id, block, pipeline_data)
     elif isinstance(block, ActionBlock):
         return runActionBlock(
-            run_id, client_sdr_id, client_archetype_id, block, pipeline_data
+            trigger_id, run_id, client_sdr_id, client_archetype_id, block, pipeline_data
         )
     else:
         raise Exception("Unknown block type: {}".format(type(block)))
 
 
 def runSourceBlock(
-    blacklist: list, block: SourceBlock, pipeline_data: PipelineData
+    trigger_id: int, blacklist: list, block: SourceBlock, pipeline_data: PipelineData
 ) -> PipelineData:
     prospects = pipeline_data.prospects or []
     companies = pipeline_data.companies or []
@@ -270,7 +267,7 @@ def runSourceBlock(
     if block.source == SourceType.GOOGLE_COMPANY_NEWS:
         query = block.data.get("company_query", "")
 
-        companies = source_companies_from_google_news(blacklist, query)
+        companies = source_companies_from_google_news(trigger_id, blacklist, query)
 
         # Update meta data accordingly
         meta_data[MetaDataRecord.SOURCE_COMPANY_QUERY.name] = query
@@ -281,7 +278,9 @@ def runSourceBlock(
     elif block.source == SourceType.EXTRACT_PROSPECTS_FROM_COMPANIES:
         titles = block.data.get("prospect_titles", [])
 
-        prospects = source_prospects_from_companies(blacklist, companies, titles)
+        prospects = source_prospects_from_companies(
+            trigger_id, blacklist, companies, titles
+        )
 
         # Update meta data accordingly
         meta_data[MetaDataRecord.SOURCE_PROSPECTS_FOUND.name] = len(prospects)
@@ -294,13 +293,15 @@ def runSourceBlock(
     )
 
 
-def runFilterBlock(block: FilterBlock, pipeline_data: PipelineData) -> PipelineData:
+def runFilterBlock(
+    trigger_id: int, block: FilterBlock, pipeline_data: PipelineData
+) -> PipelineData:
     prospects = pipeline_data.prospects or []
     companies = pipeline_data.companies or []
     meta_data = pipeline_data.meta_data or {}
 
-    companies = filter_companies(companies, block.criteria, meta_data)
-    prospects = filter_prospects(prospects, block.criteria, meta_data)
+    companies = filter_companies(trigger_id, companies, block.criteria, meta_data)
+    prospects = filter_prospects(trigger_id, prospects, block.criteria, meta_data)
 
     meta_data[MetaDataRecord.CURRENT_COMPANIES_FOUND.name] = len(companies)
     meta_data[MetaDataRecord.CURRENT_PROSPECTS_FOUND.name] = len(prospects)
@@ -313,6 +314,7 @@ def runFilterBlock(block: FilterBlock, pipeline_data: PipelineData) -> PipelineD
 
 
 def runActionBlock(
+    trigger_id: int,
     run_id: int,
     client_sdr_id: int,
     client_archetype_id: int,
@@ -331,11 +333,13 @@ def runActionBlock(
             client: Client = Client.query.get(sdr.client_id)
             webhook_urls = [client.pipeline_notifications_webhook_url]
 
-        success = action_send_slack_message(message, webhook_urls, meta_data)
+        success = action_send_slack_message(
+            trigger_id, message, webhook_urls, meta_data
+        )
 
     elif block.action == ActionType.UPLOAD_PROSPECTS:
         amount = action_upload_prospects(
-            prospects, run_id, client_sdr_id, client_archetype_id
+            trigger_id, prospects, run_id, client_sdr_id, client_archetype_id
         )
 
         meta_data[MetaDataRecord.PROSPECTS_UPLOADED.name] = amount
@@ -352,10 +356,18 @@ def runActionBlock(
 ####################################################################################################
 
 
-def action_send_slack_message(blocks: list, webhook_urls: list[str], meta_data: dict):
+def action_send_slack_message(
+    trigger_id: int, blocks: list, webhook_urls: list[str], meta_data: dict
+):
     json_string = json.dumps(blocks)
     json_string = replace_metadata(json_string, meta_data)
     parsed_blocks = json.loads(json_string)
+
+    # send_socket_message(
+    #     "trigger-log",
+    #     {"message": f"Sending slack message for trigger {trigger_id}"},
+    #     f"trigger-{trigger_id}",
+    # )
 
     return send_slack_message(
         message="Slack message",
@@ -365,6 +377,7 @@ def action_send_slack_message(blocks: list, webhook_urls: list[str], meta_data: 
 
 
 def action_upload_prospects(
+    trigger_id: int,
     prospects: list[PipelineProspect],
     run_id: int,
     client_sdr_id: int,
@@ -420,36 +433,52 @@ def replace_metadata(message: str, meta_data: dict):
 
 
 def filter_companies(
-    companies: list[PipelineCompany], filter_criteria: FilterCriteria, meta_data: dict
+    trigger_id: int,
+    companies: list[PipelineCompany],
+    filter_criteria: FilterCriteria,
+    meta_data: dict,
 ):
     if filter_criteria.company_query:
         companies = qualify_companies(
-            companies, replace_metadata(filter_criteria.company_query, meta_data)
+            trigger_id,
+            companies,
+            replace_metadata(filter_criteria.company_query, meta_data),
         )
     if filter_criteria.company_names:
-        companies = qualify_company_names(companies, filter_criteria.company_names)
+        companies = qualify_company_names(
+            trigger_id, companies, filter_criteria.company_names
+        )
 
     return companies
 
 
 def filter_prospects(
-    prospects: list[PipelineProspect], filter_criteria: FilterCriteria, meta_data: dict
+    trigger_id: int,
+    prospects: list[PipelineProspect],
+    filter_criteria: FilterCriteria,
+    meta_data: dict,
 ):
     if filter_criteria.prospect_query:
         prospects = qualify_prospects(
-            prospects, replace_metadata(filter_criteria.prospect_query, meta_data)
+            trigger_id,
+            prospects,
+            replace_metadata(filter_criteria.prospect_query, meta_data),
         )
     if filter_criteria.company_names:
         prospects = qualify_prospect_company_names(
-            prospects, filter_criteria.company_names
+            trigger_id, prospects, filter_criteria.company_names
         )
     if filter_criteria.prospect_titles:
-        prospects = qualify_prospect_titles(prospects, filter_criteria.prospect_titles)
+        prospects = qualify_prospect_titles(
+            trigger_id, prospects, filter_criteria.prospect_titles
+        )
 
     return prospects
 
 
-def qualify_company_names(companies: list[PipelineCompany], names: list[str]):
+def qualify_company_names(
+    trigger_id: int, companies: list[PipelineCompany], names: list[str]
+):
     lowercase_names = [name.lower() for name in names]
 
     result_companies = []
@@ -461,7 +490,9 @@ def qualify_company_names(companies: list[PipelineCompany], names: list[str]):
     return result_companies
 
 
-def qualify_prospect_company_names(prospects: list[PipelineProspect], names: list[str]):
+def qualify_prospect_company_names(
+    trigger_id: int, prospects: list[PipelineProspect], names: list[str]
+):
     lowercase_names = [name.lower() for name in names]
 
     result_prospects = []
@@ -473,7 +504,9 @@ def qualify_prospect_company_names(prospects: list[PipelineProspect], names: lis
     return result_prospects
 
 
-def qualify_prospect_titles(prospects: list[PipelineProspect], titles: list[str]):
+def qualify_prospect_titles(
+    trigger_id: int, prospects: list[PipelineProspect], titles: list[str]
+):
     result_prospects = []
 
     for row in prospects:
@@ -497,13 +530,24 @@ def qualify_prospect_titles(prospects: list[PipelineProspect], titles: list[str]
 
 
 def source_prospects_from_companies(
-    blacklist: list, companies: list[PipelineCompany], titles: list[str]
+    trigger_id: int,
+    blacklist: list,
+    companies: list[PipelineCompany],
+    titles: list[str],
 ):
-    profiles_data = extract_linkedin_profiles(companies, titles)
-    return enrich_linkedin_profiles(blacklist, profiles_data)
+    profiles_data = extract_linkedin_profiles(trigger_id, companies, titles)
+    return enrich_linkedin_profiles(trigger_id, blacklist, profiles_data)
 
 
-def extract_linkedin_profiles(companies: list[PipelineCompany], titles: list[str]):
+def extract_linkedin_profiles(
+    trigger_id: int, companies: list[PipelineCompany], titles: list[str]
+):
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Fetching leads..."},
+        f"trigger-{trigger_id}",
+    )
+
     profiles_data = []
 
     # Loop through each company and title
@@ -534,10 +578,16 @@ def extract_linkedin_profiles(companies: list[PipelineCompany], titles: list[str
                 }
                 profiles_data.append(profile_data)
 
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Found {len(profiles_data)} leads"},
+        f"trigger-{trigger_id}",
+    )
+
     return profiles_data
 
 
-def enrich_linkedin_profiles(blacklist: list, profiles: list):
+def enrich_linkedin_profiles(trigger_id: int, blacklist: list, profiles: list):
     MAX_NUM_PROFILES_TO_PROCESS = 5
 
     prospects: list[PipelineProspect] = []
@@ -594,8 +644,14 @@ def enrich_linkedin_profiles(blacklist: list, profiles: list):
 
 
 def source_companies_from_google_news(
-    blacklist: list, query: str
+    trigger_id: int, blacklist: list, query: str
 ) -> list[PipelineCompany]:
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Fetching companies..."},
+        f"trigger-{trigger_id}",
+    )
+
     # Fetch recent news articles related to the event
     news_results = search_google_news_raw(query, "nws")
 
@@ -634,10 +690,24 @@ def source_companies_from_google_news(
             )
         )
 
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Found {len(result_data)} companies"},
+        f"trigger-{trigger_id}",
+    )
+
     return result_data
 
 
-def qualify_companies(companies: list[PipelineCompany], qualifying_question: str):
+def qualify_companies(
+    trigger_id: int, companies: list[PipelineCompany], qualifying_question: str
+):
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Qualifying companies"},
+        f"trigger-{trigger_id}",
+    )
+
     results = []
     for row in companies:
         # Prepare the message for Chat GPT
@@ -660,7 +730,15 @@ def qualify_companies(companies: list[PipelineCompany], qualifying_question: str
     return results
 
 
-def qualify_prospects(prospects: list[PipelineProspect], qualifying_question: str):
+def qualify_prospects(
+    trigger_id: int, prospects: list[PipelineProspect], qualifying_question: str
+):
+    send_socket_message(
+        "trigger-log",
+        {"message": f"Qualifying leads"},
+        f"trigger-{trigger_id}",
+    )
+
     results = []
     for row in prospects:
         # Prepare the message for Chat GPT
