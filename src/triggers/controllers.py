@@ -168,7 +168,9 @@ def post_update_trigger(client_sdr_id: int, trigger_id: int):
     active = get_request_parameter(
         "active", request, json=True, required=False, parameter_type=bool
     )
-    blocks = get_request_parameter("blocks", request, json=True, required=False, parameter_type=list)
+    blocks = get_request_parameter(
+        "blocks", request, json=True, required=False, parameter_type=list
+    )
 
     trigger: Trigger = Trigger.query.filter_by(
         id=trigger_id, client_sdr_id=client_sdr_id
@@ -184,7 +186,7 @@ def post_update_trigger(client_sdr_id: int, trigger_id: int):
         trigger.description = description
     if interval_in_minutes:
         trigger.interval_in_minutes = interval_in_minutes
-    if active:
+    if active is not None:
         trigger.active = active
     if blocks:
         trigger.blocks = convertBlocksToDict(get_blocks_from_output_dict(blocks))
