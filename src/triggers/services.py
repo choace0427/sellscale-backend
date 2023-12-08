@@ -150,18 +150,19 @@ def trigger_runner(trigger_id: int):
 
     # Run the trigger #
     trigger: Trigger = Trigger.query.get(trigger_id)
-    success, run_id = runTrigger(trigger_id)
+    if trigger.active:
+        success, run_id = runTrigger(trigger_id)
 
-    if success:
-        current_datetime = datetime.datetime.utcnow()
-        new_datetime = current_datetime + datetime.timedelta(
-            minutes=trigger.interval_in_minutes
-        )
+        if success:
+            current_datetime = datetime.datetime.utcnow()
+            new_datetime = current_datetime + datetime.timedelta(
+                minutes=trigger.interval_in_minutes
+            )
 
-        trigger.last_run = current_datetime
-        trigger.next_run = new_datetime
+            trigger.last_run = current_datetime
+            trigger.next_run = new_datetime
 
-        db.session.commit()
+            db.session.commit()
 
     # Run self #
     add_process_for_future(
