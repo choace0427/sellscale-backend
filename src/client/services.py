@@ -2776,6 +2776,7 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.persona_lookalike_profile_5.label("lookalike_profile_5"),
             ClientArchetype.smartlead_campaign_id,
             ClientArchetype.meta_data,
+            ClientArchetype.first_message_delay_days,
             func.count(distinct(Prospect.id)).label("num_prospects"),
             func.avg(Prospect.icp_fit_score)
             .filter(Prospect.icp_fit_score.isnot(None))
@@ -2860,7 +2861,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'DEMO_SET' OR prospect_status_records.to_status = 'DEMO_SET') "TOTAL-DEMO",
             count(DISTINCT prospect.id) "TOTAL-PROSPECTS",
             client_archetype.smartlead_campaign_id,
-            client_archetype.meta_data
+            client_archetype.meta_data,
+            client_archetype.first_message_delay_days
         FROM
             client_archetype
             JOIN client_sdr ON client_sdr.id = client_archetype.client_sdr_id
@@ -2903,6 +2905,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         21: "total_prospects",
         22: "smartlead_campaign_id",
         23: "meta_data",
+        24: "first_message_delay_days",
     }
 
     # Convert and format output

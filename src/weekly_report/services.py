@@ -346,6 +346,9 @@ def send_all_emails(test_mode: bool = True, to_emails: list[str] = []) -> bool:
     for client_sdr_id in client_sdr_ids:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
+        if client_sdr_id in [144]:
+            continue
+
         if client_sdr.is_onboarding:
             continue
 
@@ -356,8 +359,8 @@ def send_all_emails(test_mode: bool = True, to_emails: list[str] = []) -> bool:
 
         if not test_mode:
             to_emails = [client_sdr.email]
-            cc_emails = client_sdr.weekly_report_cc_emails
-            bcc_emails = client_sdr.weekly_report_bcc_emails
+            cc_emails = client_sdr.weekly_report_cc_emails or []
+            bcc_emails = client_sdr.weekly_report_bcc_emails or []
 
         if "team@sellscale.com" not in bcc_emails and not test_mode:
             bcc_emails.append("team@sellscale.com")
