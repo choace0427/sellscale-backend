@@ -1011,17 +1011,25 @@ def update_prospect_status_email(
                 metadata=metadata,
                 custom_webhook_urls=custom_webhook_urls,
             )
-    elif (new_status == ProspectEmailOutreachStatus.NOT_QUALIFIED) or (
-        new_status == ProspectEmailOutreachStatus.NOT_INTERESTED
-        and "ACTIVE_CONVO" in old_status.value
-    ):
+    elif (
+        new_status == ProspectEmailOutreachStatus.NOT_QUALIFIED
+        or new_status == ProspectEmailOutreachStatus.NOT_INTERESTED
+    ) and "ACTIVE_CONVO" in old_status.value:
         c: Client = Client.query.get(p.client_id)
         sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
         prospect_name = p.full_name
 
+        webhooks = []
+        if c.pipeline_notifications_webhook_url:
+            webhooks.append(c.pipeline_notifications_webhook_url)
+        if sdr.pipeline_notifications_webhook_url:
+            webhooks.append(sdr.pipeline_notifications_webhook_url)
+        webhooks.append(URL_MAP["eng-sandbox"])
+        webhooks.append(URL_MAP["sellscale_pipeline_all_clients"])
+
         send_slack_message(
             message="",
-            webhook_urls=[c.pipeline_notifications_webhook_url],
+            webhook_urls=webhooks,
             blocks=[
                 {
                     "type": "header",
