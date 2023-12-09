@@ -47,13 +47,14 @@ def get_smartlead_inbox(client_sdr_id: int) -> dict:
     p.title,
     p.img_url,
     p.icp_fit_score,
-	a.smartlead_campaign_id
+	a.smartlead_campaign_id,
+    pe.outreach_status,
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
 	LEFT JOIN client_archetype a ON p.archetype_id = a.id
 WHERE
-	pe.outreach_status = 'ACTIVE_CONVO'
+	pe.outreach_status::text ilike 'ACTIVE_CONVO%'
 	AND (pe.hidden_until IS NULL
 		OR pe.hidden_until < now())
 	AND p.client_sdr_id = {client_sdr_id}
@@ -70,6 +71,7 @@ WHERE
                 "prospect_img_url": id[3],
                 "prospect_icp_fit_score": id[4],
                 "smartlead_campaign_id": id[5],
+                "outreach_status": id[6],
             }
         )
 
@@ -80,13 +82,14 @@ WHERE
     p.img_url,
     p.icp_fit_score,
 	a.smartlead_campaign_id,
-    pe.hidden_until
+    pe.hidden_until,
+    pe.outreach_status
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
 	LEFT JOIN client_archetype a ON p.archetype_id = a.id
 WHERE
-	pe.outreach_status = 'ACTIVE_CONVO'
+	pe.outreach_status::text ilike 'ACTIVE_CONVO%'
 	AND pe.hidden_until > now()
 	AND p.client_sdr_id = {client_sdr_id}
 	AND a.smartlead_campaign_id IS NOT NULL;;
@@ -103,6 +106,7 @@ WHERE
                 "prospect_icp_fit_score": id[4],
                 "smartlead_campaign_id": id[5],
                 "hidden_until": id[6],
+                "outreach_status": id[7],
             }
         )
 
