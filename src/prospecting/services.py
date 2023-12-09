@@ -1906,6 +1906,7 @@ def map_prospect_email_status_to_prospect_overall_status(
         ProspectEmailOutreachStatus.DEMO_SET: ProspectOverallStatus.DEMO,
         ProspectEmailOutreachStatus.DEMO_WON: ProspectOverallStatus.DEMO,
         ProspectEmailOutreachStatus.DEMO_LOST: ProspectOverallStatus.DEMO,
+        ProspectEmailOutreachStatus.NOT_INTERESTED: ProspectOverallStatus.NURTURE,
     }
     if prospect_email_status in prospect_email_status_map:
         return prospect_email_status_map[prospect_email_status]
