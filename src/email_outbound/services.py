@@ -8,7 +8,11 @@ from flask import jsonify
 from src.automation.models import ProcessQueue
 from src.email_sequencing.models import EmailSequenceStep
 from src.client.models import ClientSDR
-from src.email_outbound.models import Sequence, SequenceStatus
+from src.email_outbound.models import (
+    VALID_NEXT_EMAIL_STATUSES,
+    Sequence,
+    SequenceStatus,
+)
 
 from app import db, celery
 from model_import import (
@@ -37,7 +41,6 @@ from src.email_outbound.models import (
     SalesEngagementInteractionSS,
     ProspectEmailOutreachStatus,
     ProspectEmailStatusRecords,
-    VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.email_outbound.ss_data import SSData
 from src.automation.slack_notification import send_status_change_slack_block
@@ -446,10 +449,7 @@ def update_status_from_ss_data(
             prospect_email.outreach_status = new_outreach_status
             old_outreach_status = ProspectEmailOutreachStatus.UNKNOWN
         else:
-            if (
-                old_outreach_status
-                in VALID_UPDATE_EMAIL_STATUS_MAP[new_outreach_status]
-            ):
+            if new_outreach_status in VALID_NEXT_EMAIL_STATUSES[old_outreach_status]:
                 prospect_email.outreach_status = new_outreach_status
             else:
                 return (
@@ -524,7 +524,7 @@ def update_prospect_email_outreach_status(
     if old_status == new_status:
         return False
 
-    if old_status in VALID_UPDATE_EMAIL_STATUS_MAP[new_status]:
+    if new_status in VALID_NEXT_EMAIL_STATUSES[old_status]:
         prospect_email.outreach_status = new_status
         db.session.add(prospect_email)
         db.session.commit()
