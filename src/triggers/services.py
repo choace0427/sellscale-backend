@@ -569,6 +569,12 @@ def extract_linkedin_profiles(
             # Construct the Google search query
             query = f'site:linkedin.com/in/ "{company.company_name}" "- {title}"'
 
+            send_socket_message(
+                "trigger-log",
+                {"message": f"Gathering prospects from SERP query: '{query}'"},
+                f"trigger-{trigger_id}",
+            )
+
             # Perform the Google search
             search_results = search_google_news_raw(
                 query
