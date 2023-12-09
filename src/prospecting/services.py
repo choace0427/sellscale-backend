@@ -977,7 +977,9 @@ def update_prospect_status_email(
                 metadata=metadata,
                 custom_webhook_urls=custom_webhook_urls,
             )
-    elif new_status == ProspectEmailOutreachStatus.SCHEDULING:  # Scheduling
+    elif (
+        new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING
+    ):  # Scheduling
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
@@ -988,7 +990,7 @@ def update_prospect_status_email(
             send_status_change_slack_block(
                 outreach_type=ProspectChannels.EMAIL,
                 prospect=p,
-                new_status=ProspectEmailOutreachStatus.SCHEDULING,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING,
                 custom_message=" is scheduling! 🙏🔥",
                 metadata=metadata,
                 custom_webhook_urls=custom_webhook_urls,
@@ -1009,6 +1011,66 @@ def update_prospect_status_email(
                 metadata=metadata,
                 custom_webhook_urls=custom_webhook_urls,
             )
+    elif (new_status == ProspectEmailOutreachStatus.NOT_QUALIFIED) or (
+        new_status == ProspectEmailOutreachStatus.NOT_INTERESTED
+        and "ACTIVE_CONVO" in old_status.value
+    ):
+        c: Client = Client.query.get(p.client_id)
+        sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+        prospect_name = p.full_name
+
+        send_slack_message(
+            message="",
+            webhook_urls=[c.pipeline_notifications_webhook_url],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "🧹 SellScale has cleaned up your pipeline",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Prospect removed:* {prospect_name}".format(
+                            prospect_name=prospect_name
+                        ),
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "🧳 Title: "
+                            + str(p.title)
+                            + " @ "
+                            + str(p.company)[0:20]
+                            + ("..." if len(p.company) > 20 else ""),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "📌 SDR: " + sdr.name,
+                            "emoji": True,
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*AI label change:* `{old_status}` -> `{new_status}`".format(
+                            old_status=old_status.value, new_status=new_status.value
+                        ),
+                    },
+                },
+            ],
+        )
 
     # Commit the changes
     db.session.add(p_email)
