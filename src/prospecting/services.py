@@ -14,7 +14,11 @@ from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
 
 from src.company.services import find_company_for_prospect
-from src.email_outbound.models import EmailConversationThread, EmailConversationMessage
+from src.email_outbound.models import (
+    VALID_NEXT_EMAIL_STATUSES,
+    EmailConversationThread,
+    EmailConversationMessage,
+)
 from sqlalchemy import or_
 import requests
 from src.message_generation.models import (
@@ -27,7 +31,6 @@ from src.email_outbound.models import (
     ProspectEmailStatus,
     ProspectEmailOutreachStatus,
     ProspectEmailStatusRecords,
-    VALID_UPDATE_EMAIL_STATUS_MAP,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.ml.openai_wrappers import (
@@ -949,15 +952,16 @@ def update_prospect_status_email(
         p_email.outreach_status = new_status
     else:
         # Check if the status is valid to transition to
-        if p_email.outreach_status not in VALID_UPDATE_EMAIL_STATUS_MAP[new_status]:
+        if new_status not in VALID_NEXT_EMAIL_STATUSES[p_email.outreach_status]:
             return (
                 False,
                 f"Invalid status transition from {p_email.outreach_status} to {new_status}",
             )
         p_email.outreach_status = new_status
 
+    # Notifications
     # Send a slack message if the new status is active convo (responded)
-    if new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO:
+    if "ACTIVE_CONVO" in new_status.value and "ACTIVE_CONVO" not in old_status.value:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
