@@ -48,7 +48,7 @@ def get_smartlead_inbox(client_sdr_id: int) -> dict:
     p.img_url,
     p.icp_fit_score,
 	a.smartlead_campaign_id,
-    pe.outreach_status,
+    pe.outreach_status
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
