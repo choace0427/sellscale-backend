@@ -112,6 +112,17 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
     elif outbound_campaign.status == OutboundCampaignStatus.COMPLETE:
         return False, "Campaign is already complete"
 
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        outbound_campaign.client_archetype_id
+    )
+    if not archetype:
+        return False, "Archetype not found"
+
+    # SMARTLEAD: Determine generate_immediately
+    generate_immediately = False
+    if archetype.smartlead_campaign_id:
+        generate_immediately = True
+
     outbound_campaign.status = OutboundCampaignStatus.COMPLETE
     # outbound_campaign.calculate_cost()
     db.session.commit()
@@ -154,6 +165,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                     "initial_email_subject_line_template_id": subject_line.email_subject_line_template_id,
                     "initial_email_body_template_id": body.email_sequence_step_template_id,
                     "initial_email_send_date": None,
+                    "generate_immediately": generate_immediately,
                 }
             },
         ).first()
@@ -171,6 +183,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
                 "initial_email_subject_line_template_id": subject_line.email_subject_line_template_id,
                 "initial_email_body_template_id": body.email_sequence_step_template_id,
                 "initial_email_send_date": None,
+                "generate_immediately": generate_immediately,
             },
             minutes=index,
         )

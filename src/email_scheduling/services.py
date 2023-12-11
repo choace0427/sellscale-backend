@@ -6,12 +6,28 @@ from datetime import datetime, timedelta
 from typing import Optional
 from src.client.models import ClientArchetype, ClientSDR, SLASchedule
 from src.client.sdr.email.models import SDREmailBank, SDREmailSendSchedule
-from src.client.sdr.email.services_email_schedule import create_default_sdr_email_send_schedule
-from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus, ProspectEmailStatus
-from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType, EmailMessagingStatus
+from src.client.sdr.email.services_email_schedule import (
+    create_default_sdr_email_send_schedule,
+)
+from src.email_outbound.models import (
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+    ProspectEmailStatus,
+)
+from src.email_scheduling.models import (
+    EmailMessagingSchedule,
+    EmailMessagingType,
+    EmailMessagingStatus,
+)
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
-from src.message_generation.models import GeneratedMessage, GeneratedMessageEmailType, GeneratedMessageStatus, GeneratedMessageType
+from src.message_generation.models import (
+    GeneratedMessage,
+    GeneratedMessageEmailType,
+    GeneratedMessageStatus,
+    GeneratedMessageType,
+)
 from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.smartlead.services import upload_prospect_to_campaign
 
 
 FOLLOWUP_LIMIT = 10
@@ -22,9 +38,9 @@ DEFAULT_TIMEZONE = "America/Los_Angeles"
 def get_email_messaging_schedule_entries(
     client_sdr_id: int,
     prospect_id: Optional[int] = None,
-    future_only: Optional[bool] = True
+    future_only: Optional[bool] = True,
 ) -> list[dict]:
-    """ Gets email_messaging_schedule entries
+    """Gets email_messaging_schedule entries
 
     Args:
         client_sdr_id (int): ID of the client_sdr
@@ -41,7 +57,9 @@ def get_email_messaging_schedule_entries(
     # Get the prospect email, if prospect_id is provided
     if prospect_id:
         prospect: Prospect = Prospect.query.get(prospect_id)
-        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect.approved_prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id
+        )
         query = query.filter(
             EmailMessagingSchedule.prospect_email_id == prospect_email.id,
         )
@@ -57,7 +75,10 @@ def get_email_messaging_schedule_entries(
 
     # Convert to dict
     email_messaging_schedules_dict: list[dict] = []
-    email_messaging_schedules_dict = [email_messaging_schedule.to_dict() for email_messaging_schedule in email_messaging_schedules]
+    email_messaging_schedules_dict = [
+        email_messaging_schedule.to_dict()
+        for email_messaging_schedule in email_messaging_schedules
+    ]
 
     return email_messaging_schedules_dict
 
@@ -66,7 +87,7 @@ def modify_email_messaging_schedule_entry(
     email_messaging_schedule_id: int,
     date_scheduled: Optional[datetime] = None,
 ) -> tuple[bool, str]:
-    """ Modifies an email_messaging_schedule entry's date_scheduled
+    """Modifies an email_messaging_schedule entry's date_scheduled
 
     Args:
         email_messaging_schedule_id (int): The ID of the email_messaging_schedule entry to modify
@@ -86,19 +107,26 @@ def modify_email_messaging_schedule_entry(
         if date_scheduled < now:
             return False, "Cannot reschedule an email in the past"
 
-    schedule_entry: EmailMessagingSchedule = EmailMessagingSchedule.query.get(email_messaging_schedule_id)
+    schedule_entry: EmailMessagingSchedule = EmailMessagingSchedule.query.get(
+        email_messaging_schedule_id
+    )
     if schedule_entry.send_status == EmailMessagingStatus.SENT:
         return False, "Cannot reschedule a sent email"
 
     # The email wants to be rescheduled
     if date_scheduled:
         # Get the email before the rescheduled email that has not been sent yet, and track the time
-        previous_email: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
-            EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
-            EmailMessagingSchedule.prospect_email_id == schedule_entry.prospect_email_id,
-            EmailMessagingSchedule.date_scheduled < schedule_entry.date_scheduled,
-            EmailMessagingSchedule.send_status != EmailMessagingStatus.SENT,
-        ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
+        previous_email: EmailMessagingSchedule = (
+            EmailMessagingSchedule.query.filter(
+                EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
+                EmailMessagingSchedule.prospect_email_id
+                == schedule_entry.prospect_email_id,
+                EmailMessagingSchedule.date_scheduled < schedule_entry.date_scheduled,
+                EmailMessagingSchedule.send_status != EmailMessagingStatus.SENT,
+            )
+            .order_by(EmailMessagingSchedule.date_scheduled.desc())
+            .first()
+        )
         boundary_time = previous_email.date_scheduled if previous_email else now
         if boundary_time.tzinfo is None:
             boundary_time = utc_timezone.localize(boundary_time)
@@ -106,13 +134,19 @@ def modify_email_messaging_schedule_entry(
             boundary_time = boundary_time.astimezone(utc_timezone)
 
         if date_scheduled < boundary_time:
-            return False, "Cannot reschedule an email to occur before the previous email in the sequence"
+            return (
+                False,
+                "Cannot reschedule an email to occur before the previous email in the sequence",
+            )
 
         # Get the future emails
         old_date = schedule_entry.date_scheduled
-        future_emails: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+        future_emails: list[
+            EmailMessagingSchedule
+        ] = EmailMessagingSchedule.query.filter(
             EmailMessagingSchedule.client_sdr_id == schedule_entry.client_sdr_id,
-            EmailMessagingSchedule.prospect_email_id == schedule_entry.prospect_email_id,
+            EmailMessagingSchedule.prospect_email_id
+            == schedule_entry.prospect_email_id,
             EmailMessagingSchedule.date_scheduled > old_date,
         ).all()
         if old_date.tzinfo is None:
@@ -120,7 +154,9 @@ def modify_email_messaging_schedule_entry(
         else:
             old_date = old_date.astimezone(utc_timezone)
         schedule_entry.date_scheduled = date_scheduled
-        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(schedule_entry.email_body_template_id)
+        sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
+            schedule_entry.email_body_template_id
+        )
 
         print(schedule_entry.date_scheduled)
 
@@ -133,7 +169,9 @@ def modify_email_messaging_schedule_entry(
                 followup_send_date=date_scheduled + timedelta(days=delay),
                 email_bank_id=None,
             )
-            sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(future_email.email_body_template_id)
+            sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
+                future_email.email_body_template_id
+            )
             delay = sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
             date_scheduled = new_date
             future_email.date_scheduled = new_date
@@ -152,8 +190,9 @@ def create_email_messaging_schedule_entry(
     email_subject_line_template_id: Optional[int] = None,
     subject_line_id: Optional[int] = None,
     body_id: Optional[int] = None,
+    generate_immediately: Optional[bool] = False,
 ) -> int:
-    """ Creates an email_messaging_schedule entry in the database
+    """Creates an email_messaging_schedule entry in the database
 
     Args:
         client_sdr_id (int): ID of the client_sdr
@@ -165,6 +204,7 @@ def create_email_messaging_schedule_entry(
         email_subject_line_template_id (Optional[int], optional): The ID of the subject line template. Defaults to None.
         subject_line_id (Optional[int], optional): The ID of the subject line generation. Defaults to None.
         body_id (Optional[int], optional): The ID of the email body generation. Defaults to None.
+        generate_immediately (Optional[bool], optional): Whether to generate the email immediately. Defaults to False. Degrades performance.
 
     Returns:
         int: The ID of the created email_messaging_schedule entry
@@ -183,7 +223,22 @@ def create_email_messaging_schedule_entry(
     db.session.add(email_messaging_schedule)
     db.session.commit()
 
+    if generate_immediately:
+        tries = 0
+        while tries < 3:
+            tries += 1
+            success, reason = generate_email_messaging_schedule_entry(
+                email_messaging_schedule_id=email_messaging_schedule.id
+            )
+            if not success:
+                print(f"Failed to generate email: {reason}")
+                if tries == 3:
+                    raise Exception(f"Failed to generate email: {reason}")
+                continue
+            break
+
     return email_messaging_schedule.id
+
 
 @celery.task
 def populate_email_messaging_schedule_entries(
@@ -194,6 +249,7 @@ def populate_email_messaging_schedule_entries(
     initial_email_subject_line_template_id: int,
     initial_email_body_template_id: int,
     initial_email_send_date: Optional[datetime] = None,
+    generate_immediately: Optional[bool] = False,
 ) -> list[int]:
     """Populates the email_messaging_schedule table with the appropriate entries
 
@@ -207,6 +263,7 @@ def populate_email_messaging_schedule_entries(
         initial_email_subject_line_template_id (int): ID of the initial email subject line template (EmailSubjectLine)
         initial_email_body_template_id (int): ID of the initial email body template (EmailSequenceStep)
         DEPRECATED - initial_email_send_date (Optional[datetime], optional): Time to send first email. Defaults to None.
+        generate_immediately (Optional[bool], optional): Whether to generate the email immediately. Defaults to False. Degrades performance.
 
     Returns:
         list[int]: A list of the email_messaging_schedule IDs
@@ -219,7 +276,9 @@ def populate_email_messaging_schedule_entries(
     email_ids = []
 
     # Make sure we don't have any existing email_messaging_schedule entries
-    existing_email_messaging_schedules: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+    existing_email_messaging_schedules: list[
+        EmailMessagingSchedule
+    ] = EmailMessagingSchedule.query.filter(
         EmailMessagingSchedule.prospect_email_id == prospect_email_id,
     ).all()
     if existing_email_messaging_schedules:
@@ -242,9 +301,12 @@ def populate_email_messaging_schedule_entries(
         date_scheduled=initial_email_send_date,
         subject_line_id=subject_line_id,
         body_id=body_id,
+        generate_immediately=generate_immediately,
     )
     email_ids.append(initial_email_id)
-    initial_email_template: EmailSequenceStep = EmailSequenceStep.query.get(initial_email_body_template_id)
+    initial_email_template: EmailSequenceStep = EmailSequenceStep.query.get(
+        initial_email_body_template_id
+    )
 
     # Find the ACCEPTED sequence step
     accepted_sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter_by(
@@ -257,9 +319,13 @@ def populate_email_messaging_schedule_entries(
         return email_ids
 
     # Create the accepted (1 time) followup
-    delay_days = initial_email_template.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    delay_days = (
+        initial_email_template.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    )
     random_minute_offset = random.randint(-15, 15)
-    accepted_followup_email_send_date = initial_email_send_date + timedelta(days=delay_days, minutes=random_minute_offset)
+    accepted_followup_email_send_date = initial_email_send_date + timedelta(
+        days=delay_days, minutes=random_minute_offset
+    )
     accepted_followup_email_send_date = verify_followup_send_date(
         client_sdr_id=client_sdr_id,
         followup_send_date=accepted_followup_email_send_date,
@@ -275,13 +341,16 @@ def populate_email_messaging_schedule_entries(
         email_body_template_id=accepted_sequence_step.id,
         send_status=EmailMessagingStatus.NEEDS_GENERATION,
         date_scheduled=accepted_followup_email_send_date,
+        generate_immediately=generate_immediately,
     )
     email_ids.append(accepted_followup_email_id)
 
     # Create the followups
     followups_created = 1
     followup_email_send_date = accepted_followup_email_send_date
-    delay_days = accepted_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    delay_days = (
+        accepted_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+    )
     while followups_created < FOLLOWUP_LIMIT:  # 10 followups max
         # Search for a sequence step that is bumped and has a followup number
         bumped_sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter_by(
@@ -294,7 +363,9 @@ def populate_email_messaging_schedule_entries(
             break
 
         random_minute_offset = random.randint(-15, 15)
-        followup_email_send_date = followup_email_send_date + timedelta(days=delay_days, minutes=random_minute_offset)
+        followup_email_send_date = followup_email_send_date + timedelta(
+            days=delay_days, minutes=random_minute_offset
+        )
         followup_email_send_date = verify_followup_send_date(
             client_sdr_id=client_sdr_id,
             followup_send_date=followup_email_send_date,
@@ -310,19 +381,29 @@ def populate_email_messaging_schedule_entries(
             email_subject_line_template_id=None,
             subject_line_id=None,
             body_id=None,
+            generate_immediately=generate_immediately,
         )
         email_ids.append(followup_email_id)
         followups_created += 1
-        delay_days = bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+        delay_days = (
+            bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
+        )
+
+    # SMARTLEAD: If we have generated immediately, this implies that we should send the prospect to Smartlead to upload
+    if generate_immediately:
+        upload_prospect_to_campaign.apply_async(
+            kwargs={
+                "prospect_id": prospect.id,
+            }
+        )
 
     return email_ids
 
 
 def get_initial_email_send_date(
-    client_sdr_id: int,
-    email_bank_id: Optional[int] = None
+    client_sdr_id: int, email_bank_id: Optional[int] = None
 ) -> datetime:
-    """ Gets the next available send date for an email
+    """Gets the next available send date for an email
 
     Args:
         client_sdr_id (int): ID of the client_sdr
@@ -359,14 +440,21 @@ def get_initial_email_send_date(
         )
         sending_schedule = SDREmailSendSchedule.query.get(send_schedule_id)
     if sending_schedule.days == [] or sending_schedule.days is None:
-        raise Exception("This inbox's sending schedule is not set up correctly. No sending days are set.")
+        raise Exception(
+            "This inbox's sending schedule is not set up correctly. No sending days are set."
+        )
 
     # Get the next available date
-    furthest_initial_email: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
-        EmailMessagingSchedule.client_sdr_id == client_sdr_id,
-        EmailMessagingSchedule.email_type == EmailMessagingType.INITIAL_EMAIL,
-        EmailMessagingSchedule.send_status == EmailMessagingStatus.NEEDS_GENERATION or EmailMessagingSchedule.send_status == EmailMessagingStatus.SCHEDULED,
-    ).order_by(EmailMessagingSchedule.date_scheduled.desc()).first()
+    furthest_initial_email: EmailMessagingSchedule = (
+        EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.client_sdr_id == client_sdr_id,
+            EmailMessagingSchedule.email_type == EmailMessagingType.INITIAL_EMAIL,
+            EmailMessagingSchedule.send_status == EmailMessagingStatus.NEEDS_GENERATION
+            or EmailMessagingSchedule.send_status == EmailMessagingStatus.SCHEDULED,
+        )
+        .order_by(EmailMessagingSchedule.date_scheduled.desc())
+        .first()
+    )
     if not furthest_initial_email:
         # If no initial emails have been sent, choose tomorrow
         send_date = datetime.utcnow() + timedelta(days=1)
@@ -377,12 +465,17 @@ def get_initial_email_send_date(
         sla_schedule: SLASchedule = SLASchedule.query.filter(
             SLASchedule.client_sdr_id == client_sdr_id,
             SLASchedule.start_date <= send_date,
-            SLASchedule.end_date + timedelta(days=3) >= send_date, # Give a little buffer
+            SLASchedule.end_date + timedelta(days=3)
+            >= send_date,  # Give a little buffer
         ).first()
         email_sla = sla_schedule.email_volume if sla_schedule else 5
         email_sla = email_sla or 5
         try:
-            minute_cadence = 60 / (email_sla / len(sending_schedule.days) / (sending_schedule.end_time.hour - sending_schedule.start_time.hour))
+            minute_cadence = 60 / (
+                email_sla
+                / len(sending_schedule.days)
+                / (sending_schedule.end_time.hour - sending_schedule.start_time.hour)
+            )
         except:
             minute_cadence = 60
 
@@ -390,7 +483,9 @@ def get_initial_email_send_date(
 
     # Convert the send_date to the Inbox timezone
     utc_tz = pytz.timezone("UTC")
-    inbox_tz = pytz.timezone(sending_schedule.time_zone or client_sdr.timezone or DEFAULT_TIMEZONE)
+    inbox_tz = pytz.timezone(
+        sending_schedule.time_zone or client_sdr.timezone or DEFAULT_TIMEZONE
+    )
     localized = utc_tz.localize(send_date)
     send_date = localized.astimezone(inbox_tz)
 
@@ -401,7 +496,7 @@ def get_initial_email_send_date(
             hour=sending_schedule.start_time.hour,
             minute=sending_schedule.start_time.minute,
             second=0,
-            microsecond=0
+            microsecond=0,
         )
     elif send_date.time() > sending_schedule.end_time:
         # If the time is after the end time, bump up to the next day's start time
@@ -409,7 +504,7 @@ def get_initial_email_send_date(
             hour=sending_schedule.start_time.hour,
             minute=sending_schedule.start_time.minute,
             second=0,
-            microsecond=0
+            microsecond=0,
         )
         send_date = send_date + timedelta(days=1)
 
@@ -421,12 +516,16 @@ def get_initial_email_send_date(
     sla_schedule: SLASchedule = SLASchedule.query.filter(
         SLASchedule.client_sdr_id == client_sdr_id,
         SLASchedule.start_date <= send_date,
-        SLASchedule.end_date + timedelta(days=3) >= send_date, # Give a little buffer
+        SLASchedule.end_date + timedelta(days=3) >= send_date,  # Give a little buffer
     ).first()
     email_sla = sla_schedule.email_volume if sla_schedule else 5
     email_sla = email_sla or 5
     try:
-        minute_cadence = 60 / (email_sla / len(sending_schedule.days) / (sending_schedule.end_time.hour - sending_schedule.start_time.hour))
+        minute_cadence = 60 / (
+            email_sla
+            / len(sending_schedule.days)
+            / (sending_schedule.end_time.hour - sending_schedule.start_time.hour)
+        )
     except:
         minute_cadence = 60
 
@@ -439,9 +538,9 @@ def get_initial_email_send_date(
 def verify_followup_send_date(
     client_sdr_id: int,
     followup_send_date: datetime,
-    email_bank_id: Optional[int] = None
+    email_bank_id: Optional[int] = None,
 ) -> datetime:
-    """ Verifies that the followup_send_date is valid
+    """Verifies that the followup_send_date is valid
 
     Args:
         client_sdr_id (int): ID of the client_sdr
@@ -479,11 +578,15 @@ def verify_followup_send_date(
         )
         sending_schedule = SDREmailSendSchedule.query.get(send_schedule_id)
     if sending_schedule.days == [] or sending_schedule.days is None:
-        raise Exception("This inbox's sending schedule is not set up correctly. No sending days are set.")
+        raise Exception(
+            "This inbox's sending schedule is not set up correctly. No sending days are set."
+        )
 
     # Convert the send_date to the Inbox timezone
     utc_tz = pytz.timezone("UTC")
-    inbox_tz = pytz.timezone(sending_schedule.time_zone or client_sdr.timezone or DEFAULT_TIMEZONE)
+    inbox_tz = pytz.timezone(
+        sending_schedule.time_zone or client_sdr.timezone or DEFAULT_TIMEZONE
+    )
     try:
         localized = utc_tz.localize(followup_send_date)
     except:
@@ -499,17 +602,20 @@ def verify_followup_send_date(
 
 @celery.task(bind=True, max_retries=3)
 def collect_and_generate_email_messaging_schedule_entries(self) -> tuple[bool, str]:
-    """ Collects and generates email_messaging_schedule entries that need to be generated
+    """Collects and generates email_messaging_schedule entries that need to be generated
 
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating success and a message
     """
     # TODO: Increase limit
     # Get the first email_messaging_schedule entry that need to be generated
-    email_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
-        EmailMessagingSchedule.send_status == EmailMessagingStatus.NEEDS_GENERATION,
-        EmailMessagingSchedule.date_scheduled <= datetime.utcnow() + timedelta(days=1),
-    ).first()
+    email_messaging_schedule: EmailMessagingSchedule = (
+        EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.send_status == EmailMessagingStatus.NEEDS_GENERATION,
+            EmailMessagingSchedule.date_scheduled
+            <= datetime.utcnow() + timedelta(days=1),
+        ).first()
+    )
 
     if not email_messaging_schedule:
         return True, "No email_messaging_schedule entries to generate"
@@ -531,7 +637,7 @@ def generate_email_messaging_schedule_entry(
     self,
     email_messaging_schedule_id: int,
 ) -> tuple[bool, str]:
-    """ Generates an email_messaging_schedule entry
+    """Generates an email_messaging_schedule entry
 
     Args:
         email_messaging_schedule_id (int): The ID of the email_messaging_schedule entry to generate
@@ -539,34 +645,53 @@ def generate_email_messaging_schedule_entry(
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating success and a message
     """
-    from src.message_generation.email.services import ai_followup_email_prompt, generate_email
+    from src.message_generation.email.services import (
+        ai_followup_email_prompt,
+        generate_email,
+    )
 
     # Get the email_messaging_schedule entry
     email_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule.query.get(
-        email_messaging_schedule_id)
+        email_messaging_schedule_id
+    )
     if not email_messaging_schedule:
-        return False, f"EmailMessagingSchedule with ID {email_messaging_schedule_id} does not exist"
+        return (
+            False,
+            f"EmailMessagingSchedule with ID {email_messaging_schedule_id} does not exist",
+        )
     if email_messaging_schedule.send_status != EmailMessagingStatus.NEEDS_GENERATION:
-        return False, f"EmailMessagingSchedule with ID {email_messaging_schedule_id} is not in NEEDS_GENERATION status"
+        return (
+            False,
+            f"EmailMessagingSchedule with ID {email_messaging_schedule_id} is not in NEEDS_GENERATION status",
+        )
 
     # Generate the email
     # 1. Get the prospect email
     prospect_email: ProspectEmail = ProspectEmail.query.get(
-        email_messaging_schedule.prospect_email_id)
+        email_messaging_schedule.prospect_email_id
+    )
 
     # 2. Create the subject line
     # 2a. Get the subject line from the latest send
-    last_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
-        EmailMessagingSchedule.prospect_email_id == prospect_email.id,
-        EmailMessagingSchedule.subject_line_id != None
-    ).order_by(EmailMessagingSchedule.id.desc()).first()
+    last_messaging_schedule: EmailMessagingSchedule = (
+        EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.prospect_email_id == prospect_email.id,
+            EmailMessagingSchedule.subject_line_id != None,
+        )
+        .order_by(EmailMessagingSchedule.id.desc())
+        .first()
+    )
     if not last_messaging_schedule:
         # Delete entry
         db.session.delete(email_messaging_schedule)
         db.session.commit()
-        return False, f"EmailMessagingSchedule with ID {email_messaging_schedule_id} does not have a subject line to reply to"
+        return (
+            False,
+            f"EmailMessagingSchedule with ID {email_messaging_schedule_id} does not have a subject line to reply to",
+        )
     subject_line: GeneratedMessage = GeneratedMessage.query.get(
-        last_messaging_schedule.subject_line_id)
+        last_messaging_schedule.subject_line_id
+    )
     subject_line_text: str = subject_line.completion
 
     # 2b. Create the subject line
@@ -634,16 +759,18 @@ def generate_email_messaging_schedule_entry(
 
 @celery.task(bind=True, max_retries=3)
 def collect_and_send_email_messaging_schedule_entries(self) -> tuple[bool, str]:
-    """ Collects and sends email_messaging_schedule entries that need to be sent
+    """Collects and sends email_messaging_schedule entries that need to be sent
 
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating success and a message
     """
     # Get the first email_messaging_schedule entry that need to be sent
-    email_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
-        EmailMessagingSchedule.send_status == EmailMessagingStatus.SCHEDULED,
-        EmailMessagingSchedule.date_scheduled <= datetime.utcnow(),
-    ).first()
+    email_messaging_schedule: EmailMessagingSchedule = (
+        EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.send_status == EmailMessagingStatus.SCHEDULED,
+            EmailMessagingSchedule.date_scheduled <= datetime.utcnow(),
+        ).first()
+    )
 
     if not email_messaging_schedule:
         return True, "No email_messaging_schedule entries to send"
@@ -665,7 +792,7 @@ def send_email_messaging_schedule_entry(
     self,
     email_messaging_schedule_id: int,
 ) -> tuple[bool, str]:
-    """ Sends an email_messaging_schedule entry
+    """Sends an email_messaging_schedule entry
 
     Args:
         email_messaging_schedule_id (int): The ID of the email_messaging_schedule entry to send
@@ -678,15 +805,25 @@ def send_email_messaging_schedule_entry(
 
     # Get the email_messaging_schedule entry
     email_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule.query.get(
-        email_messaging_schedule_id)
+        email_messaging_schedule_id
+    )
     if not email_messaging_schedule:
-        return False, f"EmailMessage with ID {email_messaging_schedule_id} does not exist"
+        return (
+            False,
+            f"EmailMessage with ID {email_messaging_schedule_id} does not exist",
+        )
     if email_messaging_schedule.send_status != EmailMessagingStatus.SCHEDULED:
-        return False, f"EmailMessage with ID {email_messaging_schedule_id} is not in SCHEDULED status"
+        return (
+            False,
+            f"EmailMessage with ID {email_messaging_schedule_id} is not in SCHEDULED status",
+        )
 
     # Get the past email_messaging_schedule entries (to ensure they are all "SENT")
-    past_email_messaging_schedules: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
-        EmailMessagingSchedule.prospect_email_id == email_messaging_schedule.prospect_email_id,
+    past_email_messaging_schedules: list[
+        EmailMessagingSchedule
+    ] = EmailMessagingSchedule.query.filter(
+        EmailMessagingSchedule.prospect_email_id
+        == email_messaging_schedule.prospect_email_id,
         EmailMessagingSchedule.id < email_messaging_schedule.id,
     ).all()
     for past_email_messaging_schedule in past_email_messaging_schedules:
@@ -695,34 +832,52 @@ def send_email_messaging_schedule_entry(
 
     # 1. Get the prospect email, generated messages for subject line and body
     prospect_email: ProspectEmail = ProspectEmail.query.get(
-        email_messaging_schedule.prospect_email_id)
+        email_messaging_schedule.prospect_email_id
+    )
     subject_line: GeneratedMessage = GeneratedMessage.query.get(
-        email_messaging_schedule.subject_line_id)
+        email_messaging_schedule.subject_line_id
+    )
     body: GeneratedMessage = GeneratedMessage.query.get(
-        email_messaging_schedule.body_id)
+        email_messaging_schedule.body_id
+    )
 
     # 2. Determine if we are Initial or Followup
     # 2a. Followup emails should use nylas_message_id for reply_to
     reply_to_message_id = None
     if email_messaging_schedule.email_type == EmailMessagingType.FOLLOW_UP_EMAIL:
         # Get the last email_messaging_schedule entry
-        last_email_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule.query.filter(
-            EmailMessagingSchedule.prospect_email_id == email_messaging_schedule.prospect_email_id,
-            EmailMessagingSchedule.id < email_messaging_schedule.id,
-            EmailMessagingSchedule.nylas_message_id != None,
-            EmailMessagingSchedule.send_status == EmailMessagingStatus.SENT,
-        ).order_by(EmailMessagingSchedule.id.desc()).first()
+        last_email_messaging_schedule: EmailMessagingSchedule = (
+            EmailMessagingSchedule.query.filter(
+                EmailMessagingSchedule.prospect_email_id
+                == email_messaging_schedule.prospect_email_id,
+                EmailMessagingSchedule.id < email_messaging_schedule.id,
+                EmailMessagingSchedule.nylas_message_id != None,
+                EmailMessagingSchedule.send_status == EmailMessagingStatus.SENT,
+            )
+            .order_by(EmailMessagingSchedule.id.desc())
+            .first()
+        )
         if last_email_messaging_schedule:
             reply_to_message_id = last_email_messaging_schedule.nylas_message_id
         else:
-            return False, f"Could not find a previous email to reply to, even though this is a FOLLOW_UP_EMAIL"
+            return (
+                False,
+                f"Could not find a previous email to reply to, even though this is a FOLLOW_UP_EMAIL",
+            )
 
         # 2aa. If the prospect email record is not SENT_OUTREACH or EMAIL_OPENED, we should not send and delete the message
-        if prospect_email.outreach_status != ProspectEmailOutreachStatus.SENT_OUTREACH and prospect_email.outreach_status != ProspectEmailOutreachStatus.EMAIL_OPENED:
+        if (
+            prospect_email.outreach_status != ProspectEmailOutreachStatus.SENT_OUTREACH
+            and prospect_email.outreach_status
+            != ProspectEmailOutreachStatus.EMAIL_OPENED
+        ):
             # Delete the messages
             db.session.delete(email_messaging_schedule)
             db.session.commit()
-            return False, f"ProspectEmail with ID {prospect_email.id} is not in SENT_OUTREACH or EMAIL_OPENED status"
+            return (
+                False,
+                f"ProspectEmail with ID {prospect_email.id} is not in SENT_OUTREACH or EMAIL_OPENED status",
+            )
 
     # 3. Send the email
     result: dict = nylas_send_email(
@@ -739,11 +894,18 @@ def send_email_messaging_schedule_entry(
     utc_datetime = datetime.utcfromtimestamp(time_since_epoch)
 
     # 3b. Update future send dates
-    future_email_messaging_schedules: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
-        EmailMessagingSchedule.prospect_email_id == email_messaging_schedule.prospect_email_id,
-        EmailMessagingSchedule.id > email_messaging_schedule.id,
-    ).order_by(EmailMessagingSchedule.id.asc()).all()
-    step: EmailSequenceStep = EmailSequenceStep.query.get(email_messaging_schedule.email_body_template_id)
+    future_email_messaging_schedules: list[EmailMessagingSchedule] = (
+        EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.prospect_email_id
+            == email_messaging_schedule.prospect_email_id,
+            EmailMessagingSchedule.id > email_messaging_schedule.id,
+        )
+        .order_by(EmailMessagingSchedule.id.asc())
+        .all()
+    )
+    step: EmailSequenceStep = EmailSequenceStep.query.get(
+        email_messaging_schedule.email_body_template_id
+    )
     delay = step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
     new_time = utc_datetime + timedelta(days=delay)
     new_time = verify_followup_send_date(
@@ -754,9 +916,14 @@ def send_email_messaging_schedule_entry(
     for future_email_messaging_schedule in future_email_messaging_schedules:
         future_email_messaging_schedule.date_scheduled = new_time
 
-        step: EmailSequenceStep = EmailSequenceStep.query.get(future_email_messaging_schedule.email_body_template_id)
+        step: EmailSequenceStep = EmailSequenceStep.query.get(
+            future_email_messaging_schedule.email_body_template_id
+        )
         random_minute_offset = random.randint(-15, 15)
-        new_time = new_time + timedelta(days=step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL, minutes=random_minute_offset)
+        new_time = new_time + timedelta(
+            days=step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL,
+            minutes=random_minute_offset,
+        )
         new_time = verify_followup_send_date(
             client_sdr_id=email_messaging_schedule.client_sdr_id,
             followup_send_date=new_time,
@@ -776,16 +943,30 @@ def send_email_messaging_schedule_entry(
     body.date_sent = now
 
     # 4c. Get the templates from the generated message and increment use count
-    subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(subject_line.email_subject_line_template_id)
+    subject_line_template: EmailSubjectLineTemplate = (
+        EmailSubjectLineTemplate.query.get(subject_line.email_subject_line_template_id)
+    )
     if subject_line_template:
-        subject_line_template.times_used = subject_line_template.times_used + 1 if subject_line_template.times_used else 1
-    body_template: EmailSequenceStep = EmailSequenceStep.query.get(body.email_sequence_step_template_id)
+        subject_line_template.times_used = (
+            subject_line_template.times_used + 1
+            if subject_line_template.times_used
+            else 1
+        )
+    body_template: EmailSequenceStep = EmailSequenceStep.query.get(
+        body.email_sequence_step_template_id
+    )
     if body_template:
-        body_template.times_used = body_template.times_used + 1 if body_template.times_used else 1
+        body_template.times_used = (
+            body_template.times_used + 1 if body_template.times_used else 1
+        )
 
     # 5. Update the prospect_email
     # 5b. Get the appropriate status
-    outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH if email_messaging_schedule.email_type == EmailMessagingType.INITIAL_EMAIL else ProspectEmailOutreachStatus.BUMPED
+    outreach_status = (
+        ProspectEmailOutreachStatus.SENT_OUTREACH
+        if email_messaging_schedule.email_type == EmailMessagingType.INITIAL_EMAIL
+        else ProspectEmailOutreachStatus.BUMPED
+    )
     prospect_email.email_status = ProspectEmailStatus.SENT
 
     # 5c. Update the prospect_email status
@@ -796,7 +977,9 @@ def send_email_messaging_schedule_entry(
 
     # 5d. Update the prospect_email bump count (if applicable)
     if outreach_status == ProspectEmailOutreachStatus.BUMPED:
-        prospect_email.times_bumped = prospect_email.times_bumped + 1 if prospect_email.times_bumped else 1
+        prospect_email.times_bumped = (
+            prospect_email.times_bumped + 1 if prospect_email.times_bumped else 1
+        )
 
     # 6. Commit the changes
     db.session.commit()

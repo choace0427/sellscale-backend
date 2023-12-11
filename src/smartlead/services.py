@@ -3,6 +3,8 @@ import re
 from typing import List, Optional, Tuple
 
 from bs4 import BeautifulSoup
+from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
+from src.message_generation.models import GeneratedMessage
 from src.utils.datetime.dateparse_utils import (
     convert_string_to_datetime,
     convert_string_to_datetime_or_none,
@@ -47,13 +49,14 @@ def get_smartlead_inbox(client_sdr_id: int) -> dict:
     p.title,
     p.img_url,
     p.icp_fit_score,
-	a.smartlead_campaign_id
+	a.smartlead_campaign_id,
+    pe.outreach_status
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
 	LEFT JOIN client_archetype a ON p.archetype_id = a.id
 WHERE
-	pe.outreach_status = 'ACTIVE_CONVO'
+	pe.outreach_status::text ilike 'ACTIVE_CONVO%'
 	AND (pe.hidden_until IS NULL
 		OR pe.hidden_until < now())
 	AND p.client_sdr_id = {client_sdr_id}
@@ -70,6 +73,7 @@ WHERE
                 "prospect_img_url": id[3],
                 "prospect_icp_fit_score": id[4],
                 "smartlead_campaign_id": id[5],
+                "outreach_status": id[6],
             }
         )
 
@@ -80,13 +84,14 @@ WHERE
     p.img_url,
     p.icp_fit_score,
 	a.smartlead_campaign_id,
-    pe.hidden_until
+    pe.hidden_until,
+    pe.outreach_status
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
 	LEFT JOIN client_archetype a ON p.archetype_id = a.id
 WHERE
-	pe.outreach_status = 'ACTIVE_CONVO'
+	pe.outreach_status::text ilike 'ACTIVE_CONVO%'
 	AND pe.hidden_until > now()
 	AND p.client_sdr_id = {client_sdr_id}
 	AND a.smartlead_campaign_id IS NOT NULL;;
@@ -103,6 +108,7 @@ WHERE
                 "prospect_icp_fit_score": id[4],
                 "smartlead_campaign_id": id[5],
                 "hidden_until": id[6],
+                "outreach_status": id[7],
             }
         )
 
@@ -755,3 +761,86 @@ def sync_prospects_to_campaign(client_sdr_id: int, archetype_id: int):
     )
 
     return True, len(prospects)
+
+
+@celery.task
+def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
+    """Uploads a single prospect to a Smartlead campaign using `sl.add_leads_to_campaign_by_id`
+
+    ASSUMPTIONS:
+    - The prospect has an approved email
+    - The prospect has a schedule with messages fully generated
+
+    Args:
+        prospect_id (int): The ID of the prospect
+
+    Returns:
+        tuple[bool, int]: A tuple with the first value being True if successful, and the second being the number of prospects uploaded
+    """
+    # Get the prospect, archetype, and smartlead campaign ID
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False, "Prospect not found"
+    if not prospect.approved_prospect_email_id:
+        return False, "Prospect does not have an approved email"
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    if archetype.smartlead_campaign_id == None:
+        return False, "No Smartlead campaign ID found"
+
+    # Get the message schedule
+    schedule: list[EmailMessagingSchedule] = (
+        EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.prospect_email_id
+            == prospect.approved_prospect_email_id
+        )
+        .order_by(EmailMessagingSchedule.id.asc())
+        .all()
+    )
+    if not schedule:
+        return False, "No messaging schedule found"
+    for message in schedule:
+        if not message.subject_line_id:
+            return (
+                False,
+                "Messaging schedule not fully generated. Subject Line missing.",
+            )
+        if not message.body_id:
+            return False, "Messaging schedule not fully generated. Email Body missing."
+
+    # Create the lead list
+
+    custom_fields = {}
+    for message, index in enumerate(schedule):
+        message: EmailMessagingSchedule = message
+        if message.email_type == EmailMessagingType.INITIAL_EMAIL:
+            subject_line: GeneratedMessage = GeneratedMessage.query.get(
+                message.subject_line_id
+            )
+            custom_fields["Subject_Line"] = subject_line.completion
+        if message.email_type == EmailMessagingType.FOLLOW_UP_EMAIL:
+            email_body: GeneratedMessage = GeneratedMessage.query.get(message.body_id)
+            custom_fields[f"Body_{index}"] = email_body.completion
+
+    sl = Smartlead()
+    result = sl.add_campaign_leads(
+        campaign_id=archetype.smartlead_campaign_id,
+        leads=[
+            {
+                "email": prospect.email,
+                "custom_fields": custom_fields,
+            }
+        ],
+    )
+    if result.get("upload_count") != result.get("total_leads"):
+        send_slack_message(
+            message=f"Only {result.get('upload_count')} of {result.get('total_leads')} prospects were uploaded to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
+        return False, "Not all prospects were uploaded"
+
+    send_slack_message(
+        message=f"Uploaded 1 prospect {prospect.full_name}#{prospect.id} to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
+    return True, 1

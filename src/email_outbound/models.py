@@ -547,6 +547,7 @@ VALID_NEXT_EMAIL_STATUSES = {
     ],
     ProspectEmailOutreachStatus.SENT_OUTREACH: [
         ProspectEmailOutreachStatus.EMAIL_OPENED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.EMAIL_OPENED: [
         ProspectEmailOutreachStatus.ACCEPTED,
@@ -554,17 +555,20 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.BUMPED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACCEPTED: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.BUMPED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.BUMPED: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO: [
         ProspectEmailOutreachStatus.SCHEDULING,
@@ -578,6 +582,7 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_REFERRAL,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.NOT_QUALIFIED: [
         ProspectEmailOutreachStatus.SENT_OUTREACH,
@@ -606,6 +611,7 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO_QUAL_NEEDED: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
@@ -618,6 +624,7 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO_OBJECTION: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
@@ -630,6 +637,7 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
@@ -642,6 +650,7 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
@@ -654,6 +663,7 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
@@ -666,6 +676,7 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
@@ -678,10 +689,12 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
         ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.SCHEDULING: [
         ProspectEmailOutreachStatus.DEMO_SET,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.DEMO_SET: [
         ProspectEmailOutreachStatus.DEMO_WON,

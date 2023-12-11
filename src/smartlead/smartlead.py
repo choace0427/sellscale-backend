@@ -163,6 +163,16 @@ class Smartlead:
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
+    def add_leads_to_campaign_by_id(self, campaign_id: int, lead_list: list):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}"
+        data = {"lead_list": lead_list}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.add_leads_to_campaign_by_id(campaign_id, lead_list)
+        return response.json()
+
     def reply_to_lead(
         self,
         campaign_id: int,
