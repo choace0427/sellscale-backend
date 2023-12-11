@@ -520,7 +520,7 @@ def auto_send_campaign(campaign_id: int):
         message.prospect_id for message in messages if not message.ai_approved
     ]
 
-    invalid_message_ids = list[int] = [
+    invalid_message_ids: list[int] = [
         message.id for message in messages if not message.ai_approved
     ]
     send_slack_message_for_invalid_messages(invalid_message_ids)
