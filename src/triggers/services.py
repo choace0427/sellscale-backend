@@ -399,27 +399,18 @@ def action_upload_prospects(
     if len(prospects) == 0:
         return 0
 
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-
     payload = []
     for prospect in prospects:
+        if not prospect.linkedin_url:
+            continue
         payload.append(prospect.to_dict())
 
-    api_url = os.environ.get("SELLSCALE_API_URL")
-    url = "{api_url}/prospect/add_prospect_from_csv_payload".format(api_url=api_url)
-    payload = json.dumps(
-        {
-            "archetype_id": client_archetype_id,
-            "csv_payload": payload,
-            "allow_duplicates": False,
-        }
+    from src.prospecting.controllers import add_prospect_from_csv_payload
+
+    response = add_prospect_from_csv_payload(
+        client_sdr_id, client_archetype_id, payload, False
     )
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": "Bearer {userToken}".format(userToken=sdr.auth_token),
-    }
-    response = requests.request("POST", url, headers=headers, data=payload)
+    print(response)
 
     # Create trigger prospect records after upload
     for prospect in prospects:
@@ -569,11 +560,11 @@ def extract_linkedin_profiles(
             # Construct the Google search query
             query = f'site:linkedin.com/in/ "{company.company_name}" "- {title}"'
 
-            send_socket_message(
-                "trigger-log",
-                {"message": f"Gathering prospects from SERP query: '{query}'"},
-                f"trigger-{trigger_id}",
-            )
+            # send_socket_message(
+            #     "trigger-log",
+            #     {"message": f"Gathering prospects from SERP query: '{query}'"},
+            #     f"trigger-{trigger_id}",
+            # )
 
             # Perform the Google search
             search_results = search_google_news_raw(
@@ -599,7 +590,7 @@ def extract_linkedin_profiles(
 
     send_socket_message(
         "trigger-log",
-        {"message": f"Found {len(profiles_data)} leads"},
+        {"message": f"Found {len(profiles_data)} prospects"},
         f"trigger-{trigger_id}",
     )
 
@@ -711,7 +702,7 @@ def source_companies_from_google_news(
 
     send_socket_message(
         "trigger-log",
-        {"message": f"Found {len(result_data)} companies"},
+        {"message": f"Found {len(result_data)} companies with news event '{query}'"},
         f"trigger-{trigger_id}",
     )
 

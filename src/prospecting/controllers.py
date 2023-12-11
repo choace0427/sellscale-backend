@@ -892,7 +892,7 @@ def send_slack_reminder():
 
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
 @require_user
-def add_prospect_from_csv_payload(client_sdr_id: int):
+def post_add_prospect_from_csv_payload(client_sdr_id: int):
     """Adds prospect from CSV payload (given as JSON) from Retool
 
     First stores the entire csv in `prospect_uploads_raw_csv` table
@@ -910,6 +910,17 @@ def add_prospect_from_csv_payload(client_sdr_id: int):
     )
     allow_duplicates = True if allow_duplicates is None else allow_duplicates
 
+    return add_prospect_from_csv_payload(
+        client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
+        csv_payload=csv_payload,
+        allow_duplicates=allow_duplicates,
+    )
+
+
+def add_prospect_from_csv_payload(
+    client_sdr_id: int, archetype_id: int, csv_payload: list, allow_duplicates: bool
+):
     if len(csv_payload) >= 5000:
         return (
             "Too many rows in CSV. The max row limit is 5,000. Your CSV has {} rows.".format(

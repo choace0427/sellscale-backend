@@ -171,6 +171,9 @@ def post_update_trigger(client_sdr_id: int, trigger_id: int):
     blocks = get_request_parameter(
         "blocks", request, json=True, required=False, parameter_type=list
     )
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=False, parameter_type=int
+    )
 
     trigger: Trigger = Trigger.query.filter_by(
         id=trigger_id, client_sdr_id=client_sdr_id
@@ -178,6 +181,8 @@ def post_update_trigger(client_sdr_id: int, trigger_id: int):
     if not trigger:
         return {"message": "Trigger not found"}, 404
 
+    if campaign_id:
+        trigger.client_archetype_id = campaign_id
     if emoji:
         trigger.emoji = emoji
     if name:
