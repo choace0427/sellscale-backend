@@ -44,11 +44,11 @@ def post_archetype_bulk_action_move_prospects(client_sdr_id: int):
         "prospect_ids", request, json=True, required=True, parameter_type=list
     )
 
-    if len(prospect_ids) > 100:
-        return (
-            jsonify({"status": "error", "message": "Too many prospects. Limit 100."}),
-            400,
-        )
+    # if len(prospect_ids) > 100:
+    #     return (
+    #         jsonify({"status": "error", "message": "Too many prospects. Limit 100."}),
+    #         400,
+    #     )
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     target_archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
