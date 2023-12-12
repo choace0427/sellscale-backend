@@ -50,7 +50,8 @@ def get_smartlead_inbox(client_sdr_id: int) -> dict:
     p.img_url,
     p.icp_fit_score,
 	a.smartlead_campaign_id,
-    pe.outreach_status
+    pe.outreach_status,
+    pe.last_reply_time
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
@@ -74,6 +75,7 @@ WHERE
                 "prospect_icp_fit_score": id[4],
                 "smartlead_campaign_id": id[5],
                 "outreach_status": id[6],
+                "last_reply_time": id[7],
             }
         )
 
@@ -85,7 +87,8 @@ WHERE
     p.icp_fit_score,
 	a.smartlead_campaign_id,
     pe.hidden_until,
-    pe.outreach_status
+    pe.outreach_status,
+    pe.last_reply_time
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
@@ -109,6 +112,7 @@ WHERE
                 "smartlead_campaign_id": id[5],
                 "hidden_until": id[6],
                 "outreach_status": id[7],
+                "last_reply_time": id[8],
             }
         )
 
@@ -118,7 +122,9 @@ WHERE
     p.title,
     p.img_url,
     p.icp_fit_score,
-	a.smartlead_campaign_id
+	a.smartlead_campaign_id,
+    pe.outreach_status,
+    pe.last_reply_time
 FROM
 	prospect p
 	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
@@ -139,6 +145,8 @@ WHERE
                 "prospect_img_url": id[3],
                 "prospect_icp_fit_score": id[4],
                 "smartlead_campaign_id": id[5],
+                "outreach_status": id[6],
+                "last_reply_time": id[7],
             }
         )
 
