@@ -1327,10 +1327,10 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
     #     )
     #     raise self.retry(exc=e, countdown=2**self.request.retries)
 
-    # update_generated_message_job_queue_status(
-    #     gm_job_id, GeneratedMessageJobStatus.COMPLETED
-    # )
-    # return (True, "Success")
+    update_generated_message_job_queue_status(
+        gm_job_id, GeneratedMessageJobStatus.COMPLETED
+    )
+    return (True, "Success")
 
 
 def change_prospect_email_status(
