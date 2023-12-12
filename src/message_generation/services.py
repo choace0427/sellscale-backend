@@ -123,6 +123,7 @@ def get_messages_queued_for_outreach(
             ClientArchetype.archetype.label("archetype"),
             GeneratedMessage.id.label("message_id"),
             GeneratedMessage.completion.label("completion"),
+            GeneratedMessage.created_at.label("created_at"),
         )
         .join(
             GeneratedMessage,
@@ -173,6 +174,7 @@ def get_messages_queued_for_outreach(
                 "icp_fit_score": row.icp_fit_score,
                 "icp_fit_reason": row.icp_fit_reason,
                 "archetype": row.archetype,
+                "created_at": row.created_at,
             }
         )
 
