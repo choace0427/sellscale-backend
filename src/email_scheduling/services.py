@@ -224,6 +224,9 @@ def create_email_messaging_schedule_entry(
     db.session.commit()
 
     if generate_immediately:
+        email_messaging_schedule.send_status = EmailMessagingStatus.NEEDS_GENERATION
+        db.session.commit()
+
         tries = 0
         while tries < 3:
             tries += 1
@@ -235,6 +238,10 @@ def create_email_messaging_schedule_entry(
                 if tries == 3:
                     raise Exception(f"Failed to generate email: {reason}")
                 continue
+
+            # Temporary measure to prevent sending (this is through SMARTLEAD for the moment)
+            email_messaging_schedule.send_status = EmailMessagingStatus.SENT
+            db.session.commit()
             break
 
     return email_messaging_schedule.id
@@ -421,9 +428,9 @@ def get_initial_email_send_date(
         # Get the email bank (random for now)
         email_bank: SDREmailBank = SDREmailBank.query.filter(
             SDREmailBank.client_sdr_id == client_sdr_id,
-            SDREmailBank.nylas_account_id != None,
-            SDREmailBank.nylas_auth_code != None,
-            SDREmailBank.nylas_active == True,
+            # SDREmailBank.nylas_account_id != None, #TODO: Restructure to not use nylas
+            # SDREmailBank.nylas_auth_code != None,
+            # SDREmailBank.nylas_active == True,
         ).first()
     else:
         email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
@@ -559,9 +566,9 @@ def verify_followup_send_date(
         # Get the email bank (random for now)
         email_bank: SDREmailBank = SDREmailBank.query.filter(
             SDREmailBank.client_sdr_id == client_sdr_id,
-            SDREmailBank.nylas_account_id != None,
-            SDREmailBank.nylas_auth_code != None,
-            SDREmailBank.nylas_active == True,
+            # SDREmailBank.nylas_account_id != None, #TODO: Restructure to not use nylas
+            # SDREmailBank.nylas_auth_code != None,
+            # SDREmailBank.nylas_active == True,
         ).first()
     else:
         email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)

@@ -293,17 +293,15 @@ class Smartlead:
             return self.get_campaign_leads(campaign_id, offset, limit)
         return response.json()
 
-    def add_campaign_leads(
-        self, campaign_id, leads: list[Lead]
-    ):  # max 100 leads at a time
-        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads"
+    def add_campaign_leads(self, campaign_id, leads: list):  # max 100 leads at a time
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}"
         response = requests.post(
             url,
             headers={
                 "Content-Type": "application/json",
             },
             json={
-                "lead_list": [lead.to_dict() for lead in leads],
+                "lead_list": leads,
             },
         )
         if response.status_code == 429:
