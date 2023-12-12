@@ -902,8 +902,17 @@ def send_linkedin_disconnected_email(
 def send_linkedin_disconnected_slack_message(
     client_sdr_id: int,
 ):
+    from model_import import Client
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_sdr_name = client_sdr.name
+
+    client: Client = Client.query.get(client_sdr.client_id)
+    client_pipeline_url = client.pipeline_notifications_webhook_url
+
+    webhook_urls = [URL_MAP["csm-urgent-alerts"]]
+    if client_pipeline_url:
+        webhook_urls.append(client_pipeline_url)
 
     direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=settings".format(
         auth_token=client_sdr.auth_token
@@ -912,5 +921,5 @@ def send_linkedin_disconnected_slack_message(
 
     send_slack_message(
         message=f"🚨 *LinkedIn Disconnected from SellScale @{client_sdr_name}* 🚨\n_Please follow the steps below to reconnect your LinkedIn_\n> 1. *<{direct_link}|Click here>* to log into SellScale.\n>2. You'll see a popup that says `Linkedin Disconnected (Reconnect)` on the top right.\n>3. Click on `Reconnect`.\n>4. Download & Open the <{browser_extension_url}|SellScale Chrome Extension> and press `Reconnect LinkedIn\nAfter that, you should see a `connected` screen!",
-        webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+        webhook_urls=webhook_urls,
     )
