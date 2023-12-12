@@ -816,12 +816,12 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
             subject_line: GeneratedMessage = GeneratedMessage.query.get(
                 message.subject_line_id
             )
+            body: GeneratedMessage = GeneratedMessage.query.get(message.body_id)
             custom_fields["Subject_Line"] = subject_line.completion
+            custom_fields[f"Body_{index+1}"] = body.completion
         if message.email_type == EmailMessagingType.FOLLOW_UP_EMAIL:
             email_body: GeneratedMessage = GeneratedMessage.query.get(message.body_id)
-            custom_fields[f"Body_{index}"] = email_body.completion
-    print(custom_fields)
-    return
+            custom_fields[f"Body_{index+1}"] = email_body.completion
 
     sl = Smartlead()
     result = sl.add_campaign_leads(
