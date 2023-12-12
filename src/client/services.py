@@ -2805,6 +2805,8 @@ def get_personas_page_details(client_sdr_id: int):
                 )
             )
             .label("num_unused_email_prospects"),
+            ClientArchetype.email_active,
+            ClientArchetype.linkedin_active,
         )
         .select_from(ClientArchetype)
         .join(Prospect, Prospect.archetype_id == ClientArchetype.id, isouter=True)
