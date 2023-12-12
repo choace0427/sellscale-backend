@@ -69,7 +69,7 @@ This structure keeps our code clean and ensures we know where to find unit tests
 
 If setting up from a fresh machine, make sure you have the following installed before continuing:
 
-- Python3 (For OSX `xcode-select --install`)
+- Python3 <= 3.11 (For OSX `xcode-select --install`)
 - Pip (For OSX `xcode-select --install`)
 - [Postgres](https://www.postgresql.org/)
 - [Brew](https://brew.sh/)
@@ -135,8 +135,8 @@ The following steps assume that you have the above prerequisites installed - any
 9.  Now you can upgrade your empty databases with the correct schemas. After running the following commands, use Postico to validate.
 
     ```
-    source .env && flask db upgrade
-    source .envtesting && flask db upgrade
+    source .production.env && flask db upgrade
+    source .testing.env && flask db upgrade
     ```
 
 10. Make sure that setup worked by running two tests.
