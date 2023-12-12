@@ -3238,25 +3238,67 @@ def global_prospected_contacts(client_id: int):
     Returns a list of all prospects that have been prospected but not yet approved for outreach for a given client.
     """
     query = """
-        select
-            prospect.id "prospect_id",
-            prospect.full_name "prospect_name",
-            prospect.title "prospect_title",
-            prospect.company "prospect_company",
-            prospect.industry "prospect_industry",
-            prospect.linkedin_url "prospect_linkedin_url",
-            prospect.status "outreach_status",
-            client_archetype.archetype "persona",
-            client_sdr.name "user_name",
-            prospect.created_at "date_uploaded",
-            prospect.overall_status "overall_status"
-        from prospect
-            join client_archetype on client_archetype.id = prospect.archetype_id
-            join client_sdr on client_sdr.id = prospect.client_sdr_id
-        where prospect.client_id = {client_id}
-            and prospect.overall_status = 'PROSPECTED'
-            and prospect.approved_prospect_email_id is null
-            and prospect.approved_outreach_message_id is null
+        with d as (
+            select
+                prospect.id "prospect_id",
+                prospect.full_name "prospect_name",
+                prospect.title "prospect_title",
+                prospect.company "prospect_company",
+                prospect.industry "prospect_industry",
+                prospect.linkedin_url "prospect_linkedin_url",
+                prospect.status "outreach_status",
+                client_archetype.archetype "persona",
+                client_sdr.name "user_name",
+                prospect.created_at "date_uploaded",
+                prospect.overall_status "overall_status",
+                prospect.linkedin_bio "linkedin_bio",
+                prospect.education_1 "education_1",
+                prospect.education_2 "education_2",
+                case 
+                when prospect.employee_count ilike '%None-None%' then 'No Size'
+                when prospect.employee_count ilike '%10001-None%' then '10001+'
+                when prospect.employee_count ilike '%-%' then prospect.employee_count
+                    when prospect.employee_count ilike '%+' then '10001+'
+                    
+                    when prospect.employee_count ilike '%None%' then 'unknown' 
+                else 
+                    (
+                    case 
+                        when cast(prospect.employee_count as integer) >= 0 and cast(prospect.employee_count as integer) <= 10 then '2-10' 
+                        when cast(prospect.employee_count as integer) >= 11 and cast(prospect.employee_count as integer) <= 50 then '11-50'
+                        when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
+                        when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
+                        when cast(prospect.employee_count as integer) >= 201 and cast(prospect.employee_count as integer) <= 500 then '201-500'
+                        when cast(prospect.employee_count as integer) >= 501 and cast(prospect.employee_count as integer) <= 1000 then '501-1000'
+                        when cast(prospect.employee_count as integer) >= 1001 and cast(prospect.employee_count as integer) <= 5000 then '501-1000'
+                        when cast(prospect.employee_count as integer) >= 5001 and cast(prospect.employee_count as integer) <= 10000 then '5001-10000'
+                        else 'No Size'
+                    END
+                    )
+                end employee_count_comp
+            from prospect
+                join client_archetype on client_archetype.id = prospect.archetype_id
+                join client_sdr on client_sdr.id = prospect.client_sdr_id
+            where prospect.client_id = {client_id}
+                and prospect.overall_status = 'PROSPECTED'
+                and prospect.approved_prospect_email_id is null
+                and prospect.approved_outreach_message_id is null
+        )
+        select *
+        from d
+        order by 
+            case when employee_count_comp = 'No Size' then 1 else 0 end,
+            case 
+                when employee_count_comp = '0-1' then 0
+                when employee_count_comp = '2-10' then 1
+                when employee_count_comp = '11-50' then 2
+                when employee_count_comp = '51-200' then 3
+                when employee_count_comp = '201-500' then 4
+                when employee_count_comp = '501-1000' then 5
+                when employee_count_comp = '1001-5000' then 6
+                when employee_count_comp = '5001-10000' then 7
+                when employee_count_comp = '10001+' then 8
+            end;
     """.format(
         client_id=client_id
     )
@@ -3275,6 +3317,10 @@ def global_prospected_contacts(client_id: int):
         8: "user_name",
         9: "date_uploaded",
         10: "overall_status",
+        11: "linkedin_bio",
+        12: "education_1",
+        13: "education_2",
+        14: "employee_count_comp",
     }
 
     return [dict(zip(entries.values(), result)) for result in results]
@@ -3307,10 +3353,10 @@ def move_prospect_to_persona(
     return True
 
 
-def bulk_mark_not_qualified(client_sdr_id: int, prospect_ids: list[int]):
+def bulk_mark_not_qualified(client_id: int, prospect_ids: list[int]):
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.id.in_(prospect_ids),
-        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.client_id == client_id,
     ).all()
 
     for prospect in prospects:

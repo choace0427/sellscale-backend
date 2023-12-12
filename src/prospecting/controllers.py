@@ -1592,9 +1592,14 @@ def post_remove_global_contacts(client_sdr_id: int):
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True, parameter_type=list
     )
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
+
+    client_id: int = client_sdr.client_id
 
     success = bulk_mark_not_qualified(
-        client_sdr_id=client_sdr_id,
+        client_id=client_id,
         prospect_ids=prospect_ids,
     )
 
