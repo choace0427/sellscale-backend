@@ -384,6 +384,7 @@ def clone_bump_framework(
         description=existing_bf.description,
         bumped_count=existing_bf.bumped_count,
         default=True,
+        active=True,
         sellscale_default_generated=False,
     )
 
