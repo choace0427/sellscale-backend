@@ -142,8 +142,7 @@ def patch_linkedin_auto_generate(client_sdr_id: int):
     )
 
     success = update_client_auto_generate_li_messages_setting(
-        client_sdr_id=client_sdr_id,
-        auto_generate_li_messages=auto_generate
+        client_sdr_id=client_sdr_id, auto_generate_li_messages=auto_generate
     )
     if not success:
         return "Failed to update client SDR", 404
@@ -153,7 +152,6 @@ def patch_linkedin_auto_generate(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/submit-error", methods=["POST"])
 @require_user
 def post_submit_error(client_sdr_id: int):
-
     error = get_request_parameter(
         "error", request, json=True, required=True, parameter_type=str
     )
@@ -307,8 +305,11 @@ def create_archetype(client_sdr_id: int):
 
     return ca
 
+
 # toggle template mode active for archetype
-@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/toggle_template_mode", methods=["PATCH"])
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<int:archetype_id>/toggle_template_mode", methods=["PATCH"]
+)
 @require_user
 def patch_toggle_template_mode(client_sdr_id: int, archetype_id: int):
     template_mode = get_request_parameter(
@@ -340,7 +341,6 @@ def get_archetype_prospects_endpoint(client_sdr_id: int, archetype_id: int):
 @CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/clone", methods=["POST"])
 @require_user
 def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
-
     persona_name = get_request_parameter(
         "persona_name", request, json=True, required=True, parameter_type=str
     )
@@ -541,7 +541,6 @@ def patch_sdr(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/conversion_percentages", methods=["PATCH"])
 @require_user
 def patch_sdr_conversion_percentages(client_sdr_id: int):
-
     active_convo = get_request_parameter(
         "active_convo", request, json=True, required=True, parameter_type=float
     )
@@ -584,7 +583,6 @@ def get_sdr_general_info(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/complete-onboarding", methods=["POST"])
 @require_user
 def post_sdr_complete_onboarding(client_sdr_id: int):
-
     complete_client_sdr_onboarding(client_sdr_id)
 
     return jsonify({"message": "Success"}), 200
@@ -630,7 +628,6 @@ def deactivate_sdr_endpoint():
 @CLIENT_BLUEPRINT.route("/sdr/timezone", methods=["POST"])
 @require_user
 def set_sdr_timezone(client_sdr_id: int):
-
     timezone = get_request_parameter(
         "timezone", request, json=True, required=True, parameter_type=str
     )
@@ -754,7 +751,6 @@ def post_deactivate_archetype(client_sdr_id: int, archetype_id: int):
 @CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/activate", methods=["POST"])
 @require_user
 def post_activate_archetype(client_sdr_id: int, archetype_id: int):
-
     success = activate_client_archetype(
         client_sdr_id=client_sdr_id, client_archetype_id=archetype_id
     )
@@ -1925,6 +1921,9 @@ def post_demo_feedback(client_sdr_id: int):
     next_demo_date = get_request_parameter(
         "next_demo_date", request, json=True, required=False, parameter_type=str
     )
+    ai_adjustments = get_request_parameter(
+        "ai_adjustments", request, json=True, required=False, parameter_type=str
+    )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
@@ -1942,6 +1941,7 @@ def post_demo_feedback(client_sdr_id: int):
         rating=rating,
         feedback=feedback,
         next_demo_date=next_demo_date,
+        ai_adjustments=ai_adjustments,
     )
 
     send_slack_message(
@@ -1963,10 +1963,11 @@ def post_demo_feedback(client_sdr_id: int):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}".format(
+                    "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
                         rating=rating,
                         rep=client_sdr.name,
                         notes=feedback,
+                        ai_adjustments=ai_adjustments,
                     ),
                 },
             },
@@ -2002,7 +2003,6 @@ def get_demo_feedback_sdr_endpoint(client_sdr_id: int):
     )
 
     if prospect_id:
-
         list_of_feedback = get_demo_feedback(client_sdr_id, prospect_id)
 
         if not list_of_feedback:
@@ -2019,7 +2019,6 @@ def get_demo_feedback_sdr_endpoint(client_sdr_id: int):
         )
 
     else:
-
         all_feedback = get_all_demo_feedback(client_sdr_id)
 
         return (
@@ -2050,6 +2049,9 @@ def patch_demo_feedback(client_sdr_id: int):
     feedback = get_request_parameter(
         "feedback", request, json=True, required=True, parameter_type=str
     )
+    ai_adjustments = get_request_parameter(
+        "ai_adjustments", request, json=True, required=False, parameter_type=str
+    )
     next_demo_date = get_request_parameter(
         "next_demo_date", request, json=True, required=False, parameter_type=str
     )
@@ -2068,6 +2070,7 @@ def patch_demo_feedback(client_sdr_id: int):
         rating=rating,
         feedback=feedback,
         next_demo_date=next_demo_date,
+        ai_adjustments=ai_adjustments,
     )
     if not result:
         return (
@@ -2076,6 +2079,56 @@ def patch_demo_feedback(client_sdr_id: int):
             ),
             400,
         )
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    prospect: Prospect = Prospect.query.get(df.prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    send_slack_message(
+        message="🎊 ✍️ UPDATED Demo Feedback",
+        webhook_urls=[
+            URL_MAP["csm-demo-feedback"],
+            client.pipeline_notifications_webhook_url,
+        ],
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "🎊 ✍️ UPDATED Demo Feedback",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
+                        rating=rating,
+                        rep=client_sdr.name,
+                        notes=feedback,
+                        ai_adjustments=ai_adjustments,
+                    ),
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {date}\n*Demo*: {showed}".format(
+                            prospect=prospect.full_name,
+                            company=prospect.company,
+                            persona=archetype.archetype,
+                            date=str(prospect.demo_date),
+                            showed=status,
+                        ),
+                    }
+                ],
+            },
+        ],
+    )
 
     return jsonify({"status": "success", "data": {"message": "Success"}}), 200
 
@@ -2162,7 +2215,6 @@ def post_remove_prospects_endpoint(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters", methods=["POST"])
 @require_user
 def post_sdr_do_not_contact_filters(client_sdr_id: int):
-
     do_not_contact_keywords_in_company_names = get_request_parameter(
         "do_not_contact_keywords_in_company_names", request, json=True, required=False
     )
@@ -2203,7 +2255,6 @@ def post_sdr_do_not_contact_filters(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters", methods=["GET"])
 @require_user
 def get_sdr_do_not_contact_filters_endpoint(client_sdr_id: int):
-
     data = get_sdr_do_not_contact_filters(
         client_sdr_id=client_sdr_id,
     )
@@ -2213,7 +2264,6 @@ def get_sdr_do_not_contact_filters_endpoint(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/do_not_contact_filters/caught_prospects", methods=["GET"])
 @require_user
 def get_sdr_caught_prospects_endpoint(client_sdr_id: int):
-
     prospects = list_prospects_caught_by_sdr_client_filters(
         client_sdr_id=client_sdr_id,
     )
@@ -2237,7 +2287,6 @@ def post_sdr_remove_prospects_endpoint(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/product", methods=["POST"])
 @require_user
 def post_client_product(client_sdr_id: int):
-
     name = get_request_parameter(
         "name", request, json=True, required=True, default_value=""
     )
@@ -2271,7 +2320,6 @@ def post_client_product(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/product", methods=["PUT"])
 @require_user
 def put_client_product(client_sdr_id: int):
-
     product_id = get_request_parameter(
         "product_id", request, json=True, required=True, parameter_type=int
     )
@@ -2310,7 +2358,6 @@ def put_client_product(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/product", methods=["DELETE"])
 @require_user
 def delete_client_product(client_sdr_id: int):
-
     product_id = get_request_parameter("product_id", request, json=True, required=True)
 
     success = remove_client_product(
@@ -2325,7 +2372,6 @@ def delete_client_product(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/product", methods=["GET"])
 @require_user
 def get_client_product(client_sdr_id: int):
-
     products = get_client_products(client_sdr_id=client_sdr_id)
 
     return jsonify({"message": "Success", "data": products}), 200

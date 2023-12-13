@@ -2193,6 +2193,7 @@ def submit_demo_feedback(
     rating: str,
     feedback: str,
     next_demo_date: Optional[datetime] = None,
+    ai_adjustments: Optional[str] = None,
 ):
     """Submits demo feedback.
 
@@ -2205,6 +2206,7 @@ def submit_demo_feedback(
         status (str): Demo status
         rating (str): Demo rating
         feedback (str): Actual demo feedback
+        ai_adjustments (Optional[str], optional): AI adjustments. Defaults to None.
 
     Returns:
         bool: Whether it was successful or not
@@ -2225,6 +2227,7 @@ def submit_demo_feedback(
         feedback=feedback,
         demo_date=demo_date,
         next_demo_date=next_demo_date,
+        ai_adjustments=ai_adjustments,
     )
 
     # If next_demo_date is specified, update the prospect
@@ -2285,6 +2288,7 @@ def edit_demo_feedback(
     rating: Optional[str] = None,
     feedback: Optional[str] = None,
     next_demo_date: Optional[datetime] = None,
+    ai_adjustments: Optional[str] = None,
 ) -> bool:
     """Edit demo feedback
 
@@ -2295,6 +2299,7 @@ def edit_demo_feedback(
         rating (Optional[str], optional): Demo rating. Defaults to None.
         feedback (Optional[str], optional): Demo feedback. Defaults to None.
         next_demo_date (Optional[datetime], optional): Next demo date. Defaults to None.
+        ai_adjustments (Optional[str], optional): AI adjustments. Defaults to None.
 
     Returns:
         bool: Whether it was successful or not
@@ -2311,6 +2316,8 @@ def edit_demo_feedback(
         demo_feedback.feedback = feedback
     if next_demo_date:
         demo_feedback.next_demo_date = next_demo_date
+    if ai_adjustments:
+        demo_feedback.ai_adjustments = ai_adjustments
 
     # If next_demo_date is specified, and this feedback is the most recent, update the prospect
     if next_demo_date:

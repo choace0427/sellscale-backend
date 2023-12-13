@@ -549,6 +549,7 @@ class DemoFeedback(db.Model):
     feedback = db.Column(db.String)
     demo_date = db.Column(db.DateTime, nullable=True)
     next_demo_date = db.Column(db.DateTime, nullable=True)
+    ai_adjustments = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         prospect: Prospect = Prospect.query.get(self.prospect_id)
@@ -564,6 +565,7 @@ class DemoFeedback(db.Model):
             "status": self.status,
             "rating": self.rating,
             "feedback": self.feedback,
+            "ai_adjustments": self.ai_adjustments,
             "demo_date": self.demo_date,
             "next_demo_date": self.next_demo_date,
         }
