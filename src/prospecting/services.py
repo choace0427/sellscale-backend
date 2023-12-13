@@ -3136,7 +3136,11 @@ def generate_prospect_upload_report(archetype_state: dict):
     # Stats on company size
     employee_counts = [result.employees for result in results]
     # company_size_str = f"{min(employee_counts):,} - {max(employee_counts):,}, median {round(statistics.median(employee_counts)):,}"
-    company_size_str = f"{round(statistics.median(employee_counts)):,}"
+    company_size_str = (
+        f"{round(statistics.median(employee_counts)):,}"
+        if employee_counts
+        else "Unknown"
+    )
 
     # Pull the example profiles from prospects with a title in the top 10
     example_profiles = []
