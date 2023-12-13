@@ -1246,7 +1246,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         subject_line_prompt = ai_subject_line_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
-            template_id=template_id,
+            subject_line_template_id=template_id,
         )
         # 7b. Generate the email body
         email_body = generate_email(prompt=initial_email_prompt)
@@ -1795,9 +1795,7 @@ def get_named_entities(string: str):
                 max_tokens=max_tokens_length,
             )
 
-            entities_clean = (
-                text.strip().replace("\n", "").split(" // ")
-            )
+            entities_clean = text.strip().replace("\n", "").split(" // ")
             break
         except:
             count += 1
