@@ -444,7 +444,7 @@ def ai_subject_line_prompt(
     prospect_name = prospect.full_name
     prospect_title = prospect.title
     prospect_bio = prospect.linkedin_bio
-    # prospect_company_name = prospect.company
+    prospect_company_name = prospect.company
 
     # Collect research points
     # prospect_research: list[
@@ -476,6 +476,7 @@ def ai_subject_line_prompt(
 Here are some facts about the prospect:
 Prospect Name: {prospect_name}
 Prospect Title: {prospect_title}
+Prospect Company: {prospect_company_name}
 Prospect Bio: "{prospect_bio}"
 
 Do not include the word 'Subject:' in the output. Do not include quotations.
@@ -490,6 +491,7 @@ Output:""".format(
         email_body=email_body,
         prospect_name=prospect_name,
         prospect_title=prospect_title,
+        prospect_company_name=prospect_company_name,
         prospect_bio=prospect_bio,
         template=subject_line,
     )
