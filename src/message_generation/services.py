@@ -1246,6 +1246,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         subject_line_prompt = ai_subject_line_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
+            email_body=email_body,
             subject_line_template_id=template_id,
         )
         # 7b. Generate the email body
