@@ -224,6 +224,9 @@ def create_email_messaging_schedule_entry(
     db.session.commit()
 
     if generate_immediately:
+        if body_id or subject_line_id:
+            # If we already have the generated message, don't generate it again
+            return email_messaging_schedule.id
         email_messaging_schedule.send_status = EmailMessagingStatus.NEEDS_GENERATION
         db.session.commit()
 
@@ -308,7 +311,6 @@ def populate_email_messaging_schedule_entries(
         date_scheduled=initial_email_send_date,
         subject_line_id=subject_line_id,
         body_id=body_id,
-        generate_immediately=generate_immediately,
     )
     email_ids.append(initial_email_id)
     initial_email_template: EmailSequenceStep = EmailSequenceStep.query.get(
