@@ -702,11 +702,8 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     else:
         bump_framework = None
 
-    # Enabled template mode SDRs
-    enabled_sdrs = [34, 127, 115]
-
     # If we don't have a bump framework template, use the legacy system
-    if not bump_framework or (client_sdr.id not in enabled_sdrs):
+    if not bump_framework:
         return generate_chat_gpt_response_to_conversation_thread_helper_legacy(
             prospect_id=prospect_id,
             convo_history=convo_history,
@@ -760,12 +757,6 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
 You are a sales development representative writing on behalf of the SDR.
 
 Write a personalized follow up message on LinkedIn that's short enough I could read on an iphone easily.
-
-Try to follow the structure as strictly as possible - use creativity only where there is [[double brackets]]. use as few words as possible when filling in [[brackets]].
-
-Here's the structure
-{template}
-
 Note - you do not need to include all info.
 
 SDR info --
@@ -789,9 +780,17 @@ Final instructions
 - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed".
 - Don't make any [[brackets]] longer than 1 sentence when filled in.
 {additional_instructions}
+
+IMPORTANT:
+Follow the structure as strictly as possible - use creativity only where there is [[double brackets]]. use as few words as possible when filling in [[brackets]].
+--- START TEMPLATE ---
+{template}
+--- END TEMPLATE ---
     
 Conversation history:
-{convo_history}"""
+{convo_history}
+
+Output:"""
 
     response = get_text_generation(
         [{"role": "user", "content": prompt}],
