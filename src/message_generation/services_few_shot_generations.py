@@ -18,6 +18,10 @@ from model_import import (
     GeneratedMessage,
     GeneratedMessageType,
 )
+
+from src.ml.openai_wrappers import (
+    wrapped_chat_gpt_completion,
+)
 from src.message_generation.services import (
     generate_prompt,
     generate_batches_of_research_points,
@@ -131,9 +135,10 @@ def generate_few_shot_generation_completion(prospect_id, notes):
     ]
     few_shot_prompt = "".join(examples_for_prompt_from_similar_prospects) + prompt
 
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=few_shot_prompt,
+    text = wrapped_chat_gpt_completion(
+        messages=[
+            {"role": "user", "content": few_shot_prompt},
+        ],
         temperature=0.65,
         max_tokens=100,
         top_p=1,
@@ -142,7 +147,7 @@ def generate_few_shot_generation_completion(prospect_id, notes):
         presence_penalty=0,
     )
 
-    completions = [x["text"] for x in response["choices"]]
+    completions = [text]
 
     return completions, model_id, prospect_data, instruction_id, few_shot_prompt
 

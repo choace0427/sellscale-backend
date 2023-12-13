@@ -9,7 +9,7 @@ import openai
 import os
 from typing import Optional, Union
 
-if os.environ.get("AZURE_OPENAI") == 'true':
+if os.environ.get("AZURE_OPENAI") == "true":
     print("Using Azure-OpenAI API")
     openai.api_type = "azure"
     openai.api_base = os.environ.get("AZURE_OPENAI_BASE")
@@ -20,7 +20,7 @@ else:
     print("Using OpenAI API")
     openai.api_key = os.environ.get("OPENAI_KEY")
     USE_AZURE_ENGINE = False
-    
+
 
 AZURE_OPENAI_GPT_4_ENGINE = os.environ.get("AZURE_OPENAI_GPT_4_ENGINE")
 AZURE_OPENAI_GPT_3_5_ENGINE = os.environ.get("AZURE_OPENAI_GPT_3_5_ENGINE")
@@ -90,10 +90,8 @@ def wrapped_create_completion(
                 stop=stop,
             )
         else:
-            response = openai.Completion.create(
-                model=model,
-                prompt=prompt,
-                suffix=suffix,
+            return wrapped_chat_gpt_completion(
+                messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature,
                 top_p=top_p,
@@ -101,17 +99,29 @@ def wrapped_create_completion(
                 frequency_penalty=frequency_penalty,
                 stop=stop,
             )
-            if (
-                response is None
-                or response["choices"] is None
-                or len(response["choices"]) == 0
-            ):
-                return ""
+            # Discontinued support for Davinci-3
+            # response = openai.Completion.create(
+            #     model=model,
+            #     prompt=prompt,
+            #     suffix=suffix,
+            #     max_tokens=max_tokens,
+            #     temperature=temperature,
+            #     top_p=top_p,
+            #     n=n,
+            #     frequency_penalty=frequency_penalty,
+            #     stop=stop,
+            # )
+            # if (
+            #     response is None
+            #     or response["choices"] is None
+            #     or len(response["choices"]) == 0
+            # ):
+            #     return ""
 
-            choices = response["choices"]
-            top_choice = choices[0]
-            preview = top_choice["text"].strip()
-            return preview
+            # choices = response["choices"]
+            # top_choice = choices[0]
+            # preview = top_choice["text"].strip()
+            # return preview
     except Exception as e:
         print(e)
         return False

@@ -1710,10 +1710,12 @@ def generate_cta_examples(company_name: str, persona: str, with_what: str):
 
     openai.api_key = os.getenv("OPENAI_KEY")
 
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=(
-            """
+    text = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    """
 Make 6 CTAs that are comma separated for the company.
 
 Example: Curative helps healthcare leaders with getting access to top physicians looking for new opportunities and achieve staffing goals.
@@ -1728,9 +1730,11 @@ Output:
 {company_name} helps {persona} with {with_what}
 -
 """.format(
-                company_name=company_name, persona=persona, with_what=with_what
-            )
-        ),
+                        company_name=company_name, persona=persona, with_what=with_what
+                    )
+                ),
+            },
+        ],
         temperature=0,
         max_tokens=500,
         top_p=1,
@@ -1740,7 +1744,7 @@ Output:
 
     ctas = []
 
-    options = response["choices"][0]["text"].split("\n")
+    options = text.split("\n")
     for option in options:
         tag, cta = option.split("] ")
         tag = tag[1:]
@@ -1783,14 +1787,16 @@ def get_named_entities(string: str):
     entities_clean = ["NONE"]
     while count < max_attempts:
         try:
-            response = openai.Completion.create(
-                model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
-                prompt=prompt,
-                max_tokens=max_tokens_length,
+            text = wrapped_chat_gpt_completion(
+                messages=[
+                    {"role": "user", "content": prompt},
+                ],
                 temperature=0,
+                max_tokens=max_tokens_length,
             )
+
             entities_clean = (
-                response["choices"][0]["text"].strip().replace("\n", "").split(" // ")
+                text.strip().replace("\n", "").split(" // ")
             )
             break
         except:

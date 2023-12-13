@@ -1,6 +1,9 @@
 import openai
 from model_import import GeneratedMessageType
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.ml.openai_wrappers import (
+    wrapped_chat_gpt_completion,
+)
 
 
 def magic_edit(message_copy: str):
@@ -25,11 +28,15 @@ def get_edited_options(instruction: str, message_copy: str):
     """
     Makes edits prescribed in instruction to message copy and returns 4 choices.
     """
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt="instruction:\n{instruction}\n\ninput:\n{message_copy}\n\noutput:".format(
-            instruction=instruction, message_copy=message_copy
-        ),
+    messages, preview = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": "instruction:\n{instruction}\n\ninput:\n{message_copy}\n\noutput:".format(
+                    instruction=instruction, message_copy=message_copy
+                ),
+            },
+        ],
         temperature=0.65,
         max_tokens=256,
         top_p=1,
@@ -37,7 +44,8 @@ def get_edited_options(instruction: str, message_copy: str):
         presence_penalty=0,
         n=4,
     )
-    return [choice["text"] for choice in response["choices"]]
+
+    return [choice["text"] for choice in messages["choices"]]
 
 
 def get_editing_details(message_id: int):
@@ -79,12 +87,16 @@ def get_editing_details(message_id: int):
 
     email_body_template = None
     if generated_message.email_sequence_step_template_id:
-        template: EmailSequenceStep =  EmailSequenceStep.query.get(generated_message.email_sequence_step_template_id)
+        template: EmailSequenceStep = EmailSequenceStep.query.get(
+            generated_message.email_sequence_step_template_id
+        )
         email_body_template = template.to_dict()
 
     subject_line_template = None
     if generated_message.email_subject_line_template_id:
-        template: EmailSubjectLineTemplate =  EmailSubjectLineTemplate.query.get(generated_message.email_subject_line_template_id)
+        template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(
+            generated_message.email_subject_line_template_id
+        )
         subject_line_template = template.to_dict()
 
     return {
@@ -93,7 +105,9 @@ def get_editing_details(message_id: int):
         "cta": cta.to_dict() if cta else None,
         "linkedin_payload": li_payload.payload if li_payload else {},
         "serp_payload": serp_payload.payload if serp_payload else {},
-        "research_points": [rp.to_dict() for rp in research_points] if research_points else [],
+        "research_points": [rp.to_dict() for rp in research_points]
+        if research_points
+        else [],
         "configuration": configuration.to_dict() if configuration else None,
         "email_body_template": email_body_template,
         "subject_line_template": subject_line_template,

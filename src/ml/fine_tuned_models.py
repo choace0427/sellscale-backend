@@ -214,19 +214,18 @@ def get_personalized_first_line_for_client(
             prompt=prompt
         )
 
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=few_shot_prompt,
+    text = wrapped_chat_gpt_completion(
+        messages=[
+            {"role": "user", "content": few_shot_prompt},
+        ],
         temperature=0.65,
         max_tokens=256,
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0,
     )
-    choices = response.get("choices", [])
 
-    completion = choices[0].get("text", "")
-    return (completion, few_shot_prompt)
+    return (text, few_shot_prompt)
 
 
 def get_completion(bullet_model_id: str, prompt: str, max_tokens: int = 40, n: int = 1):
