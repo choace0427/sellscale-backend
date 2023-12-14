@@ -823,10 +823,12 @@ def sync_prospect_with_lead(
                 time = item["time"]
                 time = convert_string_to_datetime_or_none(content=time)
                 time = time.replace(tzinfo=pytz.UTC)
-                if (
-                    not prospect_email.last_reply_time
-                    or time > prospect_email.last_reply_time
-                ):
+                last_reply_time = (
+                    prospect_email.last_reply_time.replace(tzinfo=pytz.UTC)
+                    if prospect_email.last_reply_time
+                    else None
+                )
+                if not last_reply_time or time > last_reply_time:
                     prospect_email.last_reply_time = time
                     prospect_email.hidden_until = None
                     db.session.commit()
