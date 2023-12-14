@@ -7,7 +7,6 @@ from src.smartlead.services import (
     reply_to_prospect,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
-    sync_prospects_to_campaign,
 )
 from app import db
 import os
