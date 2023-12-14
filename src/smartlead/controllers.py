@@ -169,16 +169,17 @@ def post_set_campaign(client_sdr_id: int):
     return jsonify({"message": "Success", "data": success}), 200
 
 
-@SMARTLEAD_BLUEPRINT.route("/sync_prospects_to_campaign", methods=["POST"])
-@require_user
-def post_set_client_sdr_id(client_sdr_id: int):
-    archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True, parameter_type=int
-    )
+# DEPRECATED
+# @SMARTLEAD_BLUEPRINT.route("/sync_prospects_to_campaign", methods=["POST"])
+# @require_user
+# def post_set_client_sdr_id(client_sdr_id: int):
+#     archetype_id = get_request_parameter(
+#         "archetype_id", request, json=True, required=True, parameter_type=int
+#     )
 
-    success, amount = sync_prospects_to_campaign(client_sdr_id, archetype_id)
+#     success, amount = sync_prospects_to_campaign(client_sdr_id, archetype_id)
 
-    return (
-        jsonify({"message": "Success", "data": {"success": success, "amount": amount}}),
-        200,
-    )
+#     return (
+#         jsonify({"message": "Success", "data": {"success": success, "amount": amount}}),
+#         200,
+#     )
