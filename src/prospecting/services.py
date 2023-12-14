@@ -3405,14 +3405,15 @@ def snooze_prospect_email(
 
     client: Client = Client.query.get(prospect.client_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    urls = []
+    if client.pipeline_notifications_webhook_url:
+        urls.append(client.pipeline_notifications_webhook_url)
+    urls.append(URL_MAP["sellscale_pipeline_all_clients"])
     send_slack_message(
         message="SellScale AI just snoozed a prospect to "
         + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
         + "!",
-        webhook_urls=[
-            URL_MAP["eng-sandbox"],
-            client.pipeline_notifications_webhook_url,
-        ],
+        webhook_urls=urls,
         blocks=[
             {
                 "type": "header",
