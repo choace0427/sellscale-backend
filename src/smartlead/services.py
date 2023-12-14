@@ -469,7 +469,7 @@ def sync_smartlead_send_schedule(archetype_id: int) -> tuple[bool, str]:
         sequences=sequence,
     )
 
-    return True
+    return True, "Success"
 
 
 def create_smartlead_campaign(
