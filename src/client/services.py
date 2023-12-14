@@ -611,6 +611,14 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
     # Set the launch volume to 0 (stop sending outreach)
     update_phantom_buster_launch_schedule(client_sdr_id=client_sdr_id, custom_volume=0)
 
+    client_archetypes: list = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+    ).all()
+    for ca in client_archetypes:
+        ca.active = False
+        db.session.add(ca)
+    db.session.commit()
+
     return True
 
 

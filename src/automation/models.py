@@ -13,7 +13,10 @@ import json
 import os
 import math
 
-from src.client.sdr.services_client_sdr import LINKEDIN_WARM_THRESHOLD, get_sla_schedules_for_sdr
+from src.client.sdr.services_client_sdr import (
+    LINKEDIN_WARM_THRESHOLD,
+    get_sla_schedules_for_sdr,
+)
 from src.utils.datetime.dateutils import get_current_monday_friday
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
@@ -173,7 +176,7 @@ class PhantomBusterAgent:
     def get_last_run_date(self):
         data = self.get_agent_data()
         return datetime.datetime.fromtimestamp(data.get("updatedAt") / 1000.0)
-    
+
     def get_status(self):
         url = self.FETCH_AGENT_OUTPUT.format(phantom_uuid=self.id)
         payload = {}
@@ -192,9 +195,8 @@ class PhantomBusterAgent:
             return "error_invalid_cookie"
         elif output and "Process finished with an error" in output:
             return "error_unknown"
-        
-        return status
 
+        return status
 
     def get_arguments(self):
         url = self.FETCH_AGENT_URL.format(phantom_uuid=self.id)
@@ -241,7 +243,6 @@ class PhantomBusterAgent:
         return self.get_phantom_buster_payload(s3_folder, orgS3Folder)
 
     def get_phantom_buster_payload(self, s3Folder, orgS3Folder):
-
         url = "https://cache1.phantombooster.com/{orgS3Folder}/{s3Folder}/result.json".format(
             orgS3Folder=orgS3Folder, s3Folder=s3Folder
         )
@@ -252,7 +253,6 @@ class PhantomBusterAgent:
         return response.json()
 
     def get_output_by_container_id(self, container_id: str) -> dict:
-
         url = "https://api.phantombuster.com/api/v2/containers/fetch-result-object?id={container_id}".format(
             container_id=container_id
         )
@@ -267,7 +267,6 @@ class PhantomBusterAgent:
         return None
 
     def update_launch_schedule(self, custom_volume: Optional[int] = None):
-
         config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
             PhantomBusterConfig.phantom_uuid == self.id
         ).first()
@@ -276,11 +275,9 @@ class PhantomBusterAgent:
         # Get SLA schedule
         monday, friday = get_current_monday_friday(datetime.datetime.now())
         schedules: list[dict] = get_sla_schedules_for_sdr(
-            client_sdr_id = client_sdr.id,
-            start_date = monday,
-            end_date = friday
+            client_sdr_id=client_sdr.id, start_date=monday, end_date=friday
         )
-        schedule = schedules[0]
+        schedule = schedules[0] if len(schedules) > 0 else {}
         volume = schedule.get("linkedin_volume", client_sdr.weekly_li_outbound_target)
 
         # If custom volume is provided, use that instead
@@ -393,14 +390,16 @@ class PhantomBusterAgent:
 class ProcessQueueStatus(enum.Enum):
     QUEUED = "QUEUED"
     IN_PROGRESS = "IN_PROGRESS"
-    COMPLETE = "COMPLETE" # This should, in theory, never be used
+    COMPLETE = "COMPLETE"  # This should, in theory, never be used
     RETRY = "RETRY"
+
 
 class ProcessQueue(db.Model):
     """A queue for processing various tasks
 
     Useful for any kind of scheduled processes and async process pipeline
     """
+
     __tablename__ = "process_queue"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -408,7 +407,9 @@ class ProcessQueue(db.Model):
     meta_data = db.Column(JSONB, nullable=True)
     execution_date = db.Column(db.DateTime, nullable=False)
     executed_at = db.Column(db.DateTime, nullable=True)
-    status = db.Column(db.Enum(ProcessQueueStatus), default=ProcessQueueStatus.QUEUED, nullable=True)
+    status = db.Column(
+        db.Enum(ProcessQueueStatus), default=ProcessQueueStatus.QUEUED, nullable=True
+    )
 
     def to_dict(self) -> dict:
         return {
