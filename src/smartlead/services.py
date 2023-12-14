@@ -3,6 +3,7 @@ import re
 from typing import List, Optional, Tuple
 
 from bs4 import BeautifulSoup
+import pytz
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
 from src.email_sequencing.models import EmailSequenceStep
 from src.message_generation.models import GeneratedMessage
@@ -821,6 +822,7 @@ def sync_prospect_with_lead(
                 # 3c.2. Determine if the reply is new
                 time = item["time"]
                 time = convert_string_to_datetime_or_none(content=time)
+                time = time.replace(tzinfo=pytz.UTC)
                 if (
                     not prospect_email.last_reply_time
                     or time > prospect_email.last_reply_time
@@ -1101,5 +1103,11 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         message=f"Uploaded 1 prospect {prospect.full_name}#{prospect.id} to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
+
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
+    prospect_email.outreach_status = ProspectEmailOutreachStatus.NOT_SENT
+    db.session.commit()
 
     return True, 1
