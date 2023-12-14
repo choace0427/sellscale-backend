@@ -12,6 +12,7 @@ from src.bump_framework.services import (
     deactivate_bump_framework,
     activate_bump_framework,
     get_bump_frameworks_for_sdr,
+    send_new_framework_created_message,
 )
 from src.client.models import ClientArchetype
 from src.utils.request_helpers import get_request_parameter
@@ -20,6 +21,8 @@ from src.ml.services import (
     determine_account_research_from_convo_and_bump_framework,
     determine_best_bump_framework_from_convo,
 )
+
+from src.client.services_client_archetype import get_archetype_details
 
 from model_import import ProspectOverallStatus, ProspectStatus
 
@@ -187,7 +190,6 @@ def post_create_bump_framework(client_sdr_id: int):
             break
     if not found_key:
         return jsonify({"error": "Invalid bump length."}), 400
-
     bump_framework_id = create_bump_framework(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
@@ -204,6 +206,14 @@ def post_create_bump_framework(client_sdr_id: int):
         transformer_blocklist=transformer_blocklist,
     )
     if bump_framework_id:
+        compain_name = ""
+        compain_link = "https://app.sellscale.com/setup/linkedin?campaign_id={compaign_id}".format(compaign_id=archetype_id)
+        try:
+            compain_name = get_archetype_details(archetype_id).get("name", "")
+        except TypeError:
+            pass
+
+        send_new_framework_created_message(client_sdr_id, title, compain_name, compain_link)
         return (
             jsonify(
                 {

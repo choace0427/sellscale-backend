@@ -289,6 +289,36 @@ def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dic
 
     return result
 
+def get_archetype_details(archetype_id: int) -> dict:
+    results = db.session.execute(
+        """
+        SELECT
+            client_archetype.archetype,
+            client_archetype.id,
+            client_archetype.created_at,
+            client_archetype.active
+        FROM
+            client_archetype
+        WHERE
+            client_archetype.id = {archetype_id};
+        """.format(
+            archetype_id=archetype_id
+        )
+    ).fetchone()
+
+    # index to column
+    column_map = {
+        0: "name",
+        1: "id",
+        2: "created_at",
+        3: "active"
+    }
+
+    # Convert and format output
+    result = {column_map.get(i, "unknown"): value for i, value in enumerate(results)}
+
+    return result
+
 
 def create_empty_archetype_prospect_filters(
     client_sdr_id: int, archetype_id: int

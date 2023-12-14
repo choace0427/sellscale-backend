@@ -4,7 +4,69 @@ from src.bump_framework.models import BumpLength
 from src.client.models import ClientArchetype
 from src.message_generation.services import clear_auto_generated_bumps
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
+from src.utils.slack import send_slack_message
 from typing import Optional
+
+
+def send_new_framework_created_message(
+    client_sdr_id: int, title: str, campaign_name: str, campaign_link: str
+):
+    from model_import import ClientSDR
+
+    webhook_url = ClientSDR.query.get(
+        client_sdr_id
+    ).client.pipeline_notifications_webhook_url
+    message_sent = send_slack_message(
+        message="",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "⭐ New framework enabled: {title}".format(title=title),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Campaign:* `{campaign_name}`".format(
+                        campaign_name=campaign_name
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Template:* {title}".format(title=title),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "View campaign sequence in Sight",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Campaign",
+                        "emoji": True,
+                    },
+                    "value": campaign_link,
+                    "url": campaign_link,
+                    "action_id": "button-action",
+                },
+            },
+        ],
+        webhook_urls=[webhook_url],
+    )
+    if not message_sent:
+        return False, "Failed to send update request."
+
+    return True, "Success"
 
 
 def get_bump_frameworks_for_sdr(
