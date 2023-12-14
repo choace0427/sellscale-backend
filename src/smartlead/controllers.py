@@ -1,6 +1,7 @@
 from typing import List
 from flask import Blueprint, request, jsonify
 from src.smartlead.services import (
+    create_smartlead_campaign,
     get_message_history_for_prospect,
     get_smartlead_inbox,
     reply_to_prospect,
@@ -31,6 +32,37 @@ def get_campaigns_sequence(client_sdr_id: int):
             {
                 "message": "Success",
                 "data": {"sequence": sequence},
+            }
+        ),
+        200,
+    )
+
+
+@SMARTLEAD_BLUEPRINT.route("/campaigns/create", methods=["POST"])
+@require_user
+def post_create_campaign(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success, reason = create_smartlead_campaign(
+        archetype_id=archetype_id,
+    )
+    if not success:
+        return (
+            jsonify(
+                {
+                    "message": reason,
+                }
+            ),
+            400,
+        )
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {},
             }
         ),
         200,
