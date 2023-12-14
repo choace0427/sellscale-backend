@@ -11,6 +11,7 @@ from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStat
 from typing import List, Optional
 
 from src.research.models import ResearchPointType
+from src.smartlead.services import sync_smartlead_send_schedule
 
 
 def get_email_sequence_step_for_sdr(
@@ -128,6 +129,16 @@ def create_email_sequence_step(
     Returns:
         int: The id of the newly created email sequence
     """
+    archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.id == client_archetype_id,
+    ).first()
+    if not archetype:
+        return None
+    if (
+        archetype.smartlead_campaign_id
+    ):  # Block if the archetype has a smartlead campaign synced (not allowed to create)
+        return None
+
     if default:
         all_sequence_steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter_by(
             client_sdr_id=client_sdr_id,
@@ -238,6 +249,10 @@ def modify_email_sequence_step(
     db.session.add(sequence_step)
     db.session.commit()
 
+    success, message = sync_smartlead_send_schedule(
+        archetype_id=client_archetype_id,
+    )
+
     return True
 
 
@@ -258,6 +273,16 @@ def undefault_all_sequence_steps_in_status(
         EmailSequenceStep.id == sequence_step_id,
     ).first()
     if not sequence_step:
+        return False
+
+    archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.id == sequence_step.client_archetype_id,
+    ).first()
+    if not archetype:
+        return False
+    if (
+        archetype.smartlead_campaign_id
+    ):  # Block if the archetype has a smartlead campaign synced (not allowed to create)
         return False
 
     sequence_step.default = False

@@ -377,10 +377,105 @@ def get_warmup_percentage(sent_count: int) -> int:
     return min(round((sent_count / TOTAL_SENT) * 100, 0), 100)
 
 
+def sync_smartlead_send_schedule(archetype_id: int) -> tuple[bool, str]:
+    """Syncs the Smartlead send schedule for a given archetype
+
+    Args:
+        archetype_id (int): The ID of the archetype
+
+    Returns:
+        tuple[bool, str]: A tuple with the first value being True if successful, and the second being a message
+    """
+    # 1. Get the archetype
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or not archetype.smartlead_campaign_id:
+        return False, "Archetype not found"
+
+    # 2. Get the SDR
+    client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+    if not client_sdr:
+        return False, "SDR not found"
+
+    # 3. Get the email sequence
+    sequence = []
+    sequence_intro: EmailSequenceStep = EmailSequenceStep.query.filter_by(
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
+        active=True,
+        overall_status=ProspectOverallStatus.PROSPECTED,
+    ).first()
+    if not sequence_intro:
+        return False, "Sequence not configured correctly. Found no first message."
+    sequence.append(
+        {
+            "seq_delay_details": {"delay_in_days": sequence_intro.sequence_delay_days},
+            "seq_number": 1,
+            "subject": "{{Subject_Line}}",
+            "email_body": "{{Body_1}}",
+        }
+    )
+    sequence_accepted: EmailSequenceStep = EmailSequenceStep.query.filter_by(
+        client_archetype_id=archetype_id,
+        client_sdr_id=client_sdr.id,
+        active=True,
+        overall_status=ProspectOverallStatus.ACCEPTED,
+    ).first()
+    if sequence_accepted:
+        sequence.append(
+            {
+                "seq_delay_details": {
+                    "delay_in_days": sequence_accepted.sequence_delay_days
+                },
+                "seq_number": 2,
+                "subject": "",
+                "email_body": "{{Body_2}}",
+            }
+        )
+    for i in range(1, 10):
+        sequence_bumped: EmailSequenceStep = EmailSequenceStep.query.filter_by(
+            client_archetype_id=archetype_id,
+            client_sdr_id=client_sdr.id,
+            active=True,
+            overall_status=ProspectOverallStatus.BUMPED,
+            bumped_count=i,
+        ).first()
+        if sequence_bumped:
+            sequence.append(
+                {
+                    "seq_delay_details": {
+                        "delay_in_days": sequence_bumped.sequence_delay_days
+                    },
+                    "seq_number": i + 2,
+                    "subject": "",
+                    "email_body": "{{Body_" + str(i + 2) + "}}",
+                }
+            )
+        else:
+            break
+
+    # 4. Get the current sequence and determine the length
+    sl = Smartlead()
+    current_sequence = sl.get_campaign_sequence_by_id(archetype.smartlead_campaign_id)
+    current_sequence_length = len(current_sequence)
+
+    # 5. If the sequence length is different, block from syncing
+    if len(sequence) != current_sequence_length:
+        return False, "Sequence length is different"
+
+    # 6. Sync the sequence
+    sl = Smartlead()
+    sl.save_campaign_sequence(
+        campaign_id=archetype.smartlead_campaign_id,
+        sequences=sequence,
+    )
+
+    return True
+
+
 def create_smartlead_campaign(
     archetype_id: int,
     sync_to_archetype: Optional[bool] = False,
-) -> tuple[bool, str]:
+) -> tuple[bool, str, int]:
     """Creates a Smartlead campaign for a given archetype
 
     Args:
@@ -388,15 +483,15 @@ def create_smartlead_campaign(
         sync_to_archetype (Optional[bool], optional): Whether or not to sync the campaign ID to the archetype. Defaults to False.
 
     Returns:
-        tuple[bool, str]: A tuple with the first value being True if successful, and the second being a message
+        tuple[bool, str, int]: A tuple with the first value being True if successful, the second being a message, and the third being the ID of the Smartlead campaign
     """
     # 1. Get the Archetype, SDR
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
-        return False, "Archetype not found"
+        return False, "Archetype not found", None
     client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
     if not client_sdr:
-        return False, "SDR not found"
+        return False, "SDR not found", None
 
     sl = Smartlead()
 
@@ -404,11 +499,11 @@ def create_smartlead_campaign(
     campaign_name = f"{client_sdr.name} (#{client_sdr.id}) - {archetype.archetype}"
     create_campaign_response = sl.create_campaign(campaign_name=campaign_name)
     if not create_campaign_response:
-        return False, "Failed to create campaign"
+        return False, "Failed to create campaign", None
 
     smartlead_campaign_id = create_campaign_response.get("id")
     if not smartlead_campaign_id:
-        return False, "Failed to create campaign"
+        return False, "Failed to create campaign", None
 
     # 3. Create the Smartlead campaign sequence, using the archetype's sequence
     sequence = []
@@ -526,7 +621,7 @@ def create_smartlead_campaign(
         archetype.smartlead_campaign_id = smartlead_campaign_id
         db.session.commit()
 
-    return True, "Success"
+    return True, "Success", smartlead_campaign_id
 
 
 def set_campaign_id(archetype_id: int, campaign_id: int) -> bool:

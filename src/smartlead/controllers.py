@@ -43,9 +43,13 @@ def post_create_campaign(client_sdr_id: int):
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True, parameter_type=int
     )
+    sync_to_archetype = get_request_parameter(
+        "sync_to_archetype", request, json=True, required=False, parameter_type=bool
+    )
 
-    success, reason = create_smartlead_campaign(
+    success, reason, id = create_smartlead_campaign(
         archetype_id=archetype_id,
+        sync_to_archetype=sync_to_archetype,
     )
     if not success:
         return (
@@ -61,7 +65,7 @@ def post_create_campaign(client_sdr_id: int):
         jsonify(
             {
                 "message": "Success",
-                "data": {},
+                "data": {"campaign_id": id},
             }
         ),
         200,
