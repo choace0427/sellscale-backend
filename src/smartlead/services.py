@@ -1,7 +1,6 @@
 import datetime
 import re
 from typing import List, Optional, Tuple
-from datetime import datetime
 
 from bs4 import BeautifulSoup
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
@@ -603,7 +602,7 @@ def create_smartlead_campaign(
         "end_hour": "18:00",
         "min_time_btw_emails": 10,
         "max_new_leads_per_day": 20,
-        "schedule_start_time": datetime.now().isoformat(),
+        "schedule_start_time": datetime.datetime.now().isoformat(),
     }
     sl.update_campaign_schedule(
         campaign_id=smartlead_campaign_id,
