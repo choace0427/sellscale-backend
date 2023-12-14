@@ -397,6 +397,7 @@ def sync_smartlead_send_schedule(archetype_id: int) -> tuple[bool, str]:
         return False, "SDR not found"
 
     # 3. Get the email sequence
+    delay_days = 0
     sequence = []
     sequence_intro: EmailSequenceStep = EmailSequenceStep.query.filter_by(
         client_archetype_id=archetype_id,
@@ -408,12 +409,14 @@ def sync_smartlead_send_schedule(archetype_id: int) -> tuple[bool, str]:
         return False, "Sequence not configured correctly. Found no first message."
     sequence.append(
         {
-            "seq_delay_details": {"delay_in_days": sequence_intro.sequence_delay_days},
+            "seq_delay_details": {"delay_in_days": delay_days},
             "seq_number": 1,
             "subject": "{{Subject_Line}}",
             "email_body": "{{Body_1}}",
         }
     )
+    delay_days = sequence_intro.sequence_delay_days
+
     sequence_accepted: EmailSequenceStep = EmailSequenceStep.query.filter_by(
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr.id,
@@ -423,14 +426,14 @@ def sync_smartlead_send_schedule(archetype_id: int) -> tuple[bool, str]:
     if sequence_accepted:
         sequence.append(
             {
-                "seq_delay_details": {
-                    "delay_in_days": sequence_accepted.sequence_delay_days
-                },
+                "seq_delay_details": {"delay_in_days": delay_days},
                 "seq_number": 2,
                 "subject": "",
                 "email_body": "{{Body_2}}",
             }
         )
+        delay_days = sequence_accepted.sequence_delay_days
+
     for i in range(1, 10):
         sequence_bumped: EmailSequenceStep = EmailSequenceStep.query.filter_by(
             client_archetype_id=archetype_id,
@@ -442,14 +445,13 @@ def sync_smartlead_send_schedule(archetype_id: int) -> tuple[bool, str]:
         if sequence_bumped:
             sequence.append(
                 {
-                    "seq_delay_details": {
-                        "delay_in_days": sequence_bumped.sequence_delay_days
-                    },
+                    "seq_delay_details": {"delay_in_days": delay_days},
                     "seq_number": i + 2,
                     "subject": "",
                     "email_body": "{{Body_" + str(i + 2) + "}}",
                 }
             )
+            delay_days = sequence_bumped.sequence_delay_days
         else:
             break
 
@@ -464,10 +466,12 @@ def sync_smartlead_send_schedule(archetype_id: int) -> tuple[bool, str]:
 
     # 6. Sync the sequence
     sl = Smartlead()
-    sl.save_campaign_sequence(
+    result = sl.save_campaign_sequence(
         campaign_id=archetype.smartlead_campaign_id,
         sequences=sequence,
     )
+    if not result.get("ok"):
+        return False, result.get("error")
 
     return True, "Success"
 
@@ -506,6 +510,7 @@ def create_smartlead_campaign(
         return False, "Failed to create campaign", None
 
     # 3. Create the Smartlead campaign sequence, using the archetype's sequence
+    delay_days = 0
     sequence = []
 
     # 3a. Get the PROSPECTED message
@@ -519,12 +524,13 @@ def create_smartlead_campaign(
         return False, "Sequence not configured correctly. Found no first message."
     sequence.append(
         {
-            "seq_delay_details": {"delay_in_days": sequence_intro.sequence_delay_days},
+            "seq_delay_details": {"delay_in_days": delay_days},
             "seq_number": 1,
             "subject": "{{Subject_Line}}",
             "email_body": "{{Body_1}}",
         }
     )
+    delay_days = sequence_intro.sequence_delay_days
 
     # 3b. Get the ACCEPTED message
     sequence_accepted: EmailSequenceStep = EmailSequenceStep.query.filter_by(
@@ -536,14 +542,13 @@ def create_smartlead_campaign(
     if sequence_accepted:
         sequence.append(
             {
-                "seq_delay_details": {
-                    "delay_in_days": sequence_accepted.sequence_delay_days
-                },
+                "seq_delay_details": {"delay_in_days": delay_days},
                 "seq_number": 2,
                 "subject": "",
                 "email_body": "{{Body_2}}",
             }
         )
+        delay_days = sequence_accepted.sequence_delay_days
 
     # 3c. Get the BUMPED messages
     for i in range(1, 10):
@@ -557,14 +562,13 @@ def create_smartlead_campaign(
         if sequence_bumped:
             sequence.append(
                 {
-                    "seq_delay_details": {
-                        "delay_in_days": sequence_bumped.sequence_delay_days
-                    },
+                    "seq_delay_details": {"delay_in_days": delay_days},
                     "seq_number": i + 2,
                     "subject": "",
                     "email_body": "{{Body_" + str(i + 2) + "}}",
                 }
             )
+            delay_days = sequence_bumped.sequence_delay_days
         else:
             break
 
