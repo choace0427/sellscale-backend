@@ -2249,6 +2249,120 @@ def submit_demo_feedback(
     return True
 
 
+@celery.task
+def send_demo_reminders():
+    send_demo_feedback_reminder()
+    send_upcoming_demo_reminder()
+    pass
+
+
+def send_demo_feedback_reminder():
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.demo_date != None,
+        Prospect.demo_date >= datetime.now() - timedelta(hours=24),
+        Prospect.demo_date <= datetime.now(),
+    ).all()
+
+    for prospect in prospects:
+        sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        send_slack_message(
+            message="New question for Demo Feedback",
+            webhook_urls=[
+                URL_MAP["csm-urgent-alerts"],
+                # client.pipeline_notifications_webhook_url,
+            ],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"New question for @{sdr.name}: Demo Feedback",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"_How did the demo go with `{prospect.full_name}` on `{prospect.demo_date}`?_",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"> ✅ *Happened:* Please rate 1/5\n> 🔴 *No show:* Would you like us to reschedule?\n> ⏳ *Rescheduled:* What date did it reschedule for?",
+                        }
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Answers used to improve targeting | Prospect ➡️",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Link", "emoji": True},
+                        "value": f"https://app.sellscale.com/?prospect_id={prospect.id}",
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+        )
+
+
+def send_upcoming_demo_reminder():
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.demo_date != None,
+        Prospect.demo_date > datetime.now(),
+        Prospect.demo_date <= datetime.now() + timedelta(days=1),
+    ).all()
+
+    for prospect in prospects:
+        sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        send_slack_message(
+            message="Demo reminder",
+            webhook_urls=[
+                URL_MAP["csm-urgent-alerts"],
+                # client.pipeline_notifications_webhook_url,
+            ],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"Demo reminder with {prospect.full_name}",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"_You have a demo with `{prospect.full_name}` on `{prospect.demo_date}`._",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Prospect ➡️",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Link", "emoji": True},
+                        "value": f"https://app.sellscale.com/?prospect_id={prospect.id}",
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+        )
+
+
 def get_all_demo_feedback(client_sdr_id: int):
     """Gets all demo feedback for a client SDR
 

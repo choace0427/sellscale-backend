@@ -436,6 +436,30 @@ def run_daily_auto_send_report_email():
         send_report_email.delay()
 
 
+def run_daily_trigger_runner():
+    from src.triggers.services import (
+        run_all_triggers,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        run_all_triggers.delay()
+
+
+def run_daily_demo_reminders():
+    from src.client.services import (
+        send_demo_reminders,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
+        send_demo_reminders.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
@@ -512,6 +536,8 @@ scheduler.add_job(
 scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_send_report_email, trigger=daily_trigger)
+scheduler.add_job(run_daily_trigger_runner, trigger=daily_trigger)
+scheduler.add_job(run_daily_demo_reminders, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)

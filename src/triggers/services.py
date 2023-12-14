@@ -146,7 +146,7 @@ def createTrigger(client_sdr_id: int, client_archetype_id: int) -> int:
 
 @celery.task
 def trigger_runner(trigger_id: int):
-    from src.automation.orchestrator import add_process_for_future
+    # from src.automation.orchestrator import add_process_for_future
 
     # Run the trigger #
     trigger: Trigger = Trigger.query.get(trigger_id)
@@ -164,16 +164,31 @@ def trigger_runner(trigger_id: int):
 
             db.session.commit()
 
-    # Run self #
-    add_process_for_future(
-        type="trigger_runner",
-        args={
-            "trigger_id": trigger_id,
-        },
-        minutes=trigger.interval_in_minutes or 1440,
-    )
+    # # Run self #
+    # add_process_for_future(
+    #     type="trigger_runner",
+    #     args={
+    #         "trigger_id": trigger_id,
+    #     },
+    #     minutes=trigger.interval_in_minutes or 1440,
+    # )
 
     return True, run_id
+
+
+@celery.task
+def run_all_triggers():
+    from src.automation.orchestrator import add_process_list
+
+    # Run the trigger #
+    triggers: list[Trigger] = Trigger.query.all()
+    return add_process_list(
+        type="trigger_runner",
+        args_list=[{"trigger_id": trigger.id} for trigger in triggers],
+        chunk_size=100,
+        chunk_wait_minutes=30,
+        buffer_wait_minutes=1,
+    )
 
 
 def runTrigger(trigger_id: int):
