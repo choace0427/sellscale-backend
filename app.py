@@ -227,6 +227,7 @@ def register_blueprints(app):
         LINKEDIN_TEMPLATE_BLUEPRINT,
     )
     from src.smartlead.controllers import SMARTLEAD_BLUEPRINT
+    from src.smartlead.webhooks.controllers import SMARTLEAD_WEBHOOKS_BLUEPRINT
     from src.triggers.controllers import TRIGGERS_BLUEPRINT
     from src.weekly_report.controllers import WEEKLY_REPORT_BLUEPRINT
     from src.sockets.controllers import SOCKETS_BLUEPRINT
@@ -282,6 +283,9 @@ def register_blueprints(app):
     )
     app.register_blueprint(LINKEDIN_TEMPLATE_BLUEPRINT, url_prefix="/linkedin_template")
     app.register_blueprint(SMARTLEAD_BLUEPRINT, url_prefix="/smartlead")
+    app.register_blueprint(
+        SMARTLEAD_WEBHOOKS_BLUEPRINT, url_prefix="/smartlead/webhooks"
+    )
     app.register_blueprint(TRIGGERS_BLUEPRINT, url_prefix="/triggers")
     app.register_blueprint(WEEKLY_REPORT_BLUEPRINT, url_prefix="/weekly_report")
     app.register_blueprint(SOCKETS_BLUEPRINT, url_prefix="/sockets")
