@@ -1,6 +1,7 @@
 from typing import List
 from flask import Blueprint, request, jsonify
 from src.smartlead.services import (
+    generate_smart_email_response,
     get_message_history_for_prospect,
     get_smartlead_inbox,
     reply_to_prospect,
@@ -135,6 +136,21 @@ def post_set_campaign(client_sdr_id: int):
     success = set_campaign_id(archetype_id, campaign_id)
 
     return jsonify({"message": "Success", "data": success}), 200
+
+
+@SMARTLEAD_BLUEPRINT.route("/generate_smart_response", methods=["POST"])
+@require_user
+def post_generate_smart_response(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    conversation = get_request_parameter(
+        "conversation", request, json=True, required=True, parameter_type=list
+    )
+
+    message = generate_smart_email_response(client_sdr_id, prospect_id, conversation)
+
+    return jsonify({"message": "Success", "message": message}), 200
 
 
 @SMARTLEAD_BLUEPRINT.route("/sync_prospects_to_campaign", methods=["POST"])

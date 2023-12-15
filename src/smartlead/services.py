@@ -9,6 +9,7 @@ from src.utils.datetime.dateparse_utils import (
     convert_string_to_datetime,
     convert_string_to_datetime_or_none,
 )
+from src.ml.services import get_text_generation
 
 from src.utils.lists import chunk_list
 
@@ -854,3 +855,51 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
     )
 
     return True, 1
+
+
+def generate_smart_email_response(
+    client_sdr_id: int, prospect_id: int, conversation: list[dict]
+) -> str:
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(sdr.client_id)
+
+    convo = ""
+    for message in conversation:
+        if message.get("type") == "SENT":
+            convo += f"{sdr.name}: {message.get('email_body')}\n"
+        else:
+            convo += f"{prospect.full_name}: {message.get('email_body')}\n"
+
+    prompt = f"""
+    You are a Sales assistant helping write follow up email copy for me.
+
+Here is information about my company:
+My Name: {sdr.name}
+Company: {client.company}
+Tagline: {client.tagline}
+
+Here is who I am emailing:
+Prospect: {prospect.full_name}
+Prospect Company: {prospect.company}
+Prospect Title: {prospect.title}
+
+## Here is the conversation transcript:
+
+{convo}
+
+## What is an appropriate follow up response based on the context and transcript provided?
+
+{sdr.name}:
+    """
+
+    response = get_text_generation(
+        [{"role": "user", "content": prompt}],
+        prospect_id=prospect_id,
+        client_sdr_id=client_sdr_id,
+        max_tokens=2000,
+        model="gpt-4",
+        type="EMAIL",
+    )
+
+    return response
