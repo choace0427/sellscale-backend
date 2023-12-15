@@ -3258,17 +3258,17 @@ def global_prospected_contacts(client_id: int):
                 prospect.linkedin_bio "linkedin_bio",
                 prospect.education_1 "education_1",
                 prospect.education_2 "education_2",
-                case 
+                case
                 when prospect.employee_count ilike '%None-None%' then 'No Size'
                 when prospect.employee_count ilike '%10001-None%' then '10001+'
                 when prospect.employee_count ilike '%-%' then prospect.employee_count
                     when prospect.employee_count ilike '%+' then '10001+'
-                    
-                    when prospect.employee_count ilike '%None%' then 'unknown' 
-                else 
+
+                    when prospect.employee_count ilike '%None%' then 'unknown'
+                else
                     (
-                    case 
-                        when cast(prospect.employee_count as integer) >= 0 and cast(prospect.employee_count as integer) <= 10 then '2-10' 
+                    case
+                        when cast(prospect.employee_count as integer) >= 0 and cast(prospect.employee_count as integer) <= 10 then '2-10'
                         when cast(prospect.employee_count as integer) >= 11 and cast(prospect.employee_count as integer) <= 50 then '11-50'
                         when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
                         when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
@@ -3290,9 +3290,9 @@ def global_prospected_contacts(client_id: int):
         )
         select *
         from d
-        order by 
+        order by
             case when employee_count_comp = 'No Size' then 1 else 0 end,
-            case 
+            case
                 when employee_count_comp = '0-1' then 0
                 when employee_count_comp = '2-10' then 1
                 when employee_count_comp = '11-50' then 2
@@ -3398,12 +3398,86 @@ def snooze_prospect_email(
     if not prospect_email:
         return False
 
-    if specific_time:
-        prospect_email.hidden_until = specific_time
-    else:
-        prospect_email.hidden_until = datetime.datetime.utcnow() + timedelta(
-            days=num_days
-        )
+    new_hidden_until = specific_time or datetime.datetime.utcnow() + timedelta(
+        days=num_days
+    )
+    prospect_email.hidden_until = new_hidden_until
+
+    client: Client = Client.query.get(prospect.client_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    urls = []
+    if client.pipeline_notifications_webhook_url:
+        urls.append(client.pipeline_notifications_webhook_url)
+    urls.append(URL_MAP["sellscale_pipeline_all_clients"])
+    send_slack_message(
+        message="SellScale AI just snoozed a prospect to "
+        + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+        + "!",
+        webhook_urls=urls,
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "⏰ SellScale AI just snoozed "
+                    + prospect.full_name
+                    + " to "
+                    + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                    + "!",
+                    "emoji": True,
+                },
+            },
+            # {
+            #     "type": "section",
+            #     "text": {
+            #         "type": "mrkdwn",
+            #         "text": (
+            #             "*Last Message from Prospect:* _{prospect_message}_\n\n*AI Response:* _{ai_response}_\n\n\n\n*SDR* {sdr_name}"
+            #         ).format(
+            #             prospect_message=prospect.li_last_message_from_prospect.replace(
+            #                 "\n", " "
+            #             ),
+            #             ai_response=prospect.li_last_message_from_sdr.replace(
+            #                 "\n", " "
+            #             ),
+            #             sdr_name=client_sdr.name,
+            #         ),
+            #     },
+            # },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*SDR* {client_sdr.name}\n*Channel*: Email",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Message will re-appear in SellScale inbox on "
+                    + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                    + ".",
+                }
+                # "accessory": {
+                #     "type": "button",
+                #     "text": {
+                #         "type": "plain_text",
+                #         "text": "View Convo in Sight",
+                #         "emoji": True,
+                #     },
+                #     "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                #         auth_token=client_sdr.auth_token, prospect_id=prospect_id
+                #     )
+                #     + str(prospect_id),
+                #     "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                #         auth_token=client_sdr.auth_token, prospect_id=prospect_id
+                #     ),
+                #     "action_id": "button-action",
+                # },
+            },
+        ],
+    )
 
     db.session.add(prospect_email)
     db.session.commit()

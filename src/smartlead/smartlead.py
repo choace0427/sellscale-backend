@@ -163,6 +163,104 @@ class Smartlead:
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
+    def create_campaign(self, campaign_name: str):
+        url = f"{self.BASE_URL}/campaigns/create?api_key={self.api_key}"
+        data = {"name": campaign_name}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.create_campaign(campaign_name)
+        return response.json()
+
+    def fetch_campaign_sequence(self, campaign_id: int):
+        url = (
+            f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
+        )
+        response = requests.get(url)
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.fetch_campaign_sequence(campaign_id)
+        return response.json()
+
+    def save_campaign_sequence(self, campaign_id: int, sequences: list):
+        """Sequences should look like this:
+
+        ```
+        sequences = [
+            {
+                "seq_delay_details": {"delay_in_days": 20},
+                "seq_number": 1,
+                "subject": "{{Subject_Line}}",
+                "email_body": "{{Body_1}}",
+            },
+            {
+                "seq_delay_details": {"delay_in_days": 20},
+                "seq_number": 2,
+                "subject": "",
+                "email_body": "{{Body_2}}",
+            },
+        ]
+        ```
+        """
+        url = (
+            f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"
+        )
+        data = {"sequences": sequences}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.save_campaign_sequence(campaign_id, sequences)
+        return response.json()
+
+    def add_email_account_to_campaign(
+        self, campaign_id: int, email_account_ids: list[int]
+    ):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"
+        data = {"email_account_ids": email_account_ids}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.add_email_account_to_campaign(campaign_id, email_account_ids)
+        return response.json()
+
+    def update_campaign_schedule(self, campaign_id: int, schedule: dict):
+        """Schedule should look like this:
+
+        ```
+        campaign_schedule = {
+            "timezone": "America/Los_Angeles",
+            "days_of_the_week": [1, 2, 3],  # [0,1,2,3,4,5,6] 0 is Sunday
+            "start_hour": "09:00",  # "09:00"
+            "end_hour": "18:00",  # "18:00"
+            "min_time_btw_emails": 10,  # time in minutes between emails
+            "max_new_leads_per_day": 20,  # max new leads per day
+            "schedule_start_time": datetime.now().isoformat(),  # Standard ISO format accepted
+        }
+        ```
+        """
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/schedule?api_key={self.api_key}"
+        data = schedule
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.update_campaign_schedule(campaign_id, schedule)
+        return response.json()
+
+    def post_campaign_status(self, campaign_id: int, status: str):
+        """Status can either be: "PAUSED" | "STOPPED" | "START" """
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/status?api_key={self.api_key}"
+        data = {"status": status}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.post_campaign_status(campaign_id, status)
+        return response.json()
+
     def add_leads_to_campaign_by_id(self, campaign_id: int, lead_list: list):
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}"
         data = {"lead_list": lead_list}
