@@ -2,6 +2,7 @@ from app import db, celery
 from src.client.models import ClientArchetype
 from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
 from src.prospecting.models import Prospect
+from src.prospecting.services import update_prospect_status_email
 
 from src.smartlead.webhooks.models import (
     SmartleadWebhookPayloads,
@@ -114,8 +115,10 @@ def process_email_sent_webhook(payload_id: int):
             return False, "No Prospect Email found"
 
         # Set the Prospect Email to "SENT"
-        prospect_email.outreach_status = ProspectEmailOutreachStatus.SENT_OUTREACH
-        db.session.commit()
+        update_prospect_status_email(
+            prospect_id=prospect.id,
+            new_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+        )
 
         # TEMPORARY: Send slack notification
         from src.utils.slack import send_slack_message
