@@ -6,7 +6,7 @@ from src.smartlead.webhooks.email_sent import create_and_process_email_sent_payl
 SMARTLEAD_WEBHOOKS_BLUEPRINT = Blueprint("smartlead/webhooks", __name__)
 
 
-@SMARTLEAD_WEBHOOKS_BLUEPRINT.route("/smartlead/webhooks/email_sent", methods=["POST"])
+@SMARTLEAD_WEBHOOKS_BLUEPRINT.route("/email_sent", methods=["POST"])
 def smartlead_webhook_email_sent():
     """Webhook for Smartlead email sent event."""
     payload = request.get_json()
