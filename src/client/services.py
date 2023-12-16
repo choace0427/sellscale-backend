@@ -3897,3 +3897,316 @@ def update_client_auto_send_li_messages(
     client.auto_send_li_messages = auto_send_li_messages
     db.session.commit()
     return True
+
+
+def get_tam_industry_breakdown(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    results = db.session.execute(
+        """
+        select 
+          industry,
+          count(distinct prospect.id) filter (where prospect.overall_status <> 'PROSPECTED') "# Contacted",
+          count(distinct prospect.id) filter (where prospect.overall_status = 'PROSPECTED') "# Left"
+        from prospect
+        where prospect.client_id = {client_id}
+        group by 1
+        order by 
+          count(distinct prospect.id) filter (where prospect.overall_status <> 'PROSPECTED') DESC
+        limit 10
+        """.format(
+            client_id=sdr.client_id
+        )
+    ).fetchall()
+
+    # index to status map
+    key_map = {
+        0: "industry",
+        1: "num_contacted",
+        2: "num_left",
+    }
+
+    # Convert and format output
+    final_results = []
+    for result in results:
+        rows = [row for row in tuple(result)]
+        rows = {key_map.get(i, "unknown"): row for i, row in enumerate(rows)}
+        final_results.append(rows)
+
+    return final_results
+
+
+def get_tam_employees(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    results = db.session.execute(
+        """
+        with d as (
+          select 
+            case 
+              when prospect.employee_count ilike '%None-None%' then 'No Size'
+              when prospect.employee_count ilike '%10001-None%' then '10001+'
+              when prospect.employee_count ilike '%-%' then prospect.employee_count
+                when prospect.employee_count ilike '%+' then '10001+'
+                
+                when prospect.employee_count ilike '%None%' then 'unknown' 
+              else 
+                (
+                  case 
+                    when cast(prospect.employee_count as integer) >= 0 and cast(prospect.employee_count as integer) <= 10 then '2-10' 
+                    when cast(prospect.employee_count as integer) >= 11 and cast(prospect.employee_count as integer) <= 50 then '11-50'
+                    when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
+                    when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
+                    when cast(prospect.employee_count as integer) >= 201 and cast(prospect.employee_count as integer) <= 500 then '201-500'
+                    when cast(prospect.employee_count as integer) >= 501 and cast(prospect.employee_count as integer) <= 1000 then '501-1000'
+                    when cast(prospect.employee_count as integer) >= 1001 and cast(prospect.employee_count as integer) <= 5000 then '501-1000'
+                    when cast(prospect.employee_count as integer) >= 5001 and cast(prospect.employee_count as integer) <= 10000 then '5001-10000'
+                    else 'No Size'
+                  END
+                )
+            end employee_count_comp,
+            array_agg(distinct prospect.employee_count),
+            count(distinct prospect.id) filter (where prospect.overall_status = 'PROSPECTED') "# Left",
+            count(distinct prospect.id) filter (where prospect.overall_status <> 'PROSPECTED') "# Contacted",
+            count(distinct prospect.id)
+          from prospect
+            join research_payload on research_payload.prospect_id = prospect.id
+          where prospect.client_id = {client_id}
+
+          group by 1
+        )
+        select 
+          employee_count_comp,
+          "# Contacted",
+          "# Left"
+        from d
+        order by 
+          case when employee_count_comp = 'No Size' then 1 else 0 end,
+          case 
+            when employee_count_comp = '0-1' then 0
+            when employee_count_comp = '2-10' then 1
+            when employee_count_comp = '11-50' then 2
+            when employee_count_comp = '51-200' then 3
+            when employee_count_comp = '201-500' then 4
+            when employee_count_comp = '501-1000' then 5
+            when employee_count_comp = '1001-5000' then 6
+            when employee_count_comp = '5001-10000' then 7
+            when employee_count_comp = '10001+' then 8
+          end
+        """.format(
+            client_id=sdr.client_id
+        )
+    ).fetchall()
+
+    # index to status map
+    key_map = {
+        0: "employee_count_comp",
+        1: "num_contacted",
+        2: "num_left",
+    }
+
+    # Convert and format output
+    final_results = []
+    for result in results:
+        rows = [row for row in tuple(result)]
+        rows = {key_map.get(i, "unknown"): row for i, row in enumerate(rows)}
+        final_results.append(rows)
+
+    return final_results
+
+
+def get_tam_stats(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    results = db.session.execute(
+        """
+        select 
+          count(distinct prospect.company) "# Companies",
+          count(distinct prospect.id) "# Contacts",
+          count(distinct prospect.company) filter (where prospect.status not in ('PROSPECTED')) "# Engaged"
+        from prospect
+        where prospect.client_id = {client_id}
+        """.format(
+            client_id=sdr.client_id
+        )
+    ).fetchall()
+
+    # index to status map
+    key_map = {
+        0: "num_companies",
+        1: "num_contacts",
+        2: "num_engaged",
+    }
+
+    # Convert and format output
+    final_results = []
+    for result in results:
+        rows = [row for row in tuple(result)]
+        rows = {key_map.get(i, "unknown"): row for i, row in enumerate(rows)}
+        final_results.append(rows)
+
+    return final_results
+
+
+def get_tam_titles(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    results = db.session.execute(
+        """
+        select 
+          title,
+          count(distinct prospect.id)
+        from prospect
+        where prospect.client_id = {client_id}
+        group by 1
+        order by 2 desc
+        limit 10
+        """.format(
+            client_id=sdr.client_id
+        )
+    ).fetchall()
+
+    # index to status map
+    key_map = {
+        0: "title",
+        1: "count",
+    }
+
+    # Convert and format output
+    final_results = []
+    for result in results:
+        rows = [row for row in tuple(result)]
+        rows = {key_map.get(i, "unknown"): row for i, row in enumerate(rows)}
+        final_results.append(rows)
+
+    return final_results
+
+
+def get_tam_companies(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    results = db.session.execute(
+        """
+        select 
+          prospect.company,
+          count(distinct prospect.id)
+        from prospect
+        where prospect.client_id = {client_id}
+        group by 1
+        order by 2 desc
+        limit 10
+        """.format(
+            client_id=sdr.client_id
+        )
+    ).fetchall()
+
+    # index to status map
+    key_map = {
+        0: "company",
+        1: "count",
+    }
+
+    # Convert and format output
+    final_results = []
+    for result in results:
+        rows = [row for row in tuple(result)]
+        rows = {key_map.get(i, "unknown"): row for i, row in enumerate(rows)}
+        final_results.append(rows)
+
+    return final_results
+
+
+def get_tam_industries(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    results = db.session.execute(
+        """
+        select 
+          company,
+          count(distinct prospect.id)
+        from prospect
+        where prospect.client_id = {client_id}
+        group by 1
+        order by 2 desc
+        limit 10
+        """.format(
+            client_id=sdr.client_id
+        )
+    ).fetchall()
+
+    # index to status map
+    key_map = {
+        0: "company",
+        1: "count",
+    }
+
+    # Convert and format output
+    final_results = []
+    for result in results:
+        rows = [row for row in tuple(result)]
+        rows = {key_map.get(i, "unknown"): row for i, row in enumerate(rows)}
+        final_results.append(rows)
+
+    return final_results
+
+
+def get_tam_scraping_report(client_sdr_id: int):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    results = db.session.execute(
+        """
+        select 
+          concat(
+            client_archetype.emoji,
+            ' ',
+            client_archetype.archetype
+          ) "Upload Name",
+          client_sdr.name "SDR",
+          concat(
+            count(distinct prospect.id),
+            ' out of ',
+            count(distinct prospect.id)
+          ) "Scraped",
+          'Complete' Status,
+          to_char(prospect.created_at, 'YYYY-MM-DD') "Upload Date"
+        from 
+          client_archetype
+          join prospect on prospect.archetype_id = client_archetype.id
+          join client_sdr on client_sdr.id = client_archetype.client_sdr_id
+        where client_archetype.client_id = {client_id}
+        group by 1,2,4,5
+        order by 5 desc
+        """.format(
+            client_id=sdr.client_id
+        )
+    ).fetchall()
+
+    # index to status map
+    key_map = {
+        0: "upload_name",
+        1: "sdr",
+        2: "scraped",
+        3: "status",
+        4: "upload_date",
+    }
+
+    # Convert and format output
+    final_results = []
+    for result in results:
+        rows = [row for row in tuple(result)]
+        rows = {key_map.get(i, "unknown"): row for i, row in enumerate(rows)}
+        final_results.append(rows)
+
+    return final_results
+
+
+def get_tam_data(client_sdr_id: int):
+    return {
+        "industry_breakdown": get_tam_industry_breakdown(client_sdr_id),
+        "employees": get_tam_employees(client_sdr_id),
+        "stats": get_tam_stats(client_sdr_id),
+        "titles": get_tam_titles(client_sdr_id),
+        "companies": get_tam_companies(client_sdr_id),
+        "industries": get_tam_industries(client_sdr_id),
+        "scraping_report": get_tam_scraping_report(client_sdr_id),
+    }

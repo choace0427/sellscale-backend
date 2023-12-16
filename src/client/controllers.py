@@ -10,7 +10,7 @@ from src.personas.services import (
     clone_persona,
 )
 from src.prospecting.models import Prospect
-from src.client.services import remove_prospects_caught_by_filters
+from src.client.services import get_tam_data, remove_prospects_caught_by_filters
 from src.client.services import (
     edit_demo_feedback,
     import_pre_onboarding,
@@ -2547,3 +2547,13 @@ def post_update_bcc_cc_emails(client_sdr_id: int):
         return "Failed to update cc and bcc emails", 400
 
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/tam_graph_data", methods=["GET"])
+@require_user
+def get_tam_graph_data(client_sdr_id: int):
+    results = get_tam_data(
+        client_sdr_id=client_sdr_id,
+    )
+
+    return jsonify({"message": "Success", "data": results}), 200
