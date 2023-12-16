@@ -346,9 +346,6 @@ def send_all_emails(test_mode: bool = True, to_emails: list[str] = []) -> bool:
     for client_sdr_id in client_sdr_ids:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-        if client_sdr_id in [144]:
-            continue
-
         if client_sdr.is_onboarding:
             continue
 
