@@ -2345,6 +2345,13 @@ def send_upcoming_demo_reminder():
                         "text": f"_You have a demo with `{prospect.full_name}` on `{prospect.demo_date}`._",
                     },
                 },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*SDR*: {sdr.name}",
+                    },
+                },
                 {"type": "divider"},
                 {
                     "type": "section",
