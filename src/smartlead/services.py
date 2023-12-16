@@ -2,6 +2,7 @@ import datetime
 import re
 from typing import List, Optional, Tuple
 
+import markdown
 from bs4 import BeautifulSoup
 import pytz
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
@@ -1137,15 +1138,19 @@ def generate_smart_email_response(
     prompt = f"""
     You are a Sales assistant helping write follow up email copy for me.
 
-Here is information about my company:
+## Here is information about my company:
 My Name: {sdr.name}
 Company: {client.company}
 Tagline: {client.tagline}
 
-Here is who I am emailing:
+## Here is who I am emailing:
 Prospect: {prospect.full_name}
 Prospect Company: {prospect.company}
 Prospect Title: {prospect.title}
+
+## Important notes:
+- Please use markdown to format your response.
+- Keep the follow up concise. Each message should be no longer than a message in the conversation transcript.
 
 ## Here is the conversation transcript:
 
@@ -1165,4 +1170,4 @@ Prospect Title: {prospect.title}
         type="EMAIL",
     )
 
-    return response
+    return markdown.markdown(response)
