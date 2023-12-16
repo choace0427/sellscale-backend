@@ -12,6 +12,7 @@ from src.bump_framework.services import (
     deactivate_bump_framework,
     activate_bump_framework,
     get_bump_frameworks_for_sdr,
+    get_db_bump_messages,
     send_new_framework_created_message,
 )
 from src.client.models import ClientArchetype
@@ -28,6 +29,19 @@ from model_import import ProspectOverallStatus, ProspectStatus
 
 
 BUMP_FRAMEWORK_BLUEPRINT = Blueprint("bump_framework", __name__)
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/bump-messages", methods=["GET"])
+@require_user
+def get_bump_messages(client_sdr_id: int):
+    """Gets all bump messages"""
+    bump_id = (
+        get_request_parameter(
+            "bump_id", request, json=False, required=True, parameter_type=str
+        )
+        or None
+    )
+    return get_db_bump_messages(bump_id)
 
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump", methods=["GET"])
@@ -207,13 +221,19 @@ def post_create_bump_framework(client_sdr_id: int):
     )
     if bump_framework_id:
         compain_name = ""
-        compain_link = "https://app.sellscale.com/setup/linkedin?campaign_id={compaign_id}".format(compaign_id=archetype_id)
+        compain_link = (
+            "https://app.sellscale.com/setup/linkedin?campaign_id={compaign_id}".format(
+                compaign_id=archetype_id
+            )
+        )
         try:
             compain_name = get_archetype_details(archetype_id).get("name", "")
         except TypeError:
             pass
 
-        send_new_framework_created_message(client_sdr_id, title, compain_name, compain_link)
+        send_new_framework_created_message(
+            client_sdr_id, title, compain_name, compain_link
+        )
         return (
             jsonify(
                 {
