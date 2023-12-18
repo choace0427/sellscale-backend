@@ -1198,7 +1198,7 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if (
-        client_sdr.auto_send_campaigns_enabled
+        client_sdr.auto_send_linkedin_campaign
         and campaign.campaign_type == GeneratedMessageType.LINKEDIN
     ):
         mark_prospects_as_queued_for_outreach(
@@ -1206,14 +1206,13 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
             client_sdr_id=client_sdr_id,
         )
 
-    # Once we are ready, uncomment
-    # if (
-    #     client_sdr.auto_send_campaigns_enabled
-    #     and campaign.campaign_type == GeneratedMessageType.EMAIL
-    # ):
-    #     batch_mark_prospects_in_email_campaign_queued(
-    #         campaign_id=campaign_id,
-    #     )
+    if (
+        client_sdr.auto_send_email_campaign
+        and campaign.campaign_type == GeneratedMessageType.EMAIL
+    ):
+        batch_mark_prospects_in_email_campaign_queued(
+            campaign_id=campaign_id,
+        )
 
     return True
 

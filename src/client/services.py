@@ -556,7 +556,7 @@ def create_client_sdr(client_id: int, name: str, email: str):
         do_not_contact_titles=[],
         do_not_contact_prospect_location_keywords=[],
         autopilot_enabled=True,
-        auto_send_campaigns_enabled=True,
+        auto_send_linkedin_campaign=True,
     )
     db.session.add(sdr)
     db.session.commit()
@@ -681,12 +681,12 @@ def toggle_client_sdr_auto_bump(client_sdr_id: int):
     return True
 
 
-def toggle_client_sdr_auto_send_campaigns_enabled(client_sdr_id: int):
+def toggle_client_sdr_auto_send_linkedin_campaign(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return None
 
-    sdr.auto_send_campaigns_enabled = not sdr.auto_send_campaigns_enabled
+    sdr.auto_send_linkedin_campaign = not sdr.auto_send_linkedin_campaign
     db.session.add(sdr)
     db.session.commit()
 

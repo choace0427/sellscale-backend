@@ -23,7 +23,7 @@ from src.client.services import (
     get_demo_feedback,
     get_demo_feedback_for_client,
     toggle_client_sdr_auto_bump,
-    toggle_client_sdr_auto_send_campaigns_enabled,
+    toggle_client_sdr_auto_send_linkedin_campaign,
     toggle_is_onboarding,
     update_client_auto_generate_li_messages_setting,
     update_client_sdr_cc_bcc_emails,
@@ -1443,13 +1443,12 @@ def post_toggle_client_sdr_auto_bump():
     return "OK", 200
 
 
-@CLIENT_BLUEPRINT.route("/sdr/toggle_auto_send_campaigns_enabled", methods=["POST"])
-def post_toggle_client_sdr_auto_send_campaigns_enabled():
+@CLIENT_BLUEPRINT.route("/sdr/toggle_auto_send_linkedin_campaign", methods=["POST"])
+@require_user
+def post_toggle_client_sdr_auto_send_linkedin_campaigns(client_sdr_id: int):
     """Toggles auto send campaigns enabled for a client SDR"""
-    client_sdr_id = get_request_parameter(
-        "client_sdr_id", request, json=True, required=True
-    )
-    success = toggle_client_sdr_auto_send_campaigns_enabled(client_sdr_id=client_sdr_id)
+
+    success = toggle_client_sdr_auto_send_linkedin_campaign(client_sdr_id=client_sdr_id)
     if not success:
         return "Failed to toggle auto send campaigns enabled", 400
     return "OK", 200

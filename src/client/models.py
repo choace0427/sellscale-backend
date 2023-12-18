@@ -73,9 +73,7 @@ class Client(db.Model):
 
     # Autogeneration
     auto_generate_li_messages = db.Column(db.Boolean, nullable=True, default=False)
-    auto_send_li_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_generate_email_messages = db.Column(db.Boolean, nullable=True, default=False)
-    auto_send_email_messages = db.Column(db.Boolean, nullable=True, default=False)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
@@ -104,9 +102,7 @@ class Client(db.Model):
             "existing_clients": self.existing_clients,
             "impressive_facts": self.impressive_facts,
             "auto_generate_li_messages": self.auto_generate_li_messages,
-            "auto_send_li_messages": self.auto_send_li_messages,
             "auto_generate_email_messages": self.auto_generate_email_messages,
-            "auto_send_email_messages": self.auto_send_email_messages,
         }
 
 
@@ -375,7 +371,6 @@ class ClientSDR(db.Model):
     auto_generate_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_calendar_sync = db.Column(db.Boolean, nullable=True, default=False)
     auto_bump = db.Column(db.Boolean, nullable=True, default=False)
-    auto_send_campaigns_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
     message_generation_captivate_mode = db.Column(
         db.Boolean, nullable=True, default=False
@@ -419,6 +414,10 @@ class ClientSDR(db.Model):
     conversion_open_pct = db.Column(db.Float, nullable=True)
     conversion_reply_pct = db.Column(db.Float, nullable=True)
     conversion_demo_pct = db.Column(db.Float, nullable=True)
+
+    # Automatic Sending
+    auto_send_linkedin_campaign = db.Column(db.Boolean, nullable=True, default=False)
+    auto_send_email_campaign = db.Column(db.Boolean, nullable=True, default=False)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
@@ -491,6 +490,8 @@ class ClientSDR(db.Model):
             "conversion_demo_pct": self.conversion_demo_pct,
             "emails": [email.to_dict() for email in email_bank] if email_bank else None,
             "meta_data": self.meta_data,
+            "auto_send_linkedin_campaign": self.auto_send_linkedin_campaign,
+            "auto_send_email_campaign": self.auto_send_email_campaign,
         }
 
 
