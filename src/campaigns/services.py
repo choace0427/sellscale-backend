@@ -22,7 +22,10 @@ from model_import import (
 )
 from sqlalchemy.sql.expression import func
 from src.editor.models import Editor, EditorTypes
-from src.email_outbound.services import get_approved_prospect_email_by_id
+from src.email_outbound.services import (
+    batch_mark_prospects_in_email_campaign_queued,
+    get_approved_prospect_email_by_id,
+)
 from tqdm import tqdm
 from src.message_generation.services import (
     wipe_prospect_email_and_generations_and_research,
@@ -1202,6 +1205,15 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
             prospect_ids=prospect_ids,
             client_sdr_id=client_sdr_id,
         )
+
+    # Once we are ready, uncomment
+    # if (
+    #     client_sdr.auto_send_campaigns_enabled
+    #     and campaign.campaign_type == GeneratedMessageType.EMAIL
+    # ):
+    #     batch_mark_prospects_in_email_campaign_queued(
+    #         campaign_id=campaign_id,
+    #     )
 
     return True
 

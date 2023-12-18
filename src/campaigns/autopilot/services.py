@@ -127,6 +127,10 @@ def daily_generate_linkedin_campaign_for_sdr(
                 f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (LI) not created for {client_sdr.name} (#{client_sdr.id}). No active LinkedIn archetypes.",
                 [SLACK_CHANNEL],
             )
+            return (
+                False,
+                f"Daily Campaign (LI) not created for {client_sdr.name} (#{client_sdr.id}): No active LinkedIn archetypes",
+            )
 
         # 2. Get the start dates
         start_date = datetime.today()
@@ -285,6 +289,10 @@ def daily_generate_email_campaign_for_sdr(
             send_slack_message(
                 f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (Email) not created for {client_sdr.name} (#{client_sdr.id}). No active Email archetypes.",
                 [SLACK_CHANNEL],
+            )
+            return (
+                False,
+                f"Daily Campaign (Email) not created for {client_sdr.name} (#{client_sdr.id}): No active Email archetypes",
             )
 
         # 2. Get the start dates
