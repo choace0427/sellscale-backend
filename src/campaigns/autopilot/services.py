@@ -737,7 +737,7 @@ def get_available_sla_count(
                 return (
                     -1,
                     -1,
-                    f"Daily SLA for LinkedIn has been filled for SDR '{sdr.name}' between {monday} - {sunday}.",
+                    f"Daily SLA for LinkedIn has been filled.",
                 )
 
             return sla_schedule.linkedin_volume // 5, sla_schedule.linkedin_volume, ""
@@ -769,7 +769,7 @@ def get_available_sla_count(
                 return (
                     -1,
                     -1,
-                    f"Daily SLA for Email has been filled for SDR '{sdr.name}' between {monday} - {sunday}.",
+                    f"Daily SLA for Email has been filled",
                 )
             return sla_schedule.email_volume // 5, sla_schedule.email_volume, ""
 
