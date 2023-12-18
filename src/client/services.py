@@ -3906,19 +3906,33 @@ def update_client_auto_send_li_messages(
     return True
 
 
+def update_client_auto_generate_email_messages_setting(
+    client_sdr_id: int,
+    auto_generate_email_messages: bool,
+):
+    """
+    Updates the auto generate email messages setting for a client SDR
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    client.auto_generate_email_messages = auto_generate_email_messages
+    db.session.commit()
+    return True
+
+
 def get_tam_industry_breakdown(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     results = db.session.execute(
         """
-        select 
+        select
           industry,
           count(distinct prospect.id) filter (where prospect.overall_status <> 'PROSPECTED') "# Contacted",
           count(distinct prospect.id) filter (where prospect.overall_status = 'PROSPECTED') "# Left"
         from prospect
         where prospect.client_id = {client_id}
         group by 1
-        order by 
+        order by
           count(distinct prospect.id) filter (where prospect.overall_status <> 'PROSPECTED') DESC
         limit 10
         """.format(
@@ -3949,18 +3963,18 @@ def get_tam_employees(client_sdr_id: int):
     results = db.session.execute(
         """
         with d as (
-          select 
-            case 
+          select
+            case
               when prospect.employee_count ilike '%None-None%' then 'No Size'
               when prospect.employee_count ilike '%10001-None%' then '10001+'
               when prospect.employee_count ilike '%-%' then prospect.employee_count
                 when prospect.employee_count ilike '%+' then '10001+'
-                
-                when prospect.employee_count ilike '%None%' then 'unknown' 
-              else 
+
+                when prospect.employee_count ilike '%None%' then 'unknown'
+              else
                 (
-                  case 
-                    when cast(prospect.employee_count as integer) >= 0 and cast(prospect.employee_count as integer) <= 10 then '2-10' 
+                  case
+                    when cast(prospect.employee_count as integer) >= 0 and cast(prospect.employee_count as integer) <= 10 then '2-10'
                     when cast(prospect.employee_count as integer) >= 11 and cast(prospect.employee_count as integer) <= 50 then '11-50'
                     when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
                     when cast(prospect.employee_count as integer) >= 51 and cast(prospect.employee_count as integer) <= 200 then '51-200'
@@ -3982,14 +3996,14 @@ def get_tam_employees(client_sdr_id: int):
 
           group by 1
         )
-        select 
+        select
           employee_count_comp,
           "# Contacted",
           "# Left"
         from d
-        order by 
+        order by
           case when employee_count_comp = 'No Size' then 1 else 0 end,
-          case 
+          case
             when employee_count_comp = '0-1' then 0
             when employee_count_comp = '2-10' then 1
             when employee_count_comp = '11-50' then 2
@@ -4027,7 +4041,7 @@ def get_tam_stats(client_sdr_id: int):
 
     results = db.session.execute(
         """
-        select 
+        select
           count(distinct prospect.company) "# Companies",
           count(distinct prospect.id) "# Contacts",
           count(distinct prospect.company) filter (where prospect.status not in ('PROSPECTED')) "# Engaged"
@@ -4060,7 +4074,7 @@ def get_tam_titles(client_sdr_id: int):
 
     results = db.session.execute(
         """
-        select 
+        select
           title,
           count(distinct prospect.id)
         from prospect
@@ -4094,7 +4108,7 @@ def get_tam_companies(client_sdr_id: int):
 
     results = db.session.execute(
         """
-        select 
+        select
           prospect.company,
           count(distinct prospect.id)
         from prospect
@@ -4128,7 +4142,7 @@ def get_tam_industries(client_sdr_id: int):
 
     results = db.session.execute(
         """
-        select 
+        select
           company,
           count(distinct prospect.id)
         from prospect
@@ -4162,7 +4176,7 @@ def get_tam_scraping_report(client_sdr_id: int):
 
     results = db.session.execute(
         """
-        select 
+        select
           concat(
             client_archetype.emoji,
             ' ',
@@ -4176,7 +4190,7 @@ def get_tam_scraping_report(client_sdr_id: int):
           ) "Scraped",
           'Complete' Status,
           to_char(prospect.created_at, 'YYYY-MM-DD') "Upload Date"
-        from 
+        from
           client_archetype
           join prospect on prospect.archetype_id = client_archetype.id
           join client_sdr on client_sdr.id = client_archetype.client_sdr_id

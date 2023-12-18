@@ -10,7 +10,11 @@ from src.personas.services import (
     clone_persona,
 )
 from src.prospecting.models import Prospect
-from src.client.services import get_tam_data, remove_prospects_caught_by_filters
+from src.client.services import (
+    get_tam_data,
+    remove_prospects_caught_by_filters,
+    update_client_auto_generate_email_messages_setting,
+)
 from src.client.services import (
     edit_demo_feedback,
     import_pre_onboarding,
@@ -143,6 +147,21 @@ def patch_linkedin_auto_generate(client_sdr_id: int):
 
     success = update_client_auto_generate_li_messages_setting(
         client_sdr_id=client_sdr_id, auto_generate_li_messages=auto_generate
+    )
+    if not success:
+        return "Failed to update client SDR", 404
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/email/auto_generate", methods=["PATCH"])
+@require_user
+def patch_email_auto_generate(client_sdr_id: int):
+    auto_generate = get_request_parameter(
+        "auto_generate", request, json=True, required=True, parameter_type=bool
+    )
+
+    success = update_client_auto_generate_email_messages_setting(
+        client_sdr_id=client_sdr_id, auto_generate_email_messages=auto_generate
     )
     if not success:
         return "Failed to update client SDR", 404
