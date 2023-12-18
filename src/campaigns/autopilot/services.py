@@ -265,6 +265,14 @@ def daily_generate_linkedin_campaign_for_sdr(
                 False,
                 f"Daily Campaign (LI) not created for {client_sdr.name} (#{client_sdr.id}): No LinkedIn campaigns generated.",
             )
+        send_slack_message(
+            f"🤖 ✅ 🧑‍🤝‍🧑 Daily Campaign (LI) created for {client_sdr.name} (#{client_sdr.id}).",
+        )
+
+        return (
+            True,
+            f"Daily Campaign (LI) created for {client_sdr.name} (#{client_sdr.id}).",
+        )
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
@@ -405,6 +413,14 @@ def daily_generate_email_campaign_for_sdr(
                 False,
                 f"Daily Campaign (Email) not created for {client_sdr.name} (#{client_sdr.id}): No Email campaigns generated.",
             )
+        send_slack_message(
+            f"🤖 ✅ 🧑‍🤝‍🧑 Daily Campaign (Email) created for {client_sdr.name} (#{client_sdr.id}).",
+        )
+
+        return (
+            True,
+            f"Daily Campaign (Email) created for {client_sdr.name} (#{client_sdr.id}).",
+        )
     except Exception as e:
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
