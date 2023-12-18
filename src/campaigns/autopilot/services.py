@@ -361,6 +361,12 @@ def daily_generate_email_campaign_for_sdr(
                         GeneratedMessageType.EMAIL,
                     )
                 )
+                if num_available_prospects == 0 or num_to_generate == 0:
+                    send_slack_message(
+                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (Email): No prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                        [SLACK_CHANNEL],
+                    )
+                    continue
                 if num_to_generate <= num_available_prospects:
                     # Create the campaign
                     oc = create_outbound_campaign(
