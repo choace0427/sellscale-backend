@@ -74,6 +74,8 @@ class Client(db.Model):
     # Autogeneration
     auto_generate_li_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_send_li_messages = db.Column(db.Boolean, nullable=True, default=False)
+    auto_generate_email_messages = db.Column(db.Boolean, nullable=True, default=False)
+    auto_send_email_messages = db.Column(db.Boolean, nullable=True, default=False)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
@@ -103,6 +105,8 @@ class Client(db.Model):
             "impressive_facts": self.impressive_facts,
             "auto_generate_li_messages": self.auto_generate_li_messages,
             "auto_send_li_messages": self.auto_send_li_messages,
+            "auto_generate_email_messages": self.auto_generate_email_messages,
+            "auto_send_email_messages": self.auto_send_email_messages,
         }
 
 

@@ -1,6 +1,10 @@
 from app import db, celery
 from src.client.models import ClientArchetype
-from src.email_outbound.models import ProspectEmail, ProspectEmailOutreachStatus
+from src.email_outbound.models import (
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+    ProspectEmailStatus,
+)
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
 
@@ -119,6 +123,8 @@ def process_email_sent_webhook(payload_id: int):
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
         )
+        prospect_email.email_status = ProspectEmailStatus.SENT
+        db.session.commit()
 
         # TEMPORARY: Send slack notification
         from src.utils.slack import send_slack_message
