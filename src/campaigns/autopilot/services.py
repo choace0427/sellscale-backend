@@ -267,6 +267,7 @@ def daily_generate_linkedin_campaign_for_sdr(
             )
         send_slack_message(
             f"🤖 ✅ 🧑‍🤝‍🧑 Daily Campaign (LI) created for {client_sdr.name} (#{client_sdr.id}).",
+            webhook_urls=[SLACK_CHANNEL],
         )
 
         return (
@@ -415,6 +416,7 @@ def daily_generate_email_campaign_for_sdr(
             )
         send_slack_message(
             f"🤖 ✅ 🧑‍🤝‍🧑 Daily Campaign (Email) created for {client_sdr.name} (#{client_sdr.id}).",
+            webhook_urls=[SLACK_CHANNEL],
         )
 
         return (
