@@ -1964,7 +1964,7 @@ def map_prospect_email_status_to_prospect_overall_status(
     prospect_email_status_map = {
         ProspectEmailOutreachStatus.UNKNOWN: ProspectOverallStatus.PROSPECTED,
         ProspectEmailOutreachStatus.NOT_SENT: ProspectOverallStatus.PROSPECTED,
-        ProspectEmailOutreachStatus.BOUNCED: ProspectOverallStatus.REMOVED,
+        ProspectEmailOutreachStatus.BOUNCED: ProspectOverallStatus.SENT_OUTREACH,
         ProspectEmailOutreachStatus.SENT_OUTREACH: ProspectOverallStatus.SENT_OUTREACH,
         ProspectEmailOutreachStatus.EMAIL_OPENED: ProspectOverallStatus.ACCEPTED,
         ProspectEmailOutreachStatus.ACCEPTED: ProspectOverallStatus.ACCEPTED,
