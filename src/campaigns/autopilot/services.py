@@ -386,6 +386,7 @@ def daily_generate_email_campaign_for_sdr(
                         client_sdr_id=client_sdr.id,
                         campaign_start_date=start_date,
                         campaign_end_date=end_date,
+                        is_daily_generation=True,
                     )
                     if not oc:
                         send_slack_message(
