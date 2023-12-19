@@ -56,13 +56,11 @@ def process_email_opened_webhook(payload_id: int):
         # Verify the payload is an EMAIL_OPENED event
         payload: dict = smartlead_payload.smartlead_payload
         event_type = payload.get("event_type")
-        if event_type != "EMAIL_OPENED":
+        if event_type != "EMAIL_OPEN":
             smartlead_payload.processing_status = (
                 SmartleadWebhookProcessingStatus.FAILED
             )
-            smartlead_payload.processing_fail_reason = (
-                "Event type is not 'EMAIL_OPENED'"
-            )
+            smartlead_payload.processing_fail_reason = "Event type is not 'EMAIL_OPEN'"
             db.session.commit()
             return False, "Event type is not 'EMAIL_OPENED'"
 
