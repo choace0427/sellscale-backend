@@ -132,6 +132,10 @@ def process_email_opened_webhook(payload_id: int):
             message=f"Smartlead Payload: {prospect.full_name} ({prospect.email}) opened your email.",
             webhook_urls=[URL_MAP["eng-sandbox"]],
         )
+
+        # Set the payload to "SUCCEEDED"
+        smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED
+        db.session.commit()
     except Exception as e:
         smartlead_payload: SmartleadWebhookPayloads = (
             SmartleadWebhookPayloads.query.get(payload_id)
