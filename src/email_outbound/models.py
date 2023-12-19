@@ -330,6 +330,7 @@ class ProspectEmail(db.Model):
     # In UTC, used to hide prospects from the UI until a certain date
     hidden_until = db.Column(db.DateTime, nullable=True)
     last_reply_time = db.Column(db.DateTime, nullable=True)
+    last_message = db.Column(db.String, nullable=True)
 
     def to_dict(self):
         from src.message_generation.models import GeneratedMessage
@@ -371,6 +372,9 @@ class ProspectEmail(db.Model):
             "batch_id": self.batch_id,
             "nylas_thread_id": self.nylas_thread_id,
             "times_bumped": self.times_bumped,
+            "hidden_until": self.hidden_until,
+            "last_reply_time": self.last_reply_time,
+            "last_message": self.last_message,
         }
 
 
