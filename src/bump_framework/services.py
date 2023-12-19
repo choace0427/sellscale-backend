@@ -7,23 +7,22 @@ from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from src.utils.slack import send_slack_message
 from typing import Optional
 
+
 def get_db_bump_messages(bump_id: int):
-    """ Get all bump messages """
+    """Get all bump messages"""
     messages = db.session.execute(
         f"""
-            Select prospect.full_name, prospect.img_url, linkedin_conversation_entry.created_at, linkedin_conversation_entry.message
+            Select prospect.full_name, prospect.img_url, linkedin_conversation_entry.created_at, prospect.li_last_message_from_prospect message
             From linkedin_conversation_entry
 	        Join prospect on prospect.li_conversation_urn_id = linkedin_conversation_entry.thread_urn_id
-            Where linkedin_conversation_entry.bump_framework_id = {bump_id};
+            Where linkedin_conversation_entry.bump_framework_id = {bump_id}
+                and prospect.li_last_message_from_prospect is not null;
         """
     ).fetchall()
 
-    messages = [ dict(row) for row in messages]
-    return {
-        "data": messages,
-        "message": "Success",
-        "status_code": 200
-    }
+    messages = [dict(row) for row in messages]
+    return {"data": messages, "message": "Success", "status_code": 200}
+
 
 def send_new_framework_created_message(
     client_sdr_id: int, title: str, campaign_name: str, campaign_link: str
