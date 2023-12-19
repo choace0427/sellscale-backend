@@ -13,6 +13,7 @@ from src.prospecting.models import Prospect
 from src.client.services import (
     get_tam_data,
     remove_prospects_caught_by_filters,
+    toggle_client_sdr_auto_send_email_campaign,
     update_client_auto_generate_email_messages_setting,
 )
 from src.client.services import (
@@ -1449,6 +1450,23 @@ def post_toggle_client_sdr_auto_send_linkedin_campaigns(client_sdr_id: int):
     """Toggles auto send campaigns enabled for a client SDR"""
 
     success = toggle_client_sdr_auto_send_linkedin_campaign(client_sdr_id=client_sdr_id)
+    if not success:
+        return "Failed to toggle auto send campaigns enabled", 400
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/toggle_auto_send_email_campaign", methods=["POST"])
+@require_user
+def post_toggle_client_sdr_auto_send_email_campaigns(client_sdr_id: int):
+    """Toggles auto send campaigns enabled for a client SDR"""
+    enabled = get_request_parameter(
+        "enabled", request, json=True, required=True, parameter_type=bool
+    )
+
+    success = toggle_client_sdr_auto_send_email_campaign(
+        client_sdr_id=client_sdr_id,
+        enabled=enabled,
+    )
     if not success:
         return "Failed to toggle auto send campaigns enabled", 400
     return "OK", 200

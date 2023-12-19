@@ -693,6 +693,20 @@ def toggle_client_sdr_auto_send_linkedin_campaign(client_sdr_id: int):
     return True
 
 
+def toggle_client_sdr_auto_send_email_campaign(
+    client_sdr_id: int, enabled: bool
+) -> bool:
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    sdr.auto_send_email_campaign = enabled
+    db.session.add(sdr)
+    db.session.commit()
+
+    return True
+
+
 def reset_client_sdr_sight_auth_token(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
