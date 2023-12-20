@@ -8,12 +8,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
 
-from flask_socketio import SocketIO
-
 from flask_sqlalchemy import SQLAlchemy
 from src.setup.TimestampedModel import TimestampedModel
 from src.utils.scheduler import *
 from src.utils.slack import URL_MAP
+import boto3
 
 from celery import Celery
 from src.utils.slack import send_slack_message
@@ -147,6 +146,14 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 sqlalchemy_engine_options = {"max_overflow": 40, "pool_size": 20, "pool_pre_ping": True}
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = sqlalchemy_engine_options
 
+# Initialize a Route53 client
+boto3_client = boto3.client(
+    "route53domains",
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
+    region_name="us-east-1",
+)
+
 db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
 
@@ -231,6 +238,7 @@ def register_blueprints(app):
     from src.triggers.controllers import TRIGGERS_BLUEPRINT
     from src.weekly_report.controllers import WEEKLY_REPORT_BLUEPRINT
     from src.sockets.controllers import SOCKETS_BLUEPRINT
+    from src.domains.controllers import DOMAINS_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -289,6 +297,7 @@ def register_blueprints(app):
     app.register_blueprint(TRIGGERS_BLUEPRINT, url_prefix="/triggers")
     app.register_blueprint(WEEKLY_REPORT_BLUEPRINT, url_prefix="/weekly_report")
     app.register_blueprint(SOCKETS_BLUEPRINT, url_prefix="/sockets")
+    app.register_blueprint(DOMAINS_BLUEPRINT, url_prefix="/domains")
 
     db.init_app(app)
 

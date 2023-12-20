@@ -195,4 +195,5 @@ yarl==1.8.2
 zipp==3.8.1
 resend==0.6.0
 jsonpickle==3.0.2
-flask-socketio==5.3.6
+boto3==1.34.4
+botocore==1.34.4
