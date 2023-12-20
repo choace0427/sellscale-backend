@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.domains.services import (
+    domain_blacklist_check,
     find_domain,
     find_similar_domains,
     register_aws_domain,
@@ -62,6 +63,25 @@ def get_purchase_domain(client_sdr_id: int):
     )
 
     result = register_aws_domain(domain)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": result,
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("/blacklist", methods=["GET"])
+def get_domain_blacklist_check():
+    domain = get_request_parameter(
+        "domain", request, json=False, required=True, parameter_type=str
+    )
+
+    result = domain_blacklist_check(domain)
 
     return (
         jsonify(
