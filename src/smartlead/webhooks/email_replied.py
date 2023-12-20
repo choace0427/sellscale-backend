@@ -1,3 +1,5 @@
+import re
+from bs4 import BeautifulSoup
 from app import db, celery
 from src.client.models import ClientArchetype
 from src.email_outbound.models import (
@@ -118,15 +120,25 @@ def process_email_replied_webhook(payload_id: int):
             db.session.commit()
             return False, "No Prospect Email found"
 
-        # Set the Prospect Email to "ACTIVE_CONVO"
+        # Get the email that was sent and email that was replied
         sent_message: dict = payload.get("sent_message")
+        sent_message = sent_message.get("text")
+        sent_message = re.sub("\n+", "\n", sent_message)
+        sent_message = sent_message.strip("\n")
+
         reply_message: dict = payload.get("reply_message")
+        reply_message = reply_message.get("text")
+        reply_message = re.sub("\n+", "\n", reply_message)
+        reply_message = reply_message.strip("\n")
+
         metadata = {
             "prospect_email": prospect.email,
             "email_title": payload.get("subject"),
-            "email_snippet": sent_message.get("text"),
-            "prospect_message": reply_message.get("text"),
+            "email_snippet": sent_message,
+            "prospect_message": reply_message,
         }
+
+        # Set the Prospect Email to "ACTIVE_CONVO"
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,

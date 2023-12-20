@@ -622,13 +622,16 @@ def create_smartlead_campaign(
         schedule=campaign_schedule,
     )
 
-    # 6. Mark the campaign status as "START"
+    # 6. Upload all webhooks into the campaign
+    sl.add_all_campaign_webhooks(campaign_id=smartlead_campaign_id)
+
+    # 7. Mark the campaign status as "START"
     sl.post_campaign_status(
         campaign_id=smartlead_campaign_id,
         status="START",
     )
 
-    # 7. Optional - Sync the campaign ID to the archetype
+    # 8. Optional - Sync the campaign ID to the archetype
     if sync_to_archetype:
         archetype.smartlead_campaign_id = smartlead_campaign_id
         db.session.commit()
