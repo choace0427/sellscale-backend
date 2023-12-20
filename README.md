@@ -141,7 +141,7 @@ The following steps assume that you have the above prerequisites installed - any
 
 10. Make sure that setup worked by running two tests.
 
-- **Run Unit Tests**: Run all the unit tests by typing `source .envtesting && python -m pytest --cov=src -v`. There should not be any failures.
+- **Run Unit Tests**: Run all the unit tests by typing `source .testing.env && python -m pytest --cov=src -v`. There should not be any failures.
 
 - **Boot Up Local API**: Run the API locally by typing `flask run`. You can then hit the endpoints using Postman.
 
