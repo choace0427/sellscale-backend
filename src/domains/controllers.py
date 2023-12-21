@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from src.domains.services import (
     add_email_dns_records,
     create_workmail_inbox,
+    domain_blacklist_check,
     find_domain,
     find_similar_domains,
     register_aws_domain,
@@ -110,6 +111,25 @@ def post_create_workmail_inbox(client_sdr_id: int):
     )
 
     result = create_workmail_inbox(domain, username, password)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": result,
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("/blacklist", methods=["GET"])
+def get_domain_blacklist_check():
+    domain = get_request_parameter(
+        "domain", request, json=False, required=True, parameter_type=str
+    )
+
+    result = domain_blacklist_check(domain)
 
     return (
         jsonify(
