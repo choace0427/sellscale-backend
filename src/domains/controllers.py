@@ -1,11 +1,7 @@
 from flask import Blueprint, request, jsonify
 from src.domains.services import (
-<<<<<<< HEAD
     add_email_dns_records,
     create_workmail_inbox,
-=======
-    domain_blacklist_check,
->>>>>>> 8acb85294d6e595f9eea0fe05a6b9f978b9def83
     find_domain,
     find_similar_domains,
     register_aws_domain,
@@ -80,7 +76,6 @@ def post_purchase_domain(client_sdr_id: int):
     )
 
 
-<<<<<<< HEAD
 @DOMAINS_BLUEPRINT.route("/add_dns_records", methods=["POST"])
 @require_user
 def post_add_dns_records(client_sdr_id: int):
@@ -115,15 +110,6 @@ def post_create_workmail_inbox(client_sdr_id: int):
     )
 
     result = create_workmail_inbox(domain, username, password)
-=======
-@DOMAINS_BLUEPRINT.route("/blacklist", methods=["GET"])
-def get_domain_blacklist_check():
-    domain = get_request_parameter(
-        "domain", request, json=False, required=True, parameter_type=str
-    )
-
-    result = domain_blacklist_check(domain)
->>>>>>> 8acb85294d6e595f9eea0fe05a6b9f978b9def83
 
     return (
         jsonify(
