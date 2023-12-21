@@ -9,6 +9,7 @@ from src.email_outbound.models import (
 )
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
+from src.smartlead.services import generate_smart_email_response
 
 from src.smartlead.webhooks.models import (
     SmartleadWebhookPayloads,
@@ -16,6 +17,7 @@ from src.smartlead.webhooks.models import (
     SmartleadWebhookType,
 )
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 
 
 def create_and_process_email_replied_payload(payload: dict) -> bool:
@@ -145,6 +147,15 @@ def process_email_replied_webhook(payload_id: int):
             metadata=metadata,
         )
         prospect_email.last_message = reply_message.get("text")
+        reply_time = payload.get("reply_message").get("time")
+        reply_time = convert_string_to_datetime_or_none(content=reply_time)
+        prospect_email.last_reply_time = reply_time
+
+        # Generate an automated reply
+        generate_smart_email_response(
+            client_sdr_id=prospect.client_sdr_id,
+            prospect_id=prospect.id,
+        )
 
         # Set the payload to "SUCCEEDED"
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED

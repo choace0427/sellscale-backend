@@ -5,9 +5,10 @@
 # The intention of this flow is to have both prompt and completion exposed, instead of having 1 function handle both
 # This allows for more flexibility in the future, and lets us experiment more easily with different prompts / models.
 
-import re
+from app import db
 from typing import Optional
 from bs4 import BeautifulSoup
+from src.message_generation.email.models import EmailAutomatedReply
 from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import get_text_generation
 
@@ -520,3 +521,32 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
     response = response.strip('"')
 
     return {"subject_line": response}
+
+
+def create_email_automated_reply_entry(
+    prospect_id: int,
+    client_sdr_id: int,
+    prompt: str,
+    email_body: str,
+) -> int:
+    """Create an EmailAutomatedReply entry.
+
+    Args:
+        prospect_id (int): ID of the prospect
+        client_sdr_id (int): ID of the client SDR
+        prompt (str): The prompt used to generate the email
+        email_body (str): The email body
+
+    Returns:
+        int: The ID of the EmailAutomatedReply entry
+    """
+    email_automated_reply = EmailAutomatedReply(
+        prospect_id=prospect_id,
+        client_sdr_id=client_sdr_id,
+        prompt=prompt,
+        email_body=email_body,
+    )
+    db.session.add(email_automated_reply)
+    db.session.commit()
+
+    return email_automated_reply.id
