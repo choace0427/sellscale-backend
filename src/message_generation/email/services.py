@@ -550,3 +550,22 @@ def create_email_automated_reply_entry(
     db.session.commit()
 
     return email_automated_reply.id
+
+
+def get_email_automated_reply_entry(
+    prospect_id: int,
+) -> list[dict]:
+    """Get an EmailAutomatedReply entry.
+
+    Args:
+        prospect_id (int): The ID of the prospect.
+
+    Returns:
+        dict: The EmailAutomatedReply entry
+    """
+    automated_replies_query = EmailAutomatedReply.query.filter(
+        EmailAutomatedReply.prospect_id == prospect_id,
+    ).order_by(EmailAutomatedReply.id.desc())
+    automated_replies: list[EmailAutomatedReply] = automated_replies_query.all()
+
+    return [automated_reply.to_dict() for automated_reply in automated_replies]
