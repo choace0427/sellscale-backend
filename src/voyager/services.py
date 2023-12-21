@@ -4,7 +4,6 @@ import time
 import datetime as dt
 import random
 import os
-from flask_socketio import send
 from tqdm import tqdm
 
 from tomlkit import datetime
