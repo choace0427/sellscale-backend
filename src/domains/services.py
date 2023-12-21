@@ -1,7 +1,6 @@
 from app import (
     aws_route53domains_client,
     aws_route53_client,
-    aws_sesv2_client,
     aws_ses_client,
     aws_workmail_client,
 )
@@ -11,7 +10,9 @@ from src.utils.domains.pythondns import (
     dmarc_record_valid,
     spf_record_valid,
 )
+from src.smartlead.services import create_workmail_email_account
 import os
+import time
 
 
 def domain_blacklist_check(domain):
@@ -422,14 +423,30 @@ def find_similar_domains(key_title: str, current_tld: str):
 def generate_dkim_tokens(domain_name: str):
     # Generate DKIM tokens for the domain
     try:
-        response = aws_sesv2_client.delete_email_identity(EmailIdentity=domain_name)
+        response = aws_ses_client.verify_domain_dkim(Domain=domain_name)
+        return response["DkimTokens"]
     except:
-        pass
-    response = aws_sesv2_client.create_email_identity(
-        EmailIdentity=domain_name,
-        DkimSigningAttributes={"NextSigningKeyLength": "RSA_2048_BIT"},
-    )
-    return response.get("DkimAttributes", {}).get("Tokens", [])
+        return []
+    ### Using SESv2 ###
+    # try:
+    #     response = aws_sesv2_client.delete_email_identity(EmailIdentity=domain_name)
+    # except:
+    #     pass
+    # response = aws_sesv2_client.create_email_identity(
+    #     EmailIdentity=domain_name,
+    #     DkimSigningAttributes={"NextSigningKeyLength": "RSA_2048_BIT"},
+    # )
+    # return response.get("DkimAttributes", {}).get("Tokens", [])
+
+
+def verify_domain_identity(domain_name: str):
+    try:
+        response = aws_ses_client.verify_domain_identity(Domain=domain_name)
+        token = response["VerificationToken"]
+        return token
+    except ClientError as error:
+        print(error)
+        return ""
 
 
 def get_hosted_zone_id(domain_name: str):
@@ -497,6 +514,17 @@ def add_email_dns_records(domain_name: str):
         },
     }
 
+    # Verification record
+    verification_record = {
+        "Action": "UPSERT",
+        "ResourceRecordSet": {
+            "Name": f"_amazonses.{domain_name}",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [{"Value": f'"{verify_domain_identity(domain_name)}"'}],
+        },
+    }
+
     # Update DNS records
     aws_route53_client.change_resource_record_sets(
         HostedZoneId=hosted_zone_id,
@@ -505,6 +533,7 @@ def add_email_dns_records(domain_name: str):
             + [
                 dmarc_record,
                 spf_record,
+                verification_record,
             ]
         },
     )
@@ -559,3 +588,38 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str):
     )
 
     return True, "Workmail inbox created successfully"
+
+
+def domain_setup_workflow(domain_name: str, user_name: str, password: str):
+    """
+    After domain is purchased,
+    1. Add DNS records
+    2. Create workmail inbox
+    3. Add to smartlead
+    """
+
+    success, _ = add_email_dns_records(domain_name)
+    if not success:
+        return False, "Failed to add email DNS records"
+
+    success, _ = create_workmail_inbox(domain_name, user_name, password)
+    if not success:
+        return False, "Failed to create workmail inbox"
+
+    # Keep trying until the inbox is created, cancel after 5 attempts
+    attempt = 1
+    while attempt <= 5:
+        print(f"Attempt {attempt} to create workmail email account")
+        time.sleep(5)
+        success, _ = create_workmail_email_account(
+            name=user_name,
+            email=f"{user_name}@{domain_name}",
+            password=password,
+        )
+        if success:
+            break
+
+    if not success:
+        return False, "Failed to create workmail email account"
+
+    return True, "Domain setup workflow completed successfully"

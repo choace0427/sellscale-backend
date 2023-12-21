@@ -1207,3 +1207,36 @@ Prospect Title: {prospect.title}
     )
 
     return html_response
+
+
+def create_workmail_email_account(
+    name: str,
+    email: str,
+    password: str,
+    emails_per_day: int = 30,
+):
+    sl = Smartlead()
+    result = sl.create_email_account(
+        {
+            "id": None,  # set null to create new email account
+            "from_name": name,
+            "from_email": email,
+            "user_name": email,
+            "password": password,
+            "smtp_host": "smtp.mail.us-east-1.awsapps.com",
+            "smtp_port": 465,
+            "imap_host": "imap.mail.us-east-1.awsapps.com",
+            "imap_port": 993,
+            "max_email_per_day": emails_per_day,
+            "custom_tracking_url": "",
+            "bcc": "",
+            "signature": "",
+            "warmup_enabled": True,
+            "total_warmup_per_day": emails_per_day,
+            "daily_rampup": 2,
+            "reply_rate_percentage": None,
+            "client_id": None,  # set value to assign to client id
+        }
+    )
+    print(result)
+    return result.get("ok", False), result.get("message", "")

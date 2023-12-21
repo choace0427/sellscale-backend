@@ -550,3 +550,17 @@ class Smartlead:
             time.sleep(self.DELAY_SECONDS)
             return self.post_campaign_leads(campaign_id, lead_list)
         return response.json()
+
+    def create_email_account(self, json_data):
+        url = f"{self.BASE_URL}/email-accounts/save?api_key={self.api_key}"
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+            },
+            json=json_data,
+        )
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.create_email_account(json_data)
+        return response.json()
