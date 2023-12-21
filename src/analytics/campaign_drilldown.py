@@ -19,6 +19,7 @@ def get_campaign_drilldown_data(archetype_id):
         prospect.title "prospect_title",
         prospect.company "prospect_company",
         client_archetype.archetype "prospect_archetype",
+        prospect.img_url "img_url",
         max(case when prospect.li_last_message_from_prospect is not null
             then prospect.li_last_message_from_prospect
             else 'no response yet.'
@@ -30,7 +31,7 @@ def get_campaign_drilldown_data(archetype_id):
     where 
         prospect_status_records.to_status in ('SENT_OUTREACH', 'ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
         and prospect.archetype_id = :archetype_id
-    group by 1,2,3,4,5,6,7
+    group by 1,2,3,4,5,6,7,8
     order by 
         case when prospect.li_last_message_timestamp is null then 1 else 0 end,
         li_last_message_timestamp desc;
