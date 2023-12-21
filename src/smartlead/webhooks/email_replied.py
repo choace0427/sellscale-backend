@@ -1,3 +1,5 @@
+import re
+from bs4 import BeautifulSoup
 from app import db, celery
 from src.client.models import ClientArchetype
 from src.email_outbound.models import (
@@ -7,6 +9,7 @@ from src.email_outbound.models import (
 )
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
+from src.smartlead.services import generate_smart_email_response
 
 from src.smartlead.webhooks.models import (
     SmartleadWebhookPayloads,
@@ -14,6 +17,7 @@ from src.smartlead.webhooks.models import (
     SmartleadWebhookType,
 )
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 
 
 def create_and_process_email_replied_payload(payload: dict) -> bool:
@@ -118,21 +122,40 @@ def process_email_replied_webhook(payload_id: int):
             db.session.commit()
             return False, "No Prospect Email found"
 
-        # Set the Prospect Email to "ACTIVE_CONVO"
+        # Get the email that was sent and email that was replied
         sent_message: dict = payload.get("sent_message")
+        sent_message = sent_message.get("text")
+        sent_message = re.sub("\n+", "\n", sent_message)
+        sent_message = sent_message.strip("\n")
+
         reply_message: dict = payload.get("reply_message")
+        reply_message = reply_message.get("text")
+        reply_message = re.sub("\n+", "\n", reply_message)
+        reply_message = reply_message.strip("\n")
+
         metadata = {
             "prospect_email": prospect.email,
             "email_title": payload.get("subject"),
-            "email_snippet": sent_message.get("text"),
-            "prospect_message": reply_message.get("text"),
+            "email_snippet": sent_message,
+            "prospect_message": reply_message,
         }
+
+        # Set the Prospect Email to "ACTIVE_CONVO"
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
             metadata=metadata,
         )
-        prospect_email.last_message = reply_message.get("text")
+        prospect_email.last_message = reply_message
+        reply_time = payload.get("reply_message").get("time")
+        reply_time = convert_string_to_datetime_or_none(content=reply_time)
+        prospect_email.last_reply_time = reply_time
+
+        # Generate an automated reply
+        generate_smart_email_response(
+            client_sdr_id=prospect.client_sdr_id,
+            prospect_id=prospect.id,
+        )
 
         # Set the payload to "SUCCEEDED"
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED

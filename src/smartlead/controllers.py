@@ -1,5 +1,6 @@
 from typing import List
 from flask import Blueprint, request, jsonify
+from src.message_generation.email.services import get_email_automated_reply_entry
 from src.smartlead.services import (
     generate_smart_email_response,
     create_smartlead_campaign,
@@ -114,11 +115,19 @@ def get_prospect_conversation(client_sdr_id: int):
         smartlead_campaign_id=smartlead_campaign_id,
     )
 
+    automated_replies = get_email_automated_reply_entry(
+        prospect_id=prospect_id,
+    )
+    automated_reply = automated_replies[0] if automated_replies else None
+
     return (
         jsonify(
             {
                 "message": "Success",
-                "data": {"conversation": conversation},
+                "data": {
+                    "conversation": conversation,
+                    "automated_reply": automated_reply,
+                },
             }
         ),
         200,

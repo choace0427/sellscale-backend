@@ -160,6 +160,29 @@ class Smartlead:
     DELAY_SECONDS = 1.0
     BASE_URL = "https://server.smartlead.ai/api/v1"
 
+    WEBHOOK_URLS = [
+        {
+            "name": "Email Sent",
+            "url": "https://sellscale-api-prod.onrender.com/smartlead/webhooks/email_sent",
+            "event_types": ["EMAIL_SENT"],
+        },
+        {
+            "name": "Email Opened",
+            "url": "https://sellscale-api-prod.onrender.com/smartlead/webhooks/email_opened",
+            "event_types": ["EMAIL_OPEN"],
+        },
+        {
+            "name": "Email Bounced",
+            "url": "https://sellscale-api-prod.onrender.com/smartlead/webhooks/email_bounced",
+            "event_types": ["EMAIL_BOUNCE"],
+        },
+        {
+            "name": "Email Replied",
+            "url": "https://sellscale-api-prod.onrender.com/smartlead/webhooks/email_replied",
+            "event_types": ["EMAIL_REPLY"],
+        },
+    ]
+
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
@@ -225,6 +248,36 @@ class Smartlead:
             time.sleep(self.DELAY_SECONDS)
             return self.add_email_account_to_campaign(campaign_id, email_account_ids)
         return response.json()
+
+    def add_all_campaign_webhooks(self, campaign_id: int):
+        def add_campaign_webhook(
+            campaign_id: int, name: str, webhook_url: str, event_types: list
+        ):
+            url = f"{self.BASE_URL}/campaigns/{campaign_id}/webhooks?api_key={self.api_key}"
+            data = {
+                "name": name,
+                "webhook_url": webhook_url,
+                "event_types": event_types,
+            }
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(url, headers=headers, data=json.dumps(data))
+            if response.status_code == 429:
+                time.sleep(self.DELAY_SECONDS)
+                return add_campaign_webhook(campaign_id, name, url, event_types)
+            return response.json()
+
+        responses = []
+
+        for url_package in self.WEBHOOK_URLS:
+            response = add_campaign_webhook(
+                campaign_id=campaign_id,
+                name=url_package["name"],
+                webhook_url=url_package["url"],
+                event_types=url_package["event_types"],
+            )
+            responses.append(response)
+
+        return responses
 
     def update_campaign_schedule(self, campaign_id: int, schedule: dict):
         """Schedule should look like this:

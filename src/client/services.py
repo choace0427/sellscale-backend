@@ -2607,7 +2607,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         return []
 
     allStatuses = [status.name for status in ProspectOverallStatus]
-    allStatuses.remove(ProspectOverallStatus.REMOVED.name)
+    # allStatuses.remove(ProspectOverallStatus.REMOVED.name)
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
 
     prospects_with_locations: list = (
@@ -2760,7 +2760,7 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         return []
 
     allStatuses = [status.name for status in ProspectOverallStatus]
-    allStatuses.remove(ProspectOverallStatus.REMOVED.name)
+    # allStatuses.remove(ProspectOverallStatus.REMOVED.name)
     allStatuses.remove(ProspectOverallStatus.DEMO.name)
     prospects_with_locations: list = (
         Prospect.query.join(

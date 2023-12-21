@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import pytz
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
 from src.email_sequencing.models import EmailSequenceStep
+from src.message_generation.email.services import create_email_automated_reply_entry
 from src.message_generation.models import GeneratedMessage
 from src.utils.datetime.dateparse_utils import (
     convert_string_to_datetime,
@@ -622,13 +623,16 @@ def create_smartlead_campaign(
         schedule=campaign_schedule,
     )
 
-    # 6. Mark the campaign status as "START"
+    # 6. Upload all webhooks into the campaign
+    sl.add_all_campaign_webhooks(campaign_id=smartlead_campaign_id)
+
+    # 7. Mark the campaign status as "START"
     sl.post_campaign_status(
         campaign_id=smartlead_campaign_id,
         status="START",
     )
 
-    # 7. Optional - Sync the campaign ID to the archetype
+    # 8. Optional - Sync the campaign ID to the archetype
     if sync_to_archetype:
         archetype.smartlead_campaign_id = smartlead_campaign_id
         db.session.commit()
@@ -1128,11 +1132,28 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
 
 
 def generate_smart_email_response(
-    client_sdr_id: int, prospect_id: int, conversation: list[dict]
+    client_sdr_id: int,
+    prospect_id: int,
+    conversation: Optional[list[dict]] = [],
 ) -> str:
+    """Generates a smart email response based on the conversation transcript provided
+
+    Args:
+        client_sdr_id (int): The ID of the SDR
+        prospect_id (int): The ID of the prospect
+        conversation (Optional[list[dict]], optional): The conversation transcript. Defaults to [].
+
+    Returns:
+        str: The generated email response
+    """
     prospect: Prospect = Prospect.query.get(prospect_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(sdr.client_id)
+
+    if not conversation:
+        conversation = get_message_history_for_prospect(
+            prospect_id=prospect_id,
+        )
 
     convo = ""
     for message in conversation:
@@ -1176,4 +1197,13 @@ Prospect Title: {prospect.title}
         type="EMAIL",
     )
 
-    return markdown.markdown(response)
+    html_response = markdown.markdown(response)
+
+    create_email_automated_reply_entry(
+        prospect_id=prospect_id,
+        client_sdr_id=client_sdr_id,
+        prompt=prompt,
+        email_body=html_response,
+    )
+
+    return html_response
