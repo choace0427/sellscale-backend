@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from src.domains.services import (
+    add_email_dns_records,
+    create_workmail_inbox,
     find_domain,
     find_similar_domains,
     register_aws_domain,
@@ -56,12 +58,58 @@ def get_find_similar_domains(client_sdr_id: int):
 
 @DOMAINS_BLUEPRINT.route("/purchase", methods=["POST"])
 @require_user
-def get_purchase_domain(client_sdr_id: int):
+def post_purchase_domain(client_sdr_id: int):
     domain = get_request_parameter(
         "domain", request, json=True, required=True, parameter_type=str
     )
 
     result = register_aws_domain(domain)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": result,
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("/add_dns_records", methods=["POST"])
+@require_user
+def post_add_dns_records(client_sdr_id: int):
+    domain = get_request_parameter(
+        "domain", request, json=True, required=True, parameter_type=str
+    )
+
+    result = add_email_dns_records(domain)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": result,
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("/create_inbox", methods=["POST"])
+@require_user
+def post_create_workmail_inbox(client_sdr_id: int):
+    domain = get_request_parameter(
+        "domain", request, json=True, required=True, parameter_type=str
+    )
+    username = get_request_parameter(
+        "username", request, json=True, required=True, parameter_type=str
+    )
+    password = get_request_parameter(
+        "password", request, json=True, required=True, parameter_type=str
+    )
+
+    result = create_workmail_inbox(domain, username, password)
 
     return (
         jsonify(

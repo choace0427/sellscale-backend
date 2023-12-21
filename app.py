@@ -146,9 +146,33 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 sqlalchemy_engine_options = {"max_overflow": 40, "pool_size": 20, "pool_pre_ping": True}
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = sqlalchemy_engine_options
 
-# Initialize a Route53 client
-boto3_client = boto3.client(
+# Initialize AWS clients
+aws_route53domains_client = boto3.client(
     "route53domains",
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
+    region_name="us-east-1",
+)
+aws_route53_client = boto3.client(
+    "route53",
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
+    region_name="us-east-1",
+)
+aws_ses_client = boto3.client(
+    "ses",
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
+    region_name="us-east-1",
+)
+aws_sesv2_client = boto3.client(
+    "sesv2",
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
+    region_name="us-east-1",
+)
+aws_workmail_client = boto3.client(
+    "workmail",
     aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
     aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
     region_name="us-east-1",
