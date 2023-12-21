@@ -104,6 +104,8 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
 
     client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
 
+    account_filters_url = db.Column(db.String, nullable=True)
+
     def to_dict(self) -> dict:
         # Result is too large and should not be returned in the frontend unless during download
         # instead we will return a boolean to determine if the result is available to download
