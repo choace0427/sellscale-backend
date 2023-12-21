@@ -521,7 +521,7 @@ def update_prospect_status_linkedin(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": '*Prospect removed:* {prospect_name}\n"{prospect_message}"'.format(
+                        "text": "*Prospect removed:* {prospect_name}".format(
                             prospect_name=prospect_name,
                             prospect_message=p.li_last_message_from_prospect.replace(
                                 "\n", " "
@@ -550,19 +550,6 @@ def update_prospect_status_linkedin(
                         },
                     ],
                 },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": '{timeline}\n"{sdr_message}"'.format(
-                            timeline=last_sdr_message_timeline,
-                            sdr_message=p.li_last_message_from_sdr.replace("\n", " ")
-                            if p.li_last_message_from_sdr
-                            else "-",
-                        ),
-                    },
-                },
-                {"type": "divider"},
                 {
                     "type": "section",
                     "text": {
