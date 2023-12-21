@@ -3359,3 +3359,18 @@ def get_prospect_research_points(
     ]
 
     return [research_point.to_dict() for research_point in found_research_points]
+
+
+def num_messages_in_linkedin_queue(client_sdr_id: int):
+    query = """
+        select count(distinct prospect.id)
+        from generated_message
+            join prospect on prospect.approved_outreach_message_id = generated_message.id
+        where generated_message.message_status = 'QUEUED_FOR_OUTREACH'
+            and prospect.status = 'QUEUED_FOR_OUTREACH'
+            and prospect.client_sdr_id = :client_sdr_id
+    """
+
+    result = db.session.execute(query, {"client_sdr_id": client_sdr_id}).first()
+
+    return result[0] if result else 0

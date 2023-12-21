@@ -4,6 +4,7 @@ import time
 import datetime as dt
 import random
 import os
+from flask_socketio import send
 from tqdm import tqdm
 
 from tomlkit import datetime
@@ -11,7 +12,10 @@ from src.bump_framework.models import BumpFramework
 from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health
 from src.message_generation.models import GeneratedMessage, GeneratedMessageCTA
 
-from src.message_generation.services import process_generated_msg_queue
+from src.message_generation.services import (
+    num_messages_in_linkedin_queue,
+    process_generated_msg_queue,
+)
 
 from src.utils.slack import send_slack_message, URL_MAP
 
@@ -134,6 +138,14 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
             create_new_auto_connect_phantom(
                 client_sdr_id=client_sdr_id, linkedin_session_cookie=li_at_token
             )
+
+        num_messages_in_queue = num_messages_in_linkedin_queue(
+            client_sdr_id=client_sdr_id
+        )
+        send_slack_message(
+            message=f"*Linkedin Reconnected ✅ for {sdr.name} (#{sdr.id})*\nThere are {num_messages_in_queue} in the LinkedIn outbound queue",
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
     except:
         send_slack_message(
             message=f"🚨 URGENT ALERT 🚨: Failed to create phantom buster agent for client sdr id #{str(client_sdr_id)}",
