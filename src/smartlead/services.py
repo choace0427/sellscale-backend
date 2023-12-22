@@ -215,6 +215,11 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
         return False
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
+    if not prospect_email:
+        return False
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     campaign_id = archetype.smartlead_campaign_id
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
@@ -275,6 +280,13 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     )
 
     # Send the Slack message
+    outreach_status: str = (
+        prospect_email.outreach_status.value
+        if prospect_email.outreach_status
+        else "UNKNOWN"
+    )
+    outreach_status = outreach_status.split("_")
+    outreach_status = " ".join(word.capitalize() for word in outreach_status)
     send_slack_message(
         message="SellScale AI just replied to prospect!",
         webhook_urls=webhook_urls,
@@ -287,6 +299,13 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
                     + prospect.full_name
                     + " on Email",
                     "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Reply Label: `{outreach_status}`",
                 },
             },
             {

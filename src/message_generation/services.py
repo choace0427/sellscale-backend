@@ -2300,6 +2300,9 @@ def send_sent_by_sellscale_notification(
         )
         and prospect.li_last_message_from_prospect
     ):
+        status: str = prospect.status.value if prospect.status else "UNKNOWN"
+        status = status.split("_")
+        status = " ".join(word.capitalize() for word in status)
         send_slack_message(
             message="SellScale AI just replied to prospect!",
             webhook_urls=[
@@ -2313,6 +2316,13 @@ def send_sent_by_sellscale_notification(
                         "type": "plain_text",
                         "text": "💬 SellScale AI just replied to " + prospect_name,
                         "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Reply Label: `{status}`",
                     },
                 },
                 {

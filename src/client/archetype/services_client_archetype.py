@@ -235,6 +235,7 @@ def send_slack_campaign_message(
     client_sdr_name,
     campaign_id,
     webhook_url,
+    direct_link,
 ):
     """
     Send a Slack message for a new campaign.
@@ -289,6 +290,21 @@ def send_slack_campaign_message(
                     ),
                 },
             },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": " "},
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Campaign",
+                        "emoji": True,
+                    },
+                    "value": direct_link,
+                    "url": direct_link,
+                    "action_id": "button-action",
+                },
+            },
         ],
         webhook_urls=[webhook_url],
     )
@@ -319,6 +335,9 @@ def generate_notification_for_campaign_active(archetype_id: int):
     client_sdr_name = client_sdr.name
     campaign_id = client_archetype.id
     webhook_url = client.pipeline_notifications_webhook_url
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=setup/email?campaign_id={campaign_id}".format(
+        auth_token=client_sdr.auth_token, campaign_id=client_archetype.id
+    )
 
     print("Sending Slack message to {}".format(webhook_url))
 
@@ -332,5 +351,6 @@ def generate_notification_for_campaign_active(archetype_id: int):
         client_sdr_name,
         campaign_id,
         webhook_url,
+        direct_link,
     )
     print("Sent Slack message: {}".format(result))

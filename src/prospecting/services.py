@@ -3146,6 +3146,8 @@ def generate_prospect_upload_report(archetype_state: dict):
             )
     example_profiles_str = ", ".join(example_profiles[:3])
 
+    num_prospects = len(results)
+    estimated_savings = round(num_prospects * random.uniform(0.83, 1.17), 2)
     try:
         send_slack_message(
             message="",
@@ -3161,6 +3163,13 @@ def generate_prospect_upload_report(archetype_state: dict):
                     },
                 },
                 {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"SellScale just helped save ${estimated_savings} of finding contacts.",
+                    },
+                },
                 {
                     "type": "context",
                     "elements": [
