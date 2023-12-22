@@ -2,6 +2,7 @@
 Provides linkedin api-related code
 """
 import base64
+import datetime
 import math
 from typing import Optional
 import urllib.parse
@@ -870,6 +871,21 @@ def send_linkedin_disconnected_email(
 
     client: Client = Client.query.get(client_sdr.client_id)
 
+    # Don't send email if we've already sent one in the last 24 hours
+    if (
+        client_sdr.last_linkedin_disconnection_notification_date
+        and (
+            datetime.datetime.now()
+            - client_sdr.last_linkedin_disconnection_notification_date
+        ).days
+        < 1
+    ):
+        return
+
+    client_sdr.last_linkedin_disconnection_notification_date = datetime.datetime.now()
+    db.session.add(client_sdr)
+    db.session.commit()
+
     # Hi CSM Team, {name} is no longer connected to LinkedIn. Please reconnect them. Thanks! - SellScale Ai
     # centered
     send_email(
@@ -909,6 +925,21 @@ def send_linkedin_disconnected_slack_message(
 
     client: Client = Client.query.get(client_sdr.client_id)
     client_pipeline_url = client.pipeline_notifications_webhook_url
+
+    # Don't send email if we've already sent one in the last 24 hours
+    if (
+        client_sdr.last_linkedin_disconnection_notification_date
+        and (
+            datetime.datetime.now()
+            - client_sdr.last_linkedin_disconnection_notification_date
+        ).days
+        < 1
+    ):
+        return
+
+    client_sdr.last_linkedin_disconnection_notification_date = datetime.datetime.now()
+    db.session.add(client_sdr)
+    db.session.commit()
 
     webhook_urls = [URL_MAP["csm-urgent-alerts"]]
     if client_pipeline_url:
