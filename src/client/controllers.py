@@ -1980,6 +1980,10 @@ def post_demo_feedback(client_sdr_id: int):
         ai_adjustments=ai_adjustments,
     )
 
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+        auth_token=client_sdr.auth_token,
+        prospect_id=prospect.id,
+    )
     send_slack_message(
         message="🎊 ✍️ NEW Demo Feedback Collected",
         webhook_urls=[
@@ -1999,7 +2003,11 @@ def post_demo_feedback(client_sdr_id: int):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
+                    "text": "*Prospect*: {prospect_name}\n*Rating*: {rating}\n*Feedback*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
+                        prospect_name=prospect.full_name
+                        + " ("
+                        + prospect.company
+                        + ")",
                         rating=rating,
                         rep=client_sdr.name,
                         notes=feedback,
@@ -2009,20 +2017,23 @@ def post_demo_feedback(client_sdr_id: int):
             },
             {"type": "divider"},
             {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {date}\n*Demo*: {showed}".format(
-                            prospect=prospect.full_name,
-                            company=prospect.company,
-                            persona=archetype.archetype,
-                            date=str(prospect.demo_date),
-                            showed=status,
-                        ),
-                    }
-                ],
-            },
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Rep*: {rep}".format(rep=client_sdr.name),
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Convo in Sight",
+                        "emoji": True,
+                    },
+                    "value": direct_link,
+                    "url": direct_link,
+                    "action_id": "button-action",
+                },
+            }
         ],
     )
 
