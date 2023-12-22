@@ -59,6 +59,7 @@ from src.prospecting.models import (
 )
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
+from src.utils.email.html_cleaning import clean_html
 from src.utils.random_string import generate_random_alphanumeric
 from src.utils.slack import (
     URL_MAP,
@@ -2369,6 +2370,56 @@ def get_prospect_li_history(prospect_id: int):
         }
         if demo_feedback
         else None,
+    }
+
+
+def get_prospect_email_history(prospect_id: int):
+    from model_import import (
+        ProspectEmail,
+        ProspectEmailOutreachStatus,
+        ProspectEmailStatusRecords,
+        DemoFeedback,
+        GeneratedMessageStatus,
+    )
+    from src.smartlead.services import get_message_history_for_prospect
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect.approved_prospect_email_id:
+        return None
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
+    if not prospect_email:
+        return None
+
+    email_history = get_message_history_for_prospect(prospect_id=prospect.id)
+    email_history_parsed = []
+    for email in email_history:
+        email_history_parsed.append(
+            {
+                "from_sdr": email["type"] == "SENT",
+                "date": email["time"],
+                "email_body": clean_html(email["email_body"]),
+                "subject": email.get("subject"),
+            }
+        )
+
+    email_status_history: List[
+        ProspectEmailStatusRecords
+    ] = ProspectEmailStatusRecords.query.filter(
+        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+    ).all()
+
+    return {
+        "emails": email_history_parsed,
+        "email_statuses": [
+            {
+                "from": s.from_status.value,
+                "to": s.to_status.value,
+                "date": s.created_at,
+            }
+            for s in email_status_history
+        ],
     }
 
 
