@@ -14,7 +14,7 @@ from src.prospecting.icp_score.models import (
     ICPScoringRuleset,
 )
 from app import db, app, celery
-from src.prospecting.models import Prospect, ProspectStatus
+from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from model_import import ResearchPayload
 from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
@@ -1118,6 +1118,12 @@ def move_selected_prospects_to_unassigned(prospect_ids: list[int]):
     """
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.id.in_(prospect_ids),
+        Prospect.overall_status.in_(
+            [
+                ProspectOverallStatus.PROSPECTED,
+                ProspectOverallStatus.SENT_OUTREACH,
+            ]
+        ),
     ).all()
 
     if not prospects:
