@@ -2,6 +2,7 @@ import re
 from bs4 import BeautifulSoup
 from app import db, celery
 from src.client.models import ClientArchetype
+from src.email_classifier.services import classify_email
 from src.email_outbound.models import (
     ProspectEmail,
     ProspectEmailOutreachStatus,
@@ -155,6 +156,12 @@ def process_email_replied_webhook(payload_id: int):
         generate_smart_email_response(
             client_sdr_id=prospect.client_sdr_id,
             prospect_id=prospect.id,
+        )
+
+        # Determine "ACTIVE_CONVO" substatus
+        _ = classify_email.delay(
+            prospect_id=prospect.id,
+            email_body=reply_message,
         )
 
         # Set the payload to "SUCCEEDED"
