@@ -532,3 +532,38 @@ def run_phantom_buster_sales_navigator(self, launch_id: int) -> tuple[bool, str]
 
         # Retry
         self.retry(exc=e, countdown=5)
+
+def register_phantom_buster_sales_navigator_account_filters_url(
+    launch_id: int, 
+    client_sdr_id: int, 
+    account_filters_url: str
+) -> bool:
+    """
+    Registers the account_filters_url for a given PhantomBusterSalesNavigatorLaunch.
+
+    Args:
+        launch_id (int): The ID of the Sales Navigator Launch.
+        client_sdr_id (int): The ID of the Client SDR.
+        account_filters_url (str): The new URL to be updated.
+
+    Returns:
+        bool: True if the update is successful, False otherwise.
+    """
+    try:
+        # Find the launch with the given ID
+        launch: PhantomBusterSalesNavigatorLaunch = (
+            PhantomBusterSalesNavigatorLaunch.query.get(launch_id)
+        )
+
+        # Check if the launch exists and belongs to the correct client SDR
+        if not launch or launch.client_sdr_id != client_sdr_id:
+            return False
+
+        # Update the account_filters_url
+        launch.account_filters_url = account_filters_url
+        db.session.commit()
+
+        return True
+    except Exception as e:
+        print(f"Error updating account_filters_url: {e}")
+        return False

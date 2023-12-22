@@ -124,6 +124,7 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             "launch_date": self.launch_date,
             "name": self.name,
             "client_archetype_id": self.client_archetype_id,
+            "account_filters_url": self.account_filters_url,
             "archetype": ClientArchetype.query.get(self.client_archetype_id).archetype
             if self.client_archetype_id
             else None,

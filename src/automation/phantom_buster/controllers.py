@@ -9,6 +9,7 @@ from src.automation.phantom_buster.services import (
     get_sales_navigator_launches,
     register_phantom_buster_sales_navigator_url,
     reset_sales_navigator_launch,
+    register_phantom_buster_sales_navigator_account_filters_url,
 )
 from src.utils.converters.dictionary_converters import dictionary_normalization
 
@@ -140,6 +141,25 @@ def get_sales_navigator_launch_endpoint(client_sdr_id: int, launch_id: int):
     dictionary_normalization(keys=headers, dictionaries=condensed_csv)
 
     return send_csv(condensed_csv, "launch_results.csv", headers)
+
+@PHANTOM_BUSTER_BLUEPRINT.route("/sales_navigator/launch/<int:launch_id>/account_filters_url", methods=["PATCH"])
+@require_user
+def update_sales_navigator_launch_account_filters_url(client_sdr_id: int, launch_id: int):
+    """Registers the account_filters_url for a given launch ID"""
+    account_filters_url = get_request_parameter(
+        "account_filters_url", request, json=True, required=True, parameter_type=str
+    )
+
+    success = register_phantom_buster_sales_navigator_account_filters_url(
+        launch_id=launch_id,
+        client_sdr_id=client_sdr_id,
+        account_filters_url=account_filters_url
+    )
+
+    if success:
+        return jsonify({"status": "success", "message": "URL updated successfully"}), 200
+    else:
+        return jsonify({"status": "error", "message": "Update failed"}), 400
 
 
 @PHANTOM_BUSTER_BLUEPRINT.route("/sales_navigator/webhook", methods=["POST"])
