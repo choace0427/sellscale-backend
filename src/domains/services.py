@@ -4,6 +4,7 @@ from app import (
     aws_ses_client,
     aws_workmail_client,
 )
+from app import db, celery
 from botocore.exceptions import ClientError
 from src.utils.domains.pythondns import (
     dkim_record_valid,
@@ -590,6 +591,7 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str):
     return True, "Workmail inbox created successfully"
 
 
+@celery.task
 def domain_setup_workflow(domain_name: str, user_name: str, password: str):
     """
     After domain is purchased,
@@ -623,3 +625,22 @@ def domain_setup_workflow(domain_name: str, user_name: str, password: str):
         return False, "Failed to create workmail email account"
 
     return True, "Domain setup workflow completed successfully"
+
+
+def domain_purchase_workflow(domain_name: str, user_name: str, password: str):
+    status, _ = register_aws_domain(domain_name)
+    if status == 500:
+        return False, "Failed to purchase domain"
+
+    from src.automation.orchestrator import add_process_for_future
+
+    # In 30 min, setup the domain
+    add_process_for_future(
+        type="domain_setup_workflow",
+        args={
+            "domain_name": domain_name,
+            "user_name": user_name,
+            "password": password,  # TODO: This is bad! Encrypt password
+        },
+        minutes=30,
+    )

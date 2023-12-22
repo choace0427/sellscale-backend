@@ -3,6 +3,7 @@ from src.domains.services import (
     add_email_dns_records,
     create_workmail_inbox,
     domain_blacklist_check,
+    domain_purchase_workflow,
     domain_setup_workflow,
     find_domain,
     find_similar_domains,
@@ -138,6 +139,32 @@ def post_setup_workflow(client_sdr_id: int):
     )
 
     result = domain_setup_workflow(domain, username, password)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": result,
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("/purchase_workflow", methods=["POST"])
+@require_user
+def post_purchase_workflow(client_sdr_id: int):
+    domain = get_request_parameter(
+        "domain", request, json=True, required=True, parameter_type=str
+    )
+    username = get_request_parameter(
+        "username", request, json=True, required=True, parameter_type=str
+    )
+    password = get_request_parameter(
+        "password", request, json=True, required=True, parameter_type=str
+    )
+
+    result = domain_purchase_workflow(domain, username, password)
 
     return (
         jsonify(
