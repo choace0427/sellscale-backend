@@ -298,7 +298,7 @@ def register_aws_domain(domain_name: str):
             DomainName=domain_name,
             IdnLangCode="",
             DurationInYears=1,
-            AutoRenew=True,
+            AutoRenew=False,
             AdminContact={
                 "FirstName": "Aakash",
                 "LastName": "Adesara",
