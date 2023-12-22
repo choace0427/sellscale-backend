@@ -467,3 +467,21 @@ def clone_bump_framework(
     )
 
     return new_framework_id
+
+def get_db_bump_sequence(archetype_id: int):
+    """Get all bump sequence"""
+    bump_frameworks = db.session.execute(
+        f"""
+            select concat('Follow Up #', bumped_count + 1, ': ', bump_framework.title) "Title", bump_framework.description "Description", client_archetype.id "project_id" 
+            from bump_framework join client_archetype on client_archetype.id = bump_framework.client_archetype_id 
+            where bump_framework.client_archetype_id = {archetype_id} 
+            and bump_framework.overall_status in ('ACCEPTED', 'BUMPED') 
+            and bump_framework.active 
+            and bump_framework.default 
+            and bumped_count < client_archetype.li_bump_amount 
+            order by bumped_count;
+        """
+    ).fetchall()
+
+    bump_frameworks = [dict(row) for row in bump_frameworks]
+    return {"data": bump_frameworks, "message": "Success", "status_code": 200}

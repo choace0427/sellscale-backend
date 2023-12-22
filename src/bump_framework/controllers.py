@@ -13,6 +13,7 @@ from src.bump_framework.services import (
     activate_bump_framework,
     get_bump_frameworks_for_sdr,
     get_db_bump_messages,
+    get_db_bump_sequence,
     send_new_framework_created_message,
 )
 from src.client.models import ClientArchetype
@@ -653,3 +654,15 @@ def post_toggle_bump_framework_template_active_status():
         ),
         200,
     )
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/sequence", methods=["GET"])
+@require_user
+def get_bump_sequence(client_sdr_id: int):
+    """Get bump sequence"""
+    archetype_id = (
+        get_request_parameter(
+            "archetype_id", request, json=False, required=True, parameter_type=str
+        )
+        or None
+    )
+    return get_db_bump_sequence(archetype_id)
