@@ -2329,7 +2329,7 @@ def send_sent_by_sellscale_notification(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": '*{prospect_first_name}*:\n_"{prospect_message}"_\n\n*{first_name} (AI)*:\n_"{ai_response}"_'.format(
+                        "text": '*{prospect_first_name}*:\n>"{prospect_message}"\n\n*{first_name} (AI)*:\n>"{ai_response}"'.format(
                             prospect_first_name=prospect.first_name,
                             prospect_name=prospect_name,
                             prospect_message=prospect.li_last_message_from_prospect.replace(

@@ -67,6 +67,8 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
         return False
 
     for url in webhook_urls:
+        if url is None:
+            continue
         webhook = WebhookClient(url)
         response = webhook.send(text=message, blocks=blocks)
 
