@@ -264,6 +264,8 @@ def register_blueprints(app):
     from src.sockets.controllers import SOCKETS_BLUEPRINT
     from src.domains.controllers import DOMAINS_BLUEPRINT
 
+    from src.usage.controllers import USAGE_BLUEPRINT
+
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -322,6 +324,8 @@ def register_blueprints(app):
     app.register_blueprint(WEEKLY_REPORT_BLUEPRINT, url_prefix="/weekly_report")
     app.register_blueprint(SOCKETS_BLUEPRINT, url_prefix="/sockets")
     app.register_blueprint(DOMAINS_BLUEPRINT, url_prefix="/domains")
+
+    app.register_blueprint(USAGE_BLUEPRINT, url_prefix="/usage")
 
     db.init_app(app)
 
