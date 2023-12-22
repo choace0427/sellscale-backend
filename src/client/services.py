@@ -411,9 +411,50 @@ def create_client_archetype(
         + "&redirect=campaigns"
     )
     send_slack_message(
-        message=f"*⭐️ New campaign created*\nSellScale AI just created a new campaign for *{archetype}*.\n> User: *{client_sdr.name}*\n_Finding new prospects shortly_. <"
-        + campaign_url
-        + "|View Campaign →>",
+        message="New campaign created",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "⭐️ New Campaign Created",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "SellScale AI just created a new campaign for *{}*.\n".format(
+                        archetype
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "> User: *{}*\n_Finding new prospects shortly_.".format(
+                        client_sdr.name
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": " "},
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Campaign →",
+                        "emoji": True,
+                    },
+                    "url": campaign_url,
+                    "action_id": "button-action",
+                },
+            },
+            {"type": "divider"},
+        ],
         webhook_urls=[webhook_url] if webhook_url else [],
     )
 
