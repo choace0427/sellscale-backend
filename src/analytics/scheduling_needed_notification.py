@@ -78,7 +78,7 @@ def notify_clients_regarding_scheduling():
             pipeline_notifications_webhook_url = (
                 client.pipeline_notifications_webhook_url
             )
-            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                 auth_token=client.auth_token, prospect_id=client.prospect_id
             )
             prospect_i = entries_grouped_by_sdr[sdr].index(client) + 1

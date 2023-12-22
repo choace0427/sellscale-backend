@@ -155,11 +155,11 @@ Message:
                             "text": "View Convo in Sight",
                             "emoji": True,
                         },
-                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                             auth_token=client_sdr.auth_token, prospect_id=prospect_id
                         )
                         + str(prospect_id),
-                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                             auth_token=client_sdr.auth_token, prospect_id=prospect_id
                         ),
                         "action_id": "button-action",

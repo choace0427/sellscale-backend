@@ -2575,7 +2575,7 @@ def scrape_for_demos() -> int:
 
         missing_count += 1
 
-        direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+        direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
             auth_token=sdr.auth_token,
             prospect_id=prospect_id,
         )

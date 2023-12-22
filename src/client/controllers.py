@@ -1980,7 +1980,7 @@ def post_demo_feedback(client_sdr_id: int):
         ai_adjustments=ai_adjustments,
     )
 
-    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
         auth_token=client_sdr.auth_token,
         prospect_id=prospect.id,
     )
@@ -2033,7 +2033,7 @@ def post_demo_feedback(client_sdr_id: int):
                     "url": direct_link,
                     "action_id": "button-action",
                 },
-            }
+            },
         ],
     )
 

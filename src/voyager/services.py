@@ -742,7 +742,7 @@ def check_and_notify_for_auto_mark_scheduling(prospect_id: int):
                 quietly=True,
             )
 
-            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                 auth_token=client_sdr.auth_token, prospect_id=prospect_id
             )
 

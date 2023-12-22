@@ -2173,7 +2173,7 @@ def process_generated_msg_queue(
             )
             archetype_name = archetype.archetype if archetype else "Unknown Archetype"
             archetype_id = archetype.id if archetype else "Unknown Archetype"
-            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+            direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                 auth_token=sdr.auth_token,
                 prospect_id=prospect_id if prospect_id else "",
             )
@@ -2287,7 +2287,7 @@ def send_sent_by_sellscale_notification(
         if bump_framework:
             bump_framework_name = "'" + bump_framework.title + "'"
 
-    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=all/contacts/{prospect_id}".format(
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
         auth_token=client_sdr.auth_token,
         prospect_id=prospect_id if prospect_id else "",
     )
