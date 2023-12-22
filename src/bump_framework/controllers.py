@@ -232,9 +232,15 @@ def post_create_bump_framework(client_sdr_id: int):
         except TypeError:
             pass
 
-        send_new_framework_created_message(
-            client_sdr_id, title, compain_name, compain_link
-        )
+        # only trigger for ACCEPTED or BUMPED overall status
+        if overall_status in [
+            ProspectOverallStatus.ACCEPTED,
+            ProspectOverallStatus.BUMPED,
+        ]:
+            send_new_framework_created_message(
+                client_sdr_id, title, compain_name, compain_link
+            )
+
         return (
             jsonify(
                 {
