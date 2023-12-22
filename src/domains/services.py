@@ -628,7 +628,7 @@ def domain_setup_workflow(domain_name: str, user_name: str, password: str):
 
 
 def domain_purchase_workflow(domain_name: str, user_name: str, password: str):
-    status, _ = register_aws_domain(domain_name)
+    status, _, _ = register_aws_domain(domain_name)
     if status == 500:
         return False, "Failed to purchase domain"
 
