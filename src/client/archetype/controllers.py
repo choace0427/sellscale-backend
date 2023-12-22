@@ -5,6 +5,7 @@ from src.authentication.decorators import require_user
 from src.client.archetype.services_client_archetype import (
     bulk_action_move_prospects_to_archetype,
     bulk_action_withdraw_prospect_invitations,
+    generate_notification_for_campaign_active,
     get_archetype_generation_upcoming,
 )
 from src.client.models import ClientArchetype, ClientSDR
@@ -374,6 +375,10 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
 
     archetype.linkedin_active = active
     db.session.commit()
+
+    generate_notification_for_campaign_active(
+        archetype_id=archetype_id,
+    )
 
     return jsonify({"status": "success"}), 200
 

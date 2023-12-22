@@ -4,6 +4,7 @@ from app import db
 from sqlalchemy import func
 
 from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
+from src.message_generation.services import generate_li_convo_init_msg
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.models import Prospect
 from src.utils.slack import URL_MAP, send_slack_message
@@ -222,3 +223,114 @@ def bulk_action_withdraw_prospect_invitations(
     processes = queue_withdraw_li_invites(client_sdr_id, prospect_ids)
 
     return True, "Success"
+
+
+def send_slack_campaign_message(
+    sequence_name,
+    example_prospect_name,
+    example_prospect_linkedin_url,
+    example_prospect_title,
+    example_prospect_company,
+    example_first_generation,
+    client_sdr_name,
+    campaign_id,
+    webhook_url,
+):
+    """
+    Send a Slack message for a new campaign.
+
+    :param sequence_name: Name of the sequence.
+    :param example_prospect_name: Name of the example prospect.
+    :param example_prospect_linkedin_url: LinkedIn URL of the example prospect.
+    :param example_prospect_title: Title of the example prospect.
+    :param example_prospect_company: Company of the example prospect.
+    :param example_first_generation: Example first generation message.
+    :param client_sdr_name: Name of the client SDR.
+    :param campaign_id: ID of the campaign.
+    :param webhook_url: Slack webhook URL for sending the message.
+    """
+    send_slack_message(
+        message="SellScale AI activated a new campaign",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "SellScale AI activated a new campaign 🚀",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Sequence Preview*: {}".format(sequence_name),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Example Prospect*: <{}|{}> ({} @ {})".format(
+                        example_prospect_linkedin_url,
+                        example_prospect_name,
+                        example_prospect_title,
+                        example_prospect_company,
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "> 👥 {client_sdr_name} | Example message\n> _{example_first_generation}_".format(
+                        client_sdr_name=client_sdr_name,
+                        example_first_generation=example_first_generation,
+                    ),
+                },
+            },
+        ],
+        webhook_urls=[webhook_url],
+    )
+
+
+def generate_notification_for_campaign_active(archetype_id: int):
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    random_prospect: Prospect = (
+        Prospect.query.order_by(func.random())
+        .filter(Prospect.archetype_id == archetype_id)
+        .first()
+    )
+    client_sdr: ClientSDR = ClientSDR.query.get(client_archetype.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    print("Fetched random prospect named {}".format(random_prospect.full_name))
+
+    li_msg, metadata = generate_li_convo_init_msg(
+        prospect_id=random_prospect.id,
+    )
+    print("Generated LI message: {}".format(li_msg))
+
+    sequence_name = client_archetype.archetype
+    example_prospect_name = random_prospect.full_name
+    example_prospect_linkedin_url = random_prospect.linkedin_url
+    example_prospect_title = random_prospect.title
+    example_prospect_company = random_prospect.company
+    example_first_generation = li_msg
+    client_sdr_name = client_sdr.name
+    campaign_id = client_archetype.id
+    webhook_url = client.pipeline_notifications_webhook_url
+
+    print("Sending Slack message to {}".format(webhook_url))
+
+    result = send_slack_campaign_message(
+        sequence_name,
+        example_prospect_name,
+        example_prospect_linkedin_url,
+        example_prospect_title,
+        example_prospect_company,
+        example_first_generation,
+        client_sdr_name,
+        campaign_id,
+        webhook_url,
+    )
+    print("Sent Slack message: {}".format(result))
