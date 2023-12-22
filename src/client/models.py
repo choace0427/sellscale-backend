@@ -408,6 +408,9 @@ class ClientSDR(db.Model):
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
     user_agent = db.Column(db.String, nullable=True)
+    last_linkedin_disconnection_notification_date = db.Column(
+        db.DateTime, nullable=True
+    )
 
     # Conversion goals
     conversion_sent_pct = db.Column(db.Float, nullable=True)
