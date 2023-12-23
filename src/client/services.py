@@ -2380,7 +2380,7 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
 
     # "team@sellscale.com"
 
-    # Hi CSM Team, {name} is no longer connected to LinkedIn. Please reconnect them. Thanks! - SellScale Ai
+    #
     # centered
     send_email(
         html=f"""
