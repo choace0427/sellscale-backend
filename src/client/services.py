@@ -2368,6 +2368,43 @@ def send_demo_feedback_reminder():
             ],
         )
 
+        send_demo_feedback_email_reminder(prospect.id, "team@sellscale.com")
+
+
+def send_demo_feedback_email_reminder(prospect_id: int, email: str):
+    from src.automation.resend import send_email
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    # "team@sellscale.com"
+
+    # Hi CSM Team, {name} is no longer connected to LinkedIn. Please reconnect them. Thanks! - SellScale Ai
+    # centered
+    send_email(
+        html=f"""
+    <table style="width: 80%; margin: 0 auto; background-color: white; box-shadow: 2px 2px 5px #888888; border-collapse: collapse; border: 1px solid #ccc;">
+        <tr>
+            <td colspan="2" style="background-color: black; height: 10px;"></td>
+        </tr>
+        <tr>
+            <td colspan="2" style="padding: 20px;">
+                <p style="font-size: 18px; text-align: left;">Hi CSM Team,</p>
+                <p style="font-size: 18px; text-align: left;">How did the demo go with `{prospect.full_name}` on `{prospect.demo_date}`?</p>
+                <p style="font-size: 18px; text-align: left;">- SellScale Ai</p>
+            </td>
+        </tr>
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEF5nLNhiZ_QEjpPOu7rLb2m-ShJN60p3ig9v-bUzAwA&s" style="width: 200px; height: auto; margin: 0 auto; display: block; margin-bottom: 18px" />
+    </table>
+    """,
+        title="Demo Feedback Reminder - {name} ({company})".format(
+            name=client_sdr.name,
+            company=client.company,
+        ),
+        to_emails=[email],
+    )
+
 
 def send_upcoming_demo_reminder():
     prospects: list[Prospect] = Prospect.query.filter(
