@@ -515,6 +515,19 @@ def add_email_dns_records(domain_name: str):
         },
     }
 
+    # MX record
+    mx_record = {
+        "Action": "UPSERT",
+        "ResourceRecordSet": {
+            "Name": domain_name,
+            "Type": "MX",
+            "TTL": 300,
+            "ResourceRecords": [
+                {"Value": "10 inbound-smtp.{}.amazonaws.com.".format("us-east-1")}
+            ],
+        },
+    }
+
     # Verification record
     verification_record = {
         "Action": "UPSERT",
@@ -534,6 +547,7 @@ def add_email_dns_records(domain_name: str):
             + [
                 dmarc_record,
                 spf_record,
+                mx_record,
                 verification_record,
             ]
         },
