@@ -2641,8 +2641,8 @@ def generate_followup_response(
         bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
             client_sdr_id=client_sdr_id,
             overall_statuses=[overall_status],
-            substatuses=[li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
-            client_archetype_ids=[prospect.archetype_id],
+            # substatuses=[li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
+            # client_archetype_ids=[prospect.archetype_id],
         )
 
         # Filter by active convo substatus
