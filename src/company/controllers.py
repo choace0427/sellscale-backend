@@ -55,6 +55,36 @@ def post_company_backfill_prospects(client_sdr_id: int):
     )
 
 
+@COMPANY_BLUEPRINT.route("/sdr-from-slack-data", methods=["POST"])
+@require_user
+def post_company_sdr_from_slack(client_sdr_id: int):
+    user_name = get_request_parameter(
+        "user_name", request, json=True, required=True, parameter_type=str
+    )
+    user_id = get_request_parameter(
+        "user_id", request, json=True, required=True, parameter_type=str
+    )
+    team_domain = get_request_parameter(
+        "team_domain", request, json=True, required=True, parameter_type=str
+    )
+    team_id = get_request_parameter(
+        "team_id", request, json=True, required=True, parameter_type=str
+    )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "sdr": "data",
+                    "client": "data",
+                },
+            }
+        ),
+        200,
+    )
+
+
 @COMPANY_BLUEPRINT.route("/do-not-contact", methods=["POST"])
 @require_user
 def post_company_do_not_contact(client_sdr_id: int):
