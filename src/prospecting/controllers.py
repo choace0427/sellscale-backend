@@ -75,6 +75,7 @@ from src.prospecting.upload.services import (
     run_and_assign_health_score,
 )
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
+from src.utils.email.html_cleaning import clean_html
 from src.utils.request_helpers import get_request_parameter
 
 from tqdm import tqdm
@@ -432,13 +433,24 @@ def get_email_messages(client_sdr_id: int, prospect_id: int):
 def post_send_email(client_sdr_id: int, prospect_id: int):
     subject = get_request_parameter("subject", request, json=True, required=True)
     body = get_request_parameter("body", request, json=True, required=True)
-    ai_generated = get_request_parameter(
-        "ai_generated", request, json=True, required=False, parameter_type=bool
+    ai_generated = (
+        get_request_parameter(
+            "ai_generated", request, json=True, required=False, parameter_type=bool
+        )
+        or False
     )
-    if ai_generated is None:
-        ai_generated = False
     reply_to_message_id = get_request_parameter(
         "reply_to_message_id", request, json=True, required=False, parameter_type=str
+    )
+    is_multichannel_action = (
+        get_request_parameter(
+            "is_multichannel_action",
+            request,
+            json=True,
+            required=False,
+            parameter_type=bool,
+        )
+        or False
     )
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
@@ -461,6 +473,55 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
     if isinstance(nylas_message_id, str) and ai_generated:
         add_generated_msg_queue(
             client_sdr_id=client_sdr_id, nylas_message_id=nylas_message_id
+        )
+
+    # If this is a multichannel action (i.e. email sent from a LinkedIn message), then send a Slack notification
+    if is_multichannel_action:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client: Client = Client.query.get(client_sdr.client_id)
+        webhook_urls = [URL_MAP["eng-sandbox"]]
+        from_email = result.get("from", [{"email": "Unknown"}])[0].get("email")
+        prettier_body = clean_html(body)
+        if client.pipeline_notifications_webhook_url:
+            webhook_urls.append(client.pipeline_notifications_webhook_url)
+
+        send_slack_message(
+            webhook_urls=webhook_urls,
+            message=f"SellScale just multi-channeled",
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "📧 SellScale just multi-channeled",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "A prospect requested to be contacted via email. SellScale sent them an email on your behalf.",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*SDR*: {client_sdr.name} ({from_email})",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Prospect*: {prospect.full_name}",
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Message from {prospect.full_name}*:\n>{prospect.li_last_message_from_prospect}\n\n*Subject*:\n>{subject}\n\n*Body*:\n>{prettier_body}",
+                    },
+                },
+            ],
         )
 
     return jsonify({"message": "Success", "data": result}), 200
