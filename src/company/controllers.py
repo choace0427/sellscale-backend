@@ -15,7 +15,6 @@ COMPANY_BLUEPRINT = Blueprint("company", __name__)
 @COMPANY_BLUEPRINT.route("/backfill", methods=["POST"])
 @require_user
 def post_company_backfill(client_sdr_id: int):
-
     c_min = get_request_parameter(
         "min", request, json=True, required=True, parameter_type=int
     )
@@ -41,7 +40,6 @@ def post_company_backfill(client_sdr_id: int):
 @COMPANY_BLUEPRINT.route("/backfill-prospects", methods=["POST"])
 @require_user
 def post_company_backfill_prospects(client_sdr_id: int):
-
     processed_count = company_backfill_prospects(client_sdr_id)
 
     return (
@@ -50,6 +48,26 @@ def post_company_backfill_prospects(client_sdr_id: int):
                 "status": "success",
                 "data": {
                     "processed_count": processed_count,
+                },
+            }
+        ),
+        200,
+    )
+
+
+@COMPANY_BLUEPRINT.route("/do-not-contact", methods=["POST"])
+@require_user
+def post_company_do_not_contact(client_sdr_id: int):
+    # TODO: Add logic to add company to do not contact list
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "blacklist_company": "company_name",
+                    "srd_company": "company_name",
+                    "prospects_removed": 1,
                 },
             }
         ),
