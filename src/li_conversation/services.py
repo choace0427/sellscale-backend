@@ -538,6 +538,7 @@ def generate_chat_gpt_response_to_conversation_thread(
     max_retries: int = 3,
     use_cache: bool = False,
     bump_framework_template_id: Optional[int] = None,
+    override_bump_framework_template: Optional[str] = None,
 ):
     for _ in range(max_retries):
         try:
@@ -549,6 +550,7 @@ def generate_chat_gpt_response_to_conversation_thread(
                 override_bump_length=override_bump_length,
                 use_cache=use_cache,
                 bump_framework_template_id=bump_framework_template_id,
+                override_bump_framework_template=override_bump_framework_template,
             )
         except Exception as e:
             time.sleep(2)
@@ -672,6 +674,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     override_bump_length: Optional[BumpLength] = None,
     use_cache: bool = False,
     bump_framework_template_id: Optional[int] = None,
+    override_bump_framework_template: Optional[str] = None,
 ):
     from model_import import Prospect
 
@@ -752,6 +755,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     )
     additional_instructions = bump_framework.human_feedback
     template = bump_framework.description
+
+    if override_bump_framework_template:
+        template = override_bump_framework_template
 
     prompt = f"""
 You are a sales development representative writing on behalf of the SDR.

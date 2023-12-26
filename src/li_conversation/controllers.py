@@ -21,7 +21,7 @@ from src.li_conversation.conversation_analyzer.analyzer import (
     run_all_conversation_analyzers,
 )
 from src.li_conversation.services_linkedin_initial_message_templates import (
-    backfill_linkedin_initial_message_template_library_stats
+    backfill_linkedin_initial_message_template_library_stats,
 )
 
 LI_CONVERSATION_SCRAPE_INTERVAL = 2
@@ -106,6 +106,10 @@ def get_prospect_li_conversation():
         "bump_length", request, json=True, required=False
     )
 
+    override_bump_framework_template = get_request_parameter(
+        "override_bump_framework_template", request, json=True, required=False
+    )
+
     # Get the enum value for the bump length
     if bump_length is not None:
         found_key = False
@@ -128,6 +132,7 @@ def get_prospect_li_conversation():
         bump_framework_id=bump_framework_id,
         account_research_copy=account_research_copy,
         override_bump_length=bump_length,
+        override_bump_framework_template=override_bump_framework_template,
     )  # type: ignore
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200
