@@ -12,6 +12,7 @@ OOO_KEYWORDS = [
     "out of office",
     "on vacation",
     "away from my desk",
+    "out of the office",
     "currently out of the office",
     "out of town",
     "taking time off",

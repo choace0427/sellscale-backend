@@ -1,3 +1,5 @@
+from typing import Optional
+import requests
 from app import (
     aws_route53domains_client,
     aws_route53_client,
@@ -569,6 +571,50 @@ def is_valid_email_dns_records(domain_name: str):
         "dmarc_valid": dmarc_valid,
         "dkim_valid": dkim_valid,
     }
+
+
+def is_valid_email_forwarding(
+    original_domain: str, target_domain: Optional[str] = None
+) -> bool:
+    """Check if the original domain forwards to the target domain.
+
+    Args:
+        original_domain (str): The original domain to check
+        target_domain (Optional[str], optional): The target domain to check against. Defaults to None.
+
+    Returns:
+        bool: True if the original domain forwards to the target domain, else False
+    """
+    # Get only the base part of the original domain
+    original_domain = (
+        original_domain.replace("http://", "")
+        .replace("https://", "")
+        .replace("www.", "")
+    )
+
+    # Attempt to get the final URL after redirects
+    tests = ["http://", "https://", "http://www.", "https://www."]
+    for test in tests:
+        try:
+            domain = test + original_domain
+            response = requests.get(domain, allow_redirects=True)
+            final_url = response.url
+            if not target_domain:
+                if final_url != domain:
+                    print(f"{domain} forwards to {final_url}")
+            else:
+                if final_url == target_domain:
+                    print(f"{domain} forwards to {target_domain}")
+                else:
+                    print(
+                        f"{domain} is redirected to {final_url}, but not to {target_domain}"
+                    )
+                    return False
+        except requests.RequestException as e:
+            print(f"Error checking domain forwarding: {e}")
+            return False
+
+    return True
 
 
 def create_workmail_inbox(domain_name: str, user_name: str, password: str):

@@ -1,11 +1,12 @@
 import json
 from typing import Optional
+from src.domains.services import is_valid_email_forwarding
 
 from src.smartlead.services import (
     get_email_warmings,
     get_warmup_percentage,
 )
-from model_import import ClientSDR
+from model_import import ClientSDR, Client
 import requests
 from src.smartlead.smartlead import Smartlead
 from src.utils.domains.pythondns import (
@@ -126,6 +127,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
         client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
         if not client_sdr:
             return False, "Client SDR not found"
+        client: Client = Client.query.filter_by(id=client_sdr.client_id).first()
         name: str = client_sdr.name
         print(f"Setting channel warmups for {name}")
 
@@ -145,6 +147,11 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             spf_record, spf_valid = spf_record_valid(domain=domain)
             dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain)
             dkim_record, dkim_valid = dkim_record_valid(domain=domain)
+
+            # Get email forwarding status
+            forwarding_enabled = is_valid_email_forwarding(
+                original_domain=domain,
+            )
 
             # Get the old warmup
             old_warmup: WarmupSnapshot = WarmupSnapshot.query.filter_by(
@@ -171,6 +178,7 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
                 spf_record_valid=spf_valid,
                 dkim_record=dkim_record,
                 dkim_record_valid=dkim_valid,
+                forwarding_enabled=forwarding_enabled,
             )
             db.session.add(email_warmup_snapshot)
             db.session.commit()

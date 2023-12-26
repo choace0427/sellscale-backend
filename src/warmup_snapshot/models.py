@@ -35,6 +35,8 @@ class WarmupSnapshot(db.Model):
     dkim_record = db.Column(db.String, nullable=True)
     dkim_record_valid = db.Column(db.Boolean, nullable=True)
 
+    forwarding_enabled = db.Column(db.Boolean, nullable=True, default=False)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -53,4 +55,5 @@ class WarmupSnapshot(db.Model):
             "spf_record_valid": self.spf_record_valid,
             "dkim_record": self.dkim_record,
             "dkim_record_valid": self.dkim_record_valid,
+            "forwarding_enabled": self.forwarding_enabled,
         }
