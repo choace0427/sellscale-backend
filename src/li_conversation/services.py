@@ -229,6 +229,10 @@ def create_linkedin_conversation_entry(
         urn_id=urn_id,
     )
 
+    # ensure date is from last 7 days
+    if date < datetime.now() - timedelta(days=7):
+        return None
+
     # Flag as urgent if message is new and mentions something urgent
     if not duplicate_exists and client_sdr_id != -1 and connection_degree != "You":
         detect_time_sensitive_keywords(
