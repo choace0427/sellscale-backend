@@ -8,6 +8,7 @@ from app import (
 )
 from app import db, celery
 from botocore.exceptions import ClientError
+from src.client.models import Client
 from src.domains.models import Domain
 from src.utils.domains.pythondns import (
     dkim_record_valid,
@@ -809,10 +810,13 @@ def domain_setup_workflow(domain_name: str, user_name: str, password: str) -> tu
     return True, "Domain setup workflow completed successfully"
 
 
-def domain_purchase_workflow(domain_name: str, user_name: str, password: str) -> tuple:
+def domain_purchase_workflow(
+    client_id: int, domain_name: str, user_name: str, password: str
+) -> tuple:
     """Workflow to purchase a domain. Automatically queues up the domain setup workflow.
 
     Args:
+        client_id (int): The ID of the client
         domain_name (str): The domain name to purchase
         user_name (str): The user_name of the inbox
         password (str): The password of the inbox
@@ -820,6 +824,11 @@ def domain_purchase_workflow(domain_name: str, user_name: str, password: str) ->
     Returns:
         tuple: A tuple containing the status and a message
     """
+    # Verify the client exists
+    client: Client = Client.query.get(client_id)
+    if not client:
+        return False, "Client not found"
+
     # Register the domain
     status, _, _ = register_aws_domain(domain_name)
     if status == 500:
@@ -828,6 +837,7 @@ def domain_purchase_workflow(domain_name: str, user_name: str, password: str) ->
     # Add the domain to our DB
     create_domain_entry(
         domain=domain_name,
+        client_id=client_id,
         aws=True,
     )
 
@@ -847,6 +857,7 @@ def domain_purchase_workflow(domain_name: str, user_name: str, password: str) ->
 
 def create_domain_entry(
     domain: str,
+    client_id: int,
     forward_to: str,
     aws: bool,
     aws_hosted_zone_id: Optional[str] = None,
@@ -858,6 +869,7 @@ def create_domain_entry(
 
     Args:
         domain (str): The domain name
+        client_id (int): The ID of the client
         forward_to (str): The domain to forward to
         aws (bool): Whether the domain is hosted on AWS
         aws_hosted_zone_id (Optional[str], optional): The ID of the AWS Hosted Zone. Defaults to None.
@@ -870,6 +882,7 @@ def create_domain_entry(
     """
     domain = Domain(
         domain=domain,
+        client_id=client_id,
         forward_to=forward_to,
         aws=aws,
         aws_hosted_zone_id=aws_hosted_zone_id,

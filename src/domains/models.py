@@ -5,6 +5,7 @@ class Domain(db.Model):
     __tablename__ = "domain"
 
     id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
     domain = db.Column(db.String(255), nullable=False)
     forward_to = db.Column(db.String(255), nullable=False)
 
