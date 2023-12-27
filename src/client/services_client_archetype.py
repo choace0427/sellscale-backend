@@ -289,7 +289,11 @@ def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dic
 
     return result
 
+
 def get_archetype_details(archetype_id: int) -> dict:
+    if not archetype_id:
+        return {}
+
     results = db.session.execute(
         """
         SELECT
@@ -307,12 +311,7 @@ def get_archetype_details(archetype_id: int) -> dict:
     ).fetchone()
 
     # index to column
-    column_map = {
-        0: "name",
-        1: "id",
-        2: "created_at",
-        3: "active"
-    }
+    column_map = {0: "name", 1: "id", 2: "created_at", 3: "active"}
 
     # Convert and format output
     result = {column_map.get(i, "unknown"): value for i, value in enumerate(results)}

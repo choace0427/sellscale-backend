@@ -129,6 +129,70 @@ def get_bump_frameworks(client_sdr_id: int):
     return jsonify({"bump_frameworks": bump_frameworks, "counts": counts}), 200
 
 
+@BUMP_FRAMEWORK_BLUEPRINT.route("/bump/sellscale_default", methods=["POST"])
+def post_create_bump_framework_sellscale_default():
+    """Create a new bump framework"""
+    description = get_request_parameter(
+        "description", request, json=True, required=True, parameter_type=str
+    )
+    title = get_request_parameter(
+        "title", request, json=True, required=True, parameter_type=str
+    )
+    overall_status = get_request_parameter(
+        "overall_status", request, json=True, required=True, parameter_type=str
+    )
+    substatus = (
+        get_request_parameter(
+            "substatus", request, json=True, required=False, parameter_type=str
+        )
+        or None
+    )
+    default = True
+    use_account_research = get_request_parameter(
+        "use_account_research", request, json=True, required=False, parameter_type=bool
+    )
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
+    )
+
+    # Get the enum value for the overall status
+    found_key = False
+    for key, val in ProspectOverallStatus.__members__.items():
+        if key == overall_status:
+            overall_status = val
+            found_key = True
+            break
+    if not found_key:
+        return jsonify({"error": "Invalid overall status."}), 400
+
+    bump_framework_id = create_bump_framework(
+        client_sdr_id=None,
+        client_archetype_id=None,
+        title=title,
+        description=description,
+        overall_status=overall_status,
+        length=BumpLength.MEDIUM,
+        bumped_count=0,
+        bump_delay_days=2,
+        substatus=substatus,
+        default=default,
+        use_account_research=use_account_research,
+        bump_framework_human_readable_prompt=None,
+        transformer_blocklist=transformer_blocklist,
+    )
+    if bump_framework_id:
+        return (
+            jsonify(
+                {
+                    "message": "Successfully created bump framework",
+                    "bump_framework_id": bump_framework_id,
+                }
+            ),
+            200,
+        )
+    return jsonify({"error": "Could not create bump framework."}), 400
+
+
 @BUMP_FRAMEWORK_BLUEPRINT.route("/bump", methods=["POST"])
 @require_user
 def post_create_bump_framework(client_sdr_id: int):
@@ -660,6 +724,7 @@ def post_toggle_bump_framework_template_active_status():
         ),
         200,
     )
+
 
 @BUMP_FRAMEWORK_BLUEPRINT.route("/sequence", methods=["GET"])
 @require_user
