@@ -124,11 +124,30 @@ def get_bump_frameworks_for_sdr(
             for ca in ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
         ]
 
+    # TODO(Aakash) - this is the old way of doing it, we need to update this to the new way
+    # bfs: list[BumpFramework] = BumpFramework.query.filter(
+    #     BumpFramework.client_sdr_id == client_sdr_id,
+    #     BumpFramework.client_archetype_id.in_(client_archetype_ids),
+    #     BumpFramework.client_archetype_id.notin_(exclude_client_archetype_ids),
+    #     BumpFramework.overall_status.in_(overall_statuses),
+    # )
+
+    # NEW
     bfs: list[BumpFramework] = BumpFramework.query.filter(
-        BumpFramework.client_sdr_id == client_sdr_id,
-        BumpFramework.client_archetype_id.in_(client_archetype_ids),
-        BumpFramework.client_archetype_id.notin_(exclude_client_archetype_ids),
-        BumpFramework.overall_status.in_(overall_statuses),
+        db.or_(
+            db.and_(
+                BumpFramework.client_sdr_id == client_sdr_id,
+                BumpFramework.client_archetype_id.in_(client_archetype_ids),
+                BumpFramework.client_archetype_id.notin_(exclude_client_archetype_ids),
+                BumpFramework.overall_status.in_(overall_statuses),
+            ),
+            db.and_(
+                BumpFramework.client_sdr_id == None,
+                BumpFramework.client_archetype_id == None,
+                BumpFramework.overall_status.in_(overall_statuses),
+                BumpFramework.default == True,
+            ),
+        )
     )
 
     # If substatuses is specified, filter by substatuses
@@ -467,6 +486,7 @@ def clone_bump_framework(
     )
 
     return new_framework_id
+
 
 def get_db_bump_sequence(archetype_id: int):
     """Get all bump sequence"""
