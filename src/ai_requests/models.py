@@ -10,9 +10,13 @@ class AIRequestStatus(enum.Enum):
 
 
 class AIRequest(db.Model):
-    __tablename__ = "prospect_ai_requests"
+    __tablename__ = "ai_request"
 
     id = db.Column(db.Integer, primary_key=True)
+
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
 
     title = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=False)
