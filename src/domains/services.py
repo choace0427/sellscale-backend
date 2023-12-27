@@ -8,6 +8,7 @@ from app import (
 )
 from app import db, celery
 from botocore.exceptions import ClientError
+from src.domains.models import Domain
 from src.utils.domains.pythondns import (
     dkim_record_valid,
     dmarc_record_valid,
@@ -18,7 +19,15 @@ import os
 import time
 
 
-def domain_blacklist_check(domain):
+def domain_blacklist_check(domain) -> dict:
+    """Check if a domain is blacklisted
+
+    Args:
+        domain (str): The domain to check
+
+    Returns:
+        dict: A dictionary containing the results of the blacklist check
+    """
     import dns.resolver
 
     blacklists = [
@@ -294,7 +303,32 @@ def domain_blacklist_check(domain):
     return results
 
 
-def register_aws_domain(domain_name: str):
+def list_aws_domains() -> tuple[list, dict, str]:
+    """List all our domains in AWS Route53
+
+    Returns:
+        tuple: A tuple containing a list of domains, the response, and an error message
+    """
+    try:
+        response = aws_route53domains_client.list_domains()
+        return (
+            response.get("Domains", []),
+            response,
+            "",
+        )
+    except ClientError as e:
+        return [], None, str(e)
+
+
+def register_aws_domain(domain_name: str) -> tuple[list, dict, str]:
+    """Register a domain in AWS Route53
+
+    Args:
+        domain_name (str): The domain name to register
+
+    Returns:
+        tuple: A tuple containing the status code, the response, and an error message
+    """
     try:
         response = aws_route53domains_client.register_domain(
             DomainName=domain_name,
@@ -356,7 +390,15 @@ def register_aws_domain(domain_name: str):
         return 500, None, str(e)
 
 
-def check_aws_domain_availability(domain_name: str):
+def check_aws_domain_availability(domain_name: str) -> tuple[list, dict, str]:
+    """Check if a domain is available in AWS Route53
+
+    Args:
+        domain_name (str): The domain name to check
+
+    Returns:
+        tuple: A tuple containing the status code, the response, and an error message
+    """
     try:
         response = aws_route53domains_client.check_domain_availability(
             DomainName=domain_name, IdnLangCode=""
@@ -370,7 +412,15 @@ def check_aws_domain_availability(domain_name: str):
         return False, None, str(e)
 
 
-def get_tld_prices(tld: str):
+def get_tld_prices(tld: str) -> tuple[float, dict, str]:
+    """Get the price of a Top Level Domain (TLD). For example: com, net, org
+
+    Args:
+        tld (str): The TLD to get the price for
+
+    Returns:
+        tuple: A tuple containing the price, the response, and an error message
+    """
     try:
         response = aws_route53domains_client.list_prices(
             Tld=tld,
@@ -386,7 +436,15 @@ def get_tld_prices(tld: str):
         return -1.0, None, str(e)
 
 
-def find_domain(domain_name: str):
+def find_domain(domain_name: str) -> tuple[bool, dict]:
+    """Find a domain name
+
+    Args:
+        domain_name (str): The domain name to find
+
+    Returns:
+        tuple: A tuple containing the status and a dictionary of the domain information
+    """
     is_available, _, _ = check_aws_domain_availability(domain_name)
     if is_available:
         price, _, _ = get_tld_prices(domain_name.split(".")[-1])
@@ -398,7 +456,16 @@ def find_domain(domain_name: str):
         return False, {}
 
 
-def find_similar_domains(key_title: str, current_tld: str):
+def find_similar_domains(key_title: str, current_tld: str) -> list[dict]:
+    """Find similar domains using a heuristic of different, applicable prefixes and TLDs
+
+    Args:
+        key_title (str): The key title to use. For example `sellscale` in `withsellscale.com`
+        current_tld (str): The current TLD. For example `com` in `withsellscale.com`
+
+    Returns:
+        list: A list of similar domains
+    """
     prefixes = ["", "try", "get", "with", "use"]
     tlds = list(set([current_tld, "com", "net", "org"]))
 
@@ -423,13 +490,22 @@ def find_similar_domains(key_title: str, current_tld: str):
     return similar_domains
 
 
-def generate_dkim_tokens(domain_name: str):
+def generate_dkim_tokens(domain_name: str) -> list[str]:
+    """Generate DKIM tokens for a domain. Uses SESv1
+
+    Args:
+        domain_name (str): The domain name to generate DKIM tokens for
+
+    Returns:
+        list: A list of DKIM tokens
+    """
     # Generate DKIM tokens for the domain
     try:
         response = aws_ses_client.verify_domain_dkim(Domain=domain_name)
         return response["DkimTokens"]
     except:
         return []
+
     ### Using SESv2 ###
     # try:
     #     response = aws_sesv2_client.delete_email_identity(EmailIdentity=domain_name)
@@ -442,7 +518,15 @@ def generate_dkim_tokens(domain_name: str):
     # return response.get("DkimAttributes", {}).get("Tokens", [])
 
 
-def verify_domain_identity(domain_name: str):
+def verify_domain_identity(domain_name: str) -> str:
+    """Verify a domain identity. Uses SESv1
+
+    Args:
+        domain_name (str): The domain name to verify
+
+    Returns:
+        str: The verification token
+    """
     try:
         response = aws_ses_client.verify_domain_identity(Domain=domain_name)
         token = response["VerificationToken"]
@@ -452,12 +536,14 @@ def verify_domain_identity(domain_name: str):
         return ""
 
 
-def get_hosted_zone_id(domain_name: str):
-    """
-    Get the hosted zone ID for a given domain name.
+def get_hosted_zone_id(domain_name: str) -> Optional[str]:
+    """Get the hosted zone ID for a domain
 
-    :param domain_name: The domain name to search for
-    :return: The hosted zone ID if found, else None
+    Args:
+        domain_name (str): The domain name to get the hosted zone ID for
+
+    Returns:
+        str: The hosted zone ID
     """
     paginator = aws_route53_client.get_paginator("list_hosted_zones")
 
@@ -469,7 +555,15 @@ def get_hosted_zone_id(domain_name: str):
     return None
 
 
-def add_email_dns_records(domain_name: str):
+def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
+    """Adds DNS records for a domain. Namely DKIM, DMARC, SPF, MX, and verification records
+
+    Args:
+        domain_name (str): The domain name to add DNS records for
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
     hosted_zone_id = get_hosted_zone_id(domain_name)
     if hosted_zone_id is None:
         return False, "Hosted zone not found for domain"
@@ -561,7 +655,15 @@ def add_email_dns_records(domain_name: str):
     )
 
 
-def is_valid_email_dns_records(domain_name: str):
+def is_valid_email_dns_records(domain_name: str) -> dict:
+    """Check if the email DNS records for a domain are valid
+
+    Args:
+        domain_name (str): The domain name to check
+
+    Returns:
+        dict: A dictionary containing the results of the check
+    """
     spf_record, spf_valid = spf_record_valid(domain=domain_name)
     dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain_name)
     dkim_record, dkim_valid = dkim_record_valid(domain=domain_name)
@@ -617,7 +719,18 @@ def is_valid_email_forwarding(
     return True
 
 
-def create_workmail_inbox(domain_name: str, user_name: str, password: str):
+def create_workmail_inbox(domain_name: str, user_name: str, password: str) -> tuple:
+    """Create a workmail inbox for a domain
+
+    Args:
+        domain_name (str): The domain name to create the inbox for
+        user_name (str): The user_name of the inbox
+        password (str): The password of the inbox
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
+
     organization_id = os.environ.get("AWS_WORKMAIL_ORG_ID")
     hosted_zone_id = get_hosted_zone_id(domain_name)
     if hosted_zone_id is None:
@@ -652,12 +765,21 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str):
 
 
 @celery.task
-def domain_setup_workflow(domain_name: str, user_name: str, password: str):
-    """
-    After domain is purchased,
+def domain_setup_workflow(domain_name: str, user_name: str, password: str) -> tuple:
+    """Workflow to setup a domain after domain is purchased.
+
+    This includes:
     1. Add DNS records
     2. Create workmail inbox
     3. Add to smartlead
+
+    Args:
+        domain_name (str): The domain name to setup
+        user_name (str): The user_name of the inbox
+        password (str): The password of the inbox
+
+    Returns:
+        tuple: A tuple containing the status and a message
     """
 
     success, _ = add_email_dns_records(domain_name)
@@ -687,10 +809,27 @@ def domain_setup_workflow(domain_name: str, user_name: str, password: str):
     return True, "Domain setup workflow completed successfully"
 
 
-def domain_purchase_workflow(domain_name: str, user_name: str, password: str):
+def domain_purchase_workflow(domain_name: str, user_name: str, password: str) -> tuple:
+    """Workflow to purchase a domain. Automatically queues up the domain setup workflow.
+
+    Args:
+        domain_name (str): The domain name to purchase
+        user_name (str): The user_name of the inbox
+        password (str): The password of the inbox
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
+    # Register the domain
     status, _, _ = register_aws_domain(domain_name)
     if status == 500:
         return False, "Failed to purchase domain"
+
+    # Add the domain to our DB
+    create_domain_entry(
+        domain=domain_name,
+        aws=True,
+    )
 
     from src.automation.orchestrator import add_process_for_future
 
@@ -704,3 +843,136 @@ def domain_purchase_workflow(domain_name: str, user_name: str, password: str):
         },
         minutes=30,
     )
+
+
+def create_domain_entry(
+    domain: str,
+    forward_to: str,
+    aws: bool,
+    aws_hosted_zone_id: Optional[str] = None,
+    dmarc_record: Optional[str] = None,
+    spf_record: Optional[str] = None,
+    dkim_record: Optional[str] = None,
+) -> int:
+    """Creates a Domain object
+
+    Args:
+        domain (str): The domain name
+        forward_to (str): The domain to forward to
+        aws (bool): Whether the domain is hosted on AWS
+        aws_hosted_zone_id (Optional[str], optional): The ID of the AWS Hosted Zone. Defaults to None.
+        dmarc_record (Optional[str], optional): The DMARC record. Defaults to None.
+        spf_record (Optional[str], optional): The SPF record. Defaults to None.
+        dkim_record (Optional[str], optional): The DKIM record. Defaults to None.
+
+    Returns:
+        int: ID of the created Domain object
+    """
+    domain = Domain(
+        domain=domain,
+        forward_to=forward_to,
+        aws=aws,
+        aws_hosted_zone_id=aws_hosted_zone_id,
+        dmarc_record=dmarc_record,
+        spf_record=spf_record,
+        dkim_record=dkim_record,
+    )
+    db.session.add(domain)
+    db.session.commit()
+
+    if dmarc_record or spf_record or dkim_record:
+        validate_domain_configuration(domain.id)
+
+    return domain.id
+
+
+def patch_domain_entry(
+    domain_id: int,
+    forward_to: Optional[str] = None,
+    aws: Optional[bool] = None,
+    aws_hosted_zone_id: Optional[str] = None,
+    dmarc_record: Optional[str] = None,
+    spf_record: Optional[str] = None,
+    dkim_record: Optional[str] = None,
+) -> bool:
+    """Patches a Domain object
+
+    Args:
+        domain_id (int): The ID of the Domain object to patch
+        forward_to (Optional[str], optional): The domain to forward to. Defaults to None.
+        aws (Optional[bool], optional): Whether the domain is hosted on AWS. Defaults to None.
+        aws_hosted_zone_id (Optional[str], optional): The ID of the AWS Hosted Zone. Defaults to None.
+        dmarc_record (Optional[str], optional): The DMARC record. Defaults to None.
+        spf_record (Optional[str], optional): The SPF record. Defaults to None.
+        dkim_record (Optional[str], optional): The DKIM record. Defaults to None.
+
+    Returns:
+        bool: True if successful, else False
+    """
+    domain: Domain = Domain.query.get(domain_id)
+    if not domain:
+        return False
+
+    if forward_to is not None:
+        domain.forward_to = forward_to
+    if aws is not None:
+        domain.aws = aws
+    if aws_hosted_zone_id is not None:
+        domain.aws_hosted_zone_id = aws_hosted_zone_id
+    if dmarc_record is not None:
+        domain.dmarc_record = dmarc_record
+    if spf_record is not None:
+        domain.spf_record = spf_record
+    if dkim_record is not None:
+        domain.dkim_record = dkim_record
+
+    db.session.commit()
+    return True
+
+
+@celery.task
+def validate_domain_configuration(domain_id: int) -> bool:
+    """Validates the configuration of a domain
+
+    Args:
+        domain_id (int): The ID of the Domain object to validate
+
+    Returns:
+        bool: True if valid, else False
+    """
+    domain: Domain = Domain.query.get(domain_id)
+    if not domain:
+        return False
+
+    spf_record, spf_valid = spf_record_valid(domain=domain.domain)
+    dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain.domain)
+    dkim_record, dkim_valid = dkim_record_valid(domain=domain.domain)
+
+    domain.spf_record = spf_record
+    domain.spf_record_valid = spf_valid
+    domain.dmarc_record = dmarc_record
+    domain.dmarc_record_valid = dmarc_valid
+    domain.dkim_record = dkim_record
+    domain.dkim_record_valid = dkim_valid
+
+    valid = is_valid_email_forwarding(
+        original_domain=domain.domain, target_domain=domain.forward_to
+    )
+    domain.forwarding_enabled = valid
+    db.session.commit()
+
+    return True
+
+
+@celery.task
+def validate_all_domain_configurations() -> bool:
+    """Validates the configuration of all domains
+
+    Returns:
+        bool: True if valid, else False
+    """
+    domains: list[Domain] = Domain.query.all()
+    for domain in domains:
+        validate_domain_configuration.delay(domain.id)
+
+    return True

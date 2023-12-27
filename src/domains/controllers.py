@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify
 from src.domains.services import (
     add_email_dns_records,
+    create_domain_entry,
     create_workmail_inbox,
     domain_blacklist_check,
     domain_purchase_workflow,
     domain_setup_workflow,
     find_domain,
     find_similar_domains,
+    patch_domain_entry,
     register_aws_domain,
 )
 from src.authentication.decorators import require_user
@@ -16,6 +18,91 @@ from app import db
 import os
 
 DOMAINS_BLUEPRINT = Blueprint("domains", __name__)
+
+
+@DOMAINS_BLUEPRINT.route("/", methods=["POST"])
+@require_user
+def post_domain():
+    domain = get_request_parameter(
+        "domain", request, json=True, required=True, parameter_type=str
+    )
+    forward_to = get_request_parameter(
+        "forward_to", request, json=True, required=True, parameter_type=str
+    )
+    dmarc_record = get_request_parameter(
+        "dmarc_record", request, json=True, required=False, parameter_type=str
+    )
+    spf_record = get_request_parameter(
+        "spf_record", request, json=True, required=False, parameter_type=str
+    )
+    dkim_record = get_request_parameter(
+        "dkim_record", request, json=True, required=False, parameter_type=str
+    )
+
+    _ = create_domain_entry(
+        domain=domain,
+        forward_to=forward_to,
+        aws=False,
+        dmarc_record=dmarc_record,
+        spf_record=spf_record,
+        dkim_record=dkim_record,
+    )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("/", methods=["PATCH"])
+@require_user
+def patch_domain():
+    domain_id = get_request_parameter(
+        "domain_id", request, json=True, required=True, parameter_type=int
+    )
+    forward_to = get_request_parameter(
+        "forward_to", request, json=True, required=True, parameter_type=str
+    )
+    dmarc_record = get_request_parameter(
+        "dmarc_record", request, json=True, required=False, parameter_type=str
+    )
+    spf_record = get_request_parameter(
+        "spf_record", request, json=True, required=False, parameter_type=str
+    )
+    dkim_record = get_request_parameter(
+        "dkim_record", request, json=True, required=False, parameter_type=str
+    )
+
+    success = patch_domain_entry(
+        domain_id=domain_id,
+        forward_to=forward_to,
+        dmarc_record=dmarc_record,
+        spf_record=spf_record,
+        dkim_record=dkim_record,
+    )
+
+    if success:
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                }
+            ),
+            200,
+        )
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                }
+            ),
+            400,
+        )
 
 
 @DOMAINS_BLUEPRINT.route("/find", methods=["GET"])
