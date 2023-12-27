@@ -2003,7 +2003,7 @@ def post_demo_feedback(client_sdr_id: int):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Prospect*: {prospect_name}\n*Rating*: {rating}\n*Feedback*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
+                    "text": "*Prospect*: {prospect_name}\n*Rating*: {rating}\n*Feedback*: {notes}".format(
                         prospect_name=prospect.full_name
                         + " ("
                         + prospect.company
@@ -2011,7 +2011,6 @@ def post_demo_feedback(client_sdr_id: int):
                         rating=rating,
                         rep=client_sdr.name,
                         notes=feedback,
-                        ai_adjustments=ai_adjustments,
                     ),
                 },
             },
@@ -2036,6 +2035,34 @@ def post_demo_feedback(client_sdr_id: int):
             },
         ],
     )
+
+    if ai_adjustments:
+        send_slack_message(
+            message="✨ AI is retargeting based on demo feedback",
+            webhook_urls=[
+                URL_MAP["csm-demo-feedback"],
+                client.pipeline_notifications_webhook_url,
+            ],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "✨ AI is retargeting based on demo feedback",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Notes*:\n> {ai_adjustments}".format(
+                            ai_adjustments=ai_adjustments
+                        ),
+                    },
+                },
+            ],
+        )
 
     return jsonify({"message": "Success"}), 200
 
