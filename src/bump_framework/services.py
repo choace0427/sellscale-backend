@@ -254,7 +254,7 @@ def create_bump_framework(
     Returns:
         int: The id of the newly created bump framework
     """
-    if default:
+    if default and client_archetype_id:
         all_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
             client_sdr_id=client_sdr_id,
             client_archetype_id=client_archetype_id,
@@ -377,7 +377,7 @@ def modify_bump_framework(
     if human_feedback != None:
         bump_framework.human_feedback = human_feedback
 
-    if default:
+    if default and client_archetype_id:
         default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
             BumpFramework.client_sdr_id == client_sdr_id,
             BumpFramework.client_archetype_id == client_archetype_id,
