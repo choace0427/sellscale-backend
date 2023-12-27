@@ -1,5 +1,4 @@
 import json
-from turtle import update
 from typing import List, Union, Optional
 
 from src.ml.services import get_text_generation
