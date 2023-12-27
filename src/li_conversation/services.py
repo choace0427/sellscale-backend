@@ -1,4 +1,5 @@
 import json
+from turtle import update
 from typing import List, Union, Optional
 
 from src.ml.services import get_text_generation
@@ -30,7 +31,7 @@ from src.li_conversation.conversation_analyzer.li_email_finder import (
 
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFrameworkTemplates, BumpLength
-from src.prospecting.services import send_to_purgatory
+from src.prospecting.services import send_to_purgatory, update_prospect_status_linkedin
 from src.research.models import ResearchPointType, ResearchPoints
 from src.utils.datetime.dateparse_utils import get_working_hours_in_utc, is_weekend
 from src.utils.slack import exception_to_str
@@ -235,12 +236,14 @@ def create_linkedin_conversation_entry(
             client_sdr_id=client_sdr_id,
             author=author,
             direct_link=direct_link,
+            prospect_id=prospect_id,
         )
         detect_multithreading_keywords(
             message=message,
             client_sdr_id=client_sdr_id,
             author=author,
             direct_link=direct_link,
+            prospect_id=prospect_id,
         )
 
     # Get the Thread URN ID from the conversation URL
@@ -355,7 +358,7 @@ def create_linkedin_conversation_entry(
 
 
 def detect_time_sensitive_keywords(
-    message: str, client_sdr_id: int, author: str, direct_link: str
+    message: str, client_sdr_id: int, author: str, direct_link: str, prospect_id: int
 ) -> None:
     """Detects time-sensitive keywords in a message and sends an alert to the CSM team
 
@@ -402,25 +405,37 @@ def detect_time_sensitive_keywords(
     for keyword in time_sensitive_keywords:
         if keyword in lowered_message:
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            prospect: Prospect = Prospect.query.get(prospect_id)
+
+            old_status = prospect.status.value
+
             send_slack_message(
                 message=f"""
-                {author} wrote to {sdr.name} with the message:
-                ```
-                {message}
-                ```
-                ⏰ Time-sensitive keyword was detected: {keyword}
+> ✨ *Automatic Scheduling Sorter:* Old `{old_status}` -> New `ACTIVE_CONVO_SCHEDULING`
+> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
-                Take appropriate action then mark this message as ✅
+{author} wrote to {sdr.name} with the message:
+```
+{message}
+```
+⏰ Time-sensitive keyword was detected: "{keyword}"
 
-                *Direct Link:* {direct_link}
+Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
+
+*Direct Link:* {direct_link}
                 """,
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+            )
+
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id,
+                new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
             )
             return
 
 
 def detect_multithreading_keywords(
-    message: str, client_sdr_id: int, author: str, direct_link: str
+    message: str, client_sdr_id: int, author: str, direct_link: str, prospect_id: int
 ) -> None:
     """Detects multithreading keywords in a message and sends an alert to the CSM team
 
@@ -443,20 +458,32 @@ def detect_multithreading_keywords(
     for keyword in multithreading_keywords:
         if keyword in lowered_message:
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            prospect: Prospect = Prospect.query.get(prospect_id)
+
             send_slack_message(
                 message=f"""
-                {author} wrote to {sdr.name} with the message:
-                ```
-                {message}
-                ```
-                🧵 Multithreading keyword was detected.
+> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_REFERRAL`
+> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
-                Take appropriate action then mark this message as ✅
+{author} wrote to {sdr.name} with the message:
+```
+{message}
+```
+🧵 Multithreading keyword was detected: "{keyword}"
 
-                *Direct Link:* {direct_link}
+Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
+
+*Direct Link:* {direct_link}
                 """,
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
+
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id,
+                new_status=ProspectStatus.ACTIVE_CONVO_REFERRAL,
+            )
+
+            return
 
 
 def update_li_conversation_extractor_phantom(client_sdr_id) -> tuple[str, int]:
