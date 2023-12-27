@@ -33,6 +33,7 @@ def notify_clients_regarding_scheduling():
     select *
     from d
     where d.created_at <= NOW() - INTERVAL '3 days'
+        and d.created_at > NOW() - INTERVAL '6 days'
     """
 
     # Execute Query
