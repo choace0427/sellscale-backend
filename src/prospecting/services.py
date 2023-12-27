@@ -3218,7 +3218,7 @@ def generate_prospect_upload_report(archetype_state: dict):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"SellScale just helped save ${estimated_savings} of finding contacts.",
+                        "text": f"🤑 SellScale just helped save `${estimated_savings}` of finding contacts.",
                     },
                 },
                 {
