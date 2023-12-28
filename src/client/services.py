@@ -2315,8 +2315,8 @@ def send_demo_reminders():
 def send_demo_feedback_reminder():
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.demo_date != None,
-        Prospect.demo_date >= datetime.now() - timedelta(hours=24),
-        Prospect.demo_date <= datetime.now(),
+        Prospect.demo_date <= datetime.now() + timedelta(hours=24),
+        Prospect.demo_date >= datetime.now(),
     ).all()
 
     for prospect in prospects:
@@ -2377,31 +2377,57 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
 
-    # "team@sellscale.com"
+    client_sdr_first_name = client_sdr.name.split(" ")[0]
+    prospect_first_name = prospect.first_name
+    prospect_company = prospect.company
+    prospect_demo_date_formatted = prospect.demo_date.strftime("%B %d, %Y")
+    prospect_linkedin_url = prospect.linkedin_url
+    if 'https://' not in prospect_linkedin_url or 'http://' not in prospect_linkedin_url:
+        prospect_linkedin_url = f'https://{prospect_linkedin_url}'
 
-    #
-    # centered
     send_email(
         html=f"""
-    <table style="width: 80%; margin: 0 auto; background-color: white; box-shadow: 2px 2px 5px #888888; border-collapse: collapse; border: 1px solid #ccc;">
-        <tr>
-            <td colspan="2" style="background-color: black; height: 10px;"></td>
-        </tr>
-        <tr>
-            <td colspan="2" style="padding: 20px;">
-                <p style="font-size: 18px; text-align: left;">Hi CSM Team,</p>
-                <p style="font-size: 18px; text-align: left;">How did the demo go with `{prospect.full_name}` on `{prospect.demo_date}`?</p>
-                <p style="font-size: 18px; text-align: left;">- SellScale Ai</p>
-            </td>
-        </tr>
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEF5nLNhiZ_QEjpPOu7rLb2m-ShJN60p3ig9v-bUzAwA&s" style="width: 200px; height: auto; margin: 0 auto; display: block; margin-bottom: 18px" />
-    </table>
-    """,
-        title="Demo Feedback Reminder - {name} ({company})".format(
-            name=client_sdr.name,
-            company=client.company,
+            <table style="width: 80%; margin: 0 auto; background-color: white; box-shadow: 2px 2px 5px #888888; border-collapse: collapse; border: 1px solid #ccc;">
+                <p>
+                    Hi {client_sdr_first_name},
+                </p>
+                <p>
+                    <b>How did the call with {prospect_first_name} go?</b> Please respond with one of three options below:
+                </p>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #ccc;">
+                    <p><b><i>FEEDBACK OPTIONS</i></b></p>
+                    <ul>
+                        <li>
+                            <p><b><i><u>1. 🎯 Happened</u></i></b> - please rate from one to five stars / any feedback</p>
+                        </li>
+                        <li>
+                            <p><b><i><u>2. 👻 No show</u></i></b> - please let us know if you'd like us to reschedule</p>
+                        </li>
+                        <li>
+                            <p><b><i><u>3.  Rescheduled</u></i></b> - please let us know what date it rescheduled to</p>
+                        </li>
+                    </ul>
+                </table>
+
+                <p>
+                    <u>More context</u>
+                    <ul>
+                        <li>We saw you had a meeting set with <a href="{prospect_linkedin_url}">{prospect_first_name} from {prospect_company}</a> on {prospect_demo_date_formatted}.</li>
+                        <li>Any feedback you give will be used to help for future sets</li>
+                        <li>This feedback is critical to improve the AI/services
+                    </ul>
+                </p>
+
+                <p>
+                    SellScale AI
+                </p>
+            </table>
+        """,
+        title="how was the call? {prospect_first_name} ({prospect_company}) {prospect_demo_date_formatted}".format(
+            prospect_first_name=prospect_first_name,
+            prospect_company=prospect_company,
+            prospect_demo_date_formatted=prospect_demo_date_formatted,
         ),
         to_emails=[email],
     )
