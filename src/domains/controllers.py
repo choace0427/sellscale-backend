@@ -96,7 +96,7 @@ def patch_domain():
 
 @DOMAINS_BLUEPRINT.route("/validate", methods=["POST"])
 @require_user
-def post_validate_domain():
+def post_validate_domain(client_sdr_id: int):
     domain_id = get_request_parameter(
         "domain_id", request, json=True, required=True, parameter_type=int
     )
