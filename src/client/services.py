@@ -2321,53 +2321,55 @@ def send_demo_feedback_reminder():
 
     for prospect in prospects:
         sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-        send_slack_message(
-            message="New question for Demo Feedback",
-            webhook_urls=[
-                URL_MAP["csm-urgent-alerts"],
-                # client.pipeline_notifications_webhook_url,
-            ],
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"New question for @{sdr.name}: Demo Feedback",
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"_How did the demo go with `{prospect.full_name}` on `{prospect.demo_date}`?_",
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f"> ✅ *Happened:* Please rate 1/5\n> 🔴 *No show:* Would you like us to reschedule?\n> ⏳ *Rescheduled:* What date did it reschedule for?",
-                        }
-                    ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Answers used to improve targeting | Prospect ➡️",
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "Link", "emoji": True},
-                        "value": f"https://app.sellscale.com/?prospect_id={prospect.id}",
-                        "action_id": "button-action",
-                    },
-                },
-            ],
-        )
+
+        # TODO(Aakash) - delete if not needed after Jan 5th, 2024
+        # send_slack_message(
+        #     message="New question for Demo Feedback",
+        #     webhook_urls=[
+        #         URL_MAP["csm-urgent-alerts"],
+        #         # client.pipeline_notifications_webhook_url,
+        #     ],
+        #     blocks=[
+        #         {
+        #             "type": "header",
+        #             "text": {
+        #                 "type": "plain_text",
+        #                 "text": f"New question for @{sdr.name}: Demo Feedback",
+        #                 "emoji": True,
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": f"_How did the demo go with `{prospect.full_name}` on `{prospect.demo_date}`?_",
+        #             },
+        #         },
+        #         {"type": "divider"},
+        #         {
+        #             "type": "context",
+        #             "elements": [
+        #                 {
+        #                     "type": "mrkdwn",
+        #                     "text": f"> ✅ *Happened:* Please rate 1/5\n> 🔴 *No show:* Would you like us to reschedule?\n> ⏳ *Rescheduled:* What date did it reschedule for?",
+        #                 }
+        #             ],
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "Answers used to improve targeting | Prospect ➡️",
+        #             },
+        #             "accessory": {
+        #                 "type": "button",
+        #                 "text": {"type": "plain_text", "text": "Link", "emoji": True},
+        #                 "value": f"https://app.sellscale.com/?prospect_id={prospect.id}",
+        #                 "action_id": "button-action",
+        #             },
+        #         },
+        #     ],
+        # )
 
         send_demo_feedback_email_reminder(prospect.id, "team@sellscale.com")
 
@@ -2383,8 +2385,11 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
     prospect_company = prospect.company
     prospect_demo_date_formatted = prospect.demo_date.strftime("%B %d, %Y")
     prospect_linkedin_url = prospect.linkedin_url
-    if 'https://' not in prospect_linkedin_url or 'http://' not in prospect_linkedin_url:
-        prospect_linkedin_url = f'https://{prospect_linkedin_url}'
+    if (
+        "https://" not in prospect_linkedin_url
+        or "http://" not in prospect_linkedin_url
+    ):
+        prospect_linkedin_url = f"https://{prospect_linkedin_url}"
 
     send_email(
         html=f"""
