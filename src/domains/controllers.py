@@ -263,10 +263,10 @@ def post_purchase_workflow(client_sdr_id: int):
         "domain", request, json=True, required=True, parameter_type=str
     )
     username = get_request_parameter(
-        "username", request, json=True, required=True, parameter_type=str
+        "username", request, json=True, required=False, parameter_type=str
     )
     password = get_request_parameter(
-        "password", request, json=True, required=True, parameter_type=str
+        "password", request, json=True, required=False, parameter_type=str
     )
     client_id = get_request_parameter(
         "client_id", request, json=True, required=True, parameter_type=int
