@@ -97,6 +97,11 @@ def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
     return None
 
 
+def update_sdr_timezone_from_li(client_sdr_id: int):
+    # TODO(Aakash) - add a check to make sure the SDR is not in a meeting
+    pass
+
+
 def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
     """Updates LinkedIn cookies for Voyager
 

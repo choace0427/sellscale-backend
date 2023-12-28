@@ -362,6 +362,7 @@ class ClientSDR(db.Model):
     timezone = db.Column(
         db.String, server_default="America/Los_Angeles", nullable=False
     )
+    automatically_added_timezone = db.Column(db.Boolean, nullable=True, default=False)
 
     uuid = db.Column(db.String, nullable=True, unique=True, index=True)
     onboarded = db.Column(db.Boolean, nullable=True, default=False)
