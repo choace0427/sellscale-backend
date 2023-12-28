@@ -2412,6 +2412,7 @@ def send_upcoming_demo_reminder():
         Prospect.demo_date != None,
         Prospect.demo_date > datetime.now(),
         Prospect.demo_date <= datetime.now() + timedelta(days=1),
+        Prospect.send_reminder == True,
     ).all()
 
     for prospect in prospects:

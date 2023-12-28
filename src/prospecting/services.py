@@ -2237,6 +2237,7 @@ def update_prospect_demo_date(
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.demo_date = demo_date
+    prospect.send_reminder = send_reminder
     db.session.add(prospect)
     db.session.commit()
 

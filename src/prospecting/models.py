@@ -463,6 +463,7 @@ class Prospect(db.Model):
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
     demo_date = db.Column(db.DateTime, nullable=True)
+    send_reminder = db.Column(db.Boolean, nullable=True)
 
     active = db.Column(db.Boolean, nullable=True)
 
