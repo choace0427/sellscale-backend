@@ -846,6 +846,7 @@ def domain_purchase_workflow(
     create_domain_entry(
         domain=domain_name,
         client_id=client_id,
+        forward_to=domain_name,
         aws=True,
     )
 
