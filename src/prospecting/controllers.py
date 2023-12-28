@@ -246,6 +246,10 @@ def update_status(client_sdr_id: int, prospect_id: int):
         or False
     )
 
+    disqualification_reason = get_request_parameter(
+        "disqualification_reason", request, json=True, required=False
+    )
+
     channel_type = (
         get_request_parameter(
             "channel_type", request, json=True, required=True, parameter_type=str
@@ -282,6 +286,7 @@ def update_status(client_sdr_id: int, prospect_id: int):
             manually_send_to_purgatory=False,
             override_status=override_status,
             quietly=quietly,
+            disqualification_reason=disqualification_reason,
         )
         if (len(success) == 2 and success[0]) or (len(success) == 1 and success):
             return (

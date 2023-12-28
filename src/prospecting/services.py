@@ -465,6 +465,7 @@ def update_prospect_status_linkedin(
     quietly: Optional[bool] = False,
     override_status: Optional[bool] = False,
     footer_note: Optional[str] = None,
+    disqualification_reason: Optional[str] = None,
 ) -> tuple[bool, str]:
     from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
     from src.daily_notifications.services import create_engagement_feed_item
@@ -475,6 +476,12 @@ def update_prospect_status_linkedin(
     client: Client = Client.query.get(client_sdr.client_id)
     auth_token = client_sdr.auth_token
     current_status = p.status
+
+    if disqualification_reason:
+        p.disqualification_reason = disqualification_reason
+        db.session.add(p)
+        db.session.commit()
+        p = Prospect.query.get(prospect_id)
 
     # If the new status isn't an active convo sub status, does not start with ACTIVE_CONVO
     if manually_send_to_purgatory and "ACTIVE_CONVO_" not in new_status.value:
@@ -506,6 +513,7 @@ def update_prospect_status_linkedin(
             auth_token=auth_token,
             prospect_id=p.id,
         )
+        disqualification_reason = p.disqualification_reason or "Unknown"
         send_slack_message(
             message="",
             webhook_urls=[client.pipeline_notifications_webhook_url],
@@ -557,6 +565,15 @@ def update_prospect_status_linkedin(
                         "type": "mrkdwn",
                         "text": "*AI label change:* `{old_status}` -> `{new_status}`".format(
                             old_status=current_status.value, new_status=new_status.value
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*🧠 Objection Reason:* {disqualification_reason}".format(
+                            disqualification_reason=disqualification_reason
                         ),
                     },
                 },
@@ -1015,6 +1032,8 @@ def update_prospect_status_email(
         webhooks.append(URL_MAP["eng-sandbox"])
         webhooks.append(URL_MAP["sellscale_pipeline_all_clients"])
 
+        disqualification_reason = p.disqualification_reason or "Unknown"
+
         send_slack_message(
             message="",
             webhook_urls=webhooks,
@@ -1062,6 +1081,15 @@ def update_prospect_status_email(
                         "type": "mrkdwn",
                         "text": "*AI label change:* `{old_status}` -> `{new_status}`".format(
                             old_status=old_status.value, new_status=new_status.value
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*🧠 Objection Reason:* {disqualification_reason}".format(
+                            disqualification_reason=disqualification_reason
                         ),
                     },
                 },
