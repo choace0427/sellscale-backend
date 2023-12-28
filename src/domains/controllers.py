@@ -10,6 +10,7 @@ from src.domains.services import (
     find_similar_domains,
     patch_domain_entry,
     register_aws_domain,
+    validate_domain_configuration,
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
@@ -67,23 +68,40 @@ def patch_domain():
     forward_to = get_request_parameter(
         "forward_to", request, json=True, required=True, parameter_type=str
     )
-    dmarc_record = get_request_parameter(
-        "dmarc_record", request, json=True, required=False, parameter_type=str
-    )
-    spf_record = get_request_parameter(
-        "spf_record", request, json=True, required=False, parameter_type=str
-    )
-    dkim_record = get_request_parameter(
-        "dkim_record", request, json=True, required=False, parameter_type=str
-    )
 
     success = patch_domain_entry(
         domain_id=domain_id,
         forward_to=forward_to,
-        dmarc_record=dmarc_record,
-        spf_record=spf_record,
-        dkim_record=dkim_record,
     )
+
+    if success:
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                }
+            ),
+            200,
+        )
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                }
+            ),
+            400,
+        )
+
+
+@DOMAINS_BLUEPRINT.route("/validate", methods=["POST"])
+@require_user
+def post_validate_domain():
+    domain_id = get_request_parameter(
+        "domain_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success = validate_domain_configuration(domain_id=domain_id)
 
     if success:
         return (
