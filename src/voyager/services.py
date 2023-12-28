@@ -154,6 +154,7 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
     """
 
     sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client: Client = Client.query.filter(Client.id == sdr.client_id).first()
     if not sdr:
         return "No client sdr found with this id", 400
 
@@ -185,9 +186,12 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
         num_messages_in_queue = num_messages_in_linkedin_queue(
             client_sdr_id=client_sdr_id
         )
+        webhook_urls = [URL_MAP["eng-sandbox"]]
+        if client:
+            webhook_urls.append(client.pipeline_notifications_webhook_url)
         send_slack_message(
             message=f"*Linkedin Reconnected ✅ for {sdr.name} (#{sdr.id})*\nThere are {num_messages_in_queue} in the LinkedIn outbound queue",
-            webhook_urls=[URL_MAP["eng-sandbox"]],
+            webhook_urls=webhook_urls,
         )
     except:
         send_slack_message(
