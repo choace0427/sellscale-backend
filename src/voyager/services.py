@@ -98,8 +98,47 @@ def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
 
 
 def update_sdr_timezone_from_li(client_sdr_id: int):
-    # TODO(Aakash) - add a check to make sure the SDR is not in a meeting
-    pass
+    from src.research.linkedin.services import research_personal_profile_details
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if not client_sdr:
+        return "No client sdr found with this id", 400
+
+    if client_sdr.automatically_added_timezone == True:
+        return "Timezone already added", 200
+
+    api = LinkedIn(client_sdr_id=client_sdr_id)
+    profile = api.get_user_profile()
+    if not profile:
+        return "No profile found", 400
+
+    entityUrn = deep_get(profile, "miniProfile.entityUrn", None)
+    if not entityUrn:
+        return "No entityUrn found", 400
+
+    urn_id = entityUrn.replace("urn:li:fs_miniProfile:", "")
+    personal_info = research_personal_profile_details(urn_id)
+
+    if not personal_info:
+        return "No personal info found", 400
+
+    location = deep_get(personal_info, "location.country")
+
+    timezone = "America/Los_Angeles"
+    if location == "United States":
+        timezone = "America/Los_Angeles"
+    elif location == "United Kingdom":
+        timezone = "Europe/London"
+    elif location == "Canada":
+        timezone = "America/Toronto"
+
+    client_sdr.timezone = timezone
+    client_sdr.automatically_added_timezone = True
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    return timezone
 
 
 def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
@@ -155,6 +194,8 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
             message=f"🚨 URGENT ALERT 🚨: Failed to create phantom buster agent for client sdr id #{str(client_sdr_id)}",
             webhook_urls=[URL_MAP["user-errors"]],
         )
+
+    update_sdr_timezone_from_li(client_sdr_id)
 
     # Run a health check
     success, health, details = compute_sdr_linkedin_health(client_sdr_id)
