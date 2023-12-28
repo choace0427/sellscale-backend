@@ -768,7 +768,9 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str) -> tu
 
 
 @celery.task
-def domain_setup_workflow(domain_name: str, user_name: str, password: str) -> tuple:
+def domain_setup_workflow(
+    domain_name: str, user_name: Optional[str], password: Optional[str]
+) -> tuple:
     """Workflow to setup a domain after domain is purchased.
 
     This includes:
@@ -789,39 +791,43 @@ def domain_setup_workflow(domain_name: str, user_name: str, password: str) -> tu
     if not success:
         return False, "Failed to add email DNS records"
 
-    success, _ = create_workmail_inbox(domain_name, user_name, password)
-    if not success:
-        return False, "Failed to create workmail inbox"
+    if user_name and password:
+        success, _ = create_workmail_inbox(domain_name, user_name, password)
+        if not success:
+            return False, "Failed to create workmail inbox"
 
-    # Keep trying until the inbox is created, cancel after 5 attempts
-    attempt = 1
-    while attempt <= 5:
-        print(f"Attempt {attempt} to create workmail email account")
-        time.sleep(5)
-        success, _ = create_workmail_email_account(
-            name=user_name,
-            email=f"{user_name}@{domain_name}",
-            password=password,
-        )
-        if success:
-            break
+        # Keep trying until the inbox is created, cancel after 5 attempts
+        attempt = 1
+        while attempt <= 5:
+            print(f"Attempt {attempt} to create workmail email account")
+            time.sleep(5)
+            success, _ = create_workmail_email_account(
+                name=user_name,
+                email=f"{user_name}@{domain_name}",
+                password=password,
+            )
+            if success:
+                break
 
-    if not success:
-        return False, "Failed to create workmail email account"
+        if not success:
+            return False, "Failed to create workmail email account"
 
     return True, "Domain setup workflow completed successfully"
 
 
 def domain_purchase_workflow(
-    client_id: int, domain_name: str, user_name: str, password: str
+    client_id: int,
+    domain_name: str,
+    user_name: Optional[str] = None,
+    password: Optional[str] = None,
 ) -> tuple:
     """Workflow to purchase a domain. Automatically queues up the domain setup workflow.
 
     Args:
         client_id (int): The ID of the client
         domain_name (str): The domain name to purchase
-        user_name (str): The user_name of the inbox
-        password (str): The password of the inbox
+        user_name (Optional[str], optional): The user_name of the inbox. Defaults to None.
+        password (Optional[str], optional): The password of the inbox. Defaults to None.
 
     Returns:
         tuple: A tuple containing the status and a message
