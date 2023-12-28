@@ -411,6 +411,8 @@ class Prospect(db.Model):
     status = db.Column(db.Enum(ProspectStatus), nullable=True)
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
 
+    disqualification_reason = db.Column(db.String, nullable=True)
+
     hidden_until = db.Column(
         db.DateTime, nullable=True
     )  # in UTC, used to hide prospects from the UI until a certain date
