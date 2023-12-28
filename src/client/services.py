@@ -2468,11 +2468,13 @@ def send_upcoming_demo_reminder():
         add_process_for_future(
             type="send_scheduled_linkedin_message",
             args={
-                "client_sdr_id": client_sdr_id, 
-                "prospect_id": prospect_id, 
-                "message": "Hi {}, just a quick reminder about our call tomorrow. Looking forward to it!".format(first_name=first_name),
+                "client_sdr_id": client_sdr_id,
+                "prospect_id": prospect_id,
+                "message": "Hi {first_name}, just a quick reminder about our call tomorrow. Looking forward to it!".format(
+                    first_name=first_name
+                ),
             },
-            relative_time=datetime.utcnow()
+            relative_time=datetime.utcnow(),
         )
 
 

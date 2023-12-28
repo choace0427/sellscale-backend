@@ -150,6 +150,7 @@ def trigger_runner(trigger_id: int):
 
     # Run the trigger #
     trigger: Trigger = Trigger.query.get(trigger_id)
+    run_id = None
     if trigger.active:
         success, run_id = runTrigger(trigger_id)
 
