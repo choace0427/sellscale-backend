@@ -467,6 +467,8 @@ def find_similar_domains(key_title: str, current_tld: str) -> list[dict]:
     Returns:
         list: A list of similar domains
     """
+    # TODO: This is inneficient, we need a better way to do this
+    # Consider: AWS GetDomainSuggestions
     prefixes = ["", "try", "get", "with", "use"]
     tlds = list(set([current_tld, "com", "net", "org"]))
 
