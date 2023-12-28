@@ -1,6 +1,7 @@
 from typing import Optional
 
 from src.smartlead.services import sync_prospect_with_lead
+from src.voyager.linkedin import send_scheduled_linkedin_message
 from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 
 from src.triggers.services import trigger_runner
@@ -93,6 +94,12 @@ PROCESS_TYPE_MAP = {
     },
     "domain_setup_workflow": {
         "function": domain_setup_workflow,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "send_scheduled_linkedin_message": {
+        "function": send_scheduled_linkedin_message,
         "priority": 10,
         "queue": None,
         "routing_key": None,

@@ -954,3 +954,28 @@ def send_linkedin_disconnected_slack_message(
         message=f"🚨 *LinkedIn Disconnected from SellScale @{client_sdr_name}* 🚨\n_Please follow the steps below to reconnect your LinkedIn_\n> 1. *<{direct_link}|Click here>* to log into SellScale.\n>2. You'll see a popup that says `Linkedin Disconnected (Reconnect)` on the top right.\n>3. Click on `Reconnect`.\n>4. Download & Open the <{browser_extension_url}|SellScale Chrome Extension> and press `Reconnect LinkedIn\nAfter that, you should see a `connected` screen!",
         webhook_urls=webhook_urls,
     )
+
+
+def send_scheduled_linkedin_message(
+    client_sdr_id: int,
+    prospect_id: int,
+    message: str,
+):
+    from src.prospecting.models import Prospect
+    from src.voyager.services import get_profile_urn_id
+
+    api = LinkedIn(client_sdr_id)
+    urn_id = get_profile_urn_id(prospect_id, api)
+    msg_urn_id = api.send_message(message, recipients=[urn_id])
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    full_name: str = prospect.full_name
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    name: str = client_sdr.name
+
+    if msg_urn_id:
+        send_slack_message(
+            message=f"Automated message sent LinkedIn message to {full_name} (#{prospect_id}) by {name} (#{client_sdr_id})\n\nMessage: ```{message}```",
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
