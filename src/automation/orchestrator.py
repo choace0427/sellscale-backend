@@ -142,9 +142,15 @@ def process_queue():
     for process in processes:
         process.executed_at = now
         process.status = ProcessQueueStatus.IN_PROGRESS
-        handle_process(process.id, process.type, process.meta_data)
 
-    db.session.commit()
+        process_id = process.id
+        process_type = process.type
+        process_meta_data = process.meta_data
+
+        db.session.add(process)
+        db.session.commit()
+
+        handle_process(process_id, process_type, process_meta_data)
 
 
 def handle_process(process_id: int, type: str, meta_data: Optional[dict]) -> bool:

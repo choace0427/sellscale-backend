@@ -16,7 +16,7 @@ from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
 from src.automation.resend import send_email
 from src.voyager.hackathon_services import make_search
-from app import db
+from app import db, celery
 from sqlalchemy.orm import Session
 from src.utils.slack import send_slack_message, URL_MAP
 from requests.cookies import cookiejar_from_dict
@@ -956,6 +956,7 @@ def send_linkedin_disconnected_slack_message(
     )
 
 
+@celery.task
 def send_scheduled_linkedin_message(
     client_sdr_id: int,
     prospect_id: int,
@@ -963,19 +964,20 @@ def send_scheduled_linkedin_message(
 ):
     from src.prospecting.models import Prospect
     from src.voyager.services import get_profile_urn_id
+    from src.analytics.services import flag_enabled
 
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
-    msg_urn_id = api.send_message(message, recipients=[urn_id])
+
+    if flag_enabled("send_scheduled_messages"):
+        api.send_message(message, recipients=[urn_id])
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     full_name: str = prospect.full_name
-
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     name: str = client_sdr.name
 
-    if msg_urn_id:
-        send_slack_message(
-            message=f"Automated message sent LinkedIn message to {full_name} (#{prospect_id}) by {name} (#{client_sdr_id})\n\nMessage: ```{message}```",
-            webhook_urls=[URL_MAP["eng-sandbox"]],
-        )
+    send_slack_message(
+        message=f"Automated message sent LinkedIn message to {full_name} (#{prospect_id}) by {name} (#{client_sdr_id})\n\nMessage: ```{message}```",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )

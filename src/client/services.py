@@ -2,6 +2,7 @@ from enum import Enum
 import random
 
 import sqlalchemy
+from src.automation.orchestrator import add_process_for_future
 from src.client.sdr.email.models import EmailType
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
 from src.client.sdr.services_client_sdr import (
@@ -2459,6 +2460,19 @@ def send_upcoming_demo_reminder():
                     },
                 },
             ],
+        )
+
+        client_sdr_id: int = prospect.client_sdr_id
+        prospect_id: int = prospect.id
+        first_name: str = prospect.first_name
+        add_process_for_future(
+            type="send_scheduled_linkedin_message",
+            args={
+                "client_sdr_id": client_sdr_id, 
+                "prospect_id": prospect_id, 
+                "message": "Hi {}, just a quick reminder about our call tomorrow. Looking forward to it!".format(first_name=first_name),
+            },
+            relative_time=datetime.utcnow()
         )
 
 
