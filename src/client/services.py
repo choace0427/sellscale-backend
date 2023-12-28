@@ -2382,6 +2382,7 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
 
     client_sdr_first_name = client_sdr.name.split(" ")[0]
     prospect_first_name = prospect.first_name
+    prospect_full_name = prospect.full_name
     prospect_company = prospect.company
     prospect_demo_date_formatted = prospect.demo_date.strftime("%B %d, %Y")
     prospect_linkedin_url = prospect.linkedin_url
@@ -2393,15 +2394,15 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
 
     send_email(
         html=f"""
-            <table style="width: 80%; margin: 0 auto; background-color: white; box-shadow: 2px 2px 5px #888888; border-collapse: collapse; border: 1px solid #ccc;">
+            <table style="width: 80%; margin: 0 auto; background-color: white;">
                 <p>
                     Hi {client_sdr_first_name},
                 </p>
                 <p>
-                    <b>How did the call with {prospect_first_name} go?</b> Please respond with one of three options below:
+                    <b>I saw you had a call scheduled with {prospect_full_name} from {prospect_company} on {prospect_demo_date_formatted}.</b>
                 </p>
-                <table style="width: 100%; border-collapse: collapse; border: 1px solid #ccc;">
-                    <p><b><i>FEEDBACK OPTIONS</i></b></p>
+                <table style="width: 100%; border-collapse: collapse; border: 2px solid #ccc;">
+                    <p><b><i>*Can you please respond with feedback on the meeting? This will be recorded for the AI.</i></b></p>
                     <ul>
                         <li>
                             <p><b><i><u>1. 🎯 Happened</u></i></b> - please rate from one to five stars / any feedback</p>
@@ -2429,7 +2430,7 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
                 </p>
             </table>
         """,
-        title="how was the call? {prospect_first_name} ({prospect_company}) {prospect_demo_date_formatted}".format(
+        title="demo feedback request".format(
             prospect_first_name=prospect_first_name,
             prospect_company=prospect_company,
             prospect_demo_date_formatted=prospect_demo_date_formatted,
