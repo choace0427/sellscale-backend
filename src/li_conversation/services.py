@@ -523,6 +523,7 @@ def detect_queue_for_snooze_keywords(
             "reach out again",
             "reach out next",
             "reach out in",
+            "vacation",
         ]
     )
     for keyword in multithreading_keywords:
@@ -532,7 +533,7 @@ def detect_queue_for_snooze_keywords(
 
             send_slack_message(
                 message=f"""
-> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_REFERRAL`
+> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_QUEUED_FOR_SNOOZE`
 > 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
 {author} wrote to {sdr.name} with the message:
