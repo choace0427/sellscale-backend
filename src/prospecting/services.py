@@ -572,8 +572,11 @@ def update_prospect_status_linkedin(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*🧠 Objection Reason:* {disqualification_reason}".format(
-                            disqualification_reason=disqualification_reason
+                        "text": "*🧠 {type} Reason:* `{disqualification_reason}`".format(
+                            type="Disqualification"
+                            if new_status == ProspectEmailOutreachStatus.NOT_QUALIFIED
+                            else "Not Interested",
+                            disqualification_reason=disqualification_reason,
                         ),
                     },
                 },
