@@ -12,6 +12,7 @@ from src.domains.services import (
     register_aws_domain,
     validate_domain_configuration,
 )
+from model_import import ClientSDR, Client
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -268,12 +269,14 @@ def post_purchase_workflow(client_sdr_id: int):
     password = get_request_parameter(
         "password", request, json=True, required=False, parameter_type=str
     )
-    client_id = get_request_parameter(
-        "client_id", request, json=True, required=True, parameter_type=int
-    )
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(sdr.client_id)
+    if not client:
+        raise Exception("Client not found")
 
     result = domain_purchase_workflow(
-        client_id=client_id, domain_name=domain, user_name=username, password=password
+        client_id=client.id, domain_name=domain, user_name=username, password=password
     )
 
     return (
