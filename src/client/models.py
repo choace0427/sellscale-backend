@@ -391,6 +391,8 @@ class ClientSDR(db.Model):
 
     browser_extension_ui_overlay = db.Column(db.Boolean, nullable=True, default=False)
 
+    slack_user_id = db.Column(db.String, nullable=True)
+
     # Warmup
     warmup_linkedin_complete = db.Column(db.Boolean, nullable=True, default=False)
 
@@ -481,6 +483,7 @@ class ClientSDR(db.Model):
             if sla_schedules
             else None,
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
+            "slack_user_id": self.slack_user_id,
             "linkedin_url": self.linkedin_url,
             "li_health": self.li_health,
             "li_health_good_title": self.li_health_good_title,

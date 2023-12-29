@@ -8,13 +8,13 @@ from sqlalchemy import or_
 
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache
+from src.client.models import ClientSDR
 from app import db, celery
 from src.utils.math import get_unique_int
 from src.utils.slack import send_slack_message, URL_MAP
 
 
 def company_backfill(c_min: int, c_max: int):
-
     iscraper_cache = IScraperPayloadCache.query.filter(
         IScraperPayloadCache.payload_type == "COMPANY"
     ).all()
@@ -154,7 +154,6 @@ def add_company_cache_to_db(json_data) -> bool:
 
 
 def company_backfill_prospects(client_sdr_id: int):
-
     prospects = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
         Prospect.company_id == None,
@@ -173,7 +172,6 @@ def company_backfill_prospects(client_sdr_id: int):
 
 @celery.task
 def find_company_for_prospect(prospect_id: int) -> Company:
-
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.company_id:
         return Company.query.get(prospect.company_id)
@@ -200,7 +198,6 @@ def find_company_for_prospect(prospect_id: int) -> Company:
 
 
 def find_company(company_name: str, company_url: str = "") -> Optional[int]:
-
     company: Company = Company.query.filter(
         or_(
             Company.name == company_name,
@@ -210,3 +207,22 @@ def find_company(company_name: str, company_url: str = "") -> Optional[int]:
     ).first()
 
     return company.id if company else None
+
+
+def find_sdr_from_slack(user_name: str, user_id: str, team_domain: str):
+    sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.slack_user_id == user_id,
+    ).first()
+
+    return (sdr.to_dict(), sdr.auth_token) if sdr else (None, None)
+
+
+def authorize_slack_user(client_sdr_id: int, user_id: str):
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if sdr and not sdr.slack_user_id:
+        sdr.slack_user_id = user_id
+        db.session.commit()
+        return True
+
+    return False

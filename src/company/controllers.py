@@ -1,8 +1,11 @@
 from flask import Blueprint, request, jsonify
 from src.company.services import (
+    authorize_slack_user,
     company_backfill,
     company_backfill_prospects,
+    find_sdr_from_slack,
 )
+from model_import import Client
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -71,14 +74,39 @@ def post_company_sdr_from_slack(client_sdr_id: int):
         "team_id", request, json=True, required=True, parameter_type=str
     )
 
+    # TODO: NOTE, this gives an auth_token from a slack user_id. This is a security risk
+    sdr, auth_token = find_sdr_from_slack(
+        user_name=user_name, user_id=user_id, team_domain=team_domain
+    )
+
     return (
         jsonify(
             {
                 "status": "success",
                 "data": {
-                    "sdr": "data",
-                    "client": "data",
+                    "sdr": sdr,
+                    "auth_token": auth_token,
                 },
+            }
+        ),
+        200,
+    )
+
+
+@COMPANY_BLUEPRINT.route("/authorize-slack-user", methods=["POST"])
+@require_user
+def post_company_authorize_slack_user(client_sdr_id: int):
+    slack_user_id = get_request_parameter(
+        "slack_user_id", request, json=True, required=True, parameter_type=str
+    )
+
+    success = authorize_slack_user(client_sdr_id=client_sdr_id, user_id=slack_user_id)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": success,
             }
         ),
         200,
