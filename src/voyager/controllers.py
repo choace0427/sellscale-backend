@@ -1,9 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from src.automation.orchestrator import add_process_for_future
 from src.bump_framework.models import BumpFramework
 from src.prospecting.services import send_to_purgatory
-from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 from src.utils.slack import URL_MAP, send_slack_message
 from src.voyager.services import fetch_li_prospects_for_sdr, queue_withdraw_li_invites
 from src.prospecting.models import Prospect, ProspectHiddenReason
@@ -113,6 +111,8 @@ def get_profile(client_sdr_id: int):
 @require_user
 def send_message(client_sdr_id: int):
     """Sends a LinkedIn message to a prospect"""
+    from src.automation.orchestrator import add_process_for_future
+    from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int

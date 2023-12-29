@@ -2,7 +2,7 @@
 Provides linkedin api-related code
 """
 import base64
-from datetime import datetime
+import datetime
 import math
 from typing import Optional
 import urllib.parse
@@ -15,12 +15,6 @@ from time import sleep, time
 from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
 from src.automation.resend import send_email
-from src.bump_framework.models import BumpFramework
-from src.message_generation.services import (
-    add_generated_msg_queue,
-    send_sent_by_sellscale_notification,
-)
-from src.prospecting.models import ProspectHiddenReason
 from src.voyager.hackathon_services import make_search
 from app import db, celery
 from sqlalchemy.orm import Session
@@ -31,7 +25,6 @@ from requests import TooManyRedirects
 
 from src.client.models import ClientSDR
 from src.voyager.client import Client
-from src.voyager.services import fetch_conversation
 from src.voyager.utils.helpers import (
     append_update_post_field_to_posts_list,
     get_id_from_urn,
@@ -976,11 +969,16 @@ def send_scheduled_linkedin_message(
     bf_length: Optional[int] = None,
     account_research_points: Optional[list] = None,
     send_to_purgatory: Optional[bool] = False,
-    purgatory_date: Optional[datetime] = False,
+    purgatory_date: Optional[datetime.datetime] = False,
 ):
-    from src.prospecting.models import Prospect
-    from src.voyager.services import get_profile_urn_id
+    from src.prospecting.models import Prospect, ProspectHiddenReason
+    from src.voyager.services import get_profile_urn_id, fetch_conversation
     from src.analytics.services import flag_enabled
+    from src.bump_framework.models import BumpFramework
+    from src.message_generation.services import (
+        add_generated_msg_queue,
+        send_sent_by_sellscale_notification,
+    )
 
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
@@ -1010,7 +1008,7 @@ def send_scheduled_linkedin_message(
         bump: BumpFramework = BumpFramework.query.get(bf_id)
         bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
         purgatory_delay = (
-            (purgatory_date - datetime.now()).days if purgatory_date else None
+            (purgatory_date - datetime.datetime.now()).days if purgatory_date else None
         )
         purgatory_delay = purgatory_delay or bump_delay
         send_to_purgatory(
