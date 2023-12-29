@@ -271,12 +271,12 @@ def post_purchase_workflow(client_sdr_id: int):
     )
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(sdr.client_id)
-    if not client:
-        raise Exception("Client not found")
 
     result = domain_purchase_workflow(
-        client_id=client.id, domain_name=domain, user_name=username, password=password
+        client_id=sdr.client_id,
+        domain_name=domain,
+        user_name=username,
+        password=password,
     )
 
     return (
