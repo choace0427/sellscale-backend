@@ -969,7 +969,7 @@ def send_scheduled_linkedin_message(
     bf_length: Optional[int] = None,
     account_research_points: Optional[list] = None,
     send_to_purgatory: Optional[bool] = False,
-    purgatory_date: Optional[datetime.datetime] = False,
+    purgatory_date: Optional[str] = False,
 ):
     from src.prospecting.models import Prospect, ProspectHiddenReason
     from src.voyager.services import get_profile_urn_id, fetch_conversation
@@ -1008,6 +1008,9 @@ def send_scheduled_linkedin_message(
         bump: BumpFramework = BumpFramework.query.get(bf_id)
         bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
         aware_utc_now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+        purgatory_date = datetime.datetime.fromisoformat(purgatory_date).replace(
+            tzinfo=datetime.timezone.utc
+        )
         purgatory_delay = (
             (purgatory_date - aware_utc_now).days if purgatory_date else None
         )
