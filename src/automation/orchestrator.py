@@ -245,7 +245,7 @@ def on_process_failure(request: dict, exc: Exception, traceback: str, process_id
     db.session.commit()
 
     # So that we can see the error in Sentry
-    raise Exception(f"Process failed: {process.type}")
+    raise Exception(f"Process failed: {process.type}. Reason: {str(exc)}")
 
     return
 
