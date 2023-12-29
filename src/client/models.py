@@ -499,6 +499,9 @@ class ClientSDR(db.Model):
             "meta_data": self.meta_data,
             "auto_send_linkedin_campaign": self.auto_send_linkedin_campaign,
             "auto_send_email_campaign": self.auto_send_email_campaign,
+            "avg_contract_size": client.contract_size
+            if client and client.contract_size
+            else 10000,
         }
 
 
