@@ -76,7 +76,7 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
     from app import db
 
     for webhook in webhook_urls:
-        if len(webhook) < 10:
+        if not webhook or len(webhook) < 10:
             continue
 
         clients: list[Client] = Client.query.filter(
