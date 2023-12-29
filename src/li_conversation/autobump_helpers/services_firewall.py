@@ -38,6 +38,7 @@ def run_autobump_firewall(generated_message_autobump_id: int) -> tuple[bool, lis
     rule_no_stale_message(autobump.id, violations)
     rule_no_sdr_name_in_message(autobump.id, violations)
     rule_no_profanity(message, violations)
+    rule_no_prompt_message(message, violations)
 
     # If there are any violations, return False
     if len(violations) > 0:
@@ -46,7 +47,9 @@ def run_autobump_firewall(generated_message_autobump_id: int) -> tuple[bool, lis
     return True, []
 
 
-def rule_no_blacklist_words(message: str, violations: list, client_sdr_id: int) -> tuple[bool, str]:
+def rule_no_blacklist_words(
+    message: str, violations: list, client_sdr_id: int
+) -> tuple[bool, str]:
     """Rule: Message cannot contain any words in the SDR's blacklist."""
     # Get the blacklist words
     blacklist_words = get_sdr_blacklist_words(client_sdr_id)
@@ -70,7 +73,9 @@ def rule_no_blacklist_words(message: str, violations: list, client_sdr_id: int) 
         violations.append(
             "Message contains blacklisted words: " + ", ".join(detected_blacklist_words)
         )
-        return False, "Message contains blacklisted words: " + ", ".join(detected_blacklist_words)
+        return False, "Message contains blacklisted words: " + ", ".join(
+            detected_blacklist_words
+        )
 
     return True, "Success"
 
@@ -102,7 +107,9 @@ def rule_default_framework(autobump_id: int, violations: list) -> tuple[bool, st
         violations.append("Bump framework no longer exists")
         return False, "Bump framework no longer exists"
     if not bump_framework.default:
-        violations.append("Bump framework (#{}) is not default".format(bump_framework.id))
+        violations.append(
+            "Bump framework (#{}) is not default".format(bump_framework.id)
+        )
         return False, "Bump framework is not default"
 
     return True, "Success"
@@ -133,6 +140,21 @@ def rule_no_sdr_name_in_message(autobump_id: int, violations: list) -> tuple[boo
     if sdr.name + ":" in autobump.message:
         violations.append("Message contains SDR name")
         return False, "Message contains SDR name"
+
+    return True, "Success"
+
+
+def rule_no_prompt_message(message: str, violations: list) -> tuple[bool, str]:
+    """Rule: Message cannot contain prompt."""
+    keywords = [
+        "--- START TEMPLATE ---",
+        "--- END TEMPLATE ---",
+        "):",
+    ]
+    for keyword in keywords:
+        if keyword in message:
+            violations.append("Message contains prompt: " + keyword)
+            return False, "Message contains prompt: " + keyword
 
     return True, "Success"
 
