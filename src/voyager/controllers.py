@@ -187,7 +187,7 @@ def send_message(client_sdr_id: int):
                 "bf_description": bf_description,
                 "bf_length": bf_length,
                 "account_research_points": account_research_points,
-                "send_to_purgatory": purgatory,
+                "to_purgatory": purgatory,
                 "purgatory_date": purgatory_date.isoformat(),
             },
             relative_time=scheduled_send_date,
