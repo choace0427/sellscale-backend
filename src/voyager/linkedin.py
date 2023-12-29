@@ -2,7 +2,7 @@
 Provides linkedin api-related code
 """
 import base64
-import datetime
+from datetime import datetime
 import math
 from typing import Optional
 import urllib.parse
@@ -15,6 +15,12 @@ from time import sleep, time
 from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
 from src.automation.resend import send_email
+from src.bump_framework.models import BumpFramework
+from src.message_generation.services import (
+    add_generated_msg_queue,
+    send_sent_by_sellscale_notification,
+)
+from src.prospecting.models import ProspectHiddenReason
 from src.voyager.hackathon_services import make_search
 from app import db, celery
 from sqlalchemy.orm import Session
@@ -25,6 +31,7 @@ from requests import TooManyRedirects
 
 from src.client.models import ClientSDR
 from src.voyager.client import Client
+from src.voyager.services import fetch_conversation
 from src.voyager.utils.helpers import (
     append_update_post_field_to_posts_list,
     get_id_from_urn,
@@ -961,6 +968,15 @@ def send_scheduled_linkedin_message(
     client_sdr_id: int,
     prospect_id: int,
     message: str,
+    send_sellscale_notification: Optional[bool] = False,
+    ai_generated: Optional[bool] = False,
+    bf_id: Optional[int] = None,
+    bf_title: Optional[str] = None,
+    bf_description: Optional[str] = None,
+    bf_length: Optional[int] = None,
+    account_research_points: Optional[list] = None,
+    send_to_purgatory: Optional[bool] = False,
+    purgatory_date: Optional[datetime] = False,
 ):
     from src.prospecting.models import Prospect
     from src.voyager.services import get_profile_urn_id
@@ -969,8 +985,37 @@ def send_scheduled_linkedin_message(
     api = LinkedIn(client_sdr_id)
     urn_id = get_profile_urn_id(prospect_id, api)
 
+    if send_sellscale_notification:
+        send_sent_by_sellscale_notification(
+            prospect_id=prospect_id,
+            message=message,
+            bump_framework_id=bf_id,
+        )
+
     if flag_enabled("send_scheduled_messages"):
-        api.send_message(message, recipients=[urn_id])
+        msg_urn_id = api.send_message(message, recipients=[urn_id])
+        if isinstance(msg_urn_id, str) and ai_generated:
+            add_generated_msg_queue(
+                client_sdr_id=client_sdr_id,
+                li_message_urn_id=msg_urn_id,
+                bump_framework_id=bf_id,
+                bump_framework_title=bf_title,
+                bump_framework_description=bf_description,
+                bump_framework_length=bf_length,
+                account_research_points=account_research_points,
+            )
+        fetch_conversation(api=api, prospect_id=prospect_id, check_for_update=True)
+
+    if send_to_purgatory:
+        bump: BumpFramework = BumpFramework.query.get(bf_id)
+        bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
+        purgatory_delay = (
+            (purgatory_date - datetime.now()).days if purgatory_date else None
+        )
+        purgatory_delay = purgatory_delay or bump_delay
+        send_to_purgatory(
+            prospect_id, purgatory_delay, ProspectHiddenReason.RECENTLY_BUMPED
+        )
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     full_name: str = prospect.full_name

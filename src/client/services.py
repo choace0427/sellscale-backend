@@ -2506,6 +2506,7 @@ def send_upcoming_demo_reminder():
                 "message": "Hi {first_name}, just a quick reminder about our call tomorrow. Looking forward to it!".format(
                     first_name=first_name
                 ),
+                "ai_generated": True,
             },
             relative_time=datetime.utcnow(),
         )

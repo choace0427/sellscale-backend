@@ -1,6 +1,9 @@
+from datetime import datetime
 from flask import Blueprint, jsonify, request
+from src.automation.orchestrator import add_process_for_future
 from src.bump_framework.models import BumpFramework
 from src.prospecting.services import send_to_purgatory
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 from src.utils.slack import URL_MAP, send_slack_message
 from src.voyager.services import fetch_li_prospects_for_sdr, queue_withdraw_li_invites
 from src.prospecting.models import Prospect, ProspectHiddenReason
@@ -10,7 +13,7 @@ from src.voyager.services import (
     fetch_conversation,
     get_profile_urn_id,
     clear_linkedin_cookies,
-    run_fast_analytics_backfill #  do not remove this import for celery to work
+    run_fast_analytics_backfill,  #  do not remove this import for celery to work
 )
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
@@ -117,17 +120,34 @@ def send_message(client_sdr_id: int):
     msg = get_request_parameter(
         "message", request, json=True, required=True, parameter_type=str
     )
-    ai_generated = get_request_parameter(
-        "ai_generated", request, json=True, required=False, parameter_type=bool
+    ai_generated = (
+        get_request_parameter(
+            "ai_generated", request, json=True, required=False, parameter_type=bool
+        )
+        or False
     )
-    if ai_generated is None:
-        ai_generated = False
 
-    purgatory = get_request_parameter(
-        "purgatory", request, json=True, required=False, parameter_type=bool
+    purgatory = (
+        get_request_parameter(
+            "purgatory", request, json=True, required=False, parameter_type=bool
+        )
+        or True
     )
-    if purgatory is None:
-        purgatory = True
+    purgatory_date = get_request_parameter(
+        "purgatory_date", request, json=True, required=False, parameter_type=str
+    )
+    purgatory_date = (
+        convert_string_to_datetime_or_none(purgatory_date) if purgatory_date else None
+    )
+
+    scheduled_send_date = get_request_parameter(
+        "scheduled_send_date", request, json=True, required=False, parameter_type=str
+    )
+    scheduled_send_date = (
+        convert_string_to_datetime_or_none(scheduled_send_date)
+        if scheduled_send_date
+        else None
+    )
 
     bf_id = get_request_parameter(
         "bump_framework_id", request, json=True, required=False, parameter_type=int
@@ -152,6 +172,27 @@ def send_message(client_sdr_id: int):
         required=False,
         parameter_type=list,
     )
+
+    if scheduled_send_date:
+        add_process_for_future(
+            type="send_scheduled_linkedin_message",
+            args={
+                "client_sdr_id": client_sdr_id,
+                "prospect_id": prospect_id,
+                "message": msg,
+                "send_sellscale_notification": True,
+                "ai_generated": ai_generated,
+                "bf_id": bf_id,
+                "bf_title": bf_title,
+                "bf_description": bf_description,
+                "bf_length": bf_length,
+                "account_research_points": account_research_points,
+                "send_to_purgatory": purgatory,
+                "purgatory_date": purgatory_date,
+            },
+            relative_time=scheduled_send_date,
+        )
+        return jsonify({"message": "Scheduled message"}), 200
 
     send_sent_by_sellscale_notification(
         prospect_id=prospect_id,
@@ -179,7 +220,13 @@ def send_message(client_sdr_id: int):
     if purgatory:
         bump: BumpFramework = BumpFramework.query.get(bf_id)
         bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
-        send_to_purgatory(prospect_id, bump_delay, ProspectHiddenReason.RECENTLY_BUMPED)
+        purgatory_delay = (
+            (purgatory_date - datetime.now()).days if purgatory_date else None
+        )
+        purgatory_delay = purgatory_delay or bump_delay
+        send_to_purgatory(
+            prospect_id, purgatory_delay, ProspectHiddenReason.RECENTLY_BUMPED
+        )
     if not api.is_valid():
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
@@ -383,7 +430,6 @@ def get_sales_nav(client_sdr_id: int):
 @VOYAGER_BLUEPRINT.route("/raw_company", methods=["GET"])
 @require_user
 def get_raw_company(client_sdr_id: int):
-
     company_public_id = get_request_parameter(
         "company_public_id", request, json=False, required=True
     )
@@ -394,12 +440,11 @@ def get_raw_company(client_sdr_id: int):
         return jsonify({"message": "Invalid LinkedIn cookies"}), 403
 
     return jsonify({"message": "Success", "data": company}), 200
-  
-  
+
+
 @VOYAGER_BLUEPRINT.route("/raw_company_updates", methods=["GET"])
 @require_user
 def get_raw_company_updates(client_sdr_id: int):
-
     company_public_id = get_request_parameter(
         "company_public_id", request, json=False, required=True
     )
