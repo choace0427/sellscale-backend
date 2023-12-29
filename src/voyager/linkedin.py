@@ -1007,7 +1007,7 @@ def send_scheduled_linkedin_message(
     if send_to_purgatory:
         bump: BumpFramework = BumpFramework.query.get(bf_id)
         bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
-        aware_utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        aware_utc_now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
         purgatory_delay = (
             (purgatory_date - aware_utc_now).days if purgatory_date else None
         )
@@ -1025,3 +1025,5 @@ def send_scheduled_linkedin_message(
         message=f"Automated message sent LinkedIn message to {full_name} (#{prospect_id}) by {name} (#{client_sdr_id})\n\nMessage: ```{message}```",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
+
+    return [True, msg_urn_id]
