@@ -2322,7 +2322,18 @@ def send_sent_by_sellscale_notification(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Reply Label: `{status}`",
+                        "text": f"Convo Status: `{status}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*✨ AI Reply Framework:* `{bump_framework_name}`".format(
+                            bump_framework_name=bump_framework_name
+                            if bump_framework_name
+                            else "-"
+                        ),
                     },
                 },
                 {
@@ -2343,17 +2354,6 @@ def send_sent_by_sellscale_notification(
                     },
                 },
                 {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*✨ AI Framework:* {bump_framework_name}".format(
-                            bump_framework_name=bump_framework_name
-                            if bump_framework_name
-                            else "-"
-                        ),
-                    },
-                },
                 {
                     "type": "context",
                     "elements": [

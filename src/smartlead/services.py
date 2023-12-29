@@ -305,7 +305,7 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Reply Label: `{outreach_status}`",
+                    "text": f"Convo Status: `{outreach_status}`",
                 },
             },
             {
