@@ -2468,7 +2468,7 @@ def send_upcoming_demo_reminder():
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"_You have a demo with `{prospect.full_name}` on `{prospect.demo_date}`._",
+                        "text": f"_SellScale AI just sent a demo reminder message to {prospect.full_name} for their demo on {prospect.demo_date.strftime('%B %d, %Y')}._",
                     },
                 },
                 {
