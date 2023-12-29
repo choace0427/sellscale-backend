@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from src.bump_framework.models import BumpFramework
 from src.prospecting.services import send_to_purgatory
@@ -188,7 +188,7 @@ def send_message(client_sdr_id: int):
                 "bf_length": bf_length,
                 "account_research_points": account_research_points,
                 "send_to_purgatory": purgatory,
-                "purgatory_date": purgatory_date,
+                "purgatory_date": purgatory_date.isoformat(),
             },
             relative_time=scheduled_send_date,
         )
@@ -220,8 +220,9 @@ def send_message(client_sdr_id: int):
     if purgatory:
         bump: BumpFramework = BumpFramework.query.get(bf_id)
         bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
+        aware_utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
         purgatory_delay = (
-            (purgatory_date - datetime.now()).days if purgatory_date else None
+            (purgatory_date - aware_utc_now).days if purgatory_date else None
         )
         purgatory_delay = purgatory_delay or bump_delay
         send_to_purgatory(

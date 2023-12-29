@@ -1007,8 +1007,9 @@ def send_scheduled_linkedin_message(
     if send_to_purgatory:
         bump: BumpFramework = BumpFramework.query.get(bf_id)
         bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
+        aware_utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
         purgatory_delay = (
-            (purgatory_date - datetime.datetime.now()).days if purgatory_date else None
+            (purgatory_date - aware_utc_now).days if purgatory_date else None
         )
         purgatory_delay = purgatory_delay or bump_delay
         send_to_purgatory(
