@@ -2190,6 +2190,10 @@ def send_to_purgatory(
         db.session.add(prospect)
         db.session.commit()
 
+        update_prospect_status_linkedin(
+            prospect_id=prospect_id, new_status=ProspectStatus.ACTIVE_CONVO_REVIVAL
+        )
+
     if send_notification:
         client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
