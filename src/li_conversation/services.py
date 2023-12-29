@@ -421,14 +421,14 @@ def detect_time_sensitive_keywords(
 
             send_slack_message(
                 message=f"""
-> ✨ *Automatic Scheduling Sorter:* Old `{old_status}` -> New `ACTIVE_CONVO_SCHEDULING`
-> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
-
 {author} wrote to {sdr.name} with the message:
 ```
 {message}
 ```
 ⏰ Time-sensitive keyword was detected: "{keyword}"
+
+> ✨ *Automatic Scheduling Sorter:* Old `{old_status}` -> New `ACTIVE_CONVO_SCHEDULING`
+> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
 Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
 
@@ -472,14 +472,15 @@ def detect_multithreading_keywords(
 
             send_slack_message(
                 message=f"""
-> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_REFERRAL`
-> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
 {author} wrote to {sdr.name} with the message:
 ```
 {message}
 ```
 🧵 Multithreading keyword was detected: "{keyword}"
+
+> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_REFERRAL`
+> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
 Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
 
@@ -533,14 +534,14 @@ def detect_queue_for_snooze_keywords(
 
             send_slack_message(
                 message=f"""
-> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_QUEUED_FOR_SNOOZE`
-> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
-
 {author} wrote to {sdr.name} with the message:
 ```
 {message}
 ```
-🧵 Multithreading keyword was detected: "{keyword}"
+🧵 Auto-snoozing keyword was detected: "{keyword}"
+
+> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_QUEUED_FOR_SNOOZE`
+> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
 Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
                 """,
