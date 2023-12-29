@@ -574,7 +574,7 @@ def update_prospect_status_linkedin(
                         "type": "mrkdwn",
                         "text": "*🧠 {type} Reason:* `{disqualification_reason}`".format(
                             type="Disqualification"
-                            if new_status == ProspectEmailOutreachStatus.NOT_QUALIFIED
+                            if new_status == ProspectStatus.NOT_QUALIFIED
                             else "Not Interested",
                             disqualification_reason=disqualification_reason,
                         ),
