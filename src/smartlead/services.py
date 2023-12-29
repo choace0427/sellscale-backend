@@ -1257,5 +1257,22 @@ def create_workmail_email_account(
             "client_id": None,  # set value to assign to client id
         }
     )
-    print(result)
+
+    if result.get("ok", False):
+        send_slack_message(
+            message="Smartlead Account Setup",
+            webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"""🦑 New Account Created on Smartlead: {email}
+Warming: {emails_per_day} / day
+Volume: 2 / day""",
+                    },
+                }
+            ],
+        )
+
     return result.get("ok", False), result.get("message", "")

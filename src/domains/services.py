@@ -18,6 +18,7 @@ from src.utils.domains.pythondns import (
 from src.smartlead.services import create_workmail_email_account
 import os
 import time
+from src.utils.slack import send_slack_message, URL_MAP
 
 
 def domain_blacklist_check(domain) -> dict:
@@ -382,6 +383,22 @@ def register_aws_domain(domain_name: str) -> tuple[list, dict, str]:
             PrivacyProtectRegistrantContact=True,
             PrivacyProtectTechContact=True,
         )
+
+        if response.get("ResponseMetadata", {}).get("HTTPStatusCode", 500) != 500:
+            send_slack_message(
+                message="Domain purchased",
+                webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"[{domain_name}]\n🔥 New Domain Purchased: {domain_name}",
+                        },
+                    }
+                ],
+            )
+
         return (
             response.get("ResponseMetadata", {}).get("HTTPStatusCode", 500),
             response,
@@ -652,6 +669,24 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
         },
     )
 
+    send_slack_message(
+        message="Domain Records Set up",
+        webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"""[{domain_name}]\n✈️ Domain Records Set up: {domain_name}
+✅ DKIM
+✅ DMARC
+✅ SPF
+✅ Forwarding""",
+                },
+            }
+        ],
+    )
+
     return (
         True,
         "DNS records added successfully",
@@ -762,6 +797,20 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str) -> tu
         OrganizationId=organization_id,
         EntityId=user_id,
         Email=f"{user_name}@{domain_name}",
+    )
+
+    send_slack_message(
+        message="Inbox Setup",
+        webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"[{domain_name}]\n🙏 New Inbox Created on Smartlead: {user_name}@{domain_name}",
+                },
+            }
+        ],
     )
 
     return True, "Workmail inbox created successfully"
