@@ -186,6 +186,7 @@ def handle_process(process_id: int, type: str, meta_data: Optional[dict]) -> boo
         routing_key=process_data.get("routing_key", None),
         priority=process_data.get("priority", 5),
         link=remove_process_from_queue.s(process_id),
+        link_error=on_process_failure.s(process_id),
     )
 
     return True
@@ -223,6 +224,30 @@ def add_process_to_queue(
         db.session.commit()
 
     return process.to_dict()
+
+
+@celery.task
+def on_process_failure(request: dict, exc: Exception, traceback: str, process_id: int):
+    """Handles process failure by marking the process as FAILED
+
+    Args:
+        request (dict): The request object
+        exc (Exception): The exception that was raised
+        traceback (str): The traceback of the exception
+        process_id (int): The id of the process queue
+    """
+    process: ProcessQueue = ProcessQueue.query.get(process_id)
+    if not process:
+        return
+
+    process.status = ProcessQueueStatus.FAILED
+    process.fail_reason = str(exc)
+    db.session.commit()
+
+    # So that we can see the error in Sentry
+    raise Exception(f"Process failed: {process.type}")
+
+    return
 
 
 @celery.task

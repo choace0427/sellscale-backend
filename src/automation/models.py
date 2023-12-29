@@ -395,6 +395,7 @@ class ProcessQueueStatus(enum.Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETE = "COMPLETE"  # This should, in theory, never be used
     RETRY = "RETRY"
+    FAILED = "FAILED"
 
 
 class ProcessQueue(db.Model):
@@ -413,6 +414,7 @@ class ProcessQueue(db.Model):
     status = db.Column(
         db.Enum(ProcessQueueStatus), default=ProcessQueueStatus.QUEUED, nullable=True
     )
+    fail_reason = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -423,4 +425,5 @@ class ProcessQueue(db.Model):
             "executed_at": str(self.executed_at),
             "created_at": str(self.created_at),
             "status": self.status.value if self.status else None,
+            "fail_reason": self.fail_reason,
         }
