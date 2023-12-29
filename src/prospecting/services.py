@@ -1872,6 +1872,15 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
     archetype: ClientArchetype = ClientArchetype.query.get(p.archetype_id)
     archetype_name = archetype.archetype if archetype else None
 
+    previous_prospect_status: ProspectStatusRecords = (
+        ProspectStatusRecords.query.filter_by(prospect_id=prospect_id)
+        .order_by(ProspectStatusRecords.created_at.desc())
+        .first()
+    )
+    previous_status = (
+        previous_prospect_status.from_status if previous_prospect_status else None
+    )
+
     # Get referrals
     referrals = db.session.execute(
         f"""
@@ -1905,6 +1914,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "company": p.company,
                 "address": "",
                 "status": p.status.value,
+                "previous_status": previous_status.value if previous_status else None,
                 "overall_status": p.overall_status.value
                 if p.overall_status
                 else p.status.value,
