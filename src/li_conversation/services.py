@@ -248,6 +248,13 @@ def create_linkedin_conversation_entry(
             direct_link=direct_link,
             prospect_id=prospect_id,
         )
+        detect_queue_for_snooze_keywords(
+            message=message,
+            client_sdr_id=client_sdr_id,
+            author=author,
+            direct_link=direct_link,
+            prospect_id=prospect_id,
+        )
 
     # Get the Thread URN ID from the conversation URL
     try:
@@ -484,6 +491,64 @@ Take appropriate action then mark this message as ✅ (_if this classification w
             update_prospect_status_linkedin(
                 prospect_id=prospect_id,
                 new_status=ProspectStatus.ACTIVE_CONVO_REFERRAL,
+            )
+
+            return
+
+
+def detect_queue_for_snooze_keywords(
+    message: str, client_sdr_id: int, author: str, direct_link: str, prospect_id: int
+) -> None:
+    """Detects multithreading keywords in a message and sends an alert to the CSM team
+
+    Args:
+        message (str): The message to check for multithreading keywords
+        client_sdr_id (int): The ID of the ClientSDR that received the message
+        author (str): The name of the person who sent the message
+        direct_link (str): The direct link to the message
+
+    Returns:
+        None
+
+    """
+    lowered_message = message.lower()
+    multithreading_keywords = set(
+        [
+            "traveling",
+            " weeks",
+            "reach out later",
+            "connect later",
+            " after new years",
+            "reach back out",
+            "reach out again",
+            "reach out next",
+            "reach out in",
+        ]
+    )
+    for keyword in multithreading_keywords:
+        if keyword in lowered_message:
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            prospect: Prospect = Prospect.query.get(prospect_id)
+
+            send_slack_message(
+                message=f"""
+> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_REFERRAL`
+> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
+
+{author} wrote to {sdr.name} with the message:
+```
+{message}
+```
+🧵 Multithreading keyword was detected: "{keyword}"
+
+Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
+                """,
+                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+            )
+
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id,
+                new_status=ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
             )
 
             return
