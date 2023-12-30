@@ -229,6 +229,7 @@ class ProspectStatus(enum.Enum):
             ProspectStatus.ACTIVE_CONVO_SCHEDULING,
             ProspectStatus.ACTIVE_CONVO_REVIVAL,
             ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+            ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ]
 
     def status_descriptions():
@@ -360,6 +361,12 @@ class ProspectStatus(enum.Enum):
                 "name": "Active Convo - Queued for Snooze",
                 "description": "The Prospect has been queued for snooze.",
                 "enum_val": ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE.value,
+                "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
+            },
+            ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE.value: {
+                "name": "Active Convo - Continue Sequence",
+                "description": "The Prospect has been queued for a sequence continuation.",
+                "enum_val": ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE.value,
                 "sellscale_enum_val": ProspectOverallStatus.ACTIVE_CONVO.value,
             },
         }
@@ -1017,6 +1024,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_OBJECTION: [
@@ -1030,6 +1038,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED: [
@@ -1043,6 +1052,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_QUESTION: [
@@ -1056,6 +1066,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_SCHEDULING: [
@@ -1069,6 +1080,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.DEMO_SET,
     ],
     ProspectStatus.ACTIVE_CONVO_NEXT_STEPS: [
@@ -1081,6 +1093,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_REVIVAL,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.DEMO_SET,
     ],
@@ -1094,6 +1107,7 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.DEMO_SET,
     ],
@@ -1107,6 +1121,21 @@ VALID_NEXT_LINKEDIN_STATUSES = {
         ProspectStatus.ACTIVE_CONVO_SCHEDULING,
         ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
         ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
+        ProspectStatus.ACTIVE_CONVO,
+        ProspectStatus.DEMO_SET,
+    ],
+    ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE: [
+        ProspectStatus.NOT_INTERESTED,
+        # ProspectStatus.SCHEDULING,
+        ProspectStatus.NOT_QUALIFIED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
         ProspectStatus.ACTIVE_CONVO,
         ProspectStatus.DEMO_SET,
     ],
