@@ -23,6 +23,7 @@ from src.prospecting.models import (
     ProspectHiddenReason,
     ProspectOverallStatus,
     ProspectStatus,
+    ProspectStatusRecords,
 )
 from src.li_conversation.conversation_analyzer.li_email_finder import (
     update_all_outstanding_prospect_emails,
@@ -249,6 +250,13 @@ def create_linkedin_conversation_entry(
             prospect_id=prospect_id,
         )
         detect_queue_for_snooze_keywords(
+            message=message,
+            client_sdr_id=client_sdr_id,
+            author=author,
+            direct_link=direct_link,
+            prospect_id=prospect_id,
+        )
+        detect_queue_for_continue_the_sequence_keywords(
             message=message,
             client_sdr_id=client_sdr_id,
             author=author,
@@ -551,6 +559,79 @@ Take appropriate action then mark this message as ✅ (_if this classification w
             update_prospect_status_linkedin(
                 prospect_id=prospect_id,
                 new_status=ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+            )
+
+            return
+
+
+def detect_queue_for_continue_the_sequence_keywords(
+    message: str, client_sdr_id: int, author: str, direct_link: str, prospect_id: int
+) -> None:
+    """Detects multithreading keywords in a message and sends an alert to the CSM team
+    if the message is from the prospect and the message is short (less than 25 characters)
+
+    Args:
+        message (str): The message to check for multithreading keywords
+        client_sdr_id (int): The ID of the ClientSDR that received the message
+        author (str): The name of the person who sent the message
+        direct_link (str): The direct link to the message
+
+    Returns:
+        None
+
+    """
+    lowered_message = message.lower()
+    multithreading_keywords = set(
+        [
+            "my pleasure",
+            "thanks",
+            "great to connect",
+            "hi ",
+            "hi, ",
+            "hello",
+            "i'd love to connect",
+            "let's connect",
+        ]
+    )
+
+    all_records: list = (
+        ProspectStatusRecords.query.filter(
+            ProspectStatusRecords.prospect_id == prospect_id
+        )
+        .order_by(ProspectStatusRecords.id.desc())
+        .all()
+    )
+    num_records = len(all_records)
+
+    for keyword in multithreading_keywords:
+        if (
+            keyword in lowered_message
+            and len(lowered_message) < 25
+            and num_records <= 5
+        ):
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            prospect: Prospect = Prospect.query.get(prospect_id)
+
+            send_slack_message(
+                message=f"""
+{author} wrote to {sdr.name} with the message:
+```
+{message}
+```
+
+🧵 Auto-continue-the-sequence keyword was detected: "{keyword}"
+
+> ✨ *Automatic Scheduling Sorter:* Old `{prospect.status.value}` -> New `ACTIVE_CONVO_CONTINUE_SEQUENCE`
+> 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
+
+Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
+                """,
+                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+            )
+
+            update_prospect_status_linkedin(
+                prospect_id=prospect_id,
+                new_status=ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
             )
 
             return
