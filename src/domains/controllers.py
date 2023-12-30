@@ -263,21 +263,11 @@ def post_purchase_workflow(client_sdr_id: int):
     domain = get_request_parameter(
         "domain", request, json=True, required=True, parameter_type=str
     )
-    username = get_request_parameter(
-        "username", request, json=True, required=False, parameter_type=str
-    )
-    password = get_request_parameter(
-        "password", request, json=True, required=False, parameter_type=str
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True, parameter_type=int
     )
 
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-
-    result = domain_purchase_workflow(
-        client_id=sdr.client_id,
-        domain_name=domain,
-        user_name=username,
-        password=password,
-    )
+    result = domain_purchase_workflow(client_id=client_id, domain_name=domain)
 
     return (
         jsonify(
