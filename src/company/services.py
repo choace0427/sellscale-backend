@@ -220,7 +220,7 @@ def find_sdr_from_slack(user_name: str, user_id: str, team_domain: str):
 def authorize_slack_user(client_sdr_id: int, user_id: str):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    if sdr and not sdr.slack_user_id:
+    if sdr:
         sdr.slack_user_id = user_id
         db.session.commit()
         return True
