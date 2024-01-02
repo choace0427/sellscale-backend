@@ -800,7 +800,6 @@ def workmail_setup_workflow(
     success, _, email_bank_id = create_workmail_inbox(
         client_sdr_id=client_sdr_id,
         domain_id=domain_id,
-        display_name=sdr.name,
         name=sdr.name,
         domain_name=domain_name,
         username=username,
@@ -835,7 +834,6 @@ def workmail_setup_workflow(
 def create_workmail_inbox(
     client_sdr_id: int,
     domain_id: int,
-    display_name: str,
     name: str,
     domain_name: str,
     username: str,
@@ -873,7 +871,7 @@ def create_workmail_inbox(
     # Create a user and mailbox
     user = aws_workmail_client.create_user(
         OrganizationId=organization_id,
-        DisplayName=display_name,
+        DisplayName=name,
         Name=name,
         Password=password,
     )

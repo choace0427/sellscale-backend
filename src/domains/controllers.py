@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 from src.domains.services import (
     add_email_dns_records,
     create_domain_entry,
-    create_workmail_inbox,
     domain_blacklist_check,
     domain_purchase_workflow,
     domain_setup_workflow,
