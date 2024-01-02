@@ -594,6 +594,13 @@ def detect_queue_for_continue_the_sequence_keywords(
         ]
     )
 
+    multithreading_invalid_words = set(
+        [
+            "no thanks",
+            "not interested",
+        ]
+    )
+
     all_records: list = (
         ProspectStatusRecords.query.filter(
             ProspectStatusRecords.prospect_id == prospect_id
@@ -608,6 +615,10 @@ def detect_queue_for_continue_the_sequence_keywords(
             keyword in lowered_message
             and len(lowered_message) < 25
             and num_records <= 5
+            and not any(
+                invalid_keyword in lowered_message
+                for invalid_keyword in multithreading_invalid_words
+            )
         ):
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             prospect: Prospect = Prospect.query.get(prospect_id)
