@@ -14,7 +14,10 @@ from src.client.models import Client, ClientSDR
 from src.client.sdr.email.models import EmailType, SDREmailBank
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
 from src.domains.models import Domain
-from src.utils.converters.string_converters import get_last_name_from_full_name
+from src.utils.converters.string_converters import (
+    get_first_name_from_full_name,
+    get_last_name_from_full_name,
+)
 from src.utils.domains.pythondns import (
     dkim_record_valid,
     dmarc_record_valid,
@@ -869,7 +872,7 @@ def create_workmail_inbox(
     except:
         pass
 
-    first_name = get_last_name_from_full_name(name)
+    first_name = get_first_name_from_full_name(name)
     last_name = get_last_name_from_full_name(name)
 
     # Create a user and mailbox

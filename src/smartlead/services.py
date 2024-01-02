@@ -1254,10 +1254,10 @@ def sync_workmail_to_smartlead(
     result = sl.create_email_account(
         {
             "id": None,  # set null to create new email account
-            "from_name": sdr.name,
-            "from_email": email,
-            "user_name": username,
-            "password": password,
+            "from_name": username,  # DO NOT CHANGE
+            "from_email": email,  # DO NOT CHANGE
+            "user_name": email,  # DO NOT CHANGE
+            "password": password,  # DO NOT CHANGE
             "smtp_host": "smtp.mail.us-east-1.awsapps.com",
             "smtp_port": 465,
             "imap_host": "imap.mail.us-east-1.awsapps.com",
