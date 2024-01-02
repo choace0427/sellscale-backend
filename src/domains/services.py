@@ -799,6 +799,7 @@ def workmail_setup_workflow(
     # Registering the domain to workmail and creating the inbox
     success, _, email_bank_id = create_workmail_inbox(
         client_sdr_id=client_sdr_id,
+        domain_id=domain_id,
         display_name=sdr.name,
         name=sdr.name,
         domain_name=domain_name,
