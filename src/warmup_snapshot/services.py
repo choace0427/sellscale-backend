@@ -140,7 +140,11 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             daily_sent_count = email_warmup["daily_sent_count"]
             daily_limit = email_warmup["message_per_day"]
 
-            warmup_reputation = float(warmup_reputation.rstrip("%"))
+            warmup_reputation = (
+                float(warmup_reputation.rstrip("%"))
+                if warmup_reputation or warmup_reputation == "None"
+                else 0
+            )
 
             # Get SPF, DMARC, DKIM Record
             domain = email.split("@")[1]

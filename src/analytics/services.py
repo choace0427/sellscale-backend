@@ -129,7 +129,9 @@ def flag_is_value(feature: str, value: int) -> bool:
     return False
 
 
-def get_all_campaign_analytics_for_client(client_id: int):
+def get_all_campaign_analytics_for_client(
+    client_id: int, client_archetype_id: Optional[int] = None
+):
     query = """
         with d as (
             select 
@@ -166,7 +168,8 @@ def get_all_campaign_analytics_for_client(client_id: int):
                 icp_scoring_ruleset.included_company_generalized_keywords,
                 icp_scoring_ruleset.included_company_industries_keywords,
                 icp_scoring_ruleset.company_size_start,
-                icp_scoring_ruleset.company_size_end
+                icp_scoring_ruleset.company_size_end,
+                client_archetype.id id
             from client_archetype
                 join client_sdr on client_sdr.id = client_archetype.client_sdr_id
                 join prospect on prospect.client_sdr_id = client_sdr.id
@@ -176,7 +179,7 @@ def get_all_campaign_analytics_for_client(client_id: int):
                 left join icp_scoring_ruleset on icp_scoring_ruleset.client_archetype_id = client_archetype.id
             where client_archetype.client_id = {client_id}
                 and not client_archetype.is_unassigned_contact_archetype
-            group by 1,2,3,4,5, client_archetype.updated_at, client_sdr.name, client_sdr.img_url, icp_scoring_ruleset.included_individual_title_keywords, icp_scoring_ruleset.included_individual_locations_keywords, icp_scoring_ruleset.included_individual_industry_keywords, icp_scoring_ruleset.included_company_name_keywords, icp_scoring_ruleset.included_company_locations_keywords, icp_scoring_ruleset.included_individual_generalized_keywords, icp_scoring_ruleset.included_individual_skills_keywords, icp_scoring_ruleset.included_company_generalized_keywords,icp_scoring_ruleset.included_company_industries_keywords, icp_scoring_ruleset.company_size_start, icp_scoring_ruleset.company_size_end
+            group by 1,2,3,4,5, client_archetype.updated_at, client_sdr.name, client_sdr.img_url, icp_scoring_ruleset.included_individual_title_keywords, icp_scoring_ruleset.included_individual_locations_keywords, icp_scoring_ruleset.included_individual_industry_keywords, icp_scoring_ruleset.included_company_name_keywords, icp_scoring_ruleset.included_company_locations_keywords, icp_scoring_ruleset.included_individual_generalized_keywords, icp_scoring_ruleset.included_individual_skills_keywords, icp_scoring_ruleset.included_company_generalized_keywords,icp_scoring_ruleset.included_company_industries_keywords, icp_scoring_ruleset.company_size_start, icp_scoring_ruleset.company_size_end, client_archetype.id
             order by client_archetype.updated_at desc
         )
         select 
@@ -222,8 +225,12 @@ def get_all_campaign_analytics_for_client(client_id: int):
                 "open_percent": row[23],
                 "reply_percent": row[24],
                 "demo_percent": row[25],
+                "id": row[26],
             }
         )
+
+    if client_archetype_id:
+        data_arr = [d for d in data_arr if d["id"] == client_archetype_id]
 
     return data_arr
 

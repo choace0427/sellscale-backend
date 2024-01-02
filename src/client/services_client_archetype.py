@@ -1,4 +1,5 @@
 from datetime import datetime
+from src.analytics.services import get_all_campaign_analytics_for_client
 from src.company.models import Company
 from sqlalchemy import update
 from app import db
@@ -825,4 +826,87 @@ def get_icp_filters_autofill(client_sdr_id: int, client_archetype_id: int):
             "min": avg_min,
             "max": avg_max,
         },
+    }
+
+
+def get_client_archetype_stats(client_archetype_id):
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+    client_id = archetype.client_id
+
+    analytics = get_all_campaign_analytics_for_client(
+        client_id=client_id,
+        client_archetype_id=client_archetype_id,
+    )
+
+    emoji = archetype.emoji
+    archetype_name = archetype.archetype
+    sdr_name = client_sdr.name
+
+    num_sent, num_opens, num_replies, num_demos = 0, 0, 0, 0
+    included_individual_title_keywords = []
+    included_individual_locations_keywords = []
+    included_individual_industry_keywords = []
+    included_individual_generalized_keywords = []
+    included_individual_skills_keywords = []
+    included_company_name_keywords = []
+    included_company_locations_keywords = []
+    included_company_generalized_keywords = []
+    included_company_industries_keywords = []
+
+    if analytics and len(analytics) > 0:
+        num_sent = analytics[0]["num_sent"]
+        num_opens = analytics[0]["num_opens"]
+        num_replies = analytics[0]["num_replies"]
+        num_demos = analytics[0]["num_demos"]
+
+        included_individual_title_keywords = analytics[0][
+            "included_individual_title_keywords"
+        ]
+        included_individual_locations_keywords = analytics[0][
+            "included_individual_locations_keywords"
+        ]
+        included_individual_industry_keywords = analytics[0][
+            "included_individual_industry_keywords"
+        ]
+        included_individual_generalized_keywords = analytics[0][
+            "included_individual_generalized_keywords"
+        ]
+        included_individual_skills_keywords = analytics[0][
+            "included_individual_skills_keywords"
+        ]
+        included_company_name_keywords = analytics[0]["included_company_name_keywords"]
+        included_company_locations_keywords = analytics[0][
+            "included_company_locations_keywords"
+        ]
+        included_company_generalized_keywords = analytics[0][
+            "included_company_generalized_keywords"
+        ]
+        included_company_industries_keywords = analytics[0][
+            "included_company_industries_keywords"
+        ]
+
+    return {
+        "overview": {
+            "emoji": emoji,
+            "archetype_name": archetype_name,
+            "sdr_name": sdr_name,
+            "num_sent": num_sent,
+            "num_opens": num_opens,
+            "num_replies": num_replies,
+            "num_demos": num_demos,
+        },
+        "contacts": {
+            "included_individual_title_keywords": included_individual_title_keywords,
+            "included_individual_locations_keywords": included_individual_locations_keywords,
+            "included_individual_industry_keywords": included_individual_industry_keywords,
+            "included_individual_generalized_keywords": included_individual_generalized_keywords,
+            "included_individual_skills_keywords": included_individual_skills_keywords,
+            "included_company_name_keywords": included_company_name_keywords,
+            "included_company_locations_keywords": included_company_locations_keywords,
+            "included_company_generalized_keywords": included_company_generalized_keywords,
+            "included_company_industries_keywords": included_company_industries_keywords,
+        },
+        "linkedin": {},
+        "email": {},
     }
