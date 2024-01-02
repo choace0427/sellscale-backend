@@ -1256,7 +1256,7 @@ def sync_workmail_to_smartlead(
             "id": None,  # set null to create new email account
             "from_name": sdr.name,  # DO NOT CHANGE
             "from_email": email,  # DO NOT CHANGE
-            "user_name": email,  # DO NOT CHANGE
+            "user_name": username,  # DO NOT CHANGE
             "password": password,  # DO NOT CHANGE
             "smtp_host": "smtp.mail.us-east-1.awsapps.com",
             "smtp_port": 465,
