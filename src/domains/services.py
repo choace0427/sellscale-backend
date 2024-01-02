@@ -820,7 +820,7 @@ def workmail_setup_workflow(
     # Sync the workmail inbox to smartlead
     success, _, smartlead_account_id = sync_workmail_to_smartlead(
         client_sdr_id=client_sdr_id,
-        username=username,
+        username=f"{username}@{domain_name}",
         email=f"{username}@{domain_name}",
         password=password,
     )
@@ -899,7 +899,7 @@ def create_workmail_inbox(
         email_address=f"{username}@{domain_name}",
         email_type=EmailType.SELLSCALE,
         aws_workmail_user_id=user_id,
-        aws_username=username,
+        aws_username=f"{username}@{domain_name}",
         aws_password=password,
         domain_id=domain_id,
     )

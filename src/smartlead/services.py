@@ -1254,7 +1254,7 @@ def sync_workmail_to_smartlead(
     result = sl.create_email_account(
         {
             "id": None,  # set null to create new email account
-            "from_name": username,  # DO NOT CHANGE
+            "from_name": sdr.name,  # DO NOT CHANGE
             "from_email": email,  # DO NOT CHANGE
             "user_name": email,  # DO NOT CHANGE
             "password": password,  # DO NOT CHANGE
