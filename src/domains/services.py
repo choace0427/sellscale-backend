@@ -878,8 +878,8 @@ def create_workmail_inbox(
     # Create a user and mailbox
     user = aws_workmail_client.create_user(
         OrganizationId=organization_id,
-        DisplayName=username,
-        Name=username,
+        DisplayName=f"{username}@{domain_name}",
+        Name=f"{username}@{domain_name}",
         Password=password,
         FirstName=first_name,
         LastName=last_name,
