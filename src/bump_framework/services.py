@@ -95,6 +95,7 @@ def get_bump_frameworks_for_sdr(
     unique_only: Optional[bool] = False,
     active_only: Optional[bool] = True,
     bumped_count: Optional[int] = None,
+    include_archetype_sequence_id: Optional[int] = None,
 ) -> list[dict]:
     """Get all bump frameworks for a given SDR and overall status
 
@@ -167,6 +168,33 @@ def get_bump_frameworks_for_sdr(
         bfs = bfs.filter(BumpFramework.bumped_count == bumped_count)
 
     bfs: list[BumpFramework] = bfs.all()
+
+    if include_archetype_sequence_id:
+        ca: ClientArchetype = ClientArchetype.query.filter(
+            ClientArchetype.id == include_archetype_sequence_id,
+            ClientArchetype.client_sdr_id == client_sdr_id,
+        ).first()
+        if ca:
+            additional_bfs: list[BumpFramework] = (
+                BumpFramework.query.filter(
+                    BumpFramework.client_archetype_id == include_archetype_sequence_id,
+                    BumpFramework.overall_status.in_(
+                        [
+                            ProspectOverallStatus.ACCEPTED,
+                            ProspectOverallStatus.BUMPED,
+                        ]
+                    ),
+                    BumpFramework.active == True,
+                    BumpFramework.default == True,
+                    BumpFramework.bumped_count < ca.li_bump_amount,
+                )
+                .order_by(BumpFramework.bumped_count)
+                .all()
+            )
+
+            for bf in additional_bfs:
+                if bf.id not in [bf.id for bf in bfs]:
+                    bfs.append(bf)
 
     # If unique_only is specified, filter by unique
     if unique_only:
@@ -492,7 +520,13 @@ def get_db_bump_sequence(archetype_id: int):
     """Get all bump sequence"""
     bump_frameworks = db.session.execute(
         f"""
-            select concat('Follow Up #', bumped_count + 1, ': ', bump_framework.title) "Title", bump_framework.description "Description", client_archetype.id "project_id" 
+            select 
+                concat('Follow Up #', 
+                bumped_count + 1, ': ', 
+                bump_framework.title) "Title", 
+                bump_framework.description "Description", 
+                client_archetype.id "project_id",
+                bump_framework.id "bump_id"
             from bump_framework join client_archetype on client_archetype.id = bump_framework.client_archetype_id 
             where bump_framework.client_archetype_id = {archetype_id} 
             and bump_framework.overall_status in ('ACCEPTED', 'BUMPED') 
@@ -503,5 +537,29 @@ def get_db_bump_sequence(archetype_id: int):
         """
     ).fetchall()
 
-    bump_frameworks = [dict(row) for row in bump_frameworks]
+    bump_frameworks = (
+        BumpFramework.query.filter(
+            BumpFramework.id.in_([bf["bump_id"] for bf in bump_frameworks]),
+            BumpFramework.client_archetype_id == archetype_id,
+            BumpFramework.active,
+            BumpFramework.default,
+            BumpFramework.overall_status.in_(
+                [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
+            ),
+        )
+        .order_by(BumpFramework.bumped_count)
+        .all()
+    )
+
+    bump_frameworks = [
+        {
+            "Title": f"Follow Up #{bf.bumped_count + 1}: {bf.title}",
+            "Description": bf.description,
+            "project_id": archetype_id,
+            "bump_id": bf.id,
+            **bf.to_dict(),
+        }
+        for bf in bump_frameworks
+    ]
+
     return {"data": bump_frameworks, "message": "Success", "status_code": 200}

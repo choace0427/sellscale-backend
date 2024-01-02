@@ -99,6 +99,16 @@ def get_bump_frameworks(client_sdr_id: int):
         )
         or None
     )
+    include_archetype_sequence_id = (
+        get_request_parameter(
+            "include_archetype_sequence_id",
+            request,
+            json=False,
+            required=False,
+            parameter_type=int,
+        )
+        or None
+    )
 
     overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
@@ -119,6 +129,7 @@ def get_bump_frameworks(client_sdr_id: int):
         exclude_ss_default=exclude_ss_default,
         unique_only=unique_only,
         bumped_count=bumped_count,
+        include_archetype_sequence_id=include_archetype_sequence_id,
     )
 
     counts = get_bump_framework_count_for_sdr(

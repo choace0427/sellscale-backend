@@ -39,6 +39,7 @@ def run_autobump_firewall(generated_message_autobump_id: int) -> tuple[bool, lis
     rule_no_sdr_name_in_message(autobump.id, violations)
     rule_no_profanity(message, violations)
     rule_no_prompt_message(message, violations)
+    rule_no_sdr_first_name_in_message(message, violations)
 
     # If there are any violations, return False
     if len(violations) > 0:
@@ -142,6 +143,10 @@ def rule_no_sdr_name_in_message(autobump_id: int, violations: list) -> tuple[boo
         return False, "Message contains SDR name"
 
     return True, "Success"
+
+def rule_no_sdr_first_name_in_message(message: str, violations: list) -> tuple[bool, str]:
+    """Rule: Message cannot contain the SDR's first name like Hi [first_name]"""
+    pass
 
 
 def rule_no_prompt_message(message: str, violations: list) -> tuple[bool, str]:
