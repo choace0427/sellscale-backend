@@ -11,8 +11,10 @@ from src.client.sdr.email.models import EmailType, SDREmailBank, SDREmailSendSch
 from src.client.sdr.email.services_email_schedule import create_sdr_email_send_schedule
 
 
-def get_sdr_email_banks(client_sdr_id: int, active_only: Optional[bool] = True) -> list[SDREmailBank]:
-    """ Gets all emails for a given SDR that are active or inactive
+def get_sdr_email_banks(
+    client_sdr_id: int, active_only: Optional[bool] = True
+) -> list[SDREmailBank]:
+    """Gets all emails for a given SDR that are active or inactive
 
     Returns:
         list[SDREmailBank]: List of SDREmailBank objects
@@ -31,7 +33,7 @@ def get_sdr_email_bank(
     email_address: Optional[str] = None,
     nylas_account_id: Optional[str] = None,
 ) -> Union[SDREmailBank, None]:
-    """ Gets an SDR Email Bank
+    """Gets an SDR Email Bank
 
     Args:
         email_bank_id (Optional[int], optional): ID of the email bank. Defaults to None.
@@ -42,9 +44,7 @@ def get_sdr_email_bank(
         Union[SDREmailBank, None]: SDREmailBank object if found, None if not found
     """
     if email_bank_id:
-        return SDREmailBank.query.filter(
-            SDREmailBank.id == email_bank_id
-        ).first()
+        return SDREmailBank.query.filter(SDREmailBank.id == email_bank_id).first()
     elif email_address:
         return SDREmailBank.query.filter(
             SDREmailBank.email_address == email_address
@@ -62,7 +62,7 @@ def update_sdr_email_bank(
     active: Optional[bool] = None,
     email_type: Optional[EmailType] = None,
 ) -> tuple[bool, str]:
-    """ Updates an SDR Email Bank
+    """Updates an SDR Email Bank
 
     Args:
         email_bank_id (int): ID of the email bank
@@ -74,7 +74,8 @@ def update_sdr_email_bank(
         str: Message if the update was not successful
     """
     email_bank: SDREmailBank = SDREmailBank.query.filter(
-        SDREmailBank.id == email_bank_id).first()
+        SDREmailBank.id == email_bank_id
+    ).first()
 
     if not email_bank:
         return False, "Email bank not found"
@@ -87,7 +88,7 @@ def update_sdr_email_bank(
         if email_type == EmailType.ANCHOR:
             anchor_email_banks: list[SDREmailBank] = SDREmailBank.query.filter(
                 SDREmailBank.email_type == EmailType.ANCHOR,
-                SDREmailBank.client_sdr_id == email_bank.client_sdr_id
+                SDREmailBank.client_sdr_id == email_bank.client_sdr_id,
             ).all()
             for anchor_email_bank in anchor_email_banks:
                 anchor_email_bank.email_type = EmailType.ALIAS
@@ -108,8 +109,13 @@ def create_sdr_email_bank(
     nylas_auth_code: Optional[str] = None,
     nylas_account_id: Optional[str] = None,
     nylas_active: Optional[bool] = False,
+    aws_workmail_user_id: Optional[str] = None,
+    aws_username: Optional[str] = None,
+    aws_password: Optional[str] = None,
+    smartlead_account_id: Optional[int] = None,
+    domain_id: Optional[int] = None,
 ) -> int:
-    """ Creates an SDR Email Bank
+    """Creates an SDR Email Bank
 
     Args:
         client_sdr_id (int): ID of the Client SDR
@@ -118,6 +124,11 @@ def create_sdr_email_bank(
         nylas_auth_code (Optional[str], optional): Nylas auth code. Defaults to None.
         nylas_account_id (Optional[str], optional): Nylas account ID. Defaults to None.
         nylas_active (Optional[bool], optional): Whether or not the email is active in Nylas. Defaults to False.
+        aws_workmail_user_id (Optional[str], optional): AWS Workmail user ID. Defaults to None.
+        aws_username (Optional[str], optional): AWS Workmail username. Defaults to None.
+        aws_password (Optional[str], optional): AWS Workmail password. Defaults to None.
+        smartlead_account_id (Optional[int], optional): Smartlead account ID. Defaults to None.
+        domain_id (Optional[int], optional): Domain ID. Defaults to None.
 
     Returns:
         int: ID of the created email bank
@@ -133,7 +144,7 @@ def create_sdr_email_bank(
     if email_type == EmailType.ANCHOR:
         old_anchors: list[SDREmailBank] = SDREmailBank.query.filter(
             SDREmailBank.email_type == EmailType.ANCHOR,
-            SDREmailBank.client_sdr_id == client_sdr_id
+            SDREmailBank.client_sdr_id == client_sdr_id,
         ).all()
         for anchor_email_bank in old_anchors:
             anchor_email_bank.email_type = EmailType.ALIAS
@@ -148,6 +159,11 @@ def create_sdr_email_bank(
         nylas_auth_code=nylas_auth_code,
         nylas_account_id=nylas_account_id,
         nylas_active=nylas_active,
+        aws_workmail_user_id=aws_workmail_user_id,
+        aws_username=aws_username,
+        aws_password=aws_password,
+        smartlead_account_id=smartlead_account_id,
+        domain_id=domain_id,
     )
     db.session.add(email_bank)
     db.session.commit()
@@ -168,11 +184,8 @@ def create_sdr_email_bank(
     return email_bank.id
 
 
-def email_belongs_to_sdr(
-    client_sdr_id: int,
-    email_address: str
-) -> bool:
-    """ Checks if an email belongs to an SDR
+def email_belongs_to_sdr(client_sdr_id: int, email_address: str) -> bool:
+    """Checks if an email belongs to an SDR
 
     Args:
         client_sdr_id (int): ID of the Client SDR
@@ -183,7 +196,7 @@ def email_belongs_to_sdr(
     """
     email_bank: SDREmailBank = SDREmailBank.query.filter(
         SDREmailBank.client_sdr_id == client_sdr_id,
-        SDREmailBank.email_address == email_address
+        SDREmailBank.email_address == email_address,
     ).first()
 
     if not email_bank:
@@ -236,9 +249,7 @@ def nylas_exchange_for_authorization_code(
         return False, {"message": "Error getting email address", "status_code": 500}
 
     # Check if the email bank object already exists
-    email_bank: SDREmailBank = get_sdr_email_bank(
-        email_address=email_address
-    )
+    email_bank: SDREmailBank = get_sdr_email_bank(email_address=email_address)
     if not email_bank:
         # Create the email bank object
         email_bank_id = create_sdr_email_bank(

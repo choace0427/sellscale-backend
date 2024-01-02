@@ -1,3 +1,5 @@
+import random
+import string
 from typing import Optional
 import requests
 from app import (
@@ -8,14 +10,16 @@ from app import (
 )
 from app import db, celery
 from botocore.exceptions import ClientError
-from src.client.models import Client
+from src.client.models import Client, ClientSDR
+from src.client.sdr.email.models import EmailType, SDREmailBank
+from src.client.sdr.email.services_email_bank import create_sdr_email_bank
 from src.domains.models import Domain
 from src.utils.domains.pythondns import (
     dkim_record_valid,
     dmarc_record_valid,
     spf_record_valid,
 )
-from src.smartlead.services import create_workmail_email_account
+from src.smartlead.services import sync_workmail_to_smartlead
 import os
 import time
 from src.utils.slack import send_slack_message, URL_MAP
@@ -757,16 +761,97 @@ def is_valid_email_forwarding(
     return True
 
 
-def create_workmail_inbox(domain_name: str, user_name: str, password: str) -> tuple:
-    """Create a workmail inbox for a domain
+@celery.task
+def workmail_setup_workflow(
+    client_sdr_id: int,
+    domain_id: int,
+    username,
+) -> tuple:
+    """Workflow to setup a workmail inbox after domain is purchased.
+
+    This includes:
+    1. Create workmail inbox
+    2. Add to smartlead
 
     Args:
-        domain_name (str): The domain name to create the inbox for
-        user_name (str): The user_name of the inbox
-        password (str): The password of the inbox
+        client_sdr_id (int): The ID of the client SDR
+        domain_id (int): The ID of the domain
+        username (str): The username of the inbox
 
     Returns:
         tuple: A tuple containing the status and a message
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False, "SDR not found"
+
+    domain: Domain = Domain.query.get(domain_id)
+    if not domain:
+        return False, "Domain not found"
+    domain_name = domain.domain
+
+    # Generate a random password
+    password = "".join(
+        random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase)
+        for _ in range(16)
+    )
+
+    # Registering the domain to workmail and creating the inbox
+    success, _, email_bank_id = create_workmail_inbox(
+        client_sdr_id=client_sdr_id,
+        domain_id=domain_id,
+        name=sdr.name,
+        domain_name=domain_name,
+        username=username,
+        password=password,
+    )
+    if not success:
+        return False, "Failed to create workmail inbox"
+
+    # Add the domain_id to EmailBank
+    sdr_email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+    sdr_email_bank.domain_id = domain_id
+    db.session.commit()
+
+    # Sync the workmail inbox to smartlead
+    success, _, smartlead_account_id = sync_workmail_to_smartlead(
+        client_sdr_id=client_sdr_id,
+        username=username,
+        email=f"{username}@{domain_name}",
+        password=password,
+    )
+    if not success:
+        return False, "Failed to sync workmail inbox to smartlead"
+
+    # Add the smartlead_id to EmailBank
+    sdr_email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+    sdr_email_bank.smartlead_account_id = smartlead_account_id
+    db.session.commit()
+
+    return True, "Domain setup workflow completed successfully"
+
+
+def create_workmail_inbox(
+    client_sdr_id: int,
+    domain_id: int,
+    name: str,
+    domain_name: str,
+    username: str,
+    password: str,
+) -> tuple:
+    """Create a workmail inbox for a domain
+
+    Args:
+        client_sdr_id (int): The ID of the ClientSDR
+        domain_id (int): The ID of the Domain
+        display_name (str): The display name of the inbox
+        name (str): The name of the inbox
+        domain_name (str): The domain name to create the inbox for
+        username (str): The username of the inbox
+        password (str): The password of the inbox
+
+    Returns:
+        tuple: A tuple containing the status, a message, and the EmailBankID
     """
 
     organization_id = os.environ.get("AWS_WORKMAIL_ORG_ID")
@@ -786,8 +871,8 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str) -> tu
     # Create a user and mailbox
     user = aws_workmail_client.create_user(
         OrganizationId=organization_id,
-        Name=user_name,
-        DisplayName=user_name,
+        DisplayName=name,
+        Name=name,
         Password=password,
     )
 
@@ -796,7 +881,18 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str) -> tu
     aws_workmail_client.register_to_work_mail(
         OrganizationId=organization_id,
         EntityId=user_id,
-        Email=f"{user_name}@{domain_name}",
+        Email=f"{username}@{domain_name}",
+    )
+
+    # Add to SDR Email Bank
+    sdr_email_bank_id = create_sdr_email_bank(
+        client_sdr_id=client_sdr_id,
+        email_address=f"{username}@{domain_name}",
+        email_type=EmailType.SELLSCALE,
+        aws_workmail_user_id=user_id,
+        aws_username=username,
+        aws_password=password,
+        domain_id=domain_id,
     )
 
     send_slack_message(
@@ -807,76 +903,24 @@ def create_workmail_inbox(domain_name: str, user_name: str, password: str) -> tu
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"[{domain_name}]\n🙏 New Inbox Created on Smartlead: {user_name}@{domain_name}",
+                    "text": f"[{domain_name}]\n🙏 New Inbox Created on Smartlead: {username}@{domain_name}",
                 },
             }
         ],
     )
 
-    return True, "Workmail inbox created successfully"
-
-
-@celery.task
-def domain_setup_workflow(
-    domain_name: str, user_name: Optional[str], password: Optional[str]
-) -> tuple:
-    """Workflow to setup a domain after domain is purchased.
-
-    This includes:
-    1. Add DNS records
-    2. Create workmail inbox
-    3. Add to smartlead
-
-    Args:
-        domain_name (str): The domain name to setup
-        user_name (str): The user_name of the inbox
-        password (str): The password of the inbox
-
-    Returns:
-        tuple: A tuple containing the status and a message
-    """
-
-    success, _ = add_email_dns_records(domain_name)
-    if not success:
-        return False, "Failed to add email DNS records"
-
-    if user_name and password:
-        success, _ = create_workmail_inbox(domain_name, user_name, password)
-        if not success:
-            return False, "Failed to create workmail inbox"
-
-        # Keep trying until the inbox is created, cancel after 5 attempts
-        attempt = 1
-        while attempt <= 5:
-            print(f"Attempt {attempt} to create workmail email account")
-            time.sleep(5)
-            success, _ = create_workmail_email_account(
-                name=user_name,
-                email=f"{user_name}@{domain_name}",
-                password=password,
-            )
-            if success:
-                break
-
-        if not success:
-            return False, "Failed to create workmail email account"
-
-    return True, "Domain setup workflow completed successfully"
+    return True, "Workmail inbox created successfully", sdr_email_bank_id
 
 
 def domain_purchase_workflow(
     client_id: int,
     domain_name: str,
-    user_name: Optional[str] = None,
-    password: Optional[str] = None,
 ) -> tuple:
     """Workflow to purchase a domain. Automatically queues up the domain setup workflow.
 
     Args:
         client_id (int): The ID of the client
         domain_name (str): The domain name to purchase
-        user_name (Optional[str], optional): The user_name of the inbox. Defaults to None.
-        password (Optional[str], optional): The password of the inbox. Defaults to None.
 
     Returns:
         tuple: A tuple containing the status and a message
@@ -906,11 +950,32 @@ def domain_purchase_workflow(
         type="domain_setup_workflow",
         args={
             "domain_name": domain_name,
-            "user_name": user_name,
-            "password": password,  # TODO: This is bad! Encrypt password
         },
         minutes=30,
     )
+
+
+@celery.task
+def domain_setup_workflow(
+    domain_name: str,
+) -> tuple:
+    """Workflow to setup a domain after domain is purchased.
+
+    This includes:
+    1. Add DNS records
+
+    Args:
+        domain_name (str): The domain name to setup
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
+
+    success, _ = add_email_dns_records(domain_name)
+    if not success:
+        return False, "Failed to add email DNS records"
+
+    return True, "Domain setup workflow completed successfully"
 
 
 def create_domain_entry(

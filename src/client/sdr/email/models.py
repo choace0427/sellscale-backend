@@ -14,6 +14,8 @@ class SDREmailBank(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     active = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Email
     email_address = db.Column(db.String, nullable=False, unique=True)
     email_type = db.Column(db.Enum(EmailType), nullable=False)
 
@@ -22,10 +24,25 @@ class SDREmailBank(db.Model):
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )
 
+    # Domain
+    domain_id = db.Column(db.Integer, db.ForeignKey("domain.id"), nullable=True)
+
     # Nylas Connection
     nylas_auth_code = db.Column(db.String, nullable=True)
     nylas_account_id = db.Column(db.String, nullable=True)
     nylas_active = db.Column(db.Boolean, nullable=True, default=False)
+
+    # AWS Connection
+    aws_workmail_user_id = db.Column(db.String, nullable=True)
+    aws_username = db.Column(db.String, nullable=True)
+    aws_password = db.Column(
+        db.String, nullable=True
+    )  # This needs to be removed in the future, storing for now.
+
+    # Smartlead Connection
+    smartlead_account_id = db.Column(db.Integer, nullable=True)
+
+    # TODO: Eventually we need to bring warmup information into this table from the WarmupSnapshot table.
 
     def to_dict(self) -> dict:
         # Get the attached Send Schedule
@@ -39,10 +56,15 @@ class SDREmailBank(db.Model):
             "email_address": self.email_address,
             "email_type": self.email_type.value,
             "client_sdr_id": self.client_sdr_id,
+            "domain_id": self.domain_id,
             "nylas_auth_code": self.nylas_auth_code,
             "nylas_account_id": self.nylas_account_id,
             "nylas_active": self.nylas_active,
             "send_schedule": send_schedule.to_dict() if send_schedule else None,
+            "aws_workmail_user_id": self.aws_workmail_user_id,
+            "aws_username": self.aws_username,
+            "aws_password": self.aws_password,
+            "smartlead_account_id": self.smartlead_account_id,
         }
 
 

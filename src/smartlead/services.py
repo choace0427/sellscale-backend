@@ -1228,19 +1228,35 @@ Prospect Title: {prospect.title}
     return html_response
 
 
-def create_workmail_email_account(
-    name: str,
+def sync_workmail_to_smartlead(
+    client_sdr_id: int,
+    username: str,
     email: str,
     password: str,
     emails_per_day: int = 30,
-):
+) -> tuple:
+    """Syncs a WorkMail account to Smartlead
+
+    Args:
+        client_sdr_id (int): The ID of the SDR
+        username (str): The username of the WorkMail account
+        email (str): The email of the SDR
+        password (str): The password of the SDR
+        emails_per_day (int, optional): The number of emails to send per day. Defaults to 30.
+
+    Returns:
+        tuple: A tuple with the first value being True if successful, and the second being the message, and the third being the email account ID
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Create the Smartlead email account
     sl = Smartlead()
     result = sl.create_email_account(
         {
             "id": None,  # set null to create new email account
-            "from_name": name,
+            "from_name": sdr.name,
             "from_email": email,
-            "user_name": email,
+            "user_name": username,
             "password": password,
             "smtp_host": "smtp.mail.us-east-1.awsapps.com",
             "smtp_port": 465,
@@ -1275,4 +1291,6 @@ Volume: 2 / day""",
             ],
         )
 
-    return result.get("ok", False), result.get("message", "")
+    email_account_id = result.get("emailAccountId")
+
+    return result.get("ok", False), result.get("message", ""), email_account_id
