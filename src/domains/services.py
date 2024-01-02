@@ -876,7 +876,7 @@ def create_workmail_inbox(
     user = aws_workmail_client.create_user(
         OrganizationId=organization_id,
         DisplayName=username,
-        Name=name,
+        Name=username,
         Password=password,
         FirstName=first_name,
         LastName=last_name,
