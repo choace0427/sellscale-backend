@@ -11,6 +11,7 @@ from src.domains.services import (
     patch_domain_entry,
     register_aws_domain,
     validate_domain_configuration,
+    workmail_setup_workflow,
 )
 from model_import import ClientSDR, Client
 from src.authentication.decorators import require_user
@@ -205,20 +206,17 @@ def post_add_dns_records(client_sdr_id: int):
     )
 
 
-@DOMAINS_BLUEPRINT.route("/create_inbox", methods=["POST"])
+@DOMAINS_BLUEPRINT.route("/workflow/purchase", methods=["POST"])
 @require_user
-def post_create_workmail_inbox(client_sdr_id: int):
+def post_purchase_workflow(client_sdr_id: int):
     domain = get_request_parameter(
         "domain", request, json=True, required=True, parameter_type=str
     )
-    username = get_request_parameter(
-        "username", request, json=True, required=True, parameter_type=str
-    )
-    password = get_request_parameter(
-        "password", request, json=True, required=True, parameter_type=str
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True, parameter_type=int
     )
 
-    result = create_workmail_inbox(domain, username, password)
+    result = domain_purchase_workflow(client_id=client_id, domain_name=domain)
 
     return (
         jsonify(
@@ -231,7 +229,7 @@ def post_create_workmail_inbox(client_sdr_id: int):
     )
 
 
-@DOMAINS_BLUEPRINT.route("/setup_workflow", methods=["POST"])
+@DOMAINS_BLUEPRINT.route("/workflow/setup", methods=["POST"])
 @require_user
 def post_setup_workflow(client_sdr_id: int):
     domain = get_request_parameter(
@@ -257,23 +255,35 @@ def post_setup_workflow(client_sdr_id: int):
     )
 
 
-@DOMAINS_BLUEPRINT.route("/purchase_workflow", methods=["POST"])
+@DOMAINS_BLUEPRINT.route("/workflow/workmail", methods=["POST"])
 @require_user
-def post_purchase_workflow(client_sdr_id: int):
-    domain = get_request_parameter(
-        "domain", request, json=True, required=True, parameter_type=str
+def post_workmail_workflow(client_sdr_id: int):
+    domain_id = get_request_parameter(
+        "domain_id", request, json=True, required=True, parameter_type=int
     )
-    client_id = get_request_parameter(
-        "client_id", request, json=True, required=True, parameter_type=int
+    username = get_request_parameter(
+        "username", request, json=True, required=True, parameter_type=str
     )
 
-    result = domain_purchase_workflow(client_id=client_id, domain_name=domain)
+    success, message = workmail_setup_workflow(
+        client_sdr_id=client_sdr_id, domain_id=domain_id, username=username
+    )
+    if not success:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": message,
+                }
+            ),
+            400,
+        )
 
     return (
         jsonify(
             {
                 "status": "success",
-                "data": result,
+                "message": message,
             }
         ),
         200,

@@ -764,7 +764,7 @@ def is_valid_email_forwarding(
 @celery.task
 def workmail_setup_workflow(
     client_sdr_id: int,
-    domain_name: str,
+    domain_id: int,
     username,
 ) -> tuple:
     """Workflow to setup a workmail inbox after domain is purchased.
@@ -775,13 +775,20 @@ def workmail_setup_workflow(
 
     Args:
         client_sdr_id (int): The ID of the client SDR
-        domain_name (str): The domain name to setup
+        domain_id (int): The ID of the domain
         username (str): The username of the inbox
 
     Returns:
         tuple: A tuple containing the status and a message
     """
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False, "SDR not found"
+
+    domain: Domain = Domain.query.get(domain_id)
+    if not domain:
+        return False, "Domain not found"
+    domain_name = domain.domain
 
     # Generate a random password
     password = "".join(
@@ -800,6 +807,11 @@ def workmail_setup_workflow(
     )
     if not success:
         return False, "Failed to create workmail inbox"
+
+    # Add the domain_id to EmailBank
+    sdr_email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+    sdr_email_bank.domain_id = domain_id
+    db.session.commit()
 
     # Sync the workmail inbox to smartlead
     success, _, smartlead_account_id = sync_workmail_to_smartlead(
