@@ -42,6 +42,8 @@ class SDREmailBank(db.Model):
     # Smartlead Connection
     smartlead_account_id = db.Column(db.Integer, nullable=True)
 
+    # TODO: Eventually we need to bring warmup information into this table from the WarmupSnapshot table.
+
     def to_dict(self) -> dict:
         # Get the attached Send Schedule
         send_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter(
