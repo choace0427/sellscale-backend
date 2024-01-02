@@ -817,6 +817,9 @@ def workmail_setup_workflow(
     sdr_email_bank.domain_id = domain_id
     db.session.commit()
 
+    # Wait 10 seconds for the inbox to be created
+    time.sleep(10)
+
     # Sync the workmail inbox to smartlead
     success, _, smartlead_account_id = sync_workmail_to_smartlead(
         client_sdr_id=client_sdr_id,
