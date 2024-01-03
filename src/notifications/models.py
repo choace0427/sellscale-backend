@@ -14,6 +14,8 @@ class OperatorNotification(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
     title = db.Column(db.String, nullable=False)
     subtitle = db.Column(db.String, nullable=False)
     stars = db.Column(db.Integer, nullable=True)
