@@ -56,7 +56,6 @@ def remove_control_characters(str):
 def create_upload_jsonl_file(prompt_completion_dict: any):
     with open("training_set_temp.jsonl", "w") as f:
         for key in prompt_completion_dict:
-
             sanitized_key = remove_control_characters(
                 key.replace('"', "")
                 .replace("\n", "\\n")
@@ -288,6 +287,8 @@ problems:
 
 instruction: {instruction}
 
+Important: Return only the revised message.
+
 revised message:""".format(
         completion=completion,
         problems_bulleted=problems_bulleted,
@@ -308,7 +309,6 @@ revised message:""".format(
 def get_sequence_value_props(
     company: str, selling_to: str, selling_what: str, num: int
 ):
-
     prompt = f"You are a writing assistant that helps write email sequences. Here is the information:\n"
     prompt += f"- Company: {company}\n"
     prompt += f"- Who are you selling to?: {selling_to}\n"
@@ -743,7 +743,6 @@ def icp_classify(  # DO NOT RENAME THIS FUNCTION, IT IS RATE LIMITED IN APP.PY B
         return fit, reason
 
     except Exception as e:
-
         from src.utils.slack import send_slack_message, URL_MAP
 
         stack_trace = traceback.format_exc()
@@ -1389,7 +1388,6 @@ def get_text_generation(
             return response
 
         if isinstance(response, str):
-
             text_gen = TextGeneration(
                 prompt=json_msgs,
                 completion=response,
