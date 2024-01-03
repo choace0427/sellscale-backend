@@ -464,6 +464,9 @@ daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
 )
+mid_week_trigger = CronTrigger(
+    day_of_week=2, hour=9, timezone=timezone("America/Los_Angeles")
+)
 weekday_trigger = CronTrigger(
     day_of_week="mon-fri", hour=5, timezone=timezone("America/Los_Angeles")
 )
@@ -535,7 +538,7 @@ scheduler.add_job(
 )
 scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
-scheduler.add_job(run_daily_auto_send_report_email, trigger=daily_trigger)
+scheduler.add_job(run_daily_auto_send_report_email, trigger=mid_week_trigger)
 scheduler.add_job(run_daily_trigger_runner, trigger=daily_trigger)
 scheduler.add_job(run_daily_demo_reminders, trigger=daily_trigger)
 
