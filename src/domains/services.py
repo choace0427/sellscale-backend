@@ -604,7 +604,7 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
             "Action": "UPSERT",
             "ResourceRecordSet": {
                 "Name": "{}._domainkey.{}".format(token, domain_name),
-                "Type": "CNAME",
+                "Type": "TXT",
                 "TTL": 300,
                 "ResourceRecords": [{"Value": "{}.dkim.amazonses.com".format(token)}],
             },
@@ -620,7 +620,7 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
             "TTL": 300,
             "ResourceRecords": [
                 {
-                    "Value": f'"v=DMARC1; p=none; rua=mailto:engineering@{domain_name}; ruf=mailto:engineering@{domain_name}"'
+                    "Value": f'"v=DMARC1; p=none; rua=mailto:sellscale@{domain_name}; ruf=mailto:sellscale@{domain_name}"'
                 }
             ],
         },
@@ -633,9 +633,7 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
             "Name": domain_name,
             "Type": "TXT",
             "TTL": 300,
-            "ResourceRecords": [
-                {"Value": '"v=spf1 include:amazonses.com include:_spf.google.com ~all"'}
-            ],
+            "ResourceRecords": [{"Value": '"v=spf1 include:amazonses.com ~all"'}],
         },
     }
 
@@ -688,8 +686,7 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
                     "text": f"""[{domain_name}]\n✈️ Domain Records Set up: {domain_name}
 ✅ DKIM
 ✅ DMARC
-✅ SPF
-✅ Forwarding""",
+✅ SPF""",
                 },
             }
         ],

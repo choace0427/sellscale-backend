@@ -17,7 +17,10 @@ def spf_record_valid(domain: str) -> tuple[str, bool]:
             spf_text = spf_text.strip('"')
             if spf_text.startswith("v=spf1"):
                 # SPF record needs to match Google's SPF record exactly
-                if spf_text != "v=spf1 include:_spf.google.com ~all":
+                if (
+                    spf_text != "v=spf1 include:_spf.google.com ~all"
+                    or spf_text != "v=spf1 include:amazonses.com ~all"
+                ):
                     return spf_text, False
 
                 return spf_text, True
@@ -63,7 +66,7 @@ def dkim_record_valid(domain: str) -> tuple[str, bool]:
         tuple[str, bool]: The DKIM record and whether it is valid
     """
     try:
-        dkim_answers = dns.resolver.resolve("google._domainkey." + domain, "TXT")
+        dkim_answers = dns.resolver.resolve("_domainkey." + domain, "TXT")
         for answer in dkim_answers:
             dkim_record = answer.to_text()
             dkim_record = dkim_record.strip('"')

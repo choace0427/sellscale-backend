@@ -400,7 +400,7 @@ def get_email_warmings(client_sdr_id: Optional[int] = None) -> list[dict]:
 
 
 def get_warmup_percentage(sent_count: int) -> int:
-    TOTAL_SENT = 180
+    TOTAL_SENT = 100
 
     return min(round((sent_count / TOTAL_SENT) * 100, 0), 100)
 
