@@ -487,6 +487,7 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         webhook_urls = [URL_MAP["eng-sandbox"]]
         from_email = result.get("from", [{"email": "Unknown"}])[0].get("email")
         prettier_body = clean_html(body)
+        prettier_body.replace("\n", "\n>")
         if client.pipeline_notifications_webhook_url:
             webhook_urls.append(client.pipeline_notifications_webhook_url)
 
