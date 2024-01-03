@@ -488,6 +488,8 @@ Use the following subject line template strictly. Stick to the template strictly
 {template}
 --- END TEMPLATE ---
 
+Return only the subject line. Do not include the word 'Subject:' in the output.
+
 Output:""".format(
         email_body=email_body,
         prospect_name=prospect_name,
