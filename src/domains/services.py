@@ -604,7 +604,7 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
             "Action": "UPSERT",
             "ResourceRecordSet": {
                 "Name": "{}._domainkey.{}".format(token, domain_name),
-                "Type": "TXT",
+                "Type": "CNAME",
                 "TTL": 300,
                 "ResourceRecords": [{"Value": "{}.dkim.amazonses.com".format(token)}],
             },
