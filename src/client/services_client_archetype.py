@@ -7,6 +7,7 @@ from model_import import ResearchPointType, ClientArchetype
 from typing import Union, Optional
 from src.client.models import Client, ClientSDR
 from src.email_outbound.models import ProspectEmail
+from src.email_sequencing.services import get_email_sequence_step_for_sdr
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.icp_score.services import move_selected_prospects_to_unassigned
@@ -839,6 +840,7 @@ def get_client_archetype_stats(client_archetype_id):
         client_archetype_id=client_archetype_id,
     )
 
+    # Overall Campaign Details
     emoji = archetype.emoji
     archetype_name = archetype.archetype
     sdr_name = client_sdr.name
@@ -886,6 +888,84 @@ def get_client_archetype_stats(client_archetype_id):
             "included_company_industries_keywords"
         ]
 
+    # top titles
+    def get_top_attributes_list(attribute):
+        query = """
+            select 
+                {attribute}, count(*)
+            from prospect
+            where prospect.archetype_id = {client_archetype_id}
+            group by 1
+            order by 2 desc
+            limit 10;
+        """.format(
+            attribute=attribute, client_archetype_id=client_archetype_id
+        )
+        data = db.session.execute(query).fetchall()
+        return [dict(row) for row in data]
+
+    # Email Details
+    email_sequence = get_email_sequence_step_for_sdr(
+        client_sdr_id=client_sdr.id,
+        overall_statuses=[
+            ProspectOverallStatus.PROSPECTED,
+            ProspectOverallStatus.SENT_OUTREACH,
+            ProspectOverallStatus.ACCEPTED,
+            ProspectOverallStatus.BUMPED,
+        ],
+        client_archetype_ids=[client_archetype_id],
+        activeOnly=True,
+    )
+
+    def sort_func(x):
+        bumped_count = x["bumped_count"]
+        overall_status = x["overall_status"]
+
+        if overall_status == ProspectOverallStatus.PROSPECTED:
+            return 0
+        elif overall_status == ProspectOverallStatus.ACCEPTED:
+            return 1
+        elif overall_status == ProspectOverallStatus.BUMPED:
+            return bumped_count + 2
+        else:
+            return 20
+
+    email_sequence = sorted(email_sequence, key=sort_func)
+    email_sequence = [
+        {
+            "title": step["title"],
+            "description": step["template"],
+            "bumped_count": step["bumped_count"],
+            "overall_status": step["overall_status"],
+        }
+        for step in email_sequence
+    ]
+
+    # Linkedin sequence
+    query = """
+        select 
+            title,
+            description,
+            bumped_count
+        from 
+            bump_framework
+        where client_archetype_id = 484
+            and overall_status in ('ACCEPTED', 'BUMPED')
+            and bump_framework.active 
+            and bump_framework.default
+        order by 
+            bumped_count asc;
+    """
+    data = db.session.execute(query).fetchall()
+    linkedin_sequence = [
+        {
+            "title": row[0],
+            "description": row[1],
+            "bumped_count": row[2],
+        }
+        for row in data
+    ]
+
     return {
         "overview": {
             "emoji": emoji,
@@ -907,6 +987,11 @@ def get_client_archetype_stats(client_archetype_id):
             "included_company_generalized_keywords": included_company_generalized_keywords,
             "included_company_industries_keywords": included_company_industries_keywords,
         },
-        "linkedin": {},
-        "email": {},
+        "linkedin": {"sequence": linkedin_sequence},
+        "email": {"sequence": email_sequence},
+        "top_attributes": {
+            "top_titles": get_top_attributes_list("title"),
+            "top_industries": get_top_attributes_list("industry"),
+            "top_companies": get_top_attributes_list("company"),
+        },
     }

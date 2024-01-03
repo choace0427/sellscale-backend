@@ -109,6 +109,7 @@ from src.client.services_client_archetype import (
     deactivate_client_archetype,
     get_archetype_activity,
     get_archetype_conversion_rates,
+    get_client_archetype_stats,
     get_email_blocks_configuration,
     hard_deactivate_client_archetype,
     modify_archetype_prospect_filters,
@@ -2631,3 +2632,21 @@ def get_tam_graph_data(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success", "data": results}), 200
+
+
+@CLIENT_BLUEPRINT.route("/campaign_overview", methods=["GET"])
+@require_user
+def get_campaign_overview(client_sdr_id: int):
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+    if not ca or ca.client_sdr_id != client_sdr_id:
+        return "Unauthorized or persona not found", 403
+
+    overview = get_client_archetype_stats(
+        client_archetype_id=client_archetype_id,
+    )
+
+    return jsonify(overview), 200
