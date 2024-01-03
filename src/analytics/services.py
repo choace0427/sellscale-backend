@@ -179,6 +179,7 @@ def get_all_campaign_analytics_for_client(
                 left join icp_scoring_ruleset on icp_scoring_ruleset.client_archetype_id = client_archetype.id
             where client_archetype.client_id = {client_id}
                 and not client_archetype.is_unassigned_contact_archetype
+                {client_archetype_id_filter}
             group by 1,2,3,4,5, client_archetype.updated_at, client_sdr.name, client_sdr.img_url, icp_scoring_ruleset.included_individual_title_keywords, icp_scoring_ruleset.included_individual_locations_keywords, icp_scoring_ruleset.included_individual_industry_keywords, icp_scoring_ruleset.included_company_name_keywords, icp_scoring_ruleset.included_company_locations_keywords, icp_scoring_ruleset.included_individual_generalized_keywords, icp_scoring_ruleset.included_individual_skills_keywords, icp_scoring_ruleset.included_company_generalized_keywords,icp_scoring_ruleset.included_company_industries_keywords, icp_scoring_ruleset.company_size_start, icp_scoring_ruleset.company_size_end, client_archetype.id
             order by client_archetype.updated_at desc
         )
@@ -190,7 +191,12 @@ def get_all_campaign_analytics_for_client(
             num_demos / (0.0001 + cast(num_sent as float)) "num_demos"
         from d;
     """.format(
-        client_id=client_id
+        client_id=client_id,
+        client_archetype_id_filter="and client_archetype.id = {}".format(
+            client_archetype_id
+        )
+        if client_archetype_id
+        else "",
     )
 
     data = db.session.execute(query).fetchall()
@@ -228,9 +234,6 @@ def get_all_campaign_analytics_for_client(
                 "id": row[26],
             }
         )
-
-    if client_archetype_id:
-        data_arr = [d for d in data_arr if d["id"] == client_archetype_id]
 
     return data_arr
 

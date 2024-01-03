@@ -580,6 +580,7 @@ def rule_catch_strange_titles(
 
     Catch titles that are too long.
     """
+    title_section_case_preserved = ""
     title_section = ""
     for section in prompt.split("<>"):
         if section.startswith("title:"):
@@ -627,27 +628,28 @@ def rule_catch_strange_titles(
                     return
 
     splitted_title_section = title_section.split(" ")
-    if len(splitted_title_section) >= 4:
-        first_words = splitted_title_section[:4]  # Get the first 4 words
-        first_words = " ".join(first_words).strip()
-        if first_words in completion.lower():  # 4 words is too long for a title
-            first_words_case_preserved = title_section_case_preserved.split(" ")[:4]
-            first_words_case_preserved = " ".join(first_words_case_preserved).strip()
-            highlighted_words.append(first_words_case_preserved)
+    # if len(splitted_title_section) >= 4:
+    #     first_words = splitted_title_section[:4]  # Get the first 4 words
+    #     first_words = " ".join(first_words).strip()
+    #     if first_words in completion.lower():  # 4 words is too long for a title
+    #         first_words_case_preserved = title_section_case_preserved.split(" ")[:4]
+    #         first_words_case_preserved = " ".join(first_words_case_preserved).strip()
+    #         highlighted_words.append(first_words_case_preserved)
+    #         problems.append(
+    #             "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
+    #         )
+    #         return
+    # else:
+
+    if title_section in completion.lower():
+        ALLOWED_SYMBOLS = ["'"]
+        unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
+        match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
+        if match and len(match) > 0:
+            highlighted_words.append(title_section_case_preserved)
             problems.append(
-                "WARNING: Prospect's job title may be too long. Please simplify it to sound more natural. (e.g. VP Growth and Marketing → VP Marketing)"
+                "WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."
             )
-            return
-    else:
-        if title_section in completion.lower():
-            ALLOWED_SYMBOLS = ["'"]
-            unfiltered_match = re.findall(r"[\p{S}\p{P}]", title_section)
-            match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
-            if match and len(match) > 0:
-                highlighted_words.append(title_section_case_preserved)
-                problems.append(
-                    "WARNING: Prospect's job title contains strange symbols. Please remove any strange symbols."
-                )
 
     return
 

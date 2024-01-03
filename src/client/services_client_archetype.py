@@ -837,7 +837,7 @@ def get_client_archetype_stats(client_archetype_id):
 
     analytics = get_all_campaign_analytics_for_client(
         client_id=client_id,
-        client_archetype_id=client_archetype_id,
+        client_archetype_id=int(client_archetype_id),
     )
 
     # Overall Campaign Details
@@ -892,7 +892,7 @@ def get_client_archetype_stats(client_archetype_id):
     def get_top_attributes_list(attribute):
         query = """
             select 
-                {attribute}, count(*)
+                {attribute} attribute, count(*) count
             from prospect
             where prospect.archetype_id = {client_archetype_id}
             group by 1
@@ -949,13 +949,15 @@ def get_client_archetype_stats(client_archetype_id):
             bumped_count
         from 
             bump_framework
-        where client_archetype_id = 484
+        where client_archetype_id = {client_archetype_id}
             and overall_status in ('ACCEPTED', 'BUMPED')
             and bump_framework.active 
             and bump_framework.default
         order by 
             bumped_count asc;
-    """
+    """.format(
+        client_archetype_id=client_archetype_id
+    )
     data = db.session.execute(query).fetchall()
     linkedin_sequence = [
         {
