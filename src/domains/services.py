@@ -564,6 +564,34 @@ def verify_domain_identity(domain_name: str) -> str:
         return ""
 
 
+def get_aws_dkim_records(domain_name: str) -> Optional[str]:
+    """Get the DKIM records for an AWS domain
+
+    Args:
+        domain_name (str): The domain name to get the DKIM records for
+
+    Returns:
+        str: The DKIM record
+    """
+    hosted_zone_id = get_hosted_zone_id(domain_name)
+    if hosted_zone_id is None:
+        return None
+
+    records = aws_route53_client.list_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        StartRecordName="_domainkey." + domain_name,
+        StartRecordType="CNAME",
+    )
+    records = records["ResourceRecordSets"]
+
+    for record in records:
+        if "_domainkey." + domain_name in record["Name"]:
+            resource_record = record["ResourceRecords"][0]["Value"]
+            return resource_record
+
+    return None
+
+
 def get_hosted_zone_id(domain_name: str) -> Optional[str]:
     """Get the hosted zone ID for a domain
 
@@ -645,7 +673,7 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
             "Type": "MX",
             "TTL": 300,
             "ResourceRecords": [
-                {"Value": "10 inbound-smtp.{}.amazonaws.com.".format("us-east-1")}
+                {"Value": "10 inbound-smtp.{}.amazonaws.com".format("us-east-1")}
             ],
         },
     }

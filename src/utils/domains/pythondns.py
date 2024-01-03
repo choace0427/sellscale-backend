@@ -19,7 +19,7 @@ def spf_record_valid(domain: str) -> tuple[str, bool]:
                 # SPF record needs to match Google's SPF record exactly
                 if (
                     spf_text != "v=spf1 include:_spf.google.com ~all"
-                    or spf_text != "v=spf1 include:amazonses.com ~all"
+                    and spf_text != "v=spf1 include:amazonses.com ~all"
                 ):
                     return spf_text, False
 
@@ -65,18 +65,30 @@ def dkim_record_valid(domain: str) -> tuple[str, bool]:
     Returns:
         tuple[str, bool]: The DKIM record and whether it is valid
     """
+    from src.domains.services import get_aws_dkim_records
+
+    # Check for Google DKIM record
     try:
-        dkim_answers = dns.resolver.resolve("_domainkey." + domain, "TXT")
-        for answer in dkim_answers:
-            dkim_record = answer.to_text()
-            dkim_record = dkim_record.strip('"')
+        dkim_answers = dns.resolver.resolve("google._domainkey." + domain, "CNAME")
+        if dkim_answers:
+            for answer in dkim_answers:
+                dkim_record = answer.to_text()
+                dkim_record = dkim_record.strip('"')
 
-            # DKIM record should be at least 20 characters long
-            if len(dkim_record) < 20:
-                return dkim_record, False
+                # DKIM record should be at least 20 characters long
+                if len(dkim_record) < 20:
+                    return dkim_record, False
 
+                return dkim_record, True
+    except:
+        pass
+
+    try:
+        # Check for AWS DKIM record
+        dkim_record = get_aws_dkim_records(domain_name=domain)
+        if dkim_record:
             return dkim_record, True
     except:
-        return "", False
+        pass
 
     return "", False
