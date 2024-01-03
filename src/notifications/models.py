@@ -9,6 +9,12 @@ class OperatorNotificationPriority(enum.Enum):
     COMPLETED = 10
 
 
+class OperatorNotificationType(enum.Enum):
+    REVIEW_NEW_CAMPAIGN = "REVIEW_NEW_CAMPAIGN"
+    DEMO_FEEDBACK_NEEDED = "DEMO_FEEDBACK_NEEDED"
+    SCHEDULE_MEETING = "SCHEDULE_MEETING"
+
+
 class OperatorNotification(db.Model):
     __tablename__ = "operator_notification"
 
@@ -23,4 +29,17 @@ class OperatorNotification(db.Model):
 
     data = db.Column(db.JSON, nullable=False)
 
+    notification_type = db.Column(db.Enum(OperatorNotificationType), nullable=False)
     priority = db.Column(db.Enum(OperatorNotificationPriority), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "title": self.title,
+            "subtitle": self.subtitle,
+            "stars": self.stars,
+            "cta": self.cta,
+            "data": self.data,
+            "priority": self.priority,
+        }
