@@ -192,8 +192,9 @@ def get_all_campaign_analytics_for_client(
         from d;
     """.format(
         client_id=client_id,
-        client_archetype_id_filter="and client_archetype.id = {}".format(
-            client_archetype_id
+        client_archetype_id_filter="and prospect.archetype_id = {} and client_archetype.id = {}".format(
+            client_archetype_id,
+            client_archetype_id,
         )
         if client_archetype_id
         else "",
