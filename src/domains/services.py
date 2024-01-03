@@ -1149,3 +1149,31 @@ def validate_all_domain_configurations() -> bool:
         validate_domain_configuration.delay(domain.id)
 
     return True
+
+
+def backfill_warmup_snapshots_into_domains():
+    """Backfills warmup snapshots into domains"""
+    from src.warmup_snapshot.models import WarmupSnapshot
+    from src.prospecting.models import ProspectChannels
+
+    # Get all warmup_snapshots
+    warmup_snapshots: list[WarmupSnapshot] = WarmupSnapshot.query.filter_by(
+        channel_type=ProspectChannels.EMAIL
+    )
+
+    for snapshot in warmup_snapshots:
+        domain = snapshot.account_name.split("@")[-1]
+        existing_domain = Domain.query.filter_by(domain=domain).first()
+
+        if not existing_domain:
+            sdr: ClientSDR = ClientSDR.query.get(snapshot.client_sdr_id)
+            new_domain = Domain(
+                client_id=sdr.client_id,
+                domain=domain,
+                forward_to=domain,
+                aws=False,
+            )
+            db.session.add(new_domain)
+            db.session.commit()
+
+    return True
