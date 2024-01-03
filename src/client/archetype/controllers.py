@@ -7,6 +7,7 @@ from src.client.archetype.services_client_archetype import (
     bulk_action_withdraw_prospect_invitations,
     generate_notification_for_campaign_active,
     get_archetype_generation_upcoming,
+    send_slack_notif_campaign_active,
 )
 from src.client.models import ClientArchetype, ClientSDR
 from src.li_conversation.models import LinkedinInitialMessageTemplate
@@ -380,6 +381,8 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
         archetype_id=archetype_id,
     )
 
+    send_slack_notif_campaign_active(client_sdr_id, archetype_id, "LinkedIn")
+
     return jsonify({"status": "success"}), 200
 
 
@@ -401,5 +404,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
 
     archetype.email_active = active
     db.session.commit()
+
+    send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
 
     return jsonify({"status": "success"}), 200

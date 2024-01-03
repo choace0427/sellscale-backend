@@ -3,6 +3,8 @@ from typing import Optional
 from app import db
 from sqlalchemy import func
 
+from model_import import GeneratedMessage
+
 from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
 from src.message_generation.services import generate_li_convo_init_msg
 from src.ml.services import mark_queued_and_classify
@@ -354,3 +356,88 @@ def generate_notification_for_campaign_active(archetype_id: int):
         direct_link,
     )
     print("Sent Slack message: {}".format(result))
+
+
+def send_slack_notif_campaign_active(client_sdr_id: int, archetype_id: int, type: str):
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == archetype_id
+    ).all()
+    client = Client.query.get(archetype.client_id)
+    webhook_url: str = client.pipeline_notifications_webhook_url
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    campaign_url = (
+        "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+        + client_sdr.auth_token
+        + "&redirect=campaigns"
+    )
+
+    # next_message = GeneratedMessage.query.filter(
+    #     GeneratedMessage.message_status == 'QUEUED_FOR_OUTREACH',
+    #     GeneratedMessage. > datetime.utcnow()
+    # ).order_by(GeneratedMessage.message_date).first()
+
+    send_slack_message(
+        message=f"New [{type}] campaign activated! 🚀",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"New [{type}] campaign activated! 🚀",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Persona:* {archetype.archetype}.\n",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Contacts:* {len(prospects)}.\n",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Steps:* {len(archetype.email_blocks_configuration) if type == 'email' else archetype.li_bump_amount+1}.\n",
+                },
+            },
+            # {
+            #     "type": "section",
+            #     "text": {
+            #         "type": "mrkdwn",
+            #         "text": f"*Sending on:* {archetype.}.\n",
+            #     },
+            # },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Please review in operator dashboard\n",
+                },
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": " "},
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Campaign →",
+                        "emoji": True,
+                    },
+                    "url": campaign_url,
+                    "action_id": "button-action",
+                },
+            },
+            {"type": "divider"},
+        ],
+        webhook_urls=[webhook_url] if webhook_url else [],
+    )
