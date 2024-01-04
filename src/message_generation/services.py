@@ -1305,8 +1305,11 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
     db.session.commit()
 
     # 9b. Run rule engine on the subject line and body
-    run_message_rule_engine(message_id=ai_generated_subject_line.id)
-    run_message_rule_engine(message_id=ai_generated_body.id)
+    # TODO(Aakash) - commented out rule engine since these are configured for
+    #                   linkedin messages - not email subject lines / bodies
+    #                   replace with engine for email subject lines / bodies
+    # run_message_rule_engine(message_id=ai_generated_subject_line.id)
+    # run_message_rule_engine(message_id=ai_generated_body.id)
 
     # 10. Create the ProspectEmail object
     prospect_email: ProspectEmail = create_prospect_email(
