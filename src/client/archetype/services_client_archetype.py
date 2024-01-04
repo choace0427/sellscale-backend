@@ -8,6 +8,11 @@ from model_import import GeneratedMessage
 from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
 from src.message_generation.services import generate_li_convo_init_msg
 from src.ml.services import mark_queued_and_classify
+from src.notifications.models import (
+    OperatorNotificationPriority,
+    OperatorNotificationType,
+)
+from src.notifications.services import create_notification
 from src.prospecting.models import Prospect
 from src.utils.slack import URL_MAP, send_slack_message
 
@@ -314,11 +319,18 @@ def send_slack_campaign_message(
 
 def generate_notification_for_campaign_active(archetype_id: int):
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    random_prospect: Prospect = (
+    random_prospects: Prospect = (
         Prospect.query.order_by(func.random())
         .filter(Prospect.archetype_id == archetype_id)
-        .first()
+        .filter(Prospect.icp_fit_score <= 4)
+        .order_by(Prospect.icp_fit_score.desc())
+        .limit(3)
+        .all()
     )
+    random_prospect: Prospect = random_prospects[0]
+    num_prospects: int = Prospect.query.filter(
+        Prospect.archetype_id == archetype_id
+    ).count()
     client_sdr: ClientSDR = ClientSDR.query.get(client_archetype.client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     print("Fetched random prospect named {}".format(random_prospect.full_name))
@@ -328,6 +340,7 @@ def generate_notification_for_campaign_active(archetype_id: int):
     )
     print("Generated LI message: {}".format(li_msg))
 
+    client_sdr_id = client_sdr.id
     sequence_name = client_archetype.archetype
     example_prospect_name = random_prospect.full_name
     example_prospect_linkedin_url = random_prospect.linkedin_url
@@ -356,6 +369,36 @@ def generate_notification_for_campaign_active(archetype_id: int):
         direct_link,
     )
     print("Sent Slack message: {}".format(result))
+
+    create_notification(
+        client_sdr_id=client_sdr_id,
+        title="Review New Campaign",
+        subtitle="Launched {}".format(datetime.now().strftime("%b %d")),
+        stars=0,
+        cta="View and Mark as Complete",
+        data={
+            "campaign_name": sequence_name,
+            "example_message": example_first_generation,
+            "render_message_as_html": False,
+            "random_prospects": [
+                {
+                    "full_name": p.full_name,
+                    "linkedin_url": p.linkedin_url,
+                    "img_url": p.img_url,
+                    "title": p.title,
+                    "company": p.company,
+                    "icp_fit_score": p.icp_fit_score,
+                }
+                for p in random_prospects
+            ],
+            "num_prospects": num_prospects,
+            "linkedin_active": client_archetype.linkedin_active,
+            "email_active": client_archetype.email_active,
+            "archetype_id": client_archetype.id,
+        },
+        priority=OperatorNotificationPriority.HIGH,
+        notification_type=OperatorNotificationType.REVIEW_NEW_CAMPAIGN,
+    )
 
 
 def send_slack_notif_campaign_active(client_sdr_id: int, archetype_id: int, type: str):

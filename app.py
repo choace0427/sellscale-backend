@@ -328,7 +328,7 @@ def register_blueprints(app):
     app.register_blueprint(DOMAINS_BLUEPRINT, url_prefix="/domains")
     app.register_blueprint(USAGE_BLUEPRINT, url_prefix="/usage")
     app.register_blueprint(AI_REQUESTS, url_prefix="/ai_requests")
-    app.register_blueprint(NOTIFICATION_BLUEPRINT, url_prefix="/notifications")
+    app.register_blueprint(NOTIFICATION_BLUEPRINT, url_prefix="/notification")
 
     db.init_app(app)
 

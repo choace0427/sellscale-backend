@@ -1,3 +1,4 @@
+import datetime
 from flask import Blueprint, jsonify, request
 from app import db
 
@@ -11,6 +12,16 @@ from src.client.archetype.services_client_archetype import (
 )
 from src.client.models import ClientArchetype, ClientSDR
 from src.li_conversation.models import LinkedinInitialMessageTemplate
+from src.message_generation.email.services import (
+    ai_initial_email_prompt,
+    generate_email,
+)
+from src.notifications.models import (
+    OperatorNotificationPriority,
+    OperatorNotificationType,
+)
+from src.notifications.services import create_notification
+from src.prospecting.models import Prospect
 from src.utils.request_helpers import get_request_parameter
 
 
@@ -406,5 +417,56 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
     db.session.commit()
 
     send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
+
+    random_prospects = (
+        Prospect.query.filter(
+            Prospect.archetype_id == archetype_id,
+        )
+        .filter(Prospect.icp_fit_score <= 4)
+        .order_by(Prospect.icp_fit_score.desc())
+        .limit(3)
+        .all()
+    )
+    num_prospects = Prospect.query.filter(
+        Prospect.archetype_id == archetype_id,
+    ).count()
+
+    first_template = ai_initial_email_prompt(
+        client_sdr_id=client_sdr_id,
+        prospect_id=random_prospects[0].id,
+    )
+    email_body = generate_email(prompt=first_template)
+    email_body = email_body.get("body")
+
+    if active:
+        create_notification(
+            client_sdr_id=client_sdr_id,
+            title="Review New Campaign",
+            subtitle="Launched {}".format(datetime.datetime.now().strftime("%b %d")),
+            stars=0,
+            cta="View and Mark as Complete",
+            data={
+                "campaign_name": archetype.archetype,
+                "example_message": email_body,
+                "render_message_as_html": True,
+                "random_prospects": [
+                    {
+                        "full_name": p.full_name,
+                        "linkedin_url": p.linkedin_url,
+                        "img_url": p.img_url,
+                        "title": p.title,
+                        "company": p.company,
+                        "icp_fit_score": p.icp_fit_score,
+                    }
+                    for p in random_prospects
+                ],
+                "num_prospects": num_prospects,
+                "linkedin_active": archetype.linkedin_active,
+                "email_active": archetype.email_active,
+                "archetype_id": archetype.id,
+            },
+            priority=OperatorNotificationPriority.HIGH,
+            notification_type=OperatorNotificationType.REVIEW_NEW_CAMPAIGN,
+        )
 
     return jsonify({"status": "success"}), 200

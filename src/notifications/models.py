@@ -41,5 +41,6 @@ class OperatorNotification(db.Model):
             "stars": self.stars,
             "cta": self.cta,
             "data": self.data,
-            "priority": self.priority,
+            "priority": self.priority.value,
+            "notification_type": self.notification_type.value,
         }
