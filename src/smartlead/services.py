@@ -14,6 +14,7 @@ from src.utils.datetime.dateparse_utils import (
     convert_string_to_datetime_or_none,
 )
 from src.ml.services import get_text_generation
+from src.utils.email.html_cleaning import clean_html
 
 from src.utils.lists import chunk_list
 
@@ -256,20 +257,12 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
 
     # SLACK NOTIFICATION
     # Get the pretty email body
-    reply_email_body = reply_email_body.replace("<br>", "\n")
-    bs = BeautifulSoup(reply_email_body, "html.parser")
-    remove_past_convo = bs.find("div", {"class": "gmail_quote"})
-    if remove_past_convo:
-        remove_past_convo.decompose()
-    reply_email_body = bs.get_text()
+    reply_email_body = clean_html(html=reply_email_body, remove_past_convo=True)
+    reply_email_body.replace("\n", "\n>")
 
     # Get the pretty reply
-    message = email_body.replace("<br>", "\n")
-    bs = BeautifulSoup(message, "html.parser")
-    remove_past_convo = bs.find("div", {"class": "gmail_quote"})
-    if remove_past_convo:
-        remove_past_convo.decompose()
-    message = bs.get_text()
+    message = clean_html(html=email_body, remove_past_convo=False)
+    message.replace("\n", "\n>")
 
     webhook_urls: List[str] = []
     client: Client = Client.query.get(prospect.client_id)
@@ -315,7 +308,9 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
                     "text": '*{prospect_first_name}*:\n>"{prospect_message}"\n\n*{first_name} (AI)*:\n>"{ai_response}"'.format(
                         prospect_first_name=prospect.first_name,
                         prospect_message=reply_email_body[:150],
-                        ai_response=message[:150],
+                        ai_response=message[:400] + "..."
+                        if len(message) > 400
+                        else message,
                         first_name=client_sdr.name.split(" ")[0],
                     ),
                 },

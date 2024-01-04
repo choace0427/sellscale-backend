@@ -726,6 +726,9 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
     )
 
 
+# def configure_email_forwarding(domain_dame: str) -> tuple[bool, str]:
+
+
 def is_valid_email_dns_records(domain_name: str) -> dict:
     """Check if the email DNS records for a domain are valid
 
