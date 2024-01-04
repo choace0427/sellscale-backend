@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from src.ai_requests.models import AIRequest
+from src.ai_requests.models import AIRequest, AIRequestStatus
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.ai_requests.services import create_ai_requests, update_ai_requests
@@ -96,6 +96,7 @@ def patch_ai_request():
     )
 
     # Uses the service function to create the AI Request object
+    status = AIRequestStatus[status]
     update_ai_requests(ai_request_id, status, hours_worked)
 
     if True:
