@@ -258,7 +258,7 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     # SLACK NOTIFICATION
     # Get the pretty email body
     reply_email_body = clean_html(html=reply_email_body, remove_past_convo=True)
-    reply_email_body.replace("\n", "\n>")
+    reply_email_body = reply_email_body.replace("\n", "\n>")
 
     # Get the pretty reply
     message = clean_html(html=email_body, remove_past_convo=False)
