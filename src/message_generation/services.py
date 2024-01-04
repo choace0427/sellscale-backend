@@ -2652,11 +2652,29 @@ def generate_followup_response(
 
         from src.bump_framework.services import get_bump_frameworks_for_sdr
 
+        # if status in ACCEPTED or BUMPED, archetype ids is a valdi list
+        # else archetype ids is None
+        archetype_ids = (
+            [prospect.archetype_id]
+            if overall_status
+            in [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
+            else []
+        )
+        default_only = (
+            True
+            if overall_status
+            in [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
+            else False
+        )
+
         bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
             client_sdr_id=client_sdr_id,
             overall_statuses=[overall_status],
             # substatuses=[li_status.value] if "ACTIVE_CONVO_" in li_status.value else [],
-            # client_archetype_ids=[prospect.archetype_id],
+            client_archetype_ids=archetype_ids,
+            active_only=True,
+            bumped_count=bump_count,
+            default_only=default_only,
         )
 
         # Filter by active convo substatus

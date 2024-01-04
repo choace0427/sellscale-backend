@@ -95,6 +95,7 @@ def get_bump_frameworks_for_sdr(
     unique_only: Optional[bool] = False,
     active_only: Optional[bool] = True,
     bumped_count: Optional[int] = None,
+    default_only: Optional[bool] = False,
     include_archetype_sequence_id: Optional[int] = None,
 ) -> list[dict]:
     """Get all bump frameworks for a given SDR and overall status
@@ -109,6 +110,7 @@ def get_bump_frameworks_for_sdr(
         activeOnly (Optional[bool], optional): Whether to only return active bump frameworks. Defaults to True.
         uniqueOnly (Optional[bool], optional): Whether to only return unique bump frameworks. Defaults to False.
         bumpedCount (Optional[int], optional): The number of times the bump framework has been bumped. Defaults to None.
+        default_only (Optional[bool], optional): Whether to only return default bump frameworks. Defaults to False.
 
     Returns:
         list[dict]: A list of bump frameworks
@@ -166,6 +168,9 @@ def get_bump_frameworks_for_sdr(
     # If bumped_count is specified, filter by bumped_count
     if bumped_count is not None and ProspectOverallStatus.BUMPED in overall_statuses:
         bfs = bfs.filter(BumpFramework.bumped_count == bumped_count)
+
+    if default_only:
+        bfs = bfs.filter(BumpFramework.default == True)
 
     bfs: list[BumpFramework] = bfs.all()
 

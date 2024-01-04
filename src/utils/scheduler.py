@@ -504,7 +504,10 @@ scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
-scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
+
+# TODO(Aakash) - turn this back on by Jan 5th if working well
+# scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
+
 scheduler.add_job(func=run_queued_gm_jobs, trigger="interval", seconds=30)
 scheduler.add_job(
     func=reset_phantom_buster_scrapes_and_launches_job, trigger="interval", minutes=15
