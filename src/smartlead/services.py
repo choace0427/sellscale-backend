@@ -305,7 +305,7 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": '*{prospect_first_name}*:\n>"{prospect_message}"\n\n*{first_name} (AI)*:\n>"{ai_response}"'.format(
+                    "text": "*{prospect_first_name}*:\n>{prospect_message}\n\n*{first_name} (AI)*:\n>{ai_response}".format(
                         prospect_first_name=prospect.first_name,
                         prospect_message=reply_email_body[:150],
                         ai_response=message[:400] + "..."
