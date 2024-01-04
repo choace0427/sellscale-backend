@@ -198,6 +198,9 @@ def post_submit_error(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/", methods=["POST"])
 def create():
     company = get_request_parameter("company", request, json=True, required=True)
+    company_website = get_request_parameter(
+        "company_website", request, json=True, required=True
+    )
     contact_name = get_request_parameter(
         "contact_name", request, json=True, required=True
     )
@@ -218,6 +221,7 @@ def create():
 
     resp = create_client(
         company=company,
+        company_website=company_website,
         contact_name=contact_name,
         contact_email=contact_email,
         linkedin_outbound_enabled=linkedin_outbound_enabled,
@@ -245,6 +249,9 @@ def patch_client(client_sdr_id: int):
     client_id = client_sdr.client_id
 
     company = get_request_parameter("company", request, json=True, required=False)
+    company_website = get_request_parameter(
+        "company_website", request, json=True, required=False
+    )
     tagline = get_request_parameter("tagline", request, json=True, required=False)
     description = get_request_parameter(
         "description", request, json=True, required=False
@@ -264,6 +271,7 @@ def patch_client(client_sdr_id: int):
     success = update_client_details(
         client_id=client_id,
         company=company,
+        company_website=company_website,
         tagline=tagline,
         description=description,
         value_prop_key_points=value_prop_key_points,

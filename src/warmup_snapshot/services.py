@@ -1,5 +1,6 @@
 import json
 from typing import Optional
+from src.domains.models import Domain
 from src.domains.services import is_valid_email_forwarding
 
 from src.smartlead.services import (
@@ -122,8 +123,6 @@ def set_warmup_snapshots_for_client(self, client_id: int):
 @celery.task(bind=True)
 def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
     try:
-        from src.automation.orchestrator import add_process_for_future
-
         client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
         if not client_sdr:
             return False, "Client SDR not found"
@@ -152,10 +151,27 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
             dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain)
             dkim_record, dkim_valid = dkim_record_valid(domain=domain)
 
+            # TEMPORARY FIX
+            # Get the Domain
+            domain_entry: Domain = Domain.query.filter_by(
+                domain=domain,
+            ).first()
+
             # Get email forwarding status
             forwarding_enabled = is_valid_email_forwarding(
                 original_domain=domain,
+                target_domain=domain_entry.forward_to if domain_entry else None,
             )
+
+            if domain_entry:
+                domain_entry.spf_record = spf_record
+                domain_entry.spf_record_valid = spf_valid
+                domain_entry.dmarc_record = dmarc_record
+                domain_entry.dmarc_record_valid = dmarc_valid
+                domain_entry.dkim_record = dkim_record
+                domain_entry.dkim_record_valid = dkim_valid
+                domain_entry.forwarding_enabled = forwarding_enabled
+                db.session.commit()
 
             # Get the old warmup
             old_warmup: WarmupSnapshot = WarmupSnapshot.query.filter_by(

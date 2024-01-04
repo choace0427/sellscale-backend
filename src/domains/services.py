@@ -976,7 +976,7 @@ def domain_purchase_workflow(
     create_domain_entry(
         domain=domain_name,
         client_id=client_id,
-        forward_to=domain_name,
+        forward_to=client.domain or domain_name,
         aws=True,
     )
 
@@ -1151,6 +1151,7 @@ def validate_all_domain_configurations() -> bool:
     return True
 
 
+# DEPRECATE ME ONCE THERE IS NO MORE SMARTLEAD
 def backfill_warmup_snapshots_into_domains():
     """Backfills warmup snapshots into domains"""
     from src.warmup_snapshot.models import WarmupSnapshot
@@ -1167,10 +1168,11 @@ def backfill_warmup_snapshots_into_domains():
 
         if not existing_domain:
             sdr: ClientSDR = ClientSDR.query.get(snapshot.client_sdr_id)
+            client: Client = Client.query.get(sdr.client_id)
             new_domain = Domain(
                 client_id=sdr.client_id,
                 domain=domain,
-                forward_to=domain,
+                forward_to=client.domain or domain,
                 aws=False,
             )
             db.session.add(new_domain)

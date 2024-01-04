@@ -317,12 +317,14 @@ def run_collect_and_generate_email_messaging_schedule_entries():
 
 def run_set_warmup_snapshots():
     from src.warmup_snapshot.services import set_warmup_snapshots_for_all_active_sdrs
+    from src.domains.services import validate_all_domain_configurations
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         set_warmup_snapshots_for_all_active_sdrs.delay()
+        validate_all_domain_configurations.delay()
 
 
 def run_collect_and_send_email_messaging_schedule_entries():

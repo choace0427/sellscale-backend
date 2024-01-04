@@ -16,6 +16,7 @@ class Client(db.Model):
 
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     company = db.Column(db.String)
+    domain = db.Column(db.String, nullable=True)
     contact_name = db.Column(db.String)
     contact_email = db.Column(db.String)
 
@@ -87,6 +88,7 @@ class Client(db.Model):
             "company": self.company,
             "contact_name": self.contact_name,
             "contact_email": self.contact_email,
+            "domain": self.domain,
             "active": self.active,
             "linkedin_outbound_enabled": self.linkedin_outbound_enabled,
             "email_outbound_enabled": self.email_outbound_enabled,

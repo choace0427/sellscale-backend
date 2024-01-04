@@ -79,6 +79,7 @@ def get_client(client_id: int):
 
 def create_client(
     company: str,
+    company_website: str,
     contact_name: str,
     contact_email: str,
     linkedin_outbound_enabled: bool,
@@ -90,8 +91,15 @@ def create_client(
     if c:
         return {"client_id": c.id}
 
+    # Get the full company_website URL
+    if not company_website.startswith("http://"):
+        company_website = "http://" + company_website
+    response = requests.get(company_website, allow_redirects=True)
+    company_website = response.url
+
     c: Client = Client(
         company=company,
+        domain=company_website,
         contact_name=contact_name,
         contact_email=contact_email,
         active=True,
@@ -130,6 +138,7 @@ def create_client(
 def update_client_details(
     client_id: int,
     company: Optional[str] = None,
+    company_website: Optional[str] = None,
     tagline: Optional[str] = None,
     description: Optional[str] = None,
     value_prop_key_points: Optional[str] = None,
@@ -144,6 +153,13 @@ def update_client_details(
 
     if company:
         c.company = company
+    if company_website:
+        # Get the full company_website URL
+        if not company_website.startswith("http://"):
+            company_website = "http://" + company_website
+        response = requests.get(company_website, allow_redirects=True)
+        company_website = response.url
+        c.domain = company_website
     if tagline:
         c.tagline = tagline
     if description:
