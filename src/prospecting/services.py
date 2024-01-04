@@ -1058,25 +1058,6 @@ def update_prospect_status_email(
                         ),
                     },
                 },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "🧳 Title: "
-                            + str(p.title)
-                            + " @ "
-                            + str(p.company)[0:20]
-                            + ("..." if len(p.company) > 20 else ""),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "📌 SDR: " + sdr.name,
-                            "emoji": True,
-                        },
-                    ],
-                },
                 {"type": "divider"},
                 {
                     "type": "section",
@@ -1098,6 +1079,25 @@ def update_prospect_status_email(
                             disqualification_reason=disqualification_reason,
                         ),
                     },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "🧳 Title: "
+                            + str(p.title)
+                            + " @ "
+                            + str(p.company)[0:20]
+                            + ("..." if len(p.company) > 20 else ""),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "📌 SDR: " + sdr.name,
+                            "emoji": True,
+                        },
+                    ],
                 },
             ],
         )
