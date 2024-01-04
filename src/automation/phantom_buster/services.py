@@ -168,6 +168,28 @@ def create_phantom_buster_sales_navigator_config(
     return config.id
 
 
+def sanitized_sales_navigator_url(sales_navigator_url: str) -> str:
+    """Sanitizes the Sales Navigator URL
+
+    Args:
+        sales_navigator_url (str): Sales Navigator URL
+
+    Returns:
+        str: Sanitized Sales Navigator URL
+    """
+    try:
+        if "page=" in sales_navigator_url:
+            page_index = sales_navigator_url.index("page=")
+            sales_navigator_url = (
+                sales_navigator_url[:page_index] + sales_navigator_url[page_index + 6 :]
+            )
+
+        return sales_navigator_url
+    except Exception as e:
+        print(f"Error sanitizing Sales Navigator URL: {e}")
+        return sales_navigator_url
+
+
 def register_phantom_buster_sales_navigator_url(
     sales_navigator_url: str,
     scrape_count: int,
@@ -234,11 +256,15 @@ def register_phantom_buster_sales_navigator_url(
     config.daily_prospect_count += min(scrape_count, MAXIMUM_SCRAPE_PER_LAUNCH)
     db.session.commit()
 
+    sanitized_url = sanitized_sales_navigator_url(
+        sales_navigator_url=sales_navigator_url
+    )
+
     # Create a PhantomBusterSalesNavigatorLaunch entry
     launch = PhantomBusterSalesNavigatorLaunch(
         sales_navigator_config_id=config.id,
         client_sdr_id=client_sdr_id,
-        sales_navigator_url=sales_navigator_url,
+        sales_navigator_url=sanitized_url,
         status=SalesNavigatorLaunchStatus.QUEUED,
         scrape_count=scrape_count,
         name=scrape_name,
@@ -533,10 +559,9 @@ def run_phantom_buster_sales_navigator(self, launch_id: int) -> tuple[bool, str]
         # Retry
         self.retry(exc=e, countdown=5)
 
+
 def register_phantom_buster_sales_navigator_account_filters_url(
-    launch_id: int, 
-    client_sdr_id: int, 
-    account_filters_url: str
+    launch_id: int, client_sdr_id: int, account_filters_url: str
 ) -> bool:
     """
     Registers the account_filters_url for a given PhantomBusterSalesNavigatorLaunch.
