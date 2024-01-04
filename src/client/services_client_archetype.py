@@ -165,18 +165,37 @@ def get_archetype_activity(client_sdr_id: int) -> list[dict]:
     results = db.session.execute(
         """
         SELECT
-            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SENT_OUTREACH'
-                AND prospect_status_records.created_at > now() - '{interval}'::interval) "messages_sent",
-            count(DISTINCT linkedin_conversation_entry.id) FILTER (WHERE linkedin_conversation_entry.date > now() - '{interval}'::interval
+            count(DISTINCT prospect.id) FILTER (
+                WHERE 
+                    (
+                        prospect_status_records.to_status = 'SENT_OUTREACH'
+                        AND prospect_status_records.created_at > now() - '{interval}'::interval
+                    )
+                    OR 
+                    (
+                        prospect_email_status_records.to_status = 'SENT_OUTREACH'
+                        AND prospect_email_status_records.created_at > now() - '{interval}'::interval
+                    )
+            ) "messages_sent",
+            count(DISTINCT linkedin_conversation_entry.id) FILTER (
+                WHERE 
+                    (
+                        linkedin_conversation_entry.date > now() - '{interval}'::interval
+                        AND linkedin_conversation_entry.ai_generated
+                        AND prospect.overall_status IN ('ACCEPTED', 'BUMPED')
+                    )
+            ) "bumps_sent",
+            count(DISTINCT linkedin_conversation_entry.id) FILTER (
+                WHERE linkedin_conversation_entry.date > now() - '{interval}'::interval
                 AND linkedin_conversation_entry.ai_generated
-                AND prospect.overall_status IN ('ACCEPTED', 'BUMPED')) "bumps_sent",
-            count(DISTINCT linkedin_conversation_entry.id) FILTER (WHERE linkedin_conversation_entry.date > now() - '{interval}'::interval
-                AND linkedin_conversation_entry.ai_generated
-                AND prospect.overall_status IN ('ACTIVE_CONVO')) "replies_sent"
+                AND prospect.overall_status IN ('ACTIVE_CONVO')
+            ) "replies_sent"
         FROM
             prospect
             LEFT JOIN linkedin_conversation_entry ON linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
             LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
+            LEFT JOIN prospect_email on prospect_email.prospect_id = prospect.id
+            LEFT JOIN prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
         WHERE client_id = {client_id};
         """.format(
             interval=interval, client_id=client_id
