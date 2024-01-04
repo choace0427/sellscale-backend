@@ -392,7 +392,8 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
         archetype_id=archetype_id,
     )
 
-    send_slack_notif_campaign_active(client_sdr_id, archetype_id, "LinkedIn")
+    if active:
+        send_slack_notif_campaign_active(client_sdr_id, archetype_id, "LinkedIn")
 
     return jsonify({"status": "success"}), 200
 
@@ -416,7 +417,8 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
     archetype.email_active = active
     db.session.commit()
 
-    send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
+    if active:
+        send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
 
     random_prospects = (
         Prospect.query.filter(
