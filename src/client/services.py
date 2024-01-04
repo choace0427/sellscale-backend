@@ -2315,8 +2315,7 @@ def send_demo_reminders():
 def send_demo_feedback_reminder():
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.demo_date != None,
-        Prospect.demo_date <= datetime.now() + timedelta(hours=24),
-        Prospect.demo_date >= datetime.now(),
+        Prospect.demo_date <= datetime.now() - timedelta(days=1),
     ).all()
 
     for prospect in prospects:
