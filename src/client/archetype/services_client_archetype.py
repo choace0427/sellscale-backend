@@ -415,6 +415,9 @@ def send_slack_notif_campaign_active(client_sdr_id: int, archetype_id: int, type
         + "&redirect=campaigns"
     )
 
+    next_day = datetime.utcnow() + timedelta(days=1)
+    formatted_next_day = next_day.strftime("%b %d, %Y")
+
     # next_message = GeneratedMessage.query.filter(
     #     GeneratedMessage.message_status == 'QUEUED_FOR_OUTREACH',
     #     GeneratedMessage. > datetime.utcnow()
@@ -435,30 +438,30 @@ def send_slack_notif_campaign_active(client_sdr_id: int, archetype_id: int, type
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Persona:* {archetype.archetype}.\n",
+                    "text": f"*Persona:* {archetype.archetype}\n",
                 },
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Contacts:* {len(prospects)}.\n",
+                    "text": f"*Contacts:* {len(prospects)}\n",
                 },
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Steps:* {len(archetype.email_blocks_configuration) if type == 'email' else archetype.li_bump_amount+1}.\n",
+                    "text": f"*Steps:* {len(archetype.email_blocks_configuration) if type == 'email' else archetype.li_bump_amount+1} steps\n",
                 },
             },
-            # {
-            #     "type": "section",
-            #     "text": {
-            #         "type": "mrkdwn",
-            #         "text": f"*Sending on:* {archetype.}.\n",
-            #     },
-            # },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Sending on:* {formatted_next_day} (+1 day)\n",
+                },
+            },
             {
                 "type": "section",
                 "text": {
