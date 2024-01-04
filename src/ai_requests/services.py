@@ -5,6 +5,7 @@ from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack utility
 from src.client.models import ClientSDR
 
+
 def create_ai_requests(client_sdr_id, description):
     try:
         # Generate title using GPT-3.5
@@ -19,7 +20,7 @@ def create_ai_requests(client_sdr_id, description):
             creation_date=datetime.utcnow(),
             due_date=datetime.utcnow() + timedelta(days=1),
             status=AIRequestStatus.QUEUED,
-            message=""
+            message="",
         )
 
         db.session.add(new_request)
@@ -33,6 +34,28 @@ def create_ai_requests(client_sdr_id, description):
         print(f"Error creating AI request: {e}")
         db.session.rollback()
         return None
+
+
+def update_ai_requests(request_id: int, status: AIRequestStatus, hours_worked: int):
+    try:
+        # Fetch the AI request object
+        ai_request: AIRequest = AIRequest.query.get(request_id)
+        if not ai_request:
+            print(f"AI Request with ID {request_id} not found")
+            return None
+
+        # Update the AI request object
+        ai_request.status = status
+
+        db.session.commit()
+
+        return ai_request
+
+    except Exception as e:
+        print(f"Error creating AI request: {e}")
+        db.session.rollback()
+        return None
+
 
 def send_slack_notification_for_new_request(client_sdr_id, request):
     """
@@ -57,6 +80,7 @@ def send_slack_notification_for_new_request(client_sdr_id, request):
     )
     send_slack_message(message=message, webhook_urls=[URL_MAP["eng-sandbox"]])
 
+
 def generate_title_with_gpt(description):
     """
     Generates a title for the AI request using GPT-3.5-turbo.
@@ -66,18 +90,17 @@ def generate_title_with_gpt(description):
         "Create a concise, informative title of 6 words or less that summarizes the main objective or action of the inputted request."
         "Do not add any additional characters like periods or quotations, just return alphanumeric text."
         "The most important requirement is to ensure the title does not go over 6 words, so make most titles around the range of 3-5 words"
-
     )
     prompt = f"{instruction}\n\nRequest Description:\n{description}"
 
     # Format the messages for GPT-3.5-turbo
-    messages = [
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
+    messages = [{"role": "user", "content": prompt}]
 
     # Call the wrapped GPT-3.5-turbo completion function and removing quotations, periods, and extra spaces
-    response = wrapped_chat_gpt_completion(messages=messages, max_tokens=60).replace("\"", "").replace(".", "").strip()
+    response = (
+        wrapped_chat_gpt_completion(messages=messages, max_tokens=60)
+        .replace('"', "")
+        .replace(".", "")
+        .strip()
+    )
     return response
