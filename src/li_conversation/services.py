@@ -598,6 +598,7 @@ def detect_queue_for_continue_the_sequence_keywords(
         [
             "no thanks",
             "not interested",
+            "no, thanks",
         ]
     )
 
@@ -636,6 +637,8 @@ def detect_queue_for_continue_the_sequence_keywords(
 > 🤖 *SDR:* {sdr.name} | 👥 *Prospect:* {prospect.full_name}
 
 Take appropriate action then mark this message as ✅ (_if this classification was wrong, please let an engineer know_)
+
+*Direct Link:* {direct_link}
                 """,
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
