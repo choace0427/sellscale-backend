@@ -11,9 +11,10 @@ def send_email(
     to_emails: list[str] = [],
     cc_emails: list[str] = [],
     bcc_emails: list[str] = [],
+    from_email: str = "ai@sellscale.com",
 ):
     params = {
-        "from": "ai@sellscale.com",
+        "from": from_email,
         "to": to_emails,
         "subject": title,
         "html": html,

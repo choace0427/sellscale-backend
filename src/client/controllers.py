@@ -16,6 +16,7 @@ from src.client.services import (
     toggle_client_sdr_auto_send_email_campaign,
     update_client_auto_generate_email_messages_setting,
 )
+from src.automation.resend import send_email
 from src.client.services import (
     edit_demo_feedback,
     import_pre_onboarding,
@@ -2650,3 +2651,23 @@ def get_campaign_overview(client_sdr_id: int):
     )
 
     return jsonify(overview), 200
+
+
+@CLIENT_BLUEPRINT.route("/send_generic_email", methods=["POST"])
+@require_user
+def post_send_generic_email(client_sdr_id: int):
+    from_email = get_request_parameter("from_email", request, json=True, required=True)
+    to_emails = get_request_parameter("to_emails", request, json=True, required=True)
+    bcc_emails = get_request_parameter("bcc_emails", request, json=True, required=True)
+    subject = get_request_parameter("subject", request, json=True, required=True)
+    body = get_request_parameter("body", request, json=True, required=True)
+
+    send_email(
+        html=body,
+        title=subject,
+        from_email=from_email,
+        to_emails=to_emails,
+        bcc_emails=bcc_emails,
+    )
+
+    return jsonify({"message": "Success", "data": True}), 200
