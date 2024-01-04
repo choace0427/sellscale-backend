@@ -112,6 +112,13 @@ class ICPScoringRuleset(db.Model):
         db.ARRAY(db.String), nullable=True
     )
 
+    included_individual_seniority_keywords = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+    excluded_individual_seniority_keywords = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+
     def to_dict(self):
         return {
             "client_archetype_id": self.client_archetype_id,
@@ -139,4 +146,6 @@ class ICPScoringRuleset(db.Model):
             "excluded_company_generalized_keywords": self.excluded_company_generalized_keywords,
             "included_individual_education_keywords": self.included_individual_education_keywords,
             "excluded_individual_education_keywords": self.excluded_individual_education_keywords,
+            "included_individual_seniority_keywords": self.included_individual_seniority_keywords,
+            "excluded_individual_seniority_keywords": self.excluded_individual_seniority_keywords,
         }
