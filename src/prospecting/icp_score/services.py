@@ -73,6 +73,8 @@ def update_icp_scoring_ruleset(
     excluded_company_generalized_keywords: list,
     included_individual_education_keywords: list,
     excluded_individual_education_keywords: list,
+    included_individual_seniority_keywords: list,
+    excluded_individual_seniority_keywords: list,
 ):
     icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id
@@ -152,6 +154,12 @@ def update_icp_scoring_ruleset(
     icp_scoring_ruleset.excluded_individual_education_keywords = (
         excluded_individual_education_keywords
     )
+    icp_scoring_ruleset.included_individual_seniority_keywords = (
+        included_individual_seniority_keywords
+    )
+    icp_scoring_ruleset.excluded_individual_seniority_keywords = (
+        excluded_individual_seniority_keywords
+    )
 
     db.session.add(icp_scoring_ruleset)
     db.session.commit()
@@ -173,6 +181,11 @@ def count_num_icp_attributes(client_archetype_id: int):
     if (
         icp_scoring_ruleset.included_individual_title_keywords
         or icp_scoring_ruleset.excluded_individual_title_keywords
+    ):
+        count += 1
+    if (
+        icp_scoring_ruleset.included_individual_seniority_keywords 
+        or icp_scoring_ruleset.excluded_individual_seniority_keywords
     ):
         count += 1
     if (
@@ -419,6 +432,39 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.prospect_title.lower():
                     valid_title = keyword
                     reasoning += "(✅ prospect title: " + valid_title + ") "
+
+        # Prospect Seniority
+        if (
+            icp_scoring_ruleset.excluded_individual_seniority_keywords
+            and enriched_prospect_company.prospect_title
+            and any(
+                keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                for keyword in icp_scoring_ruleset.excluded_individual_seniority_keywords
+            )
+        ):
+            score -= num_attributes
+            # find the invalid title
+            invalid_title = ""
+            for keyword in icp_scoring_ruleset.excluded_individual_seniority_keywords:
+                if keyword.lower() in enriched_prospect_company.prospect_title.lower():
+                    invalid_title = keyword
+                    break
+            reasoning += "(❌ prospect seniority: " + invalid_title + ") "
+        elif (
+            icp_scoring_ruleset.included_individual_seniority_keywords
+            and enriched_prospect_company.prospect_title
+            and any(
+                keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                for keyword in icp_scoring_ruleset.included_individual_seniority_keywords
+            )
+        ):
+            score += 1
+            valid_title = ""
+            for keyword in icp_scoring_ruleset.included_individual_seniority_keywords:
+                if keyword.lower() in enriched_prospect_company.prospect_title.lower():
+                    valid_title = keyword
+                    reasoning += "(✅ prospect seniority: " + valid_title + ") "
+
 
         # Prospect Industry
         if (
@@ -1316,6 +1362,8 @@ def set_icp_scores_to_predicted_values(client_archetype_id: int):
         excluded_company_generalized_keywords=[],
         included_individual_education_keywords=[],
         excluded_individual_education_keywords=[],
+        included_individual_seniority_keywords=[],
+        excluded_individual_seniority_keywords=[],
     )
 
     return success
@@ -1348,6 +1396,8 @@ def clear_icp_ruleset(client_archetype_id: int):
         excluded_company_generalized_keywords=[],
         included_individual_education_keywords=[],
         excluded_individual_education_keywords=[],
+        included_individual_seniority_keywords=[],
+        excluded_individual_seniority_keywords=[],
     )
 
     return success
@@ -1387,6 +1437,8 @@ def clone_icp_ruleset(source_archetype_id: int, target_archetype_id: int):
         excluded_company_generalized_keywords=icp_ruleset.excluded_company_generalized_keywords,
         included_individual_education_keywords=icp_ruleset.included_individual_education_keywords,
         excluded_individual_education_keywords=icp_ruleset.excluded_individual_education_keywords,
+        included_individual_seniority_keywords=icp_ruleset.included_individual_seniority_keywords,
+        excluded_individual_seniority_keywords=icp_ruleset.excluded_individual_seniority_keywords,
     )
 
     return success

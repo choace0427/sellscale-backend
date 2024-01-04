@@ -20,7 +20,6 @@ from src.utils.slack import send_slack_message, URL_MAP
 
 
 def backfill_prospects(client_sdr_id):
-
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
     ).all()
@@ -50,7 +49,6 @@ def backfill_prospects(client_sdr_id):
 def convert_to_prospects(
     client_sdr_id: int, client_archetype_id: int, individual_ids: list[int]
 ):
-
     from src.automation.orchestrator import add_process_list
     from src.client.models import ClientArchetype
 
@@ -86,7 +84,6 @@ def convert_to_prospects(
 def convert_to_prospect(
     client_sdr_id: int, client_archetype_id: int, individual_id: int
 ):
-
     from src.prospecting.services import add_prospect
     from src.client.models import ClientArchetype
 
@@ -212,7 +209,6 @@ def individual_similar_profile_crawler(individual_id: int):
 def add_individual_from_linkedin_url(
     self, url: str, upload_id: Optional[int] = None
 ) -> tuple[bool, int or str, bool or None]:
-
     from src.research.linkedin.services import research_personal_profile_details
     from src.prospecting.services import (
         get_navigator_slug_from_url,
@@ -263,7 +259,6 @@ def add_individual_from_linkedin_url(
 
 
 def backfill_iscraper_cache(start_index: int, end_index: int):
-
     from src.automation.orchestrator import add_process_list
 
     caches: list[IScraperPayloadCache] = IScraperPayloadCache.query.filter(
@@ -405,7 +400,6 @@ def add_individual_from_iscraper_cache(li_url: str, upload_id: Optional[int] = N
 
 @celery.task
 def add_individual_from_prospect(prospect_id: int) -> bool:
-
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.individual_id:
         return False
@@ -762,14 +756,22 @@ def add_individual(
 
 
 def get_uploads():
-    uploads: list[IndividualsUpload] = IndividualsUpload.query.order_by(
-        IndividualsUpload.id.desc(),
-    ).limit(100).all()
+    uploads: list[IndividualsUpload] = (
+        IndividualsUpload.query.order_by(
+            IndividualsUpload.id.desc(),
+        )
+        .limit(100)
+        .all()
+    )
     return [upload.to_dict() for upload in uploads]
 
 
-def start_upload(name: str, data: list[dict], client_id: Optional[int] = None, client_archetype_id: Optional[int] = None):
-
+def start_upload(
+    name: str,
+    data: list[dict],
+    client_id: Optional[int] = None,
+    client_archetype_id: Optional[int] = None,
+):
     from src.automation.orchestrator import add_process_list
 
     upload = IndividualsUpload(
@@ -806,7 +808,6 @@ def start_upload(name: str, data: list[dict], client_id: Optional[int] = None, c
 
 
 def start_upload_from_urn_ids(name: str, urn_ids: list[str]):
-
     from src.automation.orchestrator import add_process_list
 
     upload = IndividualsUpload(
@@ -839,7 +840,6 @@ def start_upload_from_urn_ids(name: str, urn_ids: list[str]):
 def upload_job_for_individual(
     upload_id: int = None, profile_url: str = None, urn_id: str = None
 ):
-
     if not profile_url and urn_id:
         from src.voyager.linkedin import LinkedIn
 
@@ -863,9 +863,9 @@ def upload_job_for_individual(
 
 
 def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int = 0):
-
     from src.prospecting.icp_score.models import ICPScoringRuleset
     from model_import import ClientArchetype
+
     # from src.vector_db.services import fetch_individuals
 
     ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
@@ -890,39 +890,6 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
     )
 
     if ruleset:
-        
-        query = ""
-
-        # if ruleset.included_individual_title_keywords:
-        #     query += "; title: "+(", ".join(ruleset.included_individual_title_keywords))
-
-        # if ruleset.included_individual_industry_keywords:
-        #     query += "; industry: "+(", ".join(ruleset.included_individual_industry_keywords))
-        
-        # if ruleset.included_company_name_keywords:
-        #     query += "; company: "+(", ".join(ruleset.included_company_name_keywords))
-
-        # if ruleset.included_individual_generalized_keywords:
-        #     query += "; bio: "+(", ".join(ruleset.included_individual_generalized_keywords))
-
-        # if ruleset.included_individual_locations_keywords:
-        #     query += "; location: "+(", ".join(ruleset.included_individual_locations_keywords))
-
-        # if ruleset.included_individual_skills_keywords:
-        #     query += "; skills: "+(", ".join(ruleset.included_individual_skills_keywords))
-
-        # if ruleset.included_company_generalized_keywords:
-        #     query += "; company bio: "+(", ".join(ruleset.included_company_generalized_keywords))
-        
-        
-        # ids: list[int] = fetch_individuals(
-        #     queries=[query],
-        #     keywords={},
-        #     amount=limit
-        # )
-
-        # individuals_query = individuals_query.filter(Individual.id.in_(ids))
-
         # # Title
         if ruleset.included_individual_title_keywords:
             keyword_filters = [
@@ -935,6 +902,21 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
             exclude_filters = [
                 not_(Individual.title.ilike(f"%{keyword}%"))
                 for keyword in ruleset.excluded_individual_title_keywords
+            ]
+            individuals_query = individuals_query.filter(and_(*exclude_filters))
+
+        # Seniority
+        if ruleset.included_individual_seniority_keywords:
+            keyword_filters = [
+                Individual.title.ilike(f"%{keyword}%")
+                for keyword in ruleset.included_individual_seniority_keywords
+            ]
+            individuals_query = individuals_query.filter(or_(*keyword_filters))
+
+        if ruleset.excluded_individual_seniority_keywords:
+            exclude_filters = [
+                not_(Individual.title.ilike(f"%{keyword}%"))
+                for keyword in ruleset.excluded_individual_seniority_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
 
@@ -987,7 +969,8 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         if ruleset.included_individual_locations_keywords:
             keyword_filters = [
                 text("CAST(individual.location AS TEXT) ILIKE :keyword").bindparams(
-                    keyword=rf"%{keyword}%")
+                    keyword=rf"%{keyword}%"
+                )
                 for keyword in ruleset.included_individual_locations_keywords
             ]
             individuals_query = individuals_query.filter(or_(*keyword_filters))
@@ -995,7 +978,8 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
         if ruleset.excluded_individual_locations_keywords:
             exclude_filters = [
                 ~text("CAST(individual.location AS TEXT) ILIKE :keyword").bindparams(
-                    keyword=rf"%{keyword}%")
+                    keyword=rf"%{keyword}%"
+                )
                 for keyword in ruleset.excluded_individual_locations_keywords
             ]
             individuals_query = individuals_query.filter(and_(*exclude_filters))
