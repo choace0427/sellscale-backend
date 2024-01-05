@@ -310,6 +310,12 @@ Output:""".format(
     ):
         return completion
 
+    # if has surrounding quotes, remove
+    if fixed_completion[0] == '"' and fixed_completion[-1] == '"':
+        fixed_completion = fixed_completion[1:-1]
+    if fixed_completion[0] == "'" and fixed_completion[-1] == "'":
+        fixed_completion = fixed_completion[1:-1]
+
     return fixed_completion
 
 
