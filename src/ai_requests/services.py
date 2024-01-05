@@ -84,7 +84,7 @@ def create_ai_requests(client_sdr_id, description):
                     },
                 },
             ],
-            webhook_urls=URL_MAP["csm-client-requests"],
+            webhook_urls=[URL_MAP["csm-client-requests"]],
         )
 
         # Send Slack notification for the new request

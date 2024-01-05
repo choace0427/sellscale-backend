@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from src.ai_requests.models import AIRequest, AIRequestStatus
+from model_import import ClientSDR
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.ai_requests.services import create_ai_requests, update_ai_requests
@@ -19,11 +20,15 @@ def get_all_ai_requests():
     """
     try:
         # Finds all AIRequests
-        ai_requests = AIRequest.query.all()
+        ai_requests = AIRequest.query.join(
+            ClientSDR, AIRequest.client_sdr_id == ClientSDR.id
+        ).all()
+
         ai_requests_data = [
             {
                 "id": req.id,
                 "client_sdr_id": req.client_sdr_id,
+                "client_sdr_name": req.client_sdr.name,
                 "title": req.title,
                 "description": req.description,
                 "percent_complete": req.percent_complete,
@@ -31,6 +36,7 @@ def get_all_ai_requests():
                 "due_date": req.due_date.isoformat(),
                 "status": req.status.value,
                 "message": req.message,
+                # Add other fields from ClientSDR as needed
             }
             for req in ai_requests
         ]
