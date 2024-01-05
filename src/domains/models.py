@@ -10,6 +10,8 @@ class Domain(db.Model):
     forward_to = db.Column(db.String(255), nullable=False)
 
     aws = db.Column(db.Boolean, nullable=False)
+    aws_domain_registration_status = db.Column(db.String, nullable=True)
+    aws_domain_registration_job_id = db.Column(db.String, nullable=True)
     aws_hosted_zone_id = db.Column(db.String, nullable=True)
     aws_amplify_app_id = db.Column(db.String, nullable=True)
 
@@ -29,6 +31,8 @@ class Domain(db.Model):
             "domain": self.domain,
             "forward_to": self.forward_to,
             "aws": self.aws,
+            "aws_domain_registration_status": self.aws_domain_registration_status,
+            "aws_domain_registration_job_id": self.aws_domain_registration_job_id,
             "aws_hosted_zone_id": self.aws_hosted_zone_id,
             "aws_amplify_app_id": self.aws_amplify_app_id,
             "dmarc_record": self.dmarc_record,

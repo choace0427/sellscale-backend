@@ -860,7 +860,7 @@ def domain_purchase_workflow(
         return False, "Client not found"
 
     # Register the domain
-    status, _, _ = register_aws_domain(domain_name)
+    status, response, _ = register_aws_domain(domain_name)
     if status == 500:
         return False, "Failed to purchase domain"
 
@@ -870,6 +870,8 @@ def domain_purchase_workflow(
         client_id=client_id,
         forward_to=client.domain or domain_name,
         aws=True,
+        aws_domain_registration_status="SUBMITTED",
+        aws_domain_registration_job_id=response.get("OperationId", -1),
     )
 
     from src.automation.orchestrator import add_process_for_future
@@ -898,11 +900,48 @@ def domain_setup_workflow(
     Returns:
         tuple: A tuple containing the status and a message
     """
+    # Get the Domain
+    domain: Domain = Domain.query.get(domain_id)
+    if not domain:
+        return False, "Domain not found"
 
+    # Verify that the domain is successfully registered
+    if domain.aws_domain_registration_job_id:
+        response = aws_route53domains_client.get_operation_detail(
+            domain.aws_domain_registration_job_id
+        )
+        status = response.get("Status")
+        domain.aws_domain_registration_status = status
+        db.session.commit()
+
+        # In 15 min, setup the domain
+        if status == "IN_PROGRESS":
+            from src.automation.orchestrator import add_process_for_future
+
+            add_process_for_future(
+                type="domain_setup_workflow",
+                args={"domain_name": domain_name, "domain_id": domain_id},
+                minutes=30,
+            )
+
+            return False, "Domain registration still in progress"
+
+        if status != "SUCCESSFUL":
+            return False, "Domain registration still in progress"
+
+    # Get the hosted zone ID
+    hosted_zone_id = get_hosted_zone_id(domain_name)
+    if hosted_zone_id is None:
+        return False, "Hosted zone not found for domain"
+    domain.aws_hosted_zone_id = hosted_zone_id
+    db.session.commit()
+
+    # Add DNS records
     success, _ = add_email_dns_records(domain_name)
     if not success:
         return False, "Failed to add email DNS records"
 
+    # Configure email forwarding
     success, _ = configure_email_forwarding(
         domain_name=domain_name, domain_id=domain_id
     )
@@ -1188,6 +1227,20 @@ def patch_domain_entry(
 
 
 @celery.task
+def validate_all_domain_configurations() -> bool:
+    """Validates the configuration of all domains
+
+    Returns:
+        bool: True if valid, else False
+    """
+    domains: list[Domain] = Domain.query.all()
+    for domain in domains:
+        validate_domain_configuration.delay(domain.id)
+
+    return True
+
+
+@celery.task
 def validate_domain_configuration(domain_id: int) -> bool:
     """Validates the configuration of a domain
 
@@ -1220,20 +1273,6 @@ def validate_domain_configuration(domain_id: int) -> bool:
     domain.last_refreshed = datetime.utcnow()
 
     db.session.commit()
-
-    return True
-
-
-@celery.task
-def validate_all_domain_configurations() -> bool:
-    """Validates the configuration of all domains
-
-    Returns:
-        bool: True if valid, else False
-    """
-    domains: list[Domain] = Domain.query.all()
-    for domain in domains:
-        validate_domain_configuration.delay(domain.id)
 
     return True
 

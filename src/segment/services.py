@@ -6,7 +6,7 @@ from src.segment.models import Segment
 
 def create_new_segment(
     client_sdr_id: int, segment_title: str, filters: dict
-) -> Segment | None:
+) -> Segment or None:
     # dulicate check
     existing_segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, segment_title=segment_title
