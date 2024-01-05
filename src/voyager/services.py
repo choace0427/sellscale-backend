@@ -758,6 +758,8 @@ def update_prospect_status(prospect_id: int, convo_urn_id: str):
         and prospect.overall_status != ProspectOverallStatus.ACCEPTED
         and prospect.overall_status != ProspectStatus.PROSPECTED
         and prospect.overall_status != ProspectStatus.SENT_OUTREACH
+        and prospect.status != ProspectStatus.ACTIVE_CONVO_REVIVAL
+        and prospect.status != ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE
     ):
         prospect.hidden_until = dt.datetime.now()
         db.session.add(prospect)
