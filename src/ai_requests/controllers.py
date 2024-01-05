@@ -29,6 +29,7 @@ def get_all_ai_requests():
                 "id": req.id,
                 "client_sdr_id": req.client_sdr_id,
                 "client_sdr_name": req.client_sdr.name,
+                "client_auth_token": req.client_sdr.auth_token,
                 "title": req.title,
                 "description": req.description,
                 "percent_complete": req.percent_complete,
