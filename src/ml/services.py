@@ -279,29 +279,36 @@ This template was used to generate the email. Do not deviate from the template:
         )
 
     # Construct the final prompt
-    prompt = """message:
-{completion}
+    prompt = """Message:
+"{completion}"
 
-problems:
+Problems:
 {problems_bulleted}
 
-instruction: {instruction}
+Instruction: {instruction}
 
-Important: Return only the revised message.
+Important: Return only the revised message with the problems fixed. Do not include the original message or the problems in the output.
 
-revised message:""".format(
+Output:""".format(
         completion=completion,
         problems_bulleted=problems_bulleted,
         instruction=instruction,
     )
 
     # Get the fixed completion
-    fixed_completion = wrapped_create_completion(
-        model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
-        prompt=prompt,
+    fixed_completion = wrapped_chat_gpt_completion(
+        model=OPENAI_CHAT_GPT_4_MODEL,
+        messages=[{"role": "user", "content": prompt}],
         temperature=0,
         max_tokens=len(completion) + 10,
     )
+
+    if (
+        "Problems:" in fixed_completion
+        or "Instruction:" in fixed_completion
+        or "===" in fixed_completion
+    ):
+        return completion
 
     return fixed_completion
 
