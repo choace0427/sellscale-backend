@@ -393,6 +393,7 @@ class Prospect(db.Model):
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
+    segment_id = db.Column(db.Integer, db.ForeignKey("segment.id"), nullable=True)
 
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     company = db.Column(db.String, nullable=True)
