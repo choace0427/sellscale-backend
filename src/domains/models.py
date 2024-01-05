@@ -11,6 +11,7 @@ class Domain(db.Model):
 
     aws = db.Column(db.Boolean, nullable=False)
     aws_hosted_zone_id = db.Column(db.String, nullable=True)
+    aws_amplify_app_id = db.Column(db.String, nullable=True)
 
     dmarc_record = db.Column(db.String, nullable=True)
     dmarc_record_valid = db.Column(db.Boolean, nullable=True, default=False)
@@ -27,6 +28,7 @@ class Domain(db.Model):
             "forward_to": self.forward_to,
             "aws": self.aws,
             "aws_hosted_zone_id": self.aws_hosted_zone_id,
+            "aws_amplify_app_id": self.aws_amplify_app_id,
             "dmarc_record": self.dmarc_record,
             "dmarc_record_valid": self.dmarc_record_valid,
             "spf_record": self.spf_record,

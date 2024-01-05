@@ -7,9 +7,15 @@ from app import (
     aws_route53_client,
     aws_ses_client,
     aws_workmail_client,
+    aws_amplify_client,
 )
 from app import db, celery
 from botocore.exceptions import ClientError
+from src.aws.amplify import (
+    create_aws_amplify_app,
+    create_aws_amplify_branch,
+    create_aws_amplify_domain_association,
+)
 from src.client.models import Client, ClientSDR
 from src.client.sdr.email.models import EmailType, SDREmailBank
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
@@ -611,124 +617,6 @@ def get_hosted_zone_id(domain_name: str) -> Optional[str]:
     return None
 
 
-def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
-    """Adds DNS records for a domain. Namely DKIM, DMARC, SPF, MX, and verification records
-
-    Args:
-        domain_name (str): The domain name to add DNS records for
-
-    Returns:
-        tuple: A tuple containing the status and a message
-    """
-    hosted_zone_id = get_hosted_zone_id(domain_name)
-    if hosted_zone_id is None:
-        return False, "Hosted zone not found for domain"
-    dkim_tokens = generate_dkim_tokens(domain_name)
-
-    # DKIM records
-    dkim_records = []
-    for token in dkim_tokens:
-        dkim_record = {
-            "Action": "UPSERT",
-            "ResourceRecordSet": {
-                "Name": "{}._domainkey.{}".format(token, domain_name),
-                "Type": "CNAME",
-                "TTL": 300,
-                "ResourceRecords": [{"Value": "{}.dkim.amazonses.com".format(token)}],
-            },
-        }
-        dkim_records.append(dkim_record)
-
-    # DMARC record
-    dmarc_record = {
-        "Action": "UPSERT",
-        "ResourceRecordSet": {
-            "Name": "_dmarc." + domain_name,
-            "Type": "TXT",
-            "TTL": 300,
-            "ResourceRecords": [
-                {
-                    "Value": f'"v=DMARC1; p=none; rua=mailto:sellscale@{domain_name}; ruf=mailto:sellscale@{domain_name}"'
-                }
-            ],
-        },
-    }
-
-    # SPF record
-    spf_record = {
-        "Action": "UPSERT",
-        "ResourceRecordSet": {
-            "Name": domain_name,
-            "Type": "TXT",
-            "TTL": 300,
-            "ResourceRecords": [{"Value": '"v=spf1 include:amazonses.com ~all"'}],
-        },
-    }
-
-    # MX record
-    mx_record = {
-        "Action": "UPSERT",
-        "ResourceRecordSet": {
-            "Name": domain_name,
-            "Type": "MX",
-            "TTL": 300,
-            "ResourceRecords": [
-                {"Value": "10 inbound-smtp.{}.amazonaws.com".format("us-east-1")}
-            ],
-        },
-    }
-
-    # Verification record
-    verification_record = {
-        "Action": "UPSERT",
-        "ResourceRecordSet": {
-            "Name": f"_amazonses.{domain_name}",
-            "Type": "TXT",
-            "TTL": 300,
-            "ResourceRecords": [{"Value": f'"{verify_domain_identity(domain_name)}"'}],
-        },
-    }
-
-    # Update DNS records
-    aws_route53_client.change_resource_record_sets(
-        HostedZoneId=hosted_zone_id,
-        ChangeBatch={
-            "Changes": dkim_records
-            + [
-                dmarc_record,
-                spf_record,
-                mx_record,
-                verification_record,
-            ]
-        },
-    )
-
-    send_slack_message(
-        message="Domain Records Set up",
-        webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"""[{domain_name}]\n✈️ Domain Records Set up: {domain_name}
-✅ DKIM
-✅ DMARC
-✅ SPF""",
-                },
-            }
-        ],
-    )
-
-    return (
-        True,
-        "DNS records added successfully",
-    )
-
-
-# def configure_email_forwarding(domain_dame: str) -> tuple[bool, str]:
-
-
 def is_valid_email_dns_records(domain_name: str) -> dict:
     """Check if the email DNS records for a domain are valid
 
@@ -976,7 +864,7 @@ def domain_purchase_workflow(
         return False, "Failed to purchase domain"
 
     # Add the domain to our DB
-    create_domain_entry(
+    domain_id = create_domain_entry(
         domain=domain_name,
         client_id=client_id,
         forward_to=client.domain or domain_name,
@@ -988,9 +876,7 @@ def domain_purchase_workflow(
     # In 30 min, setup the domain
     add_process_for_future(
         type="domain_setup_workflow",
-        args={
-            "domain_name": domain_name,
-        },
+        args={"domain_name": domain_name, "domain_id": domain_id},
         minutes=30,
     )
 
@@ -998,6 +884,7 @@ def domain_purchase_workflow(
 @celery.task
 def domain_setup_workflow(
     domain_name: str,
+    domain_id: int,
 ) -> tuple:
     """Workflow to setup a domain after domain is purchased.
 
@@ -1015,7 +902,193 @@ def domain_setup_workflow(
     if not success:
         return False, "Failed to add email DNS records"
 
+    success, _ = configure_email_forwarding(
+        domain_name=domain_name, domain_id=domain_id
+    )
+    if not success:
+        return False, "Failed to configure email forwarding"
+
     return True, "Domain setup workflow completed successfully"
+
+
+def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
+    """Adds DNS records for a domain. Namely DKIM, DMARC, SPF, MX, and verification records
+
+    Args:
+        domain_name (str): The domain name to add DNS records for
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
+    hosted_zone_id = get_hosted_zone_id(domain_name)
+    if hosted_zone_id is None:
+        return False, "Hosted zone not found for domain"
+    dkim_tokens = generate_dkim_tokens(domain_name)
+
+    # DKIM records
+    dkim_records = []
+    for token in dkim_tokens:
+        dkim_record = {
+            "Action": "UPSERT",
+            "ResourceRecordSet": {
+                "Name": "{}._domainkey.{}".format(token, domain_name),
+                "Type": "CNAME",
+                "TTL": 300,
+                "ResourceRecords": [{"Value": "{}.dkim.amazonses.com".format(token)}],
+            },
+        }
+        dkim_records.append(dkim_record)
+
+    # DMARC record
+    dmarc_record = {
+        "Action": "UPSERT",
+        "ResourceRecordSet": {
+            "Name": "_dmarc." + domain_name,
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": f'"v=DMARC1; p=none; rua=mailto:sellscale@{domain_name}; ruf=mailto:sellscale@{domain_name}"'
+                }
+            ],
+        },
+    }
+
+    # SPF record
+    spf_record = {
+        "Action": "UPSERT",
+        "ResourceRecordSet": {
+            "Name": domain_name,
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [{"Value": '"v=spf1 include:amazonses.com ~all"'}],
+        },
+    }
+
+    # MX record
+    mx_record = {
+        "Action": "UPSERT",
+        "ResourceRecordSet": {
+            "Name": domain_name,
+            "Type": "MX",
+            "TTL": 300,
+            "ResourceRecords": [
+                {"Value": "10 inbound-smtp.{}.amazonaws.com".format("us-east-1")}
+            ],
+        },
+    }
+
+    # Verification record
+    verification_record = {
+        "Action": "UPSERT",
+        "ResourceRecordSet": {
+            "Name": f"_amazonses.{domain_name}",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [{"Value": f'"{verify_domain_identity(domain_name)}"'}],
+        },
+    }
+
+    # Update DNS records
+    aws_route53_client.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": dkim_records
+            + [
+                dmarc_record,
+                spf_record,
+                mx_record,
+                verification_record,
+            ]
+        },
+    )
+
+    send_slack_message(
+        message="Domain Records Set up",
+        webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"""[{domain_name}]\n✈️ Domain Records Set up: {domain_name}
+✅ DKIM
+✅ DMARC
+✅ SPF""",
+                },
+            }
+        ],
+    )
+
+    return (
+        True,
+        "DNS records added successfully",
+    )
+
+
+def configure_email_forwarding(domain_name: str, domain_id: int) -> tuple[bool, str]:
+    """Configure email forwarding for a domain using the following steps:
+
+    1. Create an AWS Amplify App (with custom redirect rules)
+    2. Create an AWS Amplify Branch
+    3. Create an AWS Amplify Domain Association (to our custom domain)
+
+    Args:
+        domain_name (str): The domain name to configure email forwarding for
+        domain_id (int): The ID of the Domain object
+
+    Returns:
+        tuple[bool, str]: A tuple containing the status and a message
+    """
+    # Get the Domain
+    domain: Domain = Domain.query.get(domain_id)
+    if not domain:
+        raise Exception("Domain not found")
+
+    # Create an AWS Amplify App
+    app_id = create_aws_amplify_app(
+        custom_domain=domain_name,
+        reroute_domain=domain.forward_to,
+    )
+    if not app_id:
+        return False, "Failed to create Amplify App"
+
+    # Create an AWS Amplify Branch
+    create_aws_amplify_branch(app_id=app_id)
+
+    # Create an AWS Amplify Domain Association
+    create_aws_amplify_domain_association(
+        app_id=app_id,
+        domain_name=domain_name,
+    )
+
+    # Update the domain object
+    success = patch_domain_entry(
+        domain_id=domain_id,
+        aws_amplify_app_id=app_id,
+    )
+    if not success:
+        return False, "Failed to update domain object"
+
+    # Send a slack message
+    send_slack_message(
+        message="Email Forwarding Configured",
+        webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"""[{domain_name}]\n📧 Email Forwarding Configured: {domain_name}
+✅ AWS Amplify App
+✅ AWS Amplify Branch
+✅ AWS Amplify Domain Association""",
+                },
+            }
+        ],
+    )
+
+    return True, "Email forwarding configured successfully"
 
 
 def create_domain_entry(
@@ -1067,6 +1140,7 @@ def patch_domain_entry(
     forward_to: Optional[str] = None,
     aws: Optional[bool] = None,
     aws_hosted_zone_id: Optional[str] = None,
+    aws_amplify_app_id: Optional[str] = None,
     dmarc_record: Optional[str] = None,
     spf_record: Optional[str] = None,
     dkim_record: Optional[str] = None,
@@ -1078,6 +1152,7 @@ def patch_domain_entry(
         forward_to (Optional[str], optional): The domain to forward to. Defaults to None.
         aws (Optional[bool], optional): Whether the domain is hosted on AWS. Defaults to None.
         aws_hosted_zone_id (Optional[str], optional): The ID of the AWS Hosted Zone. Defaults to None.
+        aws_amplify_app_id (Optional[str], optional): The ID of the AWS Amplify App. Defaults to None.
         dmarc_record (Optional[str], optional): The DMARC record. Defaults to None.
         spf_record (Optional[str], optional): The SPF record. Defaults to None.
         dkim_record (Optional[str], optional): The DKIM record. Defaults to None.
@@ -1095,6 +1170,8 @@ def patch_domain_entry(
         domain.aws = aws
     if aws_hosted_zone_id is not None:
         domain.aws_hosted_zone_id = aws_hosted_zone_id
+    if aws_amplify_app_id is not None:
+        domain.aws_amplify_app_id = aws_amplify_app_id
     if dmarc_record is not None:
         domain.dmarc_record = dmarc_record
     if spf_record is not None:

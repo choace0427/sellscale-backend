@@ -177,6 +177,12 @@ aws_workmail_client = boto3.client(
     aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
     region_name="us-east-1",
 )
+aws_amplify_client = boto3.client(
+    "amplify",
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_ACCESS_KEY_SECRET"),
+    region_name="us-east-1",
+)
 
 db = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
