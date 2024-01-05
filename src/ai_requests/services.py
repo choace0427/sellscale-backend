@@ -26,6 +26,67 @@ def create_ai_requests(client_sdr_id, description):
         db.session.add(new_request)
         db.session.commit()
 
+        # Send to CSM client requests
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client: Client = Client.query.get(client_sdr.client_id)
+        send_slack_message(
+            message=f"New Client AI Request",
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"New Client AI Request",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Client:* {client_sdr.name}, {client.company}",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Title:* {new_request.title}\n",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Description:* {new_request.description}\n",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Request Date:* {new_request.creation_date}\n",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": " "},
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View in Retool →",
+                            "emoji": True,
+                        },
+                        "url": "https://sellscale.retool.com/embedded/public/4534ace8-1254-4198-b230-c92adc6bb761",
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+            webhook_urls=URL_MAP["csm-client-requests"],
+        )
+
         # Send Slack notification for the new request
         send_slack_notification_for_new_request(client_sdr_id, new_request.id)
 
@@ -143,65 +204,6 @@ def send_slack_notification_for_new_request(client_sdr_id, request_id):
         f"```"
     )
     send_slack_message(message=message, webhook_urls=[URL_MAP["eng-sandbox"]])
-
-    # Send to CSM client requests
-    send_slack_message(
-        message=f"New Client AI Request",
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": f"New Client AI Request",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Client:* {client_name}, {client_company}",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Title:* {request.title}\n",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Description:* {request.description}\n",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Request Date:* {request.creation_date}\n",
-                },
-            },
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": " "},
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "View in Retool →",
-                        "emoji": True,
-                    },
-                    "url": "https://sellscale.retool.com/embedded/public/4534ace8-1254-4198-b230-c92adc6bb761",
-                    "action_id": "button-action",
-                },
-            },
-        ],
-        webhook_urls=URL_MAP["csm-client-requests"],
-    )
 
 
 def generate_title_with_gpt(description):
