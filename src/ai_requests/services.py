@@ -164,7 +164,7 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, hours_worked: i
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Contact:* {sdr.name} | *Date Requested:* {ai_request.creation_date} | *Date Completed:* {datetime.utcnow()}\n",
+                            "text": f"*Contact:* {sdr.name} | *Date Requested:* {ai_request.creation_date.strftime('%b %d, %y')} | *Date Completed:* {datetime.utcnow().strftime('%b %d, %y')}\n",
                         },
                     },
                 ],
