@@ -280,6 +280,10 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     )
     outreach_status = outreach_status.split("_")
     outreach_status = " ".join(word.capitalize() for word in outreach_status)
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
+        auth_token=client_sdr.auth_token,
+        prospect_id=prospect_id if prospect_id else "",
+    )
     send_slack_message(
         message="SellScale AI just replied to prospect!",
         webhook_urls=webhook_urls,
@@ -341,22 +345,22 @@ def reply_to_prospect(prospect_id: int, email_body: str) -> bool:
                     },
                 ],
             },
-            # {
-            #     "type": "section",
-            #     "block_id": "sectionBlockWithLinkButton",
-            #     "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
-            #     "accessory": {
-            #         "type": "button",
-            #         "text": {
-            #             "type": "plain_text",
-            #             "text": "View Convo",
-            #             "emoji": True,
-            #         },
-            #         "value": direct_link,
-            #         "url": direct_link,
-            #         "action_id": "button-action",
-            #     },
-            # },
+            {
+                "type": "section",
+                "block_id": "sectionBlockWithLinkButton",
+                "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Convo",
+                        "emoji": True,
+                    },
+                    "value": direct_link,
+                    "url": direct_link,
+                    "action_id": "button-action",
+                },
+            },
         ],
     )
 
