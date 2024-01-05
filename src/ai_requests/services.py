@@ -184,6 +184,20 @@ def send_slack_notification_for_new_request(client_sdr_id, request):
                     "text": f"*Request Date:* {request.creation_date}\n",
                 },
             },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": " "},
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View in Retool →",
+                        "emoji": True,
+                    },
+                    "url": "https://sellscale.retool.com/embedded/public/4534ace8-1254-4198-b230-c92adc6bb761",
+                    "action_id": "button-action",
+                },
+            },
         ],
         webhook_urls=URL_MAP["csm-client-requests"],
     )
