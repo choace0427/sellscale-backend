@@ -2284,7 +2284,7 @@ def send_sent_by_sellscale_notification(
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
 
-    bump_framework_name = "a SellScale"
+    bump_framework_name = "Smart Generate"
     if bump_framework_id:
         bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
         if bump_framework:
