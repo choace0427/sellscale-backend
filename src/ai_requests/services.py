@@ -27,7 +27,7 @@ def create_ai_requests(client_sdr_id, description):
         db.session.commit()
 
         # Send Slack notification for the new request
-        send_slack_notification_for_new_request(client_sdr_id, new_request)
+        send_slack_notification_for_new_request(client_sdr_id, new_request.id)
 
         return new_request
     except Exception as e:
@@ -120,11 +120,12 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, hours_worked: i
         return None
 
 
-def send_slack_notification_for_new_request(client_sdr_id, request):
+def send_slack_notification_for_new_request(client_sdr_id, request_id):
     """
     Send a Slack notification for a new AI request.
     """
     # Fetch client details
+    request: AIRequest = AIRequest.query.get(request_id)
     client_sdr = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         print(f"Client SDR with ID {client_sdr_id} not found")
