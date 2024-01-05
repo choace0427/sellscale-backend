@@ -3,7 +3,8 @@ from src.ai_requests.models import AIRequest, AIRequestStatus
 from app import db
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack utility
-from src.client.models import ClientSDR
+from src.client.models import Client, ClientSDR
+
 
 
 def create_ai_requests(client_sdr_id, description):
@@ -48,6 +49,113 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, hours_worked: i
         ai_request.status = status
 
         db.session.commit()
+
+        # Send slack notification
+        if status == AIRequestStatus.COMPLETED:
+            sdr: ClientSDR = ClientSDR.query.get(ai_request.client_sdr_id)
+            client: Client = Client.query.get(sdr.client_id)
+            dashboard_url = (
+                "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                + sdr.auth_token
+                + "&redirect=ai-request"
+            )
+
+            send_slack_message(
+                message=f"New task completed!",
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"New task completed!",
+                            "emoji": True,
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"SellScale just completed a task, saving you `{hours_worked*60}` minutes.\n",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Task Name:* {ai_request.title}\n",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": " "},
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "View in Dashboard →",
+                                "emoji": True,
+                            },
+                            "url": dashboard_url,
+                            "action_id": "button-action",
+                        },
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Contact:* {sdr.name} | *Date Requested:* {ai_request.creation_date} | *Date Completed:* {datetime.utcnow()}\n",
+                        },
+                    },
+                ],
+                webhook_urls=[client.pipeline_notifications_webhook_url]
+                if client.pipeline_notifications_webhook_url
+                else [],
+            )
+
+            send_slack_message(
+                message=f"New Client AI Request",
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"New Client AI Request",
+                            "emoji": True,
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Client:* {sdr.name}, {client.company}",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Title:* {ai_request.title}\n",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Description:* {ai_request.description}\n",
+                        },
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Request Date:* {ai_request.creation_date}\n",
+                        },
+                    },
+                ],
+                webhook_urls=URL_MAP["csm-client-requests"],
+            )
 
         return ai_request
 

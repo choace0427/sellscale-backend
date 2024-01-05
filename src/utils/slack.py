@@ -51,6 +51,7 @@ URL_MAP = {
     "ops-scheduling_needed": "https://hooks.slack.com/services/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",
     "ops-auto-send-auto-deleted-messages": "https://hooks.slack.com/services/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",
     "ops-domain-setup-notifications": "https://hooks.slack.com/services/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",
+    "csm-client-requests": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {
