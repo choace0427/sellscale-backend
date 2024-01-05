@@ -1,3 +1,4 @@
+from datetime import datetime
 import random
 import string
 from typing import Optional
@@ -1125,6 +1126,7 @@ def create_domain_entry(
         dmarc_record=dmarc_record,
         spf_record=spf_record,
         dkim_record=dkim_record,
+        last_refreshed=datetime.utcnow(),
     )
     db.session.add(domain)
     db.session.commit()
@@ -1179,6 +1181,8 @@ def patch_domain_entry(
     if dkim_record is not None:
         domain.dkim_record = dkim_record
 
+    domain.last_refreshed = datetime.utcnow()
+
     db.session.commit()
     return True
 
@@ -1212,6 +1216,9 @@ def validate_domain_configuration(domain_id: int) -> bool:
         original_domain=domain.domain, target_domain=domain.forward_to
     )
     domain.forwarding_enabled = valid
+
+    domain.last_refreshed = datetime.utcnow()
+
     db.session.commit()
 
     return True

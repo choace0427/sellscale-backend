@@ -21,6 +21,8 @@ class Domain(db.Model):
     dkim_record_valid = db.Column(db.Boolean, nullable=True, default=False)
     forwarding_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
+    last_refreshed = db.Column(db.DateTime, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -36,4 +38,5 @@ class Domain(db.Model):
             "dkim_record": self.dkim_record,
             "dkim_record_valid": self.dkim_record_valid,
             "forwarding_enabled": self.forwarding_enabled,
+            "last_refreshed": self.last_refreshed,
         }
