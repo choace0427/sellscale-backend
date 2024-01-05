@@ -1,3 +1,5 @@
+import string
+from sqlalchemy import cast, String
 from flask import Blueprint, jsonify, request
 from src.ai_requests.models import AIRequest, AIRequestStatus
 from model_import import ClientSDR
@@ -24,12 +26,21 @@ def get_all_ai_requests():
             ClientSDR, AIRequest.client_sdr_id == ClientSDR.id
         ).all()
 
+        ai_requests: list = (
+            AIRequest.query.join(ClientSDR, AIRequest.client_sdr_id == ClientSDR.id)
+            .add_columns(
+                ClientSDR.name.cast(String).label("client_sdr_name"),
+                ClientSDR.auth_token.cast(String).label("client_auth_token"),
+            )
+            .all()
+        )
+
         ai_requests_data = [
             {
                 "id": req.id,
                 "client_sdr_id": req.client_sdr_id,
-                "client_sdr_name": req.client_sdr.name,
-                "client_auth_token": req.client_sdr.auth_token,
+                "client_sdr_name": req.client_sdr_name,
+                "client_auth_token": req.client_auth_token,
                 "title": req.title,
                 "description": req.description,
                 "percent_complete": req.percent_complete,
