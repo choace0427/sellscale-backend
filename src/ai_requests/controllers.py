@@ -29,6 +29,15 @@ def get_all_ai_requests():
         ai_requests: list = (
             AIRequest.query.join(ClientSDR, AIRequest.client_sdr_id == ClientSDR.id)
             .add_columns(
+                AIRequest.id,
+                AIRequest.client_sdr_id,
+                AIRequest.title,
+                AIRequest.description,
+                AIRequest.percent_complete,
+                AIRequest.creation_date,
+                AIRequest.due_date,
+                AIRequest.status,
+                AIRequest.message,
                 ClientSDR.name.cast(String).label("client_sdr_name"),
                 ClientSDR.auth_token.cast(String).label("client_auth_token"),
             )
