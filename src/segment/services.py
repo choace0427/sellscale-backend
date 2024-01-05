@@ -71,3 +71,12 @@ def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
     db.session.commit()
 
     return True, "Segment deleted"
+
+
+def add_prospects_to_segment(prospect_ids: list[int], new_segment_id: int):
+    Prospect.query.filter(Prospect.id.in_(prospect_ids)).update(
+        {Prospect.segment_id: new_segment_id}, synchronize_session=False
+    )
+    db.session.commit()
+
+    return True, "Prospects added to segment"

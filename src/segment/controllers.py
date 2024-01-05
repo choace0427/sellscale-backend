@@ -1,7 +1,9 @@
 from flask import Blueprint, request
 from src.authentication.decorators import require_user
+from src.prospecting.models import Prospect
 from src.segment.models import Segment
 from src.segment.services import (
+    add_prospects_to_segment,
     create_new_segment,
     delete_segment,
     get_segments_for_sdr,
@@ -84,5 +86,27 @@ def delete_segment_endpoint(client_sdr_id: int, segment_id: int):
 
     if success:
         return "Segment deleted", 200
+
+    return message, 400
+
+
+@SEGMENT_BLUEPRINT.route("/<int:segment_id>/prospects", methods=["POST"])
+@require_user
+def add_prospects_to_segment_endpoint(client_sdr_id: int, segment_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    prospects_for_sdr_in_ids = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id, Prospect.id.in_(prospect_ids)
+    ).all()
+    filtered_ids = [prospect.id for prospect in prospects_for_sdr_in_ids]
+
+    success, message = add_prospects_to_segment(
+        prospect_ids=filtered_ids, new_segment_id=segment_id
+    )
+
+    if success:
+        return "Prospects added to segment", 200
 
     return message, 400
