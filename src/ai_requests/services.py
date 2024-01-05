@@ -6,7 +6,6 @@ from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack util
 from src.client.models import Client, ClientSDR
 
 
-
 def create_ai_requests(client_sdr_id, description):
     try:
         # Generate title using GPT-3.5
@@ -113,50 +112,6 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, hours_worked: i
                 else [],
             )
 
-            send_slack_message(
-                message=f"New Client AI Request",
-                blocks=[
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": f"New Client AI Request",
-                            "emoji": True,
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Client:* {sdr.name}, {client.company}",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Title:* {ai_request.title}\n",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Description:* {ai_request.description}\n",
-                        },
-                    },
-                    {"type": "divider"},
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Request Date:* {ai_request.creation_date}\n",
-                        },
-                    },
-                ],
-                webhook_urls=URL_MAP["csm-client-requests"],
-            )
-
         return ai_request
 
     except Exception as e:
@@ -187,6 +142,51 @@ def send_slack_notification_for_new_request(client_sdr_id, request):
         f"```"
     )
     send_slack_message(message=message, webhook_urls=[URL_MAP["eng-sandbox"]])
+
+    # Send to CSM client requests
+    send_slack_message(
+        message=f"New Client AI Request",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"New Client AI Request",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Client:* {client_name}, {client_company}",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Title:* {request.title}\n",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Description:* {request.description}\n",
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Request Date:* {request.creation_date}\n",
+                },
+            },
+        ],
+        webhook_urls=URL_MAP["csm-client-requests"],
+    )
 
 
 def generate_title_with_gpt(description):
