@@ -4414,14 +4414,5 @@ def msg_analytics_report(client_sdr_id: int):
         + str(client_sdr_id)
         + """
     """
-    ).fetchall()[0]
-    return {
-        "id": results[0],
-        "campaign": results[1],
-        "step": results[2],
-        "title": results[3],
-        "num_times_used": results[4],
-        "num_times_converted": results[5],
-        "conversion_rate": results[6],
-        "active": results[7],
-    }
+    ).fetchall()
+    return [dict(row) for row in results]

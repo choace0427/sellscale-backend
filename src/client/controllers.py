@@ -17,6 +17,7 @@ from src.client.services import (
     toggle_client_sdr_auto_send_email_campaign,
     update_client_auto_generate_email_messages_setting,
 )
+from src.prospecting.services import create_note
 from src.automation.resend import send_email
 from src.client.services import (
     edit_demo_feedback,
@@ -2688,3 +2689,72 @@ def get_msg_analytics_report(client_sdr_id: int):
     results = msg_analytics_report(client_sdr_id)
 
     return jsonify({"message": "Success", "data": results}), 200
+
+
+@CLIENT_BLUEPRINT.route("/ask_ae_notifs", methods=["POST"])
+@require_user
+def post_ask_ae_notifs(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    question = get_request_parameter(
+        "question", request, json=True, required=True, parameter_type=str
+    )
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    prospect_note_id = create_note(
+        prospect_id=prospect_id, note=f"Ask the rep. {question}"
+    )
+
+    send_slack_message(
+        message=f"SellScale AI is requesting more info from {prospect.full_name}!",
+        webhook_urls=[
+            URL_MAP["eng-sandbox"],
+            client.pipeline_notifications_webhook_url,
+        ],
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"SellScale AI is requesting more info from {prospect.full_name}!",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Question:* {question}\n\n",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Contact: {client_sdr.name} | Prospect State: {prospect.overall_status}",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Convo in Sight",
+                        "emoji": True,
+                    },
+                    "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
+                        auth_token=client_sdr.auth_token, prospect_id=prospect_id
+                    )
+                    + str(prospect_id),
+                    "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
+                        auth_token=client_sdr.auth_token, prospect_id=prospect_id
+                    ),
+                    "action_id": "button-action",
+                },
+            },
+        ],
+    )
+
+    return jsonify({"message": "Success", "data": True}), 200
