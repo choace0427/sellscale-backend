@@ -80,12 +80,15 @@ def post_prospect_li_conversation_smart(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True
     )
+    additional_instructions = get_request_parameter(
+        "additional_instructions", request, json=True, required=False
+    )
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     if prospect.client_sdr_id != client_sdr_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    response: str = generate_smart_response(prospect_id)
+    response: str = generate_smart_response(prospect_id, additional_instructions)
 
     return jsonify({"message": response}), 200
 

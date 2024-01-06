@@ -751,12 +751,13 @@ def generate_chat_gpt_response_to_conversation_thread(
 
 def generate_smart_response(
     prospect_id: int,
+    additional_instructions: str,
 ):
     from model_import import Prospect, Client
-
     convo_history = get_li_convo_history(
         prospect_id=prospect_id,
     )
+
 
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
@@ -819,9 +820,13 @@ Name: {prospect_name}
 Account research: 
 {research_points_str}
 
+Additional Instructions: {additional_instructions}
+
 ----
 Instruction:
-Type a personalized response to this Debbie - using account resaerch where relevant - that is efficient and fast to read on a phone.
+Type a personalized response to this prospect - using account research where relevant - that is efficient and fast to read on a phone. 
+If the request includes additional instructions, utilize these instructions to structure or incorporate into the response, based on what's requested. 
+
 
 Transcript:
 {content}""".format(
@@ -839,6 +844,7 @@ Transcript:
         archetype_contact_objective=archetype_contact_objective,
         research_points_str=research_points_str,
         content=content,
+        additional_instructions=additional_instructions,
     )
 
     response = get_text_generation(
