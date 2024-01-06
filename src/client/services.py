@@ -4392,3 +4392,36 @@ def get_tam_data(client_sdr_id: int):
         "industries": get_tam_industries(client_sdr_id),
         "scraping_report": get_tam_scraping_report(client_sdr_id),
     }
+
+
+def msg_analytics_report(client_sdr_id: int):
+    results = db.session.execute(
+        """
+        select 	
+          bump_framework.id "id",
+          client_archetype.archetype "Campaign",
+          concat('Follow Up #', bump_framework.bumped_count + 1) "Step",
+          bump_framework.title "Title",
+          bump_framework.etl_num_times_used,
+          bump_framework.etl_num_times_converted,
+          round(cast(bump_framework.etl_num_times_converted as float) / (bump_framework.etl_num_times_used + 0.0001) * 1000) / 10 "Conversion%",
+          bump_framework.default and bump_framework.active "Active"
+        from client_archetype
+          join bump_framework on bump_framework.client_archetype_id = client_archetype.id
+            and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')
+        where 
+          client_archetype.client_sdr_id = """
+        + str(client_sdr_id)
+        + """
+    """
+    ).fetchall()[0]
+    return {
+        "id": results[0],
+        "campaign": results[1],
+        "step": results[2],
+        "title": results[3],
+        "num_times_used": results[4],
+        "num_times_converted": results[5],
+        "conversion_rate": results[6],
+        "active": results[7],
+    }

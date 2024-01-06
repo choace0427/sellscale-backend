@@ -12,6 +12,7 @@ from src.personas.services import (
 from src.prospecting.models import Prospect
 from src.client.services import (
     get_tam_data,
+    msg_analytics_report,
     remove_prospects_caught_by_filters,
     toggle_client_sdr_auto_send_email_campaign,
     update_client_auto_generate_email_messages_setting,
@@ -2679,3 +2680,11 @@ def post_send_generic_email(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success", "data": True}), 200
+
+
+@CLIENT_BLUEPRINT.route("/msg_analytics_report", methods=["GET"])
+@require_user
+def get_msg_analytics_report(client_sdr_id: int):
+    results = msg_analytics_report(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": results}), 200
