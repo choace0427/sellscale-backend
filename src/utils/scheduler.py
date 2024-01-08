@@ -317,14 +317,26 @@ def run_collect_and_generate_email_messaging_schedule_entries():
 
 def run_set_warmup_snapshots():
     from src.warmup_snapshot.services import set_warmup_snapshots_for_all_active_sdrs
-    from src.domains.services import validate_all_domain_configurations
 
     if (
         os.environ.get("FLASK_ENV") == "production"
         and os.environ.get("SCHEDULING_INSTANCE") == "true"
     ):
         set_warmup_snapshots_for_all_active_sdrs.delay()
+
+
+def run_domain_and_inbox_syncs():
+    from src.domains.services import validate_all_domain_configurations
+    from src.client.sdr.email.services_email_bank import (
+        sync_email_bank_statistics_for_all_active_sdrs,
+    )
+
+    if (
+        os.environ.get("FLASK_ENV") == "production"
+        and os.environ.get("SCHEDULING_INSTANCE") == "true"
+    ):
         validate_all_domain_configurations.delay()
+        sync_email_bank_statistics_for_all_active_sdrs.delay()
 
 
 def run_collect_and_send_email_messaging_schedule_entries():
@@ -526,6 +538,7 @@ scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 scheduler.add_job(func=run_hourly_email_finder_job, trigger="interval", hours=1)
 scheduler.add_job(func=run_analytics_backfill_jobs, trigger="interval", hours=1)
 scheduler.add_job(func=run_set_warmup_snapshots, trigger="interval", hours=3)
+scheduler.add_job(func=run_domain_and_inbox_syncs, trigger="interval", hours=1)
 scheduler.add_job(
     func=run_auto_send_campaigns_and_send_approved_messages_job,
     trigger="interval",

@@ -17,6 +17,8 @@ from src.individual.services import (
     convert_to_prospect,
 )
 from src.voyager.services import withdraw_li_invite
+from src.client.sdr.email.services_email_bank import sync_email_bank_statistics_for_sdr
+
 
 from src.utils.datetime.dateutils import get_future_datetime
 from src.automation.models import ProcessQueue, ProcessQueueStatus
@@ -76,6 +78,12 @@ PROCESS_TYPE_MAP = {
     },
     "set_warmup_snapshot_for_sdr": {
         "function": set_warmup_snapshot_for_sdr,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "sync_email_bank_statistics_for_sdr": {
+        "function": sync_email_bank_statistics_for_sdr,
         "priority": 10,
         "queue": None,
         "routing_key": None,

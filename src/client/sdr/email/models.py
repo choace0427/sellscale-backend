@@ -41,8 +41,14 @@ class SDREmailBank(db.Model):
 
     # Smartlead Connection
     smartlead_account_id = db.Column(db.Integer, nullable=True)
+    smartlead_warmup_enabled = db.Column(db.Boolean, nullable=True, default=False)
+    smartlead_reputation = db.Column(db.Float, nullable=True)
 
     # TODO: Eventually we need to bring warmup information into this table from the WarmupSnapshot table.
+    total_sent_count = db.Column(db.Integer, nullable=True)
+    previous_total_sent_count = db.Column(db.Integer, nullable=True)
+    daily_sent_count = db.Column(db.Integer, nullable=True)
+    daily_limit = db.Column(db.Integer, nullable=True)
 
     def to_dict(self) -> dict:
         # Get the attached Send Schedule
@@ -65,6 +71,12 @@ class SDREmailBank(db.Model):
             "aws_username": self.aws_username,
             "aws_password": self.aws_password,
             "smartlead_account_id": self.smartlead_account_id,
+            "smartlead_warmup_enabled": self.smartlead_warmup_enabled,
+            "smartlead_reputation": self.smartlead_reputation,
+            "total_sent_count": self.total_sent_count,
+            "previous_total_sent_count": self.previous_total_sent_count,
+            "daily_sent_count": self.daily_sent_count,
+            "daily_limit": self.daily_limit,
         }
 
 

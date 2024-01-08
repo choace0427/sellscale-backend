@@ -130,87 +130,87 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
         name: str = client_sdr.name
         print(f"Setting channel warmups for {name}")
 
-        # Create Email Warmups
-        email_warmups = get_email_warmings(client_sdr_id=client_sdr_id)
-        for email_warmup in email_warmups:
-            email = email_warmup["from_email"]
-            warmup_reputation = email_warmup["warmup_details"]["warmup_reputation"]
-            total_sent_count = email_warmup["warmup_details"]["total_sent_count"]
-            daily_sent_count = email_warmup["daily_sent_count"]
-            daily_limit = email_warmup["message_per_day"]
+        # DEPRECATED, SEE sync_email_bank_statistics_for_sdr: Create Email Warmups
+        # email_warmups = get_email_warmings(client_sdr_id=client_sdr_id)
+        # for email_warmup in email_warmups:
+        #     email = email_warmup["from_email"]
+        #     warmup_reputation = email_warmup["warmup_details"]["warmup_reputation"]
+        #     total_sent_count = email_warmup["warmup_details"]["total_sent_count"]
+        #     daily_sent_count = email_warmup["daily_sent_count"]
+        #     daily_limit = email_warmup["message_per_day"]
 
-            warmup_reputation = (
-                float(warmup_reputation.rstrip("%"))
-                if warmup_reputation or warmup_reputation == "None"
-                else 0
-            )
+        #     warmup_reputation = (
+        #         float(warmup_reputation.rstrip("%"))
+        #         if warmup_reputation or warmup_reputation == "None"
+        #         else 0
+        #     )
 
-            # Get SPF, DMARC, DKIM Record
-            domain = email.split("@")[1]
-            spf_record, spf_valid = spf_record_valid(domain=domain)
-            dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain)
-            dkim_record, dkim_valid = dkim_record_valid(domain=domain)
+        #     # Get SPF, DMARC, DKIM Record
+        #     domain = email.split("@")[1]
+        #     spf_record, spf_valid = spf_record_valid(domain=domain)
+        #     dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain)
+        #     dkim_record, dkim_valid = dkim_record_valid(domain=domain)
 
-            # TEMPORARY FIX
-            # Get the Domain
-            domain_entry: Domain = Domain.query.filter_by(
-                domain=domain,
-            ).first()
+        #     # TEMPORARY FIX
+        #     # Get the Domain
+        #     domain_entry: Domain = Domain.query.filter_by(
+        #         domain=domain,
+        #     ).first()
 
-            # Get email forwarding status
-            forwarding_enabled = is_valid_email_forwarding(
-                original_domain=domain,
-                target_domain=domain_entry.forward_to if domain_entry else None,
-            )
+        #     # Get email forwarding status
+        #     forwarding_enabled = is_valid_email_forwarding(
+        #         original_domain=domain,
+        #         target_domain=domain_entry.forward_to if domain_entry else None,
+        #     )
 
-            if domain_entry:
-                domain_entry.spf_record = spf_record
-                domain_entry.spf_record_valid = spf_valid
-                domain_entry.dmarc_record = dmarc_record
-                domain_entry.dmarc_record_valid = dmarc_valid
-                domain_entry.dkim_record = dkim_record
-                domain_entry.dkim_record_valid = dkim_valid
-                domain_entry.forwarding_enabled = forwarding_enabled
-                db.session.commit()
+        #     if domain_entry:
+        #         domain_entry.spf_record = spf_record
+        #         domain_entry.spf_record_valid = spf_valid
+        #         domain_entry.dmarc_record = dmarc_record
+        #         domain_entry.dmarc_record_valid = dmarc_valid
+        #         domain_entry.dkim_record = dkim_record
+        #         domain_entry.dkim_record_valid = dkim_valid
+        #         domain_entry.forwarding_enabled = forwarding_enabled
+        #         db.session.commit()
 
-            # Get the old warmup
-            old_warmup: WarmupSnapshot = WarmupSnapshot.query.filter_by(
-                client_sdr_id=client_sdr_id,
-                channel_type="EMAIL",
-                account_name=email,
-            ).first()
-            previous_total_sent_count = old_warmup.total_sent_count if old_warmup else 0
+        #     # Get the old warmup
+        #     old_warmup: WarmupSnapshot = WarmupSnapshot.query.filter_by(
+        #         client_sdr_id=client_sdr_id,
+        #         channel_type="EMAIL",
+        #         account_name=email,
+        #     ).first()
+        #     previous_total_sent_count = old_warmup.total_sent_count if old_warmup else 0
 
-            # Create the new warmup
-            email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
-                client_sdr_id=client_sdr_id,
-                channel_type="EMAIL",
-                daily_sent_count=daily_sent_count,
-                daily_limit=daily_limit,
-                total_sent_count=total_sent_count,
-                previous_total_sent_count=previous_total_sent_count,
-                warmup_enabled=True,
-                reputation=warmup_reputation,
-                account_name=email,
-                dmarc_record=dmarc_record,
-                dmarc_record_valid=dmarc_valid,
-                spf_record=spf_record,
-                spf_record_valid=spf_valid,
-                dkim_record=dkim_record,
-                dkim_record_valid=dkim_valid,
-                forwarding_enabled=forwarding_enabled,
-            )
-            db.session.add(email_warmup_snapshot)
-            db.session.commit()
+        #     # Create the new warmup
+        #     email_warmup_snapshot: WarmupSnapshot = WarmupSnapshot(
+        #         client_sdr_id=client_sdr_id,
+        #         channel_type="EMAIL",
+        #         daily_sent_count=daily_sent_count,
+        #         daily_limit=daily_limit,
+        #         total_sent_count=total_sent_count,
+        #         previous_total_sent_count=previous_total_sent_count,
+        #         warmup_enabled=True,
+        #         reputation=warmup_reputation,
+        #         account_name=email,
+        #         dmarc_record=dmarc_record,
+        #         dmarc_record_valid=dmarc_valid,
+        #         spf_record=spf_record,
+        #         spf_record_valid=spf_valid,
+        #         dkim_record=dkim_record,
+        #         dkim_record_valid=dkim_valid,
+        #         forwarding_enabled=forwarding_enabled,
+        #     )
+        #     db.session.add(email_warmup_snapshot)
+        #     db.session.commit()
 
-            # Delete the old warmup
-            if old_warmup:
-                db.session.delete(old_warmup)
-                db.session.commit()
+        #     # Delete the old warmup
+        #     if old_warmup:
+        #         db.session.delete(old_warmup)
+        #         db.session.commit()
 
-        send_warmup_snapshot_update(client_sdr_id=client_sdr_id)
+        # send_warmup_snapshot_update(client_sdr_id=client_sdr_id)
 
-        print(f"Finished setting channel warmups for {name}")
+        # print(f"Finished setting channel warmups for {name}")
 
         # Delete LinkedIn Warmups
         linkedin_warmups = WarmupSnapshot.query.filter_by(

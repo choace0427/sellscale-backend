@@ -1,14 +1,17 @@
 from datetime import time
-from app import db
+from app import db, celery
 
 import requests
 import os
 from typing import Optional, Union
 
 
-from src.client.models import ClientSDR
+from src.client.models import ClientSDR, Client
 from src.client.sdr.email.models import EmailType, SDREmailBank, SDREmailSendSchedule
 from src.client.sdr.email.services_email_schedule import create_sdr_email_send_schedule
+from src.domains.models import Domain
+from src.smartlead.services import get_email_warmings, get_warmup_percentage
+from src.utils.slack import URL_MAP, send_slack_message
 
 
 def get_sdr_email_banks(
@@ -306,3 +309,210 @@ def post_nylas_oauth_token(code: str) -> dict:
         return {"message": "Error exchanging for access token", "status_code": 500}
 
     return response.json()
+
+
+@celery.task
+def sync_email_bank_statistics_for_all_active_sdrs() -> tuple[bool, str]:
+    """Syncs the statistics for all active SDRs
+
+    Returns:
+        tuple[bool, str]: _description_
+    """
+    from src.automation.orchestrator import add_process_list
+
+    active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
+        active=True,
+    ).all()
+
+    add_process_list(
+        type="sync_email_bank_statistics_for_sdr",
+        args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
+    )
+
+
+@celery.task
+def sync_email_bank_statistics_for_client(client_id: int) -> tuple[bool, str]:
+    """Syncs the statistics for an entire client
+
+    Args:
+        client_id (int): _description_
+
+    Returns:
+        tuple[bool, str]: _description_
+    """
+    from src.automation.orchestrator import add_process_list
+
+    active_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
+        client_id=client_id,
+        active=True,
+    ).all()
+
+    add_process_list(
+        type="sync_email_bank_statistics_for_sdr",
+        args_list=[{"client_sdr_id": active_sdr.id} for active_sdr in active_sdrs],
+    )
+
+    return True
+
+
+@celery.task
+def sync_email_bank_statistics_for_sdr(client_sdr_id: int) -> tuple[bool, str]:
+    """Syncs the statistics for an SDR Email Bank, currently using Smartlead
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+
+    Returns:
+        tuple[bool, str]: Tuple containing the success status and message
+    """
+    try:
+        from src.domains.services import create_domain_entry
+
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if not client_sdr:
+            return False, "Client SDR not found"
+
+        # Get Smartlead email warmings
+        smartlead_email_statuses = get_email_warmings(client_sdr_id=client_sdr_id)
+        for email_status in smartlead_email_statuses:
+            email_address = email_status["from_email"]
+
+            # Get the email bank to update
+            email_bank: SDREmailBank = get_sdr_email_bank(email_address=email_address)
+            # If the email bank doesn't exist, we need to create it
+            if not email_bank:
+                managed_domain = email_address.split("@")[1]
+
+                # Find the domain
+                domain: Domain = Domain.query.filter(
+                    Domain.domain == managed_domain
+                ).first()
+                # If the domain doesn't exist, we need to create it
+                if not domain:
+                    client: Client = Client.query.get(client_sdr.client_id)
+                    domain_id = create_domain_entry(
+                        domain=managed_domain,
+                        client_id=client_sdr.client_id,
+                        forward_to=client.domain,
+                        aws=False,
+                    )
+                    domain = Domain.query.get(domain_id)
+
+                # Create the email bank
+                email_bank_id = create_sdr_email_bank(
+                    client_sdr_id=client_sdr_id,
+                    email_address=email_status["from_email"],
+                    email_type=EmailType.SELLSCALE,
+                    smartlead_account_id=email_status["id"],
+                    domain_id=domain.id,
+                )
+                email_bank = SDREmailBank.query.get(email_bank_id)
+
+            # Update the email bank
+            warmup_reputation = email_status["warmup_details"]["warmup_reputation"]
+            warmup_reputation = (
+                float(warmup_reputation.rstrip("%"))
+                if warmup_reputation or warmup_reputation == "None"
+                else 0
+            )
+            total_sent_count = email_status["warmup_details"]["total_sent_count"]
+            daily_sent_count = email_status["daily_sent_count"]
+            daily_limit = email_status["message_per_day"]
+
+            email_bank.previous_total_sent_count = email_bank.total_sent_count
+            email_bank.smartlead_reputation = warmup_reputation
+            email_bank.smartlead_warmup_enabled = True
+            email_bank.total_sent_count = total_sent_count
+            email_bank.daily_sent_count = daily_sent_count
+            email_bank.daily_limit = daily_limit
+
+            db.session.add(email_bank)
+            db.session.commit()
+
+        send_email_bank_warming_update
+
+    except Exception as e:
+        return False, f"Error: {e}"
+
+
+def send_email_bank_warming_update(client_sdr_id: int) -> bool:
+    """Sends a slack notification for the email bank update.
+
+    Args:
+        client_sdr_id (int): ID of the client SDR.
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    # Get email banks for the client SDR
+    email_banks: list[SDREmailBank] = SDREmailBank.query.filter_by(
+        client_sdr_id=client_sdr_id,
+    ).all()
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+
+    already_warmed_accounts = []
+    warmed_blocks = []
+    not_warmed_blocks = []
+    for email in email_banks:
+        total_sent_count = email.total_sent_count
+        previous_total_sent_count = email.previous_total_sent_count
+        current_perc = get_warmup_percentage(total_sent_count)
+        previous_perc = get_warmup_percentage(previous_total_sent_count)
+
+        if current_perc == 100 and previous_perc < 100:
+            warmed_blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"🔥 *{email.email_address}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
+                    },
+                }
+            )
+        elif current_perc == 100 and previous_perc == 100:
+            already_warmed_accounts.append(email.email_address)
+        elif current_perc < 100 and previous_perc < 100:
+            not_warmed_blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"📈 *{email.email_address}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
+                    },
+                }
+            )
+
+    if (
+        len(warmed_blocks) == 0
+        and len(not_warmed_blocks) == 0
+        and len(already_warmed_accounts) == 0
+    ):
+        return False
+
+    send_slack_message(
+        message=f"Email Bank updated for {client_sdr.name}",
+        webhook_urls=[URL_MAP["ops-outbound-warming"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Email Bank updated for {client_sdr.name}",
+                },
+            }
+        ]
+        + warmed_blocks
+        + not_warmed_blocks
+        + [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"🟢 Already warmed accounts: {', '.join(already_warmed_accounts)}",
+                },
+            }
+        ],
+    )
+
+    return True
