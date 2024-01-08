@@ -425,6 +425,9 @@ def detect_time_sensitive_keywords(
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             prospect: Prospect = Prospect.query.get(prospect_id)
 
+            if prospect.status in (ProspectStatus.ACTIVE_CONVO_SCHEDULING):
+                return None
+
             old_status = prospect.status.value
 
             send_slack_message(
@@ -754,10 +757,10 @@ def generate_smart_response(
     additional_instructions: str,
 ):
     from model_import import Prospect, Client
+
     convo_history = get_li_convo_history(
         prospect_id=prospect_id,
     )
-
 
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
