@@ -29,7 +29,7 @@ def get_all_domain_details(client_sdr_id):
     client: Client = Client.query.filter_by(id=client_sdr.client_id).first()
 
     domain_details = get_domain_details(client_id=client.id)
-    sdr_inbox_details = get_sdr_email_banks_for_client(client_sdr_id=client_sdr_id)
+    sdr_inbox_details = get_sdr_email_banks_for_client(client_id=client.id)
 
     return (
         jsonify(
