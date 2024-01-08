@@ -2349,6 +2349,7 @@ def auto_mark_uninterested_bumped_prospects():
                 prospect_id=prospect_id,
                 new_status=ProspectStatus.NOT_INTERESTED,
                 note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
+                disqualification_reason='Unresponsive'
             )
 
             prospect: Prospect = Prospect.query.get(prospect_id)
