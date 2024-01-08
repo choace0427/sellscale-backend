@@ -4408,7 +4408,8 @@ def msg_analytics_report(client_sdr_id: int):
           bump_framework.etl_num_times_used,
           bump_framework.etl_num_times_converted,
           round(cast(bump_framework.etl_num_times_converted as float) / (bump_framework.etl_num_times_used + 0.0001) * 1000) / 10 "Conversion%",
-          bump_framework.default and bump_framework.active "Active"
+          bump_framework.default and bump_framework.active "Active",
+          client_archetype.id "CampaignID"
         from client_archetype
           join bump_framework on bump_framework.client_archetype_id = client_archetype.id
             and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')
