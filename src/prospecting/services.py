@@ -1239,6 +1239,7 @@ def add_prospect(
     research_payload: bool = True,
     education_1: Optional[str] = None,
     education_2: Optional[str] = None,
+    segment_id: Optional[int] = None,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -1262,6 +1263,7 @@ def add_prospect(
         set_status (ProspectStatus, optional): Status to set the Prospect to. Defaults to ProspectStatus.PROSPECTED.
         set_note (str, optional): Note to add to the Prospect. Defaults to None.
         individual_id (Optional[int], optional): ID of the Individual. Defaults to None.
+        segment_id (Optional[int], optional): ID of the Segment. Defaults to None.
 
     Returns:
         int or None: ID of the Prospect if it was added successfully, None otherwise
@@ -1375,6 +1377,7 @@ def add_prospect(
             icp_fit_score=2,
             education_1=education_1,
             education_2=education_2,
+            segment_id=segment_id,
         )
         db.session.add(prospect)
         db.session.commit()

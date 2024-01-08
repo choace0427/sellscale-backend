@@ -1,5 +1,7 @@
 from typing import List
 
+from typing import Optional
+
 from src.automation.orchestrator import add_process_for_future
 from src.prospecting.models import ExistingContact
 from src.prospecting.services import (
@@ -976,6 +978,9 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
     allow_duplicates = get_request_parameter(
         "allow_duplicates", request, json=True, required=False, parameter_type=bool
     )
+    segment_id = get_request_parameter(
+        "segment_id", request, json=True, required=False, parameter_type=int
+    )
     allow_duplicates = True if allow_duplicates is None else allow_duplicates
 
     return add_prospect_from_csv_payload(
@@ -983,11 +988,12 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
         archetype_id=archetype_id,
         csv_payload=csv_payload,
         allow_duplicates=allow_duplicates,
+        segment_id=segment_id,
     )
 
 
 def add_prospect_from_csv_payload(
-    client_sdr_id: int, archetype_id: int, csv_payload: list, allow_duplicates: bool
+    client_sdr_id: int, archetype_id: int, csv_payload: list, allow_duplicates: bool, segment_id: Optional[int] = None
 ):
     if len(csv_payload) >= 5000:
         return (
@@ -1041,7 +1047,13 @@ def add_prospect_from_csv_payload(
 
     # Collect eligible prospect rows and create prospects
     collect_and_run_celery_jobs_for_upload.apply_async(
-        args=[archetype.client_id, archetype_id, client_sdr_id, allow_duplicates],
+        args=[
+            archetype.client_id,
+            archetype_id,
+            client_sdr_id,
+            allow_duplicates,
+            segment_id,
+        ],
         queue="prospecting",
         routing_key="prospecting",
         priority=1,

@@ -171,6 +171,7 @@ def collect_and_run_celery_jobs_for_upload(
     client_archetype_id: int,
     client_sdr_id: int,
     allow_duplicates: bool = True,
+    segment_id: Optional[int] = None,
 ) -> bool:
     """Collects the rows eligible for upload and runs the celery jobs for them.
 
@@ -213,7 +214,7 @@ def collect_and_run_celery_jobs_for_upload(
                 db.session.add(prospect_upload)
                 db.session.commit()
                 create_prospect_from_prospect_upload_row.apply_async(
-                    args=[prospect_upload.id, allow_duplicates],
+                    args=[prospect_upload.id, allow_duplicates, segment_id],
                     queue="prospecting",
                     routing_key="prospecting",
                     priority=2,
@@ -227,7 +228,10 @@ def collect_and_run_celery_jobs_for_upload(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_prospect_upload_row(
-    self, prospect_upload_id: int, allow_duplicates: bool = True
+    self,
+    prospect_upload_id: int,
+    allow_duplicates: bool = True,
+    segment_id: Optional[int] = None,
 ) -> None:
     """Celery task for creating a prospect from a ProspectUploads row.
 
@@ -251,7 +255,7 @@ def create_prospect_from_prospect_upload_row(
 
         # Create the prospect using the LinkedIn URL.
         create_prospect_from_linkedin_link.apply_async(
-            args=[prospect_upload.id, allow_duplicates],
+            args=[prospect_upload.id, allow_duplicates, segment_id],
             queue="prospecting",
             routing_key="prospecting",
             priority=2,
@@ -267,7 +271,7 @@ def create_prospect_from_prospect_upload_row(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_linkedin_link(
-    self, prospect_upload_id: int, allow_duplicates: bool = True
+    self, prospect_upload_id: int, allow_duplicates: bool = True, segment_id: Optional[int] = None
 ) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
@@ -403,6 +407,7 @@ def create_prospect_from_linkedin_link(
             email=email,
             linkedin_num_followers=followers_count,
             allow_duplicates=allow_duplicates,
+            segment_id=segment_id,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
