@@ -425,12 +425,14 @@ def sync_email_bank_statistics_for_sdr(client_sdr_id: int) -> tuple[bool, str]:
             email_bank.total_sent_count = total_sent_count
             email_bank.daily_sent_count = daily_sent_count
             email_bank.daily_limit = daily_limit
+            email_bank.smartlead_account_id = email_status["id"]
 
             db.session.add(email_bank)
             db.session.commit()
 
-        send_email_bank_warming_update
+        send_email_bank_warming_update(client_sdr_id=client_sdr_id)
 
+        return True, "Success"
     except Exception as e:
         return False, f"Error: {e}"
 
@@ -455,8 +457,8 @@ def send_email_bank_warming_update(client_sdr_id: int) -> bool:
     warmed_blocks = []
     not_warmed_blocks = []
     for email in email_banks:
-        total_sent_count = email.total_sent_count
-        previous_total_sent_count = email.previous_total_sent_count
+        total_sent_count = email.total_sent_count or 0
+        previous_total_sent_count = email.previous_total_sent_count or 0
         current_perc = get_warmup_percentage(total_sent_count)
         previous_perc = get_warmup_percentage(previous_total_sent_count)
 

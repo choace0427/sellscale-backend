@@ -1241,6 +1241,23 @@ def validate_all_domain_configurations() -> bool:
 
 
 @celery.task
+def validate_domain_configuration_for_client(client_id: int) -> bool:
+    """Validates the configuration of all domains for a client
+
+    Args:
+        client_id (int): The ID of the client
+
+    Returns:
+        bool: True if valid, else False
+    """
+    domains: list[Domain] = Domain.query.filter_by(client_id=client_id).all()
+    for domain in domains:
+        validate_domain_configuration(domain.id)
+
+    return True
+
+
+@celery.task
 def validate_domain_configuration(domain_id: int) -> bool:
     """Validates the configuration of a domain
 
@@ -1275,6 +1292,36 @@ def validate_domain_configuration(domain_id: int) -> bool:
     db.session.commit()
 
     return True
+
+
+def get_domain_details(client_id: int) -> bool:
+    """Gets all domain details, including both Domain and SDREmailBank
+
+    Args:
+        client_id (int): The ID of the client
+
+    Returns:
+        bool: True if successful, else False
+    """
+    domains: list[Domain] = Domain.query.filter_by(client_id=client_id).all()
+
+    result = []
+    for domain in domains:
+        domain_dict = domain.to_dict()
+        domain_dict["inboxes"] = []
+
+        # Get the inboxes for the domain
+        sdr_email_banks: list[SDREmailBank] = SDREmailBank.query.filter(
+            SDREmailBank.domain_id == domain.id,
+            SDREmailBank.smartlead_account_id != None,
+        ).all()
+        domain_dict["inboxes"] = [
+            sdr_email_bank.to_dict() for sdr_email_bank in sdr_email_banks
+        ]
+
+        result.append(domain_dict)
+
+    return result
 
 
 # DEPRECATE ME ONCE THERE IS NO MORE SMARTLEAD

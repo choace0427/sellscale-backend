@@ -261,85 +261,86 @@ def set_warmup_snapshot_for_sdr(self, client_sdr_id: int):
         return False, "Error", e
 
 
-def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
-    """Sends a slack notification for the warmup snapshot update.
+# DEPRECATED, SEE send_email_bank_warming_update
+# def send_warmup_snapshot_update(client_sdr_id: int) -> bool:
+#     """Sends a slack notification for the warmup snapshot update.
 
-    Args:
-        client_sdr_id (int): ID of the client SDR.
+#     Args:
+#         client_sdr_id (int): ID of the client SDR.
 
-    Returns:
-        bool: True if successful, False otherwise.
-    """
-    # Get warmups for the client SDR
-    warmups: list[WarmupSnapshot] = WarmupSnapshot.query.filter_by(
-        client_sdr_id=client_sdr_id,
-        channel_type="EMAIL",
-    ).all()
+#     Returns:
+#         bool: True if successful, False otherwise.
+#     """
+#     # Get warmups for the client SDR
+#     warmups: list[WarmupSnapshot] = WarmupSnapshot.query.filter_by(
+#         client_sdr_id=client_sdr_id,
+#         channel_type="EMAIL",
+#     ).all()
 
-    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+#     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
 
-    already_warmed_accounts = []
-    warmed_blocks = []
-    not_warmed_blocks = []
-    for warmup in warmups:
-        total_sent_count = warmup.total_sent_count
-        previous_total_sent_count = warmup.previous_total_sent_count
-        current_perc = get_warmup_percentage(total_sent_count)
-        previous_perc = get_warmup_percentage(previous_total_sent_count)
+#     already_warmed_accounts = []
+#     warmed_blocks = []
+#     not_warmed_blocks = []
+#     for warmup in warmups:
+#         total_sent_count = warmup.total_sent_count
+#         previous_total_sent_count = warmup.previous_total_sent_count
+#         current_perc = get_warmup_percentage(total_sent_count)
+#         previous_perc = get_warmup_percentage(previous_total_sent_count)
 
-        if current_perc == 100 and previous_perc < 100:
-            warmed_blocks.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"🔥 *{warmup.account_name}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
-                    },
-                }
-            )
-        elif current_perc == 100 and previous_perc == 100:
-            already_warmed_accounts.append(warmup.account_name)
-        elif current_perc < 100 and previous_perc < 100:
-            not_warmed_blocks.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"📈 *{warmup.account_name}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
-                    },
-                }
-            )
+#         if current_perc == 100 and previous_perc < 100:
+#             warmed_blocks.append(
+#                 {
+#                     "type": "section",
+#                     "text": {
+#                         "type": "mrkdwn",
+#                         "text": f"🔥 *{warmup.account_name}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
+#                     },
+#                 }
+#             )
+#         elif current_perc == 100 and previous_perc == 100:
+#             already_warmed_accounts.append(warmup.account_name)
+#         elif current_perc < 100 and previous_perc < 100:
+#             not_warmed_blocks.append(
+#                 {
+#                     "type": "section",
+#                     "text": {
+#                         "type": "mrkdwn",
+#                         "text": f"📈 *{warmup.account_name}* Progress {int(previous_perc)}% -> {int(current_perc)}%",
+#                     },
+#                 }
+#             )
 
-    if (
-        len(warmed_blocks) == 0
-        and len(not_warmed_blocks) == 0
-        and len(already_warmed_accounts) == 0
-    ):
-        return False
+#     if (
+#         len(warmed_blocks) == 0
+#         and len(not_warmed_blocks) == 0
+#         and len(already_warmed_accounts) == 0
+#     ):
+#         return False
 
-    send_slack_message(
-        message=f"Warmup Snapshot updated for {client_sdr.name}",
-        webhook_urls=[URL_MAP["ops-outbound-warming"]],
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Warmup Snapshot updated for {client_sdr.name}",
-                },
-            }
-        ]
-        + warmed_blocks
-        + not_warmed_blocks
-        + [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"🟢 Already warmed accounts: {', '.join(already_warmed_accounts)}",
-                },
-            }
-        ],
-    )
+#     send_slack_message(
+#         message=f"Warmup Snapshot updated for {client_sdr.name}",
+#         webhook_urls=[URL_MAP["ops-outbound-warming"]],
+#         blocks=[
+#             {
+#                 "type": "section",
+#                 "text": {
+#                     "type": "mrkdwn",
+#                     "text": f"Warmup Snapshot updated for {client_sdr.name}",
+#                 },
+#             }
+#         ]
+#         + warmed_blocks
+#         + not_warmed_blocks
+#         + [
+#             {
+#                 "type": "section",
+#                 "text": {
+#                     "type": "mrkdwn",
+#                     "text": f"🟢 Already warmed accounts: {', '.join(already_warmed_accounts)}",
+#                 },
+#             }
+#         ],
+#     )
 
-    return True
+#     return True

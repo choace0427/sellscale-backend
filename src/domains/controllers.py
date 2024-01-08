@@ -7,6 +7,7 @@ from src.domains.services import (
     domain_setup_workflow,
     find_domain,
     find_similar_domains,
+    get_domain_details,
     patch_domain_entry,
     register_aws_domain,
     validate_domain_configuration,
@@ -20,6 +21,26 @@ from app import db
 import os
 
 DOMAINS_BLUEPRINT = Blueprint("domains", __name__)
+
+
+@DOMAINS_BLUEPRINT.route("/all", methods=["GET"])
+@require_user
+def get_all_domain_details(client_sdr_id):
+    """Gets all domain details for a client"""
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client: Client = Client.query.filter_by(id=client_sdr.client_id).first()
+
+    details = get_domain_details(client_id=client.id)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": details,
+            }
+        ),
+        200,
+    )
 
 
 @DOMAINS_BLUEPRINT.route("/", methods=["POST"])
@@ -153,26 +174,6 @@ def get_find_similar_domains(client_sdr_id: int):
 
     parts = domain.split(".")
     result = find_similar_domains(parts[0], parts[-1])
-
-    return (
-        jsonify(
-            {
-                "status": "success",
-                "data": result,
-            }
-        ),
-        200,
-    )
-
-
-@DOMAINS_BLUEPRINT.route("/purchase", methods=["POST"])
-@require_user
-def post_purchase_domain(client_sdr_id: int):
-    domain = get_request_parameter(
-        "domain", request, json=True, required=True, parameter_type=str
-    )
-
-    result = register_aws_domain(domain)
 
     return (
         jsonify(
