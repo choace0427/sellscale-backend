@@ -640,40 +640,53 @@ def is_valid_email_forwarding(
     # Attempt to get the final URL after redirects
     tests = ["http://", "https://", "http://www.", "https://www."]
     for test in tests:
-        try:
-            domain = test + original_domain
-            response = requests.get(domain, allow_redirects=True)
-            final_url = response.url
-            if not target_domain:
-                if final_url != domain:
-                    send_slack_message(
-                        message=f"SUCCESS: Domain {domain} is redirecting to {final_url}",
-                        webhook_urls=[URL_MAP["eng-sandbox"]],
-                    )
-                    print(f"{domain} forwards to {final_url}")
-            else:
-                if final_url == target_domain:
-                    send_slack_message(
-                        message=f"SUCCESS: Domain {domain} is redirecting to {final_url}",
-                        webhook_urls=[URL_MAP["eng-sandbox"]],
-                    )
-                    print(f"{domain} forwards to {target_domain}")
+        max_redirects = 5
+        final_url = ""
+        base_url = test + original_domain
+        base_url_copy = base_url
+        for _ in range(max_redirects):
+            try:
+                response = requests.get(base_url, allow_redirects=False)
+                if response.status_code == 200:
+                    final_url = response.url
+                    break
+                elif response.status_code == 302 or response.status_code == 301:
+                    base_url = response.headers["Location"]
+                    print(base_url)
+                    continue
                 else:
-                    send_slack_message(
-                        message=f"FAIL: Domain {domain} is redirecting to {final_url}, but not to {target_domain}",
-                        webhook_urls=[URL_MAP["eng-sandbox"]],
-                    )
-                    print(
-                        f"{domain} is redirected to {final_url}, but not to {target_domain}"
-                    )
                     return False
-        except requests.RequestException as e:
-            send_slack_message(
-                message="Domain forwarding error: " + str(e),
-                webhook_urls=[URL_MAP["eng-sandbox"]],
-            )
-            print(f"Error checking domain forwarding: {e}")
-            return False
+            except Exception as e:
+                send_slack_message(
+                    message="Domain forwarding error: " + str(e),
+                    webhook_urls=[URL_MAP["eng-sandbox"]],
+                )
+                print(f"Error checking domain forwarding: {e}")
+                return False
+
+        if not target_domain:
+            if final_url != base_url:
+                send_slack_message(
+                    message=f"SUCCESS: Domain {base_url_copy} is redirecting to {final_url}",
+                    webhook_urls=[URL_MAP["eng-sandbox"]],
+                )
+                print(f"{base_url_copy} forwards to {final_url}")
+        else:
+            if final_url == target_domain:
+                send_slack_message(
+                    message=f"SUCCESS: Domain {base_url_copy} is redirecting to {final_url}",
+                    webhook_urls=[URL_MAP["eng-sandbox"]],
+                )
+                print(f"{base_url_copy} forwards to {target_domain}")
+            else:
+                send_slack_message(
+                    message=f"FAIL: Domain {base_url_copy} is redirecting to {final_url}, but not to {target_domain}",
+                    webhook_urls=[URL_MAP["eng-sandbox"]],
+                )
+                print(
+                    f"{base_url_copy} is redirected to {final_url}, but not to {target_domain}"
+                )
+                return False
 
     return True
 
