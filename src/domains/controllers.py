@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from src.client.sdr.email.services_email_bank import get_sdr_email_banks_for_client
 from src.domains.services import (
     add_email_dns_records,
     create_domain_entry,
@@ -16,9 +17,6 @@ from src.domains.services import (
 from model_import import ClientSDR, Client
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
-from src.utils.slack import send_slack_message, URL_MAP
-from app import db
-import os
 
 DOMAINS_BLUEPRINT = Blueprint("domains", __name__)
 
@@ -30,13 +28,17 @@ def get_all_domain_details(client_sdr_id):
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     client: Client = Client.query.filter_by(id=client_sdr.client_id).first()
 
-    details = get_domain_details(client_id=client.id)
+    domain_details = get_domain_details(client_id=client.id)
+    sdr_inbox_details = get_sdr_email_banks_for_client(client_sdr_id=client_sdr_id)
 
     return (
         jsonify(
             {
                 "status": "success",
-                "data": details,
+                "data": {
+                    "domain_details": domain_details,
+                    "sdr_inbox_details": sdr_inbox_details,
+                },
             }
         ),
         200,

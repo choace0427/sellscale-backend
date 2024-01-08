@@ -14,6 +14,25 @@ from src.smartlead.services import get_email_warmings, get_warmup_percentage
 from src.utils.slack import URL_MAP, send_slack_message
 
 
+def get_sdr_email_banks_for_client(client_id: int) -> list[dict]:
+    """Gets all email banks for a given client, separated by SDR
+
+    Args:
+        client_id (int): ID of the client
+
+    Returns:
+        list[dict]: List of email banks
+    """
+    sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
+
+    result = []
+    for sdr in sdrs:
+        sdr_details = sdr.to_dict(include_email_bank=True)
+        result.append(sdr_details)
+
+    return result
+
+
 def get_sdr_email_banks(
     client_sdr_id: int, active_only: Optional[bool] = True
 ) -> list[SDREmailBank]:
