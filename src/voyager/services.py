@@ -1105,3 +1105,29 @@ def withdraw_li_invite(client_sdr_id: int, prospect_id: int):
     )
 
     return True, "Success"
+
+
+def archive_convo(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return False, "Prospect not found"
+
+    if prospect.li_urn_id is None or prospect.li_conversation_urn_id is None:
+        return False, "Prospect does not have voyager URN IDs set"
+
+    api = LinkedIn(prospect.client_sdr_id)
+    profile = api.get_user_profile(use_cache=False)
+    sdr_urn_id = (
+        profile.get("miniProfile", {})
+        .get("entityUrn", "")
+        .replace("urn:li:fs_miniProfile:", "")
+    )
+
+    result = api.archive_conversation(
+        sdr_urn_id=sdr_urn_id,
+        conversation_urn_id=prospect.li_conversation_urn_id,
+    )
+    if result is None:
+        return False, "Failed to archive conversation"
+
+    return True, "Success"

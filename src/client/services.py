@@ -190,6 +190,7 @@ def update_client_sdr_details(
     disable_ai_on_message_send: Optional[bool] = None,
     ai_outreach: Optional[bool] = None,
     browser_extension_ui_overlay: Optional[bool] = None,
+    auto_archive_convos: Optional[bool] = None,
 ):
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
@@ -207,6 +208,8 @@ def update_client_sdr_details(
         csdr.active = ai_outreach
     if browser_extension_ui_overlay is not None:
         csdr.browser_extension_ui_overlay = browser_extension_ui_overlay
+    if auto_archive_convos is not None:
+        csdr.auto_archive_convos = auto_archive_convos
 
     db.session.add(csdr)
     db.session.commit()

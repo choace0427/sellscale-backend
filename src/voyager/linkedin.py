@@ -861,6 +861,28 @@ class LinkedIn(object):
 
         return company
 
+    def archive_conversation(self, sdr_urn_id: str, conversation_urn_id: str):
+        """Archive a given LinkedIn conversation."""
+
+        params = {
+            "action": "addCategory",
+        }
+
+        res = self._post(
+            f"/voyagerMessagingDashMessengerConversations",
+            params=params,
+            data=json.dumps(
+                {
+                    "category": "ARCHIVE",
+                    "conversationUrns": [
+                        f"urn:li:msg_conversation:(urn:li:fsd_profile:{sdr_urn_id},{conversation_urn_id})"
+                    ],
+                }
+            ),
+        )
+
+        return res.status_code == 204
+
 
 def send_linkedin_disconnected_email(
     client_sdr_id: int,

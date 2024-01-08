@@ -470,6 +470,7 @@ def update_prospect_status_linkedin(
     from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
     from src.daily_notifications.services import create_engagement_feed_item
     from src.daily_notifications.models import EngagementFeedType
+    from src.voyager.services import archive_convo
 
     p: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
@@ -601,6 +602,10 @@ def update_prospect_status_linkedin(
                 },
             ],
         )
+
+        # Archive their LinkedIn convo
+        if client_sdr.auto_archive_convos is None or client_sdr.auto_archive_convos:
+            success, reason = archive_convo(p.id)
 
     if new_status == ProspectStatus.ACCEPTED:
         create_engagement_feed_item(

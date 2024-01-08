@@ -392,9 +392,12 @@ class ClientSDR(db.Model):
 
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
-    browser_extension_ui_overlay = db.Column(db.Boolean, nullable=True, default=False)
-
+    # Slack Bot
     slack_user_id = db.Column(db.String, nullable=True)
+
+    # Browser Extension
+    browser_extension_ui_overlay = db.Column(db.Boolean, nullable=True, default=False)
+    auto_archive_convos = db.Column(db.Boolean, nullable=True, default=True)
 
     # Warmup
     warmup_linkedin_complete = db.Column(db.Boolean, nullable=True, default=False)
@@ -487,6 +490,7 @@ class ClientSDR(db.Model):
             if sla_schedules
             else None,
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
+            "auto_archive_convos": self.auto_archive_convos,
             "slack_user_id": self.slack_user_id,
             "linkedin_url": self.linkedin_url,
             "li_health": self.li_health,

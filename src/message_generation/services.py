@@ -6,12 +6,6 @@ from src.li_conversation.models import (
     LinkedInConvoMessage,
     LinkedinInitialMessageTemplate,
 )
-from src.message_generation.email.services import (
-    ai_initial_email_prompt,
-    ai_subject_line_prompt,
-    generate_email,
-    generate_subject_line,
-)
 from src.message_generation.models import (
     GeneratedMessageAutoBump,
     GeneratedMessageEmailType,
@@ -1158,6 +1152,13 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
 def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
     self, prospect_id: int, campaign_id: int, gm_job_id: int
 ) -> tuple[bool, str]:
+    from src.message_generation.email.services import (
+        ai_initial_email_prompt,
+        ai_subject_line_prompt,
+        generate_email,
+        generate_subject_line,
+    )
+
     # try:
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
 

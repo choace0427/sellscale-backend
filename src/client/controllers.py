@@ -556,6 +556,14 @@ def patch_sdr(client_sdr_id: int):
         parameter_type=bool,
     )
 
+    auto_archive_convos = get_request_parameter(
+        "auto_archive_convos",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+    )
+
     success = update_client_sdr_details(
         client_sdr_id=client_sdr_id,
         name=name,
@@ -564,6 +572,7 @@ def patch_sdr(client_sdr_id: int):
         disable_ai_on_message_send=disable_ai_on_message_send,
         ai_outreach=ai_outreach,
         browser_extension_ui_overlay=browser_extension_ui_overlay,
+        auto_archive_convos=auto_archive_convos,
     )
     if not success:
         return jsonify({"message": "Failed to update client SDR"}), 404
