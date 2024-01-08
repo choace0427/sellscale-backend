@@ -69,7 +69,7 @@ def dkim_record_valid(domain: str) -> tuple[str, bool]:
 
     # Check for Google DKIM record
     try:
-        dkim_answers = dns.resolver.resolve("google._domainkey." + domain, "CNAME")
+        dkim_answers = dns.resolver.resolve("google._domainkey." + domain, "TXT")
         if dkim_answers:
             for answer in dkim_answers:
                 dkim_record = answer.to_text()
