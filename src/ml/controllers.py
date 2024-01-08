@@ -4,6 +4,7 @@ from src.ml.openai_wrappers import (
     wrapped_chat_gpt_completion,
     wrapped_create_completion,
 )
+from src.ml.spam_detection import run_algorithmic_spam_detection
 from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user
 from app import db
@@ -123,7 +124,6 @@ def get_aree_fix_endpoint(message_id):
 
 @ML_BLUEPRINT.route("/generate_sequence_value_props", methods=["POST"])
 def get_sequence_value_props_endpoint():
-
     company = get_request_parameter(
         "company", request, json=True, required=True, parameter_type=str
     )
@@ -359,3 +359,18 @@ Use this information to complete the following prompt in a way that would be com
     )
 
     return jsonify({"message": "Success", "data": prompt + result}), 200
+
+
+@ML_BLUEPRINT.route("/email/body-spam-score", methods=["POST"])
+@require_user
+def post_email_body_spam_score(client_sdr_id: int):
+    """
+    Enable user to get spam score of email body
+    """
+    email_body = get_request_parameter(
+        "email_body", request, json=True, required=True, parameter_type=str
+    )
+
+    score = run_algorithmic_spam_detection(email_body)
+
+    return jsonify({"score": score}), 200
