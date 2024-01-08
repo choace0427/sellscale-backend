@@ -640,12 +640,14 @@ def is_valid_email_forwarding(
     # Attempt to get the final URL after redirects
     tests = ["http://", "https://", "http://www.", "https://www."]
     for test in tests:
+        attempts = 0
         max_redirects = 5
         final_url = ""
         base_url = test + original_domain
         base_url_copy = base_url
-        for i in range(max_redirects):
+        while attempts < max_redirects:
             try:
+                attempts += 1
                 response = requests.get(base_url, allow_redirects=False)
                 if response.status_code == 200:
                     final_url = response.url
@@ -661,7 +663,7 @@ def is_valid_email_forwarding(
                         webhook_urls=[URL_MAP["eng-sandbox"]],
                     )
                     time.sleep(2)
-                    i = i - 1
+                    attempts -= 1
                     continue
                 else:
                     send_slack_message(
