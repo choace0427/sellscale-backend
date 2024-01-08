@@ -640,6 +640,7 @@ def is_valid_email_forwarding(
     # Attempt to get the final URL after redirects
     tests = ["http://", "https://", "http://www.", "https://www."]
     for test in tests:
+        time.sleep(1)
         attempts = 0
         max_redirects = 5
         final_url = ""
@@ -1258,8 +1259,8 @@ def validate_all_domain_configurations() -> bool:
         bool: True if valid, else False
     """
     domains: list[Domain] = Domain.query.all()
-    for domain in domains:
-        validate_domain_configuration.delay(domain.id)
+    for i, domain in enumerate(domains):
+        validate_domain_configuration.apply_async([domain.id], countdown=i * 5)
 
     return True
 
