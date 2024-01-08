@@ -666,11 +666,22 @@ def is_valid_email_forwarding(
             final_url = response.url
             if not target_domain:
                 if final_url != domain:
+                    send_slack_message(
+                        message=f"SUCCESS: Domain {domain} is redirecting to {final_url}",
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                    )
                     print(f"{domain} forwards to {final_url}")
             else:
                 if final_url == target_domain:
+                    send_slack_message(
+                        message=f"SUCCESS: Domain {domain} is redirecting to {final_url}",
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                    )
                     print(f"{domain} forwards to {target_domain}")
                 else:
+                    send_slack_message(
+                        message=f"FAIL: Domain {domain} is redirecting to {final_url}, but not to {target_domain}",
+                    )
                     print(
                         f"{domain} is redirected to {final_url}, but not to {target_domain}"
                     )
