@@ -674,12 +674,12 @@ def is_valid_email_forwarding(
                     print(
                         f"{domain} is redirected to {final_url}, but not to {target_domain}"
                     )
-                    return False
+                    return False, "Failed to check domain forwarding"
         except requests.RequestException as e:
             print(f"Error checking domain forwarding: {e}")
-            return False
+            return False, str(e)
 
-    return True
+    return True, "Success"
 
 
 @celery.task
@@ -1282,9 +1282,10 @@ def validate_domain_configuration(domain_id: int) -> bool:
     domain.dkim_record = dkim_record
     domain.dkim_record_valid = dkim_valid
 
-    valid = is_valid_email_forwarding(
+    valid, message = is_valid_email_forwarding(
         original_domain=domain.domain, target_domain=domain.forward_to
     )
+    print(message)
     domain.forwarding_enabled = valid
 
     domain.last_refreshed = datetime.utcnow()
