@@ -1,6 +1,7 @@
 import json
 from typing import Optional
 from src.domains.models import Domain
+from src.domains.services import is_valid_email_forwarding
 
 from src.smartlead.services import (
     get_email_warmings,
