@@ -618,26 +618,6 @@ def get_hosted_zone_id(domain_name: str) -> Optional[str]:
     return None
 
 
-def is_valid_email_dns_records(domain_name: str) -> dict:
-    """Check if the email DNS records for a domain are valid
-
-    Args:
-        domain_name (str): The domain name to check
-
-    Returns:
-        dict: A dictionary containing the results of the check
-    """
-    spf_record, spf_valid = spf_record_valid(domain=domain_name)
-    dmarc_record, dmarc_valid = dmarc_record_valid(domain=domain_name)
-    dkim_record, dkim_valid = dkim_record_valid(domain=domain_name)
-
-    return {
-        "spf_valid": spf_valid,
-        "dmarc_valid": dmarc_valid,
-        "dkim_valid": dkim_valid,
-    }
-
-
 def is_valid_email_forwarding(
     original_domain: str, target_domain: Optional[str] = None
 ) -> bool:
@@ -681,6 +661,7 @@ def is_valid_email_forwarding(
                 else:
                     send_slack_message(
                         message=f"FAIL: Domain {domain} is redirecting to {final_url}, but not to {target_domain}",
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
                     )
                     print(
                         f"{domain} is redirected to {final_url}, but not to {target_domain}"
