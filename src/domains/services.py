@@ -1301,9 +1301,9 @@ def validate_domain_configuration(domain_id: int) -> bool:
         original_domain=domain.domain, target_domain=domain.forward_to
     )
     domain.forwarding_enabled = valid
+    db.session.commit()
 
     domain.last_refreshed = datetime.utcnow()
-
     db.session.commit()
 
     return True
