@@ -5,6 +5,7 @@ from src.bump_framework.models import BumpFramework
 from src.client.models import ClientSDR
 from src.client.sdr.services_client_sdr import get_sdr_blacklist_words
 from src.message_generation.models import GeneratedMessageAutoBump
+from src.prospecting.models import Prospect
 
 # This MUST be changed when the relative path of the csv's changes.
 PROFANITY_CSV_PATH = r"src/../datasets/profanity.csv"
@@ -24,8 +25,6 @@ def run_autobump_firewall(generated_message_autobump_id: int) -> tuple[bool, lis
     autobump: GeneratedMessageAutoBump = GeneratedMessageAutoBump.query.get(
         generated_message_autobump_id
     )
-    if not autobump:
-        return False, "Message not found"
 
     # Get the message
     message = autobump.message
@@ -39,7 +38,7 @@ def run_autobump_firewall(generated_message_autobump_id: int) -> tuple[bool, lis
     rule_no_sdr_name_in_message(autobump.id, violations)
     rule_no_profanity(message, violations)
     rule_no_prompt_message(message, violations)
-    rule_no_sdr_first_name_in_message(message, violations)
+    rule_no_sdr_first_name_in_message(message, violations, autobump.client_sdr_id)
 
     # If there are any violations, return False
     if len(violations) > 0:
@@ -144,9 +143,26 @@ def rule_no_sdr_name_in_message(autobump_id: int, violations: list) -> tuple[boo
 
     return True, "Success"
 
-def rule_no_sdr_first_name_in_message(message: str, violations: list) -> tuple[bool, str]:
+
+def rule_no_sdr_first_name_in_message(
+    message: str, violations: list, client_sdr_id: int
+) -> tuple[bool, str]:
     """Rule: Message cannot contain the SDR's first name like Hi [first_name]"""
-    pass
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    full_name = client_sdr.name
+    first_name = full_name.split()[0]
+
+    blocked_phrases = [
+        "Hi " + first_name,
+        "Hey " + first_name,
+        "Hello " + first_name,
+    ]
+    for phrase in blocked_phrases:
+        if phrase in message:
+            violations.append("Message contains SDR first name: '" + phrase + "'")
+            return False, "Message contains SDR first name: '" + phrase + "'"
+
+    return True, "Success"
 
 
 def rule_no_prompt_message(message: str, violations: list) -> tuple[bool, str]:
