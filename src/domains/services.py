@@ -655,6 +655,10 @@ def is_valid_email_forwarding(
                     print(base_url)
                     continue
                 else:
+                    send_slack_message(
+                        message=f"Domain forwarding error: {response.status_code} - {response.reason}",
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                    )
                     return False
             except Exception as e:
                 send_slack_message(
