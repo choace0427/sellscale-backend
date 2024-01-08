@@ -644,7 +644,7 @@ def is_valid_email_forwarding(
         final_url = ""
         base_url = test + original_domain
         base_url_copy = base_url
-        for _ in range(max_redirects):
+        for i in range(max_redirects):
             try:
                 response = requests.get(base_url, allow_redirects=False)
                 if response.status_code == 200:
@@ -654,9 +654,18 @@ def is_valid_email_forwarding(
                     base_url = response.headers["Location"]
                     print(base_url)
                     continue
+                elif response.status_code == 429:
+                    print("Too many requests, wait 2 seconds")
+                    send_slack_message(
+                        message=f"Too many requests for {base_url_copy}, waiting 2 seconds",
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                    )
+                    time.sleep(2)
+                    i = i - 1
+                    continue
                 else:
                     send_slack_message(
-                        message=f"Domain forwarding error: {response.status_code} - {response.reason}",
+                        message=f"Domain forwarding error for {base_url_copy}: {response.status_code} - {response.reason}",
                         webhook_urls=[URL_MAP["eng-sandbox"]],
                     )
                     return False
