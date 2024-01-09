@@ -4,11 +4,14 @@ from flask import Blueprint, request, jsonify
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.warmup_snapshot.models import WarmupSnapshot
-from src.warmup_snapshot.services import pass_through_smartlead_warmup_request, set_warmup_snapshots_for_client
+from src.warmup_snapshot.services import (
+    pass_through_smartlead_warmup_request,
+    set_warmup_snapshots_for_client,
+)
 from src.client.models import ClientSDR
 
 
-WARMUP_SNAPSHOT = Blueprint("email/warmup", __name__)
+WARMUP_SNAPSHOT = Blueprint("warmup", __name__)
 
 
 @WARMUP_SNAPSHOT.route("/smartlead", methods=["GET"])

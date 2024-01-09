@@ -320,7 +320,7 @@ def register_blueprints(app):
     app.register_blueprint(ICP_SCORING_BLUEPRINT, url_prefix="/icp_scoring")
     app.register_blueprint(SDR_EMAIL_BLUEPRINT, url_prefix="/client/sdr/email")
     app.register_blueprint(EMAIL_SCHEDULING_BLUEPRINT, url_prefix="/email/schedule")
-    app.register_blueprint(WARMUP_SNAPSHOT, url_prefix="/email/warmup")
+    app.register_blueprint(WARMUP_SNAPSHOT, url_prefix="/warmup")
     app.register_blueprint(
         QUESTION_ENRICHMENT_BLUEPRINT, url_prefix="/question_enrichment"
     )
