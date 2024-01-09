@@ -656,7 +656,12 @@ def is_valid_email_forwarding(
                 if response.status_code == 200:
                     final_url = response.url
                     break
-                elif response.status_code == 302 or response.status_code == 301:
+                elif (
+                    response.status_code == 302
+                    or response.status_code == 301
+                    or response.status_code == 307
+                    or response.status_code == 308
+                ):
                     base_url = response.headers["Location"]
                     print(base_url)
                     continue
