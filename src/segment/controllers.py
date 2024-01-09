@@ -6,6 +6,7 @@ from src.segment.services import (
     add_prospects_to_segment,
     create_new_segment,
     delete_segment,
+    extract_data_from_sales_navigator_link,
     find_prospects_by_segment_filters,
     get_segments_for_sdr,
     update_segment,
@@ -188,3 +189,17 @@ def find_prospects_by_segment_filters_endpoint(client_sdr_id: int):
     )
 
     return jsonify({"prospects": prospects, "num_prospects": len(prospects)}), 200
+
+
+@SEGMENT_BLUEPRINT.route("/extract_sales_nav_titles", methods=["POST"])
+@require_user
+def extract_sales_nav_titles(client_sdr_id: int):
+    sales_nav_url = get_request_parameter(
+        "sales_nav_url", request, json=True, required=True
+    )
+
+    data: dict = extract_data_from_sales_navigator_link(
+        sales_nav_url=sales_nav_url,
+    )
+
+    return jsonify(data), 200

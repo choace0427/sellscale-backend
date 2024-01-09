@@ -1,9 +1,11 @@
+import json
 from sqlalchemy import or_, and_
 
 from regex import E
 from app import db
 from sqlalchemy.orm import attributes
 from src.client.models import ClientArchetype, ClientSDR
+from src.ml.services import get_text_generation
 from src.prospecting.models import Prospect
 from src.segment.models import Segment
 from sqlalchemy import case
@@ -248,3 +250,40 @@ def find_prospects_by_segment_filters(
         }
         for prospect in prospects
     ]
+
+
+def extract_data_from_sales_navigator_link(
+    sales_nav_url: str,
+):
+    response = get_text_generation(
+        [
+            {
+                "role": "user",
+                "content": f"""
+Using this Sales Navigator URL:
+```
+{sales_nav_url}
+```
+
+Return a list of the job titles by parsing the URL above and return in a valid JSON formatted as {{data: [titles array]}}
+
+Respond with only the JSON.
+
+JSON:""",
+            },
+        ],
+        max_tokens=600,
+        model="gpt-4",
+        type="ICP_CLASSIFY",
+    )
+
+    titles = []
+    try:
+        data: dict = json.loads(response)
+        titles = data.get("data", [])
+    except:
+        return {}
+
+    return {
+        "titles": titles,
+    }
