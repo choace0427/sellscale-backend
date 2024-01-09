@@ -111,9 +111,11 @@ def find_prospects_by_segment_filters(
     # keep 'Uncategorized' if no segment present
 
     base_query = (
-        Prospect.query.join(ClientArchetype)
-        .join(ClientSDR)
-        .outerjoin(Segment)
+        Prospect.query.join(
+            ClientArchetype, Prospect.archetype_id == ClientArchetype.id
+        )
+        .join(ClientSDR, Prospect.client_sdr_id == ClientSDR.id)
+        .outerjoin(Segment, Prospect.segment_id == Segment.id)
         .with_entities(
             Prospect.id,
             Prospect.full_name,
@@ -125,13 +127,7 @@ def find_prospects_by_segment_filters(
                 else_=Segment.segment_title,
             ).label("segment_title"),
         )
-        .filter(
-            ClientSDR.id == client_sdr_id,
-            Segment.client_sdr_id == ClientSDR.id,
-            Prospect.archetype_id == ClientArchetype.id,
-            ClientSDR.id == Prospect.client_sdr_id,
-            or_(Prospect.segment_id == None, Segment.id == Prospect.segment_id),
-        )
+        .filter(ClientSDR.id == client_sdr_id)
     )
 
     if segment_ids:

@@ -187,4 +187,4 @@ def find_prospects_by_segment_filters_endpoint(client_sdr_id: int):
         years_of_experience_end=years_of_experience_end,
     )
 
-    return jsonify({"prospects": prospects})
+    return jsonify({"prospects": prospects, "num_prospects": len(prospects)}), 200
