@@ -930,6 +930,7 @@ def update_prospect_status_email(
     quietly: Optional[bool] = False,
     custom_webhook_urls: Optional[str] = None,
     metadata: Optional[dict] = None,
+    disqualification_reason: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Updates the prospect email outreach status
 
@@ -940,6 +941,7 @@ def update_prospect_status_email(
         quietly (Optional[bool], optional): Don't send slack notifs. Defaults to False.
         custom_webhook_urls (Optional[str], optional): Custom Slack webhook URLs to send slack notifs to. Defaults to None.
         metadata (Optional[dict], optional): Metadata to influence slack block formatting. Defaults to None.
+        disqualification_reason (Optional[str], optional): Reason for disqualification. Defaults to None.
 
     Returns:
         tuple[bool, str]: (success, message)
@@ -951,6 +953,11 @@ def update_prospect_status_email(
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
         return False, "Prospect not found"
+
+    if disqualification_reason:
+        p.disqualification_reason = disqualification_reason
+        db.session.commit()
+
     p_email: ProspectEmail = ProspectEmail.query.get(p.approved_prospect_email_id)
     if not p_email:
         return False, "Prospect email not found"
@@ -2352,7 +2359,7 @@ def auto_mark_uninterested_bumped_prospects():
                 prospect_id=prospect_id,
                 new_status=ProspectStatus.NOT_INTERESTED,
                 note=f"Auto-marked as `not interested` after being bumped {prospect_count - 1} times.",
-                disqualification_reason='Unresponsive'
+                disqualification_reason="Unresponsive",
             )
 
             prospect: Prospect = Prospect.query.get(prospect_id)

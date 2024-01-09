@@ -305,6 +305,7 @@ def update_status(client_sdr_id: int, prospect_id: int):
             new_status=new_status,
             override_status=override_status,
             quietly=quietly,
+            disqualification_reason=disqualification_reason,
         )
         if success[0]:
             return (
