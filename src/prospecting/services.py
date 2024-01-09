@@ -1048,8 +1048,6 @@ def update_prospect_status_email(
         webhooks.append(URL_MAP["eng-sandbox"])
         webhooks.append(URL_MAP["sellscale_pipeline_all_clients"])
 
-        disqualification_reason = p.disqualification_reason or "Unknown"
-
         send_slack_message(
             message="",
             webhook_urls=webhooks,
