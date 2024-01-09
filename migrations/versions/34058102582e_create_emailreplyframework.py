@@ -7,7 +7,7 @@ Create Date: 2024-01-09 15:31:33.512126
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "34058102582e"
@@ -29,7 +29,7 @@ def upgrade():
         sa.Column("client_archetype_id", sa.Integer(), nullable=True),
         sa.Column(
             "overall_status",
-            sa.Enum(
+            postgresql.ENUM(
                 "PROSPECTED",
                 "SENT_OUTREACH",
                 "ACCEPTED",
@@ -39,6 +39,7 @@ def upgrade():
                 "REMOVED",
                 "NURTURE",
                 name="prospectoverallstatus",
+                create_type=False,
             ),
             nullable=True,
         ),
@@ -48,25 +49,24 @@ def upgrade():
         sa.Column("times_accepted", sa.Integer(), nullable=True),
         sa.Column(
             "research_blocklist",
-            sa.ARRAY(
-                sa.Enum(
-                    "CURRENT_JOB_DESCRIPTION",
-                    "CURRENT_JOB_SPECIALTIES",
-                    "CURRENT_JOB_INDUSTRY",
-                    "CURRENT_EXPERIENCE_DESCRIPTION",
-                    "LINKEDIN_BIO_SUMMARY",
-                    "YEARS_OF_EXPERIENCE",
-                    "YEARS_OF_EXPERIENCE_AT_CURRENT_JOB",
-                    "LIST_OF_PAST_JOBS",
-                    "RECENT_PATENTS",
-                    "RECENT_RECOMMENDATIONS",
-                    "GENERAL_WEBSITE_TRANSFORMER",
-                    "COMMON_EDUCATION",
-                    "SERP_NEWS_SUMMARY",
-                    "SERP_NEWS_SUMMARY_NEGATIVE",
-                    "CUSTOM",
-                    name="researchpointtype",
-                )
+            postgresql.ENUM(
+                "CURRENT_JOB_DESCRIPTION",
+                "CURRENT_JOB_SPECIALTIES",
+                "CURRENT_JOB_INDUSTRY",
+                "CURRENT_EXPERIENCE_DESCRIPTION",
+                "LINKEDIN_BIO_SUMMARY",
+                "YEARS_OF_EXPERIENCE",
+                "YEARS_OF_EXPERIENCE_AT_CURRENT_JOB",
+                "LIST_OF_PAST_JOBS",
+                "RECENT_PATENTS",
+                "RECENT_RECOMMENDATIONS",
+                "GENERAL_WEBSITE_TRANSFORMER",
+                "COMMON_EDUCATION",
+                "SERP_NEWS_SUMMARY",
+                "SERP_NEWS_SUMMARY_NEGATIVE",
+                "CUSTOM",
+                name="researchpointtype",
+                create_type=False,
             ),
             nullable=True,
         ),
