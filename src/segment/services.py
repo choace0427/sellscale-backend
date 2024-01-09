@@ -121,6 +121,7 @@ def find_prospects_by_segment_filters(
             Prospect.full_name,
             Prospect.title,
             Prospect.company,
+            Prospect.linkedin_url,
             ClientArchetype.archetype,
             case(
                 [(Segment.segment_title == None, "uncategorized")],  # type: ignore
@@ -218,7 +219,7 @@ def find_prospects_by_segment_filters(
     if included_bio_keywords:
         or_addition = []
         for keyword in included_bio_keywords:
-            or_addition.append(Prospect.bio.ilike(f"%{keyword}%"))
+            or_addition.append(Prospect.linkedin_bio.ilike(f"%{keyword}%"))
         if len(or_addition) > 1:
             base_query = base_query.filter(or_(*or_addition))
         else:
@@ -227,7 +228,7 @@ def find_prospects_by_segment_filters(
     if excluded_bio_keywords:
         and_addition = []
         for keyword in excluded_bio_keywords:
-            and_addition.append(~Prospect.bio.ilike(f"%{keyword}%"))
+            and_addition.append(~Prospect.linkedin_bio.ilike(f"%{keyword}%"))
         if len(and_addition) > 1:
             base_query = base_query.filter(and_(*and_addition))
         else:
@@ -243,6 +244,7 @@ def find_prospects_by_segment_filters(
             "company": prospect.company,
             "campaign": prospect.archetype,
             "segment": prospect.segment_title,
+            "linkedin_url": prospect.linkedin_url,
         }
         for prospect in prospects
     ]
