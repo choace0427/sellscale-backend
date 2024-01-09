@@ -1,3 +1,6 @@
+from operator import and_, or_
+
+from regex import E
 from app import db
 from sqlalchemy.orm import attributes
 from src.client.models import ClientArchetype, ClientSDR
@@ -85,53 +88,136 @@ def add_prospects_to_segment(prospect_ids: list[int], new_segment_id: int):
 
 def find_prospects_by_segment_filters(
     client_sdr_id: int,
+    segment_ids: list[int] = [],
     included_title_keywords: list[str] = [],
     excluded_title_keywords: list[str] = [],
     included_seniority_keywords: list[str] = [],
     excluded_seniority_keywords: list[str] = [],
     included_company_keywords: list[str] = [],
     excluded_company_keywords: list[str] = [],
+    included_education_keywords: list[str] = [],
+    excluded_education_keywords: list[str] = [],
+    included_bio_keywords: list[str] = [],
+    excluded_bio_keywords: list[str] = [],
+    included_location_keywords: list[str] = [],
+    excluded_location_keywords: list[str] = [],
+    included_skills_keywords: list[str] = [],
+    excluded_skills_keywords: list[str] = [],
+    years_of_experience_start: int = None,
+    years_of_experience_end: int = None,
 ) -> list[dict]:
     base_query = (
         Prospect.query.join(ClientArchetype)
         .join(ClientSDR)
-        .filter(ClientSDR.id == client_sdr_id)
+        .filter(
+            ClientSDR.id == client_sdr_id,
+            Prospect.archetype_id == ClientArchetype.id,
+            ClientSDR.id == Prospect.client_sdr_id,
+        )
     )
 
+    if segment_ids:
+        base_query = base_query.filter(Prospect.segment_id.in_(segment_ids))
+
     if included_title_keywords:
+        or_addition = []
         for keyword in included_title_keywords:
-            base_query = base_query.filter(Prospect.title.ilike(f"%{keyword}%"))
+            or_addition.append(Prospect.title.ilike(f"%{keyword}%"))
+        if len(or_addition) > 1:
+            base_query = base_query.filter(or_(*or_addition))
+        else:
+            base_query = base_query.filter(or_addition[0])
 
     if excluded_title_keywords:
+        and_addition = []
         for keyword in excluded_title_keywords:
-            base_query = base_query.filter(~Prospect.title.ilike(f"%{keyword}%"))
+            and_addition.append(~Prospect.title.ilike(f"%{keyword}%"))
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
 
     if included_seniority_keywords:
+        or_addition = []
         for keyword in included_seniority_keywords:
-            base_query = base_query.filter(Prospect.title.ilike(f"%{keyword}%"))
+            or_addition.append(Prospect.title.ilike(f"%{keyword}%"))
+        if len(or_addition) > 1:
+            base_query = base_query.filter(or_(*or_addition))
+        else:
+            base_query = base_query.filter(or_addition[0])
 
     if excluded_seniority_keywords:
+        and_addition = []
         for keyword in excluded_seniority_keywords:
-            base_query = base_query.filter(~Prospect.title.ilike(f"%{keyword}%"))
+            and_addition.append(~Prospect.title.ilike(f"%{keyword}%"))
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
 
     if included_company_keywords:
+        or_addition = []
         for keyword in included_company_keywords:
-            base_query = base_query.filter(Prospect.company.ilike(f"%{keyword}%"))
+            or_addition.append(Prospect.company.ilike(f"%{keyword}%"))
+        if len(or_addition) > 1:
+            base_query = base_query.filter(or_(*or_addition))
+        else:
+            base_query = base_query.filter(or_addition[0])
 
     if excluded_company_keywords:
+        and_addition = []
         for keyword in excluded_company_keywords:
-            base_query = base_query.filter(~Prospect.company.ilike(f"%{keyword}%"))
+            and_addition.append(~Prospect.company.ilike(f"%{keyword}%"))
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
 
-    # extract just the columns I need:
-    #             prospect.id,
-    #     prospect.full_name "Name",
-    #   prospect.title "Title",
-    #   prospect.company "Company",
-    #   client_archetype.archetype "Campaign",
-    #   case
-    #     when segment.segment_title is null then 'Uncategorized'
-    #     else segment.segment_title
-    #   end "Segment"
+    if included_education_keywords:
+        and_addition = []
+        for keyword in included_education_keywords:
+            and_addition.append(
+                or_(
+                    Prospect.education_1.ilike(f"%{keyword}%"),
+                    Prospect.education_2.ilike(f"%{keyword}%"),
+                )
+            )
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
+
+    if excluded_education_keywords:
+        and_addition = []
+        for keyword in excluded_education_keywords:
+            and_addition.append(
+                and_(
+                    ~Prospect.education_1.ilike(f"%{keyword}%"),
+                    ~Prospect.education_2.ilike(f"%{keyword}%"),
+                )
+            )
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
+
+    if included_bio_keywords:
+        or_addition = []
+        for keyword in included_bio_keywords:
+            or_addition.append(Prospect.bio.ilike(f"%{keyword}%"))
+        if len(or_addition) > 1:
+            base_query = base_query.filter(or_(*or_addition))
+        else:
+            base_query = base_query.filter(or_addition[0])
+
+    if excluded_bio_keywords:
+        and_addition = []
+        for keyword in excluded_bio_keywords:
+            and_addition.append(~Prospect.bio.ilike(f"%{keyword}%"))
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
 
     prospects = base_query.with_entities(
         Prospect.id,

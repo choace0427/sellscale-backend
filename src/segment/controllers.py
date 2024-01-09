@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 from src.prospecting.models import Prospect
 from src.segment.models import Segment
@@ -6,6 +6,7 @@ from src.segment.services import (
     add_prospects_to_segment,
     create_new_segment,
     delete_segment,
+    find_prospects_by_segment_filters,
     get_segments_for_sdr,
     update_segment,
 )
@@ -110,3 +111,80 @@ def add_prospects_to_segment_endpoint(client_sdr_id: int, segment_id: int):
         return "Prospects added to segment", 200
 
     return message, 400
+
+
+@SEGMENT_BLUEPRINT.route("/find_prospects", methods=["POST"])
+@require_user
+def find_prospects_by_segment_filters_endpoint(client_sdr_id: int):
+    segment_ids = get_request_parameter("segment_ids", request, json=True)
+    included_title_keywords = get_request_parameter(
+        "included_title_keywords", request, json=True
+    )
+    excluded_title_keywords = get_request_parameter(
+        "excluded_title_keywords", request, json=True
+    )
+    included_seniority_keywords = get_request_parameter(
+        "included_seniority_keywords", request, json=True
+    )
+    excluded_seniority_keywords = get_request_parameter(
+        "excluded_seniority_keywords", request, json=True
+    )
+    included_company_keywords = get_request_parameter(
+        "included_company_keywords", request, json=True
+    )
+    excluded_company_keywords = get_request_parameter(
+        "excluded_company_keywords", request, json=True
+    )
+    included_education_keywords = get_request_parameter(
+        "included_education_keywords", request, json=True
+    )
+    excluded_education_keywords = get_request_parameter(
+        "excluded_education_keywords", request, json=True
+    )
+    included_bio_keywords = get_request_parameter(
+        "included_bio_keywords", request, json=True
+    )
+    excluded_bio_keywords = get_request_parameter(
+        "excluded_bio_keywords", request, json=True
+    )
+    included_location_keywords = get_request_parameter(
+        "included_location_keywords", request, json=True
+    )
+    excluded_location_keywords = get_request_parameter(
+        "excluded_location_keywords", request, json=True
+    )
+    included_skills_keywords = get_request_parameter(
+        "included_skills_keywords", request, json=True
+    )
+    excluded_skills_keywords = get_request_parameter(
+        "excluded_skills_keywords", request, json=True
+    )
+    years_of_experience_start = get_request_parameter(
+        "years_of_experience_start", request, json=True
+    )
+    years_of_experience_end = get_request_parameter(
+        "years_of_experience_end", request, json=True
+    )
+
+    prospects: list[dict] = find_prospects_by_segment_filters(
+        client_sdr_id=client_sdr_id,
+        segment_ids=segment_ids,
+        included_title_keywords=included_title_keywords,
+        excluded_title_keywords=excluded_title_keywords,
+        included_seniority_keywords=included_seniority_keywords,
+        excluded_seniority_keywords=excluded_seniority_keywords,
+        included_company_keywords=included_company_keywords,
+        excluded_company_keywords=excluded_company_keywords,
+        included_education_keywords=included_education_keywords,
+        excluded_education_keywords=excluded_education_keywords,
+        included_bio_keywords=included_bio_keywords,
+        excluded_bio_keywords=excluded_bio_keywords,
+        included_location_keywords=included_location_keywords,
+        excluded_location_keywords=excluded_location_keywords,
+        included_skills_keywords=included_skills_keywords,
+        excluded_skills_keywords=excluded_skills_keywords,
+        years_of_experience_start=years_of_experience_start,
+        years_of_experience_end=years_of_experience_end,
+    )
+
+    return jsonify({"prospects": prospects})
