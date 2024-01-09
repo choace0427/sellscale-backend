@@ -4,7 +4,7 @@ from src.message_generation.models import GeneratedMessageType
 import enum
 
 EDITING_COST_PER_PROSPECT = 0.132
-UPWORKER_RECEIPT_LINK = 'https://www.upwork.com/nx/payments/reports/transaction-history'
+UPWORKER_RECEIPT_LINK = "https://www.upwork.com/nx/payments/reports/transaction-history"
 
 
 class OutboundCampaignStatus(enum.Enum):

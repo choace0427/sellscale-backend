@@ -1,4 +1,5 @@
 from crypt import methods
+from datetime import datetime
 from typing import Optional
 from flask import Blueprint, request, jsonify
 from numpy import require
@@ -11,6 +12,7 @@ from src.personas.services import (
 )
 from src.prospecting.models import Prospect
 from src.client.services import (
+    get_available_times_via_calendly,
     get_tam_data,
     msg_analytics_report,
     remove_prospects_caught_by_filters,
@@ -2767,3 +2769,37 @@ def post_ask_ae_notifs(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success", "data": True}), 200
+
+
+@CLIENT_BLUEPRINT.route("/ai_available_times", methods=["POST"])
+@require_user
+def post_ai_available_times(client_sdr_id: int):
+    calendar_url = get_request_parameter(
+        "calendar_url", request, json=True, required=True, parameter_type=str
+    )
+    date = get_request_parameter(
+        "date", request, json=True, required=True, parameter_type=str
+    )
+
+    available_start_hour = get_request_parameter(
+        "available_start_hour", request, json=True, required=False, parameter_type=int
+    )
+    available_end_hour = get_request_parameter(
+        "available_end_hour", request, json=True, required=False, parameter_type=int
+    )
+    within_next_days = get_request_parameter(
+        "within_next_days", request, json=True, required=False, parameter_type=int
+    )
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    result = get_available_times_via_calendly(
+        calendly_url=calendar_url,
+        dt=datetime.strptime(date, "%Y-%m-%d"),
+        tz=sdr.timezone,
+        start_time=available_start_hour,
+        end_time=available_end_hour,
+        max_days=within_next_days,
+    )
+
+    return jsonify({"message": "Success", "data": result}), 200

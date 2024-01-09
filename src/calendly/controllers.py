@@ -1,4 +1,3 @@
-
 from crypt import methods
 from flask import Blueprint, request, jsonify
 from src.calendly.services import update_calendly_access_token
@@ -14,7 +13,6 @@ CALENDLY_BLUEPRINT = Blueprint("calendly", __name__)
 @CALENDLY_BLUEPRINT.route("/access_token", methods=["POST"])
 @require_user
 def post_access_token_from_code(client_sdr_id: int):
-    
     code = get_request_parameter(
         "code", request, json=True, required=False, parameter_type=str
     )
@@ -28,5 +26,5 @@ def post_access_token_from_code(client_sdr_id: int):
 
     if not success:
         return jsonify({"message": "Failed to update access token"}), 400
-    
+
     return jsonify({"message": "Success"}), 200

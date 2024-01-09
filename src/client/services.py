@@ -16,6 +16,7 @@ from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
+from src.vision.services import attempt_chat_completion_with_vision
 from src.individual.models import Individual
 from src.prospecting.icp_score.services import update_icp_scoring_ruleset
 from src.prospecting.models import ProspectEvent
@@ -31,6 +32,8 @@ from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.automation.models import PhantomBusterAgent
 from app import celery, db
 from flask import jsonify
+from datetime import datetime
+import pytz
 import time
 import json
 from datetime import datetime, timedelta
@@ -4420,3 +4423,74 @@ def msg_analytics_report(client_sdr_id: int):
     """
     ).fetchall()
     return [dict(row) for row in results]
+
+
+def get_available_times_via_calendly(
+    calendly_url: str,
+    dt: datetime,
+    tz: str = "America/Los_Angeles",
+    start_time: int = 8,
+    end_time: int = 18,
+    max_days: int = 14,
+):
+    """
+    Returns a list of available times from a Calendly link
+    """
+
+    success, response = attempt_chat_completion_with_vision(
+        message=f"""
+          ## Given this image of a calendar, please list out all the available days and times for the selected day in ISO 8601 format.
+          #### Your response should look something like this and follow this datetime format exactly:
+          Selected Date:
+          2024-01-09 09:00:00
+          2024-01-09 11:30:00
+          2024-01-09 12:30:00
+          
+          Other Dates:
+          2024-01-05 00:00:00
+          2024-01-07 00:00:00
+          2024-01-10 00:00:00
+          2024-01-12 00:00:00
+        """,
+        webpage_url=f"{calendly_url}?month={dt.strftime('%Y-%m')}&date={dt.strftime('%Y-%m-%d')}",
+    )
+    if not success:
+        return None
+
+    # Split the response into selected dates and other dates
+    selected_dates_str, other_dates_str = response.split("\n\n")
+
+    # Extract and convert the selected dates (now as timezone-aware UTC datetimes)
+    selected_dates_utc = [
+        datetime.fromisoformat(date + "+00:00")
+        for date in selected_dates_str.split("\n")[1:]
+    ]
+    other_dates_utc = [
+        datetime.fromisoformat(date + "+00:00")
+        for date in other_dates_str.split("\n")[1:]
+    ]
+
+    # Convert UTC dates to the given timezone
+    selected_dates_tz = [
+        date.astimezone(pytz.timezone(tz)) for date in selected_dates_utc
+    ]
+    other_dates_tz = [date.astimezone(pytz.timezone(tz)) for date in other_dates_utc]
+
+    # Filtering selected_dates_tz for times between start_time and end_time
+    selected_dates_within_hours = [
+        date for date in selected_dates_tz if start_time <= date.hour < end_time
+    ]
+
+    # Calculate the date X days from now
+    current_date = datetime.now(pytz.timezone(tz))
+    x_days_later = current_date + timedelta(days=max_days)
+
+    # Filter the dates
+    other_dates_next_x_days = [
+        date for date in other_dates_tz if current_date <= date <= x_days_later
+    ]
+
+    return {
+        "times": selected_dates_within_hours,
+        "other_dates": other_dates_next_x_days,
+    }
