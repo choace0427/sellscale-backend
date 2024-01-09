@@ -52,9 +52,7 @@ class Client(object):
         "Accept-Language": "en-us",
     }
 
-    def __init__(
-        self, *, debug=False, refresh_cookies=False, proxies={}
-    ):
+    def __init__(self, *, debug=False, refresh_cookies=False, proxies={}):
         self.session = requests.session()
         self.session.proxies.update(proxies)
         self.session.headers.update(Client.REQUEST_HEADERS)
@@ -77,13 +75,14 @@ class Client(object):
             proxies=self.proxies,
         )
         return res.cookies
-    
+
     def _get_cookies_for_sdr_store(self, li_at: str):
         cookies_jar = self._request_session_cookies()
-        if not cookies_jar: return None
+        if not cookies_jar:
+            return None
 
-        cookies_jar.set('li_at', li_at)
-        
+        cookies_jar.set("li_at", li_at)
+
         return cookies_jar
 
     def _set_session_cookies(self, cookies, user_agent: str = None):
@@ -97,7 +96,7 @@ class Client(object):
 
         if not user_agent:
             user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-        
+
         self.session.headers["user-agent"] = user_agent
 
     @property
@@ -108,19 +107,19 @@ class Client(object):
         if self._use_cookie_cache:
             self.logger.debug("Attempting to use cached cookies")
             user_agent = client_sdr.user_agent
-            if client_sdr.li_at_token and client_sdr.li_at_token != 'INVALID':
+            if client_sdr.li_at_token and client_sdr.li_at_token != "INVALID":
                 cookies = self._get_cookies_for_sdr_store(client_sdr.li_at_token)
             else:
                 try:
                     cookie_jar = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
-                    if cookie_jar and cookie_jar.get('li_at'):
-                        client_sdr.li_at_token = cookie_jar.get('li_at')
+                    if cookie_jar and cookie_jar.get("li_at"):
+                        client_sdr.li_at_token = cookie_jar.get("li_at")
                         db.session.commit()
-                        cookies = self._get_cookies_for_sdr_store(cookie_jar.get('li_at'))
+                        cookies = self._get_cookies_for_sdr_store(
+                            cookie_jar.get("li_at")
+                        )
                 except:
                     cookies = None
-
-            
 
             if cookies:
                 self.logger.debug("Using cached cookies")
@@ -128,7 +127,7 @@ class Client(object):
                 self._fetch_metadata()
                 return
 
-        #self._do_authentication_request(client_sdr)
+        # self._do_authentication_request(client_sdr)
         self._fetch_metadata()
 
     def _fetch_metadata(self):
@@ -137,14 +136,14 @@ class Client(object):
         Store this data in self.metadata
         """
         try:
-          res = requests.get(
-              f"{Client.LINKEDIN_BASE_URL}",
-              cookies=self.session.cookies,
-              headers=Client.AUTH_REQUEST_HEADERS,
-              proxies=self.proxies,
-          )
+            res = requests.get(
+                f"{Client.LINKEDIN_BASE_URL}",
+                cookies=self.session.cookies,
+                headers=Client.AUTH_REQUEST_HEADERS,
+                proxies=self.proxies,
+            )
         except Exception as e:
-          return
+            return
 
         soup = BeautifulSoup(res.text, "lxml")
 
@@ -153,18 +152,20 @@ class Client(object):
         )
         if clientApplicationInstanceRaw:
             clientApplicationInstanceRaw = (
-                clientApplicationInstanceRaw.attrs.get("content") or {} # type: ignore
+                clientApplicationInstanceRaw.attrs.get("content") or {}  # type: ignore
             )
             clientApplicationInstance = json.loads(
-                clientApplicationInstanceRaw) # type: ignore
+                clientApplicationInstanceRaw
+            )  # type: ignore
             self.metadata["clientApplicationInstance"] = clientApplicationInstance
 
         clientPageInstanceIdRaw = soup.find(
             "meta", attrs={"name": "clientPageInstanceId"}
         )
         if clientPageInstanceIdRaw:
-            clientPageInstanceId = clientPageInstanceIdRaw.attrs.get("content") or { # type: ignore
-            }
+            clientPageInstanceId = (
+                clientPageInstanceIdRaw.attrs.get("content") or {}  # type: ignore
+            )
             self.metadata["clientPageInstanceId"] = clientPageInstanceId
 
     def _do_authentication_request(self, client_sdr: ClientSDR):
@@ -172,11 +173,11 @@ class Client(object):
         Authenticate with Linkedin.
         Return a session object that is authenticated.
         """
-        self._set_session_cookies(self._request_session_cookies(), user_agent = None)
+        self._set_session_cookies(self._request_session_cookies(), user_agent=None)
 
         payload = {  # TODO: get username and password from client_sdr?
-            "session_key": 'aaronncassar@gmail.com',
-            "session_password": 'MY-AWESOME-PASSWORD',
+            "session_key": "aaronncassar@gmail.com",
+            "session_password": "MY-AWESOME-PASSWORD",
             "JSESSIONID": self.session.cookies["JSESSIONID"],
         }
 
@@ -199,8 +200,8 @@ class Client(object):
         if res.status_code != 200:
             raise Exception()
 
-        self._set_session_cookies(res.cookies, user_agent = None)
-        ClientSDR.query.filter(
-            ClientSDR.id == client_sdr.id
-        ).update({"li_cookies": json.dumps(res.cookies.get_dict())})
+        self._set_session_cookies(res.cookies, user_agent=None)
+        ClientSDR.query.filter(ClientSDR.id == client_sdr.id).update(
+            {"li_cookies": json.dumps(res.cookies.get_dict())}
+        )
         db.session.commit()

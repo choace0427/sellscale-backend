@@ -2,7 +2,14 @@ from src.client.services_client_archetype import get_icp_filters_autofill
 from app import db
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
-from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health, create_sla_schedule, get_sla_schedules_for_sdr, update_custom_conversion_pct, update_sdr_sla_targets, update_sla_schedule
+from src.client.sdr.services_client_sdr import (
+    compute_sdr_linkedin_health,
+    create_sla_schedule,
+    get_sla_schedules_for_sdr,
+    update_custom_conversion_pct,
+    update_sdr_sla_targets,
+    update_sla_schedule,
+)
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
 
@@ -12,21 +19,19 @@ CLIENT_SDR_BLUEPRINT = Blueprint("client/sdr", __name__)
 @CLIENT_SDR_BLUEPRINT.route("/linkedin/health", methods=["GET"])
 @require_user
 def get_linkedin_health(client_sdr_id: int):
-
     success, health, details = compute_sdr_linkedin_health(client_sdr_id)
     if not success:
-        return jsonify({"status": "error", "message": "Could not compute LinkedIn health"}), 400
+        return (
+            jsonify(
+                {"status": "error", "message": "Could not compute LinkedIn health"}
+            ),
+            400,
+        )
 
-    return jsonify(
-        {
-            "status": "success",
-            "data":
-            {
-                "health": health,
-                "details": details
-            }
-        }
-    ), 200
+    return (
+        jsonify({"status": "success", "data": {"health": health, "details": details}}),
+        200,
+    )
 
 
 @CLIENT_SDR_BLUEPRINT.route("/sla/targets", methods=["PATCH"])
@@ -42,7 +47,7 @@ def patch_sla_target(client_sdr_id: int):
     success, message = update_sdr_sla_targets(
         client_sdr_id=client_sdr_id,
         weekly_linkedin_target=weekly_linkedin_target,
-        weekly_email_target=weekly_email_target
+        weekly_email_target=weekly_email_target,
     )
 
     if not success:
@@ -65,9 +70,7 @@ def get_sla_schedule(client_sdr_id: int):
     end_date = convert_string_to_datetime(end_date) if end_date else None
 
     schedules = get_sla_schedules_for_sdr(
-        client_sdr_id=client_sdr_id,
-        start_date=start_date,
-        end_date=end_date
+        client_sdr_id=client_sdr_id, start_date=start_date, end_date=end_date
     )
 
     return jsonify({"status": "success", "data": {"schedules": schedules}}), 200
@@ -83,7 +86,15 @@ def patch_sla_schedule(client_sdr_id: int):
         "start_date", request, json=True, required=False, parameter_type=str
     )
     if not sla_schedule_id and not start_date:
-        return jsonify({"status": "error", "message": "Schedule ID or Start Date must be included"}), 400
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Schedule ID or Start Date must be included",
+                }
+            ),
+            400,
+        )
 
     linkedin_volume = get_request_parameter(
         "linkedin_volume", request, json=True, required=False, parameter_type=int
@@ -107,7 +118,7 @@ def patch_sla_schedule(client_sdr_id: int):
         linkedin_volume=linkedin_volume,
         linkedin_special_notes=linkedin_special_notes,
         email_volume=email_volume,
-        email_special_notes=email_special_notes
+        email_special_notes=email_special_notes,
     )
 
     if not success:
@@ -148,7 +159,7 @@ def post_sla_schedule(client_sdr_id: int):
         linkedin_volume=linkedin_volume,
         linkedin_special_notes=linkedin_special_notes,
         email_volume=email_volume,
-        email_special_notes=email_special_notes
+        email_special_notes=email_special_notes,
     )
 
     return jsonify({"status": "success", "data": {"schedule_id": schedule_id}}), 200
@@ -175,7 +186,7 @@ def patch_custom_conversion_rates(client_sdr_id: int):
         conversion_sent_pct=conversion_sent_pct,
         conversion_open_pct=conversion_open_pct,
         conversion_reply_pct=conversion_reply_pct,
-        conversion_demo_pct=conversion_demo_pct
+        conversion_demo_pct=conversion_demo_pct,
     )
 
     if not success:
@@ -194,7 +205,7 @@ def get_sdrs_from_emails_request():
     )
 
     results = get_all_sdrs_from_emails(emails=emails)
-    
+
     return jsonify({"status": "Success", "data": results}), 200
 
 

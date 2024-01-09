@@ -1,17 +1,27 @@
 import requests
 from requests.exceptions import ConnectionError, Timeout
-from src.voyager.hackathon_exceptions import raise_for_error, LinkedInError, ReadTimeoutError, Server5xxError, LinkedInTooManyRequestsError
+from src.voyager.hackathon_exceptions import (
+    raise_for_error,
+    LinkedInError,
+    ReadTimeoutError,
+    Server5xxError,
+    LinkedInTooManyRequestsError,
+)
 
 import backoff
 
 REQUEST_TIMEOUT = 3000
 BACKOFF_MAX_TRIES_REQUEST = 5
 
-class LinkedInClient():
 
+class LinkedInClient:
     BASE_URL = "https://www.linkedin.com"
-    PEOPLE_URL_PREFIX = "sales-api/salesApiLeadSearch?q=searchQuery&query=(spellCorrectionEnabled:true"
-    PEOPLE_URL_SUFFIX = "decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-7"
+    PEOPLE_URL_PREFIX = (
+        "sales-api/salesApiLeadSearch?q=searchQuery&query=(spellCorrectionEnabled:true"
+    )
+    PEOPLE_URL_SUFFIX = (
+        "decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-7"
+    )
 
     COMPANY_URL_PREFIX = "sales-api/salesApiCompanies"
     COMPANY_URL_SUFFIX = f"""decoration=%28entityUrn%2Cname%2Cdescription%2Cindustry%2CemployeeCount%2CemployeeDisplayCount%2CemployeeCountRange%2Clocation%2Cheadquarters%2Cwebsite%2Crevenue%2CformattedRevenue%2CemployeesSearchPageUrl%2CflagshipCompanyUrl%29"""
@@ -43,13 +53,17 @@ class LinkedInClient():
         headers["cookie"] = self.__cookie
         headers["x-li-lang"] = "en_US"
         headers["x-restli-protocol-version"] = "2.0.0"
-        headers["sec-ch-ua"] = "\"Google Chrome\";v=\"93\", \" Not;A Brand\";v=\"99\", \"Chromium\";v=\"93\""
+        headers[
+            "sec-ch-ua"
+        ] = '"Google Chrome";v="93", " Not;A Brand";v="99", "Chromium";v="93"'
         headers["sec-ch-ua-mobile"] = "?0"
-        headers["sec-ch-ua-platform"] = "\"macOS\""
+        headers["sec-ch-ua-platform"] = '"macOS"'
         headers["sec-fetch-dest"] = "empty"
         headers["sec-fetch-mode"] = "cors"
         headers["sec-fetch-site"] = "same-origin"
-        headers["x-li-page-instance"] = "urn:li:page:d_sales2_search_people;h3m149w6RCqmiOtycNuBkA=="
+        headers[
+            "x-li-page-instance"
+        ] = "urn:li:page:d_sales2_search_people;h3m149w6RCqmiOtycNuBkA=="
 
         return headers
 
@@ -58,8 +72,9 @@ class LinkedInClient():
 
         return url
 
-    def get_people_search_url(self, keyword, company_size, region, years_of_experience, tenure):
-
+    def get_people_search_url(
+        self, keyword, company_size, region, years_of_experience, tenure
+    ):
         filters = f"filters:List((type:YEARS_OF_EXPERIENCE,values:List((id:{years_of_experience})))),keywords:{keyword})"
         url = f"{self.BASE_URL}/{self.PEOPLE_URL_PREFIX},{filters}&{self.PEOPLE_URL_SUFFIX}"
 
@@ -71,73 +86,80 @@ class LinkedInClient():
         backoff.expo,
         (Server5xxError, ReadTimeoutError, ConnectionError, Timeout),
         max_tries=3,
-        factor=2)
+        factor=2,
+    )
     def check_access(self):
-
         if self.__cookie is None:
-            raise Exception('Error: Missing cookie in tap config.json.')
+            raise Exception("Error: Missing cookie in tap config.json.")
 
         url = f"{self.BASE_URL}/sales"
 
         try:
-            response = self.__session.get(url=url, timeout=REQUEST_TIMEOUT, headers=self.__headers())
+            response = self.__session.get(
+                url=url, timeout=REQUEST_TIMEOUT, headers=self.__headers()
+            )
         except requests.exceptions.Timeout as err:
-            print(f'TIMEOUT ERROR: {err}')
+            print(f"TIMEOUT ERROR: {err}")
             raise ReadTimeoutError
 
         if response.status_code != 200:
-            print(f'Error status_code = {response.status_code}')
+            print(f"Error status_code = {response.status_code}")
             raise_for_error(response)
         else:
             return True
 
     @backoff.on_exception(
         backoff.expo,
-        (Server5xxError, ReadTimeoutError, ConnectionError, Timeout, LinkedInTooManyRequestsError),
+        (
+            Server5xxError,
+            ReadTimeoutError,
+            ConnectionError,
+            Timeout,
+            LinkedInTooManyRequestsError,
+        ),
         max_tries=BACKOFF_MAX_TRIES_REQUEST,
-        factor=10)
-    def perform_request(self,
-                        method,
-                        url=None,
-                        params=None,
-                        json=None,
-                        stream=False,
-                        **kwargs):
-
+        factor=10,
+    )
+    def perform_request(
+        self, method, url=None, params=None, json=None, stream=False, **kwargs
+    ):
         try:
-            response = self.__session.request(method=method,
-                                              url=url,
-                                              params=params,
-                                              json=json,
-                                              stream=stream,
-                                              timeout=REQUEST_TIMEOUT,
-                                              **kwargs)
+            response = self.__session.request(
+                method=method,
+                url=url,
+                params=params,
+                json=json,
+                stream=stream,
+                timeout=REQUEST_TIMEOUT,
+                **kwargs,
+            )
 
             if response.status_code >= 500:
-                print(f'Error status_code = {response.status_code}')
+                print(f"Error status_code = {response.status_code}")
                 raise Server5xxError()
 
             if response.status_code != 200:
-                print(f'Error status_code = {response.status_code}')
+                print(f"Error status_code = {response.status_code}")
                 raise_for_error(response)
 
             return response
 
         except requests.exceptions.Timeout as err:
-            print(f'TIMEOUT ERROR: {err}')
+            print(f"TIMEOUT ERROR: {err}")
             raise ReadTimeoutError(err)
 
     def get_request(self, url, params=None, json=None, **kwargs):
-
         if not self.__verified:
             self.__verified = self.check_access()
 
-        response = self.perform_request(method="get",
-                                            url=url,
-                                            params=params,
-                                            json=json,
-                                            headers=self.__headers(),
-                                            **kwargs)
+        response = self.perform_request(
+            method="get",
+            url=url,
+            params=params,
+            json=json,
+            headers=self.__headers(),
+            **kwargs,
+        )
 
         response_json = response.json()
 
