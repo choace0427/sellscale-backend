@@ -1,5 +1,6 @@
 from app import db
 
+
 # Function to fetch rejection analysis data for NOT_INTERESTED or NOT_QUALIFIED prospects
 def get_rejection_analysis_data(client_sdr_id, status):
     # SQL query to retrieve disqualification reasons and counts
@@ -22,9 +23,12 @@ def get_rejection_analysis_data(client_sdr_id, status):
         ORDER BY 2 DESC;
     """
     # Executing the query with provided parameters
-    results = db.session.execute(query, {'client_sdr_id': client_sdr_id, 'status': status}).fetchall()
+    results = db.session.execute(
+        query, {"client_sdr_id": client_sdr_id, "status": status}
+    ).fetchall()
     # Formatting the results for response
-    return [{'category': row[0], 'value': row[1]} for row in results]
+    return [{"category": row[0], "value": row[1]} for row in results]
+
 
 # Function to fetch detailed information of prospects that are either 'NOT_INTERESTED' or 'NOT_QUALIFIED'.
 def get_rejection_report_data(client_sdr_id):
@@ -39,7 +43,7 @@ def get_rejection_report_data(client_sdr_id):
         client_archetype.emoji AS "Emoji",
         client_archetype.archetype AS "Campaign",
         client_archetype.id AS "Campaign ID",
-        prospect.disqualification_reason AS "Disqualification Reason",
+        prospect.disqualification_reason AS "Disqualification Reason"
         FROM prospect
         JOIN client_archetype ON client_archetype.id = prospect.archetype_id
         WHERE 
@@ -48,6 +52,6 @@ def get_rejection_report_data(client_sdr_id):
             AND prospect.disqualification_reason IS NOT NULL;
     """
     # Executing the query with provided parameters
-    results = db.session.execute(query, {'client_sdr_id': client_sdr_id}).fetchall()
+    results = db.session.execute(query, {"client_sdr_id": client_sdr_id}).fetchall()
     # Formatting the results for response
     return [dict(row) for row in results]
