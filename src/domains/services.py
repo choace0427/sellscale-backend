@@ -647,6 +647,9 @@ def is_valid_email_forwarding(
         base_url = test + original_domain
         base_url_copy = base_url
         while attempts < max_redirects:
+            if base_url == target_domain:
+                final_url = base_url
+                break
             try:
                 attempts += 1
                 response = requests.get(base_url, allow_redirects=False)
@@ -665,6 +668,14 @@ def is_valid_email_forwarding(
                     )
                     time.sleep(2)
                     attempts -= 1
+                    continue
+                elif response.status_code == 403:
+                    print("Forbidden, wait random time between 2 and 5 seconds")
+                    send_slack_message(
+                        message=f"Forbidden for {base_url_copy}, waiting random time between 2 and 5 seconds",
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                    )
+                    time.sleep(random.randint(2, 5))
                     continue
                 else:
                     send_slack_message(
