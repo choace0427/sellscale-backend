@@ -2,6 +2,7 @@ from datetime import datetime
 from app import db
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
+from src.client.models import ClientSDR
 from src.client.sdr.email.models import EmailType, SDREmailBank
 from src.client.sdr.email.services_email_bank import (
     create_sdr_email_bank,
@@ -67,9 +68,8 @@ def post_create_sdr_email_bank(client_sdr_id: int):
 @require_user
 def post_sdr_email_bank_statistics(client_sdr_id: int):
     """Endpoint to trigger a new run for getting SDR Email Bank Statistics"""
-    client_id = get_request_parameter(
-        "client_id", request, json=True, required=True, parameter_type=int
-    )
+    sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_id = sdr.client_id
 
     success = sync_email_bank_statistics_for_client(client_id=client_id)
     if not success:
