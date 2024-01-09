@@ -128,6 +128,7 @@ def find_prospects_by_segment_filters(
             ClientSDR.id == client_sdr_id,
             Prospect.archetype_id == ClientArchetype.id,
             ClientSDR.id == Prospect.client_sdr_id,
+            or_(Segment.id == None, Segment.client_sdr_id == client_sdr_id),  # type: ignore
         )
     )
 
