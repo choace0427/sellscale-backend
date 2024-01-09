@@ -10,6 +10,10 @@ from src.analytics.services import (
     get_sdr_pipeline_all_details,
     get_upload_analytics_for_client,
 )
+from src.analytics.services_rejection_analysis import (
+    get_rejection_analysis_data,
+    get_rejection_report_data,
+)
 from src.analytics.drywall_notification import notify_clients_with_no_updates
 from src.analytics.scheduling_needed_notification import (
     notify_clients_regarding_scheduling,
@@ -114,3 +118,46 @@ def get_campaign_drilldown(client_sdr_id: int, archetype_id: int):
     details = get_campaign_drilldown_data(archetype_id=archetype_id)
 
     return {"message": "Success", "analytics": details}, 200
+
+@ANALYTICS_BLUEPRINT.route("/rejection_analysis", methods=["GET"])
+@require_user
+def get_rejection_analysis(client_sdr_id: int):
+    """
+    Endpoint to fetch Rejection Analysis data.
+    Accepts client_sdr_id and status (NOT_INTERESTED or NOT_QUALIFIED) as query parameters.
+    """
+
+    # Extracting 'status' from query parameters
+    status = request.args.get('status')
+
+    # Validating 'status' parameter
+    if status not in ['NOT_INTERESTED', 'NOT_QUALIFIED']:
+        return {"message": "Invalid status parameter"}, 400
+
+    # Validating client_sdr_id
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return {"message": "Invalid client SDR ID"}, 400
+
+    # Fetching data using the service function
+    data = get_rejection_analysis_data(client_sdr_id, status)
+    return {"message": "Success", "data": data}, 200
+
+@ANALYTICS_BLUEPRINT.route("/rejection_report", methods=["GET"])
+@require_user
+def rejection_report(client_sdr_id: int):
+    """
+    Endpoint to fetch Rejection Report details.
+    """
+    # Validating client_sdr_id
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return {"message": "Invalid client SDR ID"}, 400
+
+    try:
+        # Fetching data using the service function
+        data = get_rejection_report_data(client_sdr_id)
+        return jsonify({"message": "Success", "data": data}), 200
+    except Exception as e:
+        print(f"Error fetching rejection report details: {e}")
+        return jsonify({"message": "Error fetching data", "error": str(e)}), 500
