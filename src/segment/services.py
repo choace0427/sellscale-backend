@@ -6,6 +6,7 @@ from sqlalchemy.orm import attributes
 from src.client.models import ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect
 from src.segment.models import Segment
+from sqlalchemy import case
 
 
 def create_new_segment(
@@ -118,7 +119,10 @@ def find_prospects_by_segment_filters(
             Prospect.title,
             Prospect.company,
             ClientArchetype.archetype,
-            Segment.segment_title,
+            case(
+                [(Segment.segment_title == None, "uncategorized")],  # type: ignore
+                else_=Segment.segment_title,
+            ).label("segment_title"),
         )
         .filter(
             ClientSDR.id == client_sdr_id,

@@ -452,6 +452,10 @@ class ClientSDR(db.Model):
                 client_sdr_id=self.id
             ).all()
 
+        unassigned_persona: ClientArchetype = ClientArchetype.query.filter_by(
+            client_sdr_id=self.id, is_unassigned_contact_archetype=True
+        ).first()
+
         return {
             "id": self.id,
             "client_name": client.company,
@@ -510,6 +514,9 @@ class ClientSDR(db.Model):
             "avg_contract_size": client.contract_size
             if client and client.contract_size
             else 10000,
+            "unassigned_persona_id": unassigned_persona.id
+            if unassigned_persona
+            else None,
         }
 
 
