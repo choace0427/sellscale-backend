@@ -106,9 +106,20 @@ def find_prospects_by_segment_filters(
     years_of_experience_start: int = None,
     years_of_experience_end: int = None,
 ) -> list[dict]:
+    # join prospect with segment and get segment_title
+    # keep 'Uncategorized' if no segment present
     base_query = (
         Prospect.query.join(ClientArchetype)
         .join(ClientSDR)
+        .outerjoin(Segment)
+        .with_entities(
+            Prospect.id,
+            Prospect.full_name,
+            Prospect.title,
+            Prospect.company,
+            ClientArchetype.archetype,
+            Segment.segment_title,
+        )
         .filter(
             ClientSDR.id == client_sdr_id,
             Prospect.archetype_id == ClientArchetype.id,
@@ -219,14 +230,7 @@ def find_prospects_by_segment_filters(
         else:
             base_query = base_query.filter(and_addition[0])
 
-    prospects = base_query.with_entities(
-        Prospect.id,
-        Prospect.full_name,
-        Prospect.title,
-        Prospect.company,
-        ClientArchetype.archetype,
-        Segment.segment_title,
-    ).all()
+    prospects = base_query.all()
 
     return [
         {
