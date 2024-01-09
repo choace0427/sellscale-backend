@@ -74,7 +74,7 @@ from src.editor.models import Editor, EditorTypes
 from src.li_conversation.models import (
     LinkedinConversationEntry,
     LinkedinConversationScrapeQueue,
-    LinkedinInitialMessageTemplateLibrary
+    LinkedinInitialMessageTemplateLibrary,
 )
 from src.daily_notifications.models import (
     DailyNotification,
@@ -115,3 +115,4 @@ from src.prospecting.question_enrichment.models import (
     QuestionEnrichmentRequest,
     QuestionEnrichmentRow,
 )
+from src.email_replies.models import EmailReplyFramework
