@@ -109,6 +109,7 @@ def find_prospects_by_segment_filters(
 ) -> list[dict]:
     # join prospect with segment and get segment_title
     # keep 'Uncategorized' if no segment present
+
     base_query = (
         Prospect.query.join(ClientArchetype)
         .join(ClientSDR)
@@ -126,9 +127,10 @@ def find_prospects_by_segment_filters(
         )
         .filter(
             ClientSDR.id == client_sdr_id,
+            Segment.client_sdr_id == ClientSDR.id,
             Prospect.archetype_id == ClientArchetype.id,
             ClientSDR.id == Prospect.client_sdr_id,
-            or_(Segment.id == None, Segment.id == Prospect.segment_id),  # type: ignore
+            or_(Prospect.segment_id == None, Segment.id == Prospect.segment_id),
         )
     )
 

@@ -993,7 +993,11 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
 
 
 def add_prospect_from_csv_payload(
-    client_sdr_id: int, archetype_id: int, csv_payload: list, allow_duplicates: bool, segment_id: Optional[int] = None
+    client_sdr_id: int,
+    archetype_id: int,
+    csv_payload: list,
+    allow_duplicates: bool,
+    segment_id: Optional[int] = None,
 ):
     if len(csv_payload) >= 5000:
         return (
@@ -1080,7 +1084,7 @@ def add_prospect_from_csv_payload(
                 "current_prospect_ids": [p.id for p in prospects],
             }
         },
-        minutes=120,  # 2 hours from now
+        minutes=15,  # 2 hours from now
     )
 
     return "Upload job scheduled.", 200
