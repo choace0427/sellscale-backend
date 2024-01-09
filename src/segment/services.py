@@ -1,4 +1,4 @@
-from operator import and_, or_
+from sqlalchemy import or_, and_
 
 from regex import E
 from app import db
@@ -135,7 +135,7 @@ def find_prospects_by_segment_filters(
     )
 
     if segment_ids:
-        base_query = base_query.filter(Prospect.segment_id.in_(segment_ids))
+        base_query = base_query.filter(Segment.id.in_(segment_ids))
 
     if included_title_keywords:
         or_addition = []
