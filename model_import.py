@@ -116,3 +116,4 @@ from src.prospecting.question_enrichment.models import (
     QuestionEnrichmentRow,
 )
 from src.email_replies.models import EmailReplyFramework
+from src.segment.models import Segment

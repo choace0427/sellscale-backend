@@ -58,6 +58,7 @@ from src.prospecting.models import (
     VALID_NEXT_LINKEDIN_STATUSES,
 )
 from app import db, celery
+from src.segment.models import Segment
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.email.html_cleaning import clean_html
 from src.utils.random_string import generate_random_alphanumeric
@@ -3264,6 +3265,24 @@ def generate_prospect_upload_report(archetype_state: dict):
 
     num_prospects = len(results)
     estimated_savings = round(num_prospects * random.uniform(0.83, 1.17), 2)
+
+    sample_prospect = results[0]
+    prospect: Prospect = Prospect.query.get(sample_prospect.id)
+    segment_id = prospect.segment_id
+
+    persona_or_segment_string = ""
+    if not segment_id or not archetype.is_unassigned_contact_archetype:
+        persona_or_segment_string = "Persona: {persona}".format(
+            persona=archetype.archetype
+        )
+    else:
+        segment: Segment = Segment.query.get(segment_id)
+        segment_title = segment.segment_title
+        persona_or_segment_string = "Segment: {segment_title}".format(
+            segment_title=segment_title
+        )
+    
+
     try:
         send_slack_message(
             message="",
@@ -3297,9 +3316,7 @@ def generate_prospect_upload_report(archetype_state: dict):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": "Persona: {persona}".format(
-                                persona=archetype.archetype
-                            ),
+                            "text": persona_or_segment_string,
                         },
                         {
                             "type": "mrkdwn",
