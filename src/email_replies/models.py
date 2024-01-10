@@ -12,6 +12,7 @@ class EmailReplyFramework(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.String(4000), nullable=True)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
@@ -22,7 +23,7 @@ class EmailReplyFramework(db.Model):
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
     substatus = db.Column(db.String(255), nullable=True)
 
-    reply_prompt = db.Column(db.String, nullable=True)
+    reply_instructions = db.Column(db.String, nullable=True)
 
     # Analytics
     times_used = db.Column(db.Integer, nullable=True, default=0)
@@ -39,12 +40,13 @@ class EmailReplyFramework(db.Model):
         return {
             "id": self.id,
             "title": self.title,
+            "description": self.description,
             "active": self.active,
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "overall_status": self.overall_status,
             "substatus": self.substatus,
-            "reply_prompt": self.reply_prompt,
+            "reply_instructions": self.reply_instructions,
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
             "research_blocklist": [r.value for r in self.research_blocklist]
