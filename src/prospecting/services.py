@@ -3266,7 +3266,7 @@ def generate_prospect_upload_report(archetype_state: dict):
     num_prospects = len(results)
     estimated_savings = round(num_prospects * random.uniform(0.83, 1.17), 2)
 
-    sample_prospect = results[0]
+    sample_prospect = results[0] if results else None
     prospect: Prospect = Prospect.query.get(sample_prospect.id)
     segment_id = prospect.segment_id
 
@@ -3281,7 +3281,6 @@ def generate_prospect_upload_report(archetype_state: dict):
         persona_or_segment_string = "Segment: {segment_title}".format(
             segment_title=segment_title
         )
-    
 
     try:
         send_slack_message(
