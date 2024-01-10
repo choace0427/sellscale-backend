@@ -237,6 +237,9 @@ def patch_bump_framework_sellscale_default():
     transformer_blocklist = get_request_parameter(
         "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
+    inject_calendar_times = get_request_parameter(
+        "inject_calendar_times", request, json=True, required=False, parameter_type=bool
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -270,6 +273,7 @@ def patch_bump_framework_sellscale_default():
         bump_framework_template_name=None,
         bump_framework_human_readable_prompt=None,
         human_feedback=None,
+        inject_calendar_times=inject_calendar_times,
     )
 
     return jsonify({"status": "success", "data": {}}), 200 if modified else 400

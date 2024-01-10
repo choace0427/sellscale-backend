@@ -49,6 +49,8 @@ class BumpFramework(db.Model):
     bump_framework_human_readable_prompt = db.Column(db.String, nullable=True)
     additional_context = db.Column(db.String, nullable=True, default="")
 
+    inject_calendar_times = db.Column(db.Boolean, nullable=True, default=False)
+
     transformer_blocklist = db.Column(
         db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
         nullable=True,
@@ -81,11 +83,16 @@ class BumpFramework(db.Model):
             "transformer_blocklist": [t.value for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
-            "active_transformers": [t.value for t in ResearchPointType.__members__.values() if not self.transformer_blocklist or t not in self.transformer_blocklist],
+            "active_transformers": [
+                t.value
+                for t in ResearchPointType.__members__.values()
+                if not self.transformer_blocklist or t not in self.transformer_blocklist
+            ],
             "additional_context": self.additional_context,
             "bump_framework_template_name": self.bump_framework_template_name,
             "bump_framework_human_readable_prompt": self.bump_framework_human_readable_prompt,
             "human_feedback": self.human_feedback,
+            "inject_calendar_times": self.inject_calendar_times,
         }
 
 

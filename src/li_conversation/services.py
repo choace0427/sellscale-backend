@@ -878,6 +878,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     override_bump_framework_template: Optional[str] = None,
 ):
     from model_import import Prospect
+    from src.client.services import get_available_times_via_calendly
 
     # First the first message from the SDR
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
@@ -1008,6 +1009,27 @@ Output:"""
         client_sdr_id=prospect.client_sdr_id,
         use_cache=use_cache,
     )
+
+    if bump_framework.inject_calendar_times and client_sdr.scheduling_link:
+        availability = get_available_times_via_calendly(
+            calendly_url=client_sdr.scheduling_link,
+            dt=datetime.utcnow(),
+            tz=client_sdr.timezone,
+        )
+
+        if availability:
+            print(availability)
+
+            response = f"""{response}
+
+Here are some of my availabilities in the next few days
+
+Jan 24, 2024 - 3:00 - 5:00p
+Jan 25, 2024 - 1:00 - 3:00p
+Jan 26, 2024 - 4:00 - 6:00p
+
+Let me know what works for you!
+            """.strip()
 
     print(prompt)
     print(response)

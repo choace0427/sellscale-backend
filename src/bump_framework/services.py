@@ -349,6 +349,7 @@ def modify_bump_framework(
     bump_framework_template_name: Optional[str] = None,
     bump_framework_human_readable_prompt: Optional[str] = None,
     human_feedback: Optional[str] = None,
+    inject_calendar_times: Optional[bool] = False,
 ) -> bool:
     """Modify a bump framework
 
@@ -365,6 +366,7 @@ def modify_bump_framework(
         default (Optional[bool]): Whether the bump framework is the default
         use_account_research (Optional[bool]): Whether the bump framework uses account research
         blocklist (Optional[list]): The transformer blocklist for the bump framework
+        inject_calendar_times (Optional[bool]): Whether to inject calendar times into the bump framework
 
     Returns:
         bool: Whether the bump framework was modified
@@ -392,6 +394,9 @@ def modify_bump_framework(
 
     if use_account_research is not None:
         bump_framework.use_account_research = use_account_research
+
+    if inject_calendar_times is not None:
+        bump_framework.inject_calendar_times = inject_calendar_times
 
     if blocklist != None:
         bump_framework.transformer_blocklist = blocklist
