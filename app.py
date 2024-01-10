@@ -274,6 +274,7 @@ def register_blueprints(app):
     from src.ai_requests.controllers import AI_REQUESTS
     from src.notifications.controllers import NOTIFICATION_BLUEPRINT
     from src.segment.controllers import SEGMENT_BLUEPRINT
+    from src.email_replies.controllers import EMAIL_REPLIES_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -337,6 +338,7 @@ def register_blueprints(app):
     app.register_blueprint(AI_REQUESTS, url_prefix="/ai_requests")
     app.register_blueprint(NOTIFICATION_BLUEPRINT, url_prefix="/notification")
     app.register_blueprint(SEGMENT_BLUEPRINT, url_prefix="/segment")
+    app.register_blueprint(EMAIL_REPLIES_BLUEPRINT, url_previx="/email/replies")
 
     db.init_app(app)
 
