@@ -4,6 +4,7 @@ from typing import Optional
 from src.email_replies.models import EmailReplyFramework
 
 from src.prospecting.models import ProspectOverallStatus
+from src.research.models import ResearchPointType
 
 
 def get_email_reply_frameworks(
@@ -52,7 +53,7 @@ def create_email_reply_framework(
     overall_status: Optional[ProspectOverallStatus],
     substatus: Optional[str],
     reply_prompt: Optional[str],
-    research_blocklist: Optional[list],
+    research_blocklist: Optional[list[ResearchPointType]],
     use_account_research: Optional[bool],
 ) -> int:
     """Create an EmailReplyFramework
@@ -91,7 +92,7 @@ def edit_email_reply_framework(
     title: Optional[str],
     active: Optional[bool],
     reply_prompt: Optional[str],
-    research_blocklist: Optional[list],
+    research_blocklist: Optional[list[ResearchPointType]],
     use_account_research: Optional[bool],
 ) -> bool:
     """Edit an EmailReplyFramework
