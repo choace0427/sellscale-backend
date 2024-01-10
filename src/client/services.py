@@ -3163,6 +3163,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH' OR prospect_status_records.to_status = 'SENT_OUTREACH') "TOTAL-SENT",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED' OR prospect_status_records.to_status = 'ACCEPTED') "TOTAL-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status = 'ACTIVE_CONVO') "TOTAL-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')) "TOTAL-POS-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'DEMO_SET' OR prospect_status_records.to_status = 'DEMO_SET') "TOTAL-DEMO",
             count(DISTINCT prospect.id) "TOTAL-PROSPECTS",
             client_archetype.smartlead_campaign_id,
@@ -3206,11 +3207,12 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         17: "total_sent",
         18: "total_opened",
         19: "total_replied",
-        20: "total_demo",
-        21: "total_prospects",
-        22: "smartlead_campaign_id",
-        23: "meta_data",
-        24: "first_message_delay_days",
+        20: "total_pos_replied",
+        21: "total_demo",
+        22: "total_prospects",
+        23: "smartlead_campaign_id",
+        24: "meta_data",
+        25: "first_message_delay_days",
     }
 
     # Convert and format output

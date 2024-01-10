@@ -7,7 +7,11 @@ def get_campaign_drilldown_data(archetype_id):
     select 
         prospect.id "prospect_id",
         prospect.full_name "prospect_name",
-        prospect_status_records.to_status,
+        case 
+            when  prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') 
+                then 'ACTIVE_CONVO_SCHEDULING'
+            else prospect_status_records.to_status
+        end "to_status",
         case 
             when prospect.icp_fit_score = 4 then 'VERY HIGH'
             when prospect.icp_fit_score = 3 then 'HIGH'
@@ -29,7 +33,7 @@ def get_campaign_drilldown_data(archetype_id):
         join prospect_status_records on prospect_status_records.prospect_id = prospect.id
         join client_archetype on client_archetype.id = prospect.archetype_id
     where 
-        prospect_status_records.to_status in ('SENT_OUTREACH', 'ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
+        prospect_status_records.to_status in ('SENT_OUTREACH', 'ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET', 'ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
         and prospect.archetype_id = :archetype_id
     group by 1,2,3,4,5,6,7,8
     order by 
