@@ -23,7 +23,8 @@ class EmailReplyFramework(db.Model):
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
     substatus = db.Column(db.String(255), nullable=True)
 
-    reply_instructions = db.Column(db.String, nullable=True)
+    template = db.Column(db.String, nullable=True)
+    additional_instructions = db.Column(db.String, nullable=True)
 
     # Analytics
     times_used = db.Column(db.Integer, nullable=True, default=0)
@@ -46,7 +47,8 @@ class EmailReplyFramework(db.Model):
             "client_archetype_id": self.client_archetype_id,
             "overall_status": self.overall_status,
             "substatus": self.substatus,
-            "reply_instructions": self.reply_instructions,
+            "template": self.template,
+            "additional_instructions": self.additional_instructions,
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
             "research_blocklist": [r.value for r in self.research_blocklist]

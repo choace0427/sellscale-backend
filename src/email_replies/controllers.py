@@ -50,8 +50,15 @@ def post_create_email_reply_framework(client_sdr_id: int):
     substatus = get_request_parameter(
         "substatus", request, json=True, required=False, parameter_type=str
     )
-    reply_instructions = get_request_parameter(
-        "reply_instructions", request, json=True, required=False, parameter_type=str
+    template = get_request_parameter(
+        "template", request, json=True, required=False, parameter_type=str
+    )
+    additional_instructions = get_request_parameter(
+        "additional_instructions",
+        request,
+        json=True,
+        required=False,
+        parameter_type=str,
     )
     use_account_research = get_request_parameter(
         "use_account_research",
@@ -117,7 +124,8 @@ def post_create_email_reply_framework(client_sdr_id: int):
         client_archetype_id=client_archetype_id,
         overall_status=overall_status,
         substatus=substatus,
-        reply_instructions=reply_instructions,
+        template=template,
+        additional_instructions=additional_instructions,
         research_blocklist=enumed_research_blocklist,
         use_account_research=use_account_research,
     )
@@ -138,8 +146,15 @@ def patch_email_reply_framework(client_sdr_id: int, reply_framework_id: int):
     active = get_request_parameter(
         "active", request, json=True, required=False, parameter_type=bool
     )
-    reply_instructions = get_request_parameter(
-        "reply_instructions", request, json=True, required=False, parameter_type=str
+    template = get_request_parameter(
+        "template", request, json=True, required=False, parameter_type=str
+    )
+    additional_instructions = get_request_parameter(
+        "additional_instructions",
+        request,
+        json=True,
+        required=False,
+        parameter_type=str,
     )
     use_account_research = get_request_parameter(
         "use_account_research",
@@ -175,7 +190,8 @@ def patch_email_reply_framework(client_sdr_id: int, reply_framework_id: int):
         title=title,
         description=description,
         active=active,
-        reply_instructions=reply_instructions,
+        template=template,
+        additional_instructions=additional_instructions,
         research_blocklist=enumed_research_blocklist,
         use_account_research=use_account_research,
     )
