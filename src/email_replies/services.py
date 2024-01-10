@@ -138,12 +138,13 @@ def edit_email_reply_framework(
 def backfill():
     # Grab bump frameworks
     from src.bump_framework.models import BumpFramework
+    from tqdm import tqdm
 
     bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
         BumpFramework.client_sdr_id == None,
         BumpFramework.client_archetype_id == None,
     ).all()
-    for bump_framework in bump_frameworks:
+    for bump_framework in tqdm(bump_frameworks):
         create_email_reply_framework(
             title=bump_framework.title,
             description="Default SellScale generated reply framework",
