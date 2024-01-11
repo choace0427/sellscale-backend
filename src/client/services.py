@@ -4463,14 +4463,21 @@ def get_available_times_via_calendly(
     selected_dates_str, other_dates_str = response.split("\n\n")
 
     # Extract and convert the selected dates (now as timezone-aware UTC datetimes)
-    selected_dates_utc = [
-        datetime.fromisoformat(date + "+00:00")
-        for date in selected_dates_str.split("\n")[1:]
-    ]
-    other_dates_utc = [
-        datetime.fromisoformat(date + "+00:00")
-        for date in other_dates_str.split("\n")[1:]
-    ]
+    try:
+        selected_dates_utc = [
+            datetime.fromisoformat(date + "+00:00")
+            for date in selected_dates_str.split("\n")[1:]
+        ]
+    except:
+        selected_dates_utc = []
+
+    try:
+        other_dates_utc = [
+            datetime.fromisoformat(date + "+00:00")
+            for date in other_dates_str.split("\n")[1:]
+        ]
+    except:
+        other_dates_utc = []
 
     # Convert UTC dates to the given timezone
     selected_dates_tz = [

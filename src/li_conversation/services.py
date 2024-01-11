@@ -3,6 +3,7 @@ from typing import List, Union, Optional
 
 from src.ml.services import get_text_generation
 
+from src.utils.lists import format_str_join
 from src.client.models import ClientArchetype
 from src.li_conversation.autobump_helpers.services_firewall import (
     rule_no_stale_message,
@@ -1011,25 +1012,55 @@ Output:"""
     )
 
     if bump_framework.inject_calendar_times and client_sdr.scheduling_link:
-        availability = get_available_times_via_calendly(
-            calendly_url=client_sdr.scheduling_link,
-            dt=datetime.utcnow(),
-            tz=client_sdr.timezone,
-        )
 
-        if availability:
-            print(availability)
+        def date_suffix(day):
+            day = int(day)
+            if 4 <= day <= 20 or 24 <= day <= 30:
+                return str(day) + "th"
+            else:
+                return str(day) + ["st", "nd", "rd"][day % 10 - 1]
 
-            response = f"""{response}
+        try:
+            availability = get_available_times_via_calendly(
+                calendly_url=client_sdr.scheduling_link,
+                dt=(datetime.utcnow() + timedelta(days=1)),
+                tz=client_sdr.timezone,
+            )
 
-Here are some of my availabilities in the next few days
+            if availability:
+                times = availability.get("times", [])
+                other_dates = availability.get("other_dates", [])
 
-Jan 24, 2024 - 3:00 - 5:00p
-Jan 25, 2024 - 1:00 - 3:00p
-Jan 26, 2024 - 4:00 - 6:00p
+                formatted_times = [t.strftime("%-I:%M%p").lower() for t in times]
+                formatted_dates = [date_suffix(d.strftime("%-d")) for d in other_dates]
 
-Let me know what works for you!
-            """.strip()
+                if times and len(times) > 0:
+                    message = (
+                        "I'm free tomorrow at "
+                        + format_str_join(formatted_times, "or")
+                        + "."
+                    )
+                    if formatted_dates and len(formatted_dates) > 0:
+                        message += (
+                            " If that doesn't work, I'm also free on the "
+                            + format_str_join(formatted_dates, "or")
+                            + "."
+                        )
+                elif other_dates and len(other_dates) > 0:
+                    message = (
+                        "I'm free on the "
+                        + format_str_join(formatted_dates, "or")
+                        + "."
+                    )
+
+                message += (
+                    f"\n{client_sdr.scheduling_link}\n\nLet me know what works for you!"
+                )
+
+                response = f"""{response}\n\n{message}""".strip()
+
+        except Exception as e:
+            print(e)
 
     print(prompt)
     print(response)
