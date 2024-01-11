@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 from src.email_replies.services import (
     create_email_reply_framework,
     edit_email_reply_framework,
+    generate_reply_using_framework,
     get_email_reply_frameworks,
 )
 from src.prospecting.models import ProspectOverallStatus
@@ -199,3 +200,20 @@ def patch_email_reply_framework(client_sdr_id: int, reply_framework_id: int):
         return jsonify({"error": "Failed to edit Reply framework."}), 400
 
     return jsonify({"status": "success"}), 200
+
+
+@EMAIL_REPLIES_BLUEPRINT.route("/<int:reply_framework_id>/generate", methods=["POST"])
+@require_user
+def post_generate_email_reply(client_sdr_id: int, reply_framework_id: int):
+    """Generates an email reply"""
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    reply = generate_reply_using_framework(
+        reply_framework_id=reply_framework_id, prospect_id=prospect_id
+    )
+    if not reply:
+        return jsonify({"error": "Failed to generate reply."}), 400
+
+    return jsonify({"status": "success", "data": reply}), 200
