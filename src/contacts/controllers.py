@@ -75,6 +75,9 @@ def index():
         required=False,
         default_value=None,
     )
+    person_seniorities = get_request_parameter(
+        "person_seniorities", request, json=True, required=False, default_value=None
+    )
 
     data = get_contacts(
         num_contacts=num_contacts,
@@ -91,6 +94,7 @@ def index():
         currently_using_any_of_technology_uids=currently_using_any_of_technology_uids,
         event_categories=event_categories,
         published_at_date_range=published_at_date_range,
+        person_seniorities=person_seniorities,
     )
 
     return jsonify(data)
