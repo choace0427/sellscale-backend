@@ -169,11 +169,12 @@ def generate_reply_using_framework(
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
         return None
+    last_email = ""
     prospect_email: ProspectEmail = ProspectEmail.query.get(
         prospect.approved_prospect_email_id
     )
-    if not prospect_email:
-        return None
+    if prospect_email:
+        last_email = prospect_email.last_message
 
     # Get the ResearchPoints
     research_points = ResearchPoints.get_research_points_by_prospect_id(
@@ -223,7 +224,7 @@ Prospect Title: {prospect.title}
 Prospect Industry: {prospect.industry}
 Prospect Company: {prospect.company}
 === Last Email ===
-{prospect_email.last_message}
+{last_email}
 === End Last Email ===
 
 Research on the Prospect:
