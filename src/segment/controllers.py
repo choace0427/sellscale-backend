@@ -10,6 +10,7 @@ from src.segment.services import (
     find_prospects_by_segment_filters,
     get_segments_for_sdr,
     update_segment,
+    wipe_segment_ids_from_prospects_in_segment,
 )
 from src.utils.request_helpers import get_request_parameter
 
@@ -203,3 +204,21 @@ def extract_sales_nav_titles(client_sdr_id: int):
     )
 
     return jsonify(data), 200
+
+
+@SEGMENT_BLUEPRINT.route("/wipe_segment", methods=["POST"])
+@require_user
+def wipe_segment(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+
+    segment: Segment = Segment.query.filter_by(
+        client_sdr_id=client_sdr_id, id=segment_id
+    ).first()
+    if not segment:
+        return "Segment not found", 404
+
+    success, msg = wipe_segment_ids_from_prospects_in_segment(segment_id=segment_id)
+    if success:
+        return msg, 200
+
+    return "Failed", 400

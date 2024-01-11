@@ -287,3 +287,12 @@ JSON:""",
     return {
         "titles": titles,
     }
+
+
+def wipe_segment_ids_from_prospects_in_segment(segment_id: int):
+    Prospect.query.filter(Prospect.segment_id == segment_id).update(
+        {Prospect.segment_id: None}, synchronize_session=False
+    )
+    db.session.commit()
+
+    return True, "Prospects removed from segment"

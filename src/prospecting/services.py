@@ -3281,6 +3281,7 @@ def generate_prospect_upload_report(archetype_state: dict):
         persona_or_segment_string = "Segment: {segment_title}".format(
             segment_title=segment_title
         )
+    
 
     try:
         send_slack_message(
