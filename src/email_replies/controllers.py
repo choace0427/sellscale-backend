@@ -24,8 +24,13 @@ def get_email_replies(client_sdr_id: int):
         "active_only", request, json=False, required=False, parameter_type=bool
     )
 
+    # Get the substatus if it exists
+    substatuses = get_request_parameter(
+        "substatuses", request, json=False, required=False, parameter_type=str
+    )
+
     frameworks = get_email_reply_frameworks(
-        client_sdr_id=client_sdr_id, active_only=active_only
+        client_sdr_id=client_sdr_id, active_only=active_only, substatuses=substatuses
     )
 
     return jsonify({"status": "success", "data": frameworks}), 200

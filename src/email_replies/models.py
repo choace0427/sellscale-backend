@@ -45,7 +45,9 @@ class EmailReplyFramework(db.Model):
             "active": self.active,
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
-            "overall_status": self.overall_status,
+            "overall_status": self.overall_status.value
+            if self.overall_status
+            else None,
             "substatus": self.substatus,
             "template": self.template,
             "additional_instructions": self.additional_instructions,

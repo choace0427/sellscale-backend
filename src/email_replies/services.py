@@ -11,13 +11,16 @@ from src.research.models import AccountResearchPoints, ResearchPointType, Resear
 
 
 def get_email_reply_frameworks(
-    client_sdr_id: Optional[int], active_only: Optional[bool] = True
+    client_sdr_id: Optional[int],
+    active_only: Optional[bool] = True,
+    substatuses: Optional[list[str]] = None,
 ) -> list[dict]:
     """Get all EmailReplyFrameworks
 
     Args:
         client_sdr_id (Optional[int]): ID of the ClientSDR to filter by
         active_only (Optional[bool]): Whether or not to only return active EmailReplyFrameworks
+        substatus (Optional[str]): The substatus to filter by
 
     Returns:
         list: List of EmailReplyFrameworks
@@ -46,7 +49,15 @@ def get_email_reply_frameworks(
             if reply_framework.active
         ]
 
-    return [reply_framework.to_dict for reply_framework in reply_frameworks]
+    # Filter by substatus
+    if substatuses:
+        reply_frameworks = [
+            reply_framework
+            for reply_framework in reply_frameworks
+            if reply_framework.substatus in substatuses
+        ]
+
+    return [reply_framework.to_dict() for reply_framework in reply_frameworks]
 
 
 def create_email_reply_framework(
