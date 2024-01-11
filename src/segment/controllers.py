@@ -1,9 +1,11 @@
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
+from src.client.models import ClientArchetype
 from src.prospecting.models import Prospect
 from src.segment.models import Segment
 from src.segment.services import (
     add_prospects_to_segment,
+    add_unused_prospects_in_segment_to_campaign,
     create_new_segment,
     delete_segment,
     extract_data_from_sales_navigator_link,
@@ -218,6 +220,37 @@ def wipe_segment(client_sdr_id: int):
         return "Segment not found", 404
 
     success, msg = wipe_segment_ids_from_prospects_in_segment(segment_id=segment_id)
+    if success:
+        return msg, 200
+
+    return "Failed", 400
+
+
+@SEGMENT_BLUEPRINT.route(
+    "/add_unused_prospects_in_segment_to_campaign", methods=["POST"]
+)
+@require_user
+def add_unused_prospects_in_segment_to_campaign_endpoint(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True
+    )
+
+    segment: Segment = Segment.query.filter_by(
+        client_sdr_id=client_sdr_id, id=segment_id
+    ).first()
+    if not segment:
+        return "Segment not found", 404
+
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        client_sdr_id=client_sdr_id, id=campaign_id
+    ).first()
+    if not client_archetype:
+        return "Client archetype not found", 404
+
+    success, msg = add_unused_prospects_in_segment_to_campaign(
+        segment_id=segment_id, campaign_id=campaign_id
+    )
     if success:
         return msg, 200
 

@@ -6,7 +6,7 @@ from app import db
 from sqlalchemy.orm import attributes
 from src.client.models import ClientArchetype, ClientSDR
 from src.ml.services import get_text_generation
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.segment.models import Segment
 from sqlalchemy import case
 
@@ -296,3 +296,23 @@ def wipe_segment_ids_from_prospects_in_segment(segment_id: int):
     db.session.commit()
 
     return True, "Prospects removed from segment"
+
+
+def add_unused_prospects_in_segment_to_campaign(segment_id: int, campaign_id: int):
+    prospects: list[Prospect] = Prospect.query.filter(
+        and_(
+            Prospect.segment_id == segment_id,
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+            Prospect.approved_outreach_message_id == None,
+            Prospect.approved_prospect_email_id == None,
+        )
+    ).all()
+
+    prospect_ids: list[int] = [prospect.id for prospect in prospects]
+
+    Prospect.query.filter(Prospect.id.in_(prospect_ids)).update(
+        {Prospect.campaign_id: campaign_id}, synchronize_session=False
+    )
+    db.session.commit()
+
+    return True, "Prospects added to campaign"
