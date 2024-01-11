@@ -216,4 +216,4 @@ def post_generate_email_reply(client_sdr_id: int, reply_framework_id: int):
     if not reply:
         return jsonify({"error": "Failed to generate reply."}), 400
 
-    return jsonify({"status": "success", "data": reply}), 200
+    return jsonify({"status": "success", "data": {"message": reply}}), 200
