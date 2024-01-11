@@ -29,38 +29,46 @@ def get_contacts(
     people = []
 
     for page in range(1, num_contacts // 100 + 1):
-        response = get_contacts_for_page(
-            page,
-            person_titles,
-            person_not_titles,
-            q_person_title,
-            q_person_name,
-            organization_industry_tag_ids,
-            organization_num_employees_ranges,
-            person_locations,
-            organization_ids,
-            revenue_range,
-            organization_latest_funding_stage_cd,
-            currently_using_any_of_technology_uids,
-        )
+        try:
+            response = get_contacts_for_page(
+                page,
+                person_titles,
+                person_not_titles,
+                q_person_title,
+                q_person_name,
+                organization_industry_tag_ids,
+                organization_num_employees_ranges,
+                person_locations,
+                organization_ids,
+                revenue_range,
+                organization_latest_funding_stage_cd,
+                currently_using_any_of_technology_uids,
+            )
 
-        print(
-            "Found {} contacts".format(len(response["contacts"] + response["people"]))
-        )
+            print(
+                "Found {} contacts".format(
+                    len(response["contacts"] + response["people"])
+                )
+            )
 
-        per_page += response["pagination"]["per_page"]
+            per_page += len(response["contacts"] + response["people"])
 
-        if page == 1:
-            breadcrumbs = response["breadcrumbs"]
-            partial_results_only = response["partial_results_only"]
-            disable_eu_prospecting = response["disable_eu_prospecting"]
-            partial_results_limit = response["partial_results_limit"]
+            if page == 1:
+                breadcrumbs = response["breadcrumbs"]
+                partial_results_only = response["partial_results_only"]
+                disable_eu_prospecting = response["disable_eu_prospecting"]
+                partial_results_limit = response["partial_results_limit"]
 
-        contacts += response["contacts"]
-        people += response["people"]
+            contacts += response["contacts"]
+            people += response["people"]
 
-        pagination = response["pagination"]
-        pagination["per_page"] = per_page
+            pagination = response["pagination"]
+            pagination["per_page"] = per_page
+        except:
+            continue
+
+        if page > pagination.get("total_pages", 0):
+            break
 
     return {
         "breadcrumbs": breadcrumbs,
