@@ -65,6 +65,16 @@ def index():
         required=False,
         default_value=[],
     )
+    event_categories = get_request_parameter(
+        "event_categories", request, json=True, required=False, default_value=None
+    )
+    published_at_date_range = get_request_parameter(
+        "published_at_date_range",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+    )
 
     data = get_contacts(
         num_contacts=num_contacts,
@@ -79,6 +89,8 @@ def index():
         revenue_range=revenue_range,
         organization_latest_funding_stage_cd=organization_latest_funding_stage_cd,
         currently_using_any_of_technology_uids=currently_using_any_of_technology_uids,
+        event_categories=event_categories,
+        published_at_date_range=published_at_date_range,
     )
 
     return jsonify(data)

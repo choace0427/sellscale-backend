@@ -16,6 +16,8 @@ def get_contacts(
     revenue_range: dict = {"min": None, "max": None},
     organization_latest_funding_stage_cd: list = [],
     currently_using_any_of_technology_uids: list = [],
+    event_categories: Optional[list] = None,
+    published_at_date_range: Optional[dict] = None,
 ):
     breadcrumbs = None  # grab from first result
     partial_results_only = None  # grab from first result
@@ -43,6 +45,8 @@ def get_contacts(
                 revenue_range,
                 organization_latest_funding_stage_cd,
                 currently_using_any_of_technology_uids,
+                event_categories,
+                published_at_date_range,
             )
 
             print(
@@ -94,6 +98,8 @@ def get_contacts_for_page(
     revenue_range: dict = {"min": None, "max": None},
     organization_latest_funding_stage_cd: list = [],
     currently_using_any_of_technology_uids: list = [],
+    event_categories: Optional[list] = None,
+    published_at_date_range: Optional[dict] = None,
 ):
     data = {
         "api_key": "F51KjDxCgbbC42h0-ovEDQ",
@@ -110,6 +116,8 @@ def get_contacts_for_page(
         "revenue_range": revenue_range,
         "organization_latest_funding_stage_cd": organization_latest_funding_stage_cd,
         "currently_using_any_of_technology_uids": currently_using_any_of_technology_uids,
+        "event_categories": event_categories,
+        "published_at_date_range": published_at_date_range,
     }
 
     response = requests.post("https://api.apollo.io/v1/mixed_people/search", json=data)
