@@ -54,10 +54,10 @@ def post_create_email_reply_framework(client_sdr_id: int):
         parameter_type=int,
     )
     substatus = get_request_parameter(
-        "substatus", request, json=True, required=False, parameter_type=str
+        "substatus", request, json=True, required=True, parameter_type=str
     )
     template = get_request_parameter(
-        "template", request, json=True, required=False, parameter_type=str
+        "template", request, json=True, required=True, parameter_type=str
     )
     additional_instructions = get_request_parameter(
         "additional_instructions",
@@ -89,7 +89,7 @@ def post_create_email_reply_framework(client_sdr_id: int):
         "overall_status",
         request,
         json=True,
-        required=False,
+        required=True,
         parameter_type=str,
     )
     if overall_status:

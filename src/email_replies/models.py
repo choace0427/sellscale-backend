@@ -20,10 +20,10 @@ class EmailReplyFramework(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
 
-    overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
-    substatus = db.Column(db.String(255), nullable=True)
+    overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=False)
+    substatus = db.Column(db.String(255), nullable=False)
 
-    template = db.Column(db.String, nullable=True)
+    template = db.Column(db.String, nullable=False)
     additional_instructions = db.Column(db.String, nullable=True)
 
     # Analytics

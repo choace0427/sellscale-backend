@@ -70,29 +70,29 @@ def get_email_reply_frameworks(
 
 def create_email_reply_framework(
     title: str,
-    description: Optional[str],
-    client_sdr_id: Optional[int],
-    client_archetype_id: Optional[int],
-    overall_status: Optional[ProspectOverallStatus],
-    substatus: Optional[str],
-    template: Optional[str],
-    additional_instructions: Optional[str],
-    research_blocklist: Optional[list[ResearchPointType]],
-    use_account_research: Optional[bool],
+    overall_status: ProspectOverallStatus,
+    substatus: str,
+    template: str,
+    description: Optional[str] = None,
+    client_sdr_id: Optional[int] = None,
+    client_archetype_id: Optional[int] = None,
+    additional_instructions: Optional[str] = None,
+    research_blocklist: Optional[list[ResearchPointType]] = None,
+    use_account_research: Optional[bool] = None,
 ) -> int:
     """Create an EmailReplyFramework
 
     Args:
         title (str): Title of the new EmailReplyFramework
+        overall_status (ProspectOverallStatus): Overall status of the new EmailReplyFramework
+        substatus (str): Substatus of the new EmailReplyFramework
+        template (str): Template of the new EmailReplyFramework
         description (Optional[str]): Description of the new EmailReplyFramework
         client_sdr_id (Optional[int]): ID of the ClientSDR to associate with the new EmailReplyFramework
         client_archetype_id (Optional[int]): ID of the ClientArchetype to associate with the new EmailReplyFramework
-        overall_status (Optional[ProspectOverallStatus]): The ProspectOverallStatus to associate with the new EmailReplyFramework
-        substatus (Optional[str]): The substatus to associate with the new EmailReplyFramework
-        template (Optional[str]): The template to associate with the new EmailReplyFramework
-        additional_instructions (Optional[str]): The additional instructions to associate with the new EmailReplyFramework
-        research_blocklist (Optional[list]): The research blocklist (used to generate messages)
-        use_account_research (Optional[bool]): Whether or not to use account research (used to generate messages)
+        additional_instructions (Optional[str]): Additional instructions of the new EmailReplyFramework
+        research_blocklist (Optional[list]): Research blocklist of the new EmailReplyFramework
+        use_account_research (Optional[bool]): Whether or not to use account research of the new EmailReplyFramework
 
     Returns:
         int: ID of the new EmailReplyFramework
