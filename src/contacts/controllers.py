@@ -78,6 +78,13 @@ def index():
     person_seniorities = get_request_parameter(
         "person_seniorities", request, json=True, required=False, default_value=None
     )
+    q_organization_search_list_id = get_request_parameter(
+        "q_organization_search_list_id",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+    )
 
     data = get_contacts(
         num_contacts=num_contacts,
@@ -95,6 +102,7 @@ def index():
         event_categories=event_categories,
         published_at_date_range=published_at_date_range,
         person_seniorities=person_seniorities,
+        q_organization_search_list_id=q_organization_search_list_id,
     )
 
     return jsonify(data)
