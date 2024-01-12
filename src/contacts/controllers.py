@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from src.contacts.services import get_contacts
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.request_helpers import get_request_parameter
 
 
@@ -104,5 +105,26 @@ def index():
         person_seniorities=person_seniorities,
         q_organization_search_list_id=q_organization_search_list_id,
     )
+
+    predicted_segment_name = ""
+    try:
+        filters = ""
+        for item in data.get("breadcrumbs", []):
+            filters += "{}: {}\n".format(item.get("label"), item.get("display_name"))
+
+        predicted_segment_name = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Instruction: Using the following filters, summarize the contacts in a short, 5-6 word phrease.\n\nFilters:\n{}\nSummary:".format(
+                        filters
+                    ),
+                }
+            ]
+        )
+    except Exception as e:
+        print(e)
+
+    data["predicted_segment_name"] = predicted_segment_name
 
     return jsonify(data)
