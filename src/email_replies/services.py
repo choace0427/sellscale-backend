@@ -57,6 +57,14 @@ def get_email_reply_frameworks(
             if reply_framework.substatus in substatuses
         ]
 
+    # Sort the reply_frameworks
+    reply_frameworks = sorted(
+        reply_frameworks,
+        key=lambda reply_framework: reply_framework.substatus
+        if reply_framework.substatus
+        else None,
+    )
+
     return [reply_framework.to_dict() for reply_framework in reply_frameworks]
 
 
