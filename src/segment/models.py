@@ -10,6 +10,10 @@ class Segment(db.Model):
     segment_title = db.Column(db.String(255), nullable=False)
     filters = db.Column(db.JSON, nullable=False)
 
+    parent_segment_id = db.Column(
+        db.Integer, db.ForeignKey("segment.id"), nullable=True
+    )
+
     def __repr__(self):
         return f"<Segment {self.id}>"
 
