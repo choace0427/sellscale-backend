@@ -420,6 +420,7 @@ class Prospect(db.Model):
     email = db.Column(db.String, nullable=True)
     email_store_id = db.Column(db.ForeignKey("email_store.id"), nullable=True)
     hunter_email_score = db.Column(db.Float, nullable=True)
+    valid_primary_email = db.Column(db.Boolean, nullable=True)
 
     email_additional = db.Column(db.ARRAY(db.JSON), nullable=True)  # Extra emails
     # {"email": string, "comment": string}[]
@@ -524,6 +525,7 @@ class Prospect(db.Model):
             "company": self.company,
             "title": self.title,
             "email": self.email,
+            "valid_primary_email": self.valid_primary_email,
             "industry": self.industry,
             "icp_fit_score": self.icp_fit_score,
             "icp_fit_reason": self.icp_fit_reason,

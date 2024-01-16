@@ -62,6 +62,8 @@ def verify_email_from_hunter(email_address: str) -> (bool, dict):
 def find_hunter_email_from_prospect_id(
     prospect_id: int, trigger_from: str = "manually triggered"
 ):
+    from src.email_classifier.services import verify_email
+
     p: Prospect = Prospect.query.get(prospect_id)
     print("\nProcessesing prospect: ", p.id)
 
@@ -92,8 +94,15 @@ def find_hunter_email_from_prospect_id(
         return None
     email = data["email"]
     score = data["score"]
+
+    # Verify the email
+    success, email, _score = verify_email(email)
+    if not success:
+        return None
+
     p.email = email
     p.hunter_email_score = score
+    p.valid_primary_email = True
     p_id = p.id
     full_name = p.full_name
     overall_status = p.overall_status.value
