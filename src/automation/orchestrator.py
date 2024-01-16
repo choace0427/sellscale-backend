@@ -1,6 +1,6 @@
 from typing import Optional
 
-from src.smartlead.services import sync_prospect_with_lead
+from src.smartlead.services import smartlead_reply_to_prospect, sync_prospect_with_lead
 from src.voyager.linkedin import send_scheduled_linkedin_message
 from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 
@@ -108,6 +108,12 @@ PROCESS_TYPE_MAP = {
     },
     "send_scheduled_linkedin_message": {
         "function": send_scheduled_linkedin_message,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "smartlead_reply_to_prospect": {
+        "function": smartlead_reply_to_prospect,
         "priority": 10,
         "queue": None,
         "routing_key": None,

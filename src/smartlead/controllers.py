@@ -1,18 +1,20 @@
 from typing import List
 from flask import Blueprint, request, jsonify
+from src.automation.orchestrator import add_process_for_future
 from src.message_generation.email.services import get_email_automated_reply_entry
 from src.smartlead.services import (
     generate_smart_email_response,
     create_smartlead_campaign,
     get_message_history_for_prospect,
     get_smartlead_inbox,
-    reply_to_prospect,
+    smartlead_reply_to_prospect,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
 )
 from app import db
 import os
 from src.authentication.decorators import require_user
+from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 from src.utils.request_helpers import get_request_parameter
 from src.smartlead.services import get_campaign_sequence_by_id
 
@@ -143,8 +145,30 @@ def post_prospect_conversation(client_sdr_id: int):
     email_body = get_request_parameter(
         "email_body", request, json=True, required=True, parameter_type=str
     )
+    scheduled_send_date = get_request_parameter(
+        "scheduled_send_date", request, json=True, required=False, parameter_type=str
+    )
+    scheduled_send_date = (
+        convert_string_to_datetime_or_none(scheduled_send_date)
+        if scheduled_send_date
+        else None
+    )
 
-    success = reply_to_prospect(prospect_id=prospect_id, email_body=email_body)
+    # If scheduled send date is in the future, add a process to send the email
+    if scheduled_send_date:
+        success = add_process_for_future(
+            type="smartlead_reply_to_prospect",
+            args={
+                "prospect_id": prospect_id,
+                "email_body": email_body,
+            },
+            relative_time=scheduled_send_date,
+        )
+    else:  # Otherwise, send the email now
+        success = smartlead_reply_to_prospect(
+            prospect_id=prospect_id, email_body=email_body
+        )
+
     if not success:
         return (
             jsonify(
