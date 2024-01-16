@@ -646,6 +646,7 @@ class Prospect(db.Model):
                 "li_last_message_from_prospect": self.li_last_message_from_prospect,
                 "li_last_message_from_sdr": self.li_last_message_from_sdr,
                 "li_unread_messages": self.li_unread_messages,
+                "valid_primary_email": self.valid_primary_email,
                 "email_last_message_timestamp": self.email_last_message_timestamp,
                 "email_is_last_message_from_sdr": self.email_is_last_message_from_sdr,
                 "email_last_message_from_prospect": self.email_last_message_from_prospect,
@@ -785,6 +786,7 @@ class Prospect(db.Model):
             if self.hidden_reason is not None
             else None,
             "demo_date": self.demo_date,
+            "valid_primary_email": self.valid_primary_email,
             "email_data": p_email.to_dict() if p_email else {},
             "email_last_message_timestamp": self.email_last_message_timestamp,
             "email_is_last_message_from_sdr": self.email_is_last_message_from_sdr,
