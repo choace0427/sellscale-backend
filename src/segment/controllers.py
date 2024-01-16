@@ -31,9 +31,15 @@ def create_segment(client_sdr_id: int):
         "segment_title", request, json=True, required=True
     )
     filters = get_request_parameter("filters", request, json=True, required=True)
+    parent_segment_id = get_request_parameter(
+        "parent_segment_id", request, json=True, required=False
+    )
 
     segment: Segment = create_new_segment(
-        client_sdr_id=client_sdr_id, segment_title=segment_title, filters=filters
+        client_sdr_id=client_sdr_id,
+        segment_title=segment_title,
+        filters=filters,
+        parent_segment_id=parent_segment_id,
     )
 
     if segment:

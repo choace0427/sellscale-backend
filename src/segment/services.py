@@ -12,9 +12,8 @@ from sqlalchemy import case
 
 
 def create_new_segment(
-    client_sdr_id: int, segment_title: str, filters: dict
+    client_sdr_id: int, segment_title: str, filters: dict, parent_segment_id: int = None
 ) -> Segment or None:
-    # dulicate check
     existing_segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, segment_title=segment_title
     ).first()
@@ -25,6 +24,7 @@ def create_new_segment(
         client_sdr_id=client_sdr_id,
         segment_title=segment_title,
         filters=filters,
+        parent_segment_id=parent_segment_id,
     )
 
     db.session.add(new_segment)
