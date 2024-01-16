@@ -311,7 +311,7 @@ def add_unused_prospects_in_segment_to_campaign(segment_id: int, campaign_id: in
     prospect_ids: list[int] = [prospect.id for prospect in prospects]
 
     Prospect.query.filter(Prospect.id.in_(prospect_ids)).update(
-        {Prospect.campaign_id: campaign_id}, synchronize_session=False
+        {Prospect.archetype_id: campaign_id}, synchronize_session=False
     )
     db.session.commit()
 
