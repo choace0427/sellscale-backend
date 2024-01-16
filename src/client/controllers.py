@@ -201,7 +201,8 @@ def post_submit_error(client_sdr_id: int):
 
 @CLIENT_BLUEPRINT.route("/", methods=["POST"])
 def create():
-    company = get_request_parameter("company", request, json=True, required=True)
+    company = get_request_parameter(
+        "company", request, json=True, required=True)
     company_website = get_request_parameter(
         "company_website", request, json=True, required=True
     )
@@ -218,7 +219,8 @@ def create():
     email_outbound_enabled = get_request_parameter(
         "email_outbound_enabled", request, json=True, required=True
     )
-    tagline = get_request_parameter("tagline", request, json=True, required=False)
+    tagline = get_request_parameter(
+        "tagline", request, json=True, required=False)
     description = get_request_parameter(
         "description", request, json=True, required=False
     )
@@ -246,17 +248,37 @@ def get_client(client_sdr_id: int):
     return jsonify(client_dict), 200
 
 
+@CLIENT_BLUEPRINT.route("/brain", methods=["GET"])
+@require_user
+def get_ai_brain(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    client: Client = Client.query.get(client_id)
+
+    name = client.company
+    tagline = client.tagline
+    description = client.description
+
+    return {
+        'name': name,
+        'tagline': tagline,
+        'description': description
+    }
+
+
 @CLIENT_BLUEPRINT.route("/", methods=["PATCH"])
 @require_user
 def patch_client(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
 
-    company = get_request_parameter("company", request, json=True, required=False)
+    company = get_request_parameter(
+        "company", request, json=True, required=False)
     company_website = get_request_parameter(
         "company_website", request, json=True, required=False
     )
-    tagline = get_request_parameter("tagline", request, json=True, required=False)
+    tagline = get_request_parameter(
+        "tagline", request, json=True, required=False)
     description = get_request_parameter(
         "description", request, json=True, required=False
     )
@@ -266,8 +288,10 @@ def patch_client(client_sdr_id: int):
     tone_attributes = get_request_parameter(
         "tone_attributes", request, json=True, required=False
     )
-    mission = get_request_parameter("mission", request, json=True, required=False)
-    case_study = get_request_parameter("case_study", request, json=True, required=False)
+    mission = get_request_parameter(
+        "mission", request, json=True, required=False)
+    case_study = get_request_parameter(
+        "case_study", request, json=True, required=False)
     contract_size = get_request_parameter(
         "contract_size", request, json=True, required=False
     )
@@ -292,8 +316,10 @@ def patch_client(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/archetype", methods=["POST"])
 @require_user
 def create_archetype(client_sdr_id: int):
-    archetype = get_request_parameter("archetype", request, json=True, required=True)
-    filters = get_request_parameter("filters", request, json=True, required=False)
+    archetype = get_request_parameter(
+        "archetype", request, json=True, required=True)
+    filters = get_request_parameter(
+        "filters", request, json=True, required=False)
     disable_ai_after_prospect_engaged = get_request_parameter(
         "disable_ai_after_prospect_engaged", request, json=True, required=True
     )
@@ -365,9 +391,11 @@ def patch_toggle_template_mode(client_sdr_id: int, archetype_id: int):
 @require_user
 def get_archetype_prospects_endpoint(client_sdr_id: int, archetype_id: int):
     """Get all prospects, simple, for an archetype"""
-    search = get_request_parameter("search", request, json=False, required=False) or ""
+    search = get_request_parameter(
+        "search", request, json=False, required=False) or ""
 
-    prospects = get_client_archetype_prospects(client_sdr_id, archetype_id, search)
+    prospects = get_client_archetype_prospects(
+        client_sdr_id, archetype_id, search)
 
     return jsonify({"message": "Success", "prospects": prospects}), 200
 
@@ -456,7 +484,8 @@ def get_archetypes(client_sdr_id: int):
         or ""
     )
 
-    archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
+    archetypes = get_client_archetypes(
+        client_sdr_id=client_sdr_id, query=query)
     return jsonify({"message": "Success", "archetypes": archetypes}), 200
 
 
@@ -641,7 +670,8 @@ def post_toggle_is_onboarding(client_sdr_id: int):
 
 @CLIENT_BLUEPRINT.route("/sdr", methods=["POST"])
 def create_sdr():
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True)
     name = get_request_parameter("name", request, json=True, required=True)
     email = get_request_parameter("email", request, json=True, required=True)
 
@@ -709,7 +739,8 @@ def activate_sdr_endpoint():
 def reset_client_sdr_auth_token():
     from src.client.services import reset_client_sdr_sight_auth_token
 
-    sdr_id = get_request_parameter("client_sdr_id", request, json=True, required=True)
+    sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True)
 
     resp = reset_client_sdr_sight_auth_token(client_sdr_id=sdr_id)
     if not resp:
@@ -723,7 +754,8 @@ def update_archetype_name():
     client_archetype_id = get_request_parameter(
         "client_archetype_id", request, json=True, required=True
     )
-    new_name = get_request_parameter("new_name", request, json=True, required=True)
+    new_name = get_request_parameter(
+        "new_name", request, json=True, required=True)
 
     success = rename_archetype(
         client_archetype_id=client_archetype_id, new_name=new_name
@@ -784,7 +816,8 @@ def post_deactivate_archetype(client_sdr_id: int, archetype_id: int):
         )
         if success:
             return (
-                jsonify({"status": "success", "data": {"message": "Deactivated"}}),
+                jsonify({"status": "success", "data": {
+                        "message": "Deactivated"}}),
                 200,
             )
         else:
@@ -894,8 +927,10 @@ def get_sdr_available_outbound_channels_endpoint(client_sdr_id: int):
 
 @CLIENT_BLUEPRINT.route("/update_pipeline_webhook", methods=["PATCH"])
 def patch_update_pipeline_webhook():
-    client_id = get_request_parameter("client_id", request, json=True, required=True)
-    webhook = get_request_parameter("webhook", request, json=True, required=True)
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True)
+    webhook = get_request_parameter(
+        "webhook", request, json=True, required=True)
 
     success = update_client_pipeline_notification_webhook(
         client_id=client_id, webhook=webhook
@@ -916,7 +951,8 @@ def patch_update_pipeline_client_sdr_webhook():
     client_sdr_id = get_request_parameter(
         "client_sdr_id", request, json=True, required=True
     )
-    webhook = get_request_parameter("webhook", request, json=True, required=True)
+    webhook = get_request_parameter(
+        "webhook", request, json=True, required=True)
 
     success = update_client_sdr_pipeline_notification_webhook(
         client_sdr_id=client_sdr_id, webhook=webhook
@@ -931,7 +967,8 @@ def patch_update_pipeline_client_sdr_webhook():
 @require_user
 def patch_client_sdr_webhook(client_sdr_id):
     """Update the Client SDR Webhook"""
-    webhook = get_request_parameter("webhook", request, json=True, required=True)
+    webhook = get_request_parameter(
+        "webhook", request, json=True, required=True)
 
     success = update_client_sdr_pipeline_notification_webhook(
         client_sdr_id=client_sdr_id, webhook=webhook
@@ -953,7 +990,8 @@ def post_test_sdr_webhook():
         "client_sdr_id", request, json=True, required=True
     )
 
-    success = test_client_sdr_pipeline_notification_webhook(client_sdr_id=client_sdr_id)
+    success = test_client_sdr_pipeline_notification_webhook(
+        client_sdr_id=client_sdr_id)
 
     if not success:
         return "Failed to test pipeline client sdr webhook", 404
@@ -964,7 +1002,8 @@ def post_test_sdr_webhook():
 @require_user
 def patch_client_webhook(client_sdr_id):
     """Update the Client Webhook"""
-    webhook = get_request_parameter("webhook", request, json=True, required=True)
+    webhook = get_request_parameter(
+        "webhook", request, json=True, required=True)
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -988,7 +1027,8 @@ def post_test_client_webhook(client_sdr_id):
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    success = test_client_pipeline_notification_webhook(client_id=sdr.client_id)
+    success = test_client_pipeline_notification_webhook(
+        client_id=sdr.client_id)
 
     if not success:
         return "Failed to test pipeline client webhook", 404
@@ -1038,7 +1078,8 @@ def post_approve_auth_token():
 
 @CLIENT_BLUEPRINT.route("/verify_client_sdr_auth_token", methods=["POST"])
 def post_verify_client_sdr_auth_token():
-    auth_token = get_request_parameter("auth_token", request, json=True, required=True)
+    auth_token = get_request_parameter(
+        "auth_token", request, json=True, required=True)
     success = verify_client_sdr_auth_token(
         auth_token=auth_token,
     )
@@ -1169,7 +1210,8 @@ def get_ctas_endpoint():
     except Exception as e:
         return e.args[0], 400
 
-    ctas: list[GeneratedMessageCTA] = get_ctas(client_archetype_id=client_archetype_id)
+    ctas: list[GeneratedMessageCTA] = get_ctas(
+        client_archetype_id=client_archetype_id)
 
     return jsonify([cta.to_dict() for cta in ctas]), 200
 
@@ -1217,7 +1259,8 @@ def get_transformers(client_sdr_id: int, archetype_id: int):
     if email is None:
         email = False
 
-    result = get_transformers_by_archetype_id(client_sdr_id, archetype_id, email)
+    result = get_transformers_by_archetype_id(
+        client_sdr_id, archetype_id, email)
 
     return jsonify(result), result.get("status_code")
 
@@ -1323,11 +1366,13 @@ def patch_prospect_filter(client_sdr_id: int, archetype_id: int):
         or []
     )
     seniority_inclusion = (
-        get_request_parameter("seniority_inclusion", request, json=True, required=False)
+        get_request_parameter("seniority_inclusion",
+                              request, json=True, required=False)
         or []
     )
     seniority_exclusion = (
-        get_request_parameter("seniority_exclusion", request, json=True, required=False)
+        get_request_parameter("seniority_exclusion",
+                              request, json=True, required=False)
         or []
     )
     years_in_current_company = (
@@ -1343,31 +1388,38 @@ def patch_prospect_filter(client_sdr_id: int, archetype_id: int):
         or []
     )
     geography_inclusion = (
-        get_request_parameter("geography_inclusion", request, json=True, required=False)
+        get_request_parameter("geography_inclusion",
+                              request, json=True, required=False)
         or []
     )
     geography_exclusion = (
-        get_request_parameter("geography_exclusion", request, json=True, required=False)
+        get_request_parameter("geography_exclusion",
+                              request, json=True, required=False)
         or []
     )
     industry_inclusion = (
-        get_request_parameter("industry_inclusion", request, json=True, required=False)
+        get_request_parameter("industry_inclusion",
+                              request, json=True, required=False)
         or []
     )
     industry_exclusion = (
-        get_request_parameter("industry_exclusion", request, json=True, required=False)
+        get_request_parameter("industry_exclusion",
+                              request, json=True, required=False)
         or []
     )
     years_of_experience = (
-        get_request_parameter("years_of_experience", request, json=True, required=False)
+        get_request_parameter("years_of_experience",
+                              request, json=True, required=False)
         or []
     )
     annual_revenue = (
-        get_request_parameter("annual_revenue", request, json=True, required=False)
+        get_request_parameter("annual_revenue", request,
+                              json=True, required=False)
         or []
     )
     headcount = (
-        get_request_parameter("headcount", request, json=True, required=False) or []
+        get_request_parameter("headcount", request,
+                              json=True, required=False) or []
     )
     headquarter_location_inclusion = (
         get_request_parameter(
@@ -1472,7 +1524,8 @@ def post_toggle_client_sdr_auto_bump():
 def post_toggle_client_sdr_auto_send_linkedin_campaigns(client_sdr_id: int):
     """Toggles auto send campaigns enabled for a client SDR"""
 
-    success = toggle_client_sdr_auto_send_linkedin_campaign(client_sdr_id=client_sdr_id)
+    success = toggle_client_sdr_auto_send_linkedin_campaign(
+        client_sdr_id=client_sdr_id)
     if not success:
         return "Failed to toggle auto send campaigns enabled", 400
     return "OK", 200
@@ -1513,7 +1566,8 @@ def post_create_pod():
     client_id: int = get_request_parameter(
         "client_id", request, json=True, required=True
     )
-    name: str = get_request_parameter("name", request, json=True, required=True)
+    name: str = get_request_parameter(
+        "name", request, json=True, required=True)
     client_pod: ClientPod = create_client_pod(
         client_id=client_id,
         name=name,
@@ -1669,7 +1723,8 @@ def post_populate_prospect_events(client_sdr_id: int):
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
 
-    added_count, updated_count = populate_prospect_events(client_sdr_id, prospect_id)
+    added_count, updated_count = populate_prospect_events(
+        client_sdr_id, prospect_id)
 
     return (
         jsonify(
@@ -1774,7 +1829,8 @@ def patch_email_blocks(client_sdr_id: int, archetype_id: int):
         )
 
     email_blocks = (
-        get_request_parameter("email_blocks", request, json=True, required=True) or []
+        get_request_parameter("email_blocks", request,
+                              json=True, required=True) or []
     )
 
     patch_archetype_email_blocks_configuration(
@@ -1987,7 +2043,8 @@ def post_demo_feedback(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        prospect.archetype_id)
 
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return jsonify({"message": "Prospect not found"}), 400
@@ -2156,7 +2213,8 @@ def patch_demo_feedback(client_sdr_id: int):
     df: DemoFeedback = DemoFeedback.query.get(feedback_id)
     if df.client_sdr_id != client_sdr_id:
         return (
-            jsonify({"status": "error", "message": "Feedback does not belong to you"}),
+            jsonify(
+                {"status": "error", "message": "Feedback does not belong to you"}),
             403,
         )
 
@@ -2180,7 +2238,8 @@ def patch_demo_feedback(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(df.prospect_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(
+        prospect.archetype_id)
     send_slack_message(
         message="🎊 ✍️ UPDATED Demo Feedback",
         webhook_urls=[
@@ -2455,7 +2514,8 @@ def put_client_product(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/product", methods=["DELETE"])
 @require_user
 def delete_client_product(client_sdr_id: int):
-    product_id = get_request_parameter("product_id", request, json=True, required=True)
+    product_id = get_request_parameter(
+        "product_id", request, json=True, required=True)
 
     success = remove_client_product(
         client_sdr_id=client_sdr_id, client_product_id=product_id
@@ -2554,7 +2614,8 @@ def patch_sdr_blacklist_words(client_sdr_id: int):
 def post_update_persona_emoji(client_sdr_id: int):
     """Updates the emoji for a persona"""
 
-    persona_id = get_request_parameter("persona_id", request, json=True, required=True)
+    persona_id = get_request_parameter(
+        "persona_id", request, json=True, required=True)
     emoji = get_request_parameter("emoji", request, json=True, required=True)
 
     persona: ClientArchetype = ClientArchetype.query.get(persona_id)
@@ -2631,8 +2692,10 @@ def post_sync_pre_onboarding_data(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/update_bcc_cc_emails", methods=["POST"])
 @require_user
 def post_update_bcc_cc_emails(client_sdr_id: int):
-    cc_emails = get_request_parameter("cc_emails", request, json=True, required=False)
-    bcc_emails = get_request_parameter("bcc_emails", request, json=True, required=False)
+    cc_emails = get_request_parameter(
+        "cc_emails", request, json=True, required=False)
+    bcc_emails = get_request_parameter(
+        "bcc_emails", request, json=True, required=False)
 
     success = update_client_sdr_cc_bcc_emails(
         client_sdr_id=client_sdr_id,
@@ -2677,10 +2740,14 @@ def get_campaign_overview(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/send_generic_email", methods=["POST"])
 @require_user
 def post_send_generic_email(client_sdr_id: int):
-    from_email = get_request_parameter("from_email", request, json=True, required=True)
-    to_emails = get_request_parameter("to_emails", request, json=True, required=True)
-    bcc_emails = get_request_parameter("bcc_emails", request, json=True, required=True)
-    subject = get_request_parameter("subject", request, json=True, required=True)
+    from_email = get_request_parameter(
+        "from_email", request, json=True, required=True)
+    to_emails = get_request_parameter(
+        "to_emails", request, json=True, required=True)
+    bcc_emails = get_request_parameter(
+        "bcc_emails", request, json=True, required=True)
+    subject = get_request_parameter(
+        "subject", request, json=True, required=True)
     body = get_request_parameter("body", request, json=True, required=True)
 
     send_email(
