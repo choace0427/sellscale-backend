@@ -175,6 +175,13 @@ def post_create_bump_framework_sellscale_default():
     transformer_blocklist = get_request_parameter(
         "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
+    bump_framework_human_readable_prompt = get_request_parameter(
+        "bump_framework_human_readable_prompt",
+        request,
+        json=True,
+        required=False,
+        parameter_type=str,
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -199,7 +206,7 @@ def post_create_bump_framework_sellscale_default():
         substatus=substatus,
         default=default,
         use_account_research=use_account_research,
-        bump_framework_human_readable_prompt=None,
+        bump_framework_human_readable_prompt=bump_framework_human_readable_prompt,
         transformer_blocklist=transformer_blocklist,
     )
     if bump_framework_id:
@@ -261,6 +268,13 @@ def patch_bump_framework_sellscale_default():
     inject_calendar_times = get_request_parameter(
         "inject_calendar_times", request, json=True, required=False, parameter_type=bool
     )
+    bump_framework_human_readable_prompt = get_request_parameter(
+        "bump_framework_human_readable_prompt",
+        request,
+        json=True,
+        required=False,
+        parameter_type=str,
+    )
 
     # Get the enum value for the overall status
     found_key = False
@@ -293,7 +307,7 @@ def patch_bump_framework_sellscale_default():
         blocklist=transformer_blocklist,
         additional_context=None,
         bump_framework_template_name=None,
-        bump_framework_human_readable_prompt=None,
+        bump_framework_human_readable_prompt=bump_framework_human_readable_prompt,
         human_feedback=None,
         inject_calendar_times=inject_calendar_times,
     )
