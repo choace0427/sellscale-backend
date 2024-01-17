@@ -23,4 +23,9 @@ def clean_html(html: str, remove_past_convo: Optional[bool] = False) -> str:
         for div in soup.find_all("div", {"class": "gmail_quote"}):
             div.decompose()
 
-    return soup.get_text()
+    # Convert <br> into newlines and remove duplicate newlines
+    souped = soup.get_text()
+    souped = souped.replace("<br>", "\n")
+    souped = re.sub(r"\n+", "\n", souped)
+
+    return souped
