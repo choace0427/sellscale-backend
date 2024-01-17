@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
+from src.authentication.decorators import require_user
 
-from src.contacts.services import get_contacts
+from src.contacts.services import get_contacts, predict_filters_needed
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.request_helpers import get_request_parameter
 
@@ -128,3 +129,15 @@ def index():
     data["predicted_segment_name"] = predicted_segment_name
 
     return jsonify(data)
+
+
+@CONTACTS_BLUEPRINT.route("/predict_contact_filters", methods=["POST"])
+@require_user
+def predict_contact_filters(client_sdr_id: int):
+    query = get_request_parameter("query", request, json=True, required=True)
+
+    filters = predict_filters_needed(
+        query=query,
+    )
+
+    return jsonify(filters)

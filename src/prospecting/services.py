@@ -1925,6 +1925,8 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
           """
     ).fetchall()
     referred = [dict(row) for row in referred]
+    
+    segment: Segment = Segment.query.get(p.segment_id)
 
     return {
         "prospect_info": {
@@ -1951,6 +1953,8 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "persona_id": p.archetype_id,
                 "demo_date": p.demo_date,
                 "disqualification_reason": p.disqualification_reason,
+                "last_message_from_prospect": p.li_last_message_from_prospect,
+                "segment_title": segment.segment_title if segment else None,
             },
             "data": p.to_dict(),
             "li": {
@@ -3281,7 +3285,6 @@ def generate_prospect_upload_report(archetype_state: dict):
         persona_or_segment_string = "Segment: {segment_title}".format(
             segment_title=segment_title
         )
-    
 
     try:
         send_slack_message(
