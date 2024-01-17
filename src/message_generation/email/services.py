@@ -144,7 +144,7 @@ Final instructions
 - Preserve the markdown formatting.
 - Feel free to use markdown formatting to make the email look better.
 
-Generate the email body. Do not include the word 'Subject:' or 'Email:' in the output.
+Generate the email body. Do not include the word 'Subject:' or 'Email:' in the output. Do not wrap your answer in quotation marks.
 
 IMPORTANT:
 Stick to the template very strictly. Do not deviate from the template:
