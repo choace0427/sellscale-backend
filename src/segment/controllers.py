@@ -176,6 +176,12 @@ def find_prospects_by_segment_filters_endpoint(client_sdr_id: int):
     years_of_experience_end = get_request_parameter(
         "years_of_experience_end", request, json=True
     )
+    included_industry_keywords = get_request_parameter(
+        "included_industry_keywords", request, json=True
+    )
+    excluded_industry_keywords = get_request_parameter(
+        "excluded_industry_keywords", request, json=True
+    )
 
     prospects: list[dict] = find_prospects_by_segment_filters(
         client_sdr_id=client_sdr_id,
@@ -197,6 +203,8 @@ def find_prospects_by_segment_filters_endpoint(client_sdr_id: int):
         years_of_experience_start=years_of_experience_start,
         years_of_experience_end=years_of_experience_end,
         archetype_ids=archetype_ids,
+        included_industry_keywords=included_industry_keywords,
+        excluded_industry_keywords=excluded_industry_keywords,
     )
 
     return jsonify({"prospects": prospects, "num_prospects": len(prospects)}), 200

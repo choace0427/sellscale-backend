@@ -109,6 +109,8 @@ def find_prospects_by_segment_filters(
     years_of_experience_start: int = None,
     years_of_experience_end: int = None,
     archetype_ids: list[int] = [],
+    included_industry_keywords: list[str] = [],
+    excluded_industry_keywords: list[str] = [],
 ) -> list[dict]:
     # join prospect with segment and get segment_title
     # keep 'Uncategorized' if no segment present
@@ -125,6 +127,7 @@ def find_prospects_by_segment_filters(
             Prospect.title,
             Prospect.company,
             Prospect.linkedin_url,
+            Prospect.industry,
             ClientArchetype.archetype,
             case(
                 [(Segment.segment_title == None, "uncategorized")],  # type: ignore
@@ -240,6 +243,24 @@ def find_prospects_by_segment_filters(
         else:
             base_query = base_query.filter(and_addition[0])
 
+    if included_industry_keywords:
+        or_addition = []
+        for keyword in included_industry_keywords:
+            or_addition.append(Prospect.industry.ilike(f"%{keyword}%"))
+        if len(or_addition) > 1:
+            base_query = base_query.filter(or_(*or_addition))
+        else:
+            base_query = base_query.filter(or_addition[0])
+
+    if excluded_industry_keywords:
+        and_addition = []
+        for keyword in excluded_industry_keywords:
+            and_addition.append(~Prospect.industry.ilike(f"%{keyword}%"))
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
+
     prospects = base_query.all()
 
     return [
@@ -251,6 +272,7 @@ def find_prospects_by_segment_filters(
             "campaign": prospect.archetype,
             "segment": prospect.segment_title,
             "linkedin_url": prospect.linkedin_url,
+            "industry": prospect.industry,
         }
         for prospect in prospects
     ]
