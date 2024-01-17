@@ -2825,6 +2825,30 @@ def get_li_convo_history(prospect_id: int) -> List[LinkedInConvoMessage]:
     ]
 
 
+def get_li_convo_history_transcript_form(prospect_id: int) -> str:
+    """Gets the transcript of a prospect's LinkedIn conversation
+
+    Args:
+        prospect_id (int): Prospect ID
+
+    Returns:
+        str: Transcript of the conversation
+    """
+    convo_history = get_li_convo_history(
+        prospect_id=prospect_id,
+    )
+
+    msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
+    if not msg:
+        raise Exception("No message from SDR found in convo_history")
+
+    transcript = "\n\n".join(
+        [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
+    )
+
+    return transcript
+
+
 def get_prospect_bump(client_sdr_id: int, prospect_id: int):
     bump_msg: GeneratedMessageAutoBump = (
         GeneratedMessageAutoBump.query.filter(

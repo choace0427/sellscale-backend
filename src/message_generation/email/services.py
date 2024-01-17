@@ -9,6 +9,7 @@ from app import db
 from typing import Optional
 from bs4 import BeautifulSoup
 from src.message_generation.email.models import EmailAutomatedReply
+from src.message_generation.services import get_li_convo_history_transcript_form
 from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import get_text_generation
 
@@ -375,6 +376,57 @@ Output:""".format(
         research_points=research_points,
         persona_contact_objective=prospect_contact_objective,
         past_threads="",  # TODO: email_transcript
+    )
+
+    return prompt
+
+
+def ai_multichannel_email_prompt(
+    prospect_id: int,
+) -> str:
+    """Generate a multichannel email prompt. LinkedIn -> Email.
+
+    Args:
+        prospect_id (int): The ID of the prospect
+
+    Returns:
+        str: The multichannel email prompt
+    """
+    li_transcript = get_li_convo_history_transcript_form(prospect_id=prospect_id)
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    prompt = """You are a sales development representative writing on behalf of the salesperson.
+
+You are continuing this LinkedIn conversation from a different channel: Email.
+
+=== LINKEDIN CONVERSATION ===
+
+{transcript}
+
+=== END LINKEDIN CONVERSATION ===
+
+Please write an email that transitions seamlessly from the LinkedIn conversation to Email. You can use the following information.
+
+SDR Information:
+SDR Name: {sdr_name}
+SDR Company: {sdr_company}
+
+Prospect Information:
+Prospect Name: {prospect_name}
+Prospect Company: {prospect_company}
+
+Generate the email body. Do not include the word 'Subject:' or 'Email:' in the output. Do not wrap your answer in quotation marks.
+
+Be casual and conversational. Do not use any jargon or buzzwords. Do not use any fluff. Do not come off as salesy.
+""".format(
+        transcript=li_transcript,
+        sdr_name=client_sdr.name,
+        sdr_company=client.company,
+        prospect_name=prospect.full_name,
+        prospect_company=prospect.company,
     )
 
     return prompt
