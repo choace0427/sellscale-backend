@@ -127,6 +127,7 @@ def add_prospects_to_segment_endpoint(client_sdr_id: int, segment_id: int):
 @require_user
 def find_prospects_by_segment_filters_endpoint(client_sdr_id: int):
     segment_ids = get_request_parameter("segment_ids", request, json=True)
+    archetype_ids = get_request_parameter("archetype_ids", request, json=True)
     included_title_keywords = get_request_parameter(
         "included_title_keywords", request, json=True
     )
@@ -195,6 +196,7 @@ def find_prospects_by_segment_filters_endpoint(client_sdr_id: int):
         excluded_skills_keywords=excluded_skills_keywords,
         years_of_experience_start=years_of_experience_start,
         years_of_experience_end=years_of_experience_end,
+        archetype_ids=archetype_ids,
     )
 
     return jsonify({"prospects": prospects, "num_prospects": len(prospects)}), 200

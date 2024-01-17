@@ -108,6 +108,7 @@ def find_prospects_by_segment_filters(
     excluded_skills_keywords: list[str] = [],
     years_of_experience_start: int = None,
     years_of_experience_end: int = None,
+    archetype_ids: list[int] = [],
 ) -> list[dict]:
     # join prospect with segment and get segment_title
     # keep 'Uncategorized' if no segment present
@@ -135,6 +136,9 @@ def find_prospects_by_segment_filters(
 
     if segment_ids:
         base_query = base_query.filter(Segment.id.in_(segment_ids))
+
+    if archetype_ids:
+        base_query = base_query.filter(Prospect.archetype_id.in_(archetype_ids))
 
     if included_title_keywords:
         or_addition = []
