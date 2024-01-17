@@ -460,6 +460,8 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         )
         or False
     )
+    bcc = get_request_parameter("bcc", request, json=True, required=False)
+    cc = get_request_parameter("cc", request, json=True, required=False)
 
     prospect: Prospect = Prospect.query.filter(Prospect.id == prospect_id).first()
     if not prospect:
@@ -476,6 +478,8 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         body,
         reply_to_message_id,
         prospect_email_id,
+        bcc=bcc,
+        cc=cc,
     )
     nylas_message_id = result.get("id")
     if isinstance(nylas_message_id, str) and ai_generated:

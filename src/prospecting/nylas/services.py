@@ -42,8 +42,7 @@ def nylas_get_threads(
         - list: List of email threads
     """
     try:
-        success = nylas_update_threads(
-            client_sdr_id, prospect_id, NYLAS_THREAD_LIMIT)
+        success = nylas_update_threads(client_sdr_id, prospect_id, NYLAS_THREAD_LIMIT)
     except:
         success = False
 
@@ -81,15 +80,16 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
 
     # Loop through the emails that belong to the SDR
     for email in emails:
-
         # If the email is not nylas connected, then we continue
-        if not email.nylas_active or not email.nylas_auth_code or not email.nylas_account_id:
+        if (
+            not email.nylas_active
+            or not email.nylas_auth_code
+            or not email.nylas_account_id
+        ):
             continue
 
         # Get the threads from Nylas
-        result = wrapped_nylas_get_threads(
-            email.nylas_auth_code, prospect.email, limit
-        )
+        result = wrapped_nylas_get_threads(email.nylas_auth_code, prospect.email, limit)
 
         # Update old / add new threads
         for thread in result:
@@ -106,7 +106,9 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
                 last_message_received_timestamp = (
                     existing_thread.last_message_received_timestamp
                 )
-                last_message_sent_timestamp = existing_thread.last_message_sent_timestamp
+                last_message_sent_timestamp = (
+                    existing_thread.last_message_sent_timestamp
+                )
                 last_message_timestamp = existing_thread.last_message_timestamp
                 if thread.get("first_message_timestamp"):
                     first_message_timestamp = datetime.fromtimestamp(
@@ -125,15 +127,15 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
                         thread.get("last_message_timestamp"), tz=timezone.utc
                     )
 
-                existing_thread.subject = thread.get(
-                    "subject", existing_thread.subject)
-                existing_thread.snippet = thread.get(
-                    "snippet", existing_thread.snippet)
+                existing_thread.subject = thread.get("subject", existing_thread.subject)
+                existing_thread.snippet = thread.get("snippet", existing_thread.snippet)
                 existing_thread.first_message_timestamp = first_message_timestamp
                 existing_thread.last_message_received_timestamp = (
                     last_message_received_timestamp
                 )
-                existing_thread.last_message_sent_timestamp = last_message_sent_timestamp
+                existing_thread.last_message_sent_timestamp = (
+                    last_message_sent_timestamp
+                )
                 existing_thread.last_message_timestamp = last_message_timestamp
                 existing_thread.participants = thread.get(
                     "participants", existing_thread.participants
@@ -141,10 +143,8 @@ def nylas_update_threads(client_sdr_id: int, prospect_id: int, limit: int) -> bo
                 existing_thread.has_attachments = thread.get(
                     "has_attachments", existing_thread.has_attachments
                 )
-                existing_thread.unread = thread.get(
-                    "unread", existing_thread.unread)
-                existing_thread.version = thread.get(
-                    "version", existing_thread.version)
+                existing_thread.unread = thread.get("unread", existing_thread.unread)
+                existing_thread.version = thread.get("version", existing_thread.version)
                 existing_thread.nylas_thread_id = thread.get(
                     "id", existing_thread.nylas_thread_id
                 )
@@ -247,10 +247,8 @@ def nylas_update_single_thread(thread_id: str, thread: Optional[dict] = {}) -> b
                 thread.get("last_message_timestamp"), tz=timezone.utc
             )
 
-        existing_thread.subject = thread.get(
-            "subject", existing_thread.subject)
-        existing_thread.snippet = thread.get(
-            "snippet", existing_thread.snippet)
+        existing_thread.subject = thread.get("subject", existing_thread.subject)
+        existing_thread.snippet = thread.get("snippet", existing_thread.snippet)
         existing_thread.first_message_timestamp = first_message_timestamp
         existing_thread.last_message_received_timestamp = (
             last_message_received_timestamp
@@ -264,8 +262,7 @@ def nylas_update_single_thread(thread_id: str, thread: Optional[dict] = {}) -> b
             "has_attachments", existing_thread.has_attachments
         )
         existing_thread.unread = thread.get("unread", existing_thread.unread)
-        existing_thread.version = thread.get(
-            "version", existing_thread.version)
+        existing_thread.version = thread.get("version", existing_thread.version)
         existing_thread.nylas_thread_id = thread.get(
             "id", existing_thread.nylas_thread_id
         )
@@ -307,7 +304,7 @@ def nylas_get_messages(
                 nylas_account_id=nylas_account_id,
                 prospect_id=prospect_id,
                 thread_id=thread_id,
-                message_ids=message_ids
+                message_ids=message_ids,
             )
         else:
             # Get all emails from the bank
@@ -323,7 +320,7 @@ def nylas_get_messages(
                     nylas_account_id=email.nylas_account_id,
                     prospect_id=prospect_id,
                     thread_id=thread_id,
-                    message_ids=message_ids
+                    message_ids=message_ids,
                 )
     except:
         success = False
@@ -422,20 +419,28 @@ def nylas_update_messages(
         return False
 
     # Get the latest message and update the prospect accordingly
-    latest_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
-        prospect_id=prospect_id
-    ).order_by(EmailConversationMessage.date_received.desc()).first()
+    latest_message: EmailConversationMessage = (
+        EmailConversationMessage.query.filter_by(prospect_id=prospect_id)
+        .order_by(EmailConversationMessage.date_received.desc())
+        .first()
+    )
     prospect.email_last_message_timestamp = latest_message.date_received
     prospect.email_is_last_message_from_sdr = latest_message.from_sdr
-    prospect.email_last_message_from_prospect = None if latest_message.from_sdr else latest_message.body
-    prospect.email_last_message_from_sdr = latest_message.body if latest_message.from_sdr else None
+    prospect.email_last_message_from_prospect = (
+        None if latest_message.from_sdr else latest_message.body
+    )
+    prospect.email_last_message_from_sdr = (
+        latest_message.body if latest_message.from_sdr else None
+    )
 
     db.session.commit()
 
     return True
 
 
-def process_nylas_update_message_result(client_sdr_id: int, prospect_id: int, email_bank_id: int, message: dict) -> bool:
+def process_nylas_update_message_result(
+    client_sdr_id: int, prospect_id: int, email_bank_id: int, message: dict
+) -> bool:
     """Processes the result of a Nylas update message call.
 
     Args:
@@ -457,11 +462,9 @@ def process_nylas_update_message_result(client_sdr_id: int, prospect_id: int, em
     )
 
     # Get existing thread (one should exist)
-    existing_thread: EmailConversationThread = (
-        EmailConversationThread.query.filter_by(
-            nylas_thread_id=message.get("thread_id")
-        ).first()
-    )
+    existing_thread: EmailConversationThread = EmailConversationThread.query.filter_by(
+        nylas_thread_id=message.get("thread_id")
+    ).first()
     if not existing_thread:
         raise Exception(
             f'No thread found for message {message.get("subject")} in SDR: {client_sdr_id}'
@@ -477,24 +480,18 @@ def process_nylas_update_message_result(client_sdr_id: int, prospect_id: int, em
                 tz=timezone.utc,
             )
 
-        existing_message.subject = message.get(
-            "subject", existing_message.subject)
-        existing_message.snippet = message.get(
-            "snippet", existing_message.snippet)
+        existing_message.subject = message.get("subject", existing_message.subject)
+        existing_message.snippet = message.get("snippet", existing_message.snippet)
         existing_message.body = message.get("body", existing_message.body)
         existing_message.bcc = message.get("bcc", existing_message.bcc)
         existing_message.cc = message.get("cc", existing_message.cc)
         existing_message.date_received = date_received
-        existing_message.files = message.get(
-            "files", existing_message.files)
+        existing_message.files = message.get("files", existing_message.files)
         existing_message.message_from = message.get(
             "from", existing_message.message_from
         )
-        existing_message.message_to = message.get(
-            "to", existing_message.message_to)
-        existing_message.reply_to = message.get(
-            "reply_to", existing_message.reply_to
-        )
+        existing_message.message_to = message.get("to", existing_message.message_to)
+        existing_message.reply_to = message.get("reply_to", existing_message.reply_to)
         existing_message.nylas_message_id = message.get(
             "id", existing_message.nylas_message_id
         )
@@ -511,8 +508,7 @@ def process_nylas_update_message_result(client_sdr_id: int, prospect_id: int, em
             if message_from_email == prospect.email:
                 message_from_prospect = True
             elif email_belongs_to_sdr(
-                client_sdr_id=client_sdr_id,
-                email_address=message_from_email
+                client_sdr_id=client_sdr_id, email_address=message_from_email
             ):
                 message_from_sdr = True
 
@@ -548,8 +544,9 @@ def process_nylas_update_message_result(client_sdr_id: int, prospect_id: int, em
         db.session.add(new_message)
 
         # Increment unread messages
-        prospect.email_unread_messages = prospect.email_unread_messages + \
-            1 if prospect.email_unread_messages else 1
+        prospect.email_unread_messages = (
+            prospect.email_unread_messages + 1 if prospect.email_unread_messages else 1
+        )
 
     db.session.commit()
 
@@ -564,6 +561,8 @@ def nylas_send_email(
     reply_to_message_id: Union[str, None] = None,
     prospect_email_id: Optional[int] = None,
     email_bank_id: Optional[int] = None,
+    bcc: Optional[list[str]] = None,
+    cc: Optional[list[str]] = None,
 ) -> dict:
     """Sends an email to the Prospect through the ClientSDR's Nylas account.
 
@@ -588,8 +587,7 @@ def nylas_send_email(
         db.session.commit()
         prospect_email_id = prospect_email.id
     else:
-        prospect_email: ProspectEmail = ProspectEmail.query.get(
-            prospect_email_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
         prospect_email_id = prospect_email.id
 
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -660,6 +658,8 @@ def nylas_send_email(
                     "name": client_sdr.name,
                 }
             ],
+            "bcc": [{"name": _bcc, "email": _bcc} for _bcc in bcc],
+            "cc": [{"name": _cc, "email": _cc} for _cc in cc],
             "reply_to_message_id": reply_to_message_id,
             "tracking": {  # Track opens and thread replies
                 "opens": True,
@@ -685,10 +685,12 @@ def nylas_send_email(
     db.session.commit()
 
     # Create a ProspectEmailStatusRecord
-    prospect_email_status_record: ProspectEmailStatusRecords = ProspectEmailStatusRecords(
-        prospect_email_id=prospect_email_id,
-        from_status=ProspectEmailOutreachStatus.NOT_SENT,
-        to_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+    prospect_email_status_record: ProspectEmailStatusRecords = (
+        ProspectEmailStatusRecords(
+            prospect_email_id=prospect_email_id,
+            from_status=ProspectEmailOutreachStatus.NOT_SENT,
+            to_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+        )
     )
     db.session.add(prospect_email_status_record)
     db.session.commit()
