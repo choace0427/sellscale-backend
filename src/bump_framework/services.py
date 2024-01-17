@@ -256,6 +256,7 @@ def create_bump_framework(
     description: str,
     overall_status: ProspectOverallStatus,
     length: BumpLength,
+    additional_instructions: Optional[str] = None,
     bumped_count: int = None,
     bump_delay_days: int = 2,
     active: bool = True,
@@ -277,6 +278,7 @@ def create_bump_framework(
         description (str): The description of the bump framework
         overall_status (ProspectOverallStatus): The overall status of the bump framework
         length (BumpLength): The length of the bump framework
+        additional_instructions (Optional[str], optional): The additional instructions of the bump framework. Defaults to None.
         bumped_count (int, optional): The number which corresponds to which bump in the sequence this BF appears. Defaults to None.
         bump_delay_days (int, optional): The number of days to wait before bumping. Defaults to 2.
         active (bool, optional): Whether the bump framework is active. Defaults to True.
@@ -310,6 +312,7 @@ def create_bump_framework(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         description=description,
+        additional_instructions=additional_instructions,
         title=title,
         overall_status=overall_status,
         substatus=substatus,
@@ -340,6 +343,7 @@ def modify_bump_framework(
     length: BumpLength,
     title: Optional[str],
     description: Optional[str],
+    additional_instructions: Optional[str] = None,
     bumped_count: Optional[int] = None,
     bump_delay_days: Optional[int] = None,
     use_account_research: Optional[bool] = None,
@@ -361,6 +365,7 @@ def modify_bump_framework(
         length (BumpLength): The length of the bump framework
         title (Optional[str]): The title of the bump framework
         description (Optional[str]): The description of the bump framework
+        additional_instructions (Optional[str], optional): The additional instructions of the bump framework. Defaults to None.
         bumped_count (Optional[int], optional): The number which corresponds to which bump in the sequence this BF appears. Defaults to None.
         bump_delay_days (Optional[int], optional): The number of days to wait before bumping. Defaults to 2.
         default (Optional[bool]): Whether the bump framework is the default
@@ -380,6 +385,8 @@ def modify_bump_framework(
         bump_framework.title = title
     if description:
         bump_framework.description = description
+    if additional_instructions:
+        bump_framework.additional_instructions = additional_instructions
 
     if length not in [BumpLength.LONG, BumpLength.SHORT, BumpLength.MEDIUM]:
         bump_framework.bump_length = BumpLength.MEDIUM
@@ -517,6 +524,7 @@ def clone_bump_framework(
         length=existing_bf.bump_length,
         title=existing_bf.title,
         description=existing_bf.description,
+        additional_instructions=existing_bf.additional_instructions,
         bumped_count=existing_bf.bumped_count,
         default=True,
         active=True,
@@ -530,19 +538,19 @@ def get_db_bump_sequence(archetype_id: int):
     """Get all bump sequence"""
     bump_frameworks = db.session.execute(
         f"""
-            select 
-                concat('Follow Up #', 
-                bumped_count + 1, ': ', 
-                bump_framework.title) "Title", 
-                bump_framework.description "Description", 
+            select
+                concat('Follow Up #',
+                bumped_count + 1, ': ',
+                bump_framework.title) "Title",
+                bump_framework.description "Description",
                 client_archetype.id "project_id",
                 bump_framework.id "bump_id"
-            from bump_framework join client_archetype on client_archetype.id = bump_framework.client_archetype_id 
-            where bump_framework.client_archetype_id = {archetype_id} 
-            and bump_framework.overall_status in ('ACCEPTED', 'BUMPED') 
-            and bump_framework.active 
-            and bump_framework.default 
-            and bumped_count < client_archetype.li_bump_amount 
+            from bump_framework join client_archetype on client_archetype.id = bump_framework.client_archetype_id
+            where bump_framework.client_archetype_id = {archetype_id}
+            and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')
+            and bump_framework.active
+            and bump_framework.default
+            and bumped_count < client_archetype.li_bump_amount
             order by bumped_count;
         """
     ).fetchall()

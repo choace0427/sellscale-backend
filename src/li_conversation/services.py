@@ -802,7 +802,7 @@ def generate_smart_response(
         ]
     )
 
-    prompt = """I'm responding to a client on LinkedIn. 
+    prompt = """I'm responding to a client on LinkedIn.
 
 My contact objective is: {archetype_contact_objective}
 
@@ -821,15 +821,15 @@ Why do they buy our product?: {archetype_fit_reason}
 Title: {prospect_title}
 Company: {prospect_company}
 Name: {prospect_name}
-Account research: 
+Account research:
 {research_points_str}
 
 Additional Instructions: {additional_instructions}
 
 ----
 Instruction:
-Type a personalized response to this prospect - using account research where relevant - that is efficient and fast to read on a phone. 
-If the request includes additional instructions, utilize these instructions to structure or incorporate into the response, based on what's requested. 
+Type a personalized response to this prospect - using account research where relevant - that is efficient and fast to read on a phone.
+If the request includes additional instructions, utilize these instructions to structure or incorporate into the response, based on what's requested.
 
 
 Transcript:
@@ -956,8 +956,9 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         if prospect.colloquialized_company
         else prospect.company
     )
-    additional_instructions = bump_framework.human_feedback
+    human_feedback = bump_framework.human_feedback
     template = bump_framework.description
+    additional_instructions = bump_framework.additional_instructions
 
     if override_bump_framework_template:
         template = override_bump_framework_template
@@ -984,10 +985,11 @@ Prospect Company Name: {company}
 More research:
 "{notes}"
 
-Final instructions
+Additional instructions:
 - Make the message flow with the rest of the conversation.
 - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed".
 - Don't make any [[brackets]] longer than 1 sentence when filled in.
+{human_feedback}
 {additional_instructions}
 
 IMPORTANT:
@@ -995,7 +997,7 @@ Follow the structure as strictly as possible - use creativity only where there i
 --- START TEMPLATE ---
 {template}
 --- END TEMPLATE ---
-    
+
 Conversation history:
 {convo_history}
 

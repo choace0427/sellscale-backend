@@ -19,6 +19,7 @@ class BumpFramework(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.String(4000), nullable=True)
+    additional_instructions = db.Column(db.String, nullable=True)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
@@ -64,6 +65,7 @@ class BumpFramework(db.Model):
             "created_at": self.created_at,
             "title": self.title,
             "description": self.description,
+            "additional_instructions": self.additional_instructions,
             "active": self.active,
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,

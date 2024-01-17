@@ -146,6 +146,16 @@ def post_create_bump_framework_sellscale_default():
     description = get_request_parameter(
         "description", request, json=True, required=True, parameter_type=str
     )
+    additional_instructions = (
+        get_request_parameter(
+            "additional_instructions",
+            request,
+            json=True,
+            required=False,
+            parameter_type=str,
+        )
+        or None
+    )
     title = get_request_parameter(
         "title", request, json=True, required=True, parameter_type=str
     )
@@ -181,6 +191,7 @@ def post_create_bump_framework_sellscale_default():
         client_archetype_id=None,
         title=title,
         description=description,
+        additional_instructions=additional_instructions,
         overall_status=overall_status,
         length=BumpLength.MEDIUM,
         bumped_count=0,
@@ -225,6 +236,16 @@ def patch_bump_framework_sellscale_default():
         )
         or None
     )
+    additional_instructions = (
+        get_request_parameter(
+            "additional_instructions",
+            request,
+            json=True,
+            required=False,
+            parameter_type=str,
+        )
+        or None
+    )
     default = (
         get_request_parameter(
             "default", request, json=True, required=False, parameter_type=bool
@@ -264,6 +285,7 @@ def patch_bump_framework_sellscale_default():
         title=title,
         length=BumpLength.MEDIUM,
         description=description,
+        additional_instructions=additional_instructions,
         bumped_count=0,
         bump_delay_days=2,
         use_account_research=use_account_research,
@@ -300,6 +322,16 @@ def post_create_bump_framework(client_sdr_id: int):
             "default", request, json=True, required=False, parameter_type=bool
         )
         or False
+    )
+    additional_instructions = (
+        get_request_parameter(
+            "additional_instructions",
+            request,
+            json=True,
+            required=False,
+            parameter_type=str,
+        )
+        or None
     )
     length: str = (
         get_request_parameter(
@@ -360,6 +392,7 @@ def post_create_bump_framework(client_sdr_id: int):
         client_archetype_id=archetype_id,
         title=title,
         description=description,
+        additional_instructions=additional_instructions,
         overall_status=overall_status,
         length=length,
         bumped_count=bumped_count,
@@ -416,6 +449,16 @@ def patch_bump_framework(client_sdr_id: int):
     description = (
         get_request_parameter(
             "description", request, json=True, required=False, parameter_type=str
+        )
+        or None
+    )
+    additional_instructions = (
+        get_request_parameter(
+            "additional_instructions",
+            request,
+            json=True,
+            required=False,
+            parameter_type=str,
         )
         or None
     )
@@ -526,6 +569,7 @@ def patch_bump_framework(client_sdr_id: int):
         title=title,
         length=length,
         description=description,
+        additional_instructions=additional_instructions,
         bumped_count=bumped_count,
         bump_delay_days=bump_delay_days,
         use_account_research=use_account_research,
