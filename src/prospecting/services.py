@@ -42,6 +42,7 @@ from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters
 from src.research.linkedin.services import (
     get_research_and_bullet_points_new,
     get_research_payload_new,
+    research_corporate_profile_details,
 )
 from src.research.services import create_iscraper_payload_cache
 from src.prospecting.models import (
@@ -1246,6 +1247,8 @@ def add_prospect(
     education_1: Optional[str] = None,
     education_2: Optional[str] = None,
     segment_id: Optional[int] = None,
+    prospect_location: Optional[str] = None,
+    company_location: Optional[str] = None,
 ) -> int or None:
     """Adds a Prospect to the database.
 
@@ -1384,6 +1387,8 @@ def add_prospect(
             education_1=education_1,
             education_2=education_2,
             segment_id=segment_id,
+            prospect_location=prospect_location,
+            company_location=company_location,
         )
         db.session.add(prospect)
         db.session.commit()
@@ -1539,6 +1544,14 @@ def create_prospect_from_linkedin_link(
         education_1 = deep_get(payload, "education.0.school.name")
         education_2 = deep_get(payload, "education.1.school.name")
 
+        # research_payload.payload->'personal'->'position_groups'->0->'profile_positions'->0->>'location' "company_location"
+        prospect_location = "{}, {}, {}".format(
+            deep_get(payload, "location.city", default="") or "",
+            deep_get(payload, "location.state", default="") or "",
+            deep_get(payload, "location.country", default="") or "",
+        )
+        company_location = deep_get(payload, "position_groups.0.profile_positions.0.location", default="")
+
         # Health Check fields
         followers_count = deep_get(payload, "network_info.followers_count") or 0
 
@@ -1564,6 +1577,8 @@ def create_prospect_from_linkedin_link(
             is_lookalike_profile=is_lookalike_profile,
             education_1=education_1,
             education_2=education_2,
+            prospect_location=prospect_location,
+            company_location=company_location,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
