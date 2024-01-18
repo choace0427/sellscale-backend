@@ -423,67 +423,67 @@ def send_slack_notif_campaign_active(client_sdr_id: int, archetype_id: int, type
     #     GeneratedMessage. > datetime.utcnow()
     # ).order_by(GeneratedMessage.message_date).first()
 
-    send_slack_message(
-        message=f"New [{type}] campaign activated! 🚀",
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": f"New [{type}] campaign activated! 🚀",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Persona:* {archetype.archetype}\n",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Contacts:* {len(prospects)}\n",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Steps:* {len(archetype.email_blocks_configuration) if type == 'email' else archetype.li_bump_amount+1} steps\n",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Sending on:* {formatted_next_day} (+1 day)\n",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Please review in operator dashboard\n",
-                },
-            },
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": " "},
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "View Campaign →",
-                        "emoji": True,
-                    },
-                    "url": campaign_url,
-                    "action_id": "button-action",
-                },
-            },
-            {"type": "divider"},
-        ],
-        webhook_urls=[webhook_url] if webhook_url else [],
-    )
+    # send_slack_message(
+    #     message=f"New [{type}] campaign activated! 🚀",
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": f"New [{type}] campaign activated! 🚀",
+    #                 "emoji": True,
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"*Persona:* {archetype.archetype}\n",
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"*Contacts:* {len(prospects)}\n",
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"*Steps:* {len(archetype.email_blocks_configuration) if type == 'email' else archetype.li_bump_amount+1} steps\n",
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"*Sending on:* {formatted_next_day} (+1 day)\n",
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"Please review in operator dashboard\n",
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {"type": "mrkdwn", "text": " "},
+    #             "accessory": {
+    #                 "type": "button",
+    #                 "text": {
+    #                     "type": "plain_text",
+    #                     "text": "View Campaign →",
+    #                     "emoji": True,
+    #                 },
+    #                 "url": campaign_url,
+    #                 "action_id": "button-action",
+    #             },
+    #         },
+    #         {"type": "divider"},
+    #     ],
+    #     webhook_urls=[webhook_url] if webhook_url else [],
+    # )
