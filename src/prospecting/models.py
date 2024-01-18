@@ -501,6 +501,9 @@ class Prospect(db.Model):
     education_1 = db.Column(db.String, nullable=True)
     education_2 = db.Column(db.String, nullable=True)
 
+    prospect_location = db.Column(db.String, nullable=True)
+    company_location = db.Column(db.String, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
