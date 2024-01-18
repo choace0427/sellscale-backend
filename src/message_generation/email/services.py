@@ -421,6 +421,8 @@ Prospect Company: {prospect_company}
 Generate the email body. Do not include the word 'Subject:' or 'Email:' in the output. Do not wrap your answer in quotation marks.
 
 Be casual and conversational. Do not use any jargon or buzzwords. Do not use any fluff. Do not come off as salesy.
+
+USE HTML FORMATTING. For example: <p>Hey there!</p>.
 """.format(
         transcript=li_transcript,
         sdr_name=client_sdr.name,

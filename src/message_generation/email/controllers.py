@@ -182,6 +182,7 @@ def post_generate_multichannel_email(client_sdr_id: int):
         return None
     email_body = generate_email(prompt)
     email_body = email_body.get("body")
+    email_body.replace("\n", "")
 
     body_spam_results = run_algorithmic_spam_detection(text=email_body)
 
