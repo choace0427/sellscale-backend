@@ -280,7 +280,7 @@ def send_slack_campaign_message(
                 "text": {
                     "type": "mrkdwn",
                     "text": "*Example Prospect*: <{}|{}> ({} @ {})".format(
-                        example_prospect_linkedin_url,
+                        "https://www." + example_prospect_linkedin_url,
                         example_prospect_name,
                         example_prospect_title,
                         example_prospect_company,
