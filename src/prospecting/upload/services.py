@@ -271,7 +271,10 @@ def create_prospect_from_prospect_upload_row(
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_linkedin_link(
-    self, prospect_upload_id: int, allow_duplicates: bool = True, segment_id: Optional[int] = None
+    self,
+    prospect_upload_id: int,
+    allow_duplicates: bool = True,
+    segment_id: Optional[int] = None,
 ) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
@@ -390,6 +393,20 @@ def create_prospect_from_linkedin_link(
             deep_get(iscraper_payload, "network_info.followers_count") or 0
         )
 
+        education_1 = deep_get(iscraper_payload, "education.0.school.name")
+        education_2 = deep_get(iscraper_payload, "education.1.school.name")
+
+        prospect_location = "{}, {}, {}".format(
+            deep_get(iscraper_payload, "location.city", default="") or "",
+            deep_get(iscraper_payload, "location.state", default="") or "",
+            deep_get(iscraper_payload, "location.country", default="") or "",
+        )
+        company_location = deep_get(
+            iscraper_payload,
+            "position_groups.0.profile_positions.0.location",
+            default="",
+        )
+
         # Add prospect
         new_prospect_id = add_prospect(
             client_id=prospect_upload.client_id,
@@ -408,6 +425,10 @@ def create_prospect_from_linkedin_link(
             linkedin_num_followers=followers_count,
             allow_duplicates=allow_duplicates,
             segment_id=segment_id,
+            education_1=education_1,
+            education_2=education_2,
+            prospect_location=prospect_location,
+            company_location=company_location,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(

@@ -1544,7 +1544,6 @@ def create_prospect_from_linkedin_link(
         education_1 = deep_get(payload, "education.0.school.name")
         education_2 = deep_get(payload, "education.1.school.name")
 
-        # research_payload.payload->'personal'->'position_groups'->0->'profile_positions'->0->>'location' "company_location"
         prospect_location = "{}, {}, {}".format(
             deep_get(payload, "location.city", default="") or "",
             deep_get(payload, "location.state", default="") or "",
