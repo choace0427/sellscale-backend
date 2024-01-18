@@ -1294,3 +1294,33 @@ Volume: 2 / day""",
     email_account_id = result.get("emailAccountId")
 
     return result.get("ok", False), result.get("message", ""), email_account_id
+
+
+def deactivate_sdr_account(client_sdr_id: int):
+    warmings = get_email_warmings(client_sdr_id=client_sdr_id)
+    for warming in warmings:
+        deactivate_email_account(email_account_id=warming.get("id"))
+
+
+def deactivate_email_account(email_account_id: str):
+    sl = Smartlead()
+    result = sl.deactivate_email_account(email_account_id)
+
+    print(result)
+
+    if result.get("ok", False):
+        send_slack_message(
+            message="Smartlead Account Deactivated",
+            webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"""🦑 Account Deactivated on Smartlead: {email_account_id}""",
+                    },
+                }
+            ],
+        )
+
+    return result.get("ok", False)

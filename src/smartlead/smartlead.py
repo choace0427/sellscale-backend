@@ -564,3 +564,19 @@ class Smartlead:
             time.sleep(self.DELAY_SECONDS)
             return self.create_email_account(json_data)
         return response.json()
+
+    def deactivate_email_account(self, email_account_id: str):
+        url = (
+            f"{self.BASE_URL}/email-accounts/{email_account_id}?api_key={self.api_key}"
+        )
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+            },
+            json={"max_email_per_day": 0},
+        )
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.deactivate_email_account(email_account_id)
+        return response.json()

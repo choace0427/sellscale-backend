@@ -19,7 +19,10 @@ from src.aws.amplify import (
 )
 from src.client.models import Client, ClientSDR
 from src.client.sdr.email.models import EmailType, SDREmailBank
-from src.client.sdr.email.services_email_bank import create_sdr_email_bank
+from src.client.sdr.email.services_email_bank import (
+    create_sdr_email_bank,
+    get_sdr_email_bank,
+)
 from src.domains.models import Domain
 from src.utils.converters.string_converters import (
     get_first_name_from_full_name,
@@ -30,7 +33,7 @@ from src.utils.domains.pythondns import (
     dmarc_record_valid,
     spf_record_valid,
 )
-from src.smartlead.services import sync_workmail_to_smartlead
+from src.smartlead.services import deactivate_email_account, sync_workmail_to_smartlead
 import os
 import time
 from src.utils.slack import send_slack_message, URL_MAP
@@ -1105,6 +1108,63 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
         True,
         "DNS records added successfully",
     )
+
+
+def delete_email_from_bank(email_bank_id: int):
+    email_bank = SDREmailBank.query.get(email_bank_id)
+
+    deactivate_email_account(email_bank.smartlead_account_id)
+
+    # Delete workmail account
+    organization_id = os.environ.get("AWS_WORKMAIL_ORG_ID")
+    try:
+        response = aws_workmail_client.deregister_from_work_mail(
+            OrganizationId=organization_id, EntityId=email_bank.aws_workmail_user_id
+        )
+        print("User deleted successfully:", response)
+    except Exception as e:
+        print("Error deleting user:", e)
+
+
+def delete_email_single(email: str):
+    """Delete a workmail inbox for an email
+
+    Args:
+        email (str): The email address to delete
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
+
+    email_bank: SDREmailBank = get_sdr_email_bank(email_address=email)
+    if not email_bank:  # Email bank entry does not exist
+        return False, "Email bank entry does not exist"
+
+    delete_email_from_bank(email_bank_id=email_bank.id)
+    return True, "Email deleted successfully"
+
+
+def delete_email_sdr(client_sdr: int):
+    email_banks = SDREmailBank.query.filter_by(client_sdr_id=client_sdr).all()
+    for email_bank in email_banks:
+        delete_email_from_bank(email_bank_id=email_bank.id)
+
+    return True, "Emails deleted successfully"
+
+
+def delete_email_domain(domain_name: str):
+    domain = Domain.query.filter_by(domain=domain_name).first()
+    if not domain:
+        return False, "Domain does not exist"
+
+    email_banks = SDREmailBank.query.filter_by(domain_id=domain.id).all()
+    for email_bank in email_banks:
+        delete_email_from_bank(email_bank_id=email_bank.id)
+
+    # Make sure the domain is not auto-renewed
+    # Auto renew is set to false by default
+
+    return True, "Emails deleted successfully"
 
 
 def configure_email_forwarding(domain_name: str, domain_id: int) -> tuple[bool, str]:
