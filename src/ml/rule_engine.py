@@ -257,7 +257,9 @@ def run_message_rule_engine(message_id: int):
     db.session.add(message)
     db.session.commit()
 
-    run_autocorrect(message_id)
+    # only run autocorrect for Linkedin
+    if message.message_type == GeneratedMessageType.LINKEDIN:
+        run_autocorrect(message_id)
 
     return problems
 
