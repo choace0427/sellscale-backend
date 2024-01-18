@@ -914,8 +914,6 @@ def domain_purchase_workflow(
         client_id=client_id,
         forward_to=client.domain or domain_name,
         aws=True,
-        aws_domain_registration_status="SUBMITTED",
-        aws_domain_registration_job_id=response.get("OperationId", -1),
     )
 
     from src.automation.orchestrator import add_process_for_future
