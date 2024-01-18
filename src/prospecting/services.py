@@ -1549,7 +1549,9 @@ def create_prospect_from_linkedin_link(
             deep_get(payload, "location.state", default="") or "",
             deep_get(payload, "location.country", default="") or "",
         )
-        company_location = deep_get(payload, "position_groups.0.profile_positions.0.location", default="")
+        company_location = deep_get(
+            payload, "position_groups.0.profile_positions.0.location", default=""
+        )
 
         # Health Check fields
         followers_count = deep_get(payload, "network_info.followers_count") or 0
@@ -1939,7 +1941,7 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
           """
     ).fetchall()
     referred = [dict(row) for row in referred]
-    
+
     segment: Segment = Segment.query.get(p.segment_id)
 
     return {
@@ -3244,6 +3246,8 @@ def generate_prospect_upload_report(archetype_state: dict):
             Prospect.client_sdr_id == client_sdr.id,
             Prospect.archetype_id == archetype.id,
             Prospect.id.notin_(current_prospect_ids),
+            # Prospect created in last 24 hours
+            Prospect.created_at > datetime.datetime.utcnow() - timedelta(days=1),
         )
         .add_columns(
             Prospect.id,

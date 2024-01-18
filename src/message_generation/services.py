@@ -255,12 +255,6 @@ def run_queued_gm_job():
         gm_job_id = row[3]
         generated_message_type = row[4]
 
-        print("Running job for prospect_id: {}".format(prospect_id))
-        send_slack_message(
-            "Running job for prospect_id: {}".format(prospect_id),
-            webhook_urls=[URL_MAP["eng-sandbox"]],
-        )
-
         if generated_message_type == GeneratedMessageType.LINKEDIN.value:
             # Research and generate outreaches for the prospect
             research_and_generate_outreaches_for_prospect.apply_async(

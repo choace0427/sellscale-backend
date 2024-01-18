@@ -33,7 +33,7 @@ while True:
     JOIN research_payload ON research_payload.prospect_id = prospect.id
     WHERE prospect.prospect_location IS NULL AND prospect.company_location IS NULL
     ORDER BY RANDOM()
-    LIMIT 1;
+    LIMIT 1000;
     """
 
     # Execute the SQL query
