@@ -11,6 +11,9 @@ from src.client.archetype.services_client_archetype import (
     send_slack_notif_campaign_active,
 )
 from src.client.models import ClientArchetype, ClientSDR
+from src.email_outbound.email_store.hunter import (
+    find_hunter_emails_for_prospects_under_archetype,
+)
 from src.li_conversation.models import LinkedinInitialMessageTemplate
 from src.message_generation.email.services import (
     ai_initial_email_prompt,
@@ -413,6 +416,10 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             jsonify({"status": "error", "message": "Bad archetype, not authorized"}),
             403,
         )
+
+    find_hunter_emails_for_prospects_under_archetype.apply_async(
+        args=[client_sdr_id, archetype_id]
+    )
 
     archetype.email_active = active
     db.session.commit()
