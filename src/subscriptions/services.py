@@ -22,7 +22,7 @@ def get_subscriptions(client_sdr_id: int) -> list:
             SlackNotification.notification_type,
             SlackNotification.notification_name,
             SlackNotification.notification_description,
-            Subscription.slack_notification_id,
+            Subscription.id,
             Subscription.active,
         )
         .outerjoin(
@@ -37,10 +37,11 @@ def get_subscriptions(client_sdr_id: int) -> list:
         slack_subscriptions.append(
             {
                 "id": row[0],
-                "notification_type": row[1],
+                "notification_type": row[1].value,
                 "notification_name": row[2],
                 "notification_description": row[3],
-                "subscribed": True if row[4] else False,
+                "subscription_id": row[4],
+                "subscribed": True if row[5] else False,
             }
         )
 
@@ -69,7 +70,9 @@ def subscribe_to_slack_notification(
     ).first()
     if subscription:
         # If the subscription already exists, then activate it
-        activate_subscription(subscription_id=subscription.id)
+        activate_subscription(
+            client_sdr_id=client_sdr_id, subscription_id=subscription.id
+        )
         return subscription.id
 
     # Create the subscription
@@ -150,11 +153,11 @@ def deactivate_subscription(client_sdr_id: int, subscription_id: int) -> bool:
         client_sdr_id=client_sdr_id,
     ).first()
     if not subscription:
-        return False, "Subscription doesn't exist"
+        return False
 
     # Deactivate the subscription
     subscription.active = False
     subscription.deactivation_date = datetime.utcnow()
     db.session.commit()
 
-    return
+    return True

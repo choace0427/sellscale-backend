@@ -29,13 +29,23 @@ def get_all_subscriptions(client_sdr_id: int):
     )
 
 
-@SUBSCRIPTIONS_BLUEPRINT.route("/slack/activate", methods=["POST"])
+@SUBSCRIPTIONS_BLUEPRINT.route("/activate", methods=["POST"])
 @require_user
-def post_slack_subscription(client_sdr_id: int):
+def post_activate_subscription(client_sdr_id: int):
     """Activates a subscription to a Slack notification"""
     slack_notification_id = get_request_parameter(
-        "slack_notification_id", request, json=True, required=True, parameter_type=int
+        "slack_notification_id", request, json=True, required=False, parameter_type=int
     )
+
+    if not slack_notification_id:
+        return (
+            jsonify(
+                {
+                    "message": "Missing Slack notification ID",
+                }
+            ),
+            400,
+        )
 
     # Activate or create the subscription
     id = subscribe_to_slack_notification(
@@ -64,16 +74,16 @@ def post_slack_subscription(client_sdr_id: int):
     )
 
 
-@SUBSCRIPTIONS_BLUEPRINT.route("/slack/deactivate", methods=["PATCH"])
+@SUBSCRIPTIONS_BLUEPRINT.route("/deactivate", methods=["POST"])
 @require_user
-def patch_slack_subscription(client_sdr_id: int):
-    """Deactivates a subscription to a Slack notification"""
+def post_deactivate_subscription(client_sdr_id: int):
+    """Deactivates a subscription"""
     subscription_id = get_request_parameter(
         "subscription_id", request, json=True, required=True, parameter_type=int
     )
 
     # Deactivate the subscription
-    success, reason = deactivate_subscription(
+    success = deactivate_subscription(
         client_sdr_id=client_sdr_id,
         subscription_id=subscription_id,
     )
@@ -81,7 +91,8 @@ def patch_slack_subscription(client_sdr_id: int):
         return (
             jsonify(
                 {
-                    "message": reason,
+                    "status": "error",
+                    "message": "Failed to deactivate subscription",
                 }
             ),
             400,
@@ -90,6 +101,7 @@ def patch_slack_subscription(client_sdr_id: int):
     return (
         jsonify(
             {
+                "status": "success",
                 "message": "Success",
             }
         ),
