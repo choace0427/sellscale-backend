@@ -117,14 +117,19 @@ def send_slack_message(
                     client.last_slack_msg_date = datetime.now()
                     db.session.commit()
 
-        create_sent_slack_notification_entry(
-            notification_type=notification_type,
-            message=message,
-            webhook_url=webhook_url,
-            blocks=blocks,
-            client_sdr_id=client_sdr_id,
-            error=error,
-        )
+        try:
+            create_sent_slack_notification_entry(
+                notification_type=notification_type,
+                message=message,
+                webhook_url=webhook_url,
+                blocks=blocks,
+                client_sdr_id=client_sdr_id,
+                error=error,
+            )
+        except Exception as e:
+            send_slack_error_message(
+                type=SlackNotificationType.AI_REPLY_TO_EMAIL.value, error=str(e)
+            )
 
     return True
 

@@ -49,7 +49,7 @@ def email_ai_reply_notification(
     )
 
     send_slack_message(
-        type=SlackNotificationType.AI_REPLY_TO_EMAIL,
+        notification_type=SlackNotificationType.AI_REPLY_TO_EMAIL,
         message="SellScale AI just replied to prospect on Email!",
         webhook_urls=webhook_urls,
         blocks=[

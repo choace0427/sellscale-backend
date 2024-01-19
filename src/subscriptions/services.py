@@ -1,7 +1,54 @@
 from datetime import datetime
 from typing import Optional
 from app import db
+from src.slack_notifications.models import SlackNotification
 from src.subscriptions.models import Subscription
+
+
+def get_subscriptions(client_sdr_id: int) -> list:
+    """Get all subscriptions for a client
+
+    Args:
+        client_sdr_id (int): The client SDR ID
+
+    Returns:
+        list: A list of all subscriptions for a client
+    """
+    # Join the Slack Notifications with Subscriptions to return whether or not
+    # the SDR is subscribed to each Slack Notification. Convert to dictionary.
+    sql_query_slack_subscriptions = (
+        db.session.query(
+            SlackNotification.id,
+            SlackNotification.notification_type,
+            SlackNotification.notification_name,
+            SlackNotification.notification_description,
+            Subscription.slack_notification_id,
+            Subscription.active,
+        )
+        .outerjoin(
+            Subscription,
+            (SlackNotification.id == Subscription.slack_notification_id)
+            & (Subscription.client_sdr_id == client_sdr_id),
+        )
+        .all()
+    )
+    slack_subscriptions = []
+    for row in sql_query_slack_subscriptions:
+        slack_subscriptions.append(
+            {
+                "id": row[0],
+                "notification_type": row[1],
+                "notification_name": row[2],
+                "notification_description": row[3],
+                "subscribed": True if row[4] else False,
+            }
+        )
+
+    subscriptions = {
+        "slack_subscriptions": slack_subscriptions,
+    }
+
+    return subscriptions
 
 
 def subscribe_to_slack_notification(
@@ -16,6 +63,15 @@ def subscribe_to_slack_notification(
     Returns:
         int: The ID of the subscription that was created
     """
+    # Check if the subscription already exists
+    subscription: Subscription = Subscription.query.filter_by(
+        client_sdr_id=client_sdr_id, slack_notification_id=slack_notification_id
+    ).first()
+    if subscription:
+        # If the subscription already exists, then activate it
+        activate_subscription(subscription_id=subscription.id)
+        return subscription.id
+
     # Create the subscription
     subscription_id = create_subscription(
         client_sdr_id=client_sdr_id,
@@ -55,35 +111,46 @@ def create_subscription(
     return subscription.id
 
 
-def activate_subscription(subscription_id: int) -> None:
+def activate_subscription(client_sdr_id: int, subscription_id: int) -> bool:
     """Activate a subscription
 
     Args:
+        client_sdr_id (int): The client SDR ID
         subscription_id (int): The ID of the subscription to activate
+
+    Returns:
+        bool: Whether or not the subscription was activated
     """
     # Get the subscription
     subscription: Subscription = Subscription.query.filter_by(
-        id=subscription_id
+        id=subscription_id,
+        client_sdr_id=client_sdr_id,
     ).first()
+    if not subscription:
+        return False
 
     # Activate the subscription
     subscription.active = True
     subscription.deactivation_date = None
     db.session.commit()
 
-    return
+    return True
 
 
-def deactivate_subscription(subscription_id: int) -> None:
+def deactivate_subscription(client_sdr_id: int, subscription_id: int) -> bool:
     """Deactivate a subscription
 
     Args:
+        client_sdr_id (int): The client SDR ID
         subscription_id (int): The ID of the subscription to deactivate
     """
     # Get the subscription
     subscription: Subscription = Subscription.query.filter_by(
-        id=subscription_id
+        id=subscription_id,
+        client_sdr_id=client_sdr_id,
     ).first()
+    if not subscription:
+        return False, "Subscription doesn't exist"
 
     # Deactivate the subscription
     subscription.active = False

@@ -9,6 +9,9 @@ from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingTy
 from src.email_sequencing.models import EmailSequenceStep
 from src.message_generation.email.services import create_email_automated_reply_entry
 from src.message_generation.models import GeneratedMessage
+from src.slack_notifications.notifications.email_ai_reply_notification import (
+    email_ai_reply_notification,
+)
 from src.utils.datetime.dateparse_utils import (
     convert_string_to_datetime,
     convert_string_to_datetime_or_none,
@@ -274,95 +277,10 @@ def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     )
 
     # Send the Slack message
-    outreach_status: str = (
-        prospect_email.outreach_status.value
-        if prospect_email.outreach_status
-        else "UNKNOWN"
-    )
-    outreach_status = outreach_status.split("_")
-    outreach_status = " ".join(word.capitalize() for word in outreach_status)
-    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
-        auth_token=client_sdr.auth_token,
-        prospect_id=prospect_id if prospect_id else "",
-    )
-    send_slack_message(
-        message="SellScale AI just replied to prospect!",
-        webhook_urls=webhook_urls,
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "💬 SellScale AI just replied to "
-                    + prospect.full_name
-                    + " on Email",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Convo Status: `{outreach_status}`",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*{prospect_first_name}*:\n>{prospect_message}\n\n*{first_name} (AI)*:\n>{ai_response}".format(
-                        prospect_first_name=prospect.first_name,
-                        prospect_message=reply_email_body[:150],
-                        ai_response=message[:400] + "..."
-                        if len(message) > 400
-                        else message,
-                        first_name=client_sdr.name.split(" ")[0],
-                    ),
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "plain_text",
-                        "text": "🧳 Title: "
-                        + str(prospect.title)
-                        + " @ "
-                        + str(prospect.company)[0:20]
-                        + ("..." if len(prospect.company) > 20 else ""),
-                        "emoji": True,
-                    },
-                    # {
-                    #     "type": "plain_text",
-                    #     "text": "🪜 Status: "
-                    #     + prospect.status.value.replace("_", " ").lower(),
-                    #     "emoji": True,
-                    # },
-                    {
-                        "type": "plain_text",
-                        "text": "📌 SDR: " + client_sdr.name,
-                        "emoji": True,
-                    },
-                ],
-            },
-            {
-                "type": "section",
-                "block_id": "sectionBlockWithLinkButton",
-                "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "View Convo",
-                        "emoji": True,
-                    },
-                    "value": direct_link,
-                    "url": direct_link,
-                    "action_id": "button-action",
-                },
-            },
-        ],
+    success = email_ai_reply_notification(
+        prospect_id=prospect_id,
+        prospect_message=reply_email_body,
+        ai_response=message,
     )
 
     # Mark the prospect email as hidden until 3 days from now
