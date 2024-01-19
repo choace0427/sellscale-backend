@@ -276,7 +276,7 @@ def register_blueprints(app):
     from src.segment.controllers import SEGMENT_BLUEPRINT
     from src.email_replies.controllers import EMAIL_REPLIES_BLUEPRINT
     from src.contacts.controllers import CONTACTS_BLUEPRINT
-    
+    from src.operator_dashboard.controllers import OPERATOR_DASHBOARD_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -342,6 +342,9 @@ def register_blueprints(app):
     app.register_blueprint(SEGMENT_BLUEPRINT, url_prefix="/segment")
     app.register_blueprint(EMAIL_REPLIES_BLUEPRINT, url_prefix="/email/replies")
     app.register_blueprint(CONTACTS_BLUEPRINT, url_prefix="/contacts")
+    app.register_blueprint(
+        OPERATOR_DASHBOARD_BLUEPRINT, url_prefix="/operator_dashboard"
+    )
 
     db.init_app(app)
 

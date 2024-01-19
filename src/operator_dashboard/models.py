@@ -17,7 +17,7 @@ class OperatorDashboardEntryStatus(enum.Enum):
 
 
 class OperatorDashboardEntry(db.Model):
-    __tablename__ = "operator_notification"
+    __tablename__ = "operator_dashboard_entry"
 
     id = db.Column(db.Integer, primary_key=True)
 
