@@ -743,6 +743,27 @@ def update_prospect_status_linkedin(
             override_status=override_status,
         )
 
+    if current_status == ProspectStatus.RESPONDED and new_status in (
+        ProspectStatus.ACTIVE_CONVO_QUESTION,
+        ProspectStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectStatus.ACTIVE_CONVO_REVIVAL,
+        ProspectStatus.ACTIVE_CONVO_CIRCLE_BACK,
+        ProspectStatus.ACTIVE_CONVO_REFERRAL,
+        ProspectStatus.ACTIVE_CONVO_QUEUED_FOR_SNOOZE,
+        ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE,
+    ):
+        return update_prospect_status_linkedin_multi_step(
+            prospect_id=prospect_id,
+            statuses=[
+                ProspectStatus.ACTIVE_CONVO,
+                new_status,
+            ],
+            override_status=override_status,
+        )
+
     if (
         current_status == ProspectStatus.ACTIVE_CONVO
         and new_status == ProspectStatus.DEMO_SET

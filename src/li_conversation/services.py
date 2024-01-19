@@ -595,6 +595,8 @@ def detect_queue_for_continue_the_sequence_keywords(
             "hello",
             "i'd love to connect",
             "let's connect",
+            "you're welcome",
+            "thank",
         ]
     )
 
@@ -993,7 +995,7 @@ Additional instructions:
 {additional_instructions}
 
 IMPORTANT:
-Follow the structure as strictly as possible - use creativity only where there is [[double brackets]]. use as few words as possible when filling in [[brackets]].
+Stick to the template very strictly. Do not deviate from the template:
 --- START TEMPLATE ---
 {template}
 --- END TEMPLATE ---
