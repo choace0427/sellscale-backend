@@ -9,10 +9,10 @@ class SlackNotificationType(Enum):
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
 
     def name(self):
-        return map_slack_notification_type_to_metadata[self]
+        return map_slack_notification_type_to_metadata[self].get("name")
 
     def description(self):
-        return map_slack_notification_type_to_metadata[self]
+        return map_slack_notification_type_to_metadata[self].get("description")
 
 
 map_slack_notification_type_to_metadata = {

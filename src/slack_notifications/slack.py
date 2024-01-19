@@ -15,6 +15,7 @@ from slack_sdk.webhook import WebhookClient
 from datetime import datetime
 
 from model_import import Client
+from src.client.models import ClientSDR
 from src.slack_notifications.models import SlackNotificationType
 
 
@@ -71,6 +72,12 @@ def send_slack_message(
     Returns:
         bool: Whether or not the message was successfully sent
     """
+    # Ensure that the SDR is subscribed to the notification type
+    if client_sdr_id:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if not client_sdr.is_subscribed_to_slack_notification(notification_type):
+            return False
+
     # If we're in testing or development, send to the testing channel
     if (
         os.environ.get("FLASK_ENV") == "testing"
