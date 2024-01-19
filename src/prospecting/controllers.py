@@ -10,6 +10,7 @@ from src.prospecting.services import (
     get_prospect_li_history,
     get_prospects_for_icp_table,
     global_prospected_contacts,
+    inbox_restructure_fetch_prospects,
     move_prospect_to_persona,
     patch_prospect,
     prospect_removal_check_from_csv_payload,
@@ -1714,3 +1715,11 @@ def post_remove_global_contacts(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success"}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/inbox_restructure_prospects", methods=["GET"])
+@require_user
+def get_inbox_restructure_prospects(client_sdr_id: int):
+    results = inbox_restructure_fetch_prospects(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": results}), 200
