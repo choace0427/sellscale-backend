@@ -3670,6 +3670,9 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
       prospect.full_name,
       prospect.title,
       prospect.company,
+      prospect.hidden_until,
+      prospect.icp_fit_score,
+      prospect.overall_status,
       case
         when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
           then 'EMAIL'
@@ -3699,6 +3702,11 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
           then prospect_email.last_message
           else prospect.li_last_message_from_prospect
       end "last_message"
+      case
+        when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
+          then prospect_email.last_reply_time
+          else prospect.li_last_message_timestamp
+      end "last_message_timestamp"
     from prospect
       left join generated_message on generated_message.id = prospect.approved_outreach_message_id
       left join prospect_email on prospect_email.prospect_id = prospect.id
