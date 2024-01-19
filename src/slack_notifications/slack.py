@@ -1,5 +1,11 @@
+# Intended usage and designing of new Slack Notifications
+# 1. Create new Slack Notifications in src/slack_notifications/notifications
+# 2. Slack Notification should be responsible for constructing the blocks and the message
+# 3. Slack Notification should call send_slack_message() from src/slack_notifications/slack.py
+#
 # How to use Slack Notification blocks: https://api.slack.com/reference/block-kit/blocks
 # How to add a Webhook: https://api.slack.com/messaging/webhooks
+
 
 import os
 
@@ -9,6 +15,7 @@ from slack_sdk.webhook import WebhookClient
 from datetime import datetime
 
 from model_import import Client
+from src.slack_notifications.models import SlackNotificationType
 
 
 ####################################
@@ -29,13 +36,41 @@ SLACK_ERROR_CHANNEL = (
 
 
 def send_slack_message(
-    type: str,
+    notification_type: SlackNotificationType,
     message: str,
     webhook_urls: list[dict],
     blocks: Optional[list[dict]] = [],
     client_sdr_id: Optional[int] = None,
     testing: Optional[bool] = False,
 ) -> bool:
+    """Send a Slack message to a list of webhook URLs
+
+    Args:
+        notification_type (SlackNotificationType): The type of the notification that is being sent.
+        message (str): The 'base' message to send, usually not the full message.
+        webhook_urls (list[dict]): A list of webhook URLs to send the message to, see example below.
+        blocks (Optional[list[dict]], optional): The message blocks that compose the full message. Defaults to [].
+        client_sdr_id (Optional[int], optional): The ID of the ClientSDR, used to identify the sender. Defaults to None, which signifies a 'test' message or a message that does originate from the SDR.
+        testing (Optional[bool], optional): Denotes whether to send the message to a testing channel. Defaults to False.
+
+    Example call:
+        send_slack_message(
+            type="email_ai_message_sent",
+            message="SellScale AI just replied to prospect on Email!",
+            webhook_urls=[
+                {
+                    "url": client.pipeline_notifications_webhook_url,
+                    "channel": f"{client.company}'s Pipeline Notifications Channel",
+                }
+            ],
+            blocks=[],
+            client_sdr_id=client_sdr.id,
+            testing=False,
+        )
+
+    Returns:
+        bool: Whether or not the message was successfully sent
+    """
     # If we're in testing or development, send to the testing channel
     if (
         os.environ.get("FLASK_ENV") == "testing"
@@ -65,7 +100,7 @@ def send_slack_message(
         error = None
         if response.status_code != 200:
             error = f"{response.status_code} - {response.body}"
-            send_slack_error_message(type=type, error=error)
+            send_slack_error_message(type=notification_type.value, error=error)
         else:
             clients: list[Client] = Client.query.filter(
                 Client.pipeline_notifications_webhook_url.like(f"%{url}%")
@@ -76,7 +111,7 @@ def send_slack_message(
                     db.session.commit()
 
         create_sent_slack_notification_entry(
-            type=type,
+            notification_type=notification_type,
             message=message,
             webhook_url=webhook_url,
             blocks=blocks,
@@ -123,18 +158,31 @@ def send_slack_error_message(
 
 
 def create_sent_slack_notification_entry(
-    type: str,
+    notification_type: SlackNotificationType,
     message: str,
     webhook_url: dict,
     blocks: Optional[list[dict]] = [],
     client_sdr_id: Optional[int] = None,
     error: Optional[str] = None,
 ) -> int:
+    """Creates a SentSlackNotification entry in the database
+
+    Args:
+        notification_type (SlackNotificationType): Type of Slack notification that was sent
+        message (str): The 'base' message that was sent
+        webhook_url (dict): The webhook URL that was sent to
+        blocks (Optional[list[dict]], optional): The blocks that were sent. Defaults to [].
+        client_sdr_id (Optional[int], optional): The ID of the ClientSDR that sent the notification. Defaults to None.
+        error (Optional[str], optional): The error that occurred, if any. Defaults to None.
+
+    Returns:
+        int: The ID of the SentSlackNotification entry that was created
+    """
     from src.slack_notifications.models import SentSlackNotification
 
     sent_slack_notification = SentSlackNotification(
         client_sdr_id=client_sdr_id,
-        type=type,
+        notification_type=notification_type,
         message=message,
         webhook_url=webhook_url,
         blocks=blocks,

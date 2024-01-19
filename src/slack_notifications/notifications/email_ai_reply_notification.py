@@ -2,10 +2,11 @@ from typing import Optional
 from src.client.models import Client, ClientSDR
 from src.email_outbound.models import ProspectEmail
 from src.prospecting.models import Prospect
+from src.slack_notifications.models import SlackNotificationType
 from src.slack_notifications.slack import send_slack_message
 
 
-def send_email_ai_message_sent_message(
+def email_ai_reply_notification(
     prospect_id: int,
     prospect_message: str,
     ai_response: str,
@@ -48,8 +49,8 @@ def send_email_ai_message_sent_message(
     )
 
     send_slack_message(
-        type="email_ai_message_sent",
-        message="SellScale AI just replied to prospect!",
+        type=SlackNotificationType.AI_REPLY_TO_EMAIL,
+        message="SellScale AI just replied to prospect on Email!",
         webhook_urls=webhook_urls,
         blocks=[
             {
