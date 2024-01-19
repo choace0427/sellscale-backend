@@ -278,6 +278,8 @@ def register_blueprints(app):
     from src.contacts.controllers import CONTACTS_BLUEPRINT
     from src.operator_dashboard.controllers import OPERATOR_DASHBOARD_BLUEPRINT
 
+    from src.subscriptions.controllers import SUBSCRIPTIONS_BLUEPRINT
+
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -345,6 +347,7 @@ def register_blueprints(app):
     app.register_blueprint(
         OPERATOR_DASHBOARD_BLUEPRINT, url_prefix="/operator_dashboard"
     )
+    app.register_blueprint(SUBSCRIPTIONS_BLUEPRINT, url_prefix="/subscriptions")
 
     db.init_app(app)
 
