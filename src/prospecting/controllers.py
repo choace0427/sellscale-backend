@@ -216,6 +216,17 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
     )
 
 
+@PROSPECTING_BLUEPRINT.route("/<prospect_id>/shallow", methods=["GET"])
+@require_user
+def get_shallow_prospect(client_sdr_id: int, prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    return (
+        jsonify({"message": "Success", "data": prospect.to_dict(shallow_data=True)}),
+        200,
+    )
+
+
 @PROSPECTING_BLUEPRINT.route(
     "/<prospect_id>/send_attempting_reschedule_notification", methods=["POST"]
 )
