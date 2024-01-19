@@ -152,6 +152,7 @@ def get_contacts(
     published_at_date_range: Optional[dict] = None,
     person_seniorities: Optional[list] = None,
     q_organization_search_list_id: Optional[str] = None,
+    organization_department_or_subdepartment_counts: Optional[list] = None,
 ):
     breadcrumbs = None  # grab from first result
     partial_results_only = None  # grab from first result
@@ -183,6 +184,7 @@ def get_contacts(
                 published_at_date_range,
                 person_seniorities,
                 q_organization_search_list_id,
+                organization_department_or_subdepartment_counts,
             )
 
             print(
@@ -238,6 +240,7 @@ def get_contacts_for_page(
     published_at_date_range: Optional[dict] = None,
     person_seniorities: Optional[list] = None,
     q_organization_search_list_id: Optional[str] = None,
+    organization_department_or_subdepartment_counts: Optional[dict] = None,
 ):
     data = {
         "api_key": "F51KjDxCgbbC42h0-ovEDQ",
@@ -258,6 +261,7 @@ def get_contacts_for_page(
         "published_at_date_range": published_at_date_range,
         "person_seniorities": person_seniorities,
         "q_organization_search_list_id": q_organization_search_list_id,
+        "organization_department_or_subdepartment_counts": organization_department_or_subdepartment_counts,
     }
 
     response = requests.post("https://api.apollo.io/v1/mixed_people/search", json=data)

@@ -87,6 +87,13 @@ def index():
         required=False,
         default_value=None,
     )
+    organization_department_or_subdepartment_counts = get_request_parameter(
+        "organization_department_or_subdepartment_counts",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+    )
 
     data = get_contacts(
         num_contacts=num_contacts,
@@ -105,6 +112,7 @@ def index():
         published_at_date_range=published_at_date_range,
         person_seniorities=person_seniorities,
         q_organization_search_list_id=q_organization_search_list_id,
+        organization_department_or_subdepartment_counts=organization_department_or_subdepartment_counts,
     )
 
     predicted_segment_name = ""
