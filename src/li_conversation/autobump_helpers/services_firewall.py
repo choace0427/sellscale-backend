@@ -39,12 +39,26 @@ def run_autobump_firewall(generated_message_autobump_id: int) -> tuple[bool, lis
     rule_no_profanity(message, violations)
     rule_no_prompt_message(message, violations)
     rule_no_sdr_first_name_in_message(message, violations, autobump.client_sdr_id)
+    rule_no_quotes_surrounding_message(message, violations)
 
     # If there are any violations, return False
     if len(violations) > 0:
         return False, violations
 
     return True, []
+
+
+def rule_no_quotes_surrounding_message(
+    message: str, violations: list
+) -> tuple[bool, str]:
+    """Rule: Message cannot contain quotes surrounding the message."""
+    if (message.startswith('"') and message.endswith('"')) or (
+        message.startswith("'") and message.endswith("'")
+    ):
+        violations.append("Message contains quotes surrounding the message.")
+        return False, "Message contains quotes surrounding the message."
+
+    return True, "Success"
 
 
 def rule_no_blacklist_words(
