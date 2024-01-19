@@ -3674,8 +3674,8 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
       prospect.icp_fit_score,
       case
         when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
-          then CAST(prospect_email.outreach_status AS CHAR)
-          else CAST(prospect.status AS CHAR)
+          then CAST(prospect_email.outreach_status AS VARCHAR)
+          else CAST(prospect.status AS VARCHAR)
       end "status",
       prospect.img_url,
       case
