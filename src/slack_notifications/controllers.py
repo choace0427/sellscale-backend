@@ -39,9 +39,9 @@ def post_test_slack_notification(client_sdr_id: int):
     slack_notification_type: SlackNotificationType = (
         slack_notification.notification_type
     )
-    notification: SlackNotificationClass = get_slack_notification_type_metadata()[
-        slack_notification_type
-    ](client_sdr_id=client_sdr_id, developer_mode=False)
+    notification: SlackNotificationClass = slack_notification_type.get_class()(
+        client_sdr_id=client_sdr_id, developer_mode=False
+    )
     success = notification.send_test_notification()
 
     if not success:
