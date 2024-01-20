@@ -13,10 +13,10 @@ from src.slack_notifications.models import (
 SLACK_NOTIFICATION_BLUEPRINT = Blueprint("slack_notification", __name__)
 
 
-@SLACK_NOTIFICATION_BLUEPRINT.route("/test", methods=["POST"])
+@SLACK_NOTIFICATION_BLUEPRINT.route("/preview", methods=["POST"])
 @require_user
-def post_test_slack_notification(client_sdr_id: int):
-    """Tests a Slack notification"""
+def post_preview_slack_notification(client_sdr_id: int):
+    """Previews a Slack notification"""
 
     # Get the Slack notification ID
     slack_notification_id = get_request_parameter(
@@ -42,7 +42,7 @@ def post_test_slack_notification(client_sdr_id: int):
     notification: SlackNotificationClass = slack_notification_type.get_class()(
         client_sdr_id=client_sdr_id, developer_mode=False
     )
-    success = notification.send_test_notification()
+    success = notification.send_notification_preview()
 
     if not success:
         return (

@@ -32,16 +32,28 @@ class SlackNotificationClass:
 
         return
 
-    def send_notification(self) -> bool:
+    def send_notification(self, preview_mode: bool) -> bool:
         """Sends a notification to Slack using the class's attributes and the Slack API. There should be no parameters to this function.
+
+        Args:
+            preview_mode (bool): Whether or not the notification is being sent in preview mode. Preview mode sends to a 'dummy' message to the channel.
 
         Returns:
             bool: Whether or not the message was successfully sent
         """
+
+        def get_preview_fields() -> dict:
+            """Gets the fields to be used in the preview message. This function should be overridden by the child class."""
+            return
+
+        def get_fields() -> dict:
+            """Gets the fields to be used in the message. This function should be overridden by the child class."""
+            return
+
         return True
 
-    def send_test_notification(self) -> bool:
-        """Sends a test notification (using dummy data) to Slack using the class's attributes and the Slack API. There should be no parameters to this function.
+    def send_notification_preview(self) -> bool:
+        """Sends a notification preview (using dummy data) to Slack using the class's attributes and the Slack API. There should be no parameters to this function.
 
         Returns:
             bool: Whether or not the message was successfully sent
