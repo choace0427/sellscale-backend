@@ -24,6 +24,11 @@ from src.notifications.models import (
     OperatorNotificationType,
 )
 from src.notifications.services import create_notification
+from src.operator_dashboard.models import (
+    OperatorDashboardEntryPriority,
+    OperatorDashboardEntryStatus,
+)
+from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.models import Prospect
 from src.utils.request_helpers import get_request_parameter
 
@@ -391,12 +396,27 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
     archetype.linkedin_active = active
     db.session.commit()
 
-    generate_notification_for_campaign_active(
-        archetype_id=archetype_id,
-    )
-
     if active:
         send_slack_notif_campaign_active(client_sdr_id, archetype_id, "LinkedIn")
+
+        generate_notification_for_campaign_active(
+            archetype_id=archetype_id,
+        )
+
+        create_operator_dashboard_entry(
+            client_sdr_id=client_sdr_id,
+            urgency=OperatorDashboardEntryPriority.HIGH,
+            tag="linkedin_campaign_active_{}".format(archetype_id),
+            emoji=archetype.emoji,
+            title="Review new LinkedIn Campaign",
+            subtitle="Launched campaign for '{}'. Review prospects and copy.".format(
+                archetype.archetype
+            ),
+            cta="Review Campaign",
+            cta_url="/setup/linkedin?campaign_id={}".format(archetype_id),
+            status=OperatorDashboardEntryStatus.PENDING,
+            due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+        )
 
     return jsonify({"status": "success"}), 200
 
@@ -426,6 +446,21 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
 
     if active:
         send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
+
+        create_operator_dashboard_entry(
+            client_sdr_id=client_sdr_id,
+            urgency=OperatorDashboardEntryPriority.HIGH,
+            tag="email_campaign_active_{}".format(archetype_id),
+            emoji=archetype.emoji,
+            title="Review new Email Campaign",
+            subtitle="Launched campaign for '{}'. Review prospects and copy.".format(
+                archetype.archetype
+            ),
+            cta="Review Campaign",
+            cta_url="/setup/email?campaign_id={}".format(archetype_id),
+            status=OperatorDashboardEntryStatus.PENDING,
+            due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+        )
 
     random_prospects = (
         Prospect.query.filter(

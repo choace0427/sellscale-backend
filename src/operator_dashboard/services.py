@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 from src.operator_dashboard.models import (
     OperatorDashboardEntry,
     OperatorDashboardEntryPriority,
@@ -18,7 +19,24 @@ def create_operator_dashboard_entry(
     cta_url: str,
     status: OperatorDashboardEntryStatus,
     due_date: datetime.datetime,
-) -> OperatorDashboardEntry:
+    recurring: bool = False,
+) -> Optional[OperatorDashboardEntry]:
+    pending_notification = OperatorDashboardEntry.query.filter_by(
+        client_sdr_id=client_sdr_id,
+        tag=tag,
+        status=OperatorDashboardEntryStatus.PENDING,
+    ).first()
+    if pending_notification:
+        return None
+
+    non_pending_notification = OperatorDashboardEntry.query.filter(
+        OperatorDashboardEntry.client_sdr_id == client_sdr_id,
+        OperatorDashboardEntry.tag == tag,
+        OperatorDashboardEntry.status != OperatorDashboardEntryStatus.PENDING,
+    ).first()
+    if non_pending_notification and not recurring:
+        return None
+
     entry = OperatorDashboardEntry(
         client_sdr_id=client_sdr_id,
         urgency=urgency,

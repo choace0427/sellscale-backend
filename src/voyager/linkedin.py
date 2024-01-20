@@ -15,6 +15,11 @@ from time import sleep, time
 from urllib.parse import quote, urlencode
 from flask import Response, jsonify, make_response
 from src.automation.resend import send_email
+from src.operator_dashboard.models import (
+    OperatorDashboardEntryPriority,
+    OperatorDashboardEntryStatus,
+)
+from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.voyager.hackathon_services import make_search
 from app import db, celery
 from sqlalchemy.orm import Session
@@ -152,6 +157,20 @@ class LinkedIn(object):
                 sdr.li_at_token = "INVALID"
                 db.session.add(sdr)
                 db.session.commit()
+
+                create_operator_dashboard_entry(
+                    client_sdr_id=sdr.id,
+                    urgency=OperatorDashboardEntryPriority.HIGH,
+                    tag="linkedin_disconnected",
+                    emoji="⚠️",
+                    title="LinkedIn Disconnected",
+                    subtitle="Your LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
+                    cta="Connect LinkedIn",
+                    cta_url="/settings",
+                    status=OperatorDashboardEntryStatus.PENDING,
+                    due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+                    recurring=True,
+                )
             return None
 
     def _post(self, uri, evade=default_evade, base_request=False, **kwargs):
@@ -199,6 +218,20 @@ class LinkedIn(object):
                 sdr.li_at_token = "INVALID"
                 db.session.add(sdr)
                 db.session.commit()
+
+                create_operator_dashboard_entry(
+                    client_sdr_id=sdr.id,
+                    urgency=OperatorDashboardEntryPriority.HIGH,
+                    tag="linkedin_disconnected",
+                    emoji="⚠️",
+                    title="LinkedIn Disconnected",
+                    subtitle="Your LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
+                    cta="Connect LinkedIn",
+                    cta_url="/settings",
+                    status=OperatorDashboardEntryStatus.PENDING,
+                    due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+                    recurring=True,
+                )
             return None
 
     def is_valid(self):

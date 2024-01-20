@@ -16,6 +16,11 @@ from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
+from src.operator_dashboard.models import (
+    OperatorDashboardEntryPriority,
+    OperatorDashboardEntryStatus,
+)
+from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.vision.services import attempt_chat_completion_with_vision
 from src.individual.models import Individual
 from src.prospecting.icp_score.services import update_icp_scoring_ruleset
@@ -2455,11 +2460,29 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
             </table>
         """,
         title="demo feedback request".format(
+            prospect_full_name=prospect_full_name,
             prospect_first_name=prospect_first_name,
             prospect_company=prospect_company,
             prospect_demo_date_formatted=prospect_demo_date_formatted,
+            prospect_linkedin_url=prospect_linkedin_url,
         ),
         to_emails=[email],
+    )
+
+    create_operator_dashboard_entry(
+        client_sdr_id=prospect.client_sdr_id,
+        urgency=OperatorDashboardEntryPriority.MEDIUM,
+        tag="demo_feedback_{prospect_id}".format(prospect_id=prospect_id),
+        emoji="📋",
+        title="Requesting demo feedback",
+        subtitle="How did the demo with {prospect_full_name} on {prospect_demo_date_formatted} go?".format(
+            prospect_full_name=prospect_full_name,
+            prospect_demo_date_formatted=prospect_demo_date_formatted,
+        ),
+        cta="Give feedback",
+        cta_url="/prospects/{prospect_id}".format(prospect_id=prospect_id),
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.now() + timedelta(days=5),
     )
 
 
