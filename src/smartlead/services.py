@@ -9,9 +9,6 @@ from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingTy
 from src.email_sequencing.models import EmailSequenceStep
 from src.message_generation.email.services import create_email_automated_reply_entry
 from src.message_generation.models import GeneratedMessage
-from src.slack_notifications.notifications.email_ai_reply_notification import (
-    EmailAIReplyNotification,
-)
 from src.utils.datetime.dateparse_utils import (
     convert_string_to_datetime,
     convert_string_to_datetime_or_none,
@@ -216,6 +213,10 @@ def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     Returns:
         bool: True if successful
     """
+    from src.slack_notifications.notifications.email_ai_reply_notification import (
+        EmailAIReplyNotification,
+    )
+
     # Get the prospect, archetype, and smartlead campaign ID
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:

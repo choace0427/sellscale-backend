@@ -237,6 +237,7 @@ class EmailAIReplyNotification(SlackNotificationClass):
             ],
             client_sdr_id=client_sdr.id,
             testing=self.developer_mode,
+            override_preference=True,
         )
 
         return True

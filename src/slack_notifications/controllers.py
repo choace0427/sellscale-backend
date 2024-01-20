@@ -6,7 +6,7 @@ from src.utils.request_helpers import get_request_parameter
 from src.slack_notifications.models import (
     SlackNotification,
     SlackNotificationType,
-    map_slack_notification_type_to_metadata,
+    get_slack_notification_type_metadata,
 )
 
 
@@ -39,7 +39,7 @@ def post_test_slack_notification(client_sdr_id: int):
     slack_notification_type: SlackNotificationType = (
         slack_notification.notification_type
     )
-    notification: SlackNotificationClass = map_slack_notification_type_to_metadata[
+    notification: SlackNotificationClass = get_slack_notification_type_metadata()[
         slack_notification_type
     ](client_sdr_id=client_sdr_id, developer_mode=False)
     success = notification.send_test_notification()

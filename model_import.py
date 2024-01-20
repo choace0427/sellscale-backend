@@ -117,5 +117,3 @@ from src.prospecting.question_enrichment.models import (
 )
 from src.email_replies.models import EmailReplyFramework
 from src.segment.models import Segment
-from src.slack_notifications.models import SentSlackNotification
-from src.subscriptions.models import Subscription

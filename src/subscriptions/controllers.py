@@ -1,11 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from src.authentication.decorators import require_user
-from src.subscriptions.services import (
-    deactivate_subscription,
-    get_subscriptions,
-    subscribe_to_slack_notification,
-)
+
 from src.utils.request_helpers import get_request_parameter
 
 
@@ -16,6 +12,12 @@ SUBSCRIPTIONS_BLUEPRINT = Blueprint("subscriptions", __name__)
 @require_user
 def get_all_subscriptions(client_sdr_id: int):
     """Gets all subscriptions for a client"""
+    from src.subscriptions.services import (
+        deactivate_subscription,
+        get_subscriptions,
+        subscribe_to_slack_notification,
+    )
+
     subscriptions = get_subscriptions(client_sdr_id=client_sdr_id)
 
     return (

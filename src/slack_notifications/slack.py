@@ -40,6 +40,7 @@ def send_slack_message(
     blocks: Optional[list[dict]] = [],
     client_sdr_id: Optional[int] = None,
     testing: Optional[bool] = False,
+    override_preference: Optional[bool] = False,
 ) -> bool:
     """Send a Slack message to a list of webhook URLs
 
@@ -50,6 +51,7 @@ def send_slack_message(
         blocks (Optional[list[dict]], optional): The message blocks that compose the full message. Defaults to [].
         client_sdr_id (Optional[int], optional): The ID of the ClientSDR, used to identify the sender. Defaults to None, which signifies a 'test' message or a message that does originate from the SDR.
         testing (Optional[bool], optional): Denotes whether to send the message to a testing channel. Defaults to False.
+        override_preference (Optional[bool], optional): Denotes whether or not to override the SDR's notification preference. Defaults to False.
 
     Example call:
         send_slack_message(
@@ -70,7 +72,7 @@ def send_slack_message(
         bool: Whether or not the message was successfully sent
     """
     # Ensure that the SDR is subscribed to the notification type
-    if client_sdr_id:
+    if client_sdr_id and not override_preference:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         if not client_sdr.is_subscribed_to_slack_notification(notification_type):
             return False

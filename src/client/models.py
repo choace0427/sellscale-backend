@@ -6,7 +6,6 @@ from src.prospecting.models import ProspectStatus, Prospect
 from src.research.models import ResearchPointType
 import sqlalchemy as sa
 import json
-from src.slack_notifications.models import SlackNotification, SlackNotificationType
 from src.subscriptions.models import Subscription
 
 from src.utils.hasher import generate_uuid
@@ -440,9 +439,7 @@ class ClientSDR(db.Model):
 
         return uuid_str
 
-    def is_subscribed_to_slack_notification(
-        self, notification_type: SlackNotificationType
-    ) -> bool:
+    def is_subscribed_to_slack_notification(self, notification_type: enum.Enum) -> bool:
         """Check if the SDR is subscribed to a Slack notification type
 
         Args:
@@ -451,6 +448,8 @@ class ClientSDR(db.Model):
         Returns:
             bool: Whether or not the SDR is subscribed to the Slack notification type
         """
+        from src.slack_notifications.models import SlackNotification
+
         # Get the SlackNotification
         notification: SlackNotification = SlackNotification.query.filter_by(
             notification_type=notification_type

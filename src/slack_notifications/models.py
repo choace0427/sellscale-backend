@@ -2,10 +2,6 @@ from app import db
 from enum import Enum
 from sqlalchemy.dialects.postgresql import JSONB
 
-from src.slack_notifications.notifications.email_ai_reply_notification import (
-    EmailAIReplyNotification,
-)
-
 
 class SlackNotificationType(Enum):
     """The types of Slack notifications that can be sent"""
@@ -13,22 +9,29 @@ class SlackNotificationType(Enum):
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
 
     def name(self):
-        return map_slack_notification_type_to_metadata[self].get("name")
+        return get_slack_notification_type_metadata()[self].get("name")
 
     def description(self):
-        return map_slack_notification_type_to_metadata[self].get("description")
+        return get_slack_notification_type_metadata()[self].get("description")
 
     def get_class(self):
-        return map_slack_notification_type_to_metadata[self].get("class")
+        return get_slack_notification_type_metadata()[self].get("class")
 
 
-map_slack_notification_type_to_metadata = {
-    SlackNotificationType.AI_REPLY_TO_EMAIL: {
-        "name": "AI Reply to Email",
-        "description": "A Slack notification that is sent when the AI replies to an email",
-        "class": EmailAIReplyNotification,
+def get_slack_notification_type_metadata():
+    from src.slack_notifications.notifications.email_ai_reply_notification import (
+        EmailAIReplyNotification,
+    )
+
+    map_slack_notification_type_to_metadata = {
+        SlackNotificationType.AI_REPLY_TO_EMAIL: {
+            "name": "AI Reply to Email",
+            "description": "A Slack notification that is sent when the AI replies to an email",
+            "class": EmailAIReplyNotification,
+        }
     }
-}
+
+    return map_slack_notification_type_to_metadata
 
 
 class SlackNotification(db.Model):
