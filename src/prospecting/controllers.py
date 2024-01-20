@@ -16,6 +16,7 @@ from src.prospecting.services import (
     prospect_removal_check_from_csv_payload,
     send_attempting_reschedule_notification,
     snooze_prospect_email,
+    fetch_company_details,
 )
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
@@ -1734,3 +1735,15 @@ def get_inbox_restructure_prospects(client_sdr_id: int):
     results = inbox_restructure_fetch_prospects(client_sdr_id)
 
     return jsonify({"message": "Success", "data": results}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/companydetail", methods=["GET"])
+@require_user
+def get_company_details(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True, parameter_type=int
+    )
+
+    results = fetch_company_details(client_sdr_id, prospect_id)
+
+    return results
