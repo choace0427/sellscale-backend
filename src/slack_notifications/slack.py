@@ -1,3 +1,9 @@
+# This file contains the functions that are used to send Slack Notifications to Slack Webhook URLs
+# - These functions are the wrappers around Slack endpoints that are used to send Slack messages
+#
+# To create a new Slack Notification, please reference slack_notification.py
+
+
 # Intended usage and designing of new Slack Notifications
 # 1. Create new Slack Notifications in src/slack_notifications/notifications
 # 2. Slack Notification should be responsible for constructing the blocks and the message
@@ -17,15 +23,6 @@ from datetime import datetime
 from model_import import Client
 from src.client.models import ClientSDR
 from src.slack_notifications.models import SlackNotificationType
-
-
-####################################
-# REGISTER NOTIFICATION TYPES HERE #
-####################################
-# Define what notifications types call what functions
-# - function must return a boolean for success or failure
-# - args are passed into the function from meta_data.args
-NOTIFICATION_TYPE_MAP = {""}
 
 
 NOTIFICATION_TESTING_CHANNEL = (
