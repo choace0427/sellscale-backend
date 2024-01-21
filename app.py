@@ -280,6 +280,7 @@ def register_blueprints(app):
 
     from src.subscriptions.controllers import SUBSCRIPTIONS_BLUEPRINT
     from src.slack_notifications.controllers import SLACK_NOTIFICATION_BLUEPRINT
+    from src.track.controllers import TRACK_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -352,6 +353,7 @@ def register_blueprints(app):
     app.register_blueprint(
         SLACK_NOTIFICATION_BLUEPRINT, url_prefix="/slack_notification"
     )
+    app.register_blueprint(TRACK_BLUEPRINT, url_prefix="/track")
 
     db.init_app(app)
 
