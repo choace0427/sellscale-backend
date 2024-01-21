@@ -34,10 +34,10 @@ def create_track_event(
     db.session.add(track_event)
     db.session.commit()
 
-    send_slack_message(
-        message=f"Track event created: ```{track_event.to_dict()}```",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
-    )
+    # send_slack_message(
+    #     message=f"Track event created: ```{track_event.to_dict()}```",
+    #     webhook_urls=[URL_MAP["eng-sandbox"]],
+    # )
 
     find_company(track_event.id)
 
