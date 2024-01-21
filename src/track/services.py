@@ -3,7 +3,7 @@ from sqlalchemy import or_
 from src.company.models import Company
 from src.prospecting.models import Prospect
 from src.track.models import TrackEvent, TrackSource
-from app import db
+from app import db, celery
 from src.utils.slack import URL_MAP, send_slack_message
 
 
@@ -39,11 +39,12 @@ def create_track_event(
     #     webhook_urls=[URL_MAP["eng-sandbox"]],
     # )
 
-    find_company(track_event.id)
+    find_company.delay(track_event.id)
 
     return True
 
 
+@celery.task
 def find_company(track_event_id):
     # Step 1: Find the track event
     track_event = TrackEvent.query.get(track_event_id)
