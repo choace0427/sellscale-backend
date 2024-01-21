@@ -39,13 +39,13 @@ def create_track_event(
     #     webhook_urls=[URL_MAP["eng-sandbox"]],
     # )
 
-    find_company.delay(track_event.id)
+    find_company_from_orginfo.delay(track_event.id)
 
     return True
 
 
 @celery.task
-def find_company(track_event_id):
+def find_company_from_orginfo(track_event_id):
     # Step 1: Find the track event
     track_event = TrackEvent.query.get(track_event_id)
     if track_event is None:
@@ -72,6 +72,8 @@ def find_company(track_event_id):
 
     # Step 4: Update track_event with the company's ID
     track_event.company_id = prospect.company_id
+    track_event.company_identify_api = "orginfo"
+    track_event.company_identify_payload = response_data
     db.session.commit()
 
     return f"Track event updated with company ID: {prospect.company_id}"

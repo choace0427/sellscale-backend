@@ -26,6 +26,9 @@ class TrackEvent(db.Model):
     ip_address = db.Column(db.String, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"))
 
+    company_identify_api = db.Column(db.String, nullable=True)
+    company_identify_payload = db.Column(db.JSON, nullable=True)
+
     def __repr__(self):
         return f"<TrackEvent {self.id}>"
 

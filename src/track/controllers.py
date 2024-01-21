@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from src.track.services import create_track_event
-from src.track.services import find_company
+from src.track.services import find_company_from_orginfo
 
 from src.utils.request_helpers import get_request_parameter
 
