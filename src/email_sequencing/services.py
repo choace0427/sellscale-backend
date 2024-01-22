@@ -15,6 +15,7 @@ from src.email_sequencing.models import (
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from typing import List, Optional
 from src.ml.services import get_text_generation
+from src.ml.spam_detection import run_algorithmic_spam_detection
 
 from src.research.models import ResearchPointType
 from src.smartlead.services import sync_smartlead_send_schedule
@@ -705,8 +706,12 @@ def copy_email_template_body_item(
 
 
 def grade_email(tracking_data: dict, subject: str, body: str):
-    # Initialize spam words list
-    spam_words = ["test"]
+    # Detect spam words
+    spam_subject_results = run_algorithmic_spam_detection(subject)
+    spam_subject_words = spam_subject_results.get("spam_words")
+
+    spam_body_results = run_algorithmic_spam_detection(body)
+    spam_body_words = spam_body_results.get("spam_words")
 
     # Evaluate subject line and body construction
     subject_line_good = len(subject) < 100
@@ -719,18 +724,14 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     tones = detect_tones(body)
     personalizations = detect_personalizations(body)
 
-    # Spam word detection
-    subject_line_spam_good = not any(word in subject for word in spam_words)
-    body_spam_good = not any(word in body for word in spam_words)
-
     # Calculate feedback score
     goods = sum(
         [
             subject_line_good,
             body_good,
             read_time_good,
-            subject_line_spam_good,
-            body_spam_good,
+            len(spam_subject_words) == 0,
+            len(spam_body_words) == 0,
         ]
     )
     total_checks = 5
@@ -747,13 +748,13 @@ def grade_email(tracking_data: dict, subject: str, body: str):
         evaluated_tones={"tones": tones},
         evaluated_construction_subject_line="GOOD" if subject_line_good else "BAD",
         evaluated_construction_spam_words_subject_line={
-            "words": [],
-            "evaluation": "GOOD" if subject_line_spam_good else "BAD",
+            "words": spam_subject_words,
+            "evaluation": "GOOD" if len(spam_subject_words) == 0 else "BAD",
         },
         evaluated_construction_body="GOOD" if body_good else "BAD",
         evaluated_construction_spam_words_body={
-            "words": [],
-            "evaluation": "GOOD" if body_spam_good else "BAD",
+            "words": spam_body_words,
+            "evaluation": "GOOD" if len(spam_body_words) == 0 else "BAD",
         },
         evaluated_read_time_seconds=int(len(body.split()) / 4),
         evaluated_personalizations=personalizations,

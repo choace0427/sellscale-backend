@@ -2,6 +2,7 @@ import csv
 
 spam_words_path = r"src/../datasets/spam_words.csv"
 
+
 def run_algorithmic_spam_detection(text: str) -> dict:
     """Runs an algorithmic spam detection approach by using a list of spam words.
 
@@ -9,7 +10,13 @@ def run_algorithmic_spam_detection(text: str) -> dict:
         text (str): The text to be checked for spam.
 
     Returns:
-        tuple[bool, ]: _description_
+        dict:
+            detected_spam (bool): Whether or not the text is spam.
+            spam_words (list[str]): The spam words that were detected in the text.
+            read_minutes (int): The estimated read time of the text in minutes. Out of 100.
+            spam_word_score (int): The score of the spam words detected in the text.
+            read_minutes_score (int): The score of the estimated read time of the text. Out of 100.
+            total_score (int): The total score of the text. Out of 100.
     """
     detected_spam = []
 
