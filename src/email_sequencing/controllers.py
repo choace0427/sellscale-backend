@@ -2,7 +2,11 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import EmailSequenceStep
-from src.email_sequencing.models import EmailSubjectLineTemplate, EmailTemplatePool, EmailTemplateType
+from src.email_sequencing.models import (
+    EmailSubjectLineTemplate,
+    EmailTemplatePool,
+    EmailTemplateType,
+)
 from src.email_sequencing.services import (
     activate_sequence_step,
     copy_email_template_body_item,
@@ -13,6 +17,7 @@ from src.email_sequencing.services import (
     get_email_template_pool_items,
     get_sequence_step_count_for_sdr,
     get_email_sequence_step_for_sdr,
+    grade_email,
     modify_email_sequence_step,
     get_email_subject_line_template,
     create_email_subject_line_template,
@@ -20,11 +25,11 @@ from src.email_sequencing.services import (
     modify_email_template_pool_item,
     deactivate_email_subject_line_template,
     activate_email_subject_line_template,
-    undefault_all_sequence_steps_in_status
+    undefault_all_sequence_steps_in_status,
 )
 from src.research.models import ResearchPointType
 from src.utils.request_helpers import get_request_parameter
-from src.authentication.decorators import require_user
+from src.authentication.decorators import require_user, rate_limit
 from model_import import ProspectOverallStatus
 
 
@@ -113,10 +118,8 @@ def post_create_sequence_step(client_sdr_id: int):
         )
         or None
     )
-    transformer_blocklist = (
-        get_request_parameter(
-            "transformer_blocklist", request, json=True, required=False, parameter_type=list
-        )
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
 
     # Get the enum value for the overall status
@@ -196,14 +199,16 @@ def patch_sequence_step(client_sdr_id: int):
     )
     sequence_delay_days = (
         get_request_parameter(
-            "sequence_delay_days", request, json=True, required=False, parameter_type=int
+            "sequence_delay_days",
+            request,
+            json=True,
+            required=False,
+            parameter_type=int,
         )
         or None
     )
-    transformer_blocklist = (
-        get_request_parameter(
-            "transformer_blocklist", request, json=True, required=False, parameter_type=list
-        )
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
 
     # If transformer blocklist is not None, convert to enum
@@ -298,10 +303,8 @@ def get_email_subject_line_templates(client_sdr_id: int):
         )
         or None
     )
-    active_only = (
-        get_request_parameter(
-            "active_only", request, json=False, required=False, parameter_type=bool
-        )
+    active_only = get_request_parameter(
+        "active_only", request, json=False, required=False, parameter_type=bool
     )
 
     email_subject_line_templates: list[dict] = get_email_subject_line_template(
@@ -310,7 +313,15 @@ def get_email_subject_line_templates(client_sdr_id: int):
         active_only=active_only,
     )
 
-    return jsonify({"status": "Success", "data": {"subject_line_templates": email_subject_line_templates}}), 200
+    return (
+        jsonify(
+            {
+                "status": "Success",
+                "data": {"subject_line_templates": email_subject_line_templates},
+            }
+        ),
+        200,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/subject_line", methods=["POST"])
@@ -339,7 +350,15 @@ def post_create_email_subject_line_template(client_sdr_id: int):
             ),
             200,
         )
-    return jsonify({"status": "error", "message": "Could not create email subject line template."}), 400
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "Could not create email subject line template.",
+            }
+        ),
+        400,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/subject_line", methods=["PATCH"])
@@ -356,11 +375,26 @@ def patch_email_subject_line_template(client_sdr_id: int):
         "active", request, json=True, required=False, parameter_type=bool
     )
 
-    subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
+    subject_line_template: EmailSubjectLineTemplate = (
+        EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
+    )
     if not subject_line_template:
-        return jsonify({"status": "error", "message": "Email subject line template not found."}), 404
+        return (
+            jsonify(
+                {"status": "error", "message": "Email subject line template not found."}
+            ),
+            404,
+        )
     elif subject_line_template.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "This email subject line template does not belong to you."}), 401
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "This email subject line template does not belong to you.",
+                }
+            ),
+            401,
+        )
 
     modified = modify_email_subject_line_template(
         client_sdr_id=client_sdr_id,
@@ -370,9 +404,22 @@ def patch_email_subject_line_template(client_sdr_id: int):
         active=active,
     )
     if modified:
-        return jsonify({"status": "success", "message": "Email subject line template updated."}), 200
+        return (
+            jsonify(
+                {"status": "success", "message": "Email subject line template updated."}
+            ),
+            200,
+        )
 
-    return jsonify({"status": "error", "message": "Could not update email subject line template."}), 400
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "Could not update email subject line template.",
+            }
+        ),
+        400,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/subject_line/deactivate", methods=["POST"])
@@ -383,17 +430,50 @@ def post_deactivate_email_subject_line_template(client_sdr_id: int):
         "email_subject_line_template_id", request, json=True, required=True
     )
 
-    subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
+    subject_line_template: EmailSubjectLineTemplate = (
+        EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
+    )
     if not subject_line_template:
-        return jsonify({"status": "error", "message": "Email subject line template not found."}), 404
+        return (
+            jsonify(
+                {"status": "error", "message": "Email subject line template not found."}
+            ),
+            404,
+        )
     elif subject_line_template.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "This email subject line template does not belong to you."}), 401
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "This email subject line template does not belong to you.",
+                }
+            ),
+            401,
+        )
 
-    deactivated = deactivate_email_subject_line_template(client_sdr_id, email_subject_line_template_id)
+    deactivated = deactivate_email_subject_line_template(
+        client_sdr_id, email_subject_line_template_id
+    )
     if deactivated:
-        return jsonify({"status": "success", "message": "Email subject line template deactivated."}), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "Email subject line template deactivated.",
+                }
+            ),
+            200,
+        )
 
-    return jsonify({"status": "error", "message": "Could not deactivate email subject line template."}), 400
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "Could not deactivate email subject line template.",
+            }
+        ),
+        400,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/subject_line/activate", methods=["POST"])
@@ -404,17 +484,50 @@ def post_activate_email_subject_line_template(client_sdr_id: int):
         "email_subject_line_template_id", request, json=True, required=True
     )
 
-    subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
+    subject_line_template: EmailSubjectLineTemplate = (
+        EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
+    )
     if not subject_line_template:
-        return jsonify({"status": "error", "message": "Email subject line template not found."}), 404
+        return (
+            jsonify(
+                {"status": "error", "message": "Email subject line template not found."}
+            ),
+            404,
+        )
     elif subject_line_template.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "This email subject line template does not belong to you."}), 401
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "This email subject line template does not belong to you.",
+                }
+            ),
+            401,
+        )
 
-    activated = activate_email_subject_line_template(client_sdr_id, email_subject_line_template_id)
+    activated = activate_email_subject_line_template(
+        client_sdr_id, email_subject_line_template_id
+    )
     if activated:
-        return jsonify({"status": "success", "message": "Email subject line template activated."}), 200
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "Email subject line template activated.",
+                }
+            ),
+            200,
+        )
 
-    return jsonify({"status": "error", "message": "Could not activate email subject line template."}), 400
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "Could not activate email subject line template.",
+            }
+        ),
+        400,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/pool", methods=["GET"])
@@ -438,7 +551,15 @@ def get_email_pool(client_sdr_id: int):
         active_only=True,
     )
 
-    return jsonify({"status": "success", "data": {"templates": [template.to_dict() for template in templates]}}), 200
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {"templates": [template.to_dict() for template in templates]},
+            }
+        ),
+        200,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/pool", methods=["POST"])
@@ -457,20 +578,14 @@ def post_email_pool(client_sdr_id: int):
     description = get_request_parameter(
         "description", request, json=True, required=False, parameter_type=str
     )
-    transformer_blocklist = (
-        get_request_parameter(
-            "transformer_blocklist", request, json=True, required=False, parameter_type=list
-        )
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
-    labels = (
-        get_request_parameter(
-            "labels", request, json=True, required=False, parameter_type=list
-        )
+    labels = get_request_parameter(
+        "labels", request, json=True, required=False, parameter_type=list
     )
-    tone = (
-        get_request_parameter(
-            "tone", request, json=True, required=False, parameter_type=str
-        )
+    tone = get_request_parameter(
+        "tone", request, json=True, required=False, parameter_type=str
     )
 
     # Convert transformer blocklist to enum
@@ -499,12 +614,17 @@ def post_email_pool(client_sdr_id: int):
         transformer_blocklist=transformer_blocklist,
         labels=labels,
         tone=tone,
-        active=True
+        active=True,
     )
     if success:
         return jsonify({"status": "success", "data": {"id": id}}), 200
 
-    return jsonify({"status": "error", "message": "Could not create email template pool item."}), 400
+    return (
+        jsonify(
+            {"status": "error", "message": "Could not create email template pool item."}
+        ),
+        400,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/pool", methods=["PATCH"])
@@ -523,25 +643,17 @@ def patch_email_pool(client_sdr_id: int):
     description = get_request_parameter(
         "description", request, json=True, required=False, parameter_type=str
     )
-    transformer_blocklist = (
-        get_request_parameter(
-            "transformer_blocklist", request, json=True, required=False, parameter_type=list
-        )
+    transformer_blocklist = get_request_parameter(
+        "transformer_blocklist", request, json=True, required=False, parameter_type=list
     )
-    labels = (
-        get_request_parameter(
-            "labels", request, json=True, required=False, parameter_type=list
-        )
+    labels = get_request_parameter(
+        "labels", request, json=True, required=False, parameter_type=list
     )
-    tone = (
-        get_request_parameter(
-            "tone", request, json=True, required=False, parameter_type=str
-        )
+    tone = get_request_parameter(
+        "tone", request, json=True, required=False, parameter_type=str
     )
-    active = (
-        get_request_parameter(
-            "active", request, json=True, required=False, parameter_type=bool
-        )
+    active = get_request_parameter(
+        "active", request, json=True, required=False, parameter_type=bool
     )
 
     # Convert transformer blocklist to enum
@@ -562,12 +674,22 @@ def patch_email_pool(client_sdr_id: int):
         transformer_blocklist=transformer_blocklist,
         labels=labels,
         tone=tone,
-        active=active
+        active=active,
     )
     if success:
-        return jsonify({"status": "success", "message": "Email template pool item updated."}), 200
+        return (
+            jsonify(
+                {"status": "success", "message": "Email template pool item updated."}
+            ),
+            200,
+        )
 
-    return jsonify({"status": "error", "message": "Could not update email template pool item."}), 400
+    return (
+        jsonify(
+            {"status": "error", "message": "Could not update email template pool item."}
+        ),
+        400,
+    )
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/pool/copy", methods=["POST"])
@@ -588,10 +710,18 @@ def post_copy_email_pool_entry(client_sdr_id: int):
         success = copy_email_template_subject_line_item(
             client_sdr_id=client_sdr_id,
             client_archetype_id=archetype_id,
-            template_pool_id=template_pool_id
+            template_pool_id=template_pool_id,
         )
         if success:
-            return jsonify({"status": "success", "message": "Email subject line template copied."}), 200
+            return (
+                jsonify(
+                    {
+                        "status": "success",
+                        "message": "Email subject line template copied.",
+                    }
+                ),
+                200,
+            )
     elif template_type == "BODY":
         overall_status = get_request_parameter(
             "overall_status", request, json=True, required=True, parameter_type=str
@@ -602,10 +732,12 @@ def post_copy_email_pool_entry(client_sdr_id: int):
         bumped_count = get_request_parameter(
             "bumped_count", request, json=True, required=False, parameter_type=int
         )
-        transformer_blocklist = (
-            get_request_parameter(
-                "transformer_blocklist", request, json=True, required=False, parameter_type=list
-            )
+        transformer_blocklist = get_request_parameter(
+            "transformer_blocklist",
+            request,
+            json=True,
+            required=False,
+            parameter_type=list,
         )
 
         # Convert overall status to enum
@@ -633,12 +765,54 @@ def post_copy_email_pool_entry(client_sdr_id: int):
             overall_status=overall_status,
             substatus=substatus,
             bumped_count=bumped_count,
-            transformer_blocklist=transformer_blocklist
+            transformer_blocklist=transformer_blocklist,
         )
         if success:
-            return jsonify({"status": "success", "message": "Email body template copied."}), 200
+            return (
+                jsonify(
+                    {"status": "success", "message": "Email body template copied."}
+                ),
+                200,
+            )
     else:
         return jsonify({"status": "error", "message": "Invalid template type."}), 400
 
-    return jsonify({"status": "error", "message": "Could not copy email template library item."}), 400
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "Could not copy email template library item.",
+            }
+        ),
+        400,
+    )
 
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/grade_email", methods=["POST"])
+@rate_limit(max_calls=5, time_interval=60)
+def post_grade_email():
+    """Grades an email, giving it a score and improvement advice"""
+
+    subject = get_request_parameter(
+        "subject", request, json=True, required=True, parameter_type=str
+    )
+    body = get_request_parameter(
+        "body", request, json=True, required=True, parameter_type=str
+    )
+    tracking_data = get_request_parameter(
+        "tracking_data", request, json=True, required=False, parameter_type=dict
+    )
+
+    entry_id, results = grade_email(
+        tracking_data=tracking_data, subject=subject, body=body
+    )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": results,
+            }
+        ),
+        200,
+    )

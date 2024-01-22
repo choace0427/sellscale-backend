@@ -1,4 +1,5 @@
 import datetime
+import json
 from model_import import (
     EmailSequenceStep,
     EmailSubjectLineTemplate,
@@ -6,9 +7,14 @@ from model_import import (
 from app import db
 from src.client.models import ClientArchetype
 from src.email_outbound.models import ProspectEmail
-from src.email_sequencing.models import EmailTemplatePool, EmailTemplateType
+from src.email_sequencing.models import (
+    EmailGraderEntry,
+    EmailTemplatePool,
+    EmailTemplateType,
+)
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from typing import List, Optional
+from src.ml.services import get_text_generation
 
 from src.research.models import ResearchPointType
 from src.smartlead.services import sync_smartlead_send_schedule
@@ -696,3 +702,298 @@ def copy_email_template_body_item(
     )
 
     return True
+
+
+def grade_email(tracking_data: dict, subject: str, body: str):
+    # Initialize spam words list
+    spam_words = ["test"]
+
+    # Evaluate subject line and body construction
+    subject_line_good = len(subject) < 100
+    body_good = len(body.split()) < 120 and all(
+        len(sentence.split()) < 15 for sentence in body.split(".")
+    )
+    read_time_good = len(body.split()) / 4 < 120
+
+    # Detect tones and personalizations
+    tones = detect_tones(body)
+    personalizations = detect_personalizations(body)
+
+    # Spam word detection
+    subject_line_spam_good = not any(word in subject for word in spam_words)
+    body_spam_good = not any(word in body for word in spam_words)
+
+    # Calculate feedback score
+    goods = sum(
+        [
+            subject_line_good,
+            body_good,
+            read_time_good,
+            subject_line_spam_good,
+            body_spam_good,
+        ]
+    )
+    total_checks = 5
+    feedback_score = goods / total_checks
+
+    # Create a record in the database
+    entry = EmailGraderEntry(
+        input_tracking_data=tracking_data,
+        input_subject_line=subject,
+        input_body=body,
+        detected_company=detect_company(body),
+        evaluated_score=feedback_score,
+        evaluated_feedback=generate_email_feedback(subject=subject, body=body),
+        evaluated_tones={"tones": tones},
+        evaluated_construction_subject_line="GOOD" if subject_line_good else "BAD",
+        evaluated_construction_spam_words_subject_line={
+            "words": [],
+            "evaluation": "GOOD" if subject_line_spam_good else "BAD",
+        },
+        evaluated_construction_body="GOOD" if body_good else "BAD",
+        evaluated_construction_spam_words_body={
+            "words": [],
+            "evaluation": "GOOD" if body_spam_good else "BAD",
+        },
+        evaluated_read_time_seconds=int(len(body.split()) / 4),
+        evaluated_personalizations=personalizations,
+    )
+    db.session.add(entry)
+    db.session.commit()
+
+    return entry.id, entry.to_dict()
+
+
+def detect_tones(text: str) -> dict:
+    """Detects the tones of the text
+
+    Args:
+        text (str): The text to detect the tones of
+
+    Returns:
+        dict: The tones of the text
+    """
+
+    completion = get_text_generation(
+        [
+            {
+                "role": "user",
+                "content": f"""
+                Given the following text, return only 3-6 adjectives that describe the tone of the text. Return these as a JSON array of strings.
+                
+                ### Text:
+                {text}
+                
+                """,
+            }
+        ],
+        model="gpt-4",
+        max_tokens=120,
+        type="MISC_CLASSIFY",
+    )
+
+    try:
+        return json.loads(completion)
+    except:
+        return []
+
+
+def detect_company(text: str) -> dict:
+    """Detects the company name
+
+    Args:
+        text (str): The email body
+
+    Returns:
+        The company name (str) or None
+    """
+
+    completion = get_text_generation(
+        [
+            {
+                "role": "user",
+                "content": f"""
+                Given the following email body, please return the assumed name of the company that's sending out the email. Only respond with the company name. If you have no idea, return with "Unknown"
+                
+                ### Email Body:
+                {text}
+                
+                """,
+            }
+        ],
+        model="gpt-4",
+        max_tokens=40,
+        type="MISC_CLASSIFY",
+    )
+
+    if completion.lower().strip() == "unknown":
+        return None
+    else:
+        return completion
+
+
+def detect_personalizations(text: str) -> dict:
+    """Detects the personalizations of the text
+
+    Args:
+        text (str): The text to detect the personalizations of
+
+    Returns:
+        dict: The personalizations of the text
+    """
+
+    completion = get_text_generation(
+        [
+            {
+                "role": "user",
+                "content": f"""
+          You are going to extract 'personalization key points' from the email copy I provide.
+
+I want a list of JSON objects outputted:
+`personalization` - Extract small phrases or snippets from the email that are personalization
+`strength` - 'weak' or 'strong'
+`reason` - Explain why the personalization is weak or strong
+
+IMPORTANT: Only respond with the output in a JSON list.
+
+Here are two examples of email copy and the output I wanted.
+
+-----------------
+Copy: ""
+Hey Sarah,
+
+As you're considering how to streamline CHAS Health's operations, it would be worth to consider SuperBill. It can integrate with your existing call process - credentialing, follow-ups, verification - and give time back to staff.
+
+For example, verifying a new patient's insurance. In SuperBill, you simply input the patient's details and our AI instantly handles the calls to insurance providers, freeing up your staff's time and energy. Works for your local and nationwide insurers, too.
+
+If you're open to it, I'd love to show you how it works. Any interest?
+
+Sam Schwager, CEO at SuperBill
+
+P.S. If there's no interest, please let me know and I'll stop reaching out.
+""
+Output:
+[
+{{"personalization": "CHAS Health's Operations", "strength": "weak", "reason": "Company name is something that can be easily 'copy-pasted' via a sequencing tool."}},
+]
+""
+
+-----------------
+copy: ""
+Hi Carlos, 
+
+Happy belated 5-year anniversary at Mondi! Your expertise in supply chain management and circular economy is truly impressive, especially with your multilingual skills in Spanish, English, German, and Italian.
+
+I'm reaching out to you today in hopes of fostering some cross-industry discussion to solve one of the world's toughest sustainability challenges – enhancing plastics circularity. My company, Worley, has been developing a solution that would verify and track recycled content in plastics in a more granular way than was previously thought possible. As someone who is deeply invested in meeting the sustainable packaging needs of top brand owners, I'd love to get your insights on this very important topic.
+
+Could we schedule virtual meeting in the next few weeks for a quick chat?
+
+Best Regards,
+
+Jennifer Lee
+
+Vice President, Plastics Recycling - Worley
+""
+
+Output:
+[
+{{"personalization": "belated 5-year anniversary at Mondi", "strength": "strong", "reason": "Anniversaries on the job are highly time-based and relevant. Good personalization!"}},
+{{"personalization": "expertise in supply chain...", "strength": "strong", "reason": "You are identifying why their expertise is relevant to what we are reaching out for"}},
+{{"personalization": "Spanish, English, German...", "strength": "weak", "reason": "Their multilingual abilities are not quite relevant to what we are reaching out for tracking recycled content"}},
+]
+
+-----------------
+copy: ""
+{text}
+""
+output:
+          """,
+            }
+        ],
+        model="gpt-4",
+        max_tokens=1024,
+        type="MISC_CLASSIFY",
+    )
+
+    try:
+        return json.loads(completion)
+    except:
+        return []
+
+
+def generate_email_feedback(subject: str, body: str) -> dict:
+    completion = get_text_generation(
+        [
+            {
+                "role": "user",
+                "content": f"""
+You are going to extract 'feedback' from the email copy I provide.
+
+Here are two examples of email copy and the output I wanted.
+
+-----------------
+Copy: ""
+subject: Transform CHAS Health's Efficiency
+Hey Sarah,
+
+As you're considering how to streamline CHAS Health's operations, it would be worth to consider SuperBill. It can integrate with your existing call process - credentialing, follow-ups, verification - and give time back to staff.
+
+For example, verifying a new patient's insurance. In SuperBill, you simply input the patient's details and our AI instantly handles the calls to insurance providers, freeing up your staff's time and energy. Works for your local and nationwide insurers, too.
+
+If you're open to it, I'd love to show you how it works. Any interest?
+
+Sam Schwager, CEO at SuperBill
+
+P.S. If there's no interest, please let me know and I'll stop reaching out.
+""
+Output:
+[
+{{"feedback": "There is quite a lot of 'us' related content in this email. For example, we mentioned Superbill, our features, 'our AI', etc. We need to focus more on their product or service in the email.", "type": "delta"}},
+{{"feedback": "There is a lack of personalization. We should for example include information about Sarah's role, her company, and how they may be considering dials due to a recent event.", "type": "delta"}},
+{{"feedback": "It's good that you included a soft opt-out at the end of the email. This may increase reply rates", "type": "pro"}}
+]
+""
+
+-----------------
+Copy: ""
+subject: Enhancing Plastics Circularity: Seeking Your Insights, Carlos
+Hi Carlos, 
+
+Happy belated 5-year anniversary at Mondi! Your expertise in supply chain management and circular economy is truly impressive, especially with your multilingual skills in Spanish, English, German, and Italian.
+
+I'm reaching out to you today in hopes of fostering some cross-industry discussion to solve one of the world's toughest sustainability challenges – enhancing plastics circularity. My company, Worley, has been developing a solution that would verify and track recycled content in plastics in a more granular way than was previously thought possible. As someone who is deeply invested in meeting the sustainable packaging needs of top brand owners, I'd love to get your insights on this very important topic.
+
+Could we schedule virtual meeting in the next few weeks for a quick chat?
+
+Best Regards,
+
+Jennifer Lee
+
+Vice President, Plastics Recycling - Worley
+""
+
+Output:
+[
+{{"feedback": "It's great that you called out the prospect's recent anniversary and expertise areas. This kind of personalization, in the first line of the email, increases conversion rates drastically.", "type": "pro"}},
+{{"feedback": "Mention their multilingual abilities is a bit strange because of the context of this email. It may be better to personalize using something relevant to their role or company instead.", "type": "delta"}},
+{{"feedback": "The entire second paragraph is about Worley and Worley's offering - which is an 'us' or 'me' statement. It would instead be better to target the prospect's company and embed how Worley can help solve specific issues they may be encountering."}}
+]
+
+-----------------
+Copy: ""
+subject: {subject}
+{body}
+""
+Output:   
+                """,
+            }
+        ],
+        model="gpt-4",
+        max_tokens=1024,
+        type="MISC_CLASSIFY",
+    )
+
+    try:
+        return json.loads(completion)
+    except:
+        return []

@@ -14,10 +14,10 @@ class EmailSubjectLineTemplate(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     subject_line = db.Column(db.String(255), nullable=False)
-    client_sdr_id = db.Column(
-        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True)
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
 
     active = db.Column(db.Boolean, nullable=False, default=True)
     times_used = db.Column(db.Integer, nullable=False, default=0)
@@ -26,9 +26,7 @@ class EmailSubjectLineTemplate(db.Model):
     sellscale_generated = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self):
-        archetype: ClientArchetype = ClientArchetype.query.get(
-            self.client_archetype_id
-        )
+        archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
 
         return {
             "id": self.id,
@@ -39,7 +37,7 @@ class EmailSubjectLineTemplate(db.Model):
             "active": self.active,
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
-            "sellscale_generated": self.sellscale_generated
+            "sellscale_generated": self.sellscale_generated,
         }
 
 
@@ -48,13 +46,15 @@ class EmailSequenceStep(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
-    email_blocks = db.Column(db.ARRAY(db.String), nullable=True) # Deprecated. TODO: Remove
+    email_blocks = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )  # Deprecated. TODO: Remove
 
     active = db.Column(db.Boolean, nullable=False, default=True)
-    client_sdr_id = db.Column(
-        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True)
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
 
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
     substatus = db.Column(db.String(255), nullable=True)
@@ -63,8 +63,7 @@ class EmailSequenceStep(db.Model):
 
     bumped_count = db.Column(db.Integer, nullable=True, default=0)
 
-    sellscale_default_generated = db.Column(
-        db.Boolean, nullable=True, default=False)
+    sellscale_default_generated = db.Column(db.Boolean, nullable=True, default=False)
 
     template = db.Column(db.String, nullable=True)
 
@@ -81,13 +80,13 @@ class EmailSequenceStep(db.Model):
 
     # Define a CheckConstraint to enforce the minimum value
     __table_args__ = (
-        CheckConstraint('sequence_delay_days >= 0', name='check_sequence_delay_days_positive'),
+        CheckConstraint(
+            "sequence_delay_days >= 0", name="check_sequence_delay_days_positive"
+        ),
     )
 
     def to_dict(self):
-        archetype: ClientArchetype = ClientArchetype.query.get(
-            self.client_archetype_id
-        )
+        archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
 
         return {
             "id": self.id,
@@ -97,7 +96,9 @@ class EmailSequenceStep(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "client_archetype_archetype": archetype.archetype if archetype else None,
-            "overall_status": self.overall_status.value if self.overall_status else None,
+            "overall_status": self.overall_status.value
+            if self.overall_status
+            else None,
             "substatus": self.substatus,
             "default": self.default,
             "bumped_count": self.bumped_count,
@@ -106,7 +107,9 @@ class EmailSequenceStep(db.Model):
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
             "sequence_delay_days": self.sequence_delay_days,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist] if self.transformer_blocklist else []
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            if self.transformer_blocklist
+            else [],
         }
 
 
@@ -143,7 +146,50 @@ class EmailTemplatePool(db.Model):
             "template": self.template,
             "template_type": self.template_type.value,
             "active": self.active,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist] if self.transformer_blocklist else [],
+            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            if self.transformer_blocklist
+            else [],
             "labels": self.labels,
-            "tone": self.tone
+            "tone": self.tone,
+        }
+
+
+class EmailGraderEntry(db.Model):
+    __tablename__ = "email_grader_entry"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Inputs
+    input_subject_line = db.Column(db.String, nullable=False)
+    input_body = db.Column(db.String, nullable=False)
+
+    input_tracking_data = db.Column(db.JSON, nullable=True)
+
+    # Outputs
+    detected_company = db.Column(db.String, nullable=True)
+    evaluated_score = db.Column(db.Integer, nullable=True)
+    evaluated_feedback = db.Column(db.JSON, nullable=True)
+    evaluated_tones = db.Column(db.JSON, nullable=True)
+    evaluated_construction_subject_line = db.Column(db.String, nullable=True)
+    evaluated_construction_spam_words_subject_line = db.Column(db.JSON, nullable=True)
+    evaluated_construction_body = db.Column(db.String, nullable=True)
+    evaluated_construction_spam_words_body = db.Column(db.JSON, nullable=True)
+    evaluated_read_time_seconds = db.Column(db.Integer, nullable=True)
+    evaluated_personalizations = db.Column(db.JSON, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "input_subject_line": self.input_subject_line,
+            "input_body": self.input_body,
+            "detected_company": self.detected_company,
+            "evaluated_score": self.evaluated_score,
+            "evaluated_feedback": self.evaluated_feedback,
+            "evaluated_tones": self.evaluated_tones,
+            "evaluated_construction_subject_line": self.evaluated_construction_subject_line,
+            "evaluated_construction_spam_words_subject_line": self.evaluated_construction_spam_words_subject_line,
+            "evaluated_construction_body": self.evaluated_construction_body,
+            "evaluated_construction_spam_words_body": self.evaluated_construction_spam_words_body,
+            "evaluated_read_time_seconds": self.evaluated_read_time_seconds,
+            "evaluated_personalizations": self.evaluated_personalizations,
         }
