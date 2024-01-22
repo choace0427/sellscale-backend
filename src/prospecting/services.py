@@ -8,6 +8,7 @@ from src.email_outbound.email_store.hunter import find_hunter_email_from_prospec
 from src.email_outbound.email_store.services import (
     create_email_store,
     email_store_hunter_verify,
+    find_email_for_prospect_id,
 )
 
 from src.individual.services import add_individual_from_prospect
@@ -938,9 +939,10 @@ def update_prospect_status_linkedin_helper(
     db.session.commit()
 
     if new_status == ProspectStatus.ACTIVE_CONVO:
-        find_hunter_email_from_prospect_id.delay(
-            prospect_id=prospect_id, trigger_from="status change"
-        )
+        find_email_for_prospect_id.delay(prospect_id=prospect_id)
+        # find_hunter_email_from_prospect_id.delay(
+        #     prospect_id=prospect_id, trigger_from="status change"
+        # )
 
     return True
 
@@ -3665,7 +3667,7 @@ def snooze_prospect_email(
 def inbox_restructure_fetch_prospects(client_sdr_id: int):
     results = db.session.execute(
         f"""
-    select 
+    select
       prospect.id,
       prospect.full_name,
       prospect.title,
@@ -3685,22 +3687,22 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
       end "primary_channel",
       case
         when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
-          then 
+          then
             (
-              case 
+              case
                 when prospect_email.hidden_until is not null and prospect_email.hidden_until >= NOW() then 'Snoozed'
                 when prospect_email.outreach_status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
                 else 'Inbox'
               end
-            ) 
-          else 
+            )
+          else
             (
-              case 
+              case
                 when prospect.hidden_until is not null and prospect.hidden_until > NOW() then 'Snoozed'
                 when prospect.status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
                 else 'Inbox'
               end
-            ) 
+            )
       end "section",
       case
         when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
@@ -3715,7 +3717,7 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
     from prospect
       left join generated_message on generated_message.id = prospect.approved_outreach_message_id
       left join prospect_email on prospect_email.prospect_id = prospect.id
-    where 
+    where
       (
         cast(prospect.status as varchar) ilike '%ACTIVE_CONVO%'
         or prospect.status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET')
@@ -3737,7 +3739,7 @@ def fetch_company_details(client_sdr_id: int, prospect_id: int):
 
     result = db.session.execute(
         f"""
-        select 
+        select
             prospect.company,
             research_payload.payload->'company'->'details'->>'tagline' "Tagline",
             concat(

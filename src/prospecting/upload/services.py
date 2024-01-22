@@ -668,8 +668,8 @@ def run_and_assign_intent_score(self, prospect_id: int):
             p.li_intent_score = li_intent_score
 
         # Get Intent Score for Email
-        if p.hunter_email_score is not None:
-            email_intent_score = p.hunter_email_score * 0.5 + weighted_fit_score
+        if p.email_score is not None:
+            email_intent_score = p.email_score * 0.5 + weighted_fit_score
             p.email_intent_score = email_intent_score
 
         db.session.add(p)

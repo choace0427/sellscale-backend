@@ -1,5 +1,10 @@
+import time
 from app import db, celery
+from src.client.models import ClientSDR
 from src.email_outbound.email_store.models import EmailStore, HunterVerifyStatus
+from src.prospecting.models import Prospect
+from src.slack_notifications.slack import send_slack_message
+from src.utils.slack import URL_MAP
 
 
 def create_email_store(
@@ -38,6 +43,155 @@ def create_email_store(
 
 
 @celery.task(bind=True, max_retries=3)
+def find_emails_for_archetype(self, archetype_id: int) -> bool:
+    """Finds emails for all prospects under an archetype that don't have emails.
+
+    Args:
+        archetype_id (int): archetype id
+
+    Returns:
+        bool: True
+    """
+    prospects: list[Prospect] = Prospect.query.filter_by(
+        archetype_id=archetype_id,
+        email=None,
+    ).all()
+
+    count = 0
+    for prospect in prospects:
+        count += 1
+        if count % 5 == 0:
+            time.sleep(1)
+        find_email_for_prospect_id.delay(prospect_id=prospect.id)
+
+    return True
+
+
+@celery.task(bind=True, max_retries=3)
+def find_email_for_prospect_id(self, prospect_id: int) -> str:
+    """Finds an email for a prospect using DataGMA, FindyMail, and Hunter.
+
+    Args:
+        prospect_id (int): ID of the prospect to find an email for
+
+    Returns:
+        str: The email address found
+    """
+    email = None
+    found = False
+
+    # Get the prospect
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect:
+        return None
+
+    # Get the prospect's name and company
+    name = prospect.full_name
+    company = prospect.company
+
+    # Source 1: DataGMA
+    try:
+        from src.email_outbound.email_store.datagma import DataGMA
+
+        datagma = DataGMA()
+        datagma_email = datagma.find_from_name_and_company(name=name, company=company)
+        if datagma_email:
+            email = datagma_email.get("email")
+            if email:
+                email = email
+                found = False
+    except:
+        pass
+
+    # Source 2: FindyMail
+    # Note: There are only 300 active concurrent requests allowed.
+    # If we ever scale to a point where we have more than 300 concurrent requests, we'll need to
+    # implement a queue.
+    if not found:
+        try:
+            from src.email_outbound.email_store.findymail import FindyMail
+
+            findymail = FindyMail()
+            findymail_email = findymail.find_from_name_and_company(
+                name=name, company=company
+            )
+            if findymail_email:
+                contact = findymail_email.get("contact")
+                if contact:
+                    email = contact.get("email")
+                    if email:
+                        email = email
+                        found = True
+        except:
+            pass
+
+    # Source 3: Hunter
+    if not found:
+        try:
+            from src.email_outbound.email_store.hunter import get_email_from_hunter
+
+            success, data = get_email_from_hunter(
+                first_name=prospect.first_name,
+                last_name=prospect.last_name,
+                company_website=prospect.company_url,
+                company_name=company,
+            )
+            if success:
+                email = data["email"]
+                if email:
+                    email = email
+                    found = True
+        except:
+            pass
+
+    # If no email found, return None
+    if not email or not found:
+        return None
+
+    # Verify the email
+    from src.email_classifier.services import verify_email
+
+    success, email, score = verify_email(email=email)
+    if not success:
+        return None
+
+    # Update the prospect
+    prospect.email = email
+    prospect.email_score = score
+    prospect.valid_primary_email = True
+    db.session.commit()
+
+    # Create an EmailStore
+    email_store_id = create_email_store(
+        email=email,
+        first_name=prospect.first_name,
+        last_name=prospect.last_name,
+        company_name=company,
+    )
+    prospect.email_store_id = email_store_id
+    email_store_hunter_verify.delay(email_store_id=email_store_id)
+
+    # Deduct credits from the Client SDR
+    client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    client_sdr.email_fetching_credits = client_sdr.email_fetching_credits - 1
+    db.session.commit()
+
+    # Send a Slack message
+    send_slack_message(
+        "🦊 Found email for {name} (#{id}) - {overall_status}\n{email} - Score: {score}".format(
+            name=str(prospect.full_name),
+            id=str(prospect.id),
+            email=str(email),
+            score=str(score),
+            overall_status=str(prospect.overall_status.value),
+        ),
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
+    return email
+
+
+@celery.task(bind=True, max_retries=3)
 def collect_and_trigger_email_store_hunter_verify(self) -> bool:
     """Collects all EmailStores with status PENDING and triggers an async task to verify them.
 
@@ -45,7 +199,9 @@ def collect_and_trigger_email_store_hunter_verify(self) -> bool:
         bool: True
     """
     try:
-        email_stores: list[EmailStore] = EmailStore.query.filter_by(verification_status_hunter=HunterVerifyStatus.PENDING).all()
+        email_stores: list[EmailStore] = EmailStore.query.filter_by(
+            verification_status_hunter=HunterVerifyStatus.PENDING
+        ).all()
         for email_store in email_stores:
             email_store_hunter_verify.delay(email_store.id)
 
@@ -109,7 +265,9 @@ def email_store_hunter_verify(self, email_store_id: int) -> (bool, str):
     except Exception as e:
         email_store: EmailStore = EmailStore.query.get(email_store_id)
         email_store.verification_status_hunter = HunterVerifyStatus.FAILED
-        email_store.verification_status_hunter_attempts = email_store.verification_status_hunter_attempts + 1
+        email_store.verification_status_hunter_attempts = (
+            email_store.verification_status_hunter_attempts + 1
+        )
         email_store.verification_status_hunter_error = str(e)
 
         # If we've tried 3 times, mark as failed

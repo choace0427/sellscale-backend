@@ -419,7 +419,7 @@ class Prospect(db.Model):
     twitter_url = db.Column(db.String, nullable=True)
     email = db.Column(db.String, nullable=True)
     email_store_id = db.Column(db.ForeignKey("email_store.id"), nullable=True)
-    hunter_email_score = db.Column(db.Float, nullable=True)
+    email_score = db.Column(db.Float, nullable=True)
     valid_primary_email = db.Column(db.Boolean, nullable=True)
 
     email_additional = db.Column(db.ARRAY(db.JSON), nullable=True)  # Extra emails

@@ -101,7 +101,7 @@ def find_hunter_email_from_prospect_id(
         return None
 
     p.email = email
-    p.hunter_email_score = score
+    p.email_score = score
     p.valid_primary_email = True
     p_id = p.id
     full_name = p.full_name

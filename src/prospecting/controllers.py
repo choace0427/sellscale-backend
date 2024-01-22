@@ -3,6 +3,7 @@ from typing import List
 from typing import Optional
 
 from src.automation.orchestrator import add_process_for_future
+from src.email_outbound.email_store.services import find_emails_for_archetype
 from src.prospecting.models import ExistingContact
 from src.prospecting.services import (
     bulk_mark_not_qualified,
@@ -1263,9 +1264,10 @@ def pull_prospect_emails(client_sdr_id: int):
         "archetype_id", request, json=True, required=True, parameter_type=int
     )
 
-    success = find_hunter_emails_for_prospects_under_archetype.apply_async(
-        args=[client_sdr_id, archetype_id]
-    )
+    success = find_emails_for_archetype.delay(archetype_id=archetype_id)
+    # success = find_hunter_emails_for_prospects_under_archetype.apply_async(
+    #     args=[client_sdr_id, archetype_id]
+    # )
     if success:
         return jsonify({"message": "Success"}), 200
     return jsonify({"message": "Unable to fetch emails"}), 400
