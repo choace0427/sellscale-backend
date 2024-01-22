@@ -3,8 +3,7 @@ from app import db, celery
 from src.client.models import ClientSDR
 from src.email_outbound.email_store.models import EmailStore, HunterVerifyStatus
 from src.prospecting.models import Prospect
-from src.slack_notifications.slack import send_slack_message
-from src.utils.slack import URL_MAP
+from src.utils.slack import URL_MAP, send_slack_message
 
 
 def create_email_store(
@@ -99,7 +98,7 @@ def find_email_for_prospect_id(self, prospect_id: int) -> str:
             email = datagma_email.get("email")
             if email:
                 email = email
-                found = False
+                found = True
     except:
         pass
 

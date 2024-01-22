@@ -38,7 +38,6 @@ def verify_email(email: str) -> (bool, str, str):
         email: The normalized email address
         quality_score: The quality score of the email address
     """
-
     try:
         # Check that the email address is valid. Turn on check_deliverability
         # for first-time validations like on account creation pages (but not
