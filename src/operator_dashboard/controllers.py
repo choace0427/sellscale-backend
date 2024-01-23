@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from src.authentication.decorators import require_user
+from src.operator_dashboard.models import OperatorDashboardEntry
 from src.operator_dashboard.services import (
     create_operator_dashboard_entry,
     get_operator_dashboard_entries_for_sdr,
@@ -47,6 +48,21 @@ def post_create_operator_dashboard_entry(client_sdr_id: int):
     )
 
     return {"entry": entry.to_dict()}, 200
+
+
+@OPERATOR_DASHBOARD_BLUEPRINT.route("/details/<int:task_id>", methods=["GET"])
+@require_user
+def get_operator_dashboard_entry_endpoint(client_sdr_id: int, task_id: int):
+    entry = (
+        OperatorDashboardEntry.query.filter_by(id=task_id)
+        .filter_by(client_sdr_id=client_sdr_id)
+        .first()
+    )
+
+    if not entry:
+        return {"success": False}, 400
+
+    return {"success": True, "data": entry.to_dict()}, 200
 
 
 @OPERATOR_DASHBOARD_BLUEPRINT.route("/all", methods=["GET"])

@@ -411,7 +411,7 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             tag="linkedin_campaign_active_{}".format(archetype_id),
             emoji=archetype.emoji,
             title="Review new LinkedIn Campaign",
-            subtitle="Launched campaign for '{}'. Review prospects and copy.".format(
+            subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary..".format(
                 archetype.archetype
             ),
             cta="Review Campaign",
@@ -421,7 +421,7 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             task_type=OperatorDashboardTaskType.LINKEDIN_CAMPAIGN_REVIEW,
             task_data={
                 "campaign_id": archetype_id,
-            }
+            },
         )
 
     return jsonify({"status": "success"}), 200
@@ -460,7 +460,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             tag="email_campaign_active_{}".format(archetype_id),
             emoji=archetype.emoji,
             title="Review new Email Campaign",
-            subtitle="Launched campaign for '{}'. Review prospects and copy.".format(
+            subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary.".format(
                 archetype.archetype
             ),
             cta="Review Campaign",
@@ -470,7 +470,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             task_type=OperatorDashboardTaskType.EMAIL_CAMPAIGN_REVIEW,
             task_data={
                 "campaign_id": archetype_id,
-            }
+            },
         )
 
     random_prospects = (

@@ -853,6 +853,19 @@ def get_client_archetype_stats(client_archetype_id):
     archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
     client_id = archetype.client_id
+    num_prospects: int = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id
+    ).count()
+
+    sample_prospects = (
+        Prospect.query.filter(
+            Prospect.archetype_id == client_archetype_id,
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+            Prospect.icp_fit_score > 0,
+        )
+        .order_by(Prospect.icp_fit_score.desc())
+        .limit(20)
+    )
 
     analytics = get_all_campaign_analytics_for_client(
         client_id=client_id,
@@ -996,6 +1009,7 @@ def get_client_archetype_stats(client_archetype_id):
             "num_opens": num_opens,
             "num_replies": num_replies,
             "num_demos": num_demos,
+            "num_prospects": num_prospects,
         },
         "contacts": {
             "included_individual_title_keywords": included_individual_title_keywords,
@@ -1007,6 +1021,7 @@ def get_client_archetype_stats(client_archetype_id):
             "included_company_locations_keywords": included_company_locations_keywords,
             "included_company_generalized_keywords": included_company_generalized_keywords,
             "included_company_industries_keywords": included_company_industries_keywords,
+            "sample_contacts": [p.to_dict() for p in sample_prospects],
         },
         "linkedin": {"sequence": linkedin_sequence},
         "email": {"sequence": email_sequence},

@@ -83,7 +83,7 @@ def get_ai_requests(client_sdr_id: int):
         # Finds all AIRequests related to the user
         ai_requests = AIRequest.query.filter(
             AIRequest.client_sdr_id == client_sdr_id
-        ).all()
+        ).order_by(AIRequest.created_at.desc())
         ai_requests_data = [
             {
                 "id": req.id,

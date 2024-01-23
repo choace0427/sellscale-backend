@@ -1578,7 +1578,7 @@ Company Generalized Keywords: {icp_scoring_ruleset.included_company_generalized_
     return icp_dict
 
 
-def update_icp_filters(client_archetype_id: int, filters):
+def update_icp_filters(client_archetype_id: int, filters, merge=False):
     icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id
     ).first()
@@ -1591,12 +1591,30 @@ def update_icp_filters(client_archetype_id: int, filters):
             if value == ["None"] or value == [""] or value == []:
                 setattr(icp_scoring_ruleset, key, None)
             else:
-                if isinstance(value, list):
-                    setattr(
-                        icp_scoring_ruleset, key, [s.replace('"', "") for s in value]
-                    )
-                else:
-                    setattr(icp_scoring_ruleset, key, value)
+                if merge:
+                    if isinstance(value, list):
+                        if getattr(icp_scoring_ruleset, key):
+                            setattr(
+                                icp_scoring_ruleset,
+                                key,
+                                getattr(icp_scoring_ruleset, key)
+                                + [s.replace('"', "") for s in value],
+                            )
+                        else:
+                            setattr(
+                                icp_scoring_ruleset,
+                                key,
+                                [s.replace('"', "") for s in value],
+                            )
+                    else:
+                        if getattr(icp_scoring_ruleset, key):
+                            setattr(
+                                icp_scoring_ruleset,
+                                key,
+                                getattr(icp_scoring_ruleset, key) + value,
+                            )
+                        else:
+                            setattr(icp_scoring_ruleset, key, value)
 
         # Commit the changes to the database
         db.session.commit()

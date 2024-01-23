@@ -6,6 +6,8 @@ from app import db
 from sqlalchemy.orm import attributes
 from src.client.models import ClientArchetype, ClientSDR
 from src.ml.services import get_text_generation
+from src.prospecting.icp_score.models import ICPScoringRuleset
+from src.prospecting.icp_score.services import update_icp_filters
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.segment.models import Segment
 from sqlalchemy import case
@@ -324,6 +326,45 @@ def wipe_segment_ids_from_prospects_in_segment(segment_id: int):
     return True, "Prospects removed from segment"
 
 
+def add_segment_filters_to_icp_scoring_ruleset_for_campaign(
+    segment_id: int,
+    campaign_id: int,
+):
+    segment: Segment = Segment.query.filter_by(id=segment_id).first()
+    if not segment:
+        return False, "Segment not found"
+
+    MAP_SEGMENT_FILTER_TO_ICP_FILTER = {
+        "included_title_keywords": "included_individual_title_keywords",
+        "excluded_title_keywords": "excluded_individual_title_keywords",
+        "included_seniority_keywords": "included_individual_seniority_keywords",
+        "excluded_seniority_keywords": "excluded_individual_seniority_keywords",
+        "included_company_keywords": "included_company_name_keywords",
+        "excluded_company_keywords": "excluded_company_name_keywords",
+        "included_education_keywords": "included_individual_education_keywords",
+        "excluded_education_keywords": "excluded_individual_education_keywords",
+        "included_bio_keywords": "included_individual_generalized_keywords",
+        "excluded_bio_keywords": "excluded_individual_generalized_keywords",
+        "included_location_keywords": "included_individual_locations_keywords",
+        "excluded_location_keywords": "excluded_individual_locations_keywords",
+        "included_skills_keywords": "included_individual_skills_keywords",
+        "excluded_skills_keywords": "excluded_individual_skills_keywords",
+        "years_of_experience_start": "individual_years_of_experience_start",
+        "years_of_experience_end": "individual_years_of_experience_end",
+        "included_industry_keywords": "included_individual_industry_keywords",
+        "excluded_industry_keywords": "excluded_individual_industry_keywords",
+    }
+
+    updated_filters = {}
+    for segment_filter, icp_filter in MAP_SEGMENT_FILTER_TO_ICP_FILTER.items():
+        if segment_filter in segment.filters:
+            updated_filters[icp_filter] = segment.filters[segment_filter]
+
+    update_icp_filters(
+        client_archetype_id=campaign_id, filters=updated_filters, merge=True
+    )
+
+
 def add_unused_prospects_in_segment_to_campaign(segment_id: int, campaign_id: int):
     prospects: list[Prospect] = Prospect.query.filter(
         and_(
@@ -340,5 +381,9 @@ def add_unused_prospects_in_segment_to_campaign(segment_id: int, campaign_id: in
         {Prospect.archetype_id: campaign_id}, synchronize_session=False
     )
     db.session.commit()
+
+    add_segment_filters_to_icp_scoring_ruleset_for_campaign(
+        segment_id=segment_id, campaign_id=campaign_id
+    )
 
     return True, "Prospects added to campaign"
