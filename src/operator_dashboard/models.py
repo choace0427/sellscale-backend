@@ -57,4 +57,6 @@ class OperatorDashboardEntry(db.Model):
             "cta_url": self.cta_url,
             "status": self.status.name,
             "due_date": self.due_date.isoformat(),
+            "task_type": self.task_type.name,
+            "task_data": self.task_data,
         }

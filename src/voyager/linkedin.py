@@ -18,6 +18,7 @@ from src.automation.resend import send_email
 from src.operator_dashboard.models import (
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
+    OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.voyager.hackathon_services import make_search
@@ -170,6 +171,10 @@ class LinkedIn(object):
                     status=OperatorDashboardEntryStatus.PENDING,
                     due_date=datetime.datetime.now() + datetime.timedelta(days=1),
                     recurring=True,
+                    task_type=OperatorDashboardTaskType.LINKEDIN_DISCONNECTED,
+                    task_data={
+                        "client_sdr_id": sdr.id,
+                    },
                 )
             return None
 
@@ -231,6 +236,10 @@ class LinkedIn(object):
                     status=OperatorDashboardEntryStatus.PENDING,
                     due_date=datetime.datetime.now() + datetime.timedelta(days=1),
                     recurring=True,
+                    task_type=OperatorDashboardTaskType.LINKEDIN_DISCONNECTED,
+                    task_data={
+                        "client_sdr_id": sdr.id,
+                    },
                 )
             return None
 

@@ -4,6 +4,7 @@ from src.operator_dashboard.models import (
     OperatorDashboardEntry,
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
+    OperatorDashboardTaskType,
 )
 from app import db
 
@@ -19,7 +20,9 @@ def create_operator_dashboard_entry(
     cta_url: str,
     status: OperatorDashboardEntryStatus,
     due_date: datetime.datetime,
+    task_type: OperatorDashboardTaskType,
     recurring: bool = False,
+    task_data: dict = {},
 ) -> Optional[OperatorDashboardEntry]:
     pending_notification = OperatorDashboardEntry.query.filter_by(
         client_sdr_id=client_sdr_id,
@@ -48,6 +51,8 @@ def create_operator_dashboard_entry(
         cta_url=cta_url,
         status=status,
         due_date=due_date,
+        task_type=task_type,
+        task_data=task_data,
     )
 
     db.session.add(entry)

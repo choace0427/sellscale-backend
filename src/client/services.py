@@ -19,6 +19,7 @@ from src.bump_framework.default_frameworks.services import (
 from src.operator_dashboard.models import (
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
+    OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.vision.services import attempt_chat_completion_with_vision
@@ -2483,6 +2484,12 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
         cta_url="/prospects/{prospect_id}".format(prospect_id=prospect_id),
         status=OperatorDashboardEntryStatus.PENDING,
         due_date=datetime.now() + timedelta(days=5),
+        task_type=OperatorDashboardTaskType.DEMO_FEEDBACK_NEEDED,
+        task_data={
+            "prospect_id": prospect_id,
+            "prospect_full_name": prospect_full_name,
+            "prospect_demo_date_formatted": prospect_demo_date_formatted,
+        }
     )
 
 

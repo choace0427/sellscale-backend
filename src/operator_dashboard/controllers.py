@@ -28,6 +28,8 @@ def post_create_operator_dashboard_entry(client_sdr_id: int):
     cta_url = get_request_parameter("cta_url", request, json=True, required=True)
     status = get_request_parameter("status", request, json=True, required=True)
     due_date = get_request_parameter("due_date", request, json=True, required=True)
+    task_type = get_request_parameter("task_type", request, json=True, required=True)
+    task_data = get_request_parameter("task_data", request, json=True, required=True)
 
     entry = create_operator_dashboard_entry(
         client_sdr_id=client_sdr_id,
@@ -40,6 +42,8 @@ def post_create_operator_dashboard_entry(client_sdr_id: int):
         cta_url=cta_url,
         status=status,
         due_date=due_date,
+        task_type=task_type,
+        task_data=task_data,
     )
 
     return {"entry": entry.to_dict()}, 200

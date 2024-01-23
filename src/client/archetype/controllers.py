@@ -28,6 +28,7 @@ from src.notifications.services import create_notification
 from src.operator_dashboard.models import (
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
+    OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.models import Prospect
@@ -417,6 +418,10 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             cta_url="/setup/linkedin?campaign_id={}".format(archetype_id),
             status=OperatorDashboardEntryStatus.PENDING,
             due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+            task_type=OperatorDashboardTaskType.LINKEDIN_CAMPAIGN_REVIEW,
+            task_data={
+                "campaign_id": archetype_id,
+            }
         )
 
     return jsonify({"status": "success"}), 200
@@ -462,6 +467,10 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             cta_url="/setup/email?campaign_id={}".format(archetype_id),
             status=OperatorDashboardEntryStatus.PENDING,
             due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+            task_type=OperatorDashboardTaskType.EMAIL_CAMPAIGN_REVIEW,
+            task_data={
+                "campaign_id": archetype_id,
+            }
         )
 
     random_prospects = (
