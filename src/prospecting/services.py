@@ -313,7 +313,8 @@ def get_prospects_for_icp_table(
                     when prospect_status_records.id is not null then TRUE
                     else FALSE
                 end has_been_sent_outreach,
-                prospect.email
+                prospect.email,
+                prospect.valid_primary_email
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
                 left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
@@ -352,6 +353,7 @@ def get_prospects_for_icp_table(
                 "status": r[8],
                 "has_been_sent_outreach": r[9],
                 "email": r[10],
+                "valid_primary_email": r[11],
             }
         )
 
