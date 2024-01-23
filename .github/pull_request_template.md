@@ -1,15 +1,22 @@
-## Proposed changes
+## Description
 
-Describe the big picture of your changes here to communicate to others why this change is necessary. If it fixes a bug or resolves a feature request, be sure to link to that issue.
+Describe the big picture of your changes here to communicate to others what this change accomplishes and why it is necessary. If it fixes a bug or resolves a feature request, be sure to link to that issue.
 
 ## Types of changes
 
 What types of changes does your code introduce to SellScale API?
 _Put an `x` in the boxes that apply_
 
-- [ ] Bugfix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Migration
+  - [ ] I HAVE FOLLOWED THE FOLLOWING PROTOCOL:
+    - [ ] I am up to date with the latest main branch and database migrations
+    - [ ] I have created a migration script with `upgrade` and `downgrade`
+    - [ ] I have upgrade and tested my changes locally, with no problems
+    - [ ] I have announced my migration in the #eng-migrations channel
+- [ ] Bugfix
+  - [ ] Hotfix. For rapid changes that fix broken code. Please title your PR 'HOTFIX:' <title>
+  - [ ] Quickfix. For simple changes that are not business critical. Please title your PR 'QUICKFIX:' <title>
 - [ ] Documentation Update (if none of the other choices apply)
 
 ## Checklist
