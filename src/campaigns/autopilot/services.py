@@ -240,7 +240,7 @@ def daily_generate_linkedin_campaign_for_sdr(
                     )
                     if not oc:
                         send_slack_message(
-                            f"🤖 ❌ ❓ Daily Campaign (LI): Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                            f"🤖 ❌ ❓ Daily Campaign (LI): Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                             [SLACK_CHANNEL],
                         )
                     # Generate the campaign
@@ -248,14 +248,14 @@ def daily_generate_linkedin_campaign_for_sdr(
                         generating = generate_campaign(oc.id)
                         if not generating:
                             send_slack_message(
-                                f"🤖 ❌ ❓ Daily Campaign (LI): Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                                f"🤖 ❌ ❓ Daily Campaign (LI): Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                                 [SLACK_CHANNEL],
                             )
                         else:
                             linkedin_campaigns_generated.append(archetype.archetype)
                 else:
                     send_slack_message(
-                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (LI): Not enough prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (LI): Not enough prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                         [SLACK_CHANNEL],
                     )
 
@@ -372,7 +372,7 @@ def daily_generate_email_campaign_for_sdr(
                 )
                 if num_available_prospects == 0 or num_to_generate == 0:
                     send_slack_message(
-                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (Email): No prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (Email): No prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                         [SLACK_CHANNEL],
                     )
                     continue
@@ -390,7 +390,7 @@ def daily_generate_email_campaign_for_sdr(
                     )
                     if not oc:
                         send_slack_message(
-                            f"🤖 ❌ ❓ Daily Campaign (Email): Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                            f"🤖 ❌ ❓ Daily Campaign (Email): Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                             [SLACK_CHANNEL],
                         )
                     # Generate the campaign
@@ -398,14 +398,14 @@ def daily_generate_email_campaign_for_sdr(
                         generating = generate_campaign(oc.id)
                         if not generating:
                             send_slack_message(
-                                f"🤖 ❌ ❓ Daily Campaign (Email): Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                                f"🤖 ❌ ❓ Daily Campaign (Email): Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                                 [SLACK_CHANNEL],
                             )
                         else:
                             email_campaigns_generated.append(archetype.archetype)
                 else:
                     send_slack_message(
-                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (Email): Not enough prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (Email): Not enough prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                         [SLACK_CHANNEL],
                     )
 
@@ -587,7 +587,7 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                     )
                     if not oc:
                         send_slack_message(
-                            f"🤖 ❌ ❓ AUTOPILOT LINKEDIN: Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                            f"🤖 ❌ ❓ AUTOPILOT LINKEDIN: Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                             [SLACK_CHANNEL],
                         )
                     # Generate the campaign
@@ -595,14 +595,14 @@ def collect_and_generate_autopilot_campaign_for_sdr(
                         generating = generate_campaign(oc.id)
                         if not generating:
                             send_slack_message(
-                                f"🤖 ❌ ❓ AUTOPILOT LINKEDIN: Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                                f"🤖 ❌ ❓ AUTOPILOT LINKEDIN: Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                                 [SLACK_CHANNEL],
                             )
                         else:
                             linkedin_campaigns_generated.append(archetype.archetype)
                 else:
                     send_slack_message(
-                        f"🤖 ❌ 🧑‍🤝‍🧑 AUTOPILOT LINKEDIN: Not enough prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.archetype}.",
+                        f"🤖 ❌ 🧑‍🤝‍🧑 AUTOPILOT LINKEDIN: Not enough prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                         [SLACK_CHANNEL],
                     )
 
