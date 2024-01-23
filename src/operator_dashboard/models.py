@@ -16,6 +16,16 @@ class OperatorDashboardEntryStatus(enum.Enum):
     DISMISSED = "DISMISSED"
 
 
+class OperatorDashboardTaskType(enum.Enum):
+    LINKEDIN_DISCONNECTED = "LINKEDIN_DISCONNECTED"
+
+    EMAIL_CAMPAIGN_REVIEW = "EMAIL_CAMPAIGN_REVIEW"
+    LINKEDIN_CAMPAIGN_REVIEW = "LINKEDIN_CAMPAIGN_REVIEW"
+
+    DEMO_FEEDBACK_NEEDED = "DEMO_FEEDBACK_NEEDED"
+    SCHEDULING_NEEDED = "SCHEDULING_NEEDED"
+
+
 class OperatorDashboardEntry(db.Model):
     __tablename__ = "operator_dashboard_entry"
 
@@ -31,6 +41,8 @@ class OperatorDashboardEntry(db.Model):
     cta_url = db.Column(db.String, nullable=False)
     status = db.Column(db.Enum(OperatorDashboardEntryStatus), nullable=False)
     due_date = db.Column(db.DateTime, nullable=False)
+    task_type = db.Column(db.Enum(OperatorDashboardTaskType), nullable=False)
+    task_data = db.Column(db.JSON, nullable=False)
 
     def to_dict(self):
         return {
