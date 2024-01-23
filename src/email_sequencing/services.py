@@ -718,7 +718,7 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     body_good = len(body.split()) < 120 and all(
         len(sentence.split()) < 15 for sentence in body.split(".")
     )
-    read_time_good = len(body.split()) / 4 < 120
+    read_time = int(len(body.split()) / 4)
 
     # Detect tones and personalizations
     tones = detect_tones(body)
@@ -729,7 +729,7 @@ def grade_email(tracking_data: dict, subject: str, body: str):
         [
             subject_line_good,
             body_good,
-            read_time_good,
+            read_time <= 30,
             len(spam_subject_words) == 0,
             len(spam_body_words) == 0,
         ]
@@ -756,7 +756,7 @@ def grade_email(tracking_data: dict, subject: str, body: str):
             "words": spam_body_words,
             "evaluation": "GOOD" if len(spam_body_words) == 0 else "BAD",
         },
-        evaluated_read_time_seconds=int(len(body.split()) / 4),
+        evaluated_read_time_seconds=read_time,
         evaluated_personalizations=personalizations,
     )
     db.session.add(entry)
