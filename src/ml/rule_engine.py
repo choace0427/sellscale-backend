@@ -77,6 +77,14 @@ def format_entities(
     if len(unknown_entities) > 0:
         for entity in unknown_entities:
             entity_lowered = entity.lower()
+
+            if (
+                entity_lowered == "none"
+                or entity_lowered == '"none"'
+                or entity_lowered == "'none'"
+            ):
+                continue
+
             if (
                 entity_lowered not in lower_whitelisted_names
                 and entity_lowered not in cta_lowered

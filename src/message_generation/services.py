@@ -790,9 +790,11 @@ def approve_message(message_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.approved_outreach_message_id = message.id
     db.session.add(prospect)
-
     db.session.commit()
+    
     run_message_rule_engine(message_id=message_id)
+
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
 
     # If the message has no problems, mark it as "human approved"
     if not message.problems or len(message.problems) == 0:
