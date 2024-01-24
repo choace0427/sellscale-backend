@@ -745,7 +745,7 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     goods += feedback_point
 
     total_checks = 6
-    feedback_score = (goods / total_checks) * 100
+    feedback_score = int((goods / total_checks) * 100)
 
     # Create a record in the database
     entry = EmailGraderEntry(
