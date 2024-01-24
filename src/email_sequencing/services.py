@@ -257,9 +257,10 @@ def modify_email_sequence_step(
     db.session.add(sequence_step)
     db.session.commit()
 
-    success, message = sync_smartlead_send_schedule(
-        archetype_id=client_archetype_id,
-    )
+    # Aakash commented this out because it was messing up the smartlead campaign analytics and zeroing out the stats
+    # success, message = sync_smartlead_send_schedule(
+    #     archetype_id=client_archetype_id,
+    # )
 
     return True
 
