@@ -43,7 +43,7 @@ def exchange_slack_auth_code(client_sdr_id: int, code: str) -> tuple[bool, str]:
     slack_auth = SlackAuthentication(
         client_id=client.id,
         client_sdr_id=client_sdr.id,
-        slack_payload=payload,
+        slack_payload=payload.data,
         slack_access_token=payload.get("access_token", ""),
         slack_token_type=payload.get("token_type", ""),
         slack_scope=payload.get("scope", ""),
