@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 from model_import import (
     EmailSequenceStep,
     EmailSubjectLineTemplate,
@@ -716,9 +717,9 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     # Evaluate subject line and body construction
     subject_line_good = len(subject) < 100
     body_good = len(body.split()) < 120 and all(
-        len(sentence.split()) < 15 for sentence in body.split(".")
+        len(sentence.split()) < 15 for sentence in re.split(r"[.\n]", body)
     )
-    read_time = int(len(body.split()) / 4)
+    read_time = int(len(body.split()) / 4) * 2
 
     # Detect tones and personalizations
     tones = detect_tones(body)

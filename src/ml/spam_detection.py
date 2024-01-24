@@ -1,6 +1,34 @@
 import csv
+import re
+import nltk
+
+nltk.download("wordnet")
+from nltk.stem import WordNetLemmatizer
 
 spam_words_path = r"src/../datasets/spam_words.csv"
+lemmatizer = WordNetLemmatizer()
+
+
+def normalize_word(word: str) -> str:
+    # Remove punctuation and convert to lower case
+    word = re.sub(r"[^\w\s]", "", word).lower()
+
+    try:  # Check for verb
+        result = lemmatizer.lemmatize(word, pos="v")
+        if result and result != word:
+            word = result
+        else:  # Check for noun
+            result = lemmatizer.lemmatize(word, pos="n")
+            if result and result != word:
+                word = result
+            else:  # Check for adjective
+                result = lemmatizer.lemmatize(word, pos="a")
+                if result and result != word:
+                    word = result
+    except:
+        pass
+
+    return word
 
 
 def run_algorithmic_spam_detection(text: str) -> dict:
@@ -24,14 +52,15 @@ def run_algorithmic_spam_detection(text: str) -> dict:
     with open(spam_words_path, "r") as f:
         reader = csv.reader(f)
         for row in reader:
-            spam_words.append(row[0])
+            spam_words.append(normalize_word(row[0]))
 
-    text = text.split()
-    for word in text:
-        if word in spam_words:
+    words = re.split(r"\s+", text)
+    for word in words:
+        normalized_word = normalize_word(word)
+        if normalized_word in spam_words:
             detected_spam.append(word)
 
-    text_length = len(text)
+    text_length = len(words)
     read_minutes = (text_length // 130) + 1
 
     spam_word_score = max(100 - (25 * len(detected_spam)), 0)
