@@ -89,8 +89,7 @@ class Client(db.Model):
         from src.slack.auth.models import SlackAuthentication
 
         slack_bot_connected: bool = (
-            SlackAuthentication.query.filter_by(client_id=self.client_id).first()
-            is not None
+            SlackAuthentication.query.filter_by(client_id=self.id).first() is not None
         )
         return {
             "company": self.company,
