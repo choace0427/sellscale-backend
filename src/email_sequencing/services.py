@@ -725,6 +725,8 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     tones = detect_tones(body)
     personalizations = detect_personalizations(body)
 
+    feedback = generate_email_feedback(subject=subject, body=body)
+
     # Calculate feedback score
     goods = sum(
         [
@@ -735,7 +737,14 @@ def grade_email(tracking_data: dict, subject: str, body: str):
             len(spam_body_words) == 0,
         ]
     )
-    total_checks = 5
+
+    # Get value from 0 - 1, based on the number of pros in the feedback
+    feedback_point = sum(
+        [1 if feedback_item.get("type") == "pro" else 0 for feedback_item in feedback]
+    ) / len(feedback)
+    goods += feedback_point
+
+    total_checks = 6
     feedback_score = (goods / total_checks) * 100
 
     # Create a record in the database
@@ -745,7 +754,7 @@ def grade_email(tracking_data: dict, subject: str, body: str):
         input_body=body,
         detected_company=detect_company(body),
         evaluated_score=feedback_score,
-        evaluated_feedback=generate_email_feedback(subject=subject, body=body),
+        evaluated_feedback=feedback,
         evaluated_tones={"tones": tones},
         evaluated_construction_subject_line="GOOD" if subject_line_good else "BAD",
         evaluated_construction_spam_words_subject_line={
