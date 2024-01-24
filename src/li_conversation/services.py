@@ -646,7 +646,7 @@ Take appropriate action then mark this message as ✅ (_if this classification w
 
 *Direct Link:* {direct_link}
                 """,
-                webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+                webhook_urls=[URL_MAP["continue-sequence-alerts"]],
             )
 
             update_prospect_status_linkedin(
