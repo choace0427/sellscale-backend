@@ -36,9 +36,9 @@ def exchange_slack_auth_code(client_sdr_id: int, code: str) -> tuple[bool, str]:
     if not client:
         return False, "SellScale: Invalid Client ID"
 
-    slack_team = payload.get("team", {})
-    slack_enterprise = payload.get("enterprise", {})
-    slack_authed_user = payload.get("authed_user", {})
+    slack_team = payload.get("team") or {}
+    slack_enterprise = payload.get("enterprise") or {}
+    slack_authed_user = payload.get("authed_user") or {}
 
     slack_auth = SlackAuthentication(
         client_id=client.id,
