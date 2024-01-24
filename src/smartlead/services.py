@@ -213,7 +213,7 @@ def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     Returns:
         bool: True if successful
     """
-    from src.slack_notifications.notifications.email_ai_reply_notification import (
+    from src.slack.notifications.email_ai_reply_notification import (
         EmailAIReplyNotification,
     )
 

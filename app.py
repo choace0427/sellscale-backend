@@ -9,6 +9,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 
 from flask_sqlalchemy import SQLAlchemy
+from app_slack import initialize_slack_app
 from src.setup.TimestampedModel import TimestampedModel
 from src.utils.scheduler import *
 from src.utils.slack import URL_MAP
@@ -52,6 +53,9 @@ if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
 
     # Set the custom excepthook function as the default excepthook
     sys.excepthook = sentry_excepthook
+
+
+slack_app = initialize_slack_app()
 
 
 def make_celery(app):
@@ -279,7 +283,8 @@ def register_blueprints(app):
     from src.operator_dashboard.controllers import OPERATOR_DASHBOARD_BLUEPRINT
 
     from src.subscriptions.controllers import SUBSCRIPTIONS_BLUEPRINT
-    from src.slack_notifications.controllers import SLACK_NOTIFICATION_BLUEPRINT
+    from src.slack.controllers import SLACK_BLUEPRINT
+    from src.slack.auth.controllers import SLACK_AUTH_BLUEPRINT
     from src.track.controllers import TRACK_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
@@ -350,9 +355,8 @@ def register_blueprints(app):
         OPERATOR_DASHBOARD_BLUEPRINT, url_prefix="/operator_dashboard"
     )
     app.register_blueprint(SUBSCRIPTIONS_BLUEPRINT, url_prefix="/subscriptions")
-    app.register_blueprint(
-        SLACK_NOTIFICATION_BLUEPRINT, url_prefix="/slack_notification"
-    )
+    app.register_blueprint(SLACK_BLUEPRINT, url_prefix="/slack")
+    app.register_blueprint(SLACK_AUTH_BLUEPRINT, url_prefix="/slack/authentication")
     app.register_blueprint(TRACK_BLUEPRINT, url_prefix="/track")
 
     db.init_app(app)
@@ -370,5 +374,7 @@ def health_check():
 
 register_blueprints(app)
 
+
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    pass
+    # socketio.run(app, debug=True)

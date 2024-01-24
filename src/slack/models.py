@@ -3,6 +3,22 @@ from enum import Enum
 from sqlalchemy.dialects.postgresql import JSONB
 
 
+def get_slack_notification_type_metadata():
+    from src.slack.notifications.email_ai_reply_notification import (
+        EmailAIReplyNotification,
+    )
+
+    map_slack_notification_type_to_metadata = {
+        SlackNotificationType.AI_REPLY_TO_EMAIL: {
+            "name": "AI Reply to Email",
+            "description": "A Slack notification that is sent when the AI replies to an email",
+            "class": EmailAIReplyNotification,
+        }
+    }
+
+    return map_slack_notification_type_to_metadata
+
+
 class SlackNotificationType(Enum):
     """The types of Slack notifications that can be sent"""
 
@@ -16,22 +32,6 @@ class SlackNotificationType(Enum):
 
     def get_class(self):
         return get_slack_notification_type_metadata()[self].get("class")
-
-
-def get_slack_notification_type_metadata():
-    from src.slack_notifications.notifications.email_ai_reply_notification import (
-        EmailAIReplyNotification,
-    )
-
-    map_slack_notification_type_to_metadata = {
-        SlackNotificationType.AI_REPLY_TO_EMAIL: {
-            "name": "AI Reply to Email",
-            "description": "A Slack notification that is sent when the AI replies to an email",
-            "class": EmailAIReplyNotification,
-        }
-    }
-
-    return map_slack_notification_type_to_metadata
 
 
 class SlackNotification(db.Model):
@@ -79,7 +79,7 @@ class SentSlackNotification(db.Model):
 
 
 def populate_slack_notifications():
-    """Populate the Slack notifications table with all of the Slack notifications"""
+    """Populate the Slack notifications table with all of the Slack notifications. Should be called after introducing a new Slack notification type."""
     for slack_notification_type in SlackNotificationType:
         # Get the Slack notification
         slack_notification = SlackNotification.query.filter_by(
@@ -95,3 +95,27 @@ def populate_slack_notifications():
             )
             db.session.add(slack_notification)
             db.session.commit()
+
+
+def subscribe_all_sdrs_to_notification(notification_type: SlackNotificationType):
+    """Subscribe all of the SDRs to a Slack notification type. Should be called after introducing a new Slack notification type."""
+    from src.client.models import ClientSDR
+    from src.subscriptions.services import subscribe_to_slack_notification
+
+    # Get the ID of this notification type
+    slack_notification: SlackNotification = SlackNotification.query.filter_by(
+        notification_type=notification_type
+    ).first()
+    if not slack_notification:
+        raise Exception(
+            f"Slack notification of type: {notification_type.value} not found"
+        )
+
+    # Get all of the active SDRs
+    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True).all()
+
+    # Create subscriptions to this notification type for all of the SDRs
+    for client_sdr in client_sdrs:
+        subscribe_to_slack_notification(
+            client_sdr_id=client_sdr.id, slack_notification_id=slack_notification.id
+        )

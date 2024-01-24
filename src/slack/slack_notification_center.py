@@ -22,7 +22,7 @@ from datetime import datetime
 
 from model_import import Client
 from src.client.models import ClientSDR
-from src.slack_notifications.models import SlackNotificationType
+from src.slack.models import SlackNotificationType
 
 
 NOTIFICATION_TESTING_CHANNEL = (
@@ -189,7 +189,7 @@ def create_sent_slack_notification_entry(
     Returns:
         int: The ID of the SentSlackNotification entry that was created
     """
-    from src.slack_notifications.models import SentSlackNotification
+    from src.slack.models import SentSlackNotification
 
     sent_slack_notification = SentSlackNotification(
         client_sdr_id=client_sdr_id,

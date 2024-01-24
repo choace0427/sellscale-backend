@@ -1,19 +1,19 @@
 from flask import Blueprint, request, jsonify
 
 from src.authentication.decorators import require_user
-from src.slack_notifications.slack_notification import SlackNotificationClass
+from src.slack.slack_notification_class import SlackNotificationClass
 from src.utils.request_helpers import get_request_parameter
-from src.slack_notifications.models import (
+from src.slack.models import (
     SlackNotification,
     SlackNotificationType,
     get_slack_notification_type_metadata,
 )
 
 
-SLACK_NOTIFICATION_BLUEPRINT = Blueprint("slack_notification", __name__)
+SLACK_BLUEPRINT = Blueprint("slack", __name__)
 
 
-@SLACK_NOTIFICATION_BLUEPRINT.route("/preview", methods=["POST"])
+@SLACK_BLUEPRINT.route("/notification/preview", methods=["POST"])
 @require_user
 def post_preview_slack_notification(client_sdr_id: int):
     """Previews a Slack notification"""

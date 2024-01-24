@@ -86,6 +86,12 @@ class Client(db.Model):
         return uuid_str
 
     def to_dict(self) -> dict:
+        from src.slack.auth.models import SlackAuthentication
+
+        slack_bot_connected: bool = (
+            SlackAuthentication.query.filter_by(client_id=self.client_id).first()
+            is not None
+        )
         return {
             "company": self.company,
             "contact_name": self.contact_name,
@@ -107,6 +113,7 @@ class Client(db.Model):
             "impressive_facts": self.impressive_facts,
             "auto_generate_li_messages": self.auto_generate_li_messages,
             "auto_generate_email_messages": self.auto_generate_email_messages,
+            "slack_bot_connected": slack_bot_connected,
         }
 
 
@@ -448,7 +455,7 @@ class ClientSDR(db.Model):
         Returns:
             bool: Whether or not the SDR is subscribed to the Slack notification type
         """
-        from src.slack_notifications.models import SlackNotification
+        from src.slack.models import SlackNotification
 
         # Get the SlackNotification
         notification: SlackNotification = SlackNotification.query.filter_by(

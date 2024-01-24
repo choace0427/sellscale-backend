@@ -2,9 +2,9 @@ from typing import Optional
 from src.client.models import Client, ClientSDR
 from src.email_outbound.models import ProspectEmail
 from src.prospecting.models import Prospect
-from src.slack_notifications.models import SlackNotificationType
-from src.slack_notifications.slack import send_slack_message
-from src.slack_notifications.slack_notification import SlackNotificationClass
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import send_slack_message
+from src.slack.slack_notification_class import SlackNotificationClass
 
 
 class EmailAIReplyNotification(SlackNotificationClass):

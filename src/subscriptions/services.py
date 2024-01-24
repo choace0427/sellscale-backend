@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from app import db
-from src.slack_notifications.models import SlackNotification
+from src.slack.models import SlackNotification
 from src.subscriptions.models import Subscription
 
 
