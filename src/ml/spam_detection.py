@@ -10,8 +10,8 @@ lemmatizer = WordNetLemmatizer()
 
 
 def normalize_word(word: str) -> str:
-    # Remove punctuation and convert to lower case
-    word = re.sub(r"[^\w\s]", "", word).lower()
+    # Convert to lower case
+    word = word.lower()
 
     try:  # Check for verb
         result = lemmatizer.lemmatize(word, pos="v")
@@ -28,7 +28,7 @@ def normalize_word(word: str) -> str:
     except:
         pass
 
-    return word
+    return word.strip()
 
 
 def run_algorithmic_spam_detection(text: str) -> dict:
@@ -57,7 +57,7 @@ def run_algorithmic_spam_detection(text: str) -> dict:
     words = re.split(r"\s+", text)
     for word in words:
         normalized_word = normalize_word(word)
-        if normalized_word in spam_words:
+        if len(normalized_word) > 0 and normalized_word in spam_words:
             detected_spam.append(word)
 
     text_length = len(words)
