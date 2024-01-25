@@ -183,6 +183,16 @@ class Smartlead:
         },
     ]
 
+    LEAD_CATEGORIES = {
+        "Interested": 1,
+        "Meeting Request": 2,
+        "Not Interested": 3,
+        "Do Not Contact": 4,
+        "Information Request": 5,
+        "Out of Office": 6,
+        "Wrong Person": 7,
+    }
+
     def __init__(self):
         self.api_key = os.environ.get("SMARTLEAD_API_KEY")
 
@@ -356,12 +366,38 @@ class Smartlead:
         if response.status_code == 200:
             return True
 
+    def get_lead_categories(self):
+        url = f"{self.BASE_URL}/leads/fetch-categories?api_key={self.api_key}"
+        response = requests.get(url)
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.get_lead_categories()
+        return response.json()
+
     def get_lead_by_email_address(self, email_address):
         url = f"{self.BASE_URL}/leads/?api_key={self.api_key}&email={email_address}"
         response = requests.get(url)
         if response.status_code == 429:
             time.sleep(self.DELAY_SECONDS)
             return self.get_lead_by_email_address(email_address)
+        return response.json()
+
+    def post_update_lead_category(
+        self,
+        campaign_id: int,
+        lead_id: int,
+        category_id: int,
+        pause_lead: Optional[bool] = True,
+    ):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/category?api_key={self.api_key}"
+        data = {"category_id": category_id, "pause_lead": pause_lead}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.post_update_lead_category(
+                campaign_id, lead_id, category_id, pause_lead
+            )
         return response.json()
 
     def get_message_history_using_lead_and_campaign_id(self, lead_id, campaign_id):

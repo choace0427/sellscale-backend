@@ -2126,6 +2126,17 @@ def calculate_prospect_overall_status(prospect_id: int):
         db.session.add(prospect)
         db.session.commit()
 
+    # SMARTLEAD: We want to DO NOT CONTACT the Prospect if the overall status is REMOVED or NURTURE
+    if (
+        prospect.overall_status == ProspectOverallStatus.REMOVED
+        or prospect.overall_status == ProspectOverallStatus.NURTURE
+    ):
+        from src.smartlead.services import smartlead_update_prospect_status
+
+        smartlead_update_prospect_status(
+            prospect_id=prospect_id, new_status=prospect.overall_status
+        )
+
     return None
 
 
