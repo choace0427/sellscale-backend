@@ -3,7 +3,7 @@ from src.client.models import Client, ClientSDR
 from src.email_outbound.models import ProspectEmail
 from src.prospecting.models import Prospect
 from src.slack.models import SlackNotificationType
-from src.slack.slack_notification_center import send_slack_message
+from src.slack.slack_notification_center import WebhookDict, slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
 
 
@@ -109,21 +109,26 @@ class EmailAIReplyNotification(SlackNotificationClass):
         direct_link = fields.get("direct_link")
         prospect_message = fields.get("prospect_message")
         ai_response = fields.get("ai_response")
+        if (
+            not prospect_name
+            or not prospect_title
+            or not prospect_company
+            or not prospect_first_name
+            or not outreach_status
+            or not direct_link
+            or not prospect_message
+            or not ai_response
+        ):
+            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
-        webhook_urls = [
-            {
-                "url": client.pipeline_notifications_webhook_url,
-                "channel": f"{client.company}'s Pipeline Notifications Channel",
-            }
-        ]
 
         # Send the message
-        send_slack_message(
+        slack_bot_send_message(
             notification_type=SlackNotificationType.AI_REPLY_TO_EMAIL,
-            message="SellScale AI just replied to prospect on Email!",
-            webhook_urls=webhook_urls,
+            client_id=client.id,
+            base_message="SellScale AI just replied to prospect on Email!",
             blocks=[
                 {
                     "type": "header",
@@ -194,8 +199,8 @@ class EmailAIReplyNotification(SlackNotificationClass):
                 },
             ],
             client_sdr_id=client_sdr.id,
-            testing=self.developer_mode,
             override_preference=preview_mode,
+            testing=self.developer_mode,
         )
 
         return True

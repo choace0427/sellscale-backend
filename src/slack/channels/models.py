@@ -3,7 +3,7 @@ from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 
 
-class SlackConnectedChannel(db.Model):
+class SlackConnectedChannel(db.Model):  # type: ignore
     __tablename__ = "slack_connected_channel"
 
     id = db.Column(db.Integer, primary_key=True)

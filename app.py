@@ -188,7 +188,7 @@ aws_amplify_client = boto3.client(
     region_name="us-east-1",
 )
 
-db = SQLAlchemy(model_class=TimestampedModel)
+db: SQLAlchemy = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
 
 

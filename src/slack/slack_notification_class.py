@@ -7,6 +7,9 @@
 # 3. After testing, add the new Slack Notification to src/slack_notifications/slack.py's send_slack_message() function
 
 
+from typing import Optional
+
+
 class SlackNotificationClass:
     """The base class for all Slack notifications.
 
@@ -18,7 +21,7 @@ class SlackNotificationClass:
     This class should be inherited by all Slack notifications. This class should not be instantiated directly.
     """
 
-    def __init__(self, client_sdr_id: int, developer_mode: bool = False):
+    def __init__(self, client_sdr_id: int, developer_mode: Optional[bool] = False):
         """Initializes a SlackNotification object. The parameters should be the attributes of the class (e.g. client_sdr_id). These parameters will influence the message sent.
 
         `client_sdr_id` and `developer_mode` are strongly recommended to be included in all instances of SlackNotificationClass.
@@ -44,11 +47,11 @@ class SlackNotificationClass:
 
         def get_preview_fields() -> dict:
             """Gets the fields to be used in the preview message. This function should be overridden by the child class."""
-            return
+            return {}
 
         def get_fields() -> dict:
             """Gets the fields to be used in the message. This function should be overridden by the child class."""
-            return
+            return {}
 
         return True
 
