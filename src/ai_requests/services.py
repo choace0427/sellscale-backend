@@ -137,7 +137,7 @@ def update_ai_requests(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Task Name*: {ai_request.title}\n",
+                            "text": f"*Task*: {ai_request.title}\n",
                         },
                     },
                     {
@@ -156,11 +156,24 @@ def update_ai_requests(
                     },
                     {"type": "divider"},
                     {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Contact:* {sdr.name} | *Date Requested:* {ai_request.creation_date.strftime('%m/%d/%Y')} | *Date Completed:* {datetime.utcnow().strftime('%m/%d/%Y')}\n",
-                        },
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "plain_text",
+                                "text": f"Contact: {sdr.name}",
+                                "emoji": True,
+                            },
+                            {
+                                "type": "plain_text",
+                                "text": f"Date Requested: {ai_request.creation_date.strftime('%m/%d/%Y')}",
+                                "emoji": True,
+                            },
+                            {
+                                "type": "plain_text",
+                                "text": f"Date Completed: {datetime.utcnow().strftime('%m/%d/%Y')}",
+                                "emoji": True,
+                            },
+                        ],
                     },
                     {
                         "type": "section",
