@@ -62,6 +62,7 @@ def get_all_ai_requests():
                 "status": req.status.value,
                 "message": req.message,
                 "client_id": req.client_id,
+                "client_company": req.client_company,
                 # Add other fields from ClientSDR as needed
             }
             for req in ai_requests
