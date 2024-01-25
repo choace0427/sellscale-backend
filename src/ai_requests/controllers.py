@@ -2,7 +2,7 @@ import string
 from sqlalchemy import cast, String
 from flask import Blueprint, jsonify, request
 from src.ai_requests.models import AIRequest, AIRequestStatus
-from model_import import ClientSDR
+from model_import import ClientSDR, Client
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.ai_requests.services import create_ai_requests, update_ai_requests
@@ -22,12 +22,15 @@ def get_all_ai_requests():
     """
     try:
         # Finds all AIRequests
-        ai_requests = AIRequest.query.join(
-            ClientSDR, AIRequest.client_sdr_id == ClientSDR.id
-        ).all()
+        ai_requests = (
+            AIRequest.query.join(ClientSDR, AIRequest.client_sdr_id == ClientSDR.id)
+            .join(Client, ClientSDR.client_id == Client.id)
+            .all()
+        )
 
         ai_requests: list = (
             AIRequest.query.join(ClientSDR, AIRequest.client_sdr_id == ClientSDR.id)
+            .join(Client, ClientSDR.client_id == Client.id)
             .add_columns(
                 AIRequest.id,
                 AIRequest.client_sdr_id,
@@ -40,6 +43,8 @@ def get_all_ai_requests():
                 AIRequest.message,
                 ClientSDR.name.cast(String).label("client_sdr_name"),
                 ClientSDR.auth_token.cast(String).label("client_auth_token"),
+                ClientSDR.client_id,
+                Client.company.cast(String).label("client_company"),
             )
             .all()
         )
@@ -57,6 +62,8 @@ def get_all_ai_requests():
                 "due_date": req.due_date.isoformat(),
                 "status": req.status.value,
                 "message": req.message,
+                "client_id": req.client_id,
+                "client_company": req.client_company,
                 # Add other fields from ClientSDR as needed
             }
             for req in ai_requests
@@ -118,13 +125,16 @@ def patch_ai_request():
     status = get_request_parameter(
         "status", request, json=True, required=True, parameter_type=str
     )
-    hours_worked = get_request_parameter(
-        "hours_worked", request, json=True, required=True, parameter_type=int
+    minutes_worked = get_request_parameter(
+        "minutes_worked", request, json=True, required=True, parameter_type=int
+    )
+    details = get_request_parameter(
+        "details", request, json=True, required=False, parameter_type=str
     )
 
     # Uses the service function to create the AI Request object
     status = AIRequestStatus[status]
-    update_ai_requests(ai_request_id, status, hours_worked)
+    update_ai_requests(ai_request_id, status, minutes_worked, details)
 
     if True:
         return (

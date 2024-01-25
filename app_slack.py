@@ -20,11 +20,12 @@ def initialize_slack_app():
     Returns:
         SlackApp (slack_bolt.App): The Slack app
     """
-    if os.environ["APP_SETTINGS"] == "config.DevelopmentConfig":
+    if os.environ["APP_SETTINGS"] != "config.ProductionConfig":
         print("Using development config, Slack App will not be initialized")
         return None
 
     # Slack
+    print("Initializing Slack App")
     slack_app = SlackApp(
         token=os.environ.get("SLACK_BOT_TOKEN"),
         signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
@@ -34,4 +35,5 @@ def initialize_slack_app():
     handler = SlackSocketModeHandler(slack_app, os.environ["SLACK_APP_TOKEN"])
     handler.connect()
 
+    print("Slack App initialized")
     return slack_app

@@ -2833,7 +2833,8 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
     # add another column to every entry called 'matched filter' and set it to the filter(s) that matched in an array.
     #   also mentioned which specific word matched
     prospect_dicts = []
-    for prospect in prospects_with_locations:
+    for p in prospects_with_locations:
+        prospect: Prospect = p
         prospect_dict = prospect.simple_to_dict()
 
         # Your existing logic to add matched filters
@@ -2841,22 +2842,22 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         matched_filter_words = []
         if client.do_not_contact_company_names:
             for company in client.do_not_contact_company_names:
-                if company.lower() in prospect_dict["company"].lower():
+                if prospect_dict["company"] and company and company.lower() in prospect_dict["company"].lower():
                     matched_filters.append("Company Name")
                     matched_filter_words.append("Company: " + company)
         if client.do_not_contact_keywords_in_company_names:
             for keyword in client.do_not_contact_keywords_in_company_names:
-                if keyword.lower() in prospect_dict["company"].lower():
+                if prospect_dict["company"] and keyword and keyword.lower() in prospect_dict["company"].lower():
                     matched_filters.append("Company Keyword")
                     matched_filter_words.append("Keyword: " + keyword)
         if client.do_not_contact_industries:
             for industry in client.do_not_contact_industries:
-                if industry.lower() in prospect_dict["industry"].lower():
+                if prospect_dict["industry"] and industry and industry.lower() in prospect_dict["industry"].lower():
                     matched_filters.append("Industry")
                     matched_filter_words.append("Industry: " + industry)
         if client.do_not_contact_titles:
             for title in client.do_not_contact_titles:
-                if title.lower() in prospect_dict["title"].lower():
+                if prospect_dict["title"] and title and title.lower() in prospect_dict["title"].lower():
                     matched_filters.append("Title")
                     matched_filter_words.append("Title: " + title)
         if client.do_not_contact_location_keywords:

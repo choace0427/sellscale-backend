@@ -12,6 +12,7 @@ from src.message_generation.models import GeneratedMessage, GeneratedMessageStat
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.icp_score.services import move_selected_prospects_to_unassigned
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
+from src.smartlead.smartlead import Smartlead
 
 from src.utils.slack import URL_MAP, send_slack_message
 
@@ -166,19 +167,19 @@ def get_archetype_activity(client_sdr_id: int) -> list[dict]:
         """
         SELECT
             count(DISTINCT prospect.id) FILTER (
-                WHERE 
+                WHERE
                     (
                         prospect_status_records.to_status = 'SENT_OUTREACH'
                         AND prospect_status_records.created_at > now() - '{interval}'::interval
                     )
-                    OR 
+                    OR
                     (
                         prospect_email_status_records.to_status = 'SENT_OUTREACH'
                         AND prospect_email_status_records.created_at > now() - '{interval}'::interval
                     )
             ) "messages_sent",
             count(DISTINCT linkedin_conversation_entry.id) FILTER (
-                WHERE 
+                WHERE
                     (
                         linkedin_conversation_entry.date > now() - '{interval}'::interval
                         AND linkedin_conversation_entry.ai_generated
@@ -223,7 +224,7 @@ def overall_activity_for_client(client_sdr_id: int):
     client_id = sdr.client_id
 
     query = """
-        select 
+        select
             count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') sent_outreach,
             count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'EMAIL_OPENED') email_opened,
             count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') active_convo,
@@ -231,7 +232,7 @@ def overall_activity_for_client(client_sdr_id: int):
         from prospect
             join prospect_status_records on prospect.id = prospect_status_records.prospect_id
             left join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_thread_id
-            left join prospect_email on prospect_email.prospect_id = prospect.id 
+            left join prospect_email on prospect_email.prospect_id = prospect.id
             left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
         where client_id = {client_id};
     """.format(
@@ -681,6 +682,13 @@ def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> b
     db.session.execute(update_statement)
     db.session.commit()
 
+    # If this campaign is tied to Smartlead, then we need to START the campaign
+    if archetype.smartlead_campaign_id:
+        sl = Smartlead()
+        sl.post_campaign_status(
+            campaign_id=archetype.smartlead_campaign_id, status="START"
+        )
+
     return True
 
 
@@ -706,6 +714,13 @@ def deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) ->
 
     archetype.active = False
     db.session.commit()
+
+    # If this campaign is tied to Smartlead, then we need to PAUSE the campaign
+    if archetype.smartlead_campaign_id:
+        sl = Smartlead()
+        sl.post_campaign_status(
+            campaign_id=archetype.smartlead_campaign_id, status="PAUSED"
+        )
 
     return True
 
@@ -794,6 +809,13 @@ def hard_deactivate_client_archetype(
     move_selected_prospects_to_unassigned(
         prospect_ids=prospect_ids,
     )
+
+    # If this campaign is tied to Smartlead, then we need to STOP the campaign
+    if archetype.smartlead_campaign_id:
+        sl = Smartlead()
+        sl.post_campaign_status(
+            campaign_id=archetype.smartlead_campaign_id, status="STOPPED"
+        )
 
     return True
 
@@ -923,7 +945,7 @@ def get_client_archetype_stats(client_archetype_id):
     # top titles
     def get_top_attributes_list(attribute):
         query = """
-            select 
+            select
                 {attribute} attribute, count(*) count
             from prospect
             where prospect.archetype_id = {client_archetype_id}
@@ -975,17 +997,17 @@ def get_client_archetype_stats(client_archetype_id):
 
     # Linkedin sequence
     query = """
-        select 
+        select
             title,
             description,
             bumped_count
-        from 
+        from
             bump_framework
         where client_archetype_id = {client_archetype_id}
             and overall_status in ('ACCEPTED', 'BUMPED')
-            and bump_framework.active 
+            and bump_framework.active
             and bump_framework.default
-        order by 
+        order by
             bumped_count asc;
     """.format(
         client_archetype_id=client_archetype_id

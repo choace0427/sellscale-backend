@@ -934,58 +934,6 @@ def sync_prospect_with_lead(
     return True, "Success"
 
 
-# DEPRECATED
-# def sync_prospects_to_campaign(client_sdr_id: int, archetype_id: int):
-#     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-#     if archetype.smartlead_campaign_id == None:
-#         return
-
-#     prospects: list[Prospect] = Prospect.query.filter(
-#         Prospect.archetype_id == archetype_id
-#     ).all()
-
-#     sl = Smartlead()
-
-#     leads = sl.get_leads_export(archetype.smartlead_campaign_id)
-#     # Filter out all prospects that are already in the campaign
-#     prospects = [
-#         prospect
-#         for prospect in prospects
-#         if prospect.email not in [lead.get("email") for lead in leads]
-#     ]
-
-#     prospect_chunks = chunk_list(
-#         prospects, 100
-#     )  # max 100 leads can be added at a time with API
-#     for chunk in prospect_chunks:
-#         result = sl.add_campaign_leads(
-#             campaign_id=archetype.smartlead_campaign_id,
-#             leads=[
-#                 Lead(
-#                     first_name=prospect.first_name,
-#                     last_name=prospect.last_name,
-#                     email=prospect.email,
-#                     phone_number=None,
-#                     company_name=prospect.company,
-#                     website=None,
-#                     location=None,
-#                     custom_fields={"source": "SellScale"},
-#                     linkedin_profile=prospect.linkedin_url,
-#                     company_url=prospect.company_url,
-#                 )
-#                 for prospect in chunk
-#             ],
-#         )
-#         # print(result)
-
-#     send_slack_message(
-#         message=f"Imported {len(prospects)} prospects to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
-#         webhook_urls=[URL_MAP["ops-outbound-warming"]],
-#     )
-
-#     return True, len(prospects)
-
-
 @celery.task
 def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
     """Uploads a single prospect to a Smartlead campaign using `sl.add_leads_to_campaign_by_id`
@@ -1251,3 +1199,44 @@ def deactivate_email_account(email_account_id: str):
         )
 
     return result.get("ok", False)
+
+
+def smartlead_update_prospect_status(
+    prospect_id: int,
+    new_status: ProspectOverallStatus,
+) -> tuple[bool, str]:
+    """If the prospect is part of Smartlead, updates the prospect's status in Smartlead
+
+    Args:
+        prospect_id (int): The ID of the prospect
+        new_status (ProspectOverallStatus): The new status of the prospect
+
+    Returns:
+        tuple[bool, str]: A tuple with the first value being True if successful, and the second being a message
+    """
+    # Get the prospect and archetype
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    if not archetype.smartlead_campaign_id:
+        return False, "No Smartlead campaign ID found"
+
+    # If the new status REMOVED, then update
+    if new_status == ProspectOverallStatus.REMOVED:
+        sl = Smartlead()
+        lead = sl.get_lead_by_email_address(prospect.email)
+        if not lead:
+            return False, "Lead not found"
+        lead_id = lead["id"]
+        result = sl.post_update_lead_category(
+            campaign_id=archetype.smartlead_campaign_id,
+            lead_id=lead_id,
+            category_id=sl.LEAD_CATEGORIES.get("Do Not Contact"),
+        )
+        if not result.get("ok"):
+            return False, "Failed to update lead category"
+
+    send_slack_message(
+        message=f"SMARTLEAD: Moved prospect {prospect.full_name}#{prospect.id} to DO NOT CONTACT",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+    return True, "Success"

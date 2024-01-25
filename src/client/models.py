@@ -88,9 +88,17 @@ class Client(db.Model):
     def to_dict(self) -> dict:
         from src.slack.auth.models import SlackAuthentication
 
-        slack_bot_connected: bool = (
-            SlackAuthentication.query.filter_by(client_id=self.id).first() is not None
-        )
+        slack_authentication: SlackAuthentication = SlackAuthentication.query.filter_by(
+            client_id=self.id
+        ).first()
+        slack_bot_connected: bool = slack_authentication is not None
+        slack_bot_connecting_user_name = None
+        if slack_bot_connected:
+            connecting_sdr: ClientSDR = ClientSDR.query.filter_by(
+                id=slack_authentication.client_sdr_id
+            ).first()
+            slack_bot_connecting_user_name = connecting_sdr.name
+
         return {
             "company": self.company,
             "contact_name": self.contact_name,
@@ -113,6 +121,7 @@ class Client(db.Model):
             "auto_generate_li_messages": self.auto_generate_li_messages,
             "auto_generate_email_messages": self.auto_generate_email_messages,
             "slack_bot_connected": slack_bot_connected,
+            "slack_bot_connecting_user_name": slack_bot_connecting_user_name,
         }
 
 

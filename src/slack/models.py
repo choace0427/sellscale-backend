@@ -3,6 +3,21 @@ from enum import Enum
 from sqlalchemy.dialects.postgresql import JSONB
 
 
+class SlackNotificationType(Enum):
+    """The types of Slack notifications that can be sent"""
+
+    AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
+
+    def name(self):
+        return get_slack_notification_type_metadata()[self].get("name")
+
+    def description(self):
+        return get_slack_notification_type_metadata()[self].get("description")
+
+    def get_class(self):
+        return get_slack_notification_type_metadata()[self].get("class")
+
+
 def get_slack_notification_type_metadata():
     from src.slack.notifications.email_ai_reply_notification import (
         EmailAIReplyNotification,
@@ -17,21 +32,6 @@ def get_slack_notification_type_metadata():
     }
 
     return map_slack_notification_type_to_metadata
-
-
-class SlackNotificationType(Enum):
-    """The types of Slack notifications that can be sent"""
-
-    AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
-
-    def name(self):
-        return get_slack_notification_type_metadata()[self].get("name")
-
-    def description(self):
-        return get_slack_notification_type_metadata()[self].get("description")
-
-    def get_class(self):
-        return get_slack_notification_type_metadata()[self].get("class")
 
 
 class SlackNotification(db.Model):
