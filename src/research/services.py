@@ -186,6 +186,12 @@ def get_all_research_point_types():
             "deprecated": False,
         },
         {
+            "transformer": ResearchPointType.CURRENT_LOCATION.value,
+            "description": "Extracts the current location",
+            "example": "David Wei is based in San Francisco, California",
+            "deprecated": False,
+        },
+        {
             "transformer": ResearchPointType.RECENT_PATENTS.value,
             "description": "Extracts the recent patents",
             "example": "Noticed that you've patented 'point-to-point secured relay system enterprise architecture design', that's so interesting!",

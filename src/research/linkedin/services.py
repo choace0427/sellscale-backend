@@ -23,6 +23,7 @@ from src.research.linkedin.extractors.experience import (
     get_years_of_experience,
     get_years_of_experience_at_current_job,
 )
+from src.research.linkedin.extractors.location import get_current_location
 from src.research.linkedin.extractors.education import (
     get_common_education,
 )
@@ -282,6 +283,11 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
             #     "years_of_experience",
             #     get_years_of_experience,
             # ),
+            (
+                ResearchPointType.CURRENT_LOCATION,
+                "current_location",
+                get_current_location,
+            ),
             (
                 ResearchPointType.YEARS_OF_EXPERIENCE_AT_CURRENT_JOB,
                 "years_of_experience_at_current_job",
