@@ -40,6 +40,7 @@ def get_all_ai_requests():
                 AIRequest.message,
                 ClientSDR.name.cast(String).label("client_sdr_name"),
                 ClientSDR.auth_token.cast(String).label("client_auth_token"),
+                ClientSDR.client_id,
             )
             .all()
         )
@@ -57,6 +58,7 @@ def get_all_ai_requests():
                 "due_date": req.due_date.isoformat(),
                 "status": req.status.value,
                 "message": req.message,
+                "client_id": req.client_id,
                 # Add other fields from ClientSDR as needed
             }
             for req in ai_requests
