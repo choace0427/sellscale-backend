@@ -30,6 +30,7 @@ def get_all_ai_requests():
 
         ai_requests: list = (
             AIRequest.query.join(ClientSDR, AIRequest.client_sdr_id == ClientSDR.id)
+            .join(Client, ClientSDR.client_id == Client.id)
             .add_columns(
                 AIRequest.id,
                 AIRequest.client_sdr_id,
