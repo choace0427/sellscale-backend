@@ -97,7 +97,9 @@ def create_ai_requests(client_sdr_id, description):
         return None
 
 
-def update_ai_requests(request_id: int, status: AIRequestStatus, minutes_worked: int):
+def update_ai_requests(
+    request_id: int, status: AIRequestStatus, minutes_worked: int, details: str = ""
+):
     try:
         # Fetch the AI request object
         ai_request: AIRequest = AIRequest.query.get(request_id)
@@ -127,7 +129,7 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, minutes_worked:
                         "type": "header",
                         "text": {
                             "type": "plain_text",
-                            "text": f"New task completed!",
+                            "text": f"New task completed! ✅",
                             "emoji": True,
                         },
                     },
@@ -135,14 +137,29 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, minutes_worked:
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"SellScale just completed a task, saving you `{minutes_worked}` minutes.\n",
+                            "text": f"*Task Name*: {ai_request.title}\n",
                         },
                     },
                     {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Task Name:* {ai_request.title}\n",
+                            "text": f"*Run Time*: `{minutes_worked}` minutes ⏱\n",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Description:*\n_{details}_\n",
+                        },
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Contact:* {sdr.name} | *Date Requested:* {ai_request.creation_date.strftime('%m/%d/%Y')} | *Date Completed:* {datetime.utcnow().strftime('%m/%d/%Y')}\n",
                         },
                     },
                     {
@@ -157,14 +174,6 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, minutes_worked:
                             },
                             "url": dashboard_url,
                             "action_id": "button-action",
-                        },
-                    },
-                    {"type": "divider"},
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Contact:* {sdr.name} | *Date Requested:* {ai_request.creation_date.strftime('%b %d, %y')} | *Date Completed:* {datetime.utcnow().strftime('%b %d, %y')}\n",
                         },
                     },
                 ],
