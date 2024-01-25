@@ -567,6 +567,10 @@ class Prospect(db.Model):
             "original_title": self.original_title,
             "colloquialized_company": self.colloquialized_company,
             "colloquialized_title": self.colloquialized_title,
+            "education_1": self.education_1,
+            "education_2": self.education_2,
+            "prospect_location": self.prospect_location,
+            "company_location": self.company_location,
         }
 
     def to_dict(
