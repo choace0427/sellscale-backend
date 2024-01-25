@@ -1220,11 +1220,8 @@ def smartlead_update_prospect_status(
     if not archetype.smartlead_campaign_id:
         return False, "No Smartlead campaign ID found"
 
-    # If the new status is NURTURE or REMOVED, then update
-    if (
-        new_status == ProspectOverallStatus.NURTURE
-        or new_status == ProspectOverallStatus.REMOVED
-    ):
+    # If the new status REMOVED, then update
+    if new_status == ProspectOverallStatus.REMOVED:
         sl = Smartlead()
         lead = sl.get_lead_by_email_address(prospect.email)
         if not lead:

@@ -2077,7 +2077,7 @@ def map_prospect_email_status_to_prospect_overall_status(
         ProspectEmailOutreachStatus.DEMO_SET: ProspectOverallStatus.DEMO,
         ProspectEmailOutreachStatus.DEMO_WON: ProspectOverallStatus.DEMO,
         ProspectEmailOutreachStatus.DEMO_LOST: ProspectOverallStatus.DEMO,
-        ProspectEmailOutreachStatus.NOT_INTERESTED: ProspectOverallStatus.NURTURE,
+        ProspectEmailOutreachStatus.NOT_INTERESTED: ProspectOverallStatus.REMOVED,
     }
     if prospect_email_status in prospect_email_status_map:
         return prospect_email_status_map[prospect_email_status]
@@ -2126,11 +2126,8 @@ def calculate_prospect_overall_status(prospect_id: int):
         db.session.add(prospect)
         db.session.commit()
 
-    # SMARTLEAD: We want to DO NOT CONTACT the Prospect if the overall status is REMOVED or NURTURE
-    if (
-        prospect.overall_status == ProspectOverallStatus.REMOVED
-        or prospect.overall_status == ProspectOverallStatus.NURTURE
-    ):
+    # SMARTLEAD: We want to DO NOT CONTACT the Prospect if the overall status is REMOVED
+    if prospect.overall_status == ProspectOverallStatus.REMOVED:
         from src.smartlead.services import smartlead_update_prospect_status
 
         smartlead_update_prospect_status(
