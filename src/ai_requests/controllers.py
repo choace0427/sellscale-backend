@@ -123,13 +123,13 @@ def patch_ai_request():
     status = get_request_parameter(
         "status", request, json=True, required=True, parameter_type=str
     )
-    hours_worked = get_request_parameter(
-        "hours_worked", request, json=True, required=True, parameter_type=int
+    minutes_worked = get_request_parameter(
+        "minutes_worked", request, json=True, required=True, parameter_type=int
     )
 
     # Uses the service function to create the AI Request object
     status = AIRequestStatus[status]
-    update_ai_requests(ai_request_id, status, hours_worked)
+    update_ai_requests(ai_request_id, status, minutes_worked)
 
     if True:
         return (

@@ -97,7 +97,7 @@ def create_ai_requests(client_sdr_id, description):
         return None
 
 
-def update_ai_requests(request_id: int, status: AIRequestStatus, hours_worked: int):
+def update_ai_requests(request_id: int, status: AIRequestStatus, minutes_worked: int):
     try:
         # Fetch the AI request object
         ai_request: AIRequest = AIRequest.query.get(request_id)
@@ -135,7 +135,7 @@ def update_ai_requests(request_id: int, status: AIRequestStatus, hours_worked: i
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"SellScale just completed a task, saving you `{hours_worked*60}` minutes.\n",
+                            "text": f"SellScale just completed a task, saving you `{minutes_worked}` minutes.\n",
                         },
                     },
                     {
