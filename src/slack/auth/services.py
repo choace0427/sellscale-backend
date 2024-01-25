@@ -4,6 +4,8 @@ from src.slack.auth.models import SlackAuthentication
 
 import os
 
+from src.slack.channels.services import slack_join_channel
+
 SLACK_CLIENT_ID = os.environ.get("SLACK_CLIENT_ID")
 SLACK_CLIENT_SECRET = os.environ.get("SLACK_CLIENT_SECRET")
 
@@ -60,5 +62,12 @@ def exchange_slack_auth_code(client_sdr_id: int, code: str) -> tuple[bool, str]:
     )
     db.session.add(slack_auth)
     db.session.commit()
+
+    # Join the Slack channel, if one was provided
+    incoming_webhook = payload.get("incoming_webhook") or {}
+    if incoming_webhook:
+        channel_id = incoming_webhook.get("channel_id", "")
+        if channel_id:
+            _, _ = slack_join_channel(client_id=client.id, channel_id=channel_id)
 
     return True, ""
