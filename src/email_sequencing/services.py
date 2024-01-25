@@ -710,23 +710,23 @@ def copy_email_template_body_item(
 def grade_email(tracking_data: dict, subject: str, body: str):
     # Detect spam words
     spam_subject_results = run_algorithmic_spam_detection(subject)
-    spam_subject_words = spam_subject_results.get("spam_words")
+    spam_subject_words = spam_subject_results.get("spam_words") or []
 
     spam_body_results = run_algorithmic_spam_detection(body)
-    spam_body_words = spam_body_results.get("spam_words")
+    spam_body_words = spam_body_results.get("spam_words") or []
 
     # Evaluate subject line and body construction
     subject_line_good = len(subject) < 100
-    body_good = len(body.split()) < 120 and all(
-        len(sentence.split()) < 15 for sentence in re.split(r"[.\n]", body)
-    )
-    read_time = int(len(body.split()) / 4) * 2
+    body_good = len(body.split()) > 50 and len(body.split()) < 120
+    read_time = int(len(body.split()) / 4)
 
     # Detect tones and personalizations
     tones = detect_tones(body)
     personalizations = detect_personalizations(body)
 
     feedback = generate_email_feedback(subject=subject, body=body)
+
+    grevious_error = identify_any_grevious_errors(subject=subject, body=body)
 
     # Calculate feedback score
     goods = sum(
@@ -741,12 +741,37 @@ def grade_email(tracking_data: dict, subject: str, body: str):
 
     # Get value from 0 - 1, based on the number of pros in the feedback
     feedback_point = sum(
-        [1 if feedback_item.get("type") == "pro" else 0 for feedback_item in feedback]
+        [0.5 if feedback_item.get("type") == "pro" else 0 for feedback_item in feedback]
     ) / len(feedback)
     goods += feedback_point
 
-    total_checks = 6
+    total_checks = 5 + (len(feedback) / 2)
     feedback_score = int((goods / total_checks) * 100)
+
+    # Make alterations to score based on heuristics
+    if len(body.split()) < 30:
+        feedback_score = feedback_score * 0.35
+    if sum(feedback_item.get("type") == "delta" for feedback_item in feedback) > (
+        len(feedback) / 2
+    ):
+        feedback_score = feedback_score * 0.5
+    if grevious_error and "true" in grevious_error.lower():
+        feedback_score = feedback_score * 0.1
+    if len(spam_subject_words) > 0:
+        feedback_score = feedback_score * 0.75
+    if len(spam_body_words) > 0:
+        feedback_score = feedback_score * 0.75
+    if sum(
+        personalization.get("strength") == "strong"
+        for personalization in personalizations
+    ) > (len(personalizations) / 2):
+        feedback_score *= 1.15
+
+    # Cap the score at 100 and floor at 0
+    if feedback_score > 100:
+        feedback_score = 100
+    if feedback_score < 0:
+        feedback_score = 0
 
     # Create a record in the database
     entry = EmailGraderEntry(
@@ -1009,3 +1034,78 @@ Output:
         return json.loads(completion)
     except:
         return []
+
+
+def identify_any_grevious_errors(subject: str, body: str) -> str:
+    completion = get_text_generation(
+        [
+            {
+                "role": "user",
+                "content": f"""
+You are going to extract 'feedback' from the email copy I provide.
+
+Here are two examples of email copy and the output I wanted.
+
+-----------------
+Copy: ""
+subject: Transform CHAS Health's Efficiency
+Hey Sarah,
+
+As you're considering how to streamline CHAS Health's operations, it would be worth to consider SuperBill. It can integrate with your existing call process - credentialing, follow-ups, verification - and give time back to staff.
+
+For example, verifying a new patient's insurance. In SuperBill, you simply input the patient's details and our AI instantly handles the calls to insurance providers, freeing up your staff's time and energy. Works for your local and nationwide insurers, too.
+
+If you're open to it, I'd love to show you how it works. Any interest?
+
+Sam Schwager, CEO at SuperBill
+
+P.S. If there's no interest, please let me know and I'll stop reaching out.
+""
+Output:
+FALSE
+""
+
+-----------------
+Copy: ""
+subject: Enhancing Plastics Circularity: Seeking Your Insights, Carlos
+Hi Carlos, 
+
+Happy belated 5-year anniversary at Mondi! Your expertise in supply chain management and circular economy is truly impressive, especially with your multilingual skills in Spanish, English, German, and Italian.
+
+I'm reaching out to you today in hopes of fostering some cross-industry discussion to solve one of the world's toughest sustainability challenges – enhancing plastics circularity. My company, Worley, has been developing a solution that would verify and track recycled content in plastics in a more granular way than was previously thought possible. As someone who is deeply invested in meeting the sustainable packaging needs of top brand owners, I'd love to get your insights on this very important topic.
+
+Could we schedule virtual meeting in the next few weeks for a quick chat?
+
+Best Regards,
+
+Jennifer Lee
+
+Vice President, Plastics Recycling - Worley
+
+PS. SCREW YOU MAN!
+""
+
+Output:
+TRUE
+
+-----------------
+Copy: ""
+subject: {subject}
+{body}
+""
+
+Instruction: Based on the email provided, identify if there's any grevious errors. Grevious errors include cuss words, insults, harmful language, etc.
+If grevious error identified, output TRUE. Otherwise, output FALSE.
+
+Output:""",
+            }
+        ],
+        model="gpt-4",
+        max_tokens=1024,
+        type="MISC_CLASSIFY",
+    )
+
+    try:
+        return completion
+    except:
+        return "FALSE"
