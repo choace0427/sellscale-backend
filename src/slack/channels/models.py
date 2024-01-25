@@ -1,3 +1,4 @@
+from typing import Optional
 from app import db
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -32,3 +33,39 @@ class SlackConnectedChannel(db.Model):
     slack_channel_is_mpim = db.Column(db.Boolean, nullable=False)
     slack_channel_topoic = db.Column(JSONB, nullable=True)
     slack_channel_purpose = db.Column(JSONB, nullable=True)
+
+    def to_dict(self, name_only: Optional[bool] = True):
+        if name_only:
+            return {
+                "id": self.id,
+                "client_id": self.client_id,
+                "slack_channel_name": self.slack_channel_name,
+                "slack_channel_name_normalized": self.slack_channel_name_normalized,
+            }
+
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "slack_payload": self.slack_payload,
+            "slack_channel_id": self.slack_channel_id,
+            "slack_channel_name": self.slack_channel_name,
+            "slack_channel_is_channel": self.slack_channel_is_channel,
+            "slack_channel_is_group": self.slack_channel_is_group,
+            "slack_channel_is_im": self.slack_channel_is_im,
+            "slack_channel_created": self.slack_channel_created,
+            "slack_channel_creator": self.slack_channel_creator,
+            "slack_channel_is_archived": self.slack_channel_is_archived,
+            "slack_channel_is_general": self.slack_channel_is_general,
+            "slack_channel_unlinked": self.slack_channel_unlinked,
+            "slack_channel_name_normalized": self.slack_channel_name_normalized,
+            "slack_channel_is_shared": self.slack_channel_is_shared,
+            "slack_channel_is_ext_shared": self.slack_channel_is_ext_shared,
+            "slack_channel_is_org_shared": self.slack_channel_is_org_shared,
+            "slack_channel_pending_shared": self.slack_channel_pending_shared,
+            "slack_channel_is_pending_ext_shared": self.slack_channel_is_pending_ext_shared,
+            "slack_channel_is_member": self.slack_channel_is_member,
+            "slack_channel_is_private": self.slack_channel_is_private,
+            "slack_channel_is_mpim": self.slack_channel_is_mpim,
+            "slack_channel_topoic": self.slack_channel_topoic,
+            "slack_channel_purpose": self.slack_channel_purpose,
+        }

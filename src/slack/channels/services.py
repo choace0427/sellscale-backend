@@ -3,6 +3,21 @@ from src.slack.auth.models import SlackAuthentication
 from src.slack.channels.models import SlackConnectedChannel
 
 
+def slack_get_connected_channels(client_id: int) -> list[dict]:
+    """Gets a list of Slack channels for a client
+
+    Args:
+        client_id (int): The ID of the client
+
+    Returns:
+        list[dict]: A list of Slack channels
+    """
+    connected_channels: list[
+        SlackConnectedChannel
+    ] = SlackConnectedChannel.query.filter_by(client_id=client_id).all()
+    return [channel.to_dict() for channel in connected_channels]
+
+
 def slack_join_channel(client_id: int, channel_id: str) -> tuple[bool, str]:
     """Joins a Slack channel
 

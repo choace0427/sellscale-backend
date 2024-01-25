@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from src.authentication.decorators import require_user
+from src.slack.channels.services import slack_get_connected_channels
 from src.slack.slack_notification_class import SlackNotificationClass
 from src.utils.request_helpers import get_request_parameter
 from src.slack.models import (
@@ -60,6 +61,29 @@ def post_preview_slack_notification(client_sdr_id: int):
             {
                 "status": "success",
                 "message": "Success",
+            }
+        ),
+        200,
+    )
+
+
+@SLACK_BLUEPRINT.route("/channels", methods=["GET"])
+@require_user
+def get_connected_slack_channels(client_sdr_id: int):
+    """Gets a list of connected Slack channels"""
+    from src.client.models import ClientSDR
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+
+    channels = slack_get_connected_channels(client_id=client_sdr.client_id)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "channels": channels,
+                },
             }
         ),
         200,
