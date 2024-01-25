@@ -124,8 +124,9 @@ def send_status_change_slack_block(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Persona:* {persona}".format(
-                    persona=persona if persona else "-"
+                "text": "*Persona:* {emoji} {persona}".format(
+                    persona=persona if persona else "-",
+                    emoji=client_archetype.emoji,
                 ),
             },
         }
