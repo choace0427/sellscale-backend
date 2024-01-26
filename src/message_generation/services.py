@@ -3515,7 +3515,7 @@ def schedule_cached_messages(client_sdr_id: int, prospect_ids: list[int]):
                 and bump.bump_framework_length.value,
                 "account_research_points": bump.account_research_points,
                 "to_purgatory": True,
-                "purgatory_date": (scheduled_send_date + timedelta(days=3)).isoformat(),
+                "purgatory_date": (scheduled_send_date).isoformat(),
             },
             relative_time=scheduled_send_date,
         )
