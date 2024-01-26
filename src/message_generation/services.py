@@ -2524,6 +2524,12 @@ def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
     """
 
     try:
+        from src.voyager.linkedin import LinkedIn
+        from src.voyager.services import fetch_conversation
+
+        api = LinkedIn(client_sdr_id)
+        _, _ = fetch_conversation(api, prospect_id, True)
+
         latest_convo_entries = get_li_convo_history(prospect_id)
         if len(latest_convo_entries) == 0:
             return False
