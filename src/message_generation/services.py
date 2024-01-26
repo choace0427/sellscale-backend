@@ -3449,3 +3449,74 @@ def num_messages_in_linkedin_queue(client_sdr_id: int):
     result = db.session.execute(query, {"client_sdr_id": client_sdr_id}).first()
 
     return result[0] if result else 0
+
+
+def is_business_hour(dt):
+    """Check if the datetime is within business hours (9 AM to 5 PM) on a weekday."""
+    return dt.weekday() < 5 and 9 <= dt.hour < 17
+
+
+def next_business_hour(dt):
+    """Get the next business hour from the given datetime."""
+    if dt.hour >= 17:  # After 5 PM
+        dt = dt + datetime.timedelta(days=1)
+        dt = dt.replace(hour=9, minute=0, second=0, microsecond=0)
+    elif dt.hour < 9:  # Before 9 AM
+        dt = dt.replace(hour=9, minute=0, second=0, microsecond=0)
+    if dt.weekday() >= 5:  # Weekend
+        dt += datetime.timedelta(days=7 - dt.weekday())
+        dt = dt.replace(hour=9, minute=0, second=0, microsecond=0)
+    return dt
+
+
+def schedule_cached_messages(client_sdr_id: int, prospect_ids: list[int]):
+    from src.automation.orchestrator import add_process_for_future
+
+    generated_message_autobumps = GeneratedMessageAutoBump.query.filter(
+        GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
+        GeneratedMessageAutoBump.prospect_id.in_(prospect_ids),
+    )
+
+    sent_prospect_ids = set()
+
+    scheduled_send_date = datetime.datetime.now() + datetime.timedelta(minutes=15)
+    scheduled_send_date = next_business_hour(scheduled_send_date)
+
+    for b in generated_message_autobumps:
+        bump: GeneratedMessageAutoBump = b
+
+        if bump.prospect_id in sent_prospect_ids:
+            continue
+
+        sent_prospect_ids.add(bump.prospect_id)
+
+        prospect: Prospect = Prospect.query.get(bump.prospect_id)
+
+        print("Scheduling " + prospect.full_name)
+
+        add_process_for_future(
+            type="send_scheduled_linkedin_message",
+            args={
+                "client_sdr_id": client_sdr_id,
+                "prospect_id": bump.prospect_id,
+                "message": bump.message,
+                "send_sellscale_notification": True,
+                "ai_generated": True,
+                "bf_id": bump.bump_framework_id,
+                "bf_title": bump.bump_framework_title,
+                "bf_description": bump.bump_framework_description,
+                "bf_length": bump.bump_framework_length
+                and bump.bump_framework_length.value,
+                "account_research_points": bump.account_research_points,
+                "to_purgatory": True,
+                "purgatory_date": (scheduled_send_date + timedelta(days=3)).isoformat(),
+            },
+            relative_time=scheduled_send_date,
+        )
+
+        prospect.hidden_until = scheduled_send_date + timedelta(days=3)
+        db.session.add(prospect)
+        db.session.commit()
+
+        scheduled_send_date += datetime.timedelta(minutes=15)
+        scheduled_send_date = next_business_hour(scheduled_send_date)

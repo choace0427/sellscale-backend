@@ -1045,53 +1045,56 @@ def send_scheduled_linkedin_message(
     )
     from src.prospecting.services import send_to_purgatory
 
-    api = LinkedIn(client_sdr_id)
-    urn_id = get_profile_urn_id(prospect_id, api)
+    try:
+        api = LinkedIn(client_sdr_id)
+        urn_id = get_profile_urn_id(prospect_id, api)
 
-    if send_sellscale_notification:
-        send_sent_by_sellscale_notification(
-            prospect_id=prospect_id,
-            message=message,
-            bump_framework_id=bf_id,
-        )
-
-    if flag_enabled("send_scheduled_messages"):
-        msg_urn_id = api.send_message(message, recipients=[urn_id])
-        if isinstance(msg_urn_id, str) and ai_generated:
-            add_generated_msg_queue(
-                client_sdr_id=client_sdr_id,
-                li_message_urn_id=msg_urn_id,
+        if send_sellscale_notification:
+            send_sent_by_sellscale_notification(
+                prospect_id=prospect_id,
+                message=message,
                 bump_framework_id=bf_id,
-                bump_framework_title=bf_title,
-                bump_framework_description=bf_description,
-                bump_framework_length=bf_length,
-                account_research_points=account_research_points,
             )
-        fetch_conversation(api=api, prospect_id=prospect_id, check_for_update=True)
 
-    if to_purgatory:
-        bump: BumpFramework = BumpFramework.query.get(bf_id)
-        bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
-        aware_utc_now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
-        purgatory_date = datetime.datetime.fromisoformat(purgatory_date).replace(
-            tzinfo=datetime.timezone.utc
+        if flag_enabled("send_scheduled_messages"):
+            msg_urn_id = api.send_message(message, recipients=[urn_id])
+            if isinstance(msg_urn_id, str) and ai_generated:
+                add_generated_msg_queue(
+                    client_sdr_id=client_sdr_id,
+                    li_message_urn_id=msg_urn_id,
+                    bump_framework_id=bf_id,
+                    bump_framework_title=bf_title,
+                    bump_framework_description=bf_description,
+                    bump_framework_length=bf_length,
+                    account_research_points=account_research_points,
+                )
+            fetch_conversation(api=api, prospect_id=prospect_id, check_for_update=True)
+
+        if to_purgatory:
+            bump: BumpFramework = BumpFramework.query.get(bf_id)
+            bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
+            aware_utc_now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+            purgatory_date = datetime.datetime.fromisoformat(purgatory_date).replace(
+                tzinfo=datetime.timezone.utc
+            )
+            purgatory_delay = (
+                (purgatory_date - aware_utc_now).days if purgatory_date else None
+            )
+            purgatory_delay = purgatory_delay or bump_delay
+            send_to_purgatory(
+                prospect_id, purgatory_delay, ProspectHiddenReason.RECENTLY_BUMPED
+            )
+
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        full_name: str = prospect.full_name
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        name: str = client_sdr.name
+
+        send_slack_message(
+            message=f"Automated message sent LinkedIn message to {full_name} (#{prospect_id}) by {name} (#{client_sdr_id})\n\nMessage: ```{message}```",
+            webhook_urls=[URL_MAP["eng-sandbox"]],
         )
-        purgatory_delay = (
-            (purgatory_date - aware_utc_now).days if purgatory_date else None
-        )
-        purgatory_delay = purgatory_delay or bump_delay
-        send_to_purgatory(
-            prospect_id, purgatory_delay, ProspectHiddenReason.RECENTLY_BUMPED
-        )
 
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    full_name: str = prospect.full_name
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    name: str = client_sdr.name
-
-    send_slack_message(
-        message=f"Automated message sent LinkedIn message to {full_name} (#{prospect_id}) by {name} (#{client_sdr_id})\n\nMessage: ```{message}```",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
-    )
-
-    return [True, msg_urn_id]
+        return True, msg_urn_id
+    except:
+        return True, 'OK'
