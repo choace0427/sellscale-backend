@@ -34,7 +34,7 @@ def get_slack_notification_type_metadata():
     return map_slack_notification_type_to_metadata
 
 
-class SlackNotification(db.Model):
+class SlackNotification(db.Model):  # type: ignore
     __tablename__ = "slack_notification"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -54,7 +54,7 @@ class SlackNotification(db.Model):
         }
 
 
-class SentSlackNotification(db.Model):
+class SentSlackNotification(db.Model):  # type: ignore
     __tablename__ = "sent_slack_notification"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -69,7 +69,10 @@ class SentSlackNotification(db.Model):
     message = db.Column(db.String, nullable=False)
 
     # Which webhook URL was sent to
-    webhook_url = db.Column(JSONB, nullable=False)
+    webhook_url = db.Column(JSONB, nullable=True)
+
+    # Which channel was the notification sent to
+    slack_channel_id = db.Column(db.String(255), nullable=True)
 
     # What were the Slack notification blocks
     blocks = db.Column(db.ARRAY(JSONB), nullable=True)

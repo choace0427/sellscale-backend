@@ -3,7 +3,7 @@ from enum import Enum
 from sqlalchemy.dialects.postgresql import JSONB
 
 
-class SlackAuthentication(db.Model):
+class SlackAuthentication(db.Model):  # type: ignore
     __tablename__ = "slack_authentication"
 
     id = db.Column(db.Integer, primary_key=True)

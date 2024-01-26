@@ -25,6 +25,8 @@ class OperatorDashboardTaskType(enum.Enum):
     DEMO_FEEDBACK_NEEDED = "DEMO_FEEDBACK_NEEDED"
     SCHEDULING_NEEDED = "SCHEDULING_NEEDED"
 
+    SEGMENT_CREATION = "SEGMENT_CREATION"
+
 
 class OperatorDashboardEntry(db.Model):
     __tablename__ = "operator_dashboard_entry"

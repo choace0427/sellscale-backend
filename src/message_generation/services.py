@@ -428,6 +428,16 @@ def generate_batch_of_research_points_from_config(
     all_research_points: list = ResearchPoints.get_research_points_by_prospect_id(
         prospect_id=prospect_id
     )
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    transformer_blocklist_initial_values = [
+        x.value for x in archetype.transformer_blocklist_initial
+    ]
+    allowed_research_point_types_in_config = [
+        x.research_point_type.value
+        for x in all_research_points
+        if x.research_point_type.value not in transformer_blocklist_initial_values
+    ]
 
     # If there are no research points, return an empty list
     if not all_research_points or len(all_research_points) == 0:
@@ -437,26 +447,8 @@ def generate_batch_of_research_points_from_config(
         return generate_batches_of_research_points(
             points=all_research_points, n=n, num_per_perm=2
         )
-    allowed_research_point_types_in_config = [x for x in config.research_point_types]
-    archetype: ClientArchetype = ClientArchetype.query.get(config.archetype_id)
 
     # Remove the research point types that are in the blocklists
-    if archetype and (
-        archetype.transformer_blocklist or archetype.transformer_blocklist_initial
-    ):
-        allowed_research_point_types_in_config = [
-            item
-            for item in allowed_research_point_types_in_config
-            if (
-                archetype.transformer_blocklist is None
-                or item not in archetype.transformer_blocklist
-            )
-            and (
-                archetype.transformer_blocklist_initial is None
-                or item not in archetype.transformer_blocklist_initial
-            )
-        ]
-
     research_points = [
         x
         for x in all_research_points
@@ -791,7 +783,7 @@ def approve_message(message_id: int):
     prospect.approved_outreach_message_id = message.id
     db.session.add(prospect)
     db.session.commit()
-    
+
     run_message_rule_engine(message_id=message_id)
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)

@@ -144,14 +144,14 @@ def update_ai_requests(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Run Time*: `{minutes_worked}` minutes ⏱\n",
+                            "text": f"*AI Run Time*: `{minutes_worked}` minutes ⏱\n",
                         },
                     },
                     {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*Description:*\n_{details}_\n",
+                            "text": f"*Description:*\n{details}\n",
                         },
                     },
                     {"type": "divider"},
