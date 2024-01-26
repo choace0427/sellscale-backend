@@ -2,7 +2,7 @@ import json
 import random
 from typing import Optional, TypedDict
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from src.client.models import ClientArchetype
 from src.company.models import Company
 from src.ml.openai_wrappers import (
@@ -20,14 +20,14 @@ HACKATHON_BLUEPRINT = Blueprint("hackathon", __name__)
 
 @HACKATHON_BLUEPRINT.route("/ai_filter/initial", methods=["POST"])
 def post_ai_filter_initial():
-    request = get_request_parameter(
-        "request", request, json=True, required=True, parameter_type=str
+    my_request = get_request_parameter(
+        "my_request", request, json=True, required=True, parameter_type=str
     )
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True, parameter_type=int
     )
 
-    response = chatgpt_initial_filter_prospect_list(request, archetype_id)
+    response = chatgpt_initial_filter_prospect_list(my_request, archetype_id)
     return (
         jsonify(
             {
@@ -44,11 +44,11 @@ def post_ai_filter_historied():
     history = get_request_parameter(
         "history", request, json=True, required=True, parameter_type=list
     )
-    request = get_request_parameter(
-        "request", request, json=True, required=True, parameter_type=str
+    my_request = get_request_parameter(
+        "my_request", request, json=True, required=True, parameter_type=str
     )
 
-    response = chatgpt_historied_filter_prospect_list(history, request)
+    response = chatgpt_historied_filter_prospect_list(history, my_request)
     return (
         jsonify(
             {
@@ -182,7 +182,9 @@ DO NOT INCLUDE ```json``` in your response. Just the dictionary.
     "message": "Here are the people who are..."
 }}
 
-"""
+""".format(
+        request=request
+    )
     history, response = wrapped_chat_gpt_completion_with_history(
         messages=[{"role": "user", "content": prompt}],
         history=history,
