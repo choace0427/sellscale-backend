@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
 from src.bump_framework.models import BumpFramework
 from src.prospecting.services import send_to_purgatory
@@ -192,6 +192,12 @@ def send_message(client_sdr_id: int):
             },
             relative_time=scheduled_send_date,
         )
+
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        prospect.hidden_until = scheduled_send_date + timedelta(days=1)
+        db.session.add(prospect)
+        db.session.commit()
+
         return jsonify({"message": "Scheduled message"}), 200
 
     send_sent_by_sellscale_notification(
