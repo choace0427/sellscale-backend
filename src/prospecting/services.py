@@ -3726,7 +3726,8 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
       then prospect_email.last_reply_time
       else prospect.li_last_message_timestamp
   end "last_message_timestamp",
-  generated_message_auto_bump.message
+  generated_message_auto_bump.message,
+  generated_message_auto_bump.bump_framework_title
 from prospect
   left join generated_message on generated_message.id = prospect.approved_outreach_message_id
   left join prospect_email on prospect_email.prospect_id = prospect.id
