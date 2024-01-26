@@ -130,6 +130,8 @@ def make_celery(app):
     return celery
 
 
+# Test
+
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "secret!!"

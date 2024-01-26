@@ -12,6 +12,121 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Create .env and .envcelery files
+        run: |
+          echo "export STYTCH_PROJECT_ID='${{ secrets.STYTCH_PROJECT_ID }}'" >> .env
+          echo "export STYTCH_PROJECT_ID='${{ secrets.STYTCH_PROJECT_ID }}'" >> .envcelery
+
+          echo "export STYTCH_SECRET='${{ secrets.STYTCH_SECRET }}'" >> .env
+          echo "export STYTCH_SECRET='${{ secrets.STYTCH_SECRET }}'" >> .envcelery
+
+          echo "export STYTCH_BASE_URL='${{ secrets.STYTCH_BASE_URL }}'" >> .env
+          echo "export STYTCH_BASE_URL='${{ secrets.STYTCH_BASE_URL }}'" >> .envcelery
+
+          echo "export FLASK_APP='${{ secrets.FLASK_APP }}'" >> .env
+          echo "export FLASK_APP='${{ secrets.FLASK_APP }}'" >> .envcelery
+
+          echo "export FLASK_ENV='${{ secrets.FLASK_ENV }}'" >> .env
+          echo "export FLASK_ENV='${{ secrets.FLASK_ENV }}'" >> .envcelery
+
+          echo "export APP_SETTINGS='${{ secrets.APP_SETTINGS }}'" >> .env
+          echo "export APP_SETTINGS='${{ secrets.APP_SETTINGS }}'" >> .envcelery
+
+          echo "export ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}'" >> .env
+          echo "export ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}'" >> .envcelery
+
+          echo "export ISCRAPER_API_KEY='${{ secrets.ISCRAPER_API_KEY }}'" >> .env
+          echo "export ISCRAPER_API_KEY='${{ secrets.ISCRAPER_API_KEY }}'" >> .envcelery
+
+          echo "export OPENAI_KEY='${{ secrets.OPENAI_KEY }}'" >> .env
+          echo "export OPENAI_KEY='${{ secrets.OPENAI_KEY }}'" >> .envcelery
+
+          echo "export OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}'" >> .env
+          echo "export OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}'" >> .envcelery
+
+          echo "export EMAIL_VALIDATION_API_KEY='${{ secrets.EMAIL_VALIDATION_API_KEY }}'" >> .env
+          echo "export EMAIL_VALIDATION_API_KEY='${{ secrets.EMAIL_VALIDATION_API_KEY }}'" >> .envcelery
+
+          echo "export DATABASE_URL='${{ secrets.DATABASE_URL }}'" >> .env
+          echo "export DATABASE_URL='${{ secrets.DATABASE_URL }}'" >> .envcelery
+
+          echo "export PHANTOMBUSTER_API_KEY='${{ secrets.PHANTOMBUSTER_API_KEY }}'" >> .env
+          echo "export PHANTOMBUSTER_API_KEY='${{ secrets.PHANTOMBUSTER_API_KEY }}'" >> .envcelery
+
+          echo "export CELERY_REDIS_URL='${{ secrets.CELERY_REDIS_URL }}'" >> .env
+          echo "export CELERY_REDIS_URL='${{ secrets.CELERY_REDIS_URL }}'" >> .envcelery
+
+          echo "export HUGGING_FACE_KEY='${{ secrets.HUGGING_FACE_KEY }}'" >> .env
+          echo "export HUGGING_FACE_KEY='${{ secrets.HUGGING_FACE_KEY }}'" >> .envcelery
+
+          echo "export NYLAS_CLIENT_ID='${{ secrets.NYLAS_CLIENT_ID }}'" >> .env
+          echo "export NYLAS_CLIENT_ID='${{ secrets.NYLAS_CLIENT_ID }}'" >> .envcelery
+
+          echo "export NYLAS_CLIENT_SECRET='${{ secrets.NYLAS_CLIENT_SECRET }}'" >> .env
+          echo "export NYLAS_CLIENT_SECRET='${{ secrets.NYLAS_CLIENT_SECRET }}'" >> .envcelery
+
+          echo "export AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}'" >> .env
+          echo "export AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}'" >> .envcelery
+
+          echo "export AWS_ACCESS_KEY_SECRET='${{ secrets.AWS_ACCESS_KEY_SECRET }}'" >> .env
+          echo "export AWS_ACCESS_KEY_SECRET='${{ secrets.AWS_ACCESS_KEY_SECRET }}'" >> .envcelery
+
+          echo "export AWS_WORKMAIL_ORG_ID='${{ secrets.AWS_WORKMAIL_ORG_ID }}'" >> .env
+          echo "export AWS_WORKMAIL_ORG_ID='${{ secrets.AWS_WORKMAIL_ORG_ID }}'" >> .envcelery
+
+          echo "export SERP_API_KEY='${{ secrets.SERP_API_KEY }}'" >> .env
+          echo "export SERP_API_KEY='${{ secrets.SERP_API_KEY }}'" >> .envcelery
+
+          echo "export UNSUBSCRIBE_WEBSITE_URL='${{ secrets.UNSUBSCRIBE_WEBSITE_URL }}'" >> .env
+          echo "export UNSUBSCRIBE_WEBSITE_URL='${{ secrets.UNSUBSCRIBE_WEBSITE_URL }}'" >> .envcelery
+
+          echo "export VESSEL_API_KEY='${{ secrets.VESSEL_API_KEY }}'" >> .env
+          echo "export VESSEL_API_KEY='${{ secrets.VESSEL_API_KEY }}'" >> .envcelery
+
+          echo "export BING_SEARCH_SUBSCRIPTION_KEY='${{ secrets.BING_SEARCH_SUBSCRIPTION_KEY }}'" >> .env
+          echo "export BING_SEARCH_SUBSCRIPTION_KEY='${{ secrets.BING_SEARCH_SUBSCRIPTION_KEY }}'" >> .envcelery
+
+          echo "export BING_SEARCH_ENDPOINT='${{ secrets.BING_SEARCH_ENDPOINT }}'" >> .env
+          echo "export BING_SEARCH_ENDPOINT='${{ secrets.BING_SEARCH_ENDPOINT }}'" >> .envcelery
+
+          echo "export SMARTLEAD_API_KEY='${{ secrets.SMARTLEAD_API_KEY }}'" >> .env
+          echo "export SMARTLEAD_API_KEY='${{ secrets.SMARTLEAD_API_KEY }}'" >> .envcelery
+
+          echo "export SELLSCALE_API_URL='${{ secrets.SELLSCALE_API_URL }}'" >> .env
+          echo "export SELLSCALE_API_URL='${{ secrets.SELLSCALE_API_URL }}'" >> .envcelery
+
+          echo "export AZURE_OPENAI='${{ secrets.AZURE_OPENAI }}'" >> .env
+          echo "export AZURE_OPENAI='${{ secrets.AZURE_OPENAI }}'" >> .envcelery
+
+          echo "export AZURE_OPENAI_BASE='${{ secrets.AZURE_OPENAI_BASE }}'" >> .env
+          echo "export AZURE_OPENAI_BASE='${{ secrets.AZURE_OPENAI_BASE }}'" >> .envcelery
+
+          echo "export AZURE_OPENAI_VERSION='${{ secrets.AZURE_OPENAI_VERSION }}'" >> .env
+          echo "export AZURE_OPENAI_VERSION='${{ secrets.AZURE_OPENAI_VERSION }}'" >> .envcelery
+
+          echo "export AZURE_OPENAI_KEY='${{ secrets.AZURE_OPENAI_KEY }}'" >> .env
+          echo "export AZURE_OPENAI_KEY='${{ secrets.AZURE_OPENAI_KEY }}'" >> .envcelery
+
+          echo "export AZURE_OPENAI_GPT_4_ENGINE='${{ secrets.AZURE_OPENAI_GPT_4_ENGINE }}'" >> .env
+          echo "export AZURE_OPENAI_GPT_4_ENGINE='${{ secrets.AZURE_OPENAI_GPT_4_ENGINE }}'" >> .envcelery
+
+          echo "export AZURE_OPENAI_GPT_3_5_ENGINE='${{ secrets.AZURE_OPENAI_GPT_3_5_ENGINE }}'" >> .env
+          echo "export AZURE_OPENAI_GPT_3_5_ENGINE='${{ secrets.AZURE_OPENAI_GPT_3_5_ENGINE }}'" >> .envcelery
+
+          echo "export SLACK_CLIENT_ID='${{ secrets.SLACK_CLIENT_ID }}'" >> .env
+          echo "export SLACK_CLIENT_ID='${{ secrets.SLACK_CLIENT_ID }}'" >> .envcelery
+
+          echo "export SLACK_CLIENT_SECRET='${{ secrets.SLACK_CLIENT_SECRET }}'" >> .env
+          echo "export SLACK_CLIENT_SECRET='${{ secrets.SLACK_CLIENT_SECRET }}'" >> .envcelery
+
+          echo "export SLACK_SIGNING_SECRET='${{ secrets.SLACK_SIGNING_SECRET }}'" >> .env
+          echo "export SLACK_SIGNING_SECRET='${{ secrets.SLACK_SIGNING_SECRET }}'" >> .envcelery
+
+          echo "export SLACK_BOT_TOKEN='${{ secrets.SLACK_BOT_TOKEN }}'" >> .env
+          echo "export SLACK_BOT_TOKEN='${{ secrets.SLACK_BOT_TOKEN }}'" >> .envcelery
+
+          echo "export SLACK_APP_TOKEN='${{ secrets.SLACK_APP_TOKEN }}'" >> .env
+          echo "export SLACK_APP_TOKEN='${{ secrets.SLACK_APP_TOKEN }}'" >> .envcelery
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
