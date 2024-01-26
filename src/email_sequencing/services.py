@@ -15,7 +15,9 @@ from src.email_sequencing.models import (
 )
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from typing import List, Optional
-from src.ml.services import get_text_generation
+from src.ml.openai_wrappers import (
+    streamed_chat_completion_to_socket,
+)
 from src.ml.spam_detection import run_algorithmic_spam_detection
 
 from src.research.models import ResearchPointType
@@ -722,8 +724,8 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     read_time = int(len(body.split()) / 4)
 
     # Detect tones and personalizations
-    tones = detect_tones(body)
-    personalizations = detect_personalizations(body)
+    tones = detect_tones(subject, body)
+    personalizations = detect_personalizations(subject, body)
 
     feedback = generate_email_feedback(subject=subject, body=body)
 
@@ -782,7 +784,7 @@ def grade_email(tracking_data: dict, subject: str, body: str):
         input_tracking_data=tracking_data,
         input_subject_line=subject,
         input_body=body,
-        detected_company=detect_company(body),
+        detected_company=detect_company(subject, body),
         evaluated_score=feedback_score,
         evaluated_feedback=feedback,
         evaluated_tones={"tones": tones},
@@ -865,7 +867,7 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     return entry.id, entry.to_dict()
 
 
-def detect_tones(text: str) -> dict:
+def detect_tones(subject: str, text: str) -> dict:
     """Detects the tones of the text
 
     Args:
@@ -875,8 +877,10 @@ def detect_tones(text: str) -> dict:
         dict: The tones of the text
     """
 
-    completion = get_text_generation(
-        [
+    completion = streamed_chat_completion_to_socket(
+        event="generate_email_feedback",
+        room_id=subject,
+        messages=[
             {
                 "role": "user",
                 "content": f"""
@@ -890,7 +894,6 @@ def detect_tones(text: str) -> dict:
         ],
         model="gpt-4",
         max_tokens=120,
-        type="MISC_CLASSIFY",
     )
 
     try:
@@ -899,7 +902,7 @@ def detect_tones(text: str) -> dict:
         return []
 
 
-def detect_company(text: str) -> dict:
+def detect_company(subject: str, text: str) -> dict:
     """Detects the company name
 
     Args:
@@ -909,8 +912,10 @@ def detect_company(text: str) -> dict:
         The company name (str) or None
     """
 
-    completion = get_text_generation(
-        [
+    completion = streamed_chat_completion_to_socket(
+        event="generate_email_feedback",
+        room_id=subject,
+        messages=[
             {
                 "role": "user",
                 "content": f"""
@@ -924,7 +929,6 @@ def detect_company(text: str) -> dict:
         ],
         model="gpt-4",
         max_tokens=40,
-        type="MISC_CLASSIFY",
     )
 
     if completion.lower().strip() == "unknown":
@@ -933,7 +937,7 @@ def detect_company(text: str) -> dict:
         return completion
 
 
-def detect_personalizations(text: str) -> dict:
+def detect_personalizations(subject: str, text: str) -> dict:
     """Detects the personalizations of the text
 
     Args:
@@ -943,8 +947,10 @@ def detect_personalizations(text: str) -> dict:
         dict: The personalizations of the text
     """
 
-    completion = get_text_generation(
-        [
+    completion = streamed_chat_completion_to_socket(
+        event="generate_email_feedback",
+        room_id=subject,
+        messages=[
             {
                 "role": "user",
                 "content": f"""
@@ -1013,7 +1019,6 @@ output:
         ],
         model="gpt-4",
         max_tokens=1024,
-        type="MISC_CLASSIFY",
     )
 
     try:
@@ -1023,8 +1028,10 @@ output:
 
 
 def generate_email_feedback(subject: str, body: str) -> dict:
-    completion = get_text_generation(
-        [
+    completion = streamed_chat_completion_to_socket(
+        event="generate_email_feedback",
+        room_id=subject,
+        messages=[
             {
                 "role": "user",
                 "content": f"""
@@ -1091,7 +1098,6 @@ Output:
         ],
         model="gpt-4",
         max_tokens=1024,
-        type="MISC_CLASSIFY",
     )
 
     try:
@@ -1101,8 +1107,10 @@ Output:
 
 
 def identify_any_grevious_errors(subject: str, body: str) -> str:
-    completion = get_text_generation(
-        [
+    completion = streamed_chat_completion_to_socket(
+        event="generate_email_feedback",
+        room_id=subject,
+        messages=[
             {
                 "role": "user",
                 "content": f"""
@@ -1166,7 +1174,6 @@ Output:""",
         ],
         model="gpt-4",
         max_tokens=1024,
-        type="MISC_CLASSIFY",
     )
 
     try:

@@ -260,3 +260,75 @@ def attempt_chat_completion(
             exception = e
             time.sleep(random.uniform(0.5, 1.5))
     raise Exception(exception)
+
+
+def streamed_chat_completion(
+    messages: list,
+    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    temperature: Optional[float] = DEFAULT_TEMPERATURE,
+    top_p: Optional[float] = DEFAULT_TOP_P,
+    n: Optional[int] = DEFAULT_N,
+    frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
+    stop: Optional[Union[str, list]] = DEFAULT_STOP,
+    model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+):
+    stream_response = openai.ChatCompletion.create(
+        engine=AZURE_OPENAI_GPT_4_ENGINE if USE_AZURE_ENGINE else None,
+        model=None if USE_AZURE_ENGINE else model,
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        n=n,
+        frequency_penalty=frequency_penalty,
+        stop=stop,
+        stream=True,
+    )
+    return stream_response
+
+
+def get_stream_content(chunk):
+    if chunk and len(chunk.choices) > 0 and chunk.choices[0].delta:
+        return chunk.choices[0].delta.content or ""
+    return ""
+
+
+def streamed_chat_completion_to_socket(
+    event: str,
+    messages: list,
+    room_id: Optional[str] = None,
+    extra_data: Optional[dict] = None,
+    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    temperature: Optional[float] = DEFAULT_TEMPERATURE,
+    top_p: Optional[float] = DEFAULT_TOP_P,
+    n: Optional[int] = DEFAULT_N,
+    frequency_penalty: Optional[float] = DEFAULT_FREQUENCY_PENALTY,
+    stop: Optional[Union[str, list]] = DEFAULT_STOP,
+    model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
+) -> str:
+    from src.sockets.services import send_socket_message
+
+    stream_response = streamed_chat_completion(
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        n=n,
+        frequency_penalty=frequency_penalty,
+        stop=stop,
+        model=model,
+    )
+
+    total = ""
+    for chunk in stream_response:
+        delta = get_stream_content(chunk)
+
+        send_socket_message(
+            event,
+            {"response_delta": delta, "extra_data": extra_data},
+            room_id=room_id,
+        )
+
+        total += delta
+
+    return total
