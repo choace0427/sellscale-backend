@@ -78,6 +78,8 @@ class Client(db.Model):
     auto_generate_li_messages = db.Column(db.Boolean, nullable=True, default=False)
     auto_generate_email_messages = db.Column(db.Boolean, nullable=True, default=False)
 
+    merge_crm_account_token = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
