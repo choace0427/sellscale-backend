@@ -359,6 +359,10 @@ def register_blueprints(app):
     app.register_blueprint(SLACK_AUTH_BLUEPRINT, url_prefix="/slack/authentication")
     app.register_blueprint(TRACK_BLUEPRINT, url_prefix="/track")
 
+    from src.hackathon.david.submission import HACKATHON_BLUEPRINT
+
+    app.register_blueprint(HACKATHON_BLUEPRINT, url_prefix="/hackathon")
+
     db.init_app(app)
 
 
