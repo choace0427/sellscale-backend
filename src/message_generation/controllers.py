@@ -5,6 +5,7 @@ from src.client.models import ClientSDR
 from src.message_generation.models import StackRankedMessageGenerationConfiguration
 from src.message_generation.services import (
     delete_prospect_bump,
+    generate_prospect_bumps_from_id_list,
     get_cta_types,
     get_prospect_bump,
     refresh_computed_prompt_for_stack_ranked_configuration,
@@ -12,6 +13,7 @@ from src.message_generation.services import (
     scribe_sample_email_generation,
     update_stack_ranked_configuration_data,
 )
+from src.message_generation.services import generate_prospect_bump_task
 from app import db
 
 from flask import Blueprint, request, jsonify
@@ -1195,3 +1197,17 @@ def get_cta_types_endpoint(client_sdr_id: int):
     cta_types = get_cta_types()
 
     return jsonify({"data": cta_types}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/generate_bumps_async", methods=["POST"])
+@require_user
+def post_generate_prospect_bumps_from_id_list(client_sdr_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    generate_prospect_bumps_from_id_list(
+        client_sdr_id=client_sdr_id, prospect_ids=prospect_ids
+    )
+
+    return "OK", 200

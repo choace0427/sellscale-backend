@@ -2495,6 +2495,26 @@ def clear_auto_generated_bumps(bump_framework_id: int) -> bool:
     return True
 
 
+@celery.task
+def generate_prospect_bump_task(client_sdr_id: int, prospect_id: int):
+    generate_prospect_bump(client_sdr_id=client_sdr_id, prospect_id=prospect_id)
+
+
+def generate_prospect_bumps_from_id_list(client_sdr_id: int, prospect_ids: list):
+    bumps: list[GeneratedMessageAutoBump] = GeneratedMessageAutoBump.query.filter(
+        GeneratedMessageAutoBump.client_sdr_id == client_sdr_id,
+        GeneratedMessageAutoBump.prospect_id.in_(prospect_ids),
+    ).all()
+    for bump in bumps:
+        db.session.delete(bump)
+        db.session.commit()
+
+    for delay, prospect_id in enumerate(prospect_ids):
+        generate_prospect_bump_task.apply_async(
+            args=(client_sdr_id, prospect_id), countdown=delay * 3
+        )
+
+
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
     """Generates a follow up message for a prospect, using their convo history and bump frameworks
 
