@@ -11,10 +11,10 @@ from src.merge_crm.services import (
 from src.utils.request_helpers import get_request_parameter
 
 
-MERGE_CRM = Blueprint("merge_crm", __name__)
+MERGE_CRM_BLUEPRINT = Blueprint("merge_crm", __name__)
 
 
-@MERGE_CRM.route("/link", methods=["POST"])
+@MERGE_CRM_BLUEPRINT.route("/link", methods=["POST"])
 @require_user
 def link(client_sdr_id: int):
     token = create_link_token(client_sdr_id=client_sdr_id)
@@ -22,7 +22,7 @@ def link(client_sdr_id: int):
     return jsonify({"link_token": token})
 
 
-@MERGE_CRM.route("/connect_link", methods=["POST"])
+@MERGE_CRM_BLUEPRINT.route("/connect_link", methods=["POST"])
 @require_user
 def connect_link(client_sdr_id: int):
     public_token = get_request_parameter(
@@ -36,7 +36,7 @@ def connect_link(client_sdr_id: int):
     return jsonify({"account_token": account_token})
 
 
-@MERGE_CRM.route("/integrations", methods=["GET"])
+@MERGE_CRM_BLUEPRINT.route("/integrations", methods=["GET"])
 @require_user
 def get_integrations_endpoint(client_sdr_id: int):
     integrations = get_integrations(client_sdr_id=client_sdr_id)
@@ -44,7 +44,7 @@ def get_integrations_endpoint(client_sdr_id: int):
     return jsonify({"integrations": integrations})
 
 
-@MERGE_CRM.route("/link", methods=["DELETE"])
+@MERGE_CRM_BLUEPRINT.route("/link", methods=["DELETE"])
 @require_user
 def delete_link(client_sdr_id: int):
     delete_account_token(client_sdr_id=client_sdr_id)
@@ -52,7 +52,7 @@ def delete_link(client_sdr_id: int):
     return jsonify({"success": True})
 
 
-@MERGE_CRM.route("/test_account", methods=["POST"])
+@MERGE_CRM_BLUEPRINT.route("/test_account", methods=["POST"])
 @require_user
 def make_test_account(client_sdr_id: int):
     create_test_account(client_sdr_id=client_sdr_id)

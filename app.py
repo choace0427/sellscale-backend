@@ -286,6 +286,7 @@ def register_blueprints(app):
     from src.slack.controllers import SLACK_BLUEPRINT
     from src.slack.auth.controllers import SLACK_AUTH_BLUEPRINT
     from src.track.controllers import TRACK_BLUEPRINT
+    from src.merge_crm.controllers import MERGE_CRM_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -358,6 +359,7 @@ def register_blueprints(app):
     app.register_blueprint(SLACK_BLUEPRINT, url_prefix="/slack")
     app.register_blueprint(SLACK_AUTH_BLUEPRINT, url_prefix="/slack/authentication")
     app.register_blueprint(TRACK_BLUEPRINT, url_prefix="/track")
+    app.register_blueprint(MERGE_CRM_BLUEPRINT, url_prefix="/merge_crm")
 
     from src.hackathon.david.submission import HACKATHON_BLUEPRINT
 
