@@ -1,10 +1,12 @@
 import json
+import random
 from typing import Optional, TypedDict
 
 from flask import Blueprint, jsonify
 from src.client.models import ClientArchetype
 from src.company.models import Company
 from src.ml.openai_wrappers import (
+    OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
     OPENAI_CHAT_GPT_4_MODEL,
     wrapped_chat_gpt_completion,
     wrapped_chat_gpt_completion_with_history,
@@ -80,8 +82,12 @@ def chatgpt_initial_filter_prospect_list(
     # Get the list of prospects
     prospects: list[Prospect] = Prospect.query.filter_by(
         archetype_id=archetype_id,
-        overall_status=ProspectStatus.PROSPECTED,
+        overall_status=ProspectStatus.PROSPECTED.value,
     ).all()
+
+    # Select 100 random prospects
+    random.shuffle(prospects)
+    prospects = prospects[:25]
 
     # Format the prospects into a list of dictionaries
     prospects_dict: list[dict] = []
@@ -93,9 +99,8 @@ def chatgpt_initial_filter_prospect_list(
                 "id": prospect.id,
                 "name": prospect.full_name,
                 "title": prospect.title,
-                "bio": prospect.linkedin_bio,
-                "company": company.name,
-                "company_size": company.industries,
+                "company": company.name if company else prospect.company,
+                "company_size": company.industries if company else None,
             }
         )
 
@@ -113,7 +118,8 @@ Here is the list to sort:
 {prospects_dict}
 === END LIST ===
 
-Return to me a list of the IDs of the people to remove, as well as a response to the request. Or tell me that you don't understand the query. Format the response as follows:
+Return to me a list of the IDs of the people to remove, as well as a response to the request. If there is no fit, just return empty and say that none were found. Or tell me that you don't understand the query. Format the response as follows:
+DO NOT INCLUDE ```json``` in your response. Just the dictionary.
 {{
    "remove_ids": [1, 2, 3, 4, ...]
    "message": "Here are the people who are..."
@@ -122,12 +128,14 @@ Return to me a list of the IDs of the people to remove, as well as a response to
 The JSON response:""".format(
         request=request, prospects_dict=prospects_dict
     )
+    print(prompt)
 
     response = wrapped_chat_gpt_completion(
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=100,
-        model=OPENAI_CHAT_GPT_4_MODEL,
+        max_tokens=500,
+        model="gpt-4-0125-preview",
     )
+    print(response)
 
     try:
         response_dict: dict = json.loads(response)
@@ -167,7 +175,8 @@ def chatgpt_historied_filter_prospect_list(
 
 If the request is non-sensical (it has to ask you about sorting a list and NOTHING ELSE), then tell me that you don't understand me.
 
-Return to me a list of the IDs of the people to remove, as well as a response to the request. Or tell me that you don't understand the query. Format the response as follows:
+Return to me a list of the IDs of the people to remove, as well as a response to the request. If there is no fit, just return empty and say that none were found. Or tell me that you don't understand the query. Format the response as follows:
+DO NOT INCLUDE ```json``` in your response. Just the dictionary.
 {{
     "remove_ids": [1, 2, 3, 4, ...]
     "message": "Here are the people who are..."
@@ -177,8 +186,8 @@ Return to me a list of the IDs of the people to remove, as well as a response to
     history, response = wrapped_chat_gpt_completion_with_history(
         messages=[{"role": "user", "content": prompt}],
         history=history,
-        max_tokens=100,
-        model=OPENAI_CHAT_GPT_4_MODEL,
+        max_tokens=500,
+        model="gpt-4-0125-preview",
     )
     try:
         response_dict: dict = json.loads(response)
