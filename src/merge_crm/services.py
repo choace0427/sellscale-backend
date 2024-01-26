@@ -3,6 +3,7 @@ from app import db
 from sqlalchemy.orm import attributes
 
 import requests
+import os
 
 from src.client.models import ClientSDR, Client
 from merge.client import Merge
@@ -15,7 +16,7 @@ from merge.resources.crm import (
     AccountRequest,
 )
 
-API_KEY = "Fi3ktbxGZVozZaWLk4IVDjqdL15tBRNUFEFeykpnxpiBg4fLhaI63w"
+API_KEY = os.environ.get("MERGE_API_KEY")
 
 
 # Replace api_key with your Merge production API Key
