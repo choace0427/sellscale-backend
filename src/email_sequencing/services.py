@@ -806,20 +806,18 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     sanitized_body = re.sub(r"<p>", "\n", body)
     sanitized_body = re.sub(r"</p>", "", sanitized_body)
 
+    feedback_score_rounded = round(feedback_score, 2)
+
     send_slack_message(
         message="🍯📧 New Email Grader Submission!",
         webhook_urls=[URL_MAP["honeypot-email-grader"]],
         blocks=[
             {
-                "type": "section",
+                "type": "header",
                 "text": {
-                    "type": "mrkdwn",
-                    "text": f"""
-                    *Email Grader Submission*
-                    *Score:* {feedback_score}
-                    *Subject Line:* {subject}
-                    *Body:* {body}
-                    """,
+                    "type": "plain_text",
+                    "text": "🍯📧 New Email Grader Submission!",
+                    "emoji": True,
                 },
             },
             {
@@ -827,22 +825,37 @@ def grade_email(tracking_data: dict, subject: str, body: str):
                 "text": {
                     "type": "mrkdwn",
                     "text": f"""
-                    *Spam Words in Subject Line:* {spam_subject_words}
-                    *Spam Words in Body:* {spam_body_words}
-                    *Read Time:* {read_time} seconds
-                    *Personalizations:* {personalizations}
+*Score:* {feedback_score_rounded}%
                     """,
                 },
+            },
+            {
+                "type": "divider",
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
                     "text": f"""
-                    **Subject Line:**
-                    ```{subject}```
-                    *Email:*
-                    {sanitized_body}
+*Spam Words in Subject Line:* {spam_subject_words}
+*Spam Words in Body:* {spam_body_words}
+*Read Time:* {read_time} seconds
+                    """,
+                },
+            },
+            {
+                "type": "divider",
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"""
+*Subject Line:*
+{subject}
+
+*Email:*
+{sanitized_body}
                     """,
                 },
             },
