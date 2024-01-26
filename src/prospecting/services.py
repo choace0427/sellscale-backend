@@ -3680,63 +3680,65 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
     results = db.session.execute(
         f"""
     select
-      prospect.id,
-      prospect.full_name,
-      prospect.title,
-      prospect.company,
-      prospect.hidden_until,
-      prospect.icp_fit_score,
-      case
-        when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
-          then CAST(prospect_email.outreach_status AS VARCHAR)
-          else CAST(prospect.status AS VARCHAR)
-      end "status",
-      prospect.img_url,
-      case
-        when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
-          then 'EMAIL'
-          else 'LINKEDIN'
-      end "primary_channel",
-      case
-        when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
-          then
-            (
-              case
-                when prospect_email.hidden_until is not null and prospect_email.hidden_until >= NOW() then 'Snoozed'
-                when prospect_email.outreach_status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
-                else 'Inbox'
-              end
-            )
-          else
-            (
-              case
-                when prospect.hidden_until is not null and prospect.hidden_until > NOW() then 'Snoozed'
-                when prospect.status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
-                else 'Inbox'
-              end
-            )
-      end "section",
-      case
-        when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
-          then prospect_email.last_message
-          else prospect.li_last_message_from_prospect
-      end "last_message",
-      case
-        when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
-          then prospect_email.last_reply_time
-          else prospect.li_last_message_timestamp
-      end "last_message_timestamp"
-    from prospect
-      left join generated_message on generated_message.id = prospect.approved_outreach_message_id
-      left join prospect_email on prospect_email.prospect_id = prospect.id
-    where
-      (
-        cast(prospect.status as varchar) ilike '%ACTIVE_CONVO%'
-        or prospect.status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET')
-        or cast(prospect_email.outreach_status as varchar) ilike '%ACTIVE_CONVO%'
-        or prospect_email.outreach_status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET')
-      )
-      and client_sdr_id = {client_sdr_id};
+  prospect.id,
+  prospect.full_name,
+  prospect.title,
+  prospect.company,
+  prospect.hidden_until,
+  prospect.icp_fit_score,
+  case
+    when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
+      then CAST(prospect_email.outreach_status AS VARCHAR)
+      else CAST(prospect.status AS VARCHAR)
+  end "status",
+  prospect.img_url,
+  case
+    when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
+      then 'EMAIL'
+      else 'LINKEDIN'
+  end "primary_channel",
+  case
+    when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
+      then
+        (
+          case
+            when prospect_email.hidden_until is not null and prospect_email.hidden_until >= NOW() then 'Snoozed'
+            when prospect_email.outreach_status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
+            else 'Inbox'
+          end
+        )
+      else
+        (
+          case
+            when prospect.hidden_until is not null and prospect.hidden_until > NOW() then 'Snoozed'
+            when prospect.status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
+            else 'Inbox'
+          end
+        )
+  end "section",
+  case
+    when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
+      then prospect_email.last_message
+      else prospect.li_last_message_from_prospect
+  end "last_message",
+  case
+    when prospect_email.created_at > generated_message.created_at or generated_message.created_at is null
+      then prospect_email.last_reply_time
+      else prospect.li_last_message_timestamp
+  end "last_message_timestamp",
+  generated_message_auto_bump.message
+from prospect
+  left join generated_message on generated_message.id = prospect.approved_outreach_message_id
+  left join prospect_email on prospect_email.prospect_id = prospect.id
+  left join generated_message_auto_bump on generated_message_auto_bump.prospect_id = prospect.id
+where
+  (
+    cast(prospect.status as varchar) ilike '%ACTIVE_CONVO%'
+    or prospect.status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET')
+    or cast(prospect_email.outreach_status as varchar) ilike '%ACTIVE_CONVO%'
+    or prospect_email.outreach_status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET')
+  )
+  and prospect.client_sdr_id = {client_sdr_id}
     """
     ).fetchall()
 
