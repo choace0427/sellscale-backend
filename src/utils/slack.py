@@ -53,6 +53,7 @@ URL_MAP = {
     "ops-domain-setup-notifications": "https://hooks.slack.com/services/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",
     "csm-client-requests": "https://hooks.slack.com/services/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",
     "continue-sequence-alerts": "https://hooks.slack.com/services/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",
+    "honeypot-email-grader": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {

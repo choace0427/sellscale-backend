@@ -20,6 +20,7 @@ from src.ml.spam_detection import run_algorithmic_spam_detection
 
 from src.research.models import ResearchPointType
 from src.smartlead.services import sync_smartlead_send_schedule
+from src.utils.slack import URL_MAP, send_slack_message
 
 
 def get_email_sequence_step_for_sdr(
@@ -764,8 +765,11 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     if sum(
         personalization.get("strength") == "strong"
         for personalization in personalizations
-    ) > (len(personalizations) / 2):
+    ) > (len(personalizations) / 3):
         feedback_score *= 1.15
+
+    if feedback_score > 50:
+        feedback_score *= 1.1
 
     # Cap the score at 100 and floor at 0
     if feedback_score > 100:
@@ -797,6 +801,53 @@ def grade_email(tracking_data: dict, subject: str, body: str):
     )
     db.session.add(entry)
     db.session.commit()
+
+    # replace all <p> with \n
+    sanitized_body = re.sub(r"<p>", "\n", body)
+    sanitized_body = re.sub(r"</p>", "", sanitized_body)
+
+    send_slack_message(
+        message="🍯📧 New Email Grader Submission!",
+        webhook_urls=[URL_MAP["honeypot-email-grader"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"""
+                    *Email Grader Submission*
+                    *Score:* {feedback_score}
+                    *Subject Line:* {subject}
+                    *Body:* {body}
+                    """,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"""
+                    *Spam Words in Subject Line:* {spam_subject_words}
+                    *Spam Words in Body:* {spam_body_words}
+                    *Read Time:* {read_time} seconds
+                    *Personalizations:* {personalizations}
+                    """,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"""
+                    **Subject Line:**
+                    ```{subject}```
+                    *Email:*
+                    {sanitized_body}
+                    """,
+                },
+            },
+        ],
+    )
 
     return entry.id, entry.to_dict()
 
