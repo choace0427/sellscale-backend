@@ -13,6 +13,12 @@ def normalize_word(word: str) -> str:
     # Convert to lower case
     word = word.lower()
 
+    # replace all html tags
+    word = re.sub(r"<.*?>", " ", word)
+
+    # replace all non-alphanumeric characters with a space
+    word = re.sub(r"[^a-zA-Z0-9\s]", " ", word)
+
     try:  # Check for verb
         result = lemmatizer.lemmatize(word, pos="v")
         if result and result != word:
@@ -52,13 +58,13 @@ def run_algorithmic_spam_detection(text: str) -> dict:
     with open(spam_words_path, "r") as f:
         reader = csv.reader(f)
         for row in reader:
-            spam_words.append(normalize_word(row[0]))
+            spam_words.append(normalize_word(row[0]).lower())
 
     words = re.split(r"\s+", text)
     for word in words:
-        normalized_word = normalize_word(word)
+        normalized_word = normalize_word(word).lower()
         if len(normalized_word) > 0 and normalized_word in spam_words:
-            detected_spam.append(word)
+            detected_spam.append(normalize_word(word).lower())
 
     text_length = len(words)
     read_minutes = (text_length // 130) + 1

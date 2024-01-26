@@ -9,6 +9,7 @@ from sqlalchemy.sql.expression import func
 from src.research.models import ResearchPointType
 import sqlalchemy as sa
 
+
 class LinkedinInitialMessageTemplateLibrary(db.Model):
     __tablename__ = "linkedin_initial_message_template_library"
 
@@ -45,16 +46,17 @@ class LinkedinInitialMessageTemplateLibrary(db.Model):
             "transformer_blocklist": self.transformer_blocklist,
         }
 
+
 class LinkedinInitialMessageTemplate(db.Model):
     __tablename__ = "linkedin_initial_message_template"
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=True)
     message = db.Column(db.String(600), nullable=False)
-    client_sdr_id = db.Column(
-        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
     client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True)
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
 
     active = db.Column(db.Boolean, nullable=False, default=True)
     times_used = db.Column(db.Integer, nullable=False, default=0)
@@ -65,17 +67,17 @@ class LinkedinInitialMessageTemplate(db.Model):
     additional_instructions = db.Column(db.String, nullable=True)
     research_points = db.Column(db.ARRAY(db.String), nullable=True)
 
-
     def get_random(client_archetype_id: int):
-        return LinkedinInitialMessageTemplate.query.filter_by(
-            client_archetype_id=client_archetype_id, active=True
-        ).order_by(func.random()).first()
-    
+        return (
+            LinkedinInitialMessageTemplate.query.filter_by(
+                client_archetype_id=client_archetype_id, active=True
+            )
+            .order_by(func.random())
+            .first()
+        )
 
     def to_dict(self):
-        archetype: ClientArchetype = ClientArchetype.query.get(
-            self.client_archetype_id
-        )
+        archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
 
         return {
             "id": self.id,
@@ -99,7 +101,9 @@ class LinkedinConversationScrapeQueue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     conversation_urn_id = db.Column(db.String, unique=True, index=True, nullable=False)
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=False)
     scrape_time = db.Column(db.DateTime, nullable=False)
 
@@ -126,7 +130,9 @@ class LinkedinConversationEntry(db.Model):
     thread_urn_id = db.Column(db.String, nullable=True, index=True)
     urn_id = db.Column(db.String, nullable=True, index=True, unique=True)
 
-    ai_generated = db.Column(db.Boolean, nullable=True) # is at least partially AI generated
+    ai_generated = db.Column(
+        db.Boolean, nullable=True
+    )  # is at least partially AI generated
 
     # Relevant for bumps
     bump_framework_id = db.Column(db.Integer, db.ForeignKey("bump_framework.id"))
@@ -137,10 +143,14 @@ class LinkedinConversationEntry(db.Model):
 
     # Relevant for initial message
     initial_message_id = db.Column(db.Integer, db.ForeignKey("generated_message.id"))
-    initial_message_cta_id = db.Column(db.Integer, db.ForeignKey("generated_message_cta.id"))
+    initial_message_cta_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message_cta.id")
+    )
     initial_message_cta_text = db.Column(db.String, nullable=True)
     initial_message_research_points = db.Column(db.ARRAY(db.String), nullable=True)
-    initial_message_stack_ranked_config_id = db.Column(db.Integer, db.ForeignKey("stack_ranked_message_generation_configuration.id"))
+    initial_message_stack_ranked_config_id = db.Column(
+        db.Integer, db.ForeignKey("stack_ranked_message_generation_configuration.id")
+    )
     initial_message_stack_ranked_config_name = db.Column(db.String, nullable=True)
 
     bump_analytics_processed = db.Column(db.Boolean, default=False)
@@ -198,9 +208,16 @@ class LinkedinConversationEntry(db.Model):
         }
 
 
-class LinkedInConvoMessage():
-
-    def __init__(self, author: str, message: str, connection_degree: str, li_id: Optional[int] = None, meta_data: Optional[dict] = None, date: Optional[datetime] = None):
+class LinkedInConvoMessage:
+    def __init__(
+        self,
+        author: str,
+        message: str,
+        connection_degree: str,
+        li_id: Optional[int] = None,
+        meta_data: Optional[dict] = None,
+        date: Optional[datetime] = None,
+    ):
         self.author = author
         self.message = message
         self.connection_degree = connection_degree

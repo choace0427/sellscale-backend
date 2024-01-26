@@ -14,11 +14,12 @@ from src.setup.TimestampedModel import TimestampedModel
 from src.utils.scheduler import *
 from src.utils.slack import URL_MAP
 import boto3
+from src.utils.access import is_production
 
 from celery import Celery
 from src.utils.slack import send_slack_message
 
-if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
+if is_production():
     import sentry_sdk
     from sentry_sdk.integrations.tornado import TornadoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
@@ -286,6 +287,7 @@ def register_blueprints(app):
     from src.slack.controllers import SLACK_BLUEPRINT
     from src.slack.auth.controllers import SLACK_AUTH_BLUEPRINT
     from src.track.controllers import TRACK_BLUEPRINT
+    from src.merge_crm.controllers import MERGE_CRM_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -358,6 +360,11 @@ def register_blueprints(app):
     app.register_blueprint(SLACK_BLUEPRINT, url_prefix="/slack")
     app.register_blueprint(SLACK_AUTH_BLUEPRINT, url_prefix="/slack/authentication")
     app.register_blueprint(TRACK_BLUEPRINT, url_prefix="/track")
+    app.register_blueprint(MERGE_CRM_BLUEPRINT, url_prefix="/merge_crm")
+
+    from src.hackathon.david.submission import HACKATHON_BLUEPRINT
+
+    app.register_blueprint(HACKATHON_BLUEPRINT, url_prefix="/hackathon")
 
     db.init_app(app)
 
