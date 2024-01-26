@@ -1,0 +1,39 @@
+name: Docker Compose CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v1
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build and run with Docker Compose
+        run: |
+          docker-compose up -d
+          docker-compose ps
+
+      - name: Test Container
+        run: |
+          # Check if the web service is up:
+          curl -f http://localhost:5001/
+
+      - name: Take down the Docker Compose setup
+        if: always()
+        run: docker-compose down

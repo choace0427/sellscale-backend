@@ -5,6 +5,7 @@ import datetime as dt
 import random
 import os
 from tqdm import tqdm
+from src.utils.access import is_production
 
 from tomlkit import datetime
 from src.bump_framework.models import BumpFramework
@@ -167,7 +168,7 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
     sdr.user_agent = user_agent
 
     # Update the pb agent
-    if os.environ.get("FLASK_ENV") == "production":
+    if is_production():
         response = update_phantom_buster_li_at(
             client_sdr_id=client_sdr_id,
             li_at=sdr.li_at_token,

@@ -4,6 +4,7 @@ import linecache
 import sys
 import requests
 from datetime import datetime
+from src.utils.access import is_production
 
 URL_MAP = {
     "autodetect-scheduling": "https://hooks.slack.com/services/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",
@@ -63,10 +64,7 @@ CHANNEL_NAME_MAP = {
 
 
 def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
-    if (
-        os.environ.get("FLASK_ENV") != "production"
-        and os.environ.get("FLASK_ENV") != "celery-production"
-    ):
+    if not is_production():
         print(message)
         return False
 
@@ -99,10 +97,7 @@ def send_slack_message(message: str, webhook_urls: list, blocks: any = []):
 def send_delayed_slack_message(
     message: str, channel_name: str, delay_date: datetime
 ) -> bool:
-    if (
-        os.environ.get("FLASK_ENV") != "production"
-        and os.environ.get("FLASK_ENV") != "celery-production"
-    ):
+    if not is_production():
         return
     if delay_date < datetime.datetime.now():
         return

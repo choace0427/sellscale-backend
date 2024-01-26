@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile-flask
+    ports:
+      - "5001:5000" # Map gunicorn port 8000 to host port 5001 (so it doesn't conflict with other possible Flask apps)
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - worker
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile-celery
+    env_file:
+      - .envcelery
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"

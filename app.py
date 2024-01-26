@@ -14,11 +14,12 @@ from src.setup.TimestampedModel import TimestampedModel
 from src.utils.scheduler import *
 from src.utils.slack import URL_MAP
 import boto3
+from src.utils.access import is_production
 
 from celery import Celery
 from src.utils.slack import send_slack_message
 
-if os.environ.get("FLASK_ENV") in ("production", "celery-production"):
+if is_production():
     import sentry_sdk
     from sentry_sdk.integrations.tornado import TornadoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration

@@ -3,6 +3,7 @@ import os
 from slack_bolt import App as SlackApp
 from slack_bolt.authorization import AuthorizeResult as SlackAuthorizeResult
 from slack_bolt.adapter.socket_mode import SocketModeHandler as SlackSocketModeHandler
+from src.utils.access import is_production
 
 
 def authorize(enterprise_id, team_id, logger) -> SlackAuthorizeResult:
@@ -20,7 +21,7 @@ def initialize_slack_app():
     Returns:
         SlackApp (slack_bolt.App): The Slack app
     """
-    if os.environ["APP_SETTINGS"] != "config.ProductionConfig":
+    if not is_production():
         print("Using development config, Slack App will not be initialized")
         return None
 
