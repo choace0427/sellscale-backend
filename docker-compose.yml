@@ -11,6 +11,7 @@ services:
     depends_on:
       - redis
       - worker
+      # - db
 
   worker:
     build:
@@ -20,8 +21,23 @@ services:
       - .envcelery
     depends_on:
       - redis
+      # - db
 
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
+
+  # db:
+  #   image: postgres:latest
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: development
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+
+# volumes:
+#   pgdata:
