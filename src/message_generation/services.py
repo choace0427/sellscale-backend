@@ -2510,9 +2510,10 @@ def generate_prospect_bumps_from_id_list(client_sdr_id: int, prospect_ids: list)
         db.session.commit()
 
     for delay, prospect_id in enumerate(prospect_ids):
-        generate_prospect_bump_task.apply_async(
-            args=(client_sdr_id, prospect_id), countdown=delay * 3
-        )
+        # generate_prospect_bump_task.apply_async(
+        #     args=(client_sdr_id, prospect_id), countdown=delay * 3
+        # )
+        generate_prospect_bump_task(client_sdr_id, prospect_id)
 
 
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
@@ -2675,6 +2676,11 @@ def generate_followup_response(
             in [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
             else []
         )
+        include_archetype_sequence_id = (
+            prospect.archetype_id
+            if prospect.status == ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE
+            else None
+        )
         default_only = (
             True
             if overall_status
@@ -2690,13 +2696,24 @@ def generate_followup_response(
             active_only=True,
             bumped_count=bump_count,
             default_only=default_only,
+            include_archetype_sequence_id=include_archetype_sequence_id,
         )
 
         # Filter by active convo substatus
         if overall_status.value == "ACTIVE_CONVO":
-            bump_frameworks = [
-                x for x in bump_frameworks if x.get("substatus") == li_status.value
-            ]
+            # Different behavior for Continue the Sequence
+            if prospect.status == ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE:
+                # pick a bump in the `RESPONDED` status with bumped_count = prospect.bumped_count
+                bump_frameworks = [
+                    x
+                    for x in bump_frameworks
+                    if x.get("overall_status") == "BUMPED"
+                    and x.get("bumped_count") == (prospect.times_bumped or 1)
+                ]
+            else:
+                bump_frameworks = [
+                    x for x in bump_frameworks if x.get("substatus") == li_status.value
+                ]
 
         # Filter by bumped count
         if overall_status.value == "BUMPED":
