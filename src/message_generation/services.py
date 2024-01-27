@@ -2703,15 +2703,15 @@ def generate_followup_response(
         if overall_status.value == "ACTIVE_CONVO":
             # Different behavior for Continue the Sequence
             if prospect.status == ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE:
-                num_messages_from_sdr_minus_one = (
-                    len([x for x in convo_history if x.connection_degree == "You"]) - 1
+                num_messages_from_sdr = len(
+                    [x for x in convo_history if x.connection_degree == "You"]
                 )
 
                 bump_frameworks = [
                     x
                     for x in bump_frameworks
                     if x.get("overall_status") == "BUMPED"
-                    and x.get("bumped_count") == num_messages_from_sdr_minus_one
+                    and x.get("bumped_count") == num_messages_from_sdr
                 ]
             else:
                 bump_frameworks = [
