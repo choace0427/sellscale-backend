@@ -2516,7 +2516,6 @@ def generate_prospect_bumps_from_id_list(client_sdr_id: int, prospect_ids: list)
         # generate_prospect_bump_task(client_sdr_id, prospect_id)
 
 
-
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
     """Generates a follow up message for a prospect, using their convo history and bump frameworks
 
@@ -2704,12 +2703,15 @@ def generate_followup_response(
         if overall_status.value == "ACTIVE_CONVO":
             # Different behavior for Continue the Sequence
             if prospect.status == ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE:
-                # pick a bump in the `RESPONDED` status with bumped_count = prospect.bumped_count
+                num_messages_from_sdr_minus_one = (
+                    len([x for x in convo_history if x.connection_degree == "You"]) - 1
+                )
+
                 bump_frameworks = [
                     x
                     for x in bump_frameworks
                     if x.get("overall_status") == "BUMPED"
-                    and x.get("bumped_count") == (prospect.times_bumped or 1)
+                    and x.get("bumped_count") == num_messages_from_sdr_minus_one
                 ]
             else:
                 bump_frameworks = [
