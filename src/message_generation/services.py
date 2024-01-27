@@ -2510,10 +2510,11 @@ def generate_prospect_bumps_from_id_list(client_sdr_id: int, prospect_ids: list)
         db.session.commit()
 
     for delay, prospect_id in enumerate(prospect_ids):
-        # generate_prospect_bump_task.apply_async(
-        #     args=(client_sdr_id, prospect_id), countdown=delay * 3
-        # )
-        generate_prospect_bump_task(client_sdr_id, prospect_id)
+        generate_prospect_bump_task.apply_async(
+            args=(client_sdr_id, prospect_id), countdown=delay * 3
+        )
+        # generate_prospect_bump_task(client_sdr_id, prospect_id)
+
 
 
 def generate_prospect_bump(client_sdr_id: int, prospect_id: int):
