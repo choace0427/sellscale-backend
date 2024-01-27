@@ -1701,7 +1701,7 @@ def batch_update_prospect_statuses(updates: list):
         new_status = update.get("status")
 
         update_prospect_status_linkedin(
-            prospect_id=prospect_id, new_status=ProspectStatus[new_status]
+            prospect_id=prospect_id, new_status=ProspectStatus[new_status], quietly=True
         )
 
     return True

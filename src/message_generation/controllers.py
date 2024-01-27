@@ -10,6 +10,7 @@ from src.message_generation.services import (
     get_prospect_bump,
     refresh_computed_prompt_for_stack_ranked_configuration,
     regenerate_email_body,
+    schedule_cached_messages,
     scribe_sample_email_generation,
     update_stack_ranked_configuration_data,
 )
@@ -1209,5 +1210,17 @@ def post_generate_prospect_bumps_from_id_list(client_sdr_id: int):
     generate_prospect_bumps_from_id_list(
         client_sdr_id=client_sdr_id, prospect_ids=prospect_ids
     )
+
+    return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/schedule_cached_messages", methods=["POST"])
+@require_user
+def post_schedule_cached_messages(client_sdr_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    schedule_cached_messages(client_sdr_id=client_sdr_id, prospect_ids=prospect_ids)
 
     return "OK", 200
