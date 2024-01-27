@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
   libffi-dev \
   && rm -rf /var/lib/apt/lists/*
 
+# Install PostgreSQL client
+RUN apt-get update -y && apt-get install -y postgresql-client
+
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
@@ -17,17 +20,15 @@ COPY . .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Upgrade the db with the latest migrations
-# RUN flask db upgrade
-
-# Make port 8000 available to the world outside this container
+# Make port 5000 available to the world outside this container
 EXPOSE 5000
 
 # Define environment variable
 ENV FLASK_APP=app.py
 
-# Run app.py when the container launches
-# CMD ["flask", "run", "--host=0.0.0.0"]
+# Copy the initialization and entrypoint scripts
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
-# Run gunicorn when the container launches
-CMD ["gunicorn", "-w", "8", "-b", "0.0.0.0:5000", "--timeout", "60", "--reload", "app:app"]
+# Run entrypoint script when the container launches
+CMD ["./entrypoint.sh"]
