@@ -11,7 +11,9 @@ SLACK_EVENTS_BLUEPRINT = Blueprint("slack/events", __name__)
 @SLACK_EVENTS_BLUEPRINT.route("/", methods=["POST"])
 def slack_events():
     """Handle Slack events"""
-    event_type = get_request_parameter("type", request, required=True)
+    event_type = get_request_parameter(
+        "type", request, json=True, required=True, parameter_type=str
+    )
 
     # If the event type is a URL verification, return the challenge
     if event_type == "url_verification":
