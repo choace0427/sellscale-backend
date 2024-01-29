@@ -2,7 +2,7 @@
 import os
 from slack_bolt import App as SlackApp
 from slack_bolt.authorization import AuthorizeResult as SlackAuthorizeResult
-from slack_bolt.adapter.socket_mode import SocketModeHandler as SlackSocketModeHandler
+from slack_bolt.adapter.flask import SlackRequestHandler
 from src.utils.access import is_production
 
 
@@ -33,8 +33,7 @@ def initialize_slack_app():
         authorize=authorize,
     )
 
-    handler = SlackSocketModeHandler(slack_app, os.environ["SLACK_APP_TOKEN"])
-    handler.connect()
+    handler = SlackRequestHandler(slack_app)
 
     print("Slack App initialized")
-    return slack_app
+    return slack_app, handler
