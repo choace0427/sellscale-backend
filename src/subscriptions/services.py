@@ -53,13 +53,16 @@ def get_subscriptions(client_sdr_id: int) -> list:
 
 
 def subscribe_to_slack_notification(
-    client_sdr_id: int, slack_notification_id: int
+    client_sdr_id: int,
+    slack_notification_id: int,
+    new_notification: Optional[bool] = False,
 ) -> int:
     """Subscribe a client to a Slack notification
 
     Args:
         client_sdr_id (int): The client SDR ID
         slack_notification_id (int): The Slack notification ID
+        new_notification (bool): Whether or not the notification is new
 
     Returns:
         int: The ID of the subscription that was created
@@ -69,6 +72,10 @@ def subscribe_to_slack_notification(
         client_sdr_id=client_sdr_id, slack_notification_id=slack_notification_id
     ).first()
     if subscription:
+        # If this is supposed to be a new notification, then just return the subscription ID, something is wrong
+        if new_notification:
+            return subscription.id
+
         # If the subscription already exists, then activate it
         activate_subscription(
             client_sdr_id=client_sdr_id, subscription_id=subscription.id

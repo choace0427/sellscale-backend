@@ -58,7 +58,7 @@ class SlackNotification(db.Model):  # type: ignore
     )
     notification_name = db.Column(db.String(255), nullable=False)
     notification_description = db.Column(db.String, nullable=False)
-    notification_outbound_channel = db.Column(db.String(255), nullable=True)
+    notification_outbound_channel = db.Column(db.String(255), nullable=False)
 
     def to_dict(self):
         return {
@@ -137,5 +137,7 @@ def subscribe_all_sdrs_to_notification(notification_type: SlackNotificationType)
     # Create subscriptions to this notification type for all of the SDRs
     for client_sdr in client_sdrs:
         subscribe_to_slack_notification(
-            client_sdr_id=client_sdr.id, slack_notification_id=slack_notification.id
+            client_sdr_id=client_sdr.id,
+            slack_notification_id=slack_notification.id,
+            new_notification=True,
         )
