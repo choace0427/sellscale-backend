@@ -7,6 +7,7 @@ class SlackNotificationType(Enum):
     """The types of Slack notifications that can be sent"""
 
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
+    LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
 
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
@@ -17,10 +18,16 @@ class SlackNotificationType(Enum):
     def get_class(self):
         return get_slack_notification_type_metadata()[self].get("class")
 
+    def get_outbound_channel(self):
+        return get_slack_notification_type_metadata()[self].get("outbound_channel")
+
 
 def get_slack_notification_type_metadata():
     from src.slack.notifications.email_ai_reply_notification import (
         EmailAIReplyNotification,
+    )
+    from src.slack.notifications.linkedin_invite_accepted import (
+        LinkedInInviteAcceptedNotification,
     )
 
     map_slack_notification_type_to_metadata = {
@@ -28,7 +35,14 @@ def get_slack_notification_type_metadata():
             "name": "AI Reply to Email",
             "description": "A Slack notification that is sent when the AI replies to an email",
             "class": EmailAIReplyNotification,
-        }
+            "outbound_channel": "email",
+        },
+        SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
+            "name": "LinkedIn Invite Accepted",
+            "description": "A Slack notification that is sent when the Prospect accepts a LinkedIn invite",
+            "class": LinkedInInviteAcceptedNotification,
+            "outbound_channel": "linkedin",
+        },
     }
 
     return map_slack_notification_type_to_metadata
@@ -44,6 +58,7 @@ class SlackNotification(db.Model):  # type: ignore
     )
     notification_name = db.Column(db.String(255), nullable=False)
     notification_description = db.Column(db.String, nullable=False)
+    notification_outbound_channel = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):
         return {
@@ -51,6 +66,7 @@ class SlackNotification(db.Model):  # type: ignore
             "notification_type": self.notification_type.value,
             "notification_name": self.notification_name,
             "notification_description": self.notification_description,
+            "notification_outbound_channel": self.notification_outbound_channel,
         }
 
 
@@ -95,6 +111,7 @@ def populate_slack_notifications():
                 notification_type=slack_notification_type,
                 notification_name=slack_notification_type.name(),
                 notification_description=slack_notification_type.description(),
+                notification_outbound_channel=slack_notification_type.get_outbound_channel(),
             )
             db.session.add(slack_notification)
             db.session.commit()

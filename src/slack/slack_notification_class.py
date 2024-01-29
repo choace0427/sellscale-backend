@@ -16,7 +16,7 @@ class SlackNotificationClass:
     `client_sdr_id`: The ID of the ClientSDR that sent the notification
     `developer_mode`: Whether or not the notification is being sent in developer mode. Developer mode sends to a testing channel and does not send to the actual Slack channel.
     `send_notification()`: Sends a notification to Slack using the class's attributes and the Slack API. There should be no parameters to this function.
-    `send_test_notification()`: Sends a test notification (using dummy data) to Slack using the class's attributes and the Slack API. There should be no parameters to this function.
+    `send_notification_preview()`: Sends a test notification (using dummy data) to Slack using the class's attributes and the Slack API. There should be no parameters to this function.
 
     This class should be inherited by all Slack notifications. This class should not be instantiated directly.
     """
@@ -61,4 +61,4 @@ class SlackNotificationClass:
         Returns:
             bool: Whether or not the message was successfully sent
         """
-        return True
+        return self.send_notification(preview_mode=True)

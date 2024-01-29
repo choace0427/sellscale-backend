@@ -23,7 +23,7 @@ def initialize_slack_app():
     """
     if not is_production():
         print("Using development config, Slack App will not be initialized")
-        return None
+        return None, None
 
     # Slack
     print("Initializing Slack App")
