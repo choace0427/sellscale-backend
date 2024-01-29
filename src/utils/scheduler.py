@@ -394,7 +394,7 @@ scheduler.add_job(
 # Minute triggers
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
-scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2)
+# scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=2) # todo(Aakash) - bring this back
 # scheduler.add_job(func=generate_email_bumps, trigger="interval", minutes=2)
 scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(
