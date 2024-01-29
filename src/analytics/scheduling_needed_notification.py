@@ -1,6 +1,14 @@
 import datetime
 from app import db, celery
 from src.utils.slack import URL_MAP, send_slack_message
+from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
+from src.client.models import Client, ClientArchetype, ClientSDR
+from src.operator_dashboard.models import (
+    OperatorDashboardEntryPriority,
+    OperatorDashboardEntryStatus,
+    OperatorDashboardTaskType,
+)
+from datetime import datetime, timedelta
 
 
 @celery.task(name="scheduling_notification")
@@ -116,3 +124,27 @@ Prospect #{prospect_i}
             blocks=blocks,
         )
         print(f"Sent message to {sdr}")
+
+        from src.operator_dashboard.services import create_operator_dashboard_entry
+
+        prospect: Prospect = Prospect.query.get(prospect_i)
+        prospect_demo_date_formatted = prospect.demo_date.strftime("%B %d, %Y")
+
+        create_operator_dashboard_entry(
+            client_sdr_id=prospect.client_sdr_id,
+            urgency=OperatorDashboardEntryPriority.MEDIUM,
+            tag="demo_feedback_{prospect_id}".format(prospect_id=prospect.id),
+            emoji="📋",
+            title="Scheduling feedback needed",
+            subtitle="This prospect has been in scheduling for 3+ days. Please indicate what happened.",
+            cta="Update Prospect",
+            cta_url="/prospects/{prospect_id}".format(prospect_id=prospect.id),
+            status=OperatorDashboardEntryStatus.PENDING,
+            due_date=datetime.now() + timedelta(days=5),
+            task_type=OperatorDashboardTaskType.SCHEDULING_FEEDBACK_NEEDED,
+            task_data={
+                "prospect_id": prospect.id,
+                "prospect_full_name": prospect.full_name,
+                "prospect_demo_date_formatted": prospect_demo_date_formatted,
+            },
+        )
