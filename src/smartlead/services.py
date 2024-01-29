@@ -285,7 +285,7 @@ def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
         prospect_message=reply_email_body,
         ai_response=message,
     )
-    success = notification.send_notification()
+    success = notification.send_notification(preview_mode=False)
 
     # Mark the prospect email as hidden until 3 days from now
     p_email: ProspectEmail = ProspectEmail.query.get(

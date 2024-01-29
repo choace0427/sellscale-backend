@@ -182,13 +182,31 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                         },
                     ],
                 },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " ",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Convo in Sight",
+                            "emoji": True,
+                        },
+                        "value": direct_link,
+                        "url": direct_link,
+                        "action_id": "button-action",
+                    },
+                },
             ],
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,
             testing=self.developer_mode,
         )
 
-        return super().send_notification(preview_mode)
+        return True
 
     def send_notification_preview(self) -> bool:
         """Sends a test notification (using dummy data) to Slack using the class's attributes and the Slack API. There should be no parameters to this function.

@@ -622,13 +622,24 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
             engagement_metadata=message,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.LINKEDIN,
-            prospect=p,
-            new_status=ProspectStatus.ACCEPTED,
-            custom_message=" accepted your invite! 😀",
-            metadata=message,
+
+        from src.slack.notifications.linkedin_invite_accepted import (
+            LinkedInInviteAcceptedNotification,
         )
+
+        notification = LinkedInInviteAcceptedNotification(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+        )
+        success = notification.send_notification(preview_mode=False)
+
+        # send_status_change_slack_block(
+        #     outreach_type=ProspectChannels.LINKEDIN,
+        #     prospect=p,
+        #     new_status=ProspectStatus.ACCEPTED,
+        #     custom_message=" accepted your invite! 😀",
+        #     metadata=message,
+        # )
     if (
         new_status == ProspectStatus.ACTIVE_CONVO
         and "ACTIVE_CONVO" not in current_status.value

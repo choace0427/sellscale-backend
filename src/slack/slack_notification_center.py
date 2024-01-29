@@ -16,7 +16,7 @@
 import os
 
 from app import db, slack_app
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Union
 from slack_sdk.webhook import WebhookClient
 from datetime import datetime
 
@@ -104,9 +104,9 @@ def slack_bot_send_message(
     slack_auth: SlackAuthentication = SlackAuthentication.query.filter_by(
         client_id=client_id
     ).first()
-    slack_channel: SlackConnectedChannel = SlackConnectedChannel.query.filter_by(
-        client_id=client_id
-    ).first()
+    slack_channel: Union[
+        SlackConnectedChannel, None
+    ] = SlackConnectedChannel.query.filter_by(client_id=client_id).first()
 
     # If we're in testing or development, only send to the testing channel
     if (
@@ -120,7 +120,7 @@ def slack_bot_send_message(
                 "channel": "slack-notification-testing",
             }
         ]
-        slack_chennel = None
+        slack_channel = None
 
     # Sending Stage 1: Send using the channel token
     if slack_auth and slack_channel:
