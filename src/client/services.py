@@ -76,6 +76,8 @@ import os
 import requests
 from sqlalchemy import func, case, distinct
 
+from src.voyager.services import create_linkedin_connection_needed_operator_dashboard_card
+
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
 STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
 STYTCH_BASE_URL = os.environ.get("STYTCH_BASE_URL")
@@ -636,6 +638,8 @@ def create_client_sdr(client_id: int, name: str, email: str):
 
     sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     sdr.regenerate_uuid()
+
+    create_linkedin_connection_needed_operator_dashboard_card(sdr_id)
 
     print("Creating unassigned contacts archetype")
     create_sight_onboarding(sdr.id)
