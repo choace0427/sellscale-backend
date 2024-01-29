@@ -5,6 +5,12 @@ import datetime as dt
 import random
 import os
 from tqdm import tqdm
+from src.operator_dashboard.models import (
+    OperatorDashboardEntryPriority,
+    OperatorDashboardEntryStatus,
+    OperatorDashboardTaskType,
+)
+from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.utils.access import is_production
 
 from tomlkit import datetime
@@ -47,7 +53,7 @@ from src.utils.abstract.attr_utils import deep_get
 from src.voyager.linkedin import LinkedIn
 from sqlalchemy import or_
 from fuzzywuzzy import fuzz
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
@@ -1132,3 +1138,24 @@ def archive_convo(prospect_id: int):
         return False, "Failed to archive conversation"
 
     return True, "Success"
+
+
+def create_linkedin_connection_needed_operator_dashboard_card(client_sdr_id: int):
+    create_operator_dashboard_entry(
+        client_sdr_id=client_sdr_id,
+        urgency=OperatorDashboardEntryPriority.HIGH,
+        tag="connect_linkedin_{client_sdr_id}".format(prospect_id=client_sdr_id),
+        emoji="🌐",
+        title="Connect LinkedIn",
+        subtitle="In order to conduct outbound on LinkedIn, you will need to connect your LinkedIn account to SellScale.",
+        cta="Connect LinkedIn",
+        cta_url="/",
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.now() + timedelta(days=5),
+        task_type=OperatorDashboardTaskType.CONNECT_LINKEDIN,
+        task_data={
+            "client_sdr_id": client_sdr_id,
+        },
+    )
+
+    return True
