@@ -10,12 +10,15 @@ SLACK_EVENTS_BLUEPRINT = Blueprint("slack/events", __name__)
 
 @SLACK_EVENTS_BLUEPRINT.route("/", methods=["POST"])
 def slack_events():
-    payload = get_request_parameter("payload", request, json=True, required=True)
+    """Handle Slack events"""
+    event_type = get_request_parameter("type", request, required=True)
 
-    type = payload.get("type", "")
+    # If the event type is a URL verification, return the challenge
+    if event_type == "url_verification":
+        return jsonify({"challenge": request.json["challenge"]}), 200
 
     send_slack_message(
-        message=f"SLACKBOT: Received interaction of type {type}. Full payload: {payload}",
+        message=f"SLACKBOT: Received interaction of type {event_type}. Full payload: {request.json}",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
 
