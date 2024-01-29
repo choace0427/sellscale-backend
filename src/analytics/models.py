@@ -24,7 +24,9 @@ class FeatureFlag(db.Model):
 class AutoDeleteMessageAnalytics(db.Model):
     __tablename__ = "auto_delete_message_analytics"
 
-    problems = db.Column(db.String, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+
+    problem = db.Column(db.String)
     prospect = db.Column(db.String)
     sdr_name = db.Column(db.String)
     message = db.Column(db.String)

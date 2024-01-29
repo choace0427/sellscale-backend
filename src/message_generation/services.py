@@ -791,6 +791,7 @@ def approve_message(message_id: int):
     # If the message has no problems, mark it as "human approved"
     if not message.problems or len(message.problems) == 0:
         message.ai_approved = True
+        db.session.add(message)
         db.session.commit()
 
     return True
