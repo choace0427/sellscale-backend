@@ -164,8 +164,8 @@ class LinkedIn(object):
                     urgency=OperatorDashboardEntryPriority.HIGH,
                     tag="linkedin_disconnected",
                     emoji="⚠️",
-                    title="LinkedIn Disconnected",
-                    subtitle="Your LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
+                    title=f"{sdr.name}'s LinkedIn Disconnected",
+                    subtitle=f"{sdr.name}'s LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
                     cta="Connect LinkedIn",
                     cta_url="/settings",
                     status=OperatorDashboardEntryStatus.PENDING,
@@ -175,6 +175,7 @@ class LinkedIn(object):
                     task_data={
                         "client_sdr_id": sdr.id,
                     },
+                    send_slack=True,
                 )
             return None
 
@@ -229,8 +230,8 @@ class LinkedIn(object):
                     urgency=OperatorDashboardEntryPriority.HIGH,
                     tag="linkedin_disconnected",
                     emoji="⚠️",
-                    title="LinkedIn Disconnected",
-                    subtitle="Your LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
+                    title=f"LinkedIn Disconnected",
+                    subtitle=f"Your LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
                     cta="Connect LinkedIn",
                     cta_url="/settings",
                     status=OperatorDashboardEntryStatus.PENDING,
@@ -240,6 +241,7 @@ class LinkedIn(object):
                     task_data={
                         "client_sdr_id": sdr.id,
                     },
+                    send_slack=True,
                 )
             return None
 
@@ -1073,7 +1075,9 @@ def send_scheduled_linkedin_message(
         if to_purgatory:
             bump: BumpFramework = BumpFramework.query.get(bf_id)
             bump_delay = bump.bump_delay_days if bump and bump.bump_delay_days else 2
-            aware_utc_now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+            aware_utc_now = datetime.datetime.utcnow().replace(
+                tzinfo=datetime.timezone.utc
+            )
             purgatory_date = datetime.datetime.fromisoformat(purgatory_date).replace(
                 tzinfo=datetime.timezone.utc
             )
@@ -1097,4 +1101,4 @@ def send_scheduled_linkedin_message(
 
         return True, msg_urn_id
     except:
-        return True, 'OK'
+        return True, "OK"

@@ -76,6 +76,8 @@ import os
 import requests
 from sqlalchemy import func, case, distinct
 
+from src.voyager.services import create_linkedin_connection_needed_operator_dashboard_card
+
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
 STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
 STYTCH_BASE_URL = os.environ.get("STYTCH_BASE_URL")
@@ -636,6 +638,8 @@ def create_client_sdr(client_id: int, name: str, email: str):
 
     sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     sdr.regenerate_uuid()
+
+    create_linkedin_connection_needed_operator_dashboard_card(sdr_id)
 
     print("Creating unassigned contacts archetype")
     create_sight_onboarding(sdr.id)
@@ -3170,7 +3174,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH' OR prospect_status_records.to_status = 'SENT_OUTREACH') "TOTAL-SENT",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED' OR prospect_status_records.to_status = 'ACCEPTED') "TOTAL-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status = 'ACTIVE_CONVO') "TOTAL-REPLY",
-            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')) "TOTAL-POS-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')) "TOTAL-POS-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'DEMO_SET' OR prospect_status_records.to_status = 'DEMO_SET') "TOTAL-DEMO",
             count(DISTINCT prospect.id) "TOTAL-PROSPECTS",
             client_archetype.smartlead_campaign_id,

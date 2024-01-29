@@ -791,6 +791,7 @@ def approve_message(message_id: int):
     # If the message has no problems, mark it as "human approved"
     if not message.problems or len(message.problems) == 0:
         message.ai_approved = True
+        db.session.add(message)
         db.session.commit()
 
     return True
@@ -2395,8 +2396,11 @@ def send_sent_by_sellscale_notification(
 def generate_message_bumps():
     # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
     sdrs: List[ClientSDR] = (
-        ClientSDR.query.filter(
-            ClientSDR.active == True, ClientSDR.auto_generate_messages == True
+        ClientSDR.query.join(Client).filter(
+            ClientSDR.active == True,
+            Client.active == True,
+            ClientSDR.auto_generate_messages == True,
+            ClientSDR.li_at_token != "INVALID",
         )
         .order_by(func.random())
         .all()

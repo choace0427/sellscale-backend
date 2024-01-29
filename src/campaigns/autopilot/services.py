@@ -12,6 +12,7 @@ from model_import import (
     OutboundCampaignStatus,
 )
 from tqdm import tqdm
+from src.analytics.models import AutoDeleteMessageAnalytics
 from src.client.models import SLASchedule
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
@@ -891,6 +892,19 @@ def send_slack_message_for_invalid_messages(message_ids: list[int]):
             f"🗑 *Auto-Deleted Message During Autosend for {client_sdr.name}*\n*Prospect:* `{prospect.full_name}`\n*Message:*\n```{message.completion}```\n*Problems:* \n`- {problems}`",
             [URL_MAP["ops-auto-send-auto-deleted-messages"]],
         )
+
+        m: GeneratedMessage = message
+
+        auto_delete_message_log = AutoDeleteMessageAnalytics(
+            problems=problems,
+            prospect=prospect.full_name,
+            sdr_name=client_sdr.name,
+            message=message.completion,
+            send_date=datetime.utcnow(),
+            channel=m.message_type.value,
+        )
+        db.session.add(auto_delete_message_log)
+        db.session.commit()
 
 
 @celery.task(bind=True, max_retries=3)

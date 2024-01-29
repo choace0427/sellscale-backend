@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional
+from src.client.models import ClientSDR, Client
 from src.operator_dashboard.models import (
     OperatorDashboardEntry,
     OperatorDashboardEntryPriority,
@@ -7,6 +8,7 @@ from src.operator_dashboard.models import (
     OperatorDashboardTaskType,
 )
 from app import db
+from src.utils.slack import send_slack_message
 
 
 def create_operator_dashboard_entry(
@@ -23,6 +25,7 @@ def create_operator_dashboard_entry(
     task_type: OperatorDashboardTaskType,
     recurring: bool = False,
     task_data: dict = {},
+    send_slack: bool = False,
 ) -> Optional[OperatorDashboardEntry]:
     pending_notification = OperatorDashboardEntry.query.filter_by(
         client_sdr_id=client_sdr_id,
@@ -57,6 +60,67 @@ def create_operator_dashboard_entry(
 
     db.session.add(entry)
     db.session.commit()
+
+    task_id = entry.id
+
+    if send_slack:
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client: Client = Client.query.get(sdr.client_id)
+        sdr_name = sdr.name
+        direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=task/{task_id}".format(
+            auth_token=sdr.auth_token,
+            task_id=task_id,
+        )
+
+        urgency_str = "⚪️ unknown"
+        if urgency == OperatorDashboardEntryPriority.HIGH:
+            urgency_str = "🔴 high"
+        elif urgency == OperatorDashboardEntryPriority.MEDIUM:
+            urgency_str = "🟡 medium"
+        elif urgency == OperatorDashboardEntryPriority.LOW:
+            urgency_str = "🟢 low"
+        elif urgency == OperatorDashboardEntryPriority.COMPLETED:
+            urgency_str = "🔵 complete"
+
+        send_slack_message(
+            message=f"New task: {emoji} {title}",
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"New task: {emoji} {title}",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*User*: `{sdr_name}`\n*Priority*: `{urgency_str}`\n*Instructions*: _{subtitle}_\n",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Complete this task by clicking the button:",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": cta,
+                            "emoji": True,
+                        },
+                        "value": direct_link,
+                        "url": direct_link,
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+            webhook_urls=[client.pipeline_notifications_webhook_url],
+        )
 
     return entry
 

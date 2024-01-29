@@ -17,6 +17,7 @@ class OperatorDashboardEntryStatus(enum.Enum):
 
 
 class OperatorDashboardTaskType(enum.Enum):
+    CONNECT_LINKEDIN = "CONNECT_LINKEDIN"
     LINKEDIN_DISCONNECTED = "LINKEDIN_DISCONNECTED"
 
     EMAIL_CAMPAIGN_REVIEW = "EMAIL_CAMPAIGN_REVIEW"

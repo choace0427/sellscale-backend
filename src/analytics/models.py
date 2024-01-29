@@ -20,3 +20,15 @@ class FeatureFlag(db.Model):
     feature = db.Column(db.String, primary_key=True)
     value = db.Column(db.Integer, default=0)
 
+
+class AutoDeleteMessageAnalytics(db.Model):
+    __tablename__ = "auto_delete_message_analytics"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    problem = db.Column(db.String)
+    prospect = db.Column(db.String)
+    sdr_name = db.Column(db.String)
+    message = db.Column(db.String)
+    send_date = db.Column(db.DateTime)
+    channel = db.Column(db.String)

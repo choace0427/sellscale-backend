@@ -56,7 +56,7 @@ if is_production():
     sys.excepthook = sentry_excepthook
 
 
-slack_app = initialize_slack_app()
+slack_app, slack_app_handler = initialize_slack_app()
 
 
 def make_celery(app):
@@ -291,6 +291,8 @@ def register_blueprints(app):
     from src.track.controllers import TRACK_BLUEPRINT
     from src.merge_crm.controllers import MERGE_CRM_BLUEPRINT
 
+    from src.slack.events.controllers import SLACK_EVENTS_BLUEPRINT
+
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -363,6 +365,7 @@ def register_blueprints(app):
     app.register_blueprint(SLACK_AUTH_BLUEPRINT, url_prefix="/slack/authentication")
     app.register_blueprint(TRACK_BLUEPRINT, url_prefix="/track")
     app.register_blueprint(MERGE_CRM_BLUEPRINT, url_prefix="/merge_crm")
+    app.register_blueprint(SLACK_EVENTS_BLUEPRINT, url_prefix="/slack/events")
 
     from src.hackathon.david.submission import HACKATHON_BLUEPRINT
 
