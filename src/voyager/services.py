@@ -1144,14 +1144,14 @@ def create_linkedin_connection_needed_operator_dashboard_card(client_sdr_id: int
     create_operator_dashboard_entry(
         client_sdr_id=client_sdr_id,
         urgency=OperatorDashboardEntryPriority.HIGH,
-        tag="connect_linkedin_{client_sdr_id}".format(prospect_id=client_sdr_id),
+        tag="connect_linkedin_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
         emoji="🌐",
-        title="Connect LinkedIn",
+        title="(onboarding) Connect LinkedIn",
         subtitle="In order to conduct outbound on LinkedIn, you will need to connect your LinkedIn account to SellScale.",
         cta="Connect LinkedIn",
         cta_url="/",
         status=OperatorDashboardEntryStatus.PENDING,
-        due_date=datetime.now() + timedelta(days=5),
+        due_date=datetime.now() + timedelta(days=1),
         task_type=OperatorDashboardTaskType.CONNECT_LINKEDIN,
         task_data={
             "client_sdr_id": client_sdr_id,
