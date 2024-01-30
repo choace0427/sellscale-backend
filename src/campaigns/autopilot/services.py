@@ -692,7 +692,7 @@ def get_available_sla_count(
     campaign_type: GeneratedMessageType,
     start_date: Optional[date],
     per_day: bool = False,
-) -> tuple[int, str]:
+) -> tuple[int, int, str]:
     """Gets the available SLA count for a given week and campaign type.
 
     The SLA count is calculated by determining the number of prospects in campaigns that are scheduled
@@ -826,8 +826,10 @@ def auto_send_campaign(campaign_id: int):
 
     # Check if campaign was created at least 4 hours ago
     if campaign.created_at + timedelta(hours=HOURS_AGO) > datetime.utcnow():
+        # Get the campaign type
+        campaign_type = campaign.campaign_type.value
         send_slack_message(
-            f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Campaign was created less than {HOURS_AGO} hours ago.\n\nSolution: Wait until the campaign is at least {HOURS_AGO} hours old before sending.",
+            f"❌ ({campaign_type}) Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Campaign was created less than {HOURS_AGO} hours ago.\n\nSolution: Wait until the campaign is at least {HOURS_AGO} hours old before sending.",
             [URL_MAP["ops-auto-send-campaign"]],
         )
         return False
