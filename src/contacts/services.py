@@ -2,9 +2,13 @@ import json
 from typing import Optional
 from app import db
 import requests
+from src.client.models import ClientSDR
+from src.contacts.models import SavedApolloQuery
 
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.abstract.attr_utils import deep_get
+from datetime import datetime
+
 
 ALLOWED_FILTERS = {
     "query_full_name": {
@@ -136,6 +140,7 @@ ALLOWED_FILTERS = {
 
 
 def get_contacts(
+    client_sdr_id: int,
     num_contacts: int = 100,
     person_titles: list = [],
     person_not_titles: list = [],
@@ -167,7 +172,8 @@ def get_contacts(
 
     for page in range(1, num_contacts // 100 + 1):
         try:
-            response = get_contacts_for_page(
+            response, data = get_contacts_for_page(
+                client_sdr_id,
                 page,
                 person_titles,
                 person_not_titles,
@@ -224,6 +230,7 @@ def get_contacts(
 
 
 def get_contacts_for_page(
+    client_sdr_id: int,
     page: int,
     person_titles: list = [],
     person_not_titles: list = [],
@@ -266,7 +273,16 @@ def get_contacts_for_page(
 
     response = requests.post("https://api.apollo.io/v1/mixed_people/search", json=data)
 
-    return response.json()
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    name = 'unknown'
+    if client_sdr:
+        name = client_sdr.name
+    formatted_date = datetime.now().strftime("%b %d %Y")
+    saved_query = SavedApolloQuery(name_query=f"[{name}] Query on {formatted_date}", data=data, client_sdr_id=client_sdr_id)
+    db.session.add(saved_query)
+    db.session.commit()
+
+    return response.json(), data
 
 
 def predict_filters_types_needed(query: str) -> list:
