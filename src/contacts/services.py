@@ -280,7 +280,7 @@ def get_contacts_for_page(
     if client_sdr:
         name = client_sdr.name
 
-    formatted_date = datetime.now().strftime("%b %d %Y %H:%M")
+    formatted_date = datetime.now().strftime("%b %d %Y %H:%M:%S")
     hash = generate_uuid(base=f"{name} {formatted_date}")[0:6]
     saved_query = SavedApolloQuery(
         name_query=f"[{name}] Query on {formatted_date} [{hash}]",
