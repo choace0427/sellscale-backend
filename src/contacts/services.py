@@ -9,6 +9,8 @@ from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.abstract.attr_utils import deep_get
 from datetime import datetime
 
+from src.utils.hasher import generate_uuid
+
 
 ALLOWED_FILTERS = {
     "query_full_name": {
@@ -274,11 +276,16 @@ def get_contacts_for_page(
     response = requests.post("https://api.apollo.io/v1/mixed_people/search", json=data)
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    name = 'unknown'
+    name = "unknown"
     if client_sdr:
         name = client_sdr.name
+    hash = generate_uuid()[0:6]
     formatted_date = datetime.now().strftime("%b %d %Y")
-    saved_query = SavedApolloQuery(name_query=f"[{name}] Query on {formatted_date}", data=data, client_sdr_id=client_sdr_id)
+    saved_query = SavedApolloQuery(
+        name_query=f"[{name}] Query on {formatted_date} [{hash}]",
+        data=data,
+        client_sdr_id=client_sdr_id,
+    )
     db.session.add(saved_query)
     db.session.commit()
 
