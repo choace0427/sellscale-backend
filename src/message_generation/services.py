@@ -1733,7 +1733,6 @@ Output:
         max_tokens=500,
         top_p=1,
         frequency_penalty=0.2,
-        presence_penalty=0,
     )
 
     ctas = []
@@ -2396,7 +2395,8 @@ def send_sent_by_sellscale_notification(
 def generate_message_bumps():
     # For each prospect that's in one of the states (and client sdr has auto_generate_messages enabled)
     sdrs: List[ClientSDR] = (
-        ClientSDR.query.join(Client).filter(
+        ClientSDR.query.join(Client)
+        .filter(
             ClientSDR.active == True,
             Client.active == True,
             ClientSDR.auto_generate_messages == True,
