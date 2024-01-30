@@ -28,6 +28,7 @@ class OperatorDashboardTaskType(enum.Enum):
     SCHEDULING_NEEDED = "SCHEDULING_NEEDED"
 
     SEGMENT_CREATION = "SEGMENT_CREATION"
+    CREATE_PREFILTERS = "CREATE_PREFILTERS"
 
 
 class OperatorDashboardEntry(db.Model):
