@@ -76,7 +76,9 @@ import os
 import requests
 from sqlalchemy import func, case, distinct
 
-from src.voyager.services import create_linkedin_connection_needed_operator_dashboard_card
+from src.voyager.services import (
+    create_linkedin_connection_needed_operator_dashboard_card,
+)
 
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
 STYTCH_SECRET = os.environ.get("STYTCH_SECRET")
@@ -1832,6 +1834,11 @@ def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int)
         Prospect.archetype_id == client_archetype_id,
         Prospect.email != None,
         Prospect.approved_prospect_email_id == None,
+        or_(
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED.value,
+            Prospect.overall_status == ProspectOverallStatus.SENT_OUTREACH.value,
+            Prospect.overall_status == ProspectOverallStatus.BUMPED.value,
+        ),
     ).count()
 
     return {
@@ -2846,22 +2853,38 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         matched_filter_words = []
         if client.do_not_contact_company_names:
             for company in client.do_not_contact_company_names:
-                if prospect_dict["company"] and company and company.lower() in prospect_dict["company"].lower():
+                if (
+                    prospect_dict["company"]
+                    and company
+                    and company.lower() in prospect_dict["company"].lower()
+                ):
                     matched_filters.append("Company Name")
                     matched_filter_words.append("Company: " + company)
         if client.do_not_contact_keywords_in_company_names:
             for keyword in client.do_not_contact_keywords_in_company_names:
-                if prospect_dict["company"] and keyword and keyword.lower() in prospect_dict["company"].lower():
+                if (
+                    prospect_dict["company"]
+                    and keyword
+                    and keyword.lower() in prospect_dict["company"].lower()
+                ):
                     matched_filters.append("Company Keyword")
                     matched_filter_words.append("Keyword: " + keyword)
         if client.do_not_contact_industries:
             for industry in client.do_not_contact_industries:
-                if prospect_dict["industry"] and industry and industry.lower() in prospect_dict["industry"].lower():
+                if (
+                    prospect_dict["industry"]
+                    and industry
+                    and industry.lower() in prospect_dict["industry"].lower()
+                ):
                     matched_filters.append("Industry")
                     matched_filter_words.append("Industry: " + industry)
         if client.do_not_contact_titles:
             for title in client.do_not_contact_titles:
-                if prospect_dict["title"] and title and title.lower() in prospect_dict["title"].lower():
+                if (
+                    prospect_dict["title"]
+                    and title
+                    and title.lower() in prospect_dict["title"].lower()
+                ):
                     matched_filters.append("Title")
                     matched_filter_words.append("Title: " + title)
         if client.do_not_contact_location_keywords:
@@ -4416,7 +4439,7 @@ def get_tam_data(client_sdr_id: int):
 def msg_analytics_report(client_sdr_id: int):
     results = db.session.execute(
         """
-        select 	
+        select
           bump_framework.id "id",
           client_archetype.archetype "Campaign",
           concat('Follow Up #', bump_framework.bumped_count + 1) "Step",
@@ -4429,7 +4452,7 @@ def msg_analytics_report(client_sdr_id: int):
         from client_archetype
           join bump_framework on bump_framework.client_archetype_id = client_archetype.id
             and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')
-        where 
+        where
           client_archetype.client_sdr_id = """
         + str(client_sdr_id)
         + """
@@ -4458,7 +4481,7 @@ def get_available_times_via_calendly(
           2024-01-09 09:00:00
           2024-01-09 11:30:00
           2024-01-09 12:30:00
-          
+
           Other Dates:
           2024-01-05 00:00:00
           2024-01-07 00:00:00

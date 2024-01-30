@@ -10,7 +10,8 @@ CONTACTS_BLUEPRINT = Blueprint("contacts", __name__)
 
 
 @CONTACTS_BLUEPRINT.route("/search", methods=["POST"])
-def index():
+@require_user
+def index(client_sdr_id: int):
     num_contacts = get_request_parameter(
         "num_contacts", request, json=True, required=False, default_value=100
     )
@@ -95,7 +96,16 @@ def index():
         default_value=None,
     )
 
+    is_prefilter = get_request_parameter(
+        "is_prefilter",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+    )
+
     data = get_contacts(
+        client_sdr_id=client_sdr_id,
         num_contacts=num_contacts,
         person_titles=person_titles,
         person_not_titles=person_not_titles,
@@ -113,6 +123,7 @@ def index():
         person_seniorities=person_seniorities,
         q_organization_search_list_id=q_organization_search_list_id,
         organization_department_or_subdepartment_counts=organization_department_or_subdepartment_counts,
+        is_prefilter=is_prefilter,
     )
 
     predicted_segment_name = ""

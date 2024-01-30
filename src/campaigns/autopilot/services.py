@@ -14,6 +14,7 @@ from model_import import (
 from tqdm import tqdm
 from src.analytics.models import AutoDeleteMessageAnalytics
 from src.client.models import SLASchedule
+from src.email_outbound.models import ProspectEmail
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
 from src.utils.datetime.dateutils import (
@@ -692,7 +693,7 @@ def get_available_sla_count(
     campaign_type: GeneratedMessageType,
     start_date: Optional[date],
     per_day: bool = False,
-) -> tuple[int, str]:
+) -> tuple[int, int, str]:
     """Gets the available SLA count for a given week and campaign type.
 
     The SLA count is calculated by determining the number of prospects in campaigns that are scheduled
@@ -823,11 +824,13 @@ def auto_send_campaign(campaign_id: int):
     ).all()
     sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
     archetype: ClientArchetype = ClientArchetype.query.get(campaign.client_archetype_id)
+    campaign_type = campaign.campaign_type
 
     # Check if campaign was created at least 4 hours ago
     if campaign.created_at + timedelta(hours=HOURS_AGO) > datetime.utcnow():
+        # Get the campaign type
         send_slack_message(
-            f"❌ Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Campaign was created less than {HOURS_AGO} hours ago.\n\nSolution: Wait until the campaign is at least {HOURS_AGO} hours old before sending.",
+            f"❌ ({campaign_type.value}) Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Campaign was created less than {HOURS_AGO} hours ago.\n\nSolution: Wait until the campaign is at least {HOURS_AGO} hours old before sending.",
             [URL_MAP["ops-auto-send-campaign"]],
         )
         return False
@@ -862,13 +865,33 @@ def auto_send_campaign(campaign_id: int):
     invalid_message_ids: list[int] = [
         message.id for message in messages if not message.ai_approved
     ]
-    send_slack_message_for_invalid_messages(invalid_message_ids)
+    send_slack_message_for_invalid_messages(
+        message_ids=invalid_message_ids,
+        campaign_type=campaign_type,
+    )
 
     from src.research.linkedin.services import (
         reset_batch_of_prospect_research_and_messages,
     )
 
-    reset_batch_of_prospect_research_and_messages(invalid_prospect_ids)
+    if campaign_type == GeneratedMessageType.LINKEDIN:
+        reset_batch_of_prospect_research_and_messages(invalid_prospect_ids)
+    elif campaign_type == GeneratedMessageType.EMAIL:
+        # Get the generated messages and set them all to BLOCKED
+        for prospect_id in invalid_prospect_ids:
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            prospect_email: ProspectEmail = ProspectEmail.query.get(
+                prospect.approved_prospect_email_id
+            )
+            subject_line: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_subject_line
+            )
+            body: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_body
+            )
+            subject_line.message_status = GeneratedMessageStatus.BLOCKED
+            body.message_status = GeneratedMessageStatus.BLOCKED
+        db.session.commit()
 
     # Send the campaign
     mark_campaign_as_initial_review_complete(campaign_id=campaign_id)
@@ -876,7 +899,9 @@ def auto_send_campaign(campaign_id: int):
     return True
 
 
-def send_slack_message_for_invalid_messages(message_ids: list[int]):
+def send_slack_message_for_invalid_messages(
+    message_ids: list[int], campaign_type: GeneratedMessageType
+):
     messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
         GeneratedMessage.id.in_(message_ids)
     ).all()
@@ -889,7 +914,7 @@ def send_slack_message_for_invalid_messages(message_ids: list[int]):
         problems = "\n- ".join(message.problems)
 
         send_slack_message(
-            f"🗑 *Auto-Deleted Message During Autosend for {client_sdr.name}*\n*Prospect:* `{prospect.full_name}`\n*Message:*\n```{message.completion}```\n*Problems:* \n`- {problems}`",
+            f"🗑 {campaign_type.value} *Auto-Deleted Message During Autosend for {client_sdr.name}*\n*Prospect:* `{prospect.full_name}`\n*Message:*\n```{message.completion}```\n*Problems:* \n`- {problems}`",
             [URL_MAP["ops-auto-send-auto-deleted-messages"]],
         )
 
@@ -949,6 +974,9 @@ with d as (
     """
 
     campaign_ids = db.session.execute(query).fetchone()[0]
+    if not campaign_ids:
+        return False
+
     for campaign_id in campaign_ids:
         print(f"Sending campaign #{campaign_id}...")
         auto_send_campaign(campaign_id)
