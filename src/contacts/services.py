@@ -160,6 +160,7 @@ def get_contacts(
     person_seniorities: Optional[list] = None,
     q_organization_search_list_id: Optional[str] = None,
     organization_department_or_subdepartment_counts: Optional[list] = None,
+    is_prefilter: bool = False,
 ):
     breadcrumbs = None  # grab from first result
     partial_results_only = None  # grab from first result
@@ -193,6 +194,7 @@ def get_contacts(
                 person_seniorities,
                 q_organization_search_list_id,
                 organization_department_or_subdepartment_counts,
+                is_prefilter=is_prefilter,
             )
 
             print(
@@ -250,6 +252,7 @@ def get_contacts_for_page(
     person_seniorities: Optional[list] = None,
     q_organization_search_list_id: Optional[str] = None,
     organization_department_or_subdepartment_counts: Optional[dict] = None,
+    is_prefilter: bool = False,
 ):
     data = {
         "api_key": "F51KjDxCgbbC42h0-ovEDQ",
@@ -286,6 +289,7 @@ def get_contacts_for_page(
         name_query=f"[{name}] Query on {formatted_date} [{hash}]",
         data=data,
         client_sdr_id=client_sdr_id,
+        is_prefilter=is_prefilter
     )
     db.session.add(saved_query)
     db.session.commit()

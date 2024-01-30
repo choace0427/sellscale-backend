@@ -96,6 +96,14 @@ def index(client_sdr_id: int):
         default_value=None,
     )
 
+    is_prefilter = get_request_parameter(
+        "is_prefilter",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+    )
+
     data = get_contacts(
         client_sdr_id=client_sdr_id,
         num_contacts=num_contacts,
@@ -115,6 +123,7 @@ def index(client_sdr_id: int):
         person_seniorities=person_seniorities,
         q_organization_search_list_id=q_organization_search_list_id,
         organization_department_or_subdepartment_counts=organization_department_or_subdepartment_counts,
+        is_prefilter=is_prefilter,
     )
 
     predicted_segment_name = ""
