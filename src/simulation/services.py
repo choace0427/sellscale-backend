@@ -2,7 +2,9 @@ import datetime
 from typing import List, Optional, Tuple
 
 from app import db, celery
+from src.client.models import ClientArchetype
 from src.li_conversation.models import LinkedInConvoMessage
+from src.prospecting.models import Prospect
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.simulation.models import (
     Simulation,
@@ -15,7 +17,6 @@ from src.simulation.models import (
 def create_simulation(
     client_sdr_id: int, archetype_id: int, prospect_id: int, type: SimulationType
 ):
-
     simulation = Simulation(
         client_sdr_id=client_sdr_id,
         archetype_id=archetype_id,
@@ -34,7 +35,6 @@ def send_li_convo_message(
     meta_data: Optional[dict] = None,
     message_date: Optional[datetime.datetime] = None,
 ):
-
     simulation: Simulation = Simulation.query.get(simulation_id)
     if not simulation:
         return False
@@ -105,7 +105,9 @@ def get_sim_li_convo_history(
     return retval
 
 
-def generate_sim_li_convo_init_msg(simulation_id: int, template_id: Optional[int] = None):
+def generate_sim_li_convo_init_msg(
+    simulation_id: int, template_id: Optional[int] = None
+):
     """Generates the initial message for a simulated linkedin conversation
 
     Args:
@@ -172,11 +174,14 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
 
     if overall_status is None or li_status is None or bump_count is None:
         return False, "Missing meta data."
-    
+
     # If we've already hit our max bump count, skip
     prospect: Prospect = Prospect.query.get(simulation.prospect_id)
     client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-    if prospect.times_bumped and client_archetype.li_bump_amount <= prospect.times_bumped:
+    if (
+        prospect.times_bumped
+        and client_archetype.li_bump_amount <= prospect.times_bumped
+    ):
         return False, "Prospect has been bumped too many times."
 
     try:
@@ -206,7 +211,8 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
                 connection_degree="You",
                 author=client_sdr.name,
             ),
-            message_date=max_simulation_record_date + datetime.timedelta(days=data.get("bump_framework_delay", 2)),
+            message_date=max_simulation_record_date
+            + datetime.timedelta(days=data.get("bump_framework_delay", 2)),
             meta_data={
                 "prompt": data.get("prompt", ""),
                 "bump_framework_id": data.get("bump_framework_id", None),
@@ -377,7 +383,6 @@ def update_sim_li_convo(simulation_id: int):
 
     # Set active convo substatus
     if simulation.meta_data.get("overall_status") == "ACTIVE_CONVO":
-
         messages = []
         for msg in convo_history:
             timestamp = msg.date.strftime("%m/%d/%Y, %H:%M:%S") if msg.date else ""
@@ -395,3 +400,39 @@ def update_sim_li_convo(simulation_id: int):
         return True
 
     return False
+
+
+def generate_entire_simulated_conversation(
+    archetype_id: int,
+) -> Tuple[bool, List[SimulationRecord]]:
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    num_steps = client_archetype.li_bump_amount + 1
+    random_prospect: Prospect = (
+        Prospect.query.filter(Prospect.archetype_id == archetype_id)
+        .order_by(Prospect.icp_fit_score.desc())
+        .first()
+    )
+    if not random_prospect:
+        return False, []
+
+    simulation_id = create_simulation(
+        client_sdr_id=client_archetype.client_sdr_id,
+        archetype_id=archetype_id,
+        prospect_id=random_prospect.id,
+        type=SimulationType.LI_CONVERSATION,
+    )
+
+    for i in range(num_steps):
+        print("Generating step #", i, "...")
+        if i == 0:
+            generate_sim_li_convo_init_msg(simulation_id)
+        else:
+            generate_sim_li_convo_response(simulation_id)
+        update_sim_li_convo(simulation_id)
+
+    simulation_records: list[SimulationRecord] = (
+        SimulationRecord.query.filter(SimulationRecord.simulation_id == simulation_id)
+        .order_by(SimulationRecord.created_at.asc())
+        .all()
+    )
+    return True, simulation_records

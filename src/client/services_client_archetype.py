@@ -12,6 +12,8 @@ from src.message_generation.models import GeneratedMessage, GeneratedMessageStat
 from src.ml.services import mark_queued_and_classify
 from src.prospecting.icp_score.services import move_selected_prospects_to_unassigned
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
+from src.simulation.models import SimulationRecord
+from src.simulation.services import generate_entire_simulated_conversation
 from src.smartlead.smartlead import Smartlead
 
 from src.utils.slack import URL_MAP, send_slack_message
@@ -996,31 +998,47 @@ def get_client_archetype_stats(client_archetype_id):
     ]
 
     # Linkedin sequence
-    query = """
-        select
-            title,
-            description,
-            bumped_count
-        from
-            bump_framework
-        where client_archetype_id = {client_archetype_id}
-            and overall_status in ('ACCEPTED', 'BUMPED')
-            and bump_framework.active
-            and bump_framework.default
-        order by
-            bumped_count asc;
-    """.format(
-        client_archetype_id=client_archetype_id
+    success, records = generate_entire_simulated_conversation(
+        archetype_id=client_archetype_id,
     )
-    data = db.session.execute(query).fetchall()
-    linkedin_sequence = [
-        {
-            "title": row[0],
-            "description": row[1],
-            "bumped_count": row[2],
-        }
-        for row in data
-    ]
+    if success:
+        simulation_records: list[SimulationRecord] = records
+        linkedin_sequence = []
+        for i, record in enumerate(simulation_records):
+            entry = {
+                "title": record.meta_data.get("bump_framework_title")
+                if i > 0
+                else "Invite Message",
+                "description": record.data.get("message"),
+                "bumped_count": i - 1,
+            }
+            linkedin_sequence.append(entry)
+    else:
+        query = """
+            select
+                title,
+                description,
+                bumped_count
+            from
+                bump_framework
+            where client_archetype_id = {client_archetype_id}
+                and overall_status in ('ACCEPTED', 'BUMPED')
+                and bump_framework.active
+                and bump_framework.default
+            order by
+                bumped_count asc;
+        """.format(
+            client_archetype_id=client_archetype_id
+        )
+        data = db.session.execute(query).fetchall()
+        linkedin_sequence = [
+            {
+                "title": row[0],
+                "description": "Instruction: " + str(row[1]),
+                "bumped_count": row[2],
+            }
+            for row in data
+        ]
 
     return {
         "overview": {
