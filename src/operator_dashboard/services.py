@@ -125,6 +125,75 @@ def create_operator_dashboard_entry(
     return entry
 
 
+def send_task_reminder(task_id: int):
+    task: OperatorDashboardEntry = OperatorDashboardEntry.query.get(task_id)
+    client_sdr_id: int = task.client_sdr_id
+
+    urgency = task.urgency
+    emoji = task.emoji
+    title = task.title
+    subtitle = task.subtitle
+    cta = task.cta
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(sdr.client_id)
+    sdr_name = sdr.name
+    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=task/{task_id}".format(
+        auth_token=sdr.auth_token,
+        task_id=task_id,
+    )
+
+    urgency_str = "⚪️ unknown"
+    if urgency == OperatorDashboardEntryPriority.HIGH:
+        urgency_str = "🔴 high"
+    elif urgency == OperatorDashboardEntryPriority.MEDIUM:
+        urgency_str = "🟡 medium"
+    elif urgency == OperatorDashboardEntryPriority.LOW:
+        urgency_str = "🟢 low"
+    elif urgency == OperatorDashboardEntryPriority.COMPLETED:
+        urgency_str = "🔵 complete"
+
+    send_slack_message(
+        message=f"Task Reminder: {emoji} {title}",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"Task Reminder: {emoji} {title}",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*User*: `{sdr_name}`\n*Priority*: `{urgency_str}`\n*Instructions*: _{subtitle}_\n",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Complete this task by clicking the button:",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": cta,
+                        "emoji": True,
+                    },
+                    "value": direct_link,
+                    "url": direct_link,
+                    "action_id": "button-action",
+                },
+            },
+        ],
+        webhook_urls=[client.pipeline_notifications_webhook_url],
+    )
+
+
 def get_operator_dashboard_entries_for_sdr(sdr_id: int) -> list[OperatorDashboardEntry]:
     entries = OperatorDashboardEntry.query.filter_by(client_sdr_id=sdr_id).all()
 
