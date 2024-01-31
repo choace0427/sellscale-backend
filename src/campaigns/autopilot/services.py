@@ -967,8 +967,8 @@ with d as (
 		c.is_daily_generation = TRUE
 		AND c.status <> 'COMPLETE'
 		AND g.message_status = 'APPROVED'
-        AND s.auto_send_linkedin_campaign = True
-        AND s.auto_send_email_campaign = True
+        AND s.auto_send_linkedin_campaign = TRUE
+        AND s.auto_send_email_campaign = TRUE
 	GROUP BY
 		1,
 		2
