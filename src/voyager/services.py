@@ -1146,13 +1146,55 @@ def create_linkedin_connection_needed_operator_dashboard_card(client_sdr_id: int
         urgency=OperatorDashboardEntryPriority.HIGH,
         tag="connect_linkedin_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
         emoji="🌐",
-        title="(onboarding) Connect LinkedIn",
+        title="Connect LinkedIn",
         subtitle="In order to conduct outbound on LinkedIn, you will need to connect your LinkedIn account to SellScale.",
         cta="Connect LinkedIn",
         cta_url="/",
         status=OperatorDashboardEntryStatus.PENDING,
         due_date=datetime.now() + timedelta(days=1),
         task_type=OperatorDashboardTaskType.CONNECT_LINKEDIN,
+        task_data={
+            "client_sdr_id": client_sdr_id,
+        },
+    )
+
+    return True
+
+
+def create_slack_connection_needed_operator_dashboard_card(client_sdr_id: int):
+    create_operator_dashboard_entry(
+        client_sdr_id=client_sdr_id,
+        urgency=OperatorDashboardEntryPriority.HIGH,
+        tag="add_slack_connection_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
+        emoji="💬",
+        title="Connect Slack",
+        subtitle="SellScale will send pipeline updates, task reminders, and various other communications to a Slack channel of your choice.",
+        cta="Connect Slack",
+        cta_url="/",
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.now() + timedelta(days=1),
+        task_type=OperatorDashboardTaskType.CONNECT_SLACK,
+        task_data={
+            "client_sdr_id": client_sdr_id,
+        },
+    )
+
+    return True
+
+
+def create_add_pre_filters_operator_dashboard_card(client_sdr_id: int):
+    create_operator_dashboard_entry(
+        client_sdr_id=client_sdr_id,
+        urgency=OperatorDashboardEntryPriority.HIGH,
+        tag="create_prefilters_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
+        emoji="👥",
+        title="Create Pre-Filter",
+        subtitle="Set high level filters to hone in on your outreach TAM.",
+        cta="Create",
+        cta_url="/",
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.now() + timedelta(days=1),
+        task_type=OperatorDashboardTaskType.CREATE_PREFILTERS,
         task_data={
             "client_sdr_id": client_sdr_id,
         },

@@ -12,6 +12,7 @@ from src.client.sdr.services_client_sdr import (
 )
 from sqlalchemy import cast, String
 from src.company.models import Company
+from src.email_scheduling.services import create_calendar_link_needed_operator_dashboard_card
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -77,7 +78,9 @@ import requests
 from sqlalchemy import func, case, distinct
 
 from src.voyager.services import (
+    create_add_pre_filters_operator_dashboard_card,
     create_linkedin_connection_needed_operator_dashboard_card,
+    create_slack_connection_needed_operator_dashboard_card,
 )
 
 STYTCH_PROJECT_ID = os.environ.get("STYTCH_PROJECT_ID")
@@ -595,7 +598,16 @@ def get_client_sdr(client_sdr_id: int) -> dict:
     return csdr.to_dict()
 
 
-def create_client_sdr(client_id: int, name: str, email: str):
+def create_client_sdr(
+        client_id: int, 
+        name: str, 
+        email: str,
+        include_connect_li_card: bool = False,
+        include_connect_slack_card: bool = False,
+        include_input_pre_filters_card: bool = False,
+        include_add_dnc_filters_card: bool = False,
+        include_add_calendar_link_card: bool = False
+):
     from src.client.services_unassigned_contacts_archetype import (
         create_unassigned_contacts_archetype,
     )
@@ -641,7 +653,16 @@ def create_client_sdr(client_id: int, name: str, email: str):
     sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     sdr.regenerate_uuid()
 
-    create_linkedin_connection_needed_operator_dashboard_card(sdr_id)
+    if include_connect_li_card:
+        create_linkedin_connection_needed_operator_dashboard_card(sdr_id)
+    if include_add_calendar_link_card:
+        create_calendar_link_needed_operator_dashboard_card(sdr_id)
+    if include_connect_slack_card:
+        create_slack_connection_needed_operator_dashboard_card(sdr_id)
+    if include_input_pre_filters_card:
+        create_add_pre_filters_operator_dashboard_card(sdr_id)
+    if include_add_dnc_filters_card:
+        create_do_not_contact_filters_operator_dashboard_card(sdr_id)
 
     print("Creating unassigned contacts archetype")
     create_sight_onboarding(sdr.id)
@@ -4537,3 +4558,24 @@ def get_available_times_via_calendly(
         "times": selected_dates_within_hours,
         "other_dates": other_dates_next_x_days,
     }
+
+
+def create_do_not_contact_filters_operator_dashboard_card(client_sdr_id: int):
+    create_operator_dashboard_entry(
+        client_sdr_id=client_sdr_id,
+        urgency=OperatorDashboardEntryPriority.HIGH,
+        tag="add_dnc_filters_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
+        emoji="❌",
+        title="Add Do Not Contact Filters",
+        subtitle="In order to ensure that SellScale doesn't reach out to any accounts you want to exclude, add keywords and exclusions to your do not contact filters.",
+        cta="Add Filters",
+        cta_url="/",
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.now() + timedelta(days=1),
+        task_type=OperatorDashboardTaskType.ADD_DNC_FILTERS,
+        task_data={
+            "client_sdr_id": client_sdr_id,
+        },
+    )
+
+    return True

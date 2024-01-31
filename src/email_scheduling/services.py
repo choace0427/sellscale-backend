@@ -26,6 +26,13 @@ from src.message_generation.models import (
     GeneratedMessageStatus,
     GeneratedMessageType,
 )
+from src.operator_dashboard.models import (
+    OperatorDashboardEntry,
+    OperatorDashboardEntryPriority,
+    OperatorDashboardEntryStatus,
+    OperatorDashboardTaskType,
+)
+from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.smartlead.services import upload_prospect_to_campaign
 
@@ -990,3 +997,24 @@ def send_email_messaging_schedule_entry(
     db.session.commit()
 
     return True, "Success"
+
+
+def create_calendar_link_needed_operator_dashboard_card(client_sdr_id: int):
+    create_operator_dashboard_entry(
+        client_sdr_id=client_sdr_id,
+        urgency=OperatorDashboardEntryPriority.HIGH,
+        tag="connect_calendar_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
+        emoji="🗓",
+        title="Connect Calendar",
+        subtitle="In order to schedule contacts effectively, you will need to link your calendar to SellScale (i.e. Calendly, Hubspot, etc)",
+        cta="Connect Calendar",
+        cta_url="/",
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.now() + timedelta(days=1),
+        task_type=OperatorDashboardTaskType.ADD_CALENDAR_LINK,
+        task_data={
+            "client_sdr_id": client_sdr_id,
+        },
+    )
+
+    return True
