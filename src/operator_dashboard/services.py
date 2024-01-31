@@ -201,7 +201,7 @@ def get_operator_dashboard_entries_for_sdr(sdr_id: int) -> list[OperatorDashboar
 
 
 def mark_task_complete(client_sdr_id: int, task_id: int) -> bool:
-    entry = (
+    entry: OperatorDashboardEntry = (
         OperatorDashboardEntry.query.filter_by(id=task_id)
         .filter_by(client_sdr_id=client_sdr_id)
         .first()
@@ -212,6 +212,42 @@ def mark_task_complete(client_sdr_id: int, task_id: int) -> bool:
 
     entry.status = OperatorDashboardEntryStatus.COMPLETED
     db.session.commit()
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    first_name = client_sdr.name.split(" ")[0]
+    priority = "⚪️ `unknown`"
+    if entry.urgency == OperatorDashboardEntryPriority.HIGH:
+        priority = "🔴 `high`"
+    elif entry.urgency == OperatorDashboardEntryPriority.MEDIUM:
+        priority = "🟡 `medium`"
+    elif entry.urgency == OperatorDashboardEntryPriority.LOW:
+        priority = "🟢 `low`"
+    send_slack_message(
+        message="A new task was cleared by {first_name}".format(first_name=first_name),
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "A new task was cleared from {first_name}'s operator dash! ✅".format(
+                        first_name=first_name
+                    ),
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Task name*: {task_name}\n*Priority*: {priority}".format(
+                        task_name=entry.title, priority=priority
+                    ),
+                },
+            },
+        ],
+        webhook_urls=[client.pipeline_notifications_webhook_url],
+    )
 
     return True
 
