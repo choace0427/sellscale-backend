@@ -30,6 +30,10 @@ class OperatorDashboardTaskType(enum.Enum):
     SEGMENT_CREATION = "SEGMENT_CREATION"
     CREATE_PREFILTERS = "CREATE_PREFILTERS"
 
+    CONNECT_SLACK = "CONNECT_SLACK"
+    ADD_DNC_FILTERS = "ADD_DNC_FILTERS"
+    ADD_CALENDAR_LINK = "ADD_CALENDAR_LINK"
+
 
 class OperatorDashboardEntry(db.Model):
     __tablename__ = "operator_dashboard_entry"

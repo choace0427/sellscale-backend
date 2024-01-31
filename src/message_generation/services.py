@@ -864,7 +864,7 @@ def delete_message_generation_by_prospect_id(prospect_id: int):
 def create_cta(
     archetype_id: int,
     text_value: str,
-    expiration_date: Optional[datetime.datetime],
+    expiration_date: Optional[datetime],
     active: bool = True,
     cta_type: str = "Manual",
     auto_mark_as_scheduling_on_acceptance: Optional[bool] = False,
@@ -977,7 +977,7 @@ def backfill_cta_types():
 def update_cta(
     cta_id: int,
     text_value: str,
-    expiration_date: Optional[datetime.datetime],
+    expiration_date: Optional[datetime],
     auto_mark_as_scheduling_on_acceptance: Optional[bool] = None,
     cta_type: Optional[str] = None,
 ):
