@@ -409,7 +409,7 @@ def populate_email_messaging_schedule_entries(
     if generate_immediately:
         upload_prospect_to_campaign.delay(prospect.id)
 
-    return email_ids
+    return [True, email_ids]
 
 
 def get_initial_email_send_date(
