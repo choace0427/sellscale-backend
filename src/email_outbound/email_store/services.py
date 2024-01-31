@@ -78,6 +78,7 @@ def find_email_for_prospect_id(self, prospect_id: int) -> str:
     """
     email = None
     found = False
+    verified = False
 
     # Get the prospect
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -99,6 +100,8 @@ def find_email_for_prospect_id(self, prospect_id: int) -> str:
             if email:
                 email = email
                 found = True
+                if datagma_email.get("status") == "Valid":
+                    verified = True
     except:
         pass
 
@@ -150,9 +153,16 @@ def find_email_for_prospect_id(self, prospect_id: int) -> str:
     # Verify the email
     from src.email_classifier.services import verify_email
 
-    success, email, score = verify_email(email=email)
-    if not success:
-        return None
+    if not verified:
+        success, email, score = verify_email(email=email)
+        if not success:
+            return None
+    else:
+        success, email, score = (
+            True,
+            email,
+            0.99,
+        )  # If the email was already verified, we'll assume it's a good email
 
     # Update the prospect
     prospect.email = email

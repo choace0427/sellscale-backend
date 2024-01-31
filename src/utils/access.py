@@ -3,8 +3,10 @@ import os
 
 def is_production():
     return (
-        os.environ.get("FLASK_ENV") == "production"
-        or os.environ.get("FLASK_ENV") == "celery-production"
+        os.environ.get("APP_SETTINGS")
+        == "config.ProductionConfig"
+        # os.environ.get("FLASK_ENV") == "production"
+        # or os.environ.get("FLASK_ENV") == "celery-production"
     )
 
 
