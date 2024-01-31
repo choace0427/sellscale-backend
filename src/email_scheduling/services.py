@@ -299,7 +299,7 @@ def populate_email_messaging_schedule_entries(
         EmailMessagingSchedule.prospect_email_id == prospect_email_id,
     ).all()
     if existing_email_messaging_schedules:
-        return email_ids
+        return [False, [email.id for email in existing_email_messaging_schedules]]
 
     # Get the next available send date
     initial_email_send_date = get_initial_email_send_date(
@@ -332,7 +332,7 @@ def populate_email_messaging_schedule_entries(
         default=True,
     ).first()
     if not accepted_sequence_step:
-        return email_ids
+        return [True, email_ids]
 
     # Create the accepted (1 time) followup
     delay_days = (
