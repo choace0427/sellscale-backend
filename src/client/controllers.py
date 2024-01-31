@@ -2041,14 +2041,14 @@ def post_demo_feedback(client_sdr_id: int):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Prospect*: {prospect_name}\n*Rating*: {rating}\n*Feedback*: {notes}".format(
+                    "text": "*Prospect*: {prospect_name}\n*Rating*: {rating}\n{notes}".format(
                         prospect_name=prospect.full_name
                         + " ("
                         + prospect.company
                         + ")",
                         rating=rating,
                         rep=client_sdr.name,
-                        notes=feedback,
+                        notes="*Feedback*: " + feedback if feedback else "",
                     ),
                 },
             },

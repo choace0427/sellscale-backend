@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Union
 from regex import P
 from src.client.sdr.services_client_sdr import load_sla_schedules
@@ -83,8 +83,6 @@ from model_import import (
 from src.research.linkedin.iscraper_model import IScraperExtractorTransformer
 from src.automation.slack_notification import send_status_change_slack_block
 from src.utils.converters.string_converters import needs_title_casing
-import datetime
-from datetime import timedelta
 from flask import jsonify
 from collections import Counter
 import statistics
@@ -266,12 +264,12 @@ def get_prospects(
     #         prospects = prospects.filter(
     #             or_(
     #                 Prospect.hidden_until == None,
-    #                 Prospect.hidden_until < datetime.datetime.utcnow(),
+    #                 Prospect.hidden_until < datetime.utcnow(),
     #             )
     #         )
     #     else:
     #         prospects = prospects.filter(
-    #             Prospect.hidden_until >= datetime.datetime.utcnow()
+    #             Prospect.hidden_until >= datetime.utcnow()
     #         )
 
     total_count = prospects.count()
@@ -508,8 +506,8 @@ def update_prospect_status_linkedin(
 
         days_ago_str = ""
         try:
-            input_date = datetime.datetime.strptime(p.li_last_message_timestamp)
-            current_date = datetime.datetime.utcnow()
+            input_date = datetime.strptime(p.li_last_message_timestamp)
+            current_date = datetime.utcnow()
             days = (current_date - input_date).days
             days_ago_str = f"({days} days ago)"
         except:
@@ -2273,7 +2271,7 @@ def send_to_purgatory(
     send_notification: bool = False,
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
-    new_hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+    new_hidden_until = datetime.utcnow() + timedelta(days=days)
 
     if (
         prospect.overall_status == ProspectOverallStatus.ACCEPTED
@@ -2297,7 +2295,7 @@ def send_to_purgatory(
         client: Client = Client.query.get(client_sdr.client_id)
         send_slack_message(
             message="SellScale AI just snoozed a prospect to "
-            + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+            + datetime.strftime(new_hidden_until, "%B %d, %Y")
             + "!",
             webhook_urls=[
                 URL_MAP["eng-sandbox"],
@@ -2311,7 +2309,7 @@ def send_to_purgatory(
                         "text": "⏰ SellScale AI just snoozed "
                         + prospect.full_name
                         + " to "
-                        + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                        + datetime.strftime(new_hidden_until, "%B %d, %Y")
                         + "!",
                         "emoji": True,
                     },
@@ -2338,7 +2336,7 @@ def send_to_purgatory(
                     "text": {
                         "type": "mrkdwn",
                         "text": "Message will re-appear in SellScale inbox on "
-                        + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                        + datetime.strftime(new_hidden_until, "%B %d, %Y")
                         + ".",
                     },
                     "accessory": {
@@ -2371,7 +2369,7 @@ def update_prospect_demo_date(
     db.session.add(prospect)
     db.session.commit()
 
-    date = datetime.datetime.fromisoformat(demo_date[:-1])
+    date = datetime.fromisoformat(demo_date[:-1])
     if send_reminder:
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -3293,7 +3291,7 @@ def generate_prospect_upload_report(archetype_state: dict):
             Prospect.archetype_id == archetype.id,
             Prospect.id.notin_(current_prospect_ids),
             # Prospect created in last 24 hours
-            Prospect.created_at > datetime.datetime.utcnow() - timedelta(days=1),
+            Prospect.created_at > datetime.utcnow() - timedelta(days=1),
         )
         .add_columns(
             Prospect.id,
@@ -3578,7 +3576,7 @@ def bulk_mark_not_qualified(client_id: int, prospect_ids: list[int]):
 def snooze_prospect_email(
     prospect_id: int,
     num_days: Optional[int] = 3,
-    specific_time: Optional[datetime.datetime] = None,
+    specific_time: Optional[datetime] = None,
 ) -> bool:
     """Snoozes a prospect email for a given number of days.
 
@@ -3600,9 +3598,7 @@ def snooze_prospect_email(
     if not prospect_email:
         return False
 
-    new_hidden_until = specific_time or datetime.datetime.utcnow() + timedelta(
-        days=num_days
-    )
+    new_hidden_until = specific_time or datetime.utcnow() + timedelta(days=num_days)
     prospect_email.hidden_until = new_hidden_until
 
     client: Client = Client.query.get(prospect.client_id)
@@ -3613,7 +3609,7 @@ def snooze_prospect_email(
     urls.append(URL_MAP["sellscale_pipeline_all_clients"])
     send_slack_message(
         message="SellScale AI just snoozed a prospect to "
-        + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+        + datetime.strftime(new_hidden_until, "%B %d, %Y")
         + "!",
         webhook_urls=urls,
         blocks=[
@@ -3624,7 +3620,7 @@ def snooze_prospect_email(
                     "text": "⏰ SellScale AI just snoozed "
                     + prospect.full_name
                     + " to "
-                    + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                    + datetime.strftime(new_hidden_until, "%B %d, %Y")
                     + "!",
                     "emoji": True,
                 },
@@ -3658,7 +3654,7 @@ def snooze_prospect_email(
                 "text": {
                     "type": "mrkdwn",
                     "text": "Message will re-appear in SellScale inbox on "
-                    + datetime.datetime.strftime(new_hidden_until, "%B %d, %Y")
+                    + datetime.strftime(new_hidden_until, "%B %d, %Y")
                     + ".",
                 }
                 # "accessory": {
