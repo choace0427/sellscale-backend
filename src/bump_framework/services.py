@@ -25,9 +25,17 @@ def get_db_bump_messages(bump_id: int):
 
 
 def send_new_framework_created_message(
-    client_sdr_id: int, title: str, campaign_name: str, campaign_link: str
+    client_sdr_id: int,
+    title: str,
+    campaign_name: str,
+    campaign_link: str,
+    archetype_id: int,
 ):
-    from model_import import ClientSDR
+    from model_import import ClientSDR, ClientArchetype
+
+    ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not ca.active or not ca.linkedin_active:
+        return
 
     webhook_url = ClientSDR.query.get(
         client_sdr_id

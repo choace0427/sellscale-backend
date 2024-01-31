@@ -435,7 +435,7 @@ def post_create_bump_framework(client_sdr_id: int):
             ProspectOverallStatus.BUMPED,
         ]:
             send_new_framework_created_message(
-                client_sdr_id, title, compain_name, compain_link
+                client_sdr_id, title, compain_name, compain_link, archetype_id
             )
 
         return (
