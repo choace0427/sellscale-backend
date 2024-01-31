@@ -6,6 +6,7 @@ from src.operator_dashboard.services import (
     get_operator_dashboard_entries_for_sdr,
     mark_task_complete,
     dismiss_task,
+    send_task_reminder,
 )
 from src.utils.request_helpers import get_request_parameter
 
@@ -91,3 +92,12 @@ def dismiss_task_endpoint(client_sdr_id: int, task_id: int):
         return {"success": False}, 400
 
     return {"success": True}, 200
+
+
+@OPERATOR_DASHBOARD_BLUEPRINT.route("/send_task_reminder", methods=["POST"])
+def post_send_task_reminder():
+    task_id = get_request_parameter("task_id", request, json=True, required=True)
+
+    send_task_reminder(task_id)
+
+    return "OK", 200
