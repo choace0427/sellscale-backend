@@ -826,6 +826,22 @@ def auto_send_campaign(campaign_id: int):
     archetype: ClientArchetype = ClientArchetype.query.get(campaign.client_archetype_id)
     campaign_type = campaign.campaign_type
 
+    # Check that auto-send is enabled
+    if campaign.campaign_type == GeneratedMessageType.LINKEDIN:
+        if not sdr.auto_send_linkedin_campaign:
+            send_slack_message(
+                f"❌ ({campaign_type.value}) Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Auto-send is not enabled for LinkedIn campaigns.\n\nSolution: Enable auto-send for LinkedIn campaigns.",
+                [URL_MAP["ops-auto-send-campaign"]],
+            )
+            return False
+    elif campaign.campaign_type == GeneratedMessageType.EMAIL:
+        if not sdr.auto_send_email_campaign:
+            send_slack_message(
+                f"❌ ({campaign_type.value}) Campaign #{campaign.id} for {sdr.name} has been blocked for the `{archetype.archetype}` persona.\nReason: Auto-send is not enabled for Email campaigns.\n\nSolution: Enable auto-send for Email campaigns.",
+                [URL_MAP["ops-auto-send-campaign"]],
+            )
+            return False
+
     # Check if campaign was created at least 4 hours ago
     if campaign.created_at + timedelta(hours=HOURS_AGO) > datetime.utcnow():
         # Get the campaign type
@@ -853,9 +869,12 @@ def auto_send_campaign(campaign_id: int):
         )
 
     # Remove prospects that aren't approved
-    campaign.prospect_ids = [
+    approved_prospect_ids = [
         message.prospect_id for message in messages if message.ai_approved
     ]
+    # Turn into a set list to remove duplicates
+    approved_prospect_ids = list(set(approved_prospect_ids))
+    campaign.prospect_ids = approved_prospect_ids
     db.session.commit()
 
     invalid_prospect_ids: list[int] = [
@@ -967,8 +986,6 @@ with d as (
 		c.is_daily_generation = TRUE
 		AND c.status <> 'COMPLETE'
 		AND g.message_status = 'APPROVED'
-        AND s.auto_send_linkedin_campaign = TRUE
-        AND s.auto_send_email_campaign = TRUE
 	GROUP BY
 		1,
 		2
