@@ -921,7 +921,7 @@ def send_slack_message_for_invalid_messages(
         m: GeneratedMessage = message
 
         auto_delete_message_log = AutoDeleteMessageAnalytics(
-            problems=problems,
+            problem=problems,
             prospect=prospect.full_name,
             sdr_name=client_sdr.name,
             message=message.completion,

@@ -1508,23 +1508,22 @@ def mark_prospect_email_approved(prospect_email_id: int, ai_approved: bool = Fal
     clear_prospect_approved_email(prospect_id=prospect_id)
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-
-    if prospect.approved_outreach_message_id:
-        clear_prospect_approved_email(prospect_id=prospect_id)
-
-    prospect: Prospect = Prospect.query.get(prospect_id)
     prospect.approved_prospect_email_id = prospect_email.id
     db.session.add(prospect)
     db.session.commit()
 
+    problems_subject_line = run_message_rule_engine(
+        message_id=prospect_email.personalized_subject_line
+    )
+    problems_email_body = run_message_rule_engine(
+        message_id=prospect_email.personalized_body
+    )
+
     success = change_prospect_email_status(
         prospect_email_id=prospect_email_id,
         status=ProspectEmailStatus.APPROVED,
-        ai_approved=ai_approved,
+        ai_approved=len(problems_subject_line) == 0 and len(problems_email_body) == 0,
     )
-
-    run_message_rule_engine(message_id=prospect_email.personalized_subject_line)
-    run_message_rule_engine(message_id=prospect_email.personalized_body)
 
     return success
 
