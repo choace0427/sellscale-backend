@@ -3509,7 +3509,7 @@ def schedule_cached_messages(client_sdr_id: int, prospect_ids: list[int]):
 
     sent_prospect_ids = set()
 
-    scheduled_send_date = datetime.datetime.now() + datetime.timedelta(minutes=15)
+    scheduled_send_date = datetime.now() + timedelta(minutes=15)
     scheduled_send_date = next_business_hour(scheduled_send_date)
 
     for b in generated_message_autobumps:
