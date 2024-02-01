@@ -1024,7 +1024,7 @@ def is_cta_active(cta_id: int):
     from model_import import GeneratedMessageCTA
 
     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
-    if cta.expiration_date and cta.expiration_date < datetime.datetime.utcnow():
+    if cta.expiration_date and cta.expiration_date < datetime.utcnow():
         if cta.active:
             cta.active = False
             db.session.add(cta)

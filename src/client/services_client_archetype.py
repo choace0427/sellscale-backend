@@ -1011,6 +1011,9 @@ def get_client_archetype_stats(client_archetype_id):
                 else "Invite Message",
                 "description": record.data.get("message"),
                 "bumped_count": i - 1,
+                "bump_framework_delay": record.meta_data
+                and record.meta_data.get("bump_framework_delay")
+                or 0,
             }
             linkedin_sequence.append(entry)
     else:

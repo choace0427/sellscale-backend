@@ -222,6 +222,7 @@ def generate_sim_li_convo_response(simulation_id: int) -> Tuple[bool, str]:
                 ),
                 "bump_framework_length": data.get("bump_framework_length", None),
                 "account_research_points": data.get("account_research_points", None),
+                "bump_framework_delay": data.get("bump_framework_delay", None),
             },
         )
 
@@ -405,34 +406,40 @@ def update_sim_li_convo(simulation_id: int):
 def generate_entire_simulated_conversation(
     archetype_id: int,
 ) -> Tuple[bool, List[SimulationRecord]]:
-    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    num_steps = client_archetype.li_bump_amount + 1
-    random_prospect: Prospect = (
-        Prospect.query.filter(Prospect.archetype_id == archetype_id)
-        .order_by(Prospect.icp_fit_score.desc())
-        .first()
-    )
-    if not random_prospect:
+    try:
+        client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+        num_steps = client_archetype.li_bump_amount + 1
+        random_prospect: Prospect = (
+            Prospect.query.filter(Prospect.archetype_id == archetype_id)
+            .order_by(Prospect.icp_fit_score.desc())
+            .first()
+        )
+        if not random_prospect:
+            return False, []
+
+        simulation_id = create_simulation(
+            client_sdr_id=client_archetype.client_sdr_id,
+            archetype_id=archetype_id,
+            prospect_id=random_prospect.id,
+            type=SimulationType.LI_CONVERSATION,
+        )
+
+        for i in range(num_steps):
+            print("Generating step #", i, "...")
+            if i == 0:
+                generate_sim_li_convo_init_msg(simulation_id)
+            else:
+                generate_sim_li_convo_response(simulation_id)
+            update_sim_li_convo(simulation_id)
+
+        simulation_records: list[SimulationRecord] = (
+            SimulationRecord.query.filter(
+                SimulationRecord.simulation_id == simulation_id
+            )
+            .order_by(SimulationRecord.created_at.asc())
+            .all()
+        )
+        return True, simulation_records
+    except Exception as e:
+        print(e)
         return False, []
-
-    simulation_id = create_simulation(
-        client_sdr_id=client_archetype.client_sdr_id,
-        archetype_id=archetype_id,
-        prospect_id=random_prospect.id,
-        type=SimulationType.LI_CONVERSATION,
-    )
-
-    for i in range(num_steps):
-        print("Generating step #", i, "...")
-        if i == 0:
-            generate_sim_li_convo_init_msg(simulation_id)
-        else:
-            generate_sim_li_convo_response(simulation_id)
-        update_sim_li_convo(simulation_id)
-
-    simulation_records: list[SimulationRecord] = (
-        SimulationRecord.query.filter(SimulationRecord.simulation_id == simulation_id)
-        .order_by(SimulationRecord.created_at.asc())
-        .all()
-    )
-    return True, simulation_records
