@@ -1185,7 +1185,7 @@ def create_slack_connection_needed_operator_dashboard_card(client_sdr_id: int):
 def create_add_pre_filters_operator_dashboard_card(client_sdr_id: int):
     create_operator_dashboard_entry(
         client_sdr_id=client_sdr_id,
-        urgency=OperatorDashboardEntryPriority.HIGH,
+        urgency=OperatorDashboardEntryPriority.MEDIUM,
         tag="create_prefilters_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
         emoji="👥",
         title="Create Pre-Filter",

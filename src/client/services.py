@@ -12,7 +12,9 @@ from src.client.sdr.services_client_sdr import (
 )
 from sqlalchemy import cast, String
 from src.company.models import Company
-from src.email_scheduling.services import create_calendar_link_needed_operator_dashboard_card
+from src.email_scheduling.services import (
+    create_calendar_link_needed_operator_dashboard_card,
+)
 from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
@@ -599,14 +601,14 @@ def get_client_sdr(client_sdr_id: int) -> dict:
 
 
 def create_client_sdr(
-        client_id: int, 
-        name: str, 
-        email: str,
-        include_connect_li_card: bool = False,
-        include_connect_slack_card: bool = False,
-        include_input_pre_filters_card: bool = False,
-        include_add_dnc_filters_card: bool = False,
-        include_add_calendar_link_card: bool = False
+    client_id: int,
+    name: str,
+    email: str,
+    include_connect_li_card: bool = False,
+    include_connect_slack_card: bool = False,
+    include_input_pre_filters_card: bool = False,
+    include_add_dnc_filters_card: bool = False,
+    include_add_calendar_link_card: bool = False,
 ):
     from src.client.services_unassigned_contacts_archetype import (
         create_unassigned_contacts_archetype,
@@ -4563,7 +4565,7 @@ def get_available_times_via_calendly(
 def create_do_not_contact_filters_operator_dashboard_card(client_sdr_id: int):
     create_operator_dashboard_entry(
         client_sdr_id=client_sdr_id,
-        urgency=OperatorDashboardEntryPriority.HIGH,
+        urgency=OperatorDashboardEntryPriority.MEDIUM,
         tag="add_dnc_filters_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
         emoji="❌",
         title="Add Do Not Contact Filters",

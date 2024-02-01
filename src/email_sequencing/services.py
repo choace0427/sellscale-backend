@@ -67,7 +67,9 @@ def get_email_sequence_step_for_sdr(
 
     # If activeOnly is specified, filter by active
     if activeOnly:
-        steps = steps.filter(EmailSequenceStep.active == True)
+        steps = steps.filter(
+            EmailSequenceStep.active == True, EmailSequenceStep.default == True
+        )
 
     steps: list[EmailSequenceStep] = steps.all()
 
