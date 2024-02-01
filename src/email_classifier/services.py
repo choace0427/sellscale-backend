@@ -6,6 +6,9 @@ from email_validator import validate_email, EmailNotValidError
 import requests
 import os
 
+from src.ml.services import chat_ai_classify_email_active_convo
+from src.prospecting.services import update_prospect_status_email
+
 
 @celery.task()
 def classify_email(
@@ -20,9 +23,20 @@ def classify_email(
     Returns:
         ProspectEmailOutreachStatus or None: The classified email status or None if the email is not classified
     """
+    # Detect OOO - Automatically updates the prospect
     out_of_office = detect_out_of_office(prospect_id=prospect_id, email_body=email_body)
     if out_of_office:
         return ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO
+
+    # GPT Classifier - Last step
+    status = chat_ai_classify_email_active_convo(message=email_body)
+    if status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING:
+        # Perform extra logic here
+        pass
+    update_prospect_status_email(
+        prospect_id=prospect_id,
+        new_status=status,
+    )
 
     return None
 

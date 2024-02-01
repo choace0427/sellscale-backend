@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 from bs4 import BeautifulSoup
+from src.email_outbound.models import ProspectEmailOutreachStatus, ProspectEmailStatus
 from src.ml.openai_wrappers import DEFAULT_TEMPERATURE
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
@@ -1219,6 +1220,62 @@ Seller: {seller_name}
         6: ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
     }
     return cases.get(number, ProspectStatus.ACTIVE_CONVO_NEXT_STEPS)
+
+
+def chat_ai_classify_email_active_convo(message: str) -> ProspectEmailOutreachStatus:
+    """Selects one of the following options based on the reply message.
+
+    Args:
+        message: The message.
+
+    Returns:
+        The index of the selected option.
+    """
+    prompt = """I have a message from a potential customer to a seller. Help me classify the message. Please classify the message as one of the following options, provide just the number and nothing else.
+
+1. MORE_ENGAGEMENT: The conversation needs more engagement from the seller
+2. OBJECTION: There is an objection or abrasion about a product or service from the customer. Or the customer states that they are completely not interested. Or the customer states that they are not the best person to contact.
+3. QUESTION: There is a question from the customer
+4. CIRCLE_BACK: The customer has stated that now is not a good time and that the seller should reach out at a later time.
+5. REFERRAL: The customer is referring the seller to a different contact
+6. SCHEDULING: The customer is discussing a time to meet
+7. OTHER: Some other conversation
+
+--- BEGIN MESSAGE ---
+{message}
+--- END MESSAGE ---
+
+Provide your answer in the following JSON Format:
+{"classification": 1}
+
+The JSON output:
+""".format(
+        message=message
+    )
+
+    response = wrapped_chat_gpt_completion(
+        [{"role": "user", "content": prompt}],
+        temperature=0,
+        max_tokens=10,
+        model=OPENAI_CHAT_GPT_4_MODEL,
+    )
+
+    try:
+        json_response: dict = json.loads(response)
+    except:
+        return ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS
+
+    number = json_response.get("classification", 7)
+    cases = {
+        1: ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS,
+        2: ProspectEmailOutreachStatus.ACTIVE_CONVO_OBJECTION,
+        3: ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION,
+        4: ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL,
+        5: ProspectEmailOutreachStatus.ACTIVE_CONVO_REFERRAL,
+        6: ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING,
+        7: ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS,
+    }
+    return cases.get(number, ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS)
 
 
 def determine_account_research_from_convo_and_bump_framework(
