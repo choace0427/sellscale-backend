@@ -1246,7 +1246,7 @@ def chat_ai_classify_email_active_convo(message: str) -> ProspectEmailOutreachSt
 --- END MESSAGE ---
 
 Provide your answer in the following JSON Format:
-{"classification": 1}
+{{"classification": 1}}
 
 The JSON output:
 """.format(
