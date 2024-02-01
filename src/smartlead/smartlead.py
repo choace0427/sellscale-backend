@@ -259,6 +259,18 @@ class Smartlead:
             return self.add_email_account_to_campaign(campaign_id, email_account_ids)
         return response.json()
 
+    def update_email_account(self, email_account_id: int, max_email_per_day: int):
+        url = (
+            f"{self.BASE_URL}/email-accounts/{email_account_id}?api_key={self.api_key}"
+        )
+        data = {"max_email_per_day": max_email_per_day}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.update_email_account(email_account_id, max_email_per_day)
+        return response.json()
+
     def add_all_campaign_webhooks(self, campaign_id: int):
         def add_campaign_webhook(
             campaign_id: int, name: str, webhook_url: str, event_types: list

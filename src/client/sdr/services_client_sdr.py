@@ -643,6 +643,33 @@ def update_sla_schedule(
     return True, "Success"
 
 
+def update_sla_schedule_email_limit(client_sdr_id: int, daily_limit: int) -> bool:
+    """Updates the daily email limit for an SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        daily_limit (int): The daily email limit
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the SLA schedules that starts on this Monday
+    monday, _ = get_current_monday_friday(datetime.utcnow())
+    sla_schedule: list[SLASchedule] = SLASchedule.query.filter(
+        SLASchedule.client_sdr_id == client_sdr_id, SLASchedule.start_date >= monday
+    ).all()
+
+    weekly_limit = daily_limit * 5
+
+    # Update the SLA schedule
+    for schedule in sla_schedule:
+        schedule.email_volume = weekly_limit
+
+    db.session.commit()
+
+    return True
+
+
 def deactivate_sla_schedules(
     client_sdr_id: int,
 ) -> bool:

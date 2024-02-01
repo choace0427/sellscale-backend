@@ -9,8 +9,10 @@ from typing import Optional, Union
 from src.client.models import ClientSDR, Client
 from src.client.sdr.email.models import EmailType, SDREmailBank, SDREmailSendSchedule
 from src.client.sdr.email.services_email_schedule import create_sdr_email_send_schedule
+from src.client.sdr.services_client_sdr import update_sla_schedule_email_limit
 from src.domains.models import Domain
 from src.smartlead.services import get_email_warmings, get_warmup_percentage
+from src.smartlead.smartlead import Smartlead
 from src.utils.slack import URL_MAP, send_slack_message
 
 
@@ -391,6 +393,8 @@ def sync_email_bank_statistics_for_sdr(client_sdr_id: int) -> tuple[bool, str]:
         if not client_sdr:
             return False, "Client SDR not found"
 
+        total_daily_smartlead_outbound_quota = 0
+
         # Get Smartlead email warmings
         smartlead_email_statuses = get_email_warmings(client_sdr_id=client_sdr_id)
         for email_status in smartlead_email_statuses:
@@ -446,10 +450,37 @@ def sync_email_bank_statistics_for_sdr(client_sdr_id: int) -> tuple[bool, str]:
             email_bank.daily_limit = daily_limit
             email_bank.smartlead_account_id = email_status["id"]
 
+            # If the daily limit is not at 30 (full potential), and the warmup reputation is at 100% with over 100 total sends, we should update the daily limit!
+            if (
+                daily_limit != 30
+                and warmup_reputation == 100
+                and total_sent_count > 100
+            ):
+                sl = Smartlead()
+                response = sl.update_email_account(
+                    email_account_id=email_status["id"],
+                    max_email_per_day=30,
+                )
+                ok = response.get("ok")
+                if ok:
+                    email_bank.daily_limit = 30
+                else:
+                    send_slack_message(
+                        message=f"SMARTLEAD: Error updating daily limit for {email_bank.email_address}",
+                        webhook_urls=[URL_MAP["ops-outbound-warming"]],
+                    )
+
             db.session.add(email_bank)
             db.session.commit()
 
+            total_daily_smartlead_outbound_quota += email_bank.daily_limit
+
         send_email_bank_warming_update(client_sdr_id=client_sdr_id)
+
+        update_sla_schedule_email_limit(
+            client_sdr_id=client_sdr_id,
+            daily_limit=total_daily_smartlead_outbound_quota,
+        )
 
         return True, "Success"
     except Exception as e:
