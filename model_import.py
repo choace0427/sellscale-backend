@@ -93,7 +93,7 @@ from src.company.models import Company, CompanyRelation
 from src.email_outbound.models import EmailConversationMessage
 from src.simulation.models import Simulation
 from src.individual.models import Individual
-from src.analytics.models import SDRHealthStats
+from src.analytics.models import SDRHealthStats, ChatBotDataRepository
 from src.prospecting.icp_score.models import ICPScoringRuleset
 from src.webhooks.models import (
     NylasWebhookPayloads,

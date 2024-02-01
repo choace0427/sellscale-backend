@@ -32,3 +32,16 @@ class AutoDeleteMessageAnalytics(db.Model):
     message = db.Column(db.String)
     send_date = db.Column(db.DateTime)
     channel = db.Column(db.String)
+
+
+class ChatBotDataRepository(db.Model):
+    __tablename__ = "chat_bot_data_repository"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    usage_analytics_data = db.Column(db.JSON, nullable=True)
+    tam_graph_data = db.Column(db.JSON, nullable=True)
+    rejection_report_data = db.Column(db.JSON, nullable=True)
+    demo_feedback_data = db.Column(db.JSON, nullable=True)
+    message_analytics_data = db.Column(db.JSON, nullable=True)
