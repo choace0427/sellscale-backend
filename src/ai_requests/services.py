@@ -123,13 +123,13 @@ def update_ai_requests(
             )
 
             send_slack_message(
-                message=f"New task completed!",
+                message=f"Your AI completed a new task for you!",
                 blocks=[
                     {
                         "type": "header",
                         "text": {
                             "type": "plain_text",
-                            "text": f"New task completed! ✅",
+                            "text": f"Your AI completed a new task for you! ✅",
                             "emoji": True,
                         },
                     },
