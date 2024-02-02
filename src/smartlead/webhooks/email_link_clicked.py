@@ -134,11 +134,11 @@ def process_email_link_clicked_webhook(payload_id: int):
 
         # Send a Slack Notification
         notification = EmailLinkClickedNotification(
-            client_sdr_id=prospect_email.client_sdr_id,
+            client_sdr_id=prospect.client_sdr_id,
             prospect_id=prospect.id,
             link_clicked=payload.get("link_details")[0],
         )
-        success = notification.send_notification_preview(preview_mode=False)
+        success = notification.send_notification(preview_mode=False)
 
         # Set the payload to "SUCCEEDED"
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED

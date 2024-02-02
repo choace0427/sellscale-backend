@@ -89,11 +89,7 @@ class EmailLinkClickedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if (
-                not self.prospect_id
-                or not self.prospect_message
-                or not self.ai_response
-            ):
+            if not self.prospect_id or not self.link_clicked:
                 return False
             fields = get_fields()
 
