@@ -119,9 +119,9 @@ class EmailLinkClickedNotification(SlackNotificationClass):
 
         # Send the message
         slack_bot_send_message(
-            notification_type=SlackNotificationType.AI_REPLY_TO_EMAIL,
+            notification_type=SlackNotificationType.EMAIL_LINK_CLICKED,
             client_id=client.id,
-            base_message="SellScale AI just replied to prospect on Email!",
+            base_message="A prospect clicked your link! 🔗",
             blocks=[
                 {
                     "type": "header",
