@@ -1,6 +1,7 @@
 from http import client
 from flask import Blueprint, request, jsonify
 from src.analytics.campaign_drilldown import get_campaign_drilldown_data
+from src.analytics.services_chatbot import answer_question, process_data_and_answer
 from src.client.models import ClientArchetype
 from src.utils.request_helpers import get_request_parameter
 from src.analytics.services import (
@@ -119,6 +120,7 @@ def get_campaign_drilldown(client_sdr_id: int, archetype_id: int):
 
     return {"message": "Success", "analytics": details}, 200
 
+
 @ANALYTICS_BLUEPRINT.route("/rejection_analysis", methods=["GET"])
 @require_user
 def get_rejection_analysis(client_sdr_id: int):
@@ -128,10 +130,10 @@ def get_rejection_analysis(client_sdr_id: int):
     """
 
     # Extracting 'status' from query parameters
-    status = request.args.get('status')
+    status = request.args.get("status")
 
     # Validating 'status' parameter
-    if status not in ['NOT_INTERESTED', 'NOT_QUALIFIED']:
+    if status not in ["NOT_INTERESTED", "NOT_QUALIFIED"]:
         return {"message": "Invalid status parameter"}, 400
 
     # Validating client_sdr_id
@@ -142,6 +144,7 @@ def get_rejection_analysis(client_sdr_id: int):
     # Fetching data using the service function
     data = get_rejection_analysis_data(client_sdr_id, status)
     return {"message": "Success", "data": data}, 200
+
 
 @ANALYTICS_BLUEPRINT.route("/rejection_report", methods=["GET"])
 @require_user
@@ -161,3 +164,16 @@ def rejection_report(client_sdr_id: int):
     except Exception as e:
         print(f"Error fetching rejection report details: {e}")
         return jsonify({"message": "Error fetching data", "error": str(e)}), 500
+
+
+@ANALYTICS_BLUEPRINT.route("/ask", methods=["POST"])
+@require_user
+def ask_analytics(client_sdr_id: int):
+    """
+    Endpoint to ask analytics questions.
+    """
+    # Validating client_sdr_id
+    query = get_request_parameter("query", request, json=True, required=True)
+    answer = answer_question(client_sdr_id=client_sdr_id, query=query)
+
+    return jsonify({"message": "Success", "answer": answer}), 200
