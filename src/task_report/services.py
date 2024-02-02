@@ -1,5 +1,5 @@
 import datetime
-from app import db
+from app import db, celery
 from src.automation.resend import send_email
 from src.client.models import ClientSDR
 from src.operator_dashboard.models import OperatorDashboardEntry
@@ -11,7 +11,8 @@ from src.weekly_report.email_template import (
 from src.weekly_report.models import *
 
 
-def send_all_pending_task_report_emails(to_emails: list[str] = []) -> bool:
+@celery.task
+def send_all_pending_task_report_emails() -> bool:
     query = """
     select 
         client_sdr.id, client_sdr.name, count(distinct operator_dashboard_entry.id)
@@ -32,19 +33,12 @@ def send_all_pending_task_report_emails(to_emails: list[str] = []) -> bool:
         print(f"Sending task report email to {name}...")
         send_task_report_email(
             client_sdr_id=id,
-            test_mode_to_emails=to_emails,
         )
 
     return True
 
 
-def send_task_report_email(
-    client_sdr_id: int,
-    test_mode_to_emails: list[str] = [],
-    to_emails: list[str] = [],
-    cc_emails: list[str] = [],
-    bcc_emails: list[str] = [],
-) -> bool:
+def send_task_report_email(client_sdr_id: int) -> bool:
     html = generate_task_report_html(client_sdr_id=client_sdr_id)
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -55,17 +49,11 @@ def send_task_report_email(
         first_name=first_name, date_in_title=date_in_title
     )
 
-    if test_mode_to_emails:
-        to_emails = test_mode_to_emails
-        cc_emails = []
-        bcc_emails = []
-
     send_email(
         html=html,
         title=title,
-        to_emails=to_emails,
-        cc_emails=cc_emails,
-        bcc_emails=bcc_emails,
+        to_emails=[client_sdr.email],
+        cc_emails=["csm@sellscale.com"],
     )
 
     return True

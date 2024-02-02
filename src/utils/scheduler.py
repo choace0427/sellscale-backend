@@ -358,6 +358,12 @@ def run_daily_demo_reminders():
         send_demo_reminders.delay()
 
 
+def run_daily_task_reminders():
+    from src.task_report.services import send_all_pending_task_report_emails
+
+    send_all_pending_task_report_emails.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
@@ -434,6 +440,7 @@ scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_notify_about_scheduling, trigger=daily_trigger)
+scheduler.add_job(run_daily_task_reminders, trigger=daily_trigger)
 scheduler.add_job(
     run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger
 )
