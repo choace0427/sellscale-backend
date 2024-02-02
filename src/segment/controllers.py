@@ -11,6 +11,7 @@ from src.segment.services import (
     extract_data_from_sales_navigator_link,
     find_prospects_by_segment_filters,
     get_segments_for_sdr,
+    remove_prospect_from_segment,
     update_segment,
     wipe_segment_ids_from_prospects_in_segment,
 )
@@ -271,3 +272,20 @@ def add_unused_prospects_in_segment_to_campaign_endpoint(client_sdr_id: int):
         return msg, 200
 
     return "Failed", 400
+
+
+@SEGMENT_BLUEPRINT.route("/remove_prospects_from_segment", methods=["POST"])
+@require_user
+def post_remove_prospects_from_segment(client_sdr_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True
+    )
+
+    success, msg = remove_prospect_from_segment(
+        client_sdr_id=client_sdr_id, prospect_ids=prospect_ids
+    )
+
+    if success:
+        return msg, 200
+
+    return "Failed to remove prospects", 400

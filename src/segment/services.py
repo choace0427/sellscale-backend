@@ -387,3 +387,16 @@ def add_unused_prospects_in_segment_to_campaign(segment_id: int, campaign_id: in
     )
 
     return True, "Prospects added to campaign"
+
+
+def remove_prospect_from_segment(client_sdr_id: int, prospect_ids: list[int]):
+    prospects: list[Prospect] = Prospect.query.filter(
+        and_(Prospect.client_sdr_id == client_sdr_id, Prospect.id.in_(prospect_ids))
+    ).all()
+
+    for prospect in prospects:
+        prospect.segment_id = None
+        db.session.add(prospect)
+
+    db.session.commit()
+    return True, "Prospects removed from segment"
