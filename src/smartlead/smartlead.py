@@ -181,6 +181,11 @@ class Smartlead:
             "url": "https://sellscale-api-prod.onrender.com/smartlead/webhooks/email_replied",
             "event_types": ["EMAIL_REPLY"],
         },
+        {
+            "name": "Email Link Clicked",
+            "url": "https://sellscale-api-prod.onrender.com/smartlead/webhooks/email_link_clicked",
+            "event_types": ["EMAIL_LINK_CLICK"],
+        },
     ]
 
     LEAD_CATEGORIES = {
@@ -271,7 +276,7 @@ class Smartlead:
             return self.update_email_account(email_account_id, max_email_per_day)
         return response.json()
 
-    def add_all_campaign_webhooks(self, campaign_id: int):
+    def add_all_campaign_webhooks(self, campaign_id: int, event_type: Optional[str]):
         def add_campaign_webhook(
             campaign_id: int, name: str, webhook_url: str, event_types: list
         ):
@@ -291,6 +296,8 @@ class Smartlead:
         responses = []
 
         for url_package in self.WEBHOOK_URLS:
+            if event_type and url_package["event_types"][0] != event_type:
+                continue
             response = add_campaign_webhook(
                 campaign_id=campaign_id,
                 name=url_package["name"],
