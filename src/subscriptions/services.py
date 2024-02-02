@@ -22,6 +22,7 @@ def get_subscriptions(client_sdr_id: int) -> list:
             SlackNotification.notification_type,
             SlackNotification.notification_name,
             SlackNotification.notification_description,
+            SlackNotification.notification_outbound_channel,
             Subscription.id,
             Subscription.active,
         )
@@ -40,8 +41,9 @@ def get_subscriptions(client_sdr_id: int) -> list:
                 "notification_type": row[1].value,
                 "notification_name": row[2],
                 "notification_description": row[3],
-                "subscription_id": row[4],
-                "subscribed": True if row[5] else False,
+                "notification_outbound_channel": row[4],
+                "subscription_id": row[5],
+                "subscribed": True if row[6] else False,
             }
         )
 
