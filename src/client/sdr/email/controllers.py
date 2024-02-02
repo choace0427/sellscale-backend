@@ -28,11 +28,9 @@ def get_sdr_email_banks_endpoint(client_sdr_id: int):
     if active_only and type(active_only) == str:
         active_only = active_only.lower() == "true"
 
-    email_banks: list[SDREmailBank] = get_sdr_email_banks(
+    email_banks_dict = get_sdr_email_banks(
         client_sdr_id=client_sdr_id, active_only=active_only
     )
-
-    email_banks_dict = [email_bank.to_dict() for email_bank in email_banks]
 
     return jsonify({"status": "success", "data": {"emails": email_banks_dict}}), 200
 

@@ -1,4 +1,5 @@
 import enum
+from typing import Optional
 from app import db
 import sqlalchemy as sa
 
@@ -56,6 +57,7 @@ class SDREmailBank(db.Model):
             SDREmailSendSchedule.email_bank_id == self.id
         ).first()
 
+        # DO NOT EXPOSE PASSWORDS
         return {
             "id": self.id,
             "active": self.active,
@@ -69,7 +71,6 @@ class SDREmailBank(db.Model):
             "send_schedule": send_schedule.to_dict() if send_schedule else None,
             "aws_workmail_user_id": self.aws_workmail_user_id,
             "aws_username": self.aws_username,
-            "aws_password": self.aws_password,
             "smartlead_account_id": self.smartlead_account_id,
             "smartlead_warmup_enabled": self.smartlead_warmup_enabled,
             "smartlead_reputation": self.smartlead_reputation,

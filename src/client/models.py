@@ -549,7 +549,6 @@ class ClientSDR(db.Model):
             "conversion_open_pct": self.conversion_open_pct,
             "conversion_reply_pct": self.conversion_reply_pct,
             "conversion_demo_pct": self.conversion_demo_pct,
-            "emails": [email.to_dict() for email in email_bank] if email_bank else None,
             "meta_data": self.meta_data,
             "auto_send_linkedin_campaign": self.auto_send_linkedin_campaign,
             "auto_send_email_campaign": self.auto_send_email_campaign,

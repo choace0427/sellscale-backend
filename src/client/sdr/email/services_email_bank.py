@@ -37,19 +37,29 @@ def get_sdr_email_banks_for_client(client_id: int) -> list[dict]:
 
 def get_sdr_email_banks(
     client_sdr_id: int, active_only: Optional[bool] = True
-) -> list[SDREmailBank]:
+) -> list[dict]:
     """Gets all emails for a given SDR that are active or inactive
 
     Returns:
-        list[SDREmailBank]: List of SDREmailBank objects
+        list[dict]: List of SDREmailBank objects
     """
-    query = SDREmailBank.query
-    query = query.filter(SDREmailBank.client_sdr_id == client_sdr_id)
+    # Get all EmailBanks belonging to this SDR
+    sdr_email_banks: list[SDREmailBank] = SDREmailBank.query.filter_by(
+        client_sdr_id=client_sdr_id
+    ).all()
 
-    if active_only:
-        query = query.filter(SDREmailBank.active == True)
+    result = []
+    for sdr_email_bank in sdr_email_banks:
+        sdr_dict = sdr_email_bank.to_dict()
+        sdr_dict["domain_details"] = {}
 
-    return query.all()
+        domain_details: Domain = Domain.query.get(sdr_email_bank.domain_id)
+        domain_details_dict = domain_details.to_dict() if domain_details else {}
+        sdr_dict["domain_details"] = domain_details_dict
+
+        result.append(sdr_dict)
+
+    return result
 
 
 def get_sdr_email_bank(
