@@ -8,6 +8,7 @@ class SlackNotificationType(Enum):
 
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
     LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
+    EMAIL_LINK_CLICKED = "EMAIL_LINK_CLICKED"
 
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
@@ -29,6 +30,7 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.linkedin_invite_accepted import (
         LinkedInInviteAcceptedNotification,
     )
+    from src.slack.notifications.email_link_clicked import EmailLinkClickedNotification
 
     map_slack_notification_type_to_metadata = {
         SlackNotificationType.AI_REPLY_TO_EMAIL: {
@@ -42,6 +44,12 @@ def get_slack_notification_type_metadata():
             "description": "A Slack notification that is sent when the Prospect accepts a LinkedIn invite",
             "class": LinkedInInviteAcceptedNotification,
             "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.EMAIL_LINK_CLICKED: {
+            "name": "Email Link Clicked",
+            "description": "A Slack notification that is sent when a Prospect clicks a link in an email",
+            "class": EmailLinkClickedNotification,
+            "outbound_channel": "email",
         },
     }
 

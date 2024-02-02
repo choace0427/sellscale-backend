@@ -16,6 +16,7 @@ class SmartleadWebhookType(enum.Enum):
     EMAIL_OPENED = "email.opened"
     EMAIL_REPLIED = "email.replied"
     EMAIL_BOUNCED = "email.bounced"
+    EMAIL_LINK_CLICKED = "email.link_clicked"
 
 
 class SmartleadWebhookPayloads(db.Model):
