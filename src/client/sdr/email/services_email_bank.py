@@ -441,6 +441,12 @@ def sync_email_bank_statistics_for_sdr(client_sdr_id: int) -> tuple[bool, str]:
                 )
                 email_bank = SDREmailBank.query.get(email_bank_id)
 
+            # This is an edge case where:
+            # 1. There are 2 SDRs that share the same name
+            # 2. The email inbox was not registered through SellScale (this may have happened to older accounts)
+            if email_bank.client_sdr_id != client_sdr_id:
+                continue
+
             # Update the email bank
             warmup_reputation = email_status["warmup_details"]["warmup_reputation"]
             warmup_reputation = (
