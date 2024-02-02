@@ -23,7 +23,7 @@ SDR_EMAIL_BLUEPRINT = Blueprint("client/sdr/email", __name__)
 def get_sdr_email_banks_endpoint(client_sdr_id: int):
     """Endpoint to get SDR Email Banks"""
     active_only = get_request_parameter(
-        "active_only", request, json=True, parameter_type=bool
+        "active_only", request, json=False, required=False, parameter_type=bool
     )
     if active_only and type(active_only) == str:
         active_only = active_only.lower() == "true"
