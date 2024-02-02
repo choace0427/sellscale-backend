@@ -12,11 +12,7 @@ SUBSCRIPTIONS_BLUEPRINT = Blueprint("subscriptions", __name__)
 @require_user
 def get_all_subscriptions(client_sdr_id: int):
     """Gets all subscriptions for a client"""
-    from src.subscriptions.services import (
-        deactivate_subscription,
-        get_subscriptions,
-        subscribe_to_slack_notification,
-    )
+    from src.subscriptions.services import get_subscriptions
 
     subscriptions = get_subscriptions(client_sdr_id=client_sdr_id)
 
@@ -35,6 +31,8 @@ def get_all_subscriptions(client_sdr_id: int):
 @require_user
 def post_activate_subscription(client_sdr_id: int):
     """Activates a subscription to a Slack notification"""
+    from src.subscriptions.services import subscribe_to_slack_notification
+
     slack_notification_id = get_request_parameter(
         "slack_notification_id", request, json=True, required=False, parameter_type=int
     )
@@ -80,6 +78,8 @@ def post_activate_subscription(client_sdr_id: int):
 @require_user
 def post_deactivate_subscription(client_sdr_id: int):
     """Deactivates a subscription"""
+    from src.subscriptions.services import deactivate_subscription
+
     subscription_id = get_request_parameter(
         "subscription_id", request, json=True, required=True, parameter_type=int
     )
