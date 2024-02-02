@@ -170,12 +170,13 @@ def get_contacts(
 
     per_page = 0
 
+    saved_query_id = None
     contacts = []
     people = []
 
     for page in range(1, num_contacts // 100 + 1):
         try:
-            response, data = get_contacts_for_page(
+            response, data, saved_query_id = get_contacts_for_page(
                 client_sdr_id,
                 page,
                 person_titles,
@@ -230,6 +231,7 @@ def get_contacts(
         "pagination": pagination,
         "contacts": contacts,
         "people": people,
+        "saved_query_id": saved_query_id,
     }
 
 
@@ -289,12 +291,14 @@ def get_contacts_for_page(
         name_query=f"[{name}] Query on {formatted_date} [{hash}]",
         data=data,
         client_sdr_id=client_sdr_id,
-        is_prefilter=is_prefilter
+        is_prefilter=is_prefilter,
     )
     db.session.add(saved_query)
     db.session.commit()
 
-    return response.json(), data
+    saved_query_id = saved_query.id
+
+    return response.json(), data, saved_query_id
 
 
 def predict_filters_types_needed(query: str) -> list:

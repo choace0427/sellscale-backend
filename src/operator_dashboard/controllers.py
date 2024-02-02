@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+from app import db
 from src.authentication.decorators import require_user
 from src.operator_dashboard.models import OperatorDashboardEntry
 from src.operator_dashboard.services import (
@@ -8,6 +9,7 @@ from src.operator_dashboard.services import (
     dismiss_task,
     send_task_reminder,
 )
+from sqlalchemy.orm.attributes import flag_modified
 from src.utils.request_helpers import get_request_parameter
 
 OPERATOR_DASHBOARD_BLUEPRINT = Blueprint("operator_dashboard", __name__)
@@ -99,5 +101,23 @@ def post_send_task_reminder():
     task_id = get_request_parameter("task_id", request, json=True, required=True)
 
     send_task_reminder(task_id)
+
+    return "OK", 200
+
+
+@OPERATOR_DASHBOARD_BLUEPRINT.route("/update_task_data", methods=["POST"])
+def post_update_task_data():
+    task_id = get_request_parameter("task_id", request, json=True, required=True)
+    key = get_request_parameter("key", request, json=True, required=True)
+    value = get_request_parameter("value", request, json=True, required=True)
+
+    entry: OperatorDashboardEntry = OperatorDashboardEntry.query.filter_by(
+        id=task_id
+    ).first()
+    entry.task_data[key] = value
+    flag_modified(entry, "task_data")
+
+    db.session.add(entry)
+    db.session.commit()
 
     return "OK", 200
