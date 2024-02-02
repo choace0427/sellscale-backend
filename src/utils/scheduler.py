@@ -449,7 +449,7 @@ scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_notify_about_scheduling, trigger=daily_trigger)
-scheduler.add_job(run_daily_task_reminders, trigger=daily_trigger)
+scheduler.add_job(run_daily_task_reminders, trigger=weekday_trigger)
 scheduler.add_job(
     run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger
 )
