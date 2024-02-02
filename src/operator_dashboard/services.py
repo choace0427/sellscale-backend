@@ -7,7 +7,7 @@ from src.operator_dashboard.models import (
     OperatorDashboardEntryStatus,
     OperatorDashboardTaskType,
 )
-from app import db
+from app import db, celery
 from src.utils.slack import send_slack_message
 
 
@@ -200,7 +200,7 @@ def get_operator_dashboard_entries_for_sdr(sdr_id: int) -> list[OperatorDashboar
     return entries
 
 
-def mark_task_complete(client_sdr_id: int, task_id: int) -> bool:
+def mark_task_complete(client_sdr_id: int, task_id: int, silent: bool = False) -> bool:
     entry: OperatorDashboardEntry = (
         OperatorDashboardEntry.query.filter_by(id=task_id)
         .filter_by(client_sdr_id=client_sdr_id)
@@ -223,31 +223,32 @@ def mark_task_complete(client_sdr_id: int, task_id: int) -> bool:
         priority = "🟡 `medium`"
     elif entry.urgency == OperatorDashboardEntryPriority.LOW:
         priority = "🟢 `low`"
-    send_slack_message(
-        message="A new task was cleared by {first_name}".format(first_name=first_name),
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "A new task was cleared from {first_name}'s operator dash! ✅".format(
-                        first_name=first_name
-                    ),
-                    "emoji": True,
+    if not silent:
+        send_slack_message(
+            message="A new task was cleared by {first_name}".format(first_name=first_name),
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "A new task was cleared from {first_name}'s operator dash! ✅".format(
+                            first_name=first_name
+                        ),
+                        "emoji": True,
+                    },
                 },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Task name*: {task_name}\n*Priority*: {priority}".format(
-                        task_name=entry.title, priority=priority
-                    ),
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Task name*: {task_name}\n*Priority*: {priority}".format(
+                            task_name=entry.title, priority=priority
+                        ),
+                    },
                 },
-            },
-        ],
-        webhook_urls=[client.pipeline_notifications_webhook_url],
-    )
+            ],
+            webhook_urls=[client.pipeline_notifications_webhook_url],
+        )
 
     return True
 
@@ -266,3 +267,31 @@ def dismiss_task(client_sdr_id: int, task_id: int) -> bool:
     db.session.commit()
 
     return True
+
+@celery.task
+def auto_resolve_linkedin_tasks():
+    query = """
+    select 
+        client_sdr.id client_sdr_id, operator_dashboard_entry.id task_id
+    from client_sdr
+        join client on client_sdr.client_id = client.id 
+        join operator_dashboard_entry 
+            on operator_dashboard_entry.client_sdr_id = client_sdr.id
+                and operator_dashboard_entry.task_type in ('LINKEDIN_DISCONNECTED', 'CONNECT_LINKEDIN')
+                and operator_dashboard_entry.status = 'PENDING'
+    where 
+        client.active and client_sdr.active
+        and client_sdr.li_at_token is not null and client_sdr.li_at_token <> 'INVALID';
+    """
+
+    tasks = db.session.execute(query).fetchall()
+    if not tasks:
+        return
+    
+    success = True
+    for task in tasks:
+        client_sdr_id = task[0]
+        task_id = task[1]
+        success = success and mark_task_complete(client_sdr_id, task_id, silent=True)
+
+    return success

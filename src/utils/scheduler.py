@@ -361,7 +361,15 @@ def run_daily_demo_reminders():
 def run_daily_task_reminders():
     from src.task_report.services import send_all_pending_task_report_emails
 
-    send_all_pending_task_report_emails.delay()
+    if is_scheduling_instance():
+        send_all_pending_task_report_emails.delay()
+
+
+def run_auto_resolve_linkedin_tasks():
+    from src.operator_dashboard.services import auto_resolve_linkedin_tasks
+
+    if is_scheduling_instance():
+        auto_resolve_linkedin_tasks.delay()
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
@@ -400,6 +408,7 @@ scheduler.add_job(
 # Minute triggers
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
+scheduler.add_job(run_auto_resolve_linkedin_tasks, trigger="interval", minutes=1)
 scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=10)
 # scheduler.add_job(func=generate_email_bumps, trigger="interval", minutes=2)
 scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
