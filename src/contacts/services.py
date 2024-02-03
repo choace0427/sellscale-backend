@@ -173,6 +173,7 @@ def get_contacts(
     saved_query_id = None
     contacts = []
     people = []
+    data = {}
 
     for page in range(1, num_contacts // 100 + 1):
         try:
@@ -232,6 +233,7 @@ def get_contacts(
         "contacts": contacts,
         "people": people,
         "saved_query_id": saved_query_id,
+        "data": data,
     }
 
 
