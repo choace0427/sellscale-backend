@@ -66,8 +66,11 @@ class EmailLinkClickedNotification(SlackNotificationClass):
             archetype: ClientArchetype = ClientArchetype.query.get(
                 prospect.archetype_id
             )
-            generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
+            prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
                 id=prospect.approved_prospect_email_id
+            ).first()
+            generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
+                id=prospect_email.personalized_body
             ).first()
 
             return {

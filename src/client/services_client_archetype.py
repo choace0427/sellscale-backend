@@ -6,7 +6,7 @@ from app import db
 from model_import import ResearchPointType, ClientArchetype
 from typing import Union, Optional
 from src.client.models import Client, ClientSDR
-from src.email_outbound.models import ProspectEmail
+from src.email_outbound.models import ProspectEmail, ProspectEmailStatus
 from src.email_sequencing.services import get_email_sequence_step_for_sdr
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.ml.services import mark_queued_and_classify
@@ -764,7 +764,7 @@ def hard_deactivate_client_archetype(
         # Mark prospect as no longer active
         prospect.active = False
 
-        # If the prospect is in a status PROSPECTED or QUEUED_FOR_OUTREACH, we need to block and wipe the messages
+        # LINKEDIN: If the prospect is in a status PROSPECTED or QUEUED_FOR_OUTREACH, we need to block and wipe the messages
         if (
             prospect.status == ProspectStatus.PROSPECTED
             or prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH
@@ -777,11 +777,13 @@ def hard_deactivate_client_archetype(
                 gm.message_status = GeneratedMessageStatus.BLOCKED
                 prospect.approved_outreach_message_id = None
 
-            # If the prospect has a email component, grab the generated message and mark it as BLOCKED and remove the ID from ProspectEmail
-            if prospect.approved_prospect_email_id:
-                p_email: ProspectEmail = ProspectEmail.query.get(
-                    prospect.approved_prospect_email_id
-                )
+        # EMAIL: If the prospect has a email component, we need to check if the status of the prospect email is not SENT (i.e. it's still in the queue)
+        # Then we should grab the generated message and mark it as BLOCKED and remove the ID from ProspectEmail
+        if prospect.approved_prospect_email_id:
+            p_email: ProspectEmail = ProspectEmail.query.get(
+                prospect.approved_prospect_email_id
+            )
+            if p_email.email_status != ProspectEmailStatus.SENT:
                 subject: GeneratedMessage = GeneratedMessage.query.get(
                     p_email.personalized_subject_line
                 )
