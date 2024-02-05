@@ -10,7 +10,7 @@ from src.client.archetype.services_client_archetype import (
     get_archetype_generation_upcoming,
     send_slack_notif_campaign_active,
 )
-from src.client.models import ClientArchetype, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
@@ -32,6 +32,7 @@ from src.operator_dashboard.models import (
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.models import Prospect
+from src.smartlead.services import create_smartlead_campaign
 from src.utils.request_helpers import get_request_parameter
 
 
@@ -447,11 +448,29 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
     db.session.commit()
 
     if active:
+        # Find emails for prospects under this archetype
         find_emails_for_archetype.delay(archetype_id=archetype_id)
 
-    if active:
+        # Sync this campaign to Smartlead
+        success, message, smartlead_id = create_smartlead_campaign(
+            archetype_id=archetype_id,
+            sync_to_archetype=True,
+        )
+        if not success:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "Failed to sync to Smartlead: {}".format(message),
+                    }
+                ),
+                400,
+            )
+
+        # Send slack notification
         send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
 
+        # Create an operator dashboard entry
         create_operator_dashboard_entry(
             client_sdr_id=client_sdr_id,
             urgency=OperatorDashboardEntryPriority.HIGH,
@@ -471,6 +490,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             },
         )
 
+        # Generate a notification with example message for the client SDR
         random_prospects = (
             Prospect.query.filter(
                 Prospect.archetype_id == archetype_id,
@@ -483,14 +503,12 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
         num_prospects = Prospect.query.filter(
             Prospect.archetype_id == archetype_id,
         ).count()
-
         first_template = ai_initial_email_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=random_prospects[0].id,
         )
         email_body = generate_email(prompt=first_template)
         email_body = email_body.get("body")
-
         create_notification(
             client_sdr_id=client_sdr_id,
             title="Review New Campaign",
@@ -520,5 +538,11 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             priority=OperatorNotificationPriority.HIGH,
             notification_type=OperatorNotificationType.REVIEW_NEW_CAMPAIGN,
         )
+
+        # Turn on auto generate and auto sending for this SDR
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        sdr.auto_send_email_campaign = True
+        client: Client = Client.query.get(sdr.client_id)
+        client.auto_generate_email_messages = True
 
     return jsonify({"status": "success"}), 200

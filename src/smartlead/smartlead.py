@@ -276,7 +276,9 @@ class Smartlead:
             return self.update_email_account(email_account_id, max_email_per_day)
         return response.json()
 
-    def add_all_campaign_webhooks(self, campaign_id: int, event_type: Optional[str]):
+    def add_all_campaign_webhooks(
+        self, campaign_id: int, event_type: Optional[str] = None
+    ):
         def add_campaign_webhook(
             campaign_id: int, name: str, webhook_url: str, event_types: list
         ):

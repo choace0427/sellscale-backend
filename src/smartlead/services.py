@@ -442,10 +442,12 @@ def create_smartlead_campaign(
     # 1. Get the Archetype, SDR
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype:
-        return False, "Archetype not found", None
+        return False, "Archetype not found", -1
+    if archetype.smartlead_campaign_id:
+        return False, "Campaign already exists", -1
     client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
     if not client_sdr:
-        return False, "SDR not found", None
+        return False, "SDR not found", -1
 
     sl = Smartlead()
 
@@ -453,11 +455,11 @@ def create_smartlead_campaign(
     campaign_name = f"{client_sdr.name} (#{client_sdr.id}) - {archetype.archetype}"
     create_campaign_response = sl.create_campaign(campaign_name=campaign_name)
     if not create_campaign_response:
-        return False, "Failed to create campaign", None
+        return False, "Failed to create campaign", -1
 
     smartlead_campaign_id = create_campaign_response.get("id")
     if not smartlead_campaign_id:
-        return False, "Failed to create campaign", None
+        return False, "Failed to create campaign", -1
 
     # 3. Create the Smartlead campaign sequence, using the archetype's sequence
     delay_days = 0
