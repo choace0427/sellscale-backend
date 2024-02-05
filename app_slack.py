@@ -3,7 +3,7 @@ import os
 from slack_bolt import App as SlackApp
 from slack_bolt.authorization import AuthorizeResult as SlackAuthorizeResult
 from slack_bolt.adapter.flask import SlackRequestHandler
-from src.utils.access import is_production
+from src.utils.access import is_celery, is_production, is_scheduling_instance
 
 
 def authorize(enterprise_id, team_id, logger) -> SlackAuthorizeResult:
@@ -21,8 +21,9 @@ def initialize_slack_app():
     Returns:
         SlackApp (slack_bolt.App): The Slack app
     """
-    if not is_production():
-        print("Using development config, Slack App will not be initialized")
+    # If this is not PURELY production, or if this is a celery instance, or if this is a scheduling instance, do not initialize Slack
+    if not is_production() or is_celery() or is_scheduling_instance():
+        print("Not in production environment, Slack App will not be initialized")
         return None, None
 
     # Slack
