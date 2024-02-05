@@ -2,11 +2,11 @@ import csv
 import re
 import nltk
 
-nltk.download("wordnet")
-from nltk.stem import WordNetLemmatizer
+# nltk.download("wordnet")
+# from nltk.stem import WordNetLemmatizer
 
 spam_words_path = r"src/../datasets/spam_words.csv"
-lemmatizer = WordNetLemmatizer()
+# lemmatizer = WordNetLemmatizer()
 
 
 def normalize_word(word: str) -> str:
@@ -19,20 +19,20 @@ def normalize_word(word: str) -> str:
     # replace all non-alphanumeric characters with a space
     word = re.sub(r"[^a-zA-Z0-9\s]", " ", word)
 
-    try:  # Check for verb
-        result = lemmatizer.lemmatize(word, pos="v")
-        if result and result != word:
-            word = result
-        else:  # Check for noun
-            result = lemmatizer.lemmatize(word, pos="n")
-            if result and result != word:
-                word = result
-            else:  # Check for adjective
-                result = lemmatizer.lemmatize(word, pos="a")
-                if result and result != word:
-                    word = result
-    except:
-        pass
+    # try:  # Check for verb
+    #     result = lemmatizer.lemmatize(word, pos="v")
+    #     if result and result != word:
+    #         word = result
+    #     else:  # Check for noun
+    #         result = lemmatizer.lemmatize(word, pos="n")
+    #         if result and result != word:
+    #             word = result
+    #         else:  # Check for adjective
+    #             result = lemmatizer.lemmatize(word, pos="a")
+    #             if result and result != word:
+    #                 word = result
+    # except:
+    #     pass
 
     return word.strip()
 

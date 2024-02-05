@@ -83,10 +83,13 @@ def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
 
 
 def add_prospects_to_segment(prospect_ids: list[int], new_segment_id: int):
-    Prospect.query.filter(Prospect.id.in_(prospect_ids)).update(
-        {Prospect.segment_id: new_segment_id}, synchronize_session=False
-    )
-    db.session.commit()
+    batch_size = 50
+    for i in range(0, len(prospect_ids), batch_size):
+        batch_prospect_ids = prospect_ids[i : i + batch_size]
+        Prospect.query.filter(Prospect.id.in_(batch_prospect_ids)).update(
+            {Prospect.segment_id: new_segment_id}, synchronize_session=False
+        )
+        db.session.commit()
 
     return True, "Prospects added to segment"
 
@@ -400,3 +403,9 @@ def remove_prospect_from_segment(client_sdr_id: int, prospect_ids: list[int]):
 
     db.session.commit()
     return True, "Prospects removed from segment"
+
+
+def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
+    wipe_segment_ids_from_prospects_in_segment(segment_id)
+    delete_segment(client_sdr_id, segment_id)
+    return True, "Segment wiped and deleted"
