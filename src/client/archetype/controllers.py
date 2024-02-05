@@ -443,13 +443,11 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             403,
         )
 
-    find_emails_for_archetype.delay(archetype_id=archetype_id)
-    # find_hunter_emails_for_prospects_under_archetype.apply_async(
-    #     args=[client_sdr_id, archetype_id]
-    # )
-
     archetype.email_active = active
     db.session.commit()
+
+    if active:
+        find_emails_for_archetype.delay(archetype_id=archetype_id)
 
     if active:
         send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
@@ -473,27 +471,26 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             },
         )
 
-    random_prospects = (
-        Prospect.query.filter(
-            Prospect.archetype_id == archetype_id,
+        random_prospects = (
+            Prospect.query.filter(
+                Prospect.archetype_id == archetype_id,
+            )
+            .filter(Prospect.icp_fit_score <= 4)
+            .order_by(Prospect.icp_fit_score.desc())
+            .limit(3)
+            .all()
         )
-        .filter(Prospect.icp_fit_score <= 4)
-        .order_by(Prospect.icp_fit_score.desc())
-        .limit(3)
-        .all()
-    )
-    num_prospects = Prospect.query.filter(
-        Prospect.archetype_id == archetype_id,
-    ).count()
+        num_prospects = Prospect.query.filter(
+            Prospect.archetype_id == archetype_id,
+        ).count()
 
-    first_template = ai_initial_email_prompt(
-        client_sdr_id=client_sdr_id,
-        prospect_id=random_prospects[0].id,
-    )
-    email_body = generate_email(prompt=first_template)
-    email_body = email_body.get("body")
+        first_template = ai_initial_email_prompt(
+            client_sdr_id=client_sdr_id,
+            prospect_id=random_prospects[0].id,
+        )
+        email_body = generate_email(prompt=first_template)
+        email_body = email_body.get("body")
 
-    if active:
         create_notification(
             client_sdr_id=client_sdr_id,
             title="Review New Campaign",
