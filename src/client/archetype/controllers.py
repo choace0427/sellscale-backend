@@ -544,5 +544,6 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
         sdr.auto_send_email_campaign = True
         client: Client = Client.query.get(sdr.client_id)
         client.auto_generate_email_messages = True
+        db.session.commit()
 
     return jsonify({"status": "success"}), 200
