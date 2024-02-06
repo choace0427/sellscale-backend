@@ -63,6 +63,9 @@ def get_current_company_industry(prospect_id: int, data: dict):
     company_name = data.get("company", {}).get("details", {}).get("name")
     company_industries = data.get("company", {}).get("details", {}).get("industries")
 
+    if not company_name or not company_industries:
+        return {"response": ""}
+
     if len(company_industries) == 1:
         result = company_industries[0]
     elif len(company_industries) == 2:

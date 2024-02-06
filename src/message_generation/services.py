@@ -3457,7 +3457,7 @@ def get_prospect_research_points(
     found_research_points = [
         research_point
         for research_point in all_research_points
-        if research_point.research_point_type.name in research_points
+        if research_point.research_point_type in research_points
     ]
 
     return [research_point.to_dict() for research_point in found_research_points]

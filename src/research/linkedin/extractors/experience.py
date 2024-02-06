@@ -62,9 +62,13 @@ def get_years_of_experience(prospect_id: int, data: dict):
     newest_position_end = (
         positions[0].get("date", {}).get("end")["year"] or current_year
     )
+
+    if not newest_position_end or not oldest_position_start:
+        return {"response": ""}
+
     yoe = newest_position_end - oldest_position_start
 
-    if not newest_position_end or not oldest_position_start or yoe < 1:
+    if yoe < 1:
         raw_data = {"years_of_experience": ""}
     else:
         if yoe == 1:
