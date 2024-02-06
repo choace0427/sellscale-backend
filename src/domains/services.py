@@ -880,7 +880,7 @@ def workmail_setup_workflow(
         return False, "Domain not found"
     domain_name = domain.domain
     # Check that the domain is registered
-    if domain.aws_domain_registration_status != "SUCCESS":
+    if domain.aws_domain_registration_status != "SUCCESSFUL":
         if wait_for_domain:
             from src.automation.orchestrator import add_process_for_future
 
