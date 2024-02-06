@@ -12,6 +12,7 @@ from src.client.sdr.services_client_sdr import (
 )
 from sqlalchemy import cast, String
 from src.company.models import Company
+from src.domains.services import setup_managed_inboxes
 from src.email_scheduling.services import (
     create_calendar_link_needed_operator_dashboard_card,
 )
@@ -604,6 +605,7 @@ def create_client_sdr(
     client_id: int,
     name: str,
     email: str,
+    create_managed_inboxes: bool = False,
     include_connect_li_card: bool = False,
     include_connect_slack_card: bool = False,
     include_input_pre_filters_card: bool = False,
@@ -655,6 +657,11 @@ def create_client_sdr(
     sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     sdr.regenerate_uuid()
 
+    # Create the managed inboxes
+    if create_managed_inboxes:
+        setup_managed_inboxes.delay(client_sdr_id=sdr_id)
+
+    # Create the operator dashboard cards
     if include_connect_li_card:
         create_linkedin_connection_needed_operator_dashboard_card(sdr_id)
     if include_add_calendar_link_card:
@@ -666,20 +673,17 @@ def create_client_sdr(
     if include_add_dnc_filters_card:
         create_do_not_contact_filters_operator_dashboard_card(sdr_id)
 
-    print("Creating unassigned contacts archetype")
-    create_sight_onboarding(sdr.id)
+    # create_sight_onboarding(sdr.id)
 
     print("Creating unassigned contacts archetype")
     create_unassigned_contacts_archetype(sdr.id)
 
-    print("Creating default bump frameworks")
+    print("Creating the anchor email")
     create_sdr_email_bank(
         client_sdr_id=sdr.id,
         email_address=email,
         email_type=EmailType.ANCHOR,
     )
-
-    print("Creating default bump frameworks")
 
     return {"client_sdr_id": sdr.id}
 

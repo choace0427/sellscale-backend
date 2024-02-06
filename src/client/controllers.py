@@ -660,6 +660,10 @@ def create_sdr():
     name = get_request_parameter("name", request, json=True, required=True)
     email = get_request_parameter("email", request, json=True, required=True)
 
+    create_managed_inboxes = get_request_parameter(
+        "create_managed_inboxes", request, json=True, required=False
+    )
+
     include_connect_li_card = get_request_parameter(
         "include_connect_li_card", request, json=True, required=False
     )
@@ -677,14 +681,15 @@ def create_sdr():
     )
 
     resp = create_client_sdr(
-        client_id=client_id, 
-        name=name, 
+        client_id=client_id,
+        name=name,
         email=email,
+        create_managed_inboxes=create_managed_inboxes,
         include_connect_li_card=include_connect_li_card,
         include_connect_slack_card=include_connect_slack_card,
         include_input_pre_filters_card=include_input_pre_filters_card,
         include_add_dnc_filters_card=include_add_dnc_filters_card,
-        include_add_calendar_link_card=include_add_calendar_link_card
+        include_add_calendar_link_card=include_add_calendar_link_card,
     )
     if not resp:
         return "Client not found", 404

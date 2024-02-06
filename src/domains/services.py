@@ -492,7 +492,9 @@ def find_domain(domain_name: str) -> tuple[bool, dict]:
         return False, {}
 
 
-def find_similar_domains(key_title: str, current_tld: str) -> list[dict]:
+def find_similar_domains(
+    key_title: str, current_tld: str, shortcircuit: Optional[bool] = False
+) -> list[dict]:
     """Find similar domains using a heuristic of different, applicable prefixes and TLDs
 
     Args:
@@ -504,8 +506,8 @@ def find_similar_domains(key_title: str, current_tld: str) -> list[dict]:
     """
     # TODO: This is inneficient, we need a better way to do this
     # Consider: AWS GetDomainSuggestions
-    prefixes = ["", "try", "get", "with", "use"]
-    tlds = list(set([current_tld, "com", "net", "org"]))
+    prefixes = ["try", "get", "with", "use"]
+    tlds = list(set([current_tld, "com", "net"]))
 
     tld_prices = {}
     for tld in tlds:
@@ -524,6 +526,8 @@ def find_similar_domains(key_title: str, current_tld: str) -> list[dict]:
                         "price": tld_prices[tld],
                     }
                 )
+                if shortcircuit:
+                    return similar_domains
 
     return similar_domains
 
@@ -727,10 +731,82 @@ def is_valid_email_forwarding(
 
 
 @celery.task
+def setup_managed_inboxes(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False, "SDR not found"
+
+    client: Client = Client.query.get(client_sdr_id)
+    if not client:
+        return False, "Client not found"
+
+    # Check if the client already has a domain
+    managed_domain: Domain = Domain.query.filter_by(client_id=client.id).first()
+    if not managed_domain:
+        # If no domain is found, create it
+        if not client.domain:
+            return False, "Client does not have a domain set"
+        anchor_domain = client.domain
+        anchor_tld = anchor_domain.split(".")[-1].strip("/")
+        potential_domains = find_similar_domains(
+            key_title=anchor_domain,
+            current_tld=anchor_tld,
+            shortcircuit=True,
+        )
+        if not potential_domains:
+            return False, "No similar domains found"
+        similar_domain = potential_domains[0].get("domain_name")
+
+        # Register the domain
+        success, message, domain_id = domain_purchase_workflow(
+            client_id=client.id, domain_name=similar_domain
+        )
+        if not success:
+            return False, message
+        managed_domain = Domain.query.get(domain_id)
+
+    # Get 2 usernames from the SDRs name
+    first_name = get_first_name_from_full_name(client_sdr.name)
+    last_name = get_last_name_from_full_name(client_sdr.name)
+    first_username = first_name.lower()
+    first_dot_last = f"{first_name.lower()}.{last_name.lower()}"
+
+    # Setup workmail inboxes
+    from src.automation.orchestrator import add_process_for_future
+
+    add_process_for_future(
+        type="workmail_setup_workflow",
+        args={
+            "client_sdr_id": client_sdr_id,
+            "domain_id": managed_domain.id,
+            "username": first_username,
+            "wait_for_domain": True,
+        },
+        minutes=45,
+    )
+    add_process_for_future(
+        type="workmail_setup_workflow",
+        args={
+            "client_sdr_id": client_sdr_id,
+            "domain_id": managed_domain.id,
+            "username": first_dot_last,
+            "wait_for_domain": True,
+        },
+        minutes=50,
+    )
+
+    return (
+        True,
+        "Managed inboxes setup workflow initiated. This will take at least 1 hour to complete.",
+    )
+
+
+@celery.task
 def workmail_setup_workflow(
     client_sdr_id: int,
     domain_id: int,
-    username,
+    username: str,
+    wait_for_domain: bool = False,
 ) -> tuple:
     """Workflow to setup a workmail inbox after domain is purchased.
 
@@ -742,6 +818,7 @@ def workmail_setup_workflow(
         client_sdr_id (int): The ID of the client SDR
         domain_id (int): The ID of the domain
         username (str): The username of the inbox
+        wait_for_domain (bool, optional): Whether to wait for the domain to be registered. Defaults to False.
 
     Returns:
         tuple: A tuple containing the status and a message
@@ -754,6 +831,24 @@ def workmail_setup_workflow(
     if not domain:
         return False, "Domain not found"
     domain_name = domain.domain
+    # Check that the domain is registered
+    if domain.aws_domain_registration_status != "SUCCESS":
+        if wait_for_domain:
+            from src.automation.orchestrator import add_process_for_future
+
+            add_process_for_future(
+                type="workmail_setup_workflow",
+                args={
+                    "client_sdr_id": client_sdr_id,
+                    "domain_id": domain_id,
+                    "username": username,
+                    "wait_for_domain": True,
+                },
+                minutes=10,
+            )
+            return True, "Domain not registered. But retrying in 10 minutes."
+
+        return False, "Domain not registered"
 
     # Generate a random password
     password = "".join(
@@ -888,7 +983,7 @@ def create_workmail_inbox(
 def domain_purchase_workflow(
     client_id: int,
     domain_name: str,
-) -> tuple:
+) -> tuple[bool, str, int]:
     """Workflow to purchase a domain. Automatically queues up the domain setup workflow.
 
     Args:
@@ -896,17 +991,17 @@ def domain_purchase_workflow(
         domain_name (str): The domain name to purchase
 
     Returns:
-        tuple: A tuple containing the status and a message
+        tuple: A tuple containing the status, a message, and the domain ID
     """
     # Verify the client exists
     client: Client = Client.query.get(client_id)
     if not client:
-        return False, "Client not found"
+        return False, "Client not found", -1
 
     # Register the domain
     status, response, _ = register_aws_domain(domain_name)
     if status == 500:
-        return False, "Failed to purchase domain"
+        return False, "Failed to purchase domain", -1
 
     # Add the domain to our DB
     domain_id = create_domain_entry(
@@ -924,6 +1019,8 @@ def domain_purchase_workflow(
         args={"domain_name": domain_name, "domain_id": domain_id},
         minutes=30,
     )
+
+    return True, "Domain purchase workflow completed successfully", domain_id
 
 
 @celery.task
