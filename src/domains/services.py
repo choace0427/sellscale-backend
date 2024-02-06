@@ -23,6 +23,7 @@ from src.client.sdr.email.models import EmailType, SDREmailBank
 from src.client.sdr.email.services_email_bank import (
     create_sdr_email_bank,
     get_sdr_email_bank,
+    sync_email_bank_statistics_for_sdr,
 )
 from src.domains.models import Domain
 from src.utils.converters.string_converters import (
@@ -943,6 +944,9 @@ def workmail_setup_workflow(
     sdr_email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
     sdr_email_bank.smartlead_account_id = smartlead_account_id
     db.session.commit()
+
+    # Sync the Smartlead inbox
+    sync_email_bank_statistics_for_sdr.delay(client_sdr_id=client_sdr_id)
 
     return True, "Domain setup workflow completed successfully"
 
