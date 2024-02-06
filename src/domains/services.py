@@ -741,6 +741,7 @@ def setup_managed_inboxes(client_sdr_id: int):
         return False, "Client not found"
 
     # Check if the client already has a domain
+    registering_domain = False
     managed_domain: Domain = Domain.query.filter_by(client_id=client.id).first()
     if not managed_domain:
         # If no domain is found, create it
@@ -764,6 +765,7 @@ def setup_managed_inboxes(client_sdr_id: int):
         if not success:
             return False, message
         managed_domain = Domain.query.get(domain_id)
+        registering_domain = True
 
     # Get 2 usernames from the SDRs name
     first_name = get_first_name_from_full_name(client_sdr.name)
@@ -774,6 +776,7 @@ def setup_managed_inboxes(client_sdr_id: int):
     # Setup workmail inboxes
     from src.automation.orchestrator import add_process_for_future
 
+    wait_time = 45 if registering_domain else 0
     add_process_for_future(
         type="workmail_setup_workflow",
         args={
@@ -782,7 +785,7 @@ def setup_managed_inboxes(client_sdr_id: int):
             "username": first_username,
             "wait_for_domain": True,
         },
-        minutes=45,
+        minutes=wait_time,
     )
     add_process_for_future(
         type="workmail_setup_workflow",
@@ -792,7 +795,7 @@ def setup_managed_inboxes(client_sdr_id: int):
             "username": first_dot_last,
             "wait_for_domain": True,
         },
-        minutes=50,
+        minutes=wait_time,
     )
 
     return (
