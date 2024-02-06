@@ -173,8 +173,11 @@ def execute_research_point_type(
     """
 
     research_point_type = get_research_point_type(type_name)
-    transformer = TRANSFORMERS_MAP.get(research_point_type.get("function_name"))
-    if transformer:
-        return transformer.get("function")(prospect_id, payload)
-    else:
+    try:
+        transformer = TRANSFORMERS_MAP.get(research_point_type.get("function_name"))
+        if transformer:
+            return transformer.get("function")(prospect_id, payload)
+        else:
+            return {"response": ""}
+    except:
         return {"response": ""}
