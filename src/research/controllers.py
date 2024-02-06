@@ -106,6 +106,17 @@ def get_all_research_point_types_details():
     return jsonify(get_all_research_point_types())
 
 
+@RESEARCH_BLUEPRINT.route("/all_research_point_types", methods=["GET"])
+@require_user
+def get_all_research_point_types_endpoint(client_sdr_id: int):
+    return (
+        jsonify(
+            {"message": "Success", "data": get_all_research_point_types(client_sdr_id)}
+        ),
+        200,
+    )
+
+
 @RESEARCH_BLUEPRINT.route("/research_points/heuristic", methods=["GET"])
 @require_user
 def get_heuristic_research_points(client_sdr_id: int):
