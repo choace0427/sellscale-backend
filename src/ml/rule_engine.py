@@ -325,7 +325,7 @@ def rule_no_symbols(
 
     \p{S} matches any math symbols, currency signs, dingbats, box-drawing characters, etc
     """
-    ALLOWED_SYMBOLS = ["+"]
+    ALLOWED_SYMBOLS = ["+", "$"]
     if message_type == GeneratedMessageType.EMAIL:
         ALLOWED_SYMBOLS.extend(["@", "<", ">"])
 
