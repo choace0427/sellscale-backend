@@ -3,6 +3,7 @@ import random
 import string
 from typing import Optional
 import requests
+import concurrent.futures
 from app import (
     aws_route53domains_client,
     aws_route53_client,
@@ -37,6 +38,10 @@ from src.smartlead.services import deactivate_email_account, sync_workmail_to_sm
 import os
 import time
 from src.utils.slack import send_slack_message, URL_MAP
+from sqlalchemy import func
+
+
+MAX_INBOXES_PER_DOMAIN = 2
 
 
 def domain_blacklist_check(domain) -> dict:
@@ -442,7 +447,7 @@ def check_aws_domain_availability(domain_name: str) -> tuple[list, dict, str]:
         return (
             response.get("Availability", "UNAVAILABLE") == "AVAILABLE",
             response,
-            "",
+            domain_name,
         )
     except ClientError as e:
         return False, None, str(e)
@@ -492,9 +497,7 @@ def find_domain(domain_name: str) -> tuple[bool, dict]:
         return False, {}
 
 
-def find_similar_domains(
-    key_title: str, current_tld: str, shortcircuit: Optional[bool] = False
-) -> list[dict]:
+def find_similar_domains(key_title: str, current_tld: str) -> list[dict]:
     """Find similar domains using a heuristic of different, applicable prefixes and TLDs
 
     Args:
@@ -506,28 +509,57 @@ def find_similar_domains(
     """
     # TODO: This is inneficient, we need a better way to do this
     # Consider: AWS GetDomainSuggestions
-    prefixes = ["try", "get", "with", "use"]
+    prefixes = ["try", "with", "go", "use", "on"]
+    suffixes = ["email", "mail", "go", "outreach"]
     tlds = list(set([current_tld, "com", "net"]))
 
+    # Get the prices for the TLDs
     tld_prices = {}
     for tld in tlds:
         price, _, _ = get_tld_prices(tld)
         tld_prices[tld] = price
 
-    similar_domains = []
+    # Create all possible domain permutations
+    domain_permutations: set = set()
     for prefix in prefixes:
         for tld in tlds:
-            domain_name = f"{prefix}{key_title}.{tld}"
-            is_available, _, _ = check_aws_domain_availability(domain_name)
-            if is_available:
-                similar_domains.append(
-                    {
-                        "domain_name": domain_name,
-                        "price": tld_prices[tld],
-                    }
-                )
-                if shortcircuit:
-                    return similar_domains
+            domain_permutations.add(f"{prefix}{key_title}.{tld}")
+    for suffix in suffixes:
+        for tld in tlds:
+            domain_permutations.add(f"{key_title}{suffix}.{tld}")
+
+    # Grab current domains from the database
+    owned_domains: list[Domain] = Domain.query.filter(
+        Domain.domain.in_(domain_permutations)
+    ).all()
+    owned_domains_set: set = set()
+    for domain in owned_domains:
+        owned_domains_set.add(domain.domain)
+
+    # Create a list of domains to check
+    domains_to_check = list(domain_permutations - owned_domains_set)
+    if not domains_to_check:
+        return []
+
+    # Check the availability of the domains
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(
+            executor.map(
+                check_aws_domain_availability,
+                domains_to_check,
+            )
+        )
+
+    similar_domains = []
+    for result in results:
+        if result[0]:  # If available
+            price = tld_prices.get(result[2].split(".")[-1], -1.0)
+            similar_domains.append(
+                {
+                    "domain_name": result[2],
+                    "price": price,
+                }
+            )
 
     return similar_domains
 
@@ -731,7 +763,18 @@ def is_valid_email_forwarding(
 
 
 @celery.task
-def setup_managed_inboxes(client_sdr_id: int):
+def setup_managed_inboxes(
+    client_sdr_id: int, usernames: Optional[list[str]] = None
+) -> tuple[bool, str]:
+    """Setup managed inboxes for a client SDR. Will purchase a domain if necessary.
+
+    Args:
+        client_sdr_id (int): The ID of the client SDR
+        usernames (Optional[str], optional): Usernames to use. Defaults to None.
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return False, "SDR not found"
@@ -740,21 +783,19 @@ def setup_managed_inboxes(client_sdr_id: int):
     if not client:
         return False, "Client not found"
 
-    # Check if the client already has a domain
+    # Check if the client has an available domain
     registering_domain = False
-    managed_domain: Domain = Domain.query.filter_by(client_id=client.id).first()
-    if not managed_domain:
+    available_domains = get_available_domains(client_id=client.id)
+    if len(available_domains) == 0:
         # If no domain is found, create it
         if not client.domain:
             return False, "Client does not have a domain set"
         anchor_domain = client.domain
         anchor_tld = anchor_domain.split(".")[-1].strip("/")
         potential_domains = find_similar_domains(
-            key_title=anchor_domain,
-            current_tld=anchor_tld,
-            shortcircuit=True,
+            key_title=anchor_domain, current_tld=anchor_tld
         )
-        if not potential_domains:
+        if len(potential_domains) == 0:
             return False, "No similar domains found"
         similar_domain = potential_domains[0].get("domain_name")
 
@@ -782,7 +823,9 @@ def setup_managed_inboxes(client_sdr_id: int):
         args={
             "client_sdr_id": client_sdr_id,
             "domain_id": managed_domain.id,
-            "username": first_username,
+            "username": usernames[0]
+            if (usernames and len(usernames) >= 1)
+            else first_username,
             "wait_for_domain": True,
         },
         minutes=wait_time,
@@ -792,7 +835,9 @@ def setup_managed_inboxes(client_sdr_id: int):
         args={
             "client_sdr_id": client_sdr_id,
             "domain_id": managed_domain.id,
-            "username": first_dot_last,
+            "username": usernames[1]
+            if (usernames and len(usernames) >= 2)
+            else first_dot_last,
             "wait_for_domain": True,
         },
         minutes=wait_time,
@@ -852,6 +897,11 @@ def workmail_setup_workflow(
             return True, "Domain not registered. But retrying in 10 minutes."
 
         return False, "Domain not registered"
+
+    # Check that the domain only has MAX_INBOXES_PER_DOMAIN inboxes attached to it
+    email_bank_count = SDREmailBank.query.filter_by(domain_id=domain_id).count()
+    if email_bank_count > MAX_INBOXES_PER_DOMAIN:
+        return False, "Domain has reached the maximum number of inboxes"
 
     # Generate a random password
     password = "".join(
@@ -1006,12 +1056,15 @@ def domain_purchase_workflow(
     if status == 500:
         return False, "Failed to purchase domain", -1
 
+    operation_id = response.get("OperationId")
+
     # Add the domain to our DB
     domain_id = create_domain_entry(
         domain=domain_name,
         client_id=client_id,
         forward_to=client.domain or domain_name,
         aws=True,
+        aws_domain_registration_job_id=operation_id,
     )
 
     from src.automation.orchestrator import add_process_for_future
@@ -1335,6 +1388,8 @@ def create_domain_entry(
     client_id: int,
     forward_to: str,
     aws: bool,
+    aws_domain_registration_job_id: Optional[str] = None,
+    aws_domain_registration_status: Optional[str] = None,
     aws_hosted_zone_id: Optional[str] = None,
     dmarc_record: Optional[str] = None,
     spf_record: Optional[str] = None,
@@ -1347,6 +1402,8 @@ def create_domain_entry(
         client_id (int): The ID of the client
         forward_to (str): The domain to forward to
         aws (bool): Whether the domain is hosted on AWS
+        aws_domain_registration_job_id (Optional[str], optional): The ID of the AWS Domain Registration Job. Defaults to None.
+        aws_domain_registration_status (Optional[str], optional): The status of the AWS Domain Registration. Defaults to None.
         aws_hosted_zone_id (Optional[str], optional): The ID of the AWS Hosted Zone. Defaults to None.
         dmarc_record (Optional[str], optional): The DMARC record. Defaults to None.
         spf_record (Optional[str], optional): The SPF record. Defaults to None.
@@ -1360,6 +1417,8 @@ def create_domain_entry(
         client_id=client_id,
         forward_to=forward_to,
         aws=aws,
+        aws_domain_registration_job_id=aws_domain_registration_job_id,
+        aws_domain_registration_status=aws_domain_registration_status,
         aws_hosted_zone_id=aws_hosted_zone_id,
         dmarc_record=dmarc_record,
         spf_record=spf_record,
@@ -1491,6 +1550,36 @@ def validate_domain_configuration(domain_id: int) -> bool:
     db.session.commit()
 
     return True
+
+
+def get_available_domains(client_id: int) -> list[dict]:
+    """Get all available domains for a client. Available domains are domains that have less than MAX_INBOXES_PER_DOMAIN inboxes
+
+    Args:
+        client_id (int): The ID of the client
+
+    Returns:
+        list[dict]: A list of available domains
+    """
+    query = (
+        db.session.query(Domain, func.count(SDREmailBank.id).label("count"))
+        .outerjoin(SDREmailBank, Domain.id == SDREmailBank.domain_id)
+        .filter(Domain.client_id == client_id)
+        .group_by(Domain.id)
+        .having(func.count(SDREmailBank.id) < MAX_INBOXES_PER_DOMAIN)
+    )
+
+    result = []
+    for domain, count in query:
+        result.append(
+            {
+                "id": domain.id,
+                "domain": domain.domain,
+                "count": count,
+            }
+        )
+
+    return result
 
 
 def get_domain_details(client_id: int) -> bool:
