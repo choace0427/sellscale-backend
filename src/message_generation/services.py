@@ -55,7 +55,7 @@ from typing import List, Optional, Union
 from src.ml.rule_engine import run_message_rule_engine
 from src.ml_adversary.services import run_adversary
 from src.email_outbound.models import ProspectEmailStatus
-from src.research.models import ResearchPayload, ResearchPointType, ResearchPoints
+from src.research.models import ResearchPayload, ResearchPoints
 from src.utils.random_string import generate_random_alphanumeric
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from model_import import Prospect, ProspectOverallStatus
@@ -410,13 +410,12 @@ def generate_batches_of_research_points(
     perms = []
     for i in range(n):
         sample = [x for x in random.sample(points, min(len(points), num_per_perm))]
-        if ResearchPointType.CUSTOM in [x.research_point_type for x in points]:
-            custom_point = [
-                x for x in points if x.research_point_type == ResearchPointType.CUSTOM
-            ][0]
-            if custom_point not in sample:
-                sample.append(custom_point)
         perms.append(sample)
+
+        # if "CUSTOM" in [x.research_point_type for x in points]:
+        #     custom_point = [x for x in points if x.research_point_type == "CUSTOM"][0]
+        #     if custom_point not in sample:
+        #         sample.append(custom_point)
 
     return perms
 
@@ -432,12 +431,12 @@ def generate_batch_of_research_points_from_config(
     prospect: Prospect = Prospect.query.get(prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     transformer_blocklist_initial_values = [
-        x.value for x in archetype.transformer_blocklist_initial
+        x for x in archetype.transformer_blocklist_initial
     ]
     allowed_research_point_types_in_config = [
-        x.research_point_type.value
+        x.research_point_type
         for x in all_research_points
-        if x.research_point_type.value not in transformer_blocklist_initial_values
+        if x.research_point_type not in transformer_blocklist_initial_values
     ]
 
     # If there are no research points, return an empty list
@@ -453,7 +452,7 @@ def generate_batch_of_research_points_from_config(
     research_points = [
         x
         for x in all_research_points
-        if x.research_point_type.value in allowed_research_point_types_in_config
+        if x.research_point_type in allowed_research_point_types_in_config
     ]
 
     num_per_perm = (
@@ -3454,8 +3453,6 @@ def get_prospect_research_points(
     all_research_points: list[
         ResearchPoints
     ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-
-    # print("all_research_points", [point.research_point_type.name for point in all_research_points])
 
     found_research_points = [
         research_point

@@ -63,7 +63,7 @@ from src.message_generation.services import (
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_patterns,
 )
-from src.research.models import ResearchPointType, ResearchType
+, ResearchType
 
 
 @use_app_context
@@ -78,7 +78,9 @@ def test_get_messages_queued_for_outreach():
     prospect_id = prospect.id
     gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
-    outbound_campaign = basic_outbound_campaign([prospect_id], "LINKEDIN", archetype, sdr)
+    outbound_campaign = basic_outbound_campaign(
+        [prospect_id], "LINKEDIN", archetype, sdr
+    )
     generated_message = basic_generated_message(prospect, gnlp, cta, outbound_campaign)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
@@ -246,7 +248,7 @@ def test_generate_linkedin_outreaches(
     for i in ["research 1", "research 2"]:
         rp: ResearchPoints = ResearchPoints(
             research_payload_id=research_payload.id,
-            research_point_type=ResearchPointType.YEARS_OF_EXPERIENCE_AT_CURRENT_JOB,
+            research_point_type="YEARS_OF_EXPERIENCE_AT_CURRENT_JOB",
             value=i,
         )
         db.session.add(rp)

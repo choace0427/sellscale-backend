@@ -365,7 +365,7 @@ def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id:
 
     from src.li_conversation.services import detect_template_research_points
 
-    research_points = detect_template_research_points(template_str)
+    research_points = detect_template_research_points(client_sdr_id, template_str)
     if research_points:
         if template:
             template.research_points = research_points

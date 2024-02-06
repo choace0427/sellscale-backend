@@ -20,7 +20,7 @@ from model_import import (
     GeneratedMessageJobStatus,
     StackRankedMessageGenerationConfiguration,
 )
-from src.research.models import ResearchPointType, ResearchType
+, ResearchType
 from src.client.services import create_client
 from model_import import Client, ProspectStatus
 from app import db

@@ -23,7 +23,6 @@ SIMULATION_BLUEPRINT = Blueprint("simulation", __name__)
 @SIMULATION_BLUEPRINT.route("/li_convo", methods=["POST"])
 @require_user
 def post_li_convo_create(client_sdr_id: int):
-
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True, parameter_type=int
     )
@@ -41,7 +40,6 @@ def post_li_convo_create(client_sdr_id: int):
 @SIMULATION_BLUEPRINT.route("/li_convo", methods=["GET"])
 @require_user
 def get_li_convo(client_sdr_id: int):
-
     simulation_id = get_request_parameter(
         "simulation_id", request, json=False, required=False, parameter_type=int
     )
@@ -85,7 +83,6 @@ def get_li_convo(client_sdr_id: int):
 @SIMULATION_BLUEPRINT.route("/li_convo/send_message", methods=["POST"])
 @require_user
 def post_li_convo_send_message(client_sdr_id: int):
-
     simulation_id = get_request_parameter(
         "simulation_id", request, json=True, required=True, parameter_type=int
     )
@@ -120,7 +117,6 @@ def post_li_convo_send_message(client_sdr_id: int):
 @SIMULATION_BLUEPRINT.route("/li_convo/generate_initial_message", methods=["POST"])
 @require_user
 def post_li_convo_generate_initial_message(client_sdr_id: int):
-
     simulation_id = get_request_parameter(
         "simulation_id", request, json=True, required=True, parameter_type=int
     )
@@ -134,23 +130,31 @@ def post_li_convo_generate_initial_message(client_sdr_id: int):
 
     if simulation.type.value != "LI_CONVERSATION":
         return jsonify({"message": "Simulation is not of a LinkedIn conversation"}), 400
-    
+
     tries = 0
     success = False
     error_msg = ""
     while tries < 3:
         tries = tries + 1
         try:
-            success = generate_sim_li_convo_init_msg(simulation_id=simulation_id, template_id=template_id)
+            success = generate_sim_li_convo_init_msg(
+                simulation_id=simulation_id, template_id=template_id
+            )
             if success:
                 break
         except Exception as e:
             print("Failed to generate initial message for simulation: ", str(e))
             error_msg = str(e)
+            raise e
             continue
 
     if not success:
-        return jsonify({"message": "Failed to generate initial message", "error": error_msg}), 400
+        return (
+            jsonify(
+                {"message": "Failed to generate initial message", "error": error_msg}
+            ),
+            400,
+        )
 
     return jsonify({"message": "Success"}), 200
 
@@ -158,7 +162,6 @@ def post_li_convo_generate_initial_message(client_sdr_id: int):
 @SIMULATION_BLUEPRINT.route("/li_convo/generate_response", methods=["POST"])
 @require_user
 def post_li_convo_generate_response(client_sdr_id: int):
-
     simulation_id = get_request_parameter(
         "simulation_id", request, json=True, required=True, parameter_type=int
     )
@@ -186,7 +189,6 @@ def post_li_convo_generate_response(client_sdr_id: int):
 @SIMULATION_BLUEPRINT.route("/li_convo/update", methods=["POST"])
 @require_user
 def post_li_convo_update(client_sdr_id: int):
-
     simulation_id = get_request_parameter(
         "simulation_id", request, json=True, required=True, parameter_type=int
     )

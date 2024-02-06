@@ -1,6 +1,5 @@
 from model_import import (
     ResearchPayload,
-    ResearchPointType,
     ResearchType,
     ResearchPoints,
     Prospect,
@@ -113,9 +112,9 @@ class SerpNewsExtractorTransformer(ExtractorAndTransformer):
                 article_snippet=article_snippet,
             )
 
-            RESEARCH_POINT_TYPE = ResearchPointType.SERP_NEWS_SUMMARY_NEGATIVE
+            RESEARCH_POINT_TYPE = "SERP_NEWS_SUMMARY_NEGATIVE"
             if article_sentiment == "positive":
-                RESEARCH_POINT_TYPE = ResearchPointType.SERP_NEWS_SUMMARY
+                RESEARCH_POINT_TYPE = "SERP_NEWS_SUMMARY"
             create_research_point(
                 payload_id=payload_id,
                 research_point_type=RESEARCH_POINT_TYPE,

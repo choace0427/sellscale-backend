@@ -1,5 +1,5 @@
 from app import app, db
-from model_import import Client, ClientArchetype, ClientSDR, ResearchPointType
+from model_import import Client, ClientArchetype, ClientSDR
 from tests.test_utils.decorators import use_app_context
 from tests.test_utils.test_utils import (
     test_app,
@@ -12,8 +12,9 @@ from tests.test_utils.test_utils import (
 import json
 import mock
 
+
 @use_app_context
-#@mock.patch("src.utils.slack.send_slack_message")
+# @mock.patch("src.utils.slack.send_slack_message")
 def test_post_linkedin_credentials():
     """Tests the sending LinkedIn credentials endpoint.
 
@@ -31,19 +32,14 @@ def test_post_linkedin_credentials():
             "Content-Type": "application/json",
             "Authorization": "Bearer " + get_login_token(),
         },
-        data=json.dumps(
-            {
-                "username": "Test Name",
-                "password": "Test Password"
-            }
-        ),
+        data=json.dumps({"username": "Test Name", "password": "Test Password"}),
     )
     assert response.status_code == 200
-    #assert mock_send_slack_message.call_count == 1
+    # assert mock_send_slack_message.call_count == 1
 
 
 @use_app_context
-#@mock.patch("src.utils.slack.send_slack_message")
+# @mock.patch("src.utils.slack.send_slack_message")
 def test_post_linkedin_cookie():
     """Tests the sending LinkedIn cokkie endpoint.
 
@@ -68,4 +64,4 @@ def test_post_linkedin_cookie():
         ),
     )
     assert response.status_code == 200
-    #assert mock_send_slack_message.call_count == 1
+    # assert mock_send_slack_message.call_count == 1

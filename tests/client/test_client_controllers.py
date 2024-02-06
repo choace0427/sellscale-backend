@@ -8,7 +8,6 @@ from model_import import (
     Client,
     ClientArchetype,
     ClientSDR,
-    ResearchPointType,
     ClientPod,
 )
 from tests.test_utils.decorators import use_app_context
@@ -284,8 +283,8 @@ def test_post_archetype_set_transformer_blocklist():
 
     client_archetype = ClientArchetype.query.filter_by(id=client_archetype_id).first()
     assert client_archetype.transformer_blocklist == [
-        ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION,
-        ResearchPointType.RECENT_RECOMMENDATIONS,
+        "CURRENT_EXPERIENCE_DESCRIPTION",
+        "RECENT_RECOMMENDATIONS",
     ]
 
     new_client_archetype = basic_archetype(client=client)
@@ -309,8 +308,8 @@ def test_post_archetype_set_transformer_blocklist():
         id=new_client_archetype_id
     ).first()
     assert new_client_archetype.transformer_blocklist == [
-        ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION,
-        ResearchPointType.RECENT_RECOMMENDATIONS,
+        "CURRENT_EXPERIENCE_DESCRIPTION",
+        "RECENT_RECOMMENDATIONS",
     ]
 
 

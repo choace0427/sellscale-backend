@@ -12,25 +12,22 @@ PATENT_SENTENCE_FRAMES = [
     "I'm impressed by the patent you hold around '{}'",
     "Kudos on being the patent owner of '{}' - quite impressive!",
     "What inspired you to patent {}?",
-    "Looks like you're quite a builder! I saw the patent you own around {}"
+    "Looks like you're quite a builder! I saw the patent you own around {}",
 ]
 
-def get_recent_patent(data):
+
+def get_recent_patent(prospect_id: int, data: dict):
     # noticed that you patented ______
 
-    patent_title = deep_get(data, 'personal.patents.0.title', '')
+    patent_title = deep_get(data, "personal.patents.0.title", "")
 
     if not patent_title:
         return {}
 
-    raw_data = {
-        'patent_title': patent_title
-    }
+    raw_data = {"patent_title": patent_title}
 
-    response = PATENT_SENTENCE_FRAMES[math.floor(len(PATENT_SENTENCE_FRAMES) * random.random())].format(patent_title.lower())
+    response = PATENT_SENTENCE_FRAMES[
+        math.floor(len(PATENT_SENTENCE_FRAMES) * random.random())
+    ].format(patent_title.lower())
 
-    return {
-        'raw_data': raw_data,
-        'prompt': "",
-        'response': response
-    }
+    return {"raw_data": raw_data, "prompt": "", "response": response}

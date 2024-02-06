@@ -1,7 +1,6 @@
 from src.prospecting.models import ProspectOverallStatus
 from model_import import (
     StackRankedMessageGenerationConfiguration,
-    ResearchPointType,
     ConfigurationType,
     GeneratedMessage,
     Client,
@@ -18,6 +17,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from src.client.models import ClientSDR
 from src.ml.fine_tuned_models import get_computed_prompt_completion
 from src.prospecting.models import Prospect
+from src.research.services import get_all_research_point_types
 
 from src.research.linkedin.services import get_research_and_bullet_points_new
 
@@ -29,7 +29,7 @@ def compute_prompt(stack_ranked_configuration_id: int):
 
 def create_stack_ranked_configuration(
     configuration_type: str,
-    research_point_types: list[ResearchPointType],
+    research_point_types: list[str],
     instruction: str,
     generated_message_type: str,
     name: Optional[str] = None,
@@ -53,7 +53,7 @@ def create_stack_ranked_configuration(
             return False, "Archetype does not exist"
 
     research_point_types_values_str = ", ".join(
-        [research_point_type.value for research_point_type in research_point_types]
+        [research_point_type for research_point_type in research_point_types]
     )
     if not name:
         name = f"{client_name} {archetype_name} - {configuration_type} - {research_point_types_values_str}"
@@ -99,7 +99,7 @@ def edit_stack_ranked_configuration_instruction(
 
 def edit_stack_ranked_configuration_research_point_types(
     stack_ranked_configuration_id: int,
-    research_point_types: list[ResearchPointType],
+    research_point_types: list[str],
 ):
     """Edit the research point types of a stack ranked message generation configuration"""
     srmgc: StackRankedMessageGenerationConfiguration = (
@@ -213,10 +213,11 @@ def get_stack_ranked_config_ordering(
     )
 
     if prospect_id and prospect_id != -1:
-        research_points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+        research_points: list[
+            ResearchPoints
+        ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
         research_point_types = [
-            research_point.research_point_type.value
-            for research_point in research_points
+            research_point.research_point_type for research_point in research_points
         ]
 
         filtered_ordered_srmgcs = []
@@ -290,7 +291,6 @@ def get_prompts_from_stack_ranked_config(
 
 
 def get_stack_ranked_configurations(client_sdr_id: int, archetype_id: Optional[int]):
-
     from model_import import StackRankedMessageGenerationConfiguration, ClientSDR
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -449,7 +449,7 @@ def get_sample_prompt_from_config_details(
         has_custom = True
 
     prospect_research_point_types = [
-        x.research_point_type.value
+        x.research_point_type
         for x in ResearchPoints.get_research_points_by_prospect_id(prospect_id)
     ]
     research_point_types = [
@@ -459,7 +459,11 @@ def get_sample_prompt_from_config_details(
     ]
 
     if configuration_type == "DEFAULT":
-        research_point_types = random.sample(research_point_types, 2) if len(research_point_types) >= 2 else research_point_types
+        research_point_types = (
+            random.sample(research_point_types, 2)
+            if len(research_point_types) >= 2
+            else research_point_types
+        )
         if has_custom:
             research_point_types.append("CUSTOM")
 
@@ -506,7 +510,9 @@ def generate_completion_for_prospect(
 
     prompt, _, _, _, _, _ = get_sample_prompt_from_config_details(
         generated_message_type="LINKEDIN",
-        research_point_types=[x.value for x in ResearchPointType],
+        research_point_types=get_all_research_point_types(
+            client_sdr_id, names_only=True
+        ),
         configuration_type="DEFAULT",
         client_id=client_sdr.client_id,
         archetype_id=prospect.archetype_id,

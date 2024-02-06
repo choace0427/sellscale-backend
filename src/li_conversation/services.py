@@ -33,7 +33,7 @@ from src.li_conversation.conversation_analyzer.li_email_finder import (
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFrameworkTemplates, BumpLength
 from src.prospecting.services import send_to_purgatory, update_prospect_status_linkedin
-from src.research.models import ResearchPointType, ResearchPoints
+from src.research.models import ResearchPoints
 from src.utils.datetime.dateparse_utils import get_working_hours_in_utc, is_weekend
 from src.utils.slack import exception_to_str
 
@@ -2195,8 +2195,10 @@ Stick to the template very strictly. Do not change this template at all.  Simila
     return prompt
 
 
-def detect_template_research_points(template: str):
-    all_research_points = [member.value for member in ResearchPointType]
+def detect_template_research_points(client_sdr_id: int, template: str):
+    from src.research.services import get_all_research_point_types
+
+    all_research_points = get_all_research_point_types(client_sdr_id, names_only=True)
     points_str = "\n".join(all_research_points)
 
     prompt = f"""

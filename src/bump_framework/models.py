@@ -1,7 +1,6 @@
 from app import db
 import enum
 from src.client.models import ClientArchetype
-from src.research.models import ResearchPointType
 import sqlalchemy as sa
 
 from src.prospecting.models import ProspectOverallStatus
@@ -53,11 +52,13 @@ class BumpFramework(db.Model):
     inject_calendar_times = db.Column(db.Boolean, nullable=True, default=False)
 
     transformer_blocklist = db.Column(
-        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        db.ARRAY(db.String),
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
 
     def to_dict(self):
+        from src.research.services import get_all_research_point_types
+
         archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
 
         return {
@@ -82,12 +83,14 @@ class BumpFramework(db.Model):
             "use_account_research": self.use_account_research,
             "etl_num_times_used": self.etl_num_times_used,
             "etl_num_times_converted": self.etl_num_times_converted,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            "transformer_blocklist": [t for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
             "active_transformers": [
-                t.value
-                for t in ResearchPointType.__members__.values()
+                t
+                for t in get_all_research_point_types(
+                    self.client_sdr_id, names_only=True
+                )
                 if not self.transformer_blocklist or t not in self.transformer_blocklist
             ],
             "additional_context": self.additional_context,
@@ -133,7 +136,7 @@ class BumpFrameworkTemplates(db.Model):
     )
 
     transformer_blocklist = db.Column(
-        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        db.ARRAY(db.String),
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
 
@@ -150,7 +153,7 @@ class BumpFrameworkTemplates(db.Model):
             "overall_statuses": [o.value for o in self.overall_statuses]
             if self.overall_statuses
             else None,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            "transformer_blocklist": [t for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
             "labels": self.labels,

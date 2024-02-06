@@ -6,7 +6,7 @@ from src.ml.openai_wrappers import (
 )
 
 
-def get_current_company_description(data):
+def get_current_company_description(prospect_id: int, data: dict):
     # ___________ is building the _____________ for ________
     company_name = data.get("company", {}).get("details", {}).get("name")
     company_description = data.get("company", {}).get("details", {}).get("description")
@@ -32,7 +32,7 @@ def get_current_company_description(data):
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
 
 
-def get_current_company_specialties(data):
+def get_current_company_specialties(prospect_id: int, data: dict):
     # <specialities> is such a hot topic these days!
 
     company_name = data.get("company").get("details", {}).get("name")
@@ -58,19 +58,18 @@ def get_current_company_specialties(data):
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
 
 
-def get_current_company_industry(data):
+def get_current_company_industry(prospect_id: int, data: dict):
     # ___________ works in the _____________ industry
     company_name = data.get("company", {}).get("details", {}).get("name")
-    company_industries = data.get("company", {}).get(
-        "details", {}).get("industries")
+    company_industries = data.get("company", {}).get("details", {}).get("industries")
 
-    if (len(company_industries) == 1):
+    if len(company_industries) == 1:
         result = company_industries[0]
-    elif (len(company_industries) == 2):
+    elif len(company_industries) == 2:
         result = " and ".join(company_industries)
     else:
-      result = ", ".join(company_industries[:-1]) + ", and " + company_industries[-1]
-    
+        result = ", ".join(company_industries[:-1]) + ", and " + company_industries[-1]
+
     result = f"{company_name} works in the {result.lower()} industry"
 
     return {"raw_data": {}, "prompt": "", "response": result}

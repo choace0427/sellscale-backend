@@ -3,7 +3,7 @@ from src.analytics.services import get_all_campaign_analytics_for_client
 from src.company.models import Company
 from sqlalchemy import update
 from app import db
-from model_import import ResearchPointType, ClientArchetype
+from model_import import ClientArchetype
 from typing import Union, Optional
 from src.client.models import Client, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailStatus
@@ -30,9 +30,9 @@ def update_transformer_blocklist(client_archetype_id: int, new_blocklist: list) 
     Returns:
         tuple[bool, str]: success & message
     """
-    for item in new_blocklist:
-        if not ResearchPointType.has_value(item):
-            return False, "Invalid research point type found: {}".format(item)
+    # for item in new_blocklist:
+    #     if not ResearchPointType.has_value(item):
+    #         return False, "Invalid research point type found: {}".format(item)
 
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not ca:
@@ -58,9 +58,9 @@ def update_transformer_blocklist_initial(
     Returns:
         tuple[bool, str]: success & message
     """
-    for item in new_blocklist:
-        if not ResearchPointType.has_value(item):
-            return False, "Invalid research point type found: {}".format(item)
+    # for item in new_blocklist:
+    #     if not ResearchPointType.has_value(item):
+    #         return False, "Invalid research point type found: {}".format(item)
 
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not ca:

@@ -79,7 +79,6 @@ def find_points_from_website(url):
                 and len(contents) > 150
                 and not words_re.search(contents.lower())
             ):
-
                 contents = contents.replace("\xa0", " ")
                 contents = contents.strip()
                 c.append(contents)
@@ -106,9 +105,11 @@ summary:""".format(
     return completion
 
 
-def generate_general_website_research_points(url):
-    point = find_points_from_website(url)
-    prompt = "prompt: {}\nsummary: ".format(point)
-    completion = generate_simple_summary(prompt)
-    response = completion[0]
-    return {"raw_data": {"url": url}, "prompt": prompt, "response": response}
+def generate_general_website_research_points(prospect_id: int, data: dict):
+    return {"response": ""}
+
+    # point = find_points_from_website(url)
+    # prompt = "prompt: {}\nsummary: ".format(point)
+    # completion = generate_simple_summary(prompt)
+    # response = completion[0]
+    # return {"raw_data": {"url": url}, "prompt": prompt, "response": response}

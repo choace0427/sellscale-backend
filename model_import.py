@@ -23,7 +23,6 @@ from src.prospecting.models import (
 from src.research.models import (
     ResearchPayload,
     ResearchPoints,
-    ResearchPointType,
     ResearchType,
     IScraperPayloadCache,
     IScraperPayloadType,

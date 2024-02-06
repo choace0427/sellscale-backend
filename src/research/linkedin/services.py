@@ -1,4 +1,4 @@
-from src.company.services import add_company_cache_to_db, find_company_for_prospect
+from src.company.services import add_company_cache_to_db
 from app import celery, db
 
 from src.client.models import Client, ClientArchetype
@@ -7,7 +7,6 @@ from src.research.models import (
     AccountResearchPoints,
     ResearchPayload,
     ResearchPoints,
-    ResearchPointType,
     ResearchType,
     IScraperPayloadCache,
     IScraperPayloadType,
@@ -16,33 +15,10 @@ from src.research.website.serp_news_extractor_transformer import (
     SerpNewsExtractorTransformer,
 )
 from src.research.services import create_iscraper_payload_cache
-from src.research.linkedin.extractors.experience import (
-    get_current_experience_description,
-    get_linkedin_bio_summary,
-    get_list_of_past_jobs,
-    get_years_of_experience,
-    get_years_of_experience_at_current_job,
-)
-from src.research.linkedin.extractors.location import get_current_location
-from src.research.linkedin.extractors.education import (
-    get_common_education,
-)
-from src.research.linkedin.extractors.projects import get_recent_patent
-from src.research.linkedin.extractors.recommendations import (
-    get_recent_recommendation_summary,
-)
-from src.research.website.general_website_transformer import (
-    generate_general_website_research_points,
-)
 from src.simulation.models import Simulation, SimulationRecord
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.converters.string_converters import clean_company_name
 from src.voice_builder.models import VoiceBuilderSamples
-from .extractors.current_company import (
-    get_current_company_description,
-    get_current_company_industry,
-    get_current_company_specialties,
-)
 from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
 
 import json
@@ -249,144 +225,9 @@ def get_iscraper_payload_error(payload: dict) -> str:
 
 @celery.task
 def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
-    try:
-        info = get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
-        prospect: Prospect = Prospect.query.get(prospect_id)
+    from src.research.generate_research import generate_research_points
 
-        archetype_id = prospect.archetype_id
-        ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
-        blocked_transformers = ca.transformer_blocklist
-
-        research_payload = ResearchPayload.query.filter(
-            ResearchPayload.prospect_id == prospect_id
-        ).first()
-        research_payload_id = research_payload and research_payload.id
-
-        linkedin_transformers = [
-            (
-                ResearchPointType.CURRENT_JOB_DESCRIPTION,
-                "current_company_description",
-                get_current_company_description,
-            ),
-            (
-                ResearchPointType.CURRENT_JOB_SPECIALTIES,
-                "current_company_specialties",
-                get_current_company_specialties,
-            ),
-            (
-                ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION,
-                "current_experience_description",
-                get_current_experience_description,
-            ),
-            # (
-            #     ResearchPointType.YEARS_OF_EXPERIENCE,
-            #     "years_of_experience",
-            #     get_years_of_experience,
-            # ),
-            (
-                ResearchPointType.CURRENT_LOCATION,
-                "current_location",
-                get_current_location,
-            ),
-            (
-                ResearchPointType.YEARS_OF_EXPERIENCE_AT_CURRENT_JOB,
-                "years_of_experience_at_current_job",
-                get_years_of_experience_at_current_job,
-            ),
-            (
-                ResearchPointType.LIST_OF_PAST_JOBS,
-                "list_of_past_jobs",
-                get_list_of_past_jobs,
-            ),
-            (
-                ResearchPointType.RECENT_PATENTS,
-                "recent_patent",
-                get_recent_patent,
-            ),
-            (
-                ResearchPointType.RECENT_RECOMMENDATIONS,
-                "recent_recommendation",
-                get_recent_recommendation_summary,
-            ),
-            # (
-            #     ResearchPointType.GENERAL_WEBSITE_TRANSFORMER,
-            #     "general_website_transformer",
-            #     generate_general_website_research_points,
-            # ),
-            (
-                ResearchPointType.LINKEDIN_BIO_SUMMARY,
-                "linkedin_bio_summary",
-                get_linkedin_bio_summary,
-            ),
-            (
-                ResearchPointType.COMMON_EDUCATION,
-                "common_education",
-                get_common_education,
-            ),
-            (
-                ResearchPointType.CURRENT_JOB_INDUSTRY,
-                "current_company_industry",
-                get_current_company_industry,
-            ),
-        ]
-
-        bullets = {}
-
-        for t in linkedin_transformers:
-            try:
-                rp_exists: ResearchPoints = ResearchPoints.query.filter(
-                    ResearchPoints.research_payload_id == research_payload_id,
-                    ResearchPoints.research_point_type == t[0],
-                ).first()
-                if rp_exists:
-                    bullets[t[1]] = rp_exists.value
-                    continue
-
-                if blocked_transformers and t[0] in blocked_transformers:
-                    continue
-
-                # if t[0] == ResearchPointType.GENERAL_WEBSITE_TRANSFORMER:
-                #     input_payload = company_url
-                # else:
-                input_payload = info
-
-                if t[0] == ResearchPointType.COMMON_EDUCATION:
-                    value = t[2](input_payload, prospect.client_sdr_id).get(
-                        "response", ""
-                    )
-                else:
-                    value = t[2](input_payload).get("response", "")
-
-                if not value:
-                    continue
-
-                bullets[t[1]] = value
-
-                research_point: ResearchPoints = ResearchPoints(
-                    research_payload_id=research_payload_id,
-                    research_point_type=t[0],
-                    value=value,
-                )
-                db.session.add(research_point)
-                db.session.commit()
-            except:
-                pass
-
-        final_bullets = {}
-        for key in bullets:
-            if bullets[key]:
-                final_bullets[key] = bullets[key].strip()
-
-        client: Client = Client.query.get(prospect.client_id)
-        if client.id == 9:  # TODO only run for AdQuick for now
-            print("Running SERP Extractor for AdQuick")
-            serp_extractor = SerpNewsExtractorTransformer(prospect_id=prospect_id)
-            serp_extractor.run()
-
-        return {"raw_data": info, "bullets": final_bullets}
-    except Exception as e:
-        db.session.rollback()
-        raise e
+    return generate_research_points(prospect_id=prospect_id, test_mode=test_mode)
 
 
 def reset_prospect_approved_status(prospect_id: int):

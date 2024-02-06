@@ -7,7 +7,7 @@ from src.email_replies.models import EmailReplyFramework
 from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4_MODEL, wrapped_chat_gpt_completion
 
 from src.prospecting.models import Prospect, ProspectOverallStatus
-from src.research.models import AccountResearchPoints, ResearchPointType, ResearchPoints
+from src.research.models import AccountResearchPoints, ResearchPoints
 
 
 def get_email_reply_frameworks(
@@ -77,7 +77,7 @@ def create_email_reply_framework(
     client_sdr_id: Optional[int] = None,
     client_archetype_id: Optional[int] = None,
     additional_instructions: Optional[str] = None,
-    research_blocklist: Optional[list[ResearchPointType]] = None,
+    research_blocklist: Optional[list[str]] = None,
     use_account_research: Optional[bool] = None,
 ) -> int:
     """Create an EmailReplyFramework
@@ -122,7 +122,7 @@ def edit_email_reply_framework(
     active: Optional[bool],
     template: Optional[str],
     additional_instructions: Optional[str],
-    research_blocklist: Optional[list[ResearchPointType]],
+    research_blocklist: Optional[list[str]],
     use_account_research: Optional[bool],
 ) -> bool:
     """Edit an EmailReplyFramework

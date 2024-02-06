@@ -4,7 +4,6 @@ from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates, Bum
 from src.bump_framework.services import create_bump_framework
 from src.client.models import ClientArchetype
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
-from src.research.models import ResearchPointType
 
 
 def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int) -> int:

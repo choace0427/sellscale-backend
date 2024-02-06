@@ -49,7 +49,6 @@ class VoiceBuilderSamples(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=True)
 
     def to_dict(self):
-
         from src.prospecting.models import Prospect
         from src.message_generation.models import GeneratedMessageCTA
 
@@ -75,7 +74,7 @@ class VoiceBuilderSamples(db.Model):
             "sample_highlighted_words": self.sample_highlighted_words,
             "research_point_ids": self.research_point_ids,
             "research_point_types": [
-                rp.research_point_type.value
+                rp.research_point_type
                 for rp in ResearchPoints.query.filter(
                     ResearchPoints.id.in_(self.research_point_ids)
                 ).all()

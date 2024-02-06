@@ -82,13 +82,14 @@ from src.utils.datetime.dateutils import get_current_monday_friday
 
 ENV = os.environ.get("FLASK_ENV")
 
+
 @pytest.fixture
 def test_app():
     from app import app
 
     app.config.from_object(TestingConfig)
     sql_url = app.config["SQLALCHEMY_DATABASE_URI"]
-    if (ENV != "testing") or ('production' in sql_url):
+    if (ENV != "testing") or ("production" in sql_url):
         raise Exception(
             "You are not in the correct environment! Switch to TESTING environment and ensure that a database exists locally."
         )
@@ -376,7 +377,6 @@ def basic_prospect_email(
     email_status: ProspectEmailStatus = ProspectEmailStatus.DRAFT,
     outreach_status: ProspectEmailOutreachStatus = ProspectEmailOutreachStatus.UNKNOWN,
 ) -> ProspectEmail:
-
     p = ProspectEmail(
         prospect_id=prospect.id,
         email_status=email_status,
@@ -534,7 +534,6 @@ def basic_linkedin_conversation_entry(
     message: str = "test_message",
     entry_processed: bool = False,
 ) -> LinkedinConversationEntry:
-
     entry = LinkedinConversationEntry(
         conversation_url=conversation_url,
         author=author,
@@ -561,7 +560,6 @@ def basic_generated_message_job_queue(
     error_message: Optional[str] = "test_error_message",
     attempts: Optional[str] = 0,
 ):
-
     job = GeneratedMessageJobQueue(
         prospect_id=prospect.id,
         outbound_campaign_id=outbound_campaign.id,
@@ -579,7 +577,7 @@ def basic_stack_ranked_message_generation_config(
     computed_prompt: str = "test_computed_prompt",
     configuration_type: ConfigurationType = ConfigurationType.DEFAULT,
     generated_message_type: GeneratedMessageType = GeneratedMessageType.LINKEDIN,
-    research_point_types: Optional[list[GeneratedMessageType]] = None,
+    research_point_types: Optional[list[str]] = None,
     active: Optional[bool] = True,
     always_enable: Optional[bool] = False,
     name: Optional[str] = "test_name",
@@ -940,8 +938,10 @@ def clear_all_entities(SQLAlchemyObject):
 def test_simple_test():
     assert True
 
+
 def test_simple_test_2():
     assert True
+
 
 def test_socket_blocks():
     import requests

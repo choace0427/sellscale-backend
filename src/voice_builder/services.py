@@ -17,10 +17,11 @@ from model_import import (
     Client,
     ClientArchetype,
 )
-from model_import import Prospect, ResearchPointType
+from model_import import Prospect
 from src.ml.rule_engine import run_message_rule_engine_on_linkedin_completion
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from app import db, celery
+from src.research.services import get_all_research_point_types
 
 
 @celery.task
@@ -144,6 +145,8 @@ def create_voice_builder_sample(
             VoiceBuilderOnboarding.query.get(voice_builder_onboarding_id)
         )
         archetype_id = voice_builder_onboarding.client_archetype_id
+        archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+
         (
             prompt,
             _,
@@ -153,7 +156,9 @@ def create_voice_builder_sample(
             prospect_id,
         ) = get_sample_prompt_from_config_details(
             generated_message_type=voice_builder_onboarding.generated_message_type.value,
-            research_point_types=[x.value for x in ResearchPointType],
+            research_point_types=get_all_research_point_types(
+                archetype.client_sdr_id, names_only=True
+            ),
             configuration_type="DEFAULT",
             client_id=voice_builder_onboarding.client_id,
             archetype_id=archetype_id,
@@ -364,7 +369,9 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
         StackRankedMessageGenerationConfiguration(
             configuration_type="DEFAULT",
             generated_message_type=voice_builder_onboarding.generated_message_type,
-            research_point_types=[x.value for x in ResearchPointType],
+            research_point_types=get_all_research_point_types(
+                archetype.client_sdr_id, names_only=True
+            ),
             instruction=voice_builder_onboarding.instruction,
             computed_prompt=computed_prompt,
             active=True,
@@ -396,7 +403,9 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
             StackRankedMessageGenerationConfiguration(
                 configuration_type="DEFAULT",
                 generated_message_type=voice_builder_onboarding.generated_message_type,
-                research_point_types=[x.value for x in ResearchPointType],
+                research_point_types=get_all_research_point_types(
+                    archetype.client_sdr_id, names_only=True
+                ),
                 instruction=voice_builder_onboarding.instruction,
                 computed_prompt=computed_prompt,
                 active=True,

@@ -1,8 +1,8 @@
-from model_import import ClientSDR
+from model_import import ClientSDR, Prospect
 from src.utils.abstract.attr_utils import deep_get
 
 
-def get_common_education(data: dict, client_sdr_id: int) -> dict:
+def get_common_education(prospect_id: int, data: dict) -> dict:
     """Gets the common education between a prospect and an SDR, if there is one.
 
     Args:
@@ -12,7 +12,8 @@ def get_common_education(data: dict, client_sdr_id: int) -> dict:
     Returns:
         dict: Response to be sent to create research point
     """
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
     if not sdr:
         return {"response": ""}
 
@@ -49,19 +50,27 @@ def get_common_education(data: dict, client_sdr_id: int) -> dict:
             sdr_education = sdr_education_map[school]
 
             # Make prospect string
-            prospect_full_name = deep_get(data, "personal.first_name") + " " + deep_get(data, "personal.last_name")
-            prospect_education_string = f'{prospect_full_name} attended {school}'
+            prospect_full_name = (
+                deep_get(data, "personal.first_name")
+                + " "
+                + deep_get(data, "personal.last_name")
+            )
+            prospect_education_string = f"{prospect_full_name} attended {school}"
             if start_date and end_date:
-                prospect_education_string = f'{prospect_education_string} from {start_date} to {end_date}'
+                prospect_education_string = (
+                    f"{prospect_education_string} from {start_date} to {end_date}"
+                )
 
             # Make SDR string
-            sdr_education_string = f'I attended {school}'
+            sdr_education_string = f"I attended {school}"
             sdr_start_date = sdr_education.get("start_date")
             sdr_end_date = sdr_education.get("end_date")
             if sdr_start_date and sdr_end_date:
-                sdr_education_string = f'{sdr_education_string} from {sdr_start_date} to {sdr_end_date}'
+                sdr_education_string = (
+                    f"{sdr_education_string} from {sdr_start_date} to {sdr_end_date}"
+                )
 
             # Return response. Short circuit.
-            return {"response": f'{prospect_education_string}. {sdr_education_string}.'}
+            return {"response": f"{prospect_education_string}. {sdr_education_string}."}
 
     return {"response": ""}

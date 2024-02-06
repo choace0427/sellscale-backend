@@ -1,5 +1,5 @@
 from app import db, app
-from src.bump_framework.models import BumpLength
+from src.bump_framework.models import BumpFrameworkTemplates, BumpLength
 from tests.test_utils.test_utils import (
     test_app,
     basic_client,
@@ -15,6 +15,9 @@ from src.bump_framework.services import (
     modify_bump_framework,
     deactivate_bump_framework,
     activate_bump_framework,
+)
+from src.bump_framework.services_bump_framework_templates import (
+    create_new_bump_framework_template,
 )
 
 from model_import import ProspectOverallStatus, BumpFramework
@@ -33,7 +36,7 @@ def test_get_bump_frameworks_for_sdr():
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
         active=True,
-        default=True
+        default=True,
     )
     bump2_id = create_bump_framework(
         client_sdr_id=sdr.id,
@@ -43,13 +46,12 @@ def test_get_bump_frameworks_for_sdr():
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
         active=False,
-        default=True
+        default=True,
     )
     bump_framework = BumpFramework.query.get(bump_id)
     bump_framework2 = BumpFramework.query.get(bump2_id)
 
-    bumps = get_bump_frameworks_for_sdr(
-        sdr.id, [bump_framework.overall_status])
+    bumps = get_bump_frameworks_for_sdr(sdr.id, [bump_framework.overall_status])
     assert len(bumps) == 1
     assert bumps[0]["id"] == bump_framework.id
 
@@ -69,14 +71,14 @@ def test_get_bump_frameworks_for_sdr():
         length=BumpLength.LONG,
         active=True,
         substatus="ACTIVE_CONVO_OBJECTION",
-        default=True
+        default=True,
     )
     bump_framework3 = BumpFramework.query.get(bump3_id)
     bumps = get_bump_frameworks_for_sdr(
         sdr.id,
         [bump_framework.overall_status],
         ["ACTIVE_CONVO_OBJECTION"],
-        active_only=False
+        active_only=False,
     )
     assert len(bumps) == 1
     assert bumps[0]["id"] == bump_framework3.id
@@ -95,7 +97,7 @@ def test_get_bump_frameworks_for_sdr_complex():
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
         active=True,
-        default=True
+        default=True,
     )
     bump2_id = create_bump_framework(
         client_sdr_id=sdr.id,
@@ -105,7 +107,7 @@ def test_get_bump_frameworks_for_sdr_complex():
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
         active=False,
-        default=True
+        default=True,
     )
     bump_framework = BumpFramework.query.get(bump_id)
     bump_framework2 = BumpFramework.query.get(bump2_id)
@@ -138,7 +140,7 @@ def test_create_bump_framework():
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
         active=True,
-        default=True
+        default=True,
     )
     assert BumpFramework.query.count() == 1
     bump_framework: BumpFramework = BumpFramework.query.filter_by(
@@ -159,7 +161,7 @@ def test_create_bump_framework():
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
         active=True,
-        default=False
+        default=False,
     )
     assert BumpFramework.query.count() == 2
 
@@ -183,7 +185,7 @@ def test_modify_bump_framework():
         overall_status=ProspectOverallStatus.ACTIVE_CONVO,
         length=BumpLength.LONG,
         active=True,
-        default=False
+        default=False,
     )
     bump_framework = BumpFramework.query.get(bump_id)
 
@@ -242,7 +244,9 @@ def test_clone_bump_framework():
     assert BumpFramework.query.count() == 1
 
     archetype_2 = basic_archetype(client, sdr)
-    bump_framework_2_id = clone_bump_framework(sdr.id, bump_framework.id, archetype_2.id)
+    bump_framework_2_id = clone_bump_framework(
+        sdr.id, bump_framework.id, archetype_2.id
+    )
     assert BumpFramework.query.count() == 2
     bump_framework_2: BumpFramework = BumpFramework.query.get(bump_framework_2_id)
     assert bump_framework_2.client_sdr_id == archetype_2.client_sdr_id
@@ -254,3 +258,40 @@ def test_clone_bump_framework():
     assert bump_framework_2.active == bump_framework.active
     assert bump_framework_2.default == True
     assert bump_framework_2.sellscale_default_generated == False
+
+
+@use_app_context
+def test_create_bump_framework_template():
+    client = basic_client()
+    sdr = basic_client_sdr(client)
+    archetype = basic_archetype(client, sdr)
+    archetype_2 = basic_archetype(client, sdr)
+
+    create_new_bump_framework_template(
+        name="title",
+        raw_prompt="description",
+        human_readable_prompt="description",
+        length="LONG",
+        transformer_blocklist=[],
+        tone="",
+        labels=[],
+    )
+
+    assert BumpFrameworkTemplates.query.count() == 1
+    bump_framework: BumpFrameworkTemplates = BumpFrameworkTemplates.query.filter_by(
+        name="title"
+    ).first()
+    assert bump_framework.name == "title"
+    assert bump_framework.raw_prompt == "description"
+    assert bump_framework.length == "LONG"
+
+    create_new_bump_framework_template(
+        name="title 2",
+        raw_prompt="description",
+        human_readable_prompt="description",
+        length="LONG",
+        transformer_blocklist=[],
+        tone="",
+        labels=[],
+    )
+    assert BumpFrameworkTemplates.query.count() == 2

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 from cleanco import basename
 import re
 import csv
@@ -41,7 +41,9 @@ class JinjaConverter(BaseConverter):
         return render_jinja(jinja_format_string, {"value": value})
 
 
-def sanitize_string(text: str) -> str:
+def sanitize_string(text: Optional[str]) -> str:
+    if text is None:
+        return ""
     return (
         text.replace('"', "").replace("\n", "\\n").replace("\r", "").replace("\\", "")
     )
@@ -123,7 +125,7 @@ def get_last_name_from_full_name(full_name: str):
 
 
 def clean_company_name(name: str) -> str:
-    """ Cleans the company name to only use the basename. Refer to the tests for a comprehensive view.
+    """Cleans the company name to only use the basename. Refer to the tests for a comprehensive view.
 
     Uses cleanco.basename python package for help removing words such as "Inc." or "LLC."
 
@@ -142,24 +144,26 @@ def clean_company_name(name: str) -> str:
     if name is None or "":
         return name
 
-    delimiting_symbols = ['/', '-', '|']
+    delimiting_symbols = ["/", "-", "|"]
 
-    name = basename(name).strip() # Quirk of basename function is it will remove a trailing ')'
+    name = basename(
+        name
+    ).strip()  # Quirk of basename function is it will remove a trailing ')'
 
     last_index = len(name) - 1
     for index in range(last_index, 0, -1):
-        if name[index] == '(':
-            close_parentheses_index = name.rfind(')')
+        if name[index] == "(":
+            close_parentheses_index = name.rfind(")")
             if close_parentheses_index == -1:
                 name = name[:index]
                 break
             else:
-                name = name[index] + name[close_parentheses_index + 1:]
+                name = name[index] + name[close_parentheses_index + 1 :]
                 break
         elif name[index] in delimiting_symbols:
-            if name[index - 1] == ' ':
+            if name[index - 1] == " ":
                 name = name[:index]
-            elif name[index] == '/':  # '/' is a special case
+            elif name[index] == "/":  # '/' is a special case
                 name = name[:index]
 
     # Remove delimiters entirely
@@ -175,7 +179,9 @@ def clean_company_name(name: str) -> str:
     splitted_name = name.split()
     while detected:
         detected = False
-        if len(splitted_name) <= 1:  # Sometimes the entire name can be composed of 'suffixes'. Stop in that case.
+        if (
+            len(splitted_name) <= 1
+        ):  # Sometimes the entire name can be composed of 'suffixes'. Stop in that case.
             break
         if splitted_name[-1].lower() in company_suffixes:
             splitted_name = splitted_name[:-1]

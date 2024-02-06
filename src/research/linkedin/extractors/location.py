@@ -1,7 +1,7 @@
 from ....utils.abstract.attr_utils import deep_get
 
 
-def get_current_location(data):
+def get_current_location(prospect_id: int, data: dict):
     # ______ is based in ______
 
     first_name = deep_get(data, "personal.first_name")

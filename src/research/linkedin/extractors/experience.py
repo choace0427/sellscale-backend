@@ -11,7 +11,7 @@ from src.utils.converters.string_converters import sanitize_string, clean_compan
 from src.utils.datetime.dateutils import get_current_month, get_current_year
 
 
-def get_current_experience_description(data):
+def get_current_experience_description(prospect_id: int, data: dict):
     # notice that you __________ at ________ currently
 
     company_name = deep_get(data, "company.details.name")
@@ -51,7 +51,7 @@ def get_current_experience_description(data):
     return {"raw_data": raw_data, "prompt": prompt, "response": response}
 
 
-def get_years_of_experience(data):
+def get_years_of_experience(prospect_id: int, data: dict):
     # been in industry for X years
 
     positions = data.get("personal", {}).get("position_groups", [])
@@ -83,7 +83,7 @@ def get_years_of_experience(data):
     return {"raw_data": raw_data, "response": raw_data["years_of_experience"]}
 
 
-def get_years_of_experience_at_current_job(data):
+def get_years_of_experience_at_current_job(prospect_id: int, data: dict):
     # been in current job for X years
     company_name = deep_get(data, "personal.position_groups.0.company.name")
 
@@ -193,7 +193,7 @@ def remove_suffixes_from_company_name(positions_str):
     return positions_str
 
 
-def get_list_of_past_jobs(data):
+def get_list_of_past_jobs(prospect_id: int, data: dict):
     # saw that you've worked at X, Y, Z
     position_data = deep_get(data, "personal.position_groups")
     past_positions = []
@@ -255,7 +255,7 @@ def get_list_of_past_jobs(data):
     return {"raw_data": raw_data, "response": response}
 
 
-def get_linkedin_bio_summary(data):
+def get_linkedin_bio_summary(prospect_id: int, data: dict):
     summary = deep_get(data, "personal.summary")
     if not summary:  # No bio
         return {"response": ""}

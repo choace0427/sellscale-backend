@@ -18,39 +18,39 @@ class AccountResearchType(enum.Enum):
     CHATGPT_CHAIN_RESEARCH = "CHATGPT_CHAIN_RESEARCH"
 
 
-class ResearchPointType(enum.Enum):
-    CURRENT_JOB_DESCRIPTION = (
-        "CURRENT_JOB_DESCRIPTION"  # Description of Current Company
-    )
-    CURRENT_JOB_SPECIALTIES = "CURRENT_JOB_SPECIALTIES"
-    CURRENT_JOB_INDUSTRY = "CURRENT_JOB_INDUSTRY"
-    CURRENT_EXPERIENCE_DESCRIPTION = "CURRENT_EXPERIENCE_DESCRIPTION"
-    LINKEDIN_BIO_SUMMARY = "LINKEDIN_BIO_SUMMARY"
-    YEARS_OF_EXPERIENCE = "YEARS_OF_EXPERIENCE"
-    CURRENT_LOCATION = "CURRENT_LOCATION"
-    YEARS_OF_EXPERIENCE_AT_CURRENT_JOB = "YEARS_OF_EXPERIENCE_AT_CURRENT_JOB"
-    LIST_OF_PAST_JOBS = "LIST_OF_PAST_JOBS"
-    RECENT_PATENTS = "RECENT_PATENTS"
-    RECENT_RECOMMENDATIONS = "RECENT_RECOMMENDATIONS"
-    GENERAL_WEBSITE_TRANSFORMER = "GENERAL_WEBSITE_TRANSFORMER"
+# class ResearchPointType(enum.Enum):
+#     CURRENT_JOB_DESCRIPTION = (
+#         "CURRENT_JOB_DESCRIPTION"  # Description of Current Company
+#     )
+#     CURRENT_JOB_SPECIALTIES = "CURRENT_JOB_SPECIALTIES"
+#     CURRENT_JOB_INDUSTRY = "CURRENT_JOB_INDUSTRY"
+#     CURRENT_EXPERIENCE_DESCRIPTION = "CURRENT_EXPERIENCE_DESCRIPTION"
+#     LINKEDIN_BIO_SUMMARY = "LINKEDIN_BIO_SUMMARY"
+#     YEARS_OF_EXPERIENCE = "YEARS_OF_EXPERIENCE"
+#     CURRENT_LOCATION = "CURRENT_LOCATION"
+#     YEARS_OF_EXPERIENCE_AT_CURRENT_JOB = "YEARS_OF_EXPERIENCE_AT_CURRENT_JOB"
+#     LIST_OF_PAST_JOBS = "LIST_OF_PAST_JOBS"
+#     RECENT_PATENTS = "RECENT_PATENTS"
+#     RECENT_RECOMMENDATIONS = "RECENT_RECOMMENDATIONS"
+#     GENERAL_WEBSITE_TRANSFORMER = "GENERAL_WEBSITE_TRANSFORMER"
 
-    COMMON_EDUCATION = "COMMON_EDUCATION"
+#     COMMON_EDUCATION = "COMMON_EDUCATION"
 
-    SERP_NEWS_SUMMARY = "SERP_NEWS_SUMMARY"  # Positive sumamry of recent news
-    SERP_NEWS_SUMMARY_NEGATIVE = (
-        "SERP_NEWS_SUMMARY_NEGATIVE"  # Negative summary of recent news
-    )
+#     SERP_NEWS_SUMMARY = "SERP_NEWS_SUMMARY"  # Positive sumamry of recent news
+#     SERP_NEWS_SUMMARY_NEGATIVE = (
+#         "SERP_NEWS_SUMMARY_NEGATIVE"  # Negative summary of recent news
+#     )
 
-    CUSTOM = "CUSTOM"
+#     CUSTOM = "CUSTOM"
 
-    # EXPERIENCE = "EXPERIENCE"
-    # CURRENT_JOB = "CURRENT_JOB"
-    # PROJECT = "PROJECT"
-    # RECOMMENDATION = "RECOMMENDATION"
+#     # EXPERIENCE = "EXPERIENCE"
+#     # CURRENT_JOB = "CURRENT_JOB"
+#     # PROJECT = "PROJECT"
+#     # RECOMMENDATION = "RECOMMENDATION"
 
-    @classmethod
-    def has_value(cls, value):
-        return value in cls._value2member_map_
+#     @classmethod
+#     def has_value(cls, value):
+#         return value in cls._value2member_map_
 
 
 class ResearchPayload(db.Model):
@@ -60,6 +60,7 @@ class ResearchPayload(db.Model):
 
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     research_type = db.Column(db.Enum(ResearchType), nullable=False)
+    research_sub_type = db.Column(db.String, nullable=True)
     payload = db.Column(db.JSON, nullable=False)
 
     def get_by_id(id):
@@ -75,13 +76,38 @@ class ResearchPayload(db.Model):
         return rp
 
 
+class ResearchPointType(db.Model):
+    __tablename__ = "research_point_type"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=False)
+    active = db.Column(db.Boolean, nullable=False)
+
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
+    function_name = db.Column(db.String, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "active": self.active,
+            "client_sdr_id": self.client_sdr_id,
+            "client_id": self.client_id,
+            "function_name": self.function_name,
+        }
+
+
 class ResearchPoints(db.Model):
     __tablename__ = "research_point"
 
     id = db.Column(db.Integer, primary_key=True)
 
     research_payload_id = db.Column(db.Integer, db.ForeignKey("research_payload.id"))
-    research_point_type = db.Column(db.Enum(ResearchPointType), nullable=False)
+    research_point_type = db.Column(db.String, nullable=False)
     value = db.Column(db.String, nullable=False)
 
     flagged = db.Column(db.Boolean, nullable=True)
@@ -92,7 +118,7 @@ class ResearchPoints(db.Model):
         return {
             "id": self.id,
             "research_payload_id": self.research_payload_id,
-            "research_point_type": self.research_point_type.value,
+            "research_point_type": self.research_point_type,
             "value": self.value,
             "flagged": self.flagged,
             "research_point_metadata": self.research_point_metadata,

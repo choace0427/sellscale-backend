@@ -16,7 +16,6 @@ from model_import import (
     StackRankedMessageGenerationConfiguration,
     ConfigurationType,
     GeneratedMessageType,
-    ResearchPointType,
 )
 from app import app, db
 
@@ -82,9 +81,7 @@ def test_get_stack_ranked_configuration_priority():
         StackRankedMessageGenerationConfiguration(
             configuration_type=ConfigurationType.DEFAULT,
             generated_message_type=GeneratedMessageType.EMAIL,
-            research_point_types=[
-                ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION.value
-            ],
+            research_point_types=["CURRENT_EXPERIENCE_DESCRIPTION"],
             instruction="",
             computed_prompt="",
         )
@@ -98,8 +95,8 @@ def test_get_stack_ranked_configuration_priority():
             configuration_type=ConfigurationType.STRICT,
             generated_message_type=GeneratedMessageType.EMAIL,
             research_point_types=[
-                ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION.value,
-                ResearchPointType.CURRENT_JOB_DESCRIPTION.value,
+                "CURRENT_EXPERIENCE_DESCRIPTION",
+                "CURRENT_JOB_DESCRIPTION",
             ],
             instruction="",
             computed_prompt="",
@@ -221,9 +218,7 @@ def test_get_stack_ranked_configuration_priority():
 
     research_payload = basic_research_payload(prospect=prospect)
     research_point = basic_research_point(research_payload=research_payload)
-    research_point.research_point_type = (
-        ResearchPointType.CURRENT_EXPERIENCE_DESCRIPTION
-    )
+    research_point.research_point_type = "CURRENT_EXPERIENCE_DESCRIPTION"
     db.session.add(research_point)
     db.session.commit()
 
@@ -242,7 +237,7 @@ def test_get_stack_ranked_configuration_priority():
     assert [x[0]["id"] for x in json.loads(response.data)] == [CONFIG_D_ID]
 
     research_point = basic_research_point(research_payload=research_payload)
-    research_point.research_point_type = ResearchPointType.CURRENT_JOB_DESCRIPTION
+    research_point.research_point_type = "CURRENT_JOB_DESCRIPTION"
     db.session.add(research_point)
     db.session.commit()
 

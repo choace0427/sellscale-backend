@@ -6,7 +6,6 @@ import sqlalchemy as sa
 from src.client.models import ClientArchetype
 
 from src.prospecting.models import ProspectOverallStatus
-from src.research.models import ResearchPointType
 
 
 class EmailSubjectLineTemplate(db.Model):
@@ -74,7 +73,7 @@ class EmailSequenceStep(db.Model):
     sequence_delay_days = db.Column(db.Integer, nullable=True, default=0)
 
     transformer_blocklist = db.Column(
-        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        db.ARRAY(db.String),
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
 
@@ -107,7 +106,7 @@ class EmailSequenceStep(db.Model):
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
             "sequence_delay_days": self.sequence_delay_days,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            "transformer_blocklist": [t for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
         }
@@ -130,7 +129,7 @@ class EmailTemplatePool(db.Model):
     active = db.Column(db.Boolean, nullable=False, default=True)
 
     transformer_blocklist = db.Column(
-        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        db.ARRAY(db.String),
         nullable=True,
         default=[],
     )  # use this list to blocklist transformer durings message generation
@@ -146,7 +145,7 @@ class EmailTemplatePool(db.Model):
             "template": self.template,
             "template_type": self.template_type.value,
             "active": self.active,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            "transformer_blocklist": [t for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
             "labels": self.labels,

@@ -2,7 +2,6 @@ from src.bump_framework.models import BumpLength
 from app import db
 import enum
 import sqlalchemy as sa
-from src.research.models import ResearchPointType
 
 
 class GeneratedMessageStatus(enum.Enum):
@@ -99,8 +98,12 @@ class GeneratedMessage(db.Model):
 
     # Email
     email_type = db.Column(db.Enum(GeneratedMessageEmailType), nullable=True)
-    email_subject_line_template_id = db.Column(db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True)
-    email_sequence_step_template_id = db.Column(db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=True)
+    email_subject_line_template_id = db.Column(
+        db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True
+    )
+    email_sequence_step_template_id = db.Column(
+        db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=True
+    )
 
     # LinkedIn
     li_init_template_id = db.Column(
@@ -116,7 +119,9 @@ class GeneratedMessage(db.Model):
             "research_points": self.research_points,
             "prompt": self.prompt,
             "completion": self.completion,
-            "message_status": self.message_status.value if self.message_status else None,
+            "message_status": self.message_status.value
+            if self.message_status
+            else None,
             "message_type": self.message_type.value if self.message_type else None,
             "date_sent": self.date_sent,
             "batch_id": self.batch_id,

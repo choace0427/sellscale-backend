@@ -20,7 +20,7 @@ from src.ml.openai_wrappers import (
 )
 from src.ml.spam_detection import run_algorithmic_spam_detection
 
-from src.research.models import ResearchPointType
+
 from src.smartlead.services import sync_smartlead_send_schedule
 from src.utils.slack import URL_MAP, send_slack_message
 
@@ -544,7 +544,7 @@ def create_email_template_pool_item(
     template: str,
     template_type: EmailTemplateType,
     description: Optional[str] = "",
-    transformer_blocklist: Optional[list[ResearchPointType]] = [],
+    transformer_blocklist: Optional[list[str]] = [],
     labels: Optional[list[str]] = [],
     tone: Optional[str] = "",
     active: bool = True,
@@ -556,7 +556,7 @@ def create_email_template_pool_item(
         template (str): The template of the email template pool item
         template_type (EmailTemplateType): The type of the email template pool item
         description (Optional[str], optional): The description of the email template pool item. Defaults to "".
-        transformer_blocklist (Optional[list[ResearchPointType]], optional): The blocklist of transformer types. Defaults to [].
+        transformer_blocklist (Optional[list[str]], optional): The blocklist of transformer types. Defaults to [].
         labels (Optional[list[str]], optional): The labels of the email template pool item. Defaults to [].
         tone (Optional[str], optional): The tone of the email template pool item. Defaults to "".
         active (bool, optional): Whether the email template pool item is active. Defaults to True.
@@ -586,7 +586,7 @@ def modify_email_template_pool_item(
     name: Optional[str] = None,
     template: Optional[str] = None,
     description: Optional[str] = None,
-    transformer_blocklist: Optional[list[ResearchPointType]] = None,
+    transformer_blocklist: Optional[list[str]] = None,
     labels: Optional[list[str]] = None,
     tone: Optional[str] = None,
     active: Optional[bool] = None,
@@ -599,7 +599,7 @@ def modify_email_template_pool_item(
         template (Optional[str]): The template of the email template pool item
         template_type (Optional[EmailTemplateType]): The type of the email template pool item
         description (Optional[str], optional): The description of the email template pool item. Defaults to "".
-        transformer_blocklist (Optional[list[ResearchPointType]], optional): The blocklist of transformer types. Defaults to [].
+        transformer_blocklist (Optional[list[str]], optional): The blocklist of transformer types. Defaults to [].
         labels (Optional[list[str]], optional): The labels of the email template pool item. Defaults to [].
         tone (Optional[str], optional): The tone of the email template pool item. Defaults to "".
         active (Optional[bool], optional): Whether the email template pool item is active. Defaults to True.
@@ -671,7 +671,7 @@ def copy_email_template_body_item(
     overall_status: ProspectOverallStatus,
     substatus: Optional[str] = None,
     bumped_count: Optional[int] = None,
-    transformer_blocklist: Optional[list[ResearchPointType]] = [],
+    transformer_blocklist: Optional[list[str]] = [],
 ) -> bool:
     """Copies an email template pool item to the email sequence step table
 
@@ -682,7 +682,7 @@ def copy_email_template_body_item(
         overall_status (ProspectOverallStatus): The overall status of the email sequence step
         substatus (Optional[str], optional): The substatus of the email sequence step. Defaults to None.
         bumped_count (Optional[int], optional): The number which corresponds to which bump in the sequence this step appears. Defaults to None.
-        transformer_blocklist (Optional[list[ResearchPointType]], optional): The blocklist of transformer types. Defaults to [].
+        transformer_blocklist (Optional[list[str]], optional): The blocklist of transformer types. Defaults to [].
 
     Returns:
         bool: Whether the email template pool item was copied

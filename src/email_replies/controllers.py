@@ -8,7 +8,7 @@ from src.email_replies.services import (
     get_email_reply_frameworks,
 )
 from src.prospecting.models import ProspectOverallStatus
-from src.research.models import ResearchPointType
+
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 
@@ -110,18 +110,17 @@ def post_create_email_reply_framework(client_sdr_id: int):
         required=False,
         parameter_type=list,
     )
-    enumed_research_blocklist = []
-    if research_blocklist:
-        for research_blocklist_item in research_blocklist:
-            # Get the enum value for the research blocklist item
-            found_key = False
-            for key, val in ResearchPointType.__members__.items():
-                if key == research_blocklist_item:
-                    enumed_research_blocklist.append(val)
-                    found_key = True
-                    break
-            if not found_key:
-                return jsonify({"error": "Invalid research blocklist item."}), 400
+    # if research_blocklist:
+    #     for research_blocklist_item in research_blocklist:
+    #         # Get the enum value for the research blocklist item
+    #         found_key = False
+    #         for key, val in ResearchPointType.__members__.items():
+    #             if key == research_blocklist_item:
+    #                 enumed_research_blocklist.append(val)
+    #                 found_key = True
+    #                 break
+    #         if not found_key:
+    #             return jsonify({"error": "Invalid research blocklist item."}), 400
 
     framework_id = create_email_reply_framework(
         title=title,
@@ -132,7 +131,7 @@ def post_create_email_reply_framework(client_sdr_id: int):
         substatus=substatus,
         template=template,
         additional_instructions=additional_instructions,
-        research_blocklist=enumed_research_blocklist,
+        research_blocklist=research_blocklist,
         use_account_research=use_account_research,
     )
 
@@ -178,18 +177,17 @@ def patch_email_reply_framework(client_sdr_id: int, reply_framework_id: int):
         required=False,
         parameter_type=list,
     )
-    enumed_research_blocklist = []
-    if research_blocklist:
-        for research_blocklist_item in research_blocklist:
-            # Get the enum value for the research blocklist item
-            found_key = False
-            for key, val in ResearchPointType.__members__.items():
-                if key == research_blocklist_item:
-                    enumed_research_blocklist.append(val)
-                    found_key = True
-                    break
-            if not found_key:
-                return jsonify({"error": "Invalid research blocklist item."}), 400
+    # if research_blocklist:
+    #     for research_blocklist_item in research_blocklist:
+    #         # Get the enum value for the research blocklist item
+    #         found_key = False
+    #         for key, val in ResearchPointType.__members__.items():
+    #             if key == research_blocklist_item:
+    #                 enumed_research_blocklist.append(val)
+    #                 found_key = True
+    #                 break
+    #         if not found_key:
+    #             return jsonify({"error": "Invalid research blocklist item."}), 400
 
     success = edit_email_reply_framework(
         reply_framework_id=reply_framework_id,
@@ -198,7 +196,7 @@ def patch_email_reply_framework(client_sdr_id: int, reply_framework_id: int):
         active=active,
         template=template,
         additional_instructions=additional_instructions,
-        research_blocklist=enumed_research_blocklist,
+        research_blocklist=research_blocklist,
         use_account_research=use_account_research,
     )
     if not success:

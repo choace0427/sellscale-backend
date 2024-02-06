@@ -6,7 +6,7 @@ from app import db
 from src.prospecting.models import Prospect
 from sqlalchemy.sql.expression import func
 
-from src.research.models import ResearchPointType
+
 import sqlalchemy as sa
 
 
@@ -28,7 +28,7 @@ class LinkedinInitialMessageTemplateLibrary(db.Model):
     active = db.Column(db.Boolean, nullable=False, default=True)
 
     transformer_blocklist = db.Column(
-        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        db.ARRAY(db.String),
         nullable=True,
     )
 

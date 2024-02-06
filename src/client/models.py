@@ -3,7 +3,6 @@ from typing import Optional
 from app import db
 from src.client.sdr.email.models import SDREmailBank
 from src.prospecting.models import ProspectStatus, Prospect
-from src.research.models import ResearchPointType
 import sqlalchemy as sa
 import json
 from src.subscriptions.models import Subscription
@@ -143,11 +142,11 @@ class ClientArchetype(db.Model):
     email_active = db.Column(db.Boolean, nullable=True, default=False)
 
     transformer_blocklist = db.Column(
-        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        db.ARRAY(db.String),
         nullable=True,
     )  # use this list to blocklist transformer durings message generation
     transformer_blocklist_initial = db.Column(
-        db.ARRAY(sa.Enum(ResearchPointType, create_constraint=False)),
+        db.ARRAY(db.String),
         nullable=True,
     )  # use this list to blocklist transformers during initial message generation
     # child layer of transformer_blocklist
@@ -206,11 +205,11 @@ class ClientArchetype(db.Model):
             "active": self.active,
             "linkedin_active": self.linkedin_active,
             "email_active": self.email_active,
-            "transformer_blocklist": [t.value for t in self.transformer_blocklist]
+            "transformer_blocklist": [t for t in self.transformer_blocklist]
             if self.transformer_blocklist
             else [],
             "transformer_blocklist_initial": [
-                t.value for t in self.transformer_blocklist_initial
+                t for t in self.transformer_blocklist_initial
             ]
             if self.transformer_blocklist_initial
             else [],
