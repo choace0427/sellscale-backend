@@ -448,6 +448,8 @@ class ClientSDR(db.Model):
     auto_send_linkedin_campaign = db.Column(db.Boolean, nullable=True, default=False)
     auto_send_email_campaign = db.Column(db.Boolean, nullable=True, default=False)
 
+    territory_name = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
         self.uuid = uuid_str
