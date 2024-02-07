@@ -1,5 +1,7 @@
 from typing import Optional
 from bs4 import BeautifulSoup
+import demoji
+import emoji
 import requests
 import json
 import csv
@@ -329,6 +331,7 @@ def rule_no_symbols(
     if message_type == GeneratedMessageType.EMAIL:
         ALLOWED_SYMBOLS.extend(["@", "<", ">"])
 
+    completion = demoji.replace(completion, "")  # Remove emojis
     unfiltered_match = re.findall(r"[\p{S}]", completion)
     match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
     if match and len(match) > 0:

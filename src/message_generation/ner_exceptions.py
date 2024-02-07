@@ -9,10 +9,7 @@ For example:
 
     We strip the 'Dr.' away before comparing the NER to the prompt.
 """
-ner_exceptions = [
-    "Dr.",
-    "Dr"
-]
+ner_exceptions = [" Dr. ", " Dr "]
 
 title_abbreviations = {
     "ceo": "chief executive officer",
@@ -36,5 +33,5 @@ title_abbreviations = {
     "cbo": "chief business officer",
     "cco": "chief creative officer",
     "cio": "chief investment officer",
-    "cmo": "chief medical officer"
+    "cmo": "chief medical officer",
 }
