@@ -426,7 +426,7 @@ def detect_time_sensitive_keywords(
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             prospect: Prospect = Prospect.query.get(prospect_id)
 
-            if prospect.status in (ProspectStatus.ACTIVE_CONVO_SCHEDULING):
+            if prospect.status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
                 return None
 
             old_status = prospect.status.value
@@ -1507,39 +1507,37 @@ def scrape_conversation_queue():
     ).all()
 
     for scrape in scrape_queue:
-        try:
-            client_sdr_id = scrape.client_sdr_id
-            prospect_id = scrape.prospect_id
-            conversation_urn_id = scrape.conversation_urn_id
+        # try:
+        client_sdr_id = scrape.client_sdr_id
+        prospect_id = scrape.prospect_id
+        conversation_urn_id = scrape.conversation_urn_id
 
-            db.session.delete(scrape)
-            db.session.commit()
+        db.session.delete(scrape)
+        db.session.commit()
 
-            api = LinkedIn(client_sdr_id)
-            prospect: Prospect = Prospect.query.get(prospect_id)
-            if prospect is None:
-                continue
-
-            status, msg = update_conversation_entries(
-                api, conversation_urn_id, prospect_id
-            )
-
-            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-            prospect: Prospect = Prospect.query.get(prospect_id)
-            send_slack_message(
-                message=f"••• Scraping convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
-                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
-            )
-
-            # Update calendar events
-            populate_prospect_events(client_sdr_id, prospect_id)
-
-        except Exception as e:
-            send_slack_message(
-                message=f"🛑 Error scraping convo between SDR #{scrape.client_sdr_id} and prospect #{scrape.prospect_id}\nMsg: {exception_to_str()}",
-                webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
-            )
+        api = LinkedIn(client_sdr_id)
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        if prospect is None:
             continue
+
+        status, msg = update_conversation_entries(api, conversation_urn_id, prospect_id)
+
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        send_slack_message(
+            message=f"••• Scraping convo between SDR {sdr.name} (#{sdr.id}) and prospect {prospect.full_name} (#{prospect.id}) 🤖\nResult: {status}, {msg}",
+            webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+        )
+
+        # Update calendar events
+        populate_prospect_events(client_sdr_id, prospect_id)
+
+        # except Exception as e:
+        #     send_slack_message(
+        #         message=f"🛑 Error scraping convo between SDR #{scrape.client_sdr_id} and prospect #{scrape.prospect_id}\nMsg: {exception_to_str()}",
+        #         webhook_urls=[URL_MAP["operations-linkedin-scraping-with-voyager"]],
+        #     )
+        #     continue
 
 
 @celery.task
