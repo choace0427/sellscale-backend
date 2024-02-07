@@ -53,7 +53,7 @@ def send_task_report_email(client_sdr_id: int) -> bool:
         html=html,
         title=title,
         to_emails=[client_sdr.email],
-        cc_emails=["csm@sellscale.com"],
+        cc_emails=["team@sellscale.com"],
     )
 
     return True
