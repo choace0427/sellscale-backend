@@ -866,7 +866,7 @@ def classify_active_convo(prospect_id: int, messages):
         if i >= 5:
             break
         length = 130
-        text = message
+        text = message.get("content", "")
         truncated_text = (text[:length] + "...") if len(text) > length else text
         block_messages.append(
             {
@@ -927,7 +927,7 @@ def get_prospect_status_from_convo(
 
     # Short circuit by using our own heuristics
     def get_prospect_status_from_convo_heuristics(messages):
-        most_recent_message = messages[-1]
+        most_recent_message = messages[-1] if messages else ""
         scheduling_key_words = [
             "today",
             "tomorrow",
@@ -1185,7 +1185,7 @@ def create_slack_connection_needed_operator_dashboard_card(client_sdr_id: int):
 def create_add_pre_filters_operator_dashboard_card(client_sdr_id: int):
     create_operator_dashboard_entry(
         client_sdr_id=client_sdr_id,
-        urgency=OperatorDashboardEntryPriority.HIGH,
+        urgency=OperatorDashboardEntryPriority.MEDIUM,
         tag="create_prefilters_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
         emoji="👥",
         title="Create Pre-Filter",
