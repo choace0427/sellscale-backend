@@ -18,6 +18,7 @@ from src.client.services import (
     remove_prospects_caught_by_filters,
     toggle_client_sdr_auto_send_email_campaign,
     update_client_auto_generate_email_messages_setting,
+    update_client_sdr_territory_name,
 )
 from src.prospecting.services import create_note
 from src.automation.resend import send_email
@@ -2848,3 +2849,18 @@ def post_ai_available_times(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success", "data": result}), 200
+
+
+@CLIENT_BLUEPRINT.route("/territory_name", methods=["POST"])
+@require_user
+def post_territory_name(client_sdr_id: int):
+    territory_name = get_request_parameter(
+        "territory_name", request, json=True, required=True, parameter_type=str
+    )
+
+    success = update_client_sdr_territory_name(client_sdr_id, territory_name)
+
+    if not success:
+        return "Failed to update territory name", 400
+
+    return "OK", 200

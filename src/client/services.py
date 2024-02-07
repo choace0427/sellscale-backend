@@ -1279,9 +1279,11 @@ def get_transformers_by_archetype_id(
         order by 5 desc
         """.format(
             archetype_id=archetype_id,
-            email_join="left outer join prospect_email on prospect.id = prospect_email.prospect_id"
-            if email
-            else "",
+            email_join=(
+                "left outer join prospect_email on prospect.id = prospect_email.prospect_id"
+                if email
+                else ""
+            ),
             email_filter="and prospect_email.prospect_id is null" if email else "",
         )
     ).fetchall()
@@ -2176,9 +2178,12 @@ def update_phantom_buster_launch_schedule(
                 client_sdr.name,
                 client_sdr.id,
                 result.get("actual_target"),
-                "✅"
-                if result.get("actual_target") >= client_sdr.weekly_li_outbound_target
-                else "❌",
+                (
+                    "✅"
+                    if result.get("actual_target")
+                    >= client_sdr.weekly_li_outbound_target
+                    else "❌"
+                ),
                 client_sdr.weekly_li_outbound_target,
             ),
             webhook_urls=[URL_MAP["operations-sla-updater"]],
@@ -4583,5 +4588,14 @@ def create_do_not_contact_filters_operator_dashboard_card(client_sdr_id: int):
             "client_sdr_id": client_sdr_id,
         },
     )
+
+    return True
+
+
+def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sdr.territory_name = territory_name
+    db.session.add(client_sdr)
+    db.session.commit()
 
     return True
