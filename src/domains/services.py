@@ -1107,7 +1107,7 @@ def domain_setup_workflow(
     # Verify that the domain is successfully registered
     if domain.aws_domain_registration_job_id:
         response = aws_route53domains_client.get_operation_detail(
-            domain.aws_domain_registration_job_id
+            OperationId=domain.aws_domain_registration_job_id
         )
         status = response.get("Status")
         domain.aws_domain_registration_status = status
