@@ -27,7 +27,7 @@ web_blacklist_path = r"src/../datasets/web_blacklist.csv"
 dr_positions_path = r"src/../datasets/dr_positions.csv"
 company_suffix_csv_path = r"src/../datasets/company_suffixes.csv"
 
-SUBJECT_LINE_CHARACTER_LIMIT = 40
+SUBJECT_LINE_CHARACTER_LIMIT = 50
 
 
 def get_adversarial_ai_approval(prompt):

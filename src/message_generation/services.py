@@ -1522,7 +1522,7 @@ def mark_prospect_email_approved(prospect_email_id: int, ai_approved: bool = Fal
     success = change_prospect_email_status(
         prospect_email_id=prospect_email_id,
         status=ProspectEmailStatus.APPROVED,
-        ai_approved=True,  # len(problems_subject_line) == 0 and len(problems_email_body) == 0,
+        ai_approved=len(problems_subject_line) == 0 and len(problems_email_body) == 0,
     )
 
     return success

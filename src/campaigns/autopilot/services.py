@@ -864,9 +864,10 @@ def auto_send_campaign(campaign_id: int):
     num_approved = len([message for message in messages if message.ai_approved])
     if num_approved / len(messages) < SUCCESS_THRESHOLD:
         send_slack_message(
-            f"🟡 Campaign #{campaign.id} warning for {sdr.name} for the `{archetype.archetype}` persona.\nReason: >{(1-SUCCESS_THRESHOLD)*100}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
+            f"🟡 Campaign #{campaign.id} warning for {sdr.name} for the `{archetype.archetype}` persona.\nReason: {num_approved / len(messages)}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
             [URL_MAP["ops-auto-send-campaign"]],
         )
+        return False
 
     # Remove prospects that aren't approved
     approved_prospect_ids = [
