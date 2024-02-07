@@ -52,9 +52,8 @@ def send_task_report_email(client_sdr_id: int) -> bool:
     send_email(
         html=html,
         title=title,
-        # to_emails=[client_sdr.email],
-        to_emails=[],
-        cc_emails=["team@sellscale.com"],
+        to_emails=["team@sellscale.com"],
+        cc_emails=[],
     )
 
     return True
