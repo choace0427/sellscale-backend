@@ -221,13 +221,28 @@ def post_purchase_workflow(client_sdr_id: int):
         "client_id", request, json=True, required=True, parameter_type=int
     )
 
-    result = domain_purchase_workflow(client_id=client_id, domain_name=domain)
+    success, message, id = domain_purchase_workflow(
+        client_id=client_id, domain_name=domain
+    )
+    if not success:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": message,
+                }
+            ),
+            400,
+        )
 
     return (
         jsonify(
             {
                 "status": "success",
-                "data": result,
+                "data": {
+                    "id": id,
+                    "message": "Domain purchased successfully",
+                },
             }
         ),
         200,

@@ -1056,9 +1056,9 @@ def domain_purchase_workflow(
         return False, "Client not found", -1
 
     # Register the domain
-    status, response, _ = register_aws_domain(domain_name)
+    status, response, error = register_aws_domain(domain_name)
     if status == 500:
-        return False, "Failed to purchase domain", -1
+        return False, f"Failed to purchase domain.\nError:{error}", -1
 
     operation_id = response.get("OperationId")
 
