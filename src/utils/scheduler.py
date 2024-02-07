@@ -380,7 +380,7 @@ mid_week_trigger = CronTrigger(
     day_of_week=2, hour=9, timezone=timezone("America/Los_Angeles")
 )
 weekday_trigger = CronTrigger(
-    day_of_week="mon-fri", hour=5, timezone=timezone("America/Los_Angeles")
+    day_of_week="mon-fri", hour=10, timezone=timezone("America/Los_Angeles")
 )
 monthly_trigger = CronTrigger(day=1, hour=10, timezone=timezone("America/Los_Angeles"))
 
