@@ -25,7 +25,7 @@ def create_operator_dashboard_entry(
     task_type: OperatorDashboardTaskType,
     recurring: bool = False,
     task_data: dict = {},
-    send_slack: bool = False,
+    send_slack: bool = True,
 ) -> Optional[OperatorDashboardEntry]:
     pending_notification = OperatorDashboardEntry.query.filter_by(
         client_sdr_id=client_sdr_id,
