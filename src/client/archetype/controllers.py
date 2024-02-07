@@ -406,24 +406,24 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             archetype_id=archetype_id,
         )
 
-        create_operator_dashboard_entry(
-            client_sdr_id=client_sdr_id,
-            urgency=OperatorDashboardEntryPriority.HIGH,
-            tag="linkedin_campaign_active_{}".format(archetype_id),
-            emoji=archetype.emoji,
-            title="Review new LinkedIn Campaign",
-            subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary..".format(
-                archetype.archetype
-            ),
-            cta="Review Campaign",
-            cta_url="/setup/linkedin?campaign_id={}".format(archetype_id),
-            status=OperatorDashboardEntryStatus.PENDING,
-            due_date=datetime.datetime.now() + datetime.timedelta(days=1),
-            task_type=OperatorDashboardTaskType.LINKEDIN_CAMPAIGN_REVIEW,
-            task_data={
-                "campaign_id": archetype_id,
-            },
-        )
+        # create_operator_dashboard_entry(
+        #     client_sdr_id=client_sdr_id,
+        #     urgency=OperatorDashboardEntryPriority.HIGH,
+        #     tag="linkedin_campaign_active_{}".format(archetype_id),
+        #     emoji=archetype.emoji,
+        #     title="Review new LinkedIn Campaign",
+        #     subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary..".format(
+        #         archetype.archetype
+        #     ),
+        #     cta="Review Campaign",
+        #     cta_url="/setup/linkedin?campaign_id={}".format(archetype_id),
+        #     status=OperatorDashboardEntryStatus.PENDING,
+        #     due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+        #     task_type=OperatorDashboardTaskType.LINKEDIN_CAMPAIGN_REVIEW,
+        #     task_data={
+        #         "campaign_id": archetype_id,
+        #     },
+        # )
 
     return jsonify({"status": "success"}), 200
 
@@ -471,24 +471,24 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
         send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
 
         # Create an operator dashboard entry
-        create_operator_dashboard_entry(
-            client_sdr_id=client_sdr_id,
-            urgency=OperatorDashboardEntryPriority.HIGH,
-            tag="email_campaign_active_{}".format(archetype_id),
-            emoji=archetype.emoji,
-            title="Review new Email Campaign",
-            subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary.".format(
-                archetype.archetype
-            ),
-            cta="Review Campaign",
-            cta_url="/setup/email?campaign_id={}".format(archetype_id),
-            status=OperatorDashboardEntryStatus.PENDING,
-            due_date=datetime.datetime.now() + datetime.timedelta(days=1),
-            task_type=OperatorDashboardTaskType.EMAIL_CAMPAIGN_REVIEW,
-            task_data={
-                "campaign_id": archetype_id,
-            },
-        )
+        # create_operator_dashboard_entry(
+        #     client_sdr_id=client_sdr_id,
+        #     urgency=OperatorDashboardEntryPriority.HIGH,
+        #     tag="email_campaign_active_{}".format(archetype_id),
+        #     emoji=archetype.emoji,
+        #     title="Review new Email Campaign",
+        #     subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary.".format(
+        #         archetype.archetype
+        #     ),
+        #     cta="Review Campaign",
+        #     cta_url="/setup/email?campaign_id={}".format(archetype_id),
+        #     status=OperatorDashboardEntryStatus.PENDING,
+        #     due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+        #     task_type=OperatorDashboardTaskType.EMAIL_CAMPAIGN_REVIEW,
+        #     task_data={
+        #         "campaign_id": archetype_id,
+        #     },
+        # )
 
         # Generate a notification with example message for the client SDR
         random_prospects = (
