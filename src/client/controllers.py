@@ -2301,6 +2301,12 @@ def post_do_not_contact_filters(client_sdr_id: int):
         json=True,
         required=False,
     )
+    do_not_contact_people_names = get_request_parameter(
+        "do_not_contact_people_names", request, json=True, required=False
+    )
+    do_not_contact_emails = get_request_parameter(
+        "do_not_contact_emails", request, json=True, required=False
+    )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
@@ -2313,6 +2319,8 @@ def post_do_not_contact_filters(client_sdr_id: int):
         do_not_contact_location_keywords=do_not_contact_location_keywords,
         do_not_contact_titles=do_not_contact_titles,
         do_not_contact_prospect_location_keywords=do_not_contact_prospect_location_keywords,
+        do_not_contact_people_names=do_not_contact_people_names,
+        do_not_contact_emails=do_not_contact_emails,
     )
     if not success:
         return "Failed to update do not contact filters", 400
@@ -2379,6 +2387,12 @@ def post_sdr_do_not_contact_filters(client_sdr_id: int):
         json=True,
         required=False,
     )
+    do_not_contact_people_names = get_request_parameter(
+        "do_not_contact_people_names", request, json=True, required=False
+    )
+    do_not_contact_emails = get_request_parameter(
+        "do_not_contact_emails", request, json=True, required=False
+    )
 
     success = update_sdr_do_not_contact_filters(
         client_sdr_id=client_sdr_id,
@@ -2388,6 +2402,8 @@ def post_sdr_do_not_contact_filters(client_sdr_id: int):
         do_not_contact_location_keywords=do_not_contact_location_keywords,
         do_not_contact_titles=do_not_contact_titles,
         do_not_contact_prospect_location_keywords=do_not_contact_prospect_location_keywords,
+        do_not_contact_people_names=do_not_contact_people_names,
+        do_not_contact_emails=do_not_contact_emails,
     )
     if not success:
         return "Failed to update do not contact filters", 400

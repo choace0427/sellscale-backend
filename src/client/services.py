@@ -139,6 +139,8 @@ def create_client(
         do_not_contact_location_keywords=[],
         do_not_contact_titles=[],
         do_not_contact_prospect_location_keywords=[],
+        do_not_contact_people_names=[],
+        do_not_contact_emails=[],
         auto_generate_li_messages=True,
     )
     db.session.add(c)
@@ -647,6 +649,8 @@ def create_client_sdr(
         do_not_contact_location_keywords=[],
         do_not_contact_titles=[],
         do_not_contact_prospect_location_keywords=[],
+        do_not_contact_people_names=[],
+        do_not_contact_emails=[],
         autopilot_enabled=True,
         auto_send_linkedin_campaign=True,
     )
@@ -2207,6 +2211,8 @@ def update_do_not_contact_filters(
     do_not_contact_location_keywords: list[str],
     do_not_contact_titles: list[str],
     do_not_contact_prospect_location_keywords: list[str],
+    do_not_contact_people_names: list[str],
+    do_not_contact_emails: list[str],
 ):
     """Update the do not contact keywords list for a Client
 
@@ -2231,6 +2237,8 @@ def update_do_not_contact_filters(
     client.do_not_contact_prospect_location_keywords = (
         do_not_contact_prospect_location_keywords
     )
+    client.do_not_contact_people_names = do_not_contact_people_names
+    client.do_not_contact_emails = do_not_contact_emails
 
     db.session.add(client)
     db.session.commit()
@@ -2258,6 +2266,8 @@ def get_do_not_contact_filters(client_id: int):
         "do_not_contact_location_keywords": client.do_not_contact_location_keywords,
         "do_not_contact_titles": client.do_not_contact_titles,
         "do_not_contact_prospect_location_keywords": client.do_not_contact_prospect_location_keywords,
+        "do_not_contact_people_names": client.do_not_contact_people_names,
+        "do_not_contact_emails": client.do_not_contact_emails,
     }
 
 
@@ -2269,6 +2279,8 @@ def update_sdr_do_not_contact_filters(
     do_not_contact_location_keywords: list[str],
     do_not_contact_titles: list[str],
     do_not_contact_prospect_location_keywords: list[str],
+    do_not_contact_people_names: list[str],
+    do_not_contact_emails: list[str],
 ):
     """Update the do not contact keywords list for a Client SDR
 
@@ -2293,6 +2305,9 @@ def update_sdr_do_not_contact_filters(
     client_sdr.do_not_contact_prospect_location_keywords = (
         do_not_contact_prospect_location_keywords
     )
+    client_sdr.do_not_contact_people_names = do_not_contact_people_names
+    client_sdr.do_not_contact_emails = do_not_contact_emails
+
     db.session.add(client_sdr)
     db.session.commit()
 
@@ -2319,6 +2334,8 @@ def get_sdr_do_not_contact_filters(client_sdr_id: int):
         "do_not_contact_location_keywords": client_sdr.do_not_contact_location_keywords,
         "do_not_contact_titles": client_sdr.do_not_contact_titles,
         "do_not_contact_prospect_location_keywords": client_sdr.do_not_contact_prospect_location_keywords,
+        "do_not_contact_people_names": client_sdr.do_not_contact_people_names,
+        "do_not_contact_emails": client_sdr.do_not_contact_emails,
     }
 
 
@@ -2828,6 +2845,8 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         and not client.do_not_contact_location_keywords
         and not client.do_not_contact_titles
         and not client.do_not_contact_prospect_location_keywords
+        and not client.do_not_contact_people_names
+        and not client.do_not_contact_emails
     ):
         return []
 
@@ -2865,6 +2884,14 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
                         Prospect.prospect_location.ilike(f"%{location}%")
                         for location in client.do_not_contact_prospect_location_keywords
                         or []
+                    ]
+                    + [
+                        Prospect.email.ilike(f"%{email}%")
+                        for email in client.do_not_contact_emails or []
+                    ]
+                    + [
+                        Prospect.full_name.ilike(f"%{name}%")
+                        for name in client.do_not_contact_people_names or []
                     ]
                 )
             ),
@@ -2935,6 +2962,24 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
                 ):
                     matched_filters.append("Prospect Location")
                     matched_filter_words.append("Prospect Location: " + location)
+        if client.do_not_contact_emails:
+            for email in client.do_not_contact_emails:
+                if (
+                    prospect_dict["email"]
+                    and email
+                    and email.lower() in prospect_dict["email"].lower()
+                ):
+                    matched_filters.append("Email")
+                    matched_filter_words.append("Email: " + email)
+        if client.do_not_contact_people_names:
+            for name in client.do_not_contact_people_names:
+                if (
+                    prospect_dict["full_name"]
+                    and name
+                    and name.lower() in prospect_dict["full_name"].lower()
+                ):
+                    matched_filters.append("Name")
+                    matched_filter_words.append("Name: " + name)
         prospect_dict["matched_filters"] = matched_filters
         prospect_dict["matched_filter_words"] = matched_filter_words
 
@@ -2990,6 +3035,8 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         and not client_sdr.do_not_contact_location_keywords
         and not client_sdr.do_not_contact_titles
         and not client_sdr.do_not_contact_prospect_location_keywords
+        and not client_sdr.do_not_contact_people_names
+        and not client_sdr.do_not_contact_emails
     ):
         return []
 
@@ -3025,6 +3072,14 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
                     Prospect.prospect_location.ilike(f"%{location}%")
                     for location in client_sdr.do_not_contact_prospect_location_keywords
                     or []
+                ]
+                + [
+                    Prospect.email.ilike(f"%{email}%")
+                    for email in client_sdr.do_not_contact_emails or []
+                ]
+                + [
+                    Prospect.full_name.ilike(f"%{name}%")
+                    for name in client_sdr.do_not_contact_people_names or []
                 ]
             )
         ),
@@ -3074,6 +3129,16 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
                 ):
                     matched_filters.append("Prospect Location")
                     matched_filter_words.append(location)
+        if client_sdr.do_not_contact_emails:
+            for email in client_sdr.do_not_contact_emails:
+                if email.lower() in prospect_dict["email"].lower():
+                    matched_filters.append("Email")
+                    matched_filter_words.append(email)
+        if client_sdr.do_not_contact_people_names:
+            for name in client_sdr.do_not_contact_people_names:
+                if name.lower() in prospect_dict["full_name"].lower():
+                    matched_filters.append("Name")
+                    matched_filter_words.append(name)
         prospect_dict["matched_filters"] = matched_filters
         prospect_dict["matched_filter_words"] = matched_filter_words
 
