@@ -354,6 +354,9 @@ def patch_prospect_endpoint(client_sdr_id: int, prospect_id: int):
     contract_size = get_request_parameter(
         "contract_size", request, json=True, required=False, parameter_type=int
     )
+    meta_data = get_request_parameter(
+        "meta_data", request, json=True, required=False, parameter_type=dict
+    )
 
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
@@ -369,9 +372,116 @@ def patch_prospect_endpoint(client_sdr_id: int, prospect_id: int):
         company_name=company_name,
         company_website=company_website,
         contract_size=contract_size,
+        meta_data=meta_data,
     )
     if not success:
         return jsonify({"status": "error", "message": "Failed to update prospect"}), 400
+
+    return jsonify({"status": "success", "data": None}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/<int:prospect_id>/demo_set", methods=["PATCH"])
+@require_user
+def patch_prospect_demo_set_endpoint(client_sdr_id: int, prospect_id: int):
+
+    type = get_request_parameter(
+        "type", request, json=True, required=False, parameter_type=str
+    )
+    description = get_request_parameter(
+        "description", request, json=True, required=False, parameter_type=str
+    )
+
+    p: Prospect = Prospect.query.get(prospect_id)
+    if not p:
+        return jsonify({"status": "error", "message": "Prospect not found"}), 404
+    if p.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Not authorized"}), 401
+
+    client: Client = Client.query.get(p.client_id)
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    success = patch_prospect(
+        prospect_id=prospect_id,
+        meta_data=(
+            {
+                **p.meta_data,
+                "demo_set": {"type": type, "description": description},
+            }
+            if p.meta_data
+            else {"demo_set": {"type": type, "description": description}}
+        ),
+    )
+
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to update prospect"}), 400
+
+    if type == "HANDOFF":
+
+        send_slack_message(
+            message="",
+            webhook_urls=[client.pipeline_notifications_webhook_url],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "{prospect_name} was handed off internally!! 🎉".format(
+                            prospect_name=p.full_name
+                        ),
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "🧳 Title: "
+                            + str(p.title)
+                            + " @ "
+                            + str(p.company)[0:20]
+                            + ("..." if len(p.company) > 20 else ""),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "📌 SDR: " + sdr.name,
+                            "emoji": True,
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Handoff Details: {details}".format(
+                            details=description
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " ",
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View Prospect in Sight",
+                            "emoji": True,
+                        },
+                        "value": "click_me_123",
+                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
+                            auth_token=sdr.auth_token,
+                            prospect_id=p.id,
+                        ),
+                        "action_id": "button-action",
+                    },
+                },
+            ],
+        )
 
     return jsonify({"status": "success", "data": None}), 200
 
@@ -1639,9 +1749,9 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
     from model_import import LinkedinConversationEntry
 
-    convo: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 

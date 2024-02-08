@@ -324,9 +324,11 @@ def get_prospects_for_icp_table(
         """.format(
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
-            order_by="icp_fit_score desc, length(icp_fit_reason) desc,"
-            if not get_sample
-            else "",
+            order_by=(
+                "icp_fit_score desc, length(icp_fit_reason) desc,"
+                if not get_sample
+                else ""
+            ),
         )
     ).fetchall()
 
@@ -366,6 +368,7 @@ def patch_prospect(
     company_name: Optional[str] = None,
     company_website: Optional[str] = None,
     contract_size: Optional[int] = None,
+    meta_data: Optional[dict] = None,
 ) -> bool:
     """Modifies fields of a prospect
 
@@ -377,6 +380,7 @@ def patch_prospect(
         company_name (Optional[str], optional): The prospect's current company name. Defaults to None.
         company_website (Optional[str], optional): The website of the prospect's current company. Defaults to None.
         contract_size (Optional[int], optional): The prospect's contract size. Defaults to None.
+        meta_data (Optional[dict], optional): Additional metadata to store. Defaults to None.
 
     Returns:
         bool: True if the prospect was modified, False otherwise
@@ -392,6 +396,8 @@ def patch_prospect(
         p.linkedin_url = linkedin_url
     if contract_size:
         p.contract_size = contract_size
+    if meta_data:
+        p.meta_data = meta_data
     db.session.commit()
 
     # If email is changed, we add to email store and try to verify
@@ -538,11 +544,11 @@ def update_prospect_status_linkedin(
                         "type": "mrkdwn",
                         "text": "*Prospect removed:* {prospect_name}".format(
                             prospect_name=prospect_name,
-                            prospect_message=p.li_last_message_from_prospect.replace(
-                                "\n", " "
-                            )
-                            if p.li_last_message_from_prospect
-                            else "-",
+                            prospect_message=(
+                                p.li_last_message_from_prospect.replace("\n", " ")
+                                if p.li_last_message_from_prospect
+                                else "-"
+                            ),
                         ),
                     },
                 },
@@ -561,9 +567,11 @@ def update_prospect_status_linkedin(
                     "text": {
                         "type": "mrkdwn",
                         "text": "*🧠 {type} Reason:* `{disqualification_reason}`".format(
-                            type="Disqualification"
-                            if new_status == ProspectStatus.NOT_QUALIFIED
-                            else "Not Interested",
+                            type=(
+                                "Disqualification"
+                                if new_status == ProspectStatus.NOT_QUALIFIED
+                                else "Not Interested"
+                            ),
                             disqualification_reason=disqualification_reason,
                         ),
                     },
@@ -869,9 +877,11 @@ def send_attempting_reschedule_notification(client_sdr_id: int, prospect_id: int
                 "text": {
                     "type": "mrkdwn",
                     "text": "📅 Original Demo Date: {demo_date}".format(
-                        demo_date=prospect.demo_date.strftime("%m/%d/%Y")
-                        if prospect.demo_date
-                        else "Unknown"
+                        demo_date=(
+                            prospect.demo_date.strftime("%m/%d/%Y")
+                            if prospect.demo_date
+                            else "Unknown"
+                        )
                     ),
                 },
             },
@@ -1122,9 +1132,12 @@ def update_prospect_status_email(
                     "text": {
                         "type": "mrkdwn",
                         "text": "*🧠 {type} Reason:* `{disqualification_reason}`".format(
-                            type="Disqualification"
-                            if new_status == ProspectEmailOutreachStatus.NOT_QUALIFIED
-                            else "Not Interested",
+                            type=(
+                                "Disqualification"
+                                if new_status
+                                == ProspectEmailOutreachStatus.NOT_QUALIFIED
+                                else "Not Interested"
+                            ),
                             disqualification_reason=disqualification_reason,
                         ),
                     },
@@ -1990,9 +2003,9 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "address": "",
                 "status": p.status.value,
                 "previous_status": previous_status.value if previous_status else None,
-                "overall_status": p.overall_status.value
-                if p.overall_status
-                else p.status.value,
+                "overall_status": (
+                    p.overall_status.value if p.overall_status else p.status.value
+                ),
                 "linkedin_status": p.status.value,
                 "bump_count": p.times_bumped,
                 "icp_fit_score": p.icp_fit_score,
@@ -2469,9 +2482,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo_history: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2481,12 +2494,14 @@ def get_prospect_li_history(prospect_id: int):
 
     return {
         "creation_date": prospect.created_at,
-        "intro_msg": {
-            "message": intro_msg.completion,
-            "date": intro_msg.date_sent,
-        }
-        if intro_msg
-        else None,
+        "intro_msg": (
+            {
+                "message": intro_msg.completion,
+                "date": intro_msg.date_sent,
+            }
+            if intro_msg
+            else None
+        ),
         "notes": [{"message": n.note, "date": n.created_at} for n in prospect_notes],
         "convo": [
             {"author": c.connection_degree, "message": c.message, "date": c.date}
@@ -2496,14 +2511,16 @@ def get_prospect_li_history(prospect_id: int):
             {"from": s.from_status.value, "to": s.to_status.value, "date": s.created_at}
             for s in status_history
         ],
-        "demo_feedback": {
-            "status": demo_feedback.status,
-            "rating": demo_feedback.rating,
-            "feedback": demo_feedback.feedback,
-            "date": demo_feedback.created_at,
-        }
-        if demo_feedback
-        else None,
+        "demo_feedback": (
+            {
+                "status": demo_feedback.status,
+                "rating": demo_feedback.rating,
+                "feedback": demo_feedback.feedback,
+                "date": demo_feedback.created_at,
+            }
+            if demo_feedback
+            else None
+        ),
     }
 
 
@@ -2538,11 +2555,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[
-        ProspectEmailStatusRecords
-    ] = ProspectEmailStatusRecords.query.filter(
-        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-    ).all()
+    email_status_history: List[ProspectEmailStatusRecords] = (
+        ProspectEmailStatusRecords.query.filter(
+            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+        ).all()
+    )
 
     return {
         "emails": email_history_parsed,
@@ -2909,9 +2926,11 @@ def add_existing_contact(
         email=email,
         phone=phone,
         address=address,
-        li_public_id=linkedin_url.split("/in/")[1].split("/")[0]
-        if linkedin_url
-        else li_public_id,
+        li_public_id=(
+            linkedin_url.split("/in/")[1].split("/")[0]
+            if linkedin_url
+            else li_public_id
+        ),
         li_urn_id=li_urn_id,
         img_url=img_url,
         img_expire=img_expire,
@@ -3660,7 +3679,7 @@ def snooze_prospect_email(
                     "text": "Message will re-appear in SellScale inbox on "
                     + datetime.strftime(new_hidden_until, "%B %d, %Y")
                     + ".",
-                }
+                },
                 # "accessory": {
                 #     "type": "button",
                 #     "text": {

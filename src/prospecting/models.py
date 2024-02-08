@@ -504,6 +504,8 @@ class Prospect(db.Model):
     prospect_location = db.Column(db.String, nullable=True)
     company_location = db.Column(db.String, nullable=True)
 
+    meta_data = db.Column(db.JSON, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
@@ -532,15 +534,17 @@ class Prospect(db.Model):
             "industry": self.industry,
             "icp_fit_score": self.icp_fit_score,
             "icp_fit_reason": self.icp_fit_reason,
-            "li_public_id": self.linkedin_url.split("/in/")[1].split("/")[0]
-            if self.linkedin_url
-            else None,
+            "li_public_id": (
+                self.linkedin_url.split("/in/")[1].split("/")[0]
+                if self.linkedin_url
+                else None
+            ),
             "img_url": self.img_url,
             "archetype_id": self.archetype_id,
             "hidden_until": self.hidden_until,
-            "hidden_reason": self.hidden_reason.value
-            if self.hidden_reason is not None
-            else None,
+            "hidden_reason": (
+                self.hidden_reason.value if self.hidden_reason is not None else None
+            ),
             "demo_date": self.demo_date,
             "deactivate_ai_engagement": self.deactivate_ai_engagement,
             "is_lead": self.is_lead,
@@ -571,6 +575,7 @@ class Prospect(db.Model):
             "education_2": self.education_2,
             "prospect_location": self.prospect_location,
             "company_location": self.company_location,
+            "meta_data": self.meta_data,
         }
 
     def to_dict(
@@ -631,15 +636,17 @@ class Prospect(db.Model):
                 "email": self.email,
                 "icp_fit_score": self.icp_fit_score,
                 "icp_fit_reason": self.icp_fit_reason,
-                "li_public_id": self.linkedin_url.split("/in/")[1].split("/")[0]
-                if self.linkedin_url
-                else None,
+                "li_public_id": (
+                    self.linkedin_url.split("/in/")[1].split("/")[0]
+                    if self.linkedin_url
+                    else None
+                ),
                 "img_url": self.img_url,
                 "archetype_id": self.archetype_id,
                 "hidden_until": self.hidden_until,
-                "hidden_reason": self.hidden_reason.value
-                if self.hidden_reason is not None
-                else None,
+                "hidden_reason": (
+                    self.hidden_reason.value if self.hidden_reason is not None else None
+                ),
                 "demo_date": self.demo_date,
                 "deactivate_ai_engagement": self.deactivate_ai_engagement,
                 "is_lead": self.is_lead,
@@ -665,6 +672,7 @@ class Prospect(db.Model):
                 "email_store": email_store_data,
                 "contract_size": self.contract_size,
                 "is_lookalike_profile": self.is_lookalike_profile,
+                "meta_data": self.meta_data,
             }
 
         # Get generated message if it exists and is requested
@@ -759,9 +767,9 @@ class Prospect(db.Model):
             "recent_messages": recent_messages,
             "status": self.status.value,
             "linkedin_status": self.status.value,
-            "overall_status": self.overall_status.value
-            if self.overall_status
-            else None,
+            "overall_status": (
+                self.overall_status.value if self.overall_status else None
+            ),
             "email_status": p_email_status,
             "approved_outreach_message_id": self.approved_outreach_message_id,
             "approved_prospect_email_id": self.approved_prospect_email_id,
@@ -789,9 +797,9 @@ class Prospect(db.Model):
             "img_url": self.img_url,
             "img_expire": self.img_expire,
             "hidden_until": self.hidden_until,
-            "hidden_reason": self.hidden_reason.value
-            if self.hidden_reason is not None
-            else None,
+            "hidden_reason": (
+                self.hidden_reason.value if self.hidden_reason is not None else None
+            ),
             "demo_date": self.demo_date,
             "valid_primary_email": self.valid_primary_email,
             "email_data": p_email.to_dict() if p_email else {},
@@ -805,6 +813,7 @@ class Prospect(db.Model):
             "email_store": email_store_data,
             "individual_data": individual_data,
             "contract_size": self.contract_size,
+            "meta_data": self.meta_data,
         }
 
 
