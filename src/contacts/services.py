@@ -249,21 +249,25 @@ def add_match_reasons(
         for breadcrumb in breadcrumbs:
             if (
                 breadcrumb["signal_field_name"] == "person_titles"
+                and contact["title"]
                 and breadcrumb["value"] in contact["title"].lower()
             ):
                 match_reasons.append(
                     {"label": breadcrumb["label"], "value": breadcrumb["value"]}
                 )
             if breadcrumb["signal_field_name"] == "person_locations":
-                if breadcrumb["value"] in contact["country"].lower():
+                if (
+                    contact["country"]
+                    and breadcrumb["value"] in contact["country"].lower()
+                ):
                     match_reasons.append(
                         {"label": breadcrumb["label"], "value": breadcrumb["value"]}
                     )
-                if breadcrumb["value"] in contact["state"].lower():
+                if contact["state"] and breadcrumb["value"] in contact["state"].lower():
                     match_reasons.append(
                         {"label": breadcrumb["label"], "value": breadcrumb["value"]}
                     )
-                if breadcrumb["value"] in contact["city"].lower():
+                if contact["city"] and breadcrumb["value"] in contact["city"].lower():
                     match_reasons.append(
                         {"label": breadcrumb["label"], "value": breadcrumb["value"]}
                     )
