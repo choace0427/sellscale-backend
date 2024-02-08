@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect
@@ -59,9 +60,9 @@ class DemoFeedbackCollectedNotification(SlackNotificationClass):
                 "notes": "Great demo, John was very interested in our product. We have a followup meeting scheduled for next week.",
                 "prospect_name": "John Doe",
                 "prospect_company": "SomeCompany",
-                "archetype_name": "CCEOs at AI Companies",
+                "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
-                "demo_date": "2023-11-27 08:00:00",
+                "demo_date": datetime.datetime.now(),
                 "demo_status": "OCCURRED",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
@@ -202,7 +203,9 @@ class DemoFeedbackCollectedNotification(SlackNotificationClass):
                     "text": {
                         "type": "mrkdwn",
                         "text": "*Date of demo:* {demo_date}".format(
-                            demo_date=demo_date if demo_date else "-",
+                            demo_date=demo_date.strftime("%B %d, %Y")
+                            if demo_date
+                            else "-",
                         ),
                     },
                 },
