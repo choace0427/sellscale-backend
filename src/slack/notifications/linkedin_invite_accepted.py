@@ -124,7 +124,7 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"{prospect_name} accepted your LinkedIn connection request! 😀",
+                        "text": f"😀 {prospect_name} accepted your LinkedIn connection request!",
                         "emoji": True,
                     },
                 },

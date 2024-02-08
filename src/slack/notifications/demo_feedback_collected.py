@@ -1,20 +1,23 @@
 from typing import Optional
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.email_outbound.models import ProspectEmail
-from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import Prospect
+from src.client.models import DemoFeedback
 from src.slack.models import SlackNotificationType
-from src.slack.slack_notification_center import WebhookDict, slack_bot_send_message
+from src.slack.slack_notification_center import slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
+from src.utils.slack import URL_MAP
 
 
-class EmailLinkClickedNotification(SlackNotificationClass):
-    """A Slack notification that is sent when the user clicks on a link in an email
+class DemoFeedbackCollectedNotification(SlackNotificationClass):
+
+    """A Slack notification that is sent whenever the SDR gives feedback on a Demo
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
     `developer_mode` (MANDATORY): Whether or not the notification is being sent in developer mode. Defaults to False.
-    `prospect_id`: The ID of the Prospect that the AI replied to
-    `link_clicked`: The link that was clicked
+    `prospect_id`: The ID of the Prospect that the feedback was given for
+    `rating`: The rating that the ClientSDR gave the Demo
+    `notes`: The notes that the ClientSDR gave the Demo
+    `demo_status`: The status of the Demo
 
     This class inherits from SlackNotificationClass.
     """
@@ -24,11 +27,15 @@ class EmailLinkClickedNotification(SlackNotificationClass):
         client_sdr_id: int,
         developer_mode: Optional[bool] = False,
         prospect_id: Optional[int] = None,
-        link_clicked: Optional[str] = None,
+        rating: Optional[str] = None,
+        notes: Optional[str] = None,
+        demo_status: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.prospect_id = prospect_id
-        self.link_clicked = link_clicked
+        self.rating = rating
+        self.notes = notes
+        self.demo_status = demo_status
 
         return
 
@@ -47,44 +54,42 @@ class EmailLinkClickedNotification(SlackNotificationClass):
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
 
             return {
+                "rep": client_sdr.name,
+                "rating": "5/5",
+                "notes": "Great demo, John was very interested in our product. We have a followup meeting scheduled for next week.",
                 "prospect_name": "John Doe",
-                "prospect_title": "CEO",
                 "prospect_company": "SomeCompany",
-                "archetype_name": "CEOs at AI Companies",
+                "archetype_name": "CCEOs at AI Companies",
                 "archetype_emoji": "🤖",
+                "demo_date": "2023-11-27 08:00:00",
+                "demo_status": "OCCURRED",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
-                "link_clicked": "https://www.sellscale.com",
-                "initial_send_date": "January 1, 2022",
             }
 
         def get_fields() -> dict:
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
             prospect: Prospect = Prospect.query.get(self.prospect_id)
-            archetype: ClientArchetype = ClientArchetype.query.get(
+            client_archetype: ClientArchetype = ClientArchetype.query.get(
                 prospect.archetype_id
             )
-            prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
-                id=prospect.approved_prospect_email_id
-            ).first()
-            generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
-                id=prospect_email.personalized_body
-            ).first()
 
             return {
+                "rep": client_sdr.name,
+                "rating": self.rating,
+                "notes": self.notes,
                 "prospect_name": prospect.full_name,
-                "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
-                "archetype_name": archetype.archetype,
-                "archetype_emoji": archetype.emoji,
+                "archetype_name": client_archetype.archetype,
+                "archetype_emoji": client_archetype.emoji,
+                "demo_date": prospect.demo_date,
+                "demo_status": self.demo_status,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=self.prospect_id if self.prospect_id else "",
                 ),
-                "link_clicked": self.link_clicked,
-                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
             }
 
         # Get the required objects / fields
@@ -92,28 +97,32 @@ class EmailLinkClickedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id or not self.link_clicked:
+            if not self.prospect_id:
                 return False
             fields = get_fields()
 
         # Get the fields
+        rep = fields.get("rep")
+        rating = fields.get("rating")
+        notes = fields.get("notes")
         prospect_name = fields.get("prospect_name")
-        prospect_title = fields.get("prospect_title")
         prospect_company = fields.get("prospect_company")
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
+        demo_date = fields.get("demo_date")
+        demo_status = fields.get("demo_status")
         direct_link = fields.get("direct_link")
-        link_clicked = fields.get("link_clicked")
-        initial_send_date = fields.get("initial_send_date")
         if (
-            not prospect_name
-            or not prospect_title
+            not rep
+            or not rating
+            or not notes
+            or not prospect_name
             or not prospect_company
             or not archetype_name
             or not archetype_emoji
+            or not demo_date
+            or not demo_status
             or not direct_link
-            or not link_clicked
-            or not initial_send_date
         ):
             return False
 
@@ -122,15 +131,15 @@ class EmailLinkClickedNotification(SlackNotificationClass):
 
         # Send the message
         slack_bot_send_message(
-            notification_type=SlackNotificationType.EMAIL_LINK_CLICKED,
+            notification_type=SlackNotificationType.DEMO_FEEDBACK_COLLECTED,
             client_id=client.id,
-            base_message="🔗 A prospect clicked your link!",
+            base_message=f"🎊 ✍️ NEW Demo Feedback Collected for Prospect",
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🔗 {prospect_name} clicked your link",
+                        "text": "🎊 ✍️ NEW Demo Feedback Collected",
                         "emoji": True,
                     },
                 },
@@ -138,9 +147,15 @@ class EmailLinkClickedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Campaign:* {emoji} {persona}".format(
-                            persona=archetype_name if archetype_name else "-",
-                            emoji=archetype_emoji,
+                        "text": "*Rep:* {rep}".format(rep=rep if rep else "-"),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Rating:* {rating}".format(
+                            rating=rating if rating else "-"
                         ),
                     },
                 },
@@ -148,45 +163,57 @@ class EmailLinkClickedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Title:* {title}\n*Company:* {company}".format(
-                            title=prospect_title if prospect_title else "-",
-                            company=prospect_company if prospect_company else "-",
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Link Clicked:* {link}".format(
-                            link=link_clicked,
+                        "text": "*Notes:* {notes}".format(
+                            notes=notes if notes else "-"
                         ),
                     },
                 },
                 {"type": "divider"},
-                {  # Add SDR information
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "😎 Contact: {sdr}".format(
-                                sdr=client_sdr.name,
-                            ),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "📆 Initial Send: {date_sent}".format(
-                                date_sent=initial_send_date,
-                            ),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "📤 Outbound channel: Email",
-                            "emoji": True,
-                        },
-                    ],
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Prospect:* {prospect_name}".format(
+                            prospect_name=prospect_name if prospect_name else "-"
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Company:* {company}".format(
+                            company=prospect_company if prospect_company else "-"
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Persona:* {archetype_emoji} {archetype_name}".format(
+                            archetype_emoji=archetype_emoji if archetype_emoji else "",
+                            archetype_name=archetype_name if archetype_name else "-",
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Date of demo:* {demo_date}".format(
+                            demo_date=demo_date if demo_date else "-",
+                        ),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Demo:* {demo_status}".format(
+                            demo_status=demo_status if demo_status else "-",
+                        ),
+                    },
                 },
                 {
                     "type": "section",

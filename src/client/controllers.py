@@ -38,6 +38,9 @@ from src.client.services import (
     write_client_pre_onboarding_survey,
 )
 from src.client.services import mark_prospect_removed
+from src.slack.notifications.demo_feedback_collected import (
+    DemoFeedbackCollectedNotification,
+)
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
@@ -2049,61 +2052,72 @@ def post_demo_feedback(client_sdr_id: int):
         ai_adjustments=ai_adjustments,
     )
 
-    direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
-        auth_token=client_sdr.auth_token,
-        prospect_id=prospect.id,
+    # Send the Slack Notification
+    notification = DemoFeedbackCollectedNotification(
+        client_sdr_id=client_sdr.id,
+        prospect_id=prospect_id,
+        rating=rating,
+        notes=feedback,
+        demo_status=status,
     )
-    send_slack_message(
-        message="🎊 ✍️ NEW Demo Feedback Collected",
-        webhook_urls=[
-            URL_MAP["csm-demo-feedback"],
-            client.pipeline_notifications_webhook_url,
-        ],
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🎊 ✍️ NEW Demo Feedback Collected",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Prospect*: {prospect_name}\n*Rating*: {rating}\n{notes}".format(
-                        prospect_name=prospect.full_name
-                        + " ("
-                        + prospect.company
-                        + ")",
-                        rating=rating,
-                        rep=client_sdr.name,
-                        notes="*Feedback*: " + feedback if feedback else "",
-                    ),
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Rep*: {rep}".format(rep=client_sdr.name),
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "View Convo in Sight",
-                        "emoji": True,
-                    },
-                    "value": direct_link,
-                    "url": direct_link,
-                    "action_id": "button-action",
-                },
-            },
-        ],
-    )
+    notification.send_notification(preview_mode=False)
+
+    # REMOVE THIS CODE
+    # direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
+    #     auth_token=client_sdr.auth_token,
+    #     prospect_id=prospect.id,
+    # )
+    # send_slack_message(
+    #     message="🎊 ✍️ NEW Demo Feedback Collected",
+    #     webhook_urls=[
+    #         URL_MAP["csm-demo-feedback"],
+    #         client.pipeline_notifications_webhook_url,
+    #     ],
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": "🎊 ✍️ NEW Demo Feedback Collected",
+    #                 "emoji": True,
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Prospect*: {prospect_name}\n*Rating*: {rating}\n{notes}".format(
+    #                     prospect_name=prospect.full_name
+    #                     + " ("
+    #                     + prospect.company
+    #                     + ")",
+    #                     rating=rating,
+    #                     rep=client_sdr.name,
+    #                     notes="*Feedback*: " + feedback if feedback else "",
+    #                 ),
+    #             },
+    #         },
+    #         {"type": "divider"},
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Rep*: {rep}".format(rep=client_sdr.name),
+    #             },
+    #             "accessory": {
+    #                 "type": "button",
+    #                 "text": {
+    #                     "type": "plain_text",
+    #                     "text": "View Convo in Sight",
+    #                     "emoji": True,
+    #                 },
+    #                 "value": direct_link,
+    #                 "url": direct_link,
+    #                 "action_id": "button-action",
+    #             },
+    #         },
+    #     ],
+    # )
 
     if ai_adjustments:
         send_slack_message(
