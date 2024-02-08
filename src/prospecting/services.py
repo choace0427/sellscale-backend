@@ -636,11 +636,11 @@ def update_prospect_status_linkedin(
             LinkedInInviteAcceptedNotification,
         )
 
-        notification = LinkedInInviteAcceptedNotification(
+        invite_accepted_notification = LinkedInInviteAcceptedNotification(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
         )
-        success = notification.send_notification(preview_mode=False)
+        success = invite_accepted_notification.send_notification(preview_mode=False)
 
         # send_status_change_slack_block(
         #     outreach_type=ProspectChannels.LINKEDIN,
@@ -678,11 +678,11 @@ def update_prospect_status_linkedin(
             engagement_metadata=message,
         )
         if not quietly:
-            notification = LinkedinProspectSchedulingNotification(
+            scheduling_notification = LinkedinProspectSchedulingNotification(
                 client_sdr_id=p.client_sdr_id,
                 prospect_id=p.id,
             )
-            success = notification.send_notification(preview_mode=False)
+            success = scheduling_notification.send_notification(preview_mode=False)
 
             # send_status_change_slack_block(
             #     outreach_type=ProspectChannels.LINKEDIN,

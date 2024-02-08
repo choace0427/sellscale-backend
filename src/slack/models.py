@@ -53,7 +53,7 @@ def get_slack_notification_type_metadata():
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING: {
-            "name": "LinkedIn Prospect Sheduling",
+            "name": "LinkedIn Prospect Scheduling",
             "description": "A Slack notification that is sent when a Prospect is scheduling a meeting with you on LinkedIn",
             "class": LinkedinProspectSchedulingNotification,
             "outbound_channel": "linkedin",

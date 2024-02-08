@@ -77,7 +77,7 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
             )
             generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
                 id=prospect.approved_outreach_message_id
-            )
+            ).first()
 
             # Get the conversation
             conversation = []
