@@ -10,7 +10,7 @@ def get_campaign_drilldown_data(archetype_id):
         case 
             when  prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') 
                 then 'ACTIVE_CONVO_SCHEDULING'
-            when prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+            when prospect_email_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
             	then 'ACTIVE_CONVO_SCHEDULING'
             when prospect_email_status_records.to_status is not null
             	then cast(prospect_email_status_records.to_status as VARCHAR)
@@ -45,7 +45,7 @@ def get_campaign_drilldown_data(archetype_id):
         (
         	prospect_status_records.to_status in ('SENT_OUTREACH', 'ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET', 'ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
         	or
-        	prospect_email_status_records.to_status in ('SENT_OUTREACH', 'EMAIL_OPENED', 'ACTIVE_CONVO', 'DEMO_SET')
+        	prospect_email_status_records.to_status is not null
         )
         and prospect.archetype_id = :archetype_id
     group by 1,2,3,4,5,6,7,8
