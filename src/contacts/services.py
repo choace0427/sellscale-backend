@@ -224,6 +224,9 @@ def get_contacts(
         if page > pagination.get("total_pages", 0):
             break
 
+    contacts = add_match_reasons(contacts, breadcrumbs)
+    people = add_match_reasons(people, breadcrumbs)
+
     return {
         "breadcrumbs": breadcrumbs,
         "partial_results_only": partial_results_only,
@@ -235,6 +238,39 @@ def get_contacts(
         "saved_query_id": saved_query_id,
         "data": data,
     }
+
+
+def add_match_reasons(
+    contacts: list,
+    breadcrumbs: list,
+):
+    for contact in contacts:
+        match_reasons = []
+        for breadcrumb in breadcrumbs:
+            if (
+                breadcrumb["signal_field_name"] == "person_titles"
+                and breadcrumb["value"] in contact["title"].lower()
+            ):
+                match_reasons.append(
+                    {"label": breadcrumb["label"], "value": breadcrumb["value"]}
+                )
+            if breadcrumb["signal_field_name"] == "person_locations":
+                if breadcrumb["value"] in contact["country"].lower():
+                    match_reasons.append(
+                        {"label": breadcrumb["label"], "value": breadcrumb["value"]}
+                    )
+                if breadcrumb["value"] in contact["state"].lower():
+                    match_reasons.append(
+                        {"label": breadcrumb["label"], "value": breadcrumb["value"]}
+                    )
+                if breadcrumb["value"] in contact["city"].lower():
+                    match_reasons.append(
+                        {"label": breadcrumb["label"], "value": breadcrumb["value"]}
+                    )
+
+        contact["match_reasons"] = match_reasons
+
+    return contacts
 
 
 def get_contacts_for_page(
