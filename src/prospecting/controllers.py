@@ -397,9 +397,6 @@ def patch_prospect_demo_set_endpoint(client_sdr_id: int, prospect_id: int):
     if p.client_sdr_id != client_sdr_id:
         return jsonify({"status": "error", "message": "Not authorized"}), 401
 
-    client: Client = Client.query.get(p.client_id)
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-
     success = patch_prospect(
         prospect_id=prospect_id,
         meta_data=(

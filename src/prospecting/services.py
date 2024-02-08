@@ -690,13 +690,22 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SET_TIME_TO_DEMO.value,
             engagement_metadata=message,
         )
-        send_status_change_slack_block(
-            outreach_type=ProspectChannels.LINKEDIN,
-            prospect=p,
-            new_status=ProspectStatus.DEMO_SET,
-            custom_message=" set a time to demo!! 🎉🎉🎉",
-            metadata={"threadUrl": p.li_conversation_thread_id},
-        )
+        if p.meta_data and p.meta_data.get("demo_set", {}).get("type", {}) == "HANDOFF":
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.LINKEDIN,
+                prospect=p,
+                new_status=ProspectStatus.DEMO_SET,
+                custom_message=" was handed off internally!! 🎉",
+                metadata={"threadUrl": p.li_conversation_thread_id},
+            )
+        else:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.LINKEDIN,
+                prospect=p,
+                new_status=ProspectStatus.DEMO_SET,
+                custom_message=" set a time to demo!! 🎉🎉🎉",
+                metadata={"threadUrl": p.li_conversation_thread_id},
+            )
     elif new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
