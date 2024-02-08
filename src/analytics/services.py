@@ -159,6 +159,7 @@ def get_all_campaign_analytics_for_client(
                 client_sdr.name,
                 client_sdr.img_url,
                 icp_scoring_ruleset.included_individual_title_keywords,
+                icp_scoring_ruleset.included_individual_seniority_keywords,
                 icp_scoring_ruleset.included_individual_locations_keywords,
                 icp_scoring_ruleset.included_individual_industry_keywords,
                 icp_scoring_ruleset.included_individual_generalized_keywords,
@@ -180,7 +181,7 @@ def get_all_campaign_analytics_for_client(
             where client_archetype.client_id = {client_id}
                 and not client_archetype.is_unassigned_contact_archetype
                 {client_archetype_id_filter}
-            group by 1,2,3,4,5, client_archetype.updated_at, client_sdr.name, client_sdr.img_url, icp_scoring_ruleset.included_individual_title_keywords, icp_scoring_ruleset.included_individual_locations_keywords, icp_scoring_ruleset.included_individual_industry_keywords, icp_scoring_ruleset.included_company_name_keywords, icp_scoring_ruleset.included_company_locations_keywords, icp_scoring_ruleset.included_individual_generalized_keywords, icp_scoring_ruleset.included_individual_skills_keywords, icp_scoring_ruleset.included_company_generalized_keywords,icp_scoring_ruleset.included_company_industries_keywords, icp_scoring_ruleset.company_size_start, icp_scoring_ruleset.company_size_end, client_archetype.id
+            group by 1,2,3,4,5, client_archetype.updated_at, client_sdr.name, client_sdr.img_url, icp_scoring_ruleset.included_individual_title_keywords, icp_scoring_ruleset.included_individual_locations_keywords, icp_scoring_ruleset.included_individual_industry_keywords, icp_scoring_ruleset.included_company_name_keywords, icp_scoring_ruleset.included_company_locations_keywords, icp_scoring_ruleset.included_individual_generalized_keywords, icp_scoring_ruleset.included_individual_skills_keywords, icp_scoring_ruleset.included_company_generalized_keywords,icp_scoring_ruleset.included_company_industries_keywords, icp_scoring_ruleset.company_size_start, icp_scoring_ruleset.company_size_end, client_archetype.id, icp_scoring_ruleset.included_individual_seniority_keywords
             order by client_archetype.updated_at desc
         )
         select 
@@ -192,12 +193,14 @@ def get_all_campaign_analytics_for_client(
         from d;
     """.format(
         client_id=client_id,
-        client_archetype_id_filter="and prospect.archetype_id = {} and client_archetype.id = {}".format(
-            client_archetype_id,
-            client_archetype_id,
-        )
-        if client_archetype_id
-        else "",
+        client_archetype_id_filter=(
+            "and prospect.archetype_id = {} and client_archetype.id = {}".format(
+                client_archetype_id,
+                client_archetype_id,
+            )
+            if client_archetype_id
+            else ""
+        ),
     )
 
     data = db.session.execute(query).fetchall()
@@ -218,21 +221,22 @@ def get_all_campaign_analytics_for_client(
                 "name": row[9],
                 "img_url": row[10],
                 "included_individual_title_keywords": row[11],
-                "included_individual_locations_keywords": row[12],
-                "included_individual_industry_keywords": row[13],
-                "included_individual_generalized_keywords": row[14],
-                "included_individual_skills_keywords": row[15],
-                "included_company_name_keywords": row[16],
-                "included_company_locations_keywords": row[17],
-                "included_company_generalized_keywords": row[18],
-                "included_company_industries_keywords": row[19],
-                "company_size_start": row[20],
-                "company_size_end": row[21],
-                "sent_percent": row[22],
-                "open_percent": row[23],
-                "reply_percent": row[24],
-                "demo_percent": row[25],
-                "id": row[26],
+                "included_individual_seniority_keywords": row[12],
+                "included_individual_locations_keywords": row[13],
+                "included_individual_industry_keywords": row[14],
+                "included_individual_generalized_keywords": row[15],
+                "included_individual_skills_keywords": row[16],
+                "included_company_name_keywords": row[17],
+                "included_company_locations_keywords": row[18],
+                "included_company_generalized_keywords": row[19],
+                "included_company_industries_keywords": row[20],
+                "company_size_start": row[21],
+                "company_size_end": row[22],
+                "sent_percent": row[23],
+                "open_percent": row[24],
+                "reply_percent": row[25],
+                "demo_percent": row[26],
+                "id": row[27],
             }
         )
 

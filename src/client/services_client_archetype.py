@@ -905,6 +905,7 @@ def get_client_archetype_stats(client_archetype_id):
 
     num_sent, num_opens, num_replies, num_demos = 0, 0, 0, 0
     included_individual_title_keywords = []
+    included_individual_seniority_keywords = []
     included_individual_locations_keywords = []
     included_individual_industry_keywords = []
     included_individual_generalized_keywords = []
@@ -922,6 +923,9 @@ def get_client_archetype_stats(client_archetype_id):
 
         included_individual_title_keywords = analytics[0][
             "included_individual_title_keywords"
+        ]
+        included_individual_seniority_keywords = analytics[0][
+            "included_individual_seniority_keywords"
         ]
         included_individual_locations_keywords = analytics[0][
             "included_individual_locations_keywords"
@@ -1059,6 +1063,7 @@ def get_client_archetype_stats(client_archetype_id):
         "contacts": {
             "included_individual_title_keywords": included_individual_title_keywords,
             "included_individual_locations_keywords": included_individual_locations_keywords,
+            "included_individual_seniority_keywords": included_individual_seniority_keywords,
             "included_individual_industry_keywords": included_individual_industry_keywords,
             "included_individual_generalized_keywords": included_individual_generalized_keywords,
             "included_individual_skills_keywords": included_individual_skills_keywords,
