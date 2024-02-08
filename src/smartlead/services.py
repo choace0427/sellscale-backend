@@ -1110,7 +1110,7 @@ def sync_workmail_to_smartlead(
     username: str,
     email: str,
     password: str,
-    emails_per_day: int = 30,
+    emails_per_day: int = 5,
 ) -> tuple:
     """Syncs a WorkMail account to Smartlead
 
