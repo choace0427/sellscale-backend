@@ -6,9 +6,15 @@ from sqlalchemy.dialects.postgresql import JSONB
 class SlackNotificationType(Enum):
     """The types of Slack notifications that can be sent"""
 
-    AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
+    # LINKEDIN
     LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
+    LINKEDIN_PROSPECT_SCHEDULING = "LINKEDIN_PROSPECT_SCHEDULING"
+
+    # EMAIL
+    AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
     EMAIL_LINK_CLICKED = "EMAIL_LINK_CLICKED"
+
+    # GENERAL
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
 
     def name(self):
@@ -32,23 +38,31 @@ def get_slack_notification_type_metadata():
         LinkedInInviteAcceptedNotification,
     )
     from src.slack.notifications.email_link_clicked import EmailLinkClickedNotification
-
     from src.slack.notifications.demo_feedback_collected import (
         DemoFeedbackCollectedNotification,
     )
+    from src.slack.notifications.linkedin_prospect_scheduling import (
+        LinkedinProspectSchedulingNotification,
+    )
 
     map_slack_notification_type_to_metadata = {
-        SlackNotificationType.AI_REPLY_TO_EMAIL: {
-            "name": "AI Reply to Email",
-            "description": "A Slack notification that is sent when the AI replies to an email",
-            "class": EmailAIReplyNotification,
-            "outbound_channel": "email",
-        },
         SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
             "name": "LinkedIn Invite Accepted",
             "description": "A Slack notification that is sent when the Prospect accepts a LinkedIn invite",
             "class": LinkedInInviteAcceptedNotification,
             "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING: {
+            "name": "LinkedIn Prospect Sheduling",
+            "description": "A Slack notification that is sent when a Prospect is scheduling a meeting with you on LinkedIn",
+            "class": LinkedinProspectSchedulingNotification,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.AI_REPLY_TO_EMAIL: {
+            "name": "AI Reply to Email",
+            "description": "A Slack notification that is sent when the AI replies to an email",
+            "class": EmailAIReplyNotification,
+            "outbound_channel": "email",
         },
         SlackNotificationType.EMAIL_LINK_CLICKED: {
             "name": "Email Link Clicked",
