@@ -780,7 +780,7 @@ def setup_managed_inboxes(
     if not client_sdr:
         return False, "SDR not found"
 
-    client: Client = Client.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
     if not client:
         return False, "Client not found"
 
@@ -793,6 +793,15 @@ def setup_managed_inboxes(
         if not client.domain:
             return False, "Client does not have a domain set"
         anchor_domain = client.domain
+        if anchor_domain:
+            # Clean it up
+            anchor_domain = (
+                anchor_domain.replace("http://", "")
+                .replace("https://", "")
+                .replace("www.", "")
+                .split(".")[0]
+                .strip("/")
+            )
         anchor_tld = anchor_domain.split(".")[-1].strip("/")
         potential_domains = find_similar_domains(
             key_title=anchor_domain, current_tld=anchor_tld
