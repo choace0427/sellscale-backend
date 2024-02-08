@@ -2113,9 +2113,7 @@ def process_generated_msg_queue(
             db.session.commit()
 
             # Make sure that the message is at most 3 days old
-            if datetime.datetime.utcnow() - li_convo_entry.date > datetime.timedelta(
-                days=3
-            ):
+            if datetime.utcnow() - li_convo_entry.date > timedelta(days=3):
                 return False
 
             # Make sure that this is a SDR message
@@ -2139,10 +2137,7 @@ def process_generated_msg_queue(
             db.session.commit()
 
             # Make sure that the message is at most 3 days old
-            if (
-                datetime.datetime.utcnow() - email_convo_entry.date_received
-                > datetime.timedelta(days=3)
-            ):
+            if datetime.utcnow() - email_convo_entry.date_received > timedelta(days=3):
                 return False
 
             # Make sure that this is a SDR message
@@ -3487,12 +3482,12 @@ def is_business_hour(dt):
 def next_business_hour(dt):
     """Get the next business hour from the given datetime."""
     if dt.hour >= 17:  # After 5 PM
-        dt = dt + datetime.timedelta(days=1)
+        dt = dt + timedelta(days=1)
         dt = dt.replace(hour=9, minute=0, second=0, microsecond=0)
     elif dt.hour < 9:  # Before 9 AM
         dt = dt.replace(hour=9, minute=0, second=0, microsecond=0)
     if dt.weekday() >= 5:  # Weekend
-        dt += datetime.timedelta(days=7 - dt.weekday())
+        dt += timedelta(days=7 - dt.weekday())
         dt = dt.replace(hour=9, minute=0, second=0, microsecond=0)
     return dt
 
