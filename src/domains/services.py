@@ -786,6 +786,7 @@ def setup_managed_inboxes(
 
     # Check if the client has an available domain
     registering_domain = False
+    managed_domain: Domain = None
     available_domains = get_available_domains(client_id=client.id)
     if len(available_domains) == 0:
         # If no domain is found, create it
@@ -808,6 +809,8 @@ def setup_managed_inboxes(
             return False, message
         managed_domain = Domain.query.get(domain_id)
         registering_domain = True
+    else:
+        managed_domain = Domain.query.get(available_domains[0].get("id"))
 
     # Get 2 usernames from the SDRs name
     first_name = get_first_name_from_full_name(client_sdr.name)
@@ -1568,7 +1571,10 @@ def get_available_domains(client_id: int) -> list[dict]:
     query = (
         db.session.query(Domain, func.count(SDREmailBank.id).label("count"))
         .outerjoin(SDREmailBank, Domain.id == SDREmailBank.domain_id)
-        .filter(Domain.client_id == client_id)
+        .filter(
+            Domain.client_id == client_id,
+            Domain.aws_domain_registration_status == "SUCCESSFUL",
+        )
         .group_by(Domain.id)
         .having(func.count(SDREmailBank.id) < MAX_INBOXES_PER_DOMAIN)
     )
