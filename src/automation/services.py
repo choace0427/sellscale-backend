@@ -1,4 +1,5 @@
 import random
+from typing import Optional
 from sqlalchemy import nullslast, or_
 from app import db, celery
 from sqlalchemy.sql.expression import func
@@ -199,7 +200,9 @@ def create_inbox_scraper_agent(client_sdr_id: int, linkedin_session_cookie: str)
     return phantom_id, phantom_name
 
 
-def create_auto_connect_agent(client_sdr_id: int, linkedin_session_cookie: str):
+def create_auto_connect_agent(
+    client_sdr_id: int, linkedin_session_cookie: str, user_agent: Optional[str] = None
+):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_sdr_id = client_sdr.id
     client: Client = Client.query.get(client_sdr.client_id)
@@ -323,6 +326,11 @@ def create_auto_connect_agent(client_sdr_id: int, linkedin_session_cookie: str):
 
     response = requests.request("POST", url, headers=headers, data=payload)
     phantom_id = response.json()["id"]
+
+    if user_agent:
+        pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=phantom_id)
+        pb_agent.update_argument("userAgent", user_agent)
+
     return phantom_id, phantom_name
 
 
@@ -361,7 +369,9 @@ def has_phantom_buster_config(client_sdr_id: int):
     return pb_config is not None
 
 
-def create_new_auto_connect_phantom(client_sdr_id: int, linkedin_session_cookie: str):
+def create_new_auto_connect_phantom(
+    client_sdr_id: int, linkedin_session_cookie: str, user_agent: Optional[str] = None
+):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return None, None
@@ -370,7 +380,7 @@ def create_new_auto_connect_phantom(client_sdr_id: int, linkedin_session_cookie:
     client_id = client.id
 
     auto_connect_agent_id, auto_connect_agent_name = create_auto_connect_agent(
-        client_sdr_id, linkedin_session_cookie
+        client_sdr_id, linkedin_session_cookie, user_agent
     )
 
     auto_connect_pb_config = create_phantom_buster_config(
@@ -413,7 +423,11 @@ def update_phantom_buster_run_status(phantom_id: str):
     pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=phantom_id)
     last_run_date = pb_agent.get_last_run_date()
     status = pb_agent.get_status()
-    error_message = 'Session cookie not valid anymore. Please update the cookie.' if status == 'error_invalid_cookie' else None
+    error_message = (
+        "Session cookie not valid anymore. Please update the cookie."
+        if status == "error_invalid_cookie"
+        else None
+    )
 
     pb_config = PhantomBusterConfig.query.filter(
         PhantomBusterConfig.phantom_uuid == phantom_id
@@ -448,7 +462,7 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str, user_agent: str 
         pb_agent: PhantomBusterAgent = PhantomBusterAgent(id=pb_id)
 
         if user_agent:
-            pb_agent.update_argument('userAgent', user_agent)
+            pb_agent.update_argument("userAgent", user_agent)
 
         arguments = pb_agent.get_arguments()
         if "sessionCookie" in arguments:
@@ -459,7 +473,7 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str, user_agent: str 
         return "No client sdr found with this id", 400
 
     sdr.li_at_token = li_at
-    
+
     if user_agent:
         sdr.user_agent = user_agent
 

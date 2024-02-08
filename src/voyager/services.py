@@ -187,7 +187,9 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
     try:
         if not has_phantom_buster_config(client_sdr_id=client_sdr_id):
             create_new_auto_connect_phantom(
-                client_sdr_id=client_sdr_id, linkedin_session_cookie=li_at_token
+                client_sdr_id=client_sdr_id,
+                linkedin_session_cookie=li_at_token,
+                user_agent=user_agent,
             )
 
         num_messages_in_queue = num_messages_in_linkedin_queue(
