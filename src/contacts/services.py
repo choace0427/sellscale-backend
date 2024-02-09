@@ -418,3 +418,55 @@ def predict_filters_needed(query: str) -> dict:
         overall_filters[filter_type] = data["data"]
 
     return overall_filters
+
+
+def get_territories(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    query = """
+        with d as (
+        select 
+            client_sdr.id,
+            client_sdr.name,
+            client_sdr.title,
+            client_sdr.img_url,
+            case when 
+                client_sdr.territory_name is null
+                    then 'Not defined'
+                else 
+                    client_sdr.territory_name
+            end territory_name,
+            max(saved_apollo_query.id) "saved_apollo_id"
+        from client_sdr
+            left join saved_apollo_query
+                on saved_apollo_query.client_sdr_id = client_sdr.id and saved_apollo_query.is_prefilter = true
+        where
+            client_sdr.client_id = {client_id} and
+            client_sdr.active
+        group by 1,2,3,4,5
+    )
+    select 
+        d.*,
+        saved_apollo_query.num_results
+    from d
+        left join saved_apollo_query on saved_apollo_query.id = d.saved_apollo_id;
+    """
+
+    data = db.session.execute(query.format(client_id=client_id))
+    territories_raw = data.fetchall()
+
+    territories = []
+    for territory in territories_raw:
+        territories.append(
+            {
+                "id": territory.id,
+                "name": territory.name,
+                "title": territory.title,
+                "img_url": territory.img_url,
+                "territory_name": territory.territory_name,
+                "num_results": territory.num_results,
+            }
+        )
+
+    return territories

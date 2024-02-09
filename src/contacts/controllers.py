@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 
-from src.contacts.services import get_contacts, predict_filters_needed
+from src.contacts.services import get_contacts, get_territories, predict_filters_needed
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.request_helpers import get_request_parameter
 
@@ -160,3 +160,11 @@ def predict_contact_filters(client_sdr_id: int):
     )
 
     return jsonify(filters)
+
+
+@CONTACTS_BLUEPRINT.route("/territories", methods=["GET"])
+@require_user
+def get_territories_request(client_sdr_id: int):
+    territories = get_territories(client_sdr_id=client_sdr_id)
+
+    return jsonify({"territories": territories})
