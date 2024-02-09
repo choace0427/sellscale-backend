@@ -6,11 +6,15 @@ import random
 import os
 from tqdm import tqdm
 from src.operator_dashboard.models import (
+    OperatorDashboardEntry,
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
     OperatorDashboardTaskType,
 )
-from src.operator_dashboard.services import create_operator_dashboard_entry
+from src.operator_dashboard.services import (
+    create_operator_dashboard_entry,
+    mark_task_complete,
+)
 from src.utils.access import is_production
 
 from tomlkit import datetime
@@ -173,14 +177,6 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
 
     sdr.user_agent = user_agent
 
-    # Update the pb agent
-    if is_production():
-        response = update_phantom_buster_li_at(
-            client_sdr_id=client_sdr_id,
-            li_at=sdr.li_at_token,
-            user_agent=user_agent,
-        )
-
     db.session.add(sdr)
     db.session.commit()
 
@@ -209,6 +205,23 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
         )
 
     update_sdr_timezone_from_li(client_sdr_id)
+
+    # Update the pb agent
+    if is_production():
+        response = update_phantom_buster_li_at(
+            client_sdr_id=client_sdr_id,
+            li_at=sdr.li_at_token,
+            user_agent=user_agent,
+        )
+
+    # Update dashboard entries for connecting LinkedIn
+    dash_tasks: list[OperatorDashboardEntry] = OperatorDashboardEntry.query.filter(
+        OperatorDashboardEntry.client_sdr_id == client_sdr_id,
+        OperatorDashboardEntry.task_type == OperatorDashboardTaskType.CONNECT_LINKEDIN,
+    ).all()
+    for entry in dash_tasks:
+        mark_task_complete(client_sdr_id, entry.id, False)
+    db.session.commit()
 
     # Run a health check
     success, health, details = compute_sdr_linkedin_health(client_sdr_id)
