@@ -18,6 +18,7 @@ class SlackNotificationType(Enum):
 
     # GENERAL
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
+    DEMO_FEEDBACK_UPDATED = "DEMO_FEEDBACK_UPDATED"
 
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
@@ -40,6 +41,9 @@ def get_slack_notification_type_metadata():
         LinkedInInviteAcceptedNotification,
     )
     from src.slack.notifications.email_link_clicked import EmailLinkClickedNotification
+    from src.slack.notifications.demo_feedback_updated import (
+        DemoFeedbackUpdatedNotification,
+    )
     from src.slack.notifications.demo_feedback_collected import (
         DemoFeedbackCollectedNotification,
     )
@@ -94,6 +98,12 @@ def get_slack_notification_type_metadata():
             "name": "Demo Feedback Collected",
             "description": "A Slack notification that is sent whenever you give feedback on a Demo",
             "class": DemoFeedbackCollectedNotification,
+            "outbound_channel": "all",
+        },
+        SlackNotificationType.DEMO_FEEDBACK_UPDATED: {
+            "name": "Demo Feedback Updated",
+            "description": "A Slack notification that is sent whenever you give update feedback on a Demo",
+            "class": DemoFeedbackUpdatedNotification,
             "outbound_channel": "all",
         },
     }

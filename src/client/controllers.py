@@ -41,6 +41,9 @@ from src.client.services import mark_prospect_removed
 from src.slack.notifications.demo_feedback_collected import (
     DemoFeedbackCollectedNotification,
 )
+from src.slack.notifications.demo_feedback_updated import (
+    DemoFeedbackUpdatedNotification,
+)
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
@@ -2241,51 +2244,62 @@ def patch_demo_feedback(client_sdr_id: int):
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(df.prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-    send_slack_message(
-        message="🎊 ✍️ UPDATED Demo Feedback",
-        webhook_urls=[
-            URL_MAP["csm-demo-feedback"],
-            client.pipeline_notifications_webhook_url,
-        ],
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🎊 ✍️ UPDATED Demo Feedback",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
-                        rating=rating,
-                        rep=client_sdr.name,
-                        notes=feedback,
-                        ai_adjustments=ai_adjustments,
-                    ),
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {date}\n*Demo*: {showed}".format(
-                            prospect=prospect.full_name,
-                            company=prospect.company,
-                            persona=archetype.archetype,
-                            date=str(prospect.demo_date),
-                            showed=status,
-                        ),
-                    }
-                ],
-            },
-        ],
+
+    updated_feedback_notification = DemoFeedbackUpdatedNotification(
+        client_sdr_id=client_sdr.id,
+        prospect_id=prospect.id,
+        rating=rating,
+        notes=feedback,
+        demo_status=status,
+        ai_adjustment=ai_adjustments,
     )
+    updated_feedback_notification.send_notification(preview_mode=False)
+
+    # send_slack_message(
+    #     message="🎊 ✍️ UPDATED Demo Feedback",
+    #     webhook_urls=[
+    #         URL_MAP["csm-demo-feedback"],
+    #         client.pipeline_notifications_webhook_url,
+    #     ],
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": "🎊 ✍️ UPDATED Demo Feedback",
+    #                 "emoji": True,
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
+    #                     rating=rating,
+    #                     rep=client_sdr.name,
+    #                     notes=feedback,
+    #                     ai_adjustments=ai_adjustments,
+    #                 ),
+    #             },
+    #         },
+    #         {"type": "divider"},
+    #         {
+    #             "type": "context",
+    #             "elements": [
+    #                 {
+    #                     "type": "mrkdwn",
+    #                     "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {date}\n*Demo*: {showed}".format(
+    #                         prospect=prospect.full_name,
+    #                         company=prospect.company,
+    #                         persona=archetype.archetype,
+    #                         date=str(prospect.demo_date),
+    #                         showed=status,
+    #                     ),
+    #                 }
+    #             ],
+    #         },
+    #     ],
+    # )
 
     return jsonify({"status": "success", "data": {"message": "Success"}}), 200
 
