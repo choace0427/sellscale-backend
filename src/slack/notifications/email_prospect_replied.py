@@ -122,22 +122,26 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
         email_sent_subject = fields.get("email_sent_subject")
-        email_sent_body = fields.get("email_sent_body", "").replace("\n", "\n>")
-        email_reply_body = fields.get("email_reply_body", "").replace("\n", "\n>")
+        email_sent_body = (
+            fields.get("email_sent_body", "").replace("\n", "\n>").strip("\n")
+        )
+        email_reply_body = (
+            fields.get("email_reply_body", "").replace("\n", "\n>").strip("\n")
+        )
         direct_link = fields.get("direct_link")
         initial_send_date = fields.get("initial_send_date")
         if (
             not prospect_name
-            or prospect_title
-            or prospect_company
-            or prospect_email
-            or archetype_name
-            or archetype_emoji
-            or email_sent_subject
-            or email_sent_body
-            or email_reply_body
-            or direct_link
-            or initial_send_date
+            or not prospect_title
+            or not prospect_company
+            or not prospect_email
+            or not archetype_name
+            or not archetype_emoji
+            or not email_sent_subject
+            or not email_sent_body
+            or not email_reply_body
+            or not direct_link
+            or not initial_send_date
         ):
             return False
 
@@ -172,7 +176,7 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Title:* {title}\n*Company:* {company}\n*Prospect Email:*{prospect_email}".format(
+                        "text": "*Title:* {title}\n*Company:* {company}\n*Prospect Email:* {prospect_email}".format(
                             title=prospect_title if prospect_title else "-",
                             company=prospect_company if prospect_company else "-",
                             prospect_email=prospect_email,
@@ -190,7 +194,7 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Sent Email*:\n>{email_sent_body}",
+                        "text": f"*Sent Email*:\n{email_sent_body}",
                     },
                 },
                 {  # Add SDR information

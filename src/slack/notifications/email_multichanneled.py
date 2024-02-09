@@ -92,7 +92,9 @@ class EmailMultichanneledNotification(SlackNotificationClass):
         prospect_message = fields.get("prospect_message")
         from_email = fields.get("from_email")
         email_sent_subject = fields.get("email_sent_subject")
-        email_sent_body = fields.get("email_sent_body", "").replace("\n", "\n>")
+        email_sent_body = (
+            fields.get("email_sent_body", "").replace("\n", "\n>").strip("\n")
+        )
         direct_link = fields.get("direct_link")
         if (
             not prospect_name
