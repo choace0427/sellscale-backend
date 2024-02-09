@@ -10,3 +10,4 @@ class SavedApolloQuery(db.Model):
     name_query = db.Column(db.String, nullable=False)
     data = db.Column(db.JSON, nullable=False)
     is_prefilter = db.Column(db.Boolean, nullable=True)
+    num_results = db.Column(db.Integer, nullable=True)
