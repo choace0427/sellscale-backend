@@ -59,10 +59,10 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
 
             return {
                 "rep": client_sdr.name,
-                "rating": "5",
-                "notes": "Test",
-                "ai_adjustment": "Some Adjustments",
-                "prospect_name": "David Wei",
+                "rating": "4",
+                "notes": "It went pretty well during this call. They followed up with an email and we have another call scheduled. Not sure if they are totally convinced.",
+                "ai_adjustment": "Let's change my targetting to only companies that have large sales outbound motions.",
+                "prospect_name": "John Doe",
                 "prospect_company": "SomeCompany",
                 "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
@@ -147,7 +147,7 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "🎊 ✍️ NEW Demo Feedback Collected",
+                        "text": "🎊 ✍️ UPDATED Demo Feedback",
                         "emoji": True,
                     },
                 },
@@ -155,84 +155,29 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Rep:* {rep}".format(rep=rep if rep else "-"),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Rating:* {rating}".format(
-                            rating=rating if rating else "-"
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Notes:* {notes}".format(
-                            notes=notes if notes else "-"
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*AI Adjustments:* {ai_adjustment}".format(
-                            ai_adjustment=ai_adjustment if ai_adjustment else "-"
+                        "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: `{ai_adjustments}`".format(
+                            rating=rating,
+                            rep=client_sdr.name,
+                            notes=notes,
+                            ai_adjustments=ai_adjustment,
                         ),
                     },
                 },
                 {"type": "divider"},
                 {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Prospect:* {prospect_name}".format(
-                            prospect_name=prospect_name if prospect_name else "-"
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Company:* {company}".format(
-                            company=prospect_company if prospect_company else "-"
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Persona:* {archetype_emoji} {archetype_name}".format(
-                            archetype_emoji=archetype_emoji if archetype_emoji else "",
-                            archetype_name=archetype_name if archetype_name else "-",
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Date of demo:* {demo_date}".format(
-                            demo_date=demo_date.strftime("%B %d, %Y")
-                            if demo_date
-                            else "-",
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Demo:* {demo_status}".format(
-                            demo_status=demo_status if demo_status else "-",
-                        ),
-                    },
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {demo_date}\n*Demo*: {demo_status}".format(
+                                prospect=prospect_name,
+                                company=prospect_company,
+                                persona=archetype_name,
+                                demo_date=demo_date.strftime("%B %d, %Y"),
+                                demo_status=demo_status,
+                            ),
+                        }
+                    ],
                 },
                 {
                     "type": "section",
