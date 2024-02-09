@@ -113,7 +113,7 @@ class EmailMultichanneledNotification(SlackNotificationClass):
         slack_bot_send_message(
             notification_type=SlackNotificationType.EMAIL_MULTICHANNELED,
             client_id=client.id,
-            base_message="🔗 A prospect clicked your link!",
+            base_message="📧 SellScale just multi-channeled",
             blocks=[
                 {
                     "type": "header",
