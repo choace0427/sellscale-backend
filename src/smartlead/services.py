@@ -900,9 +900,9 @@ def sync_prospect_with_lead(
 
         metadata = {
             "prospect_email": lead.lead_email,
-            "email_title": lead.email_subject,
-            "email_snippet": sent_message,
-            "prospect_message": prospect_message,
+            "email_sent_subject": lead.email_subject,
+            "email_sent_body": sent_message,
+            "email_reply_body": prospect_message,
         }
         print('Updating prospect email status to "ACTIVE_CONVO"')
         if prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED:

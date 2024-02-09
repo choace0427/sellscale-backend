@@ -5,14 +5,27 @@ from app import db, celery
 from src.automation.slack_notification import send_status_change_slack_block
 from src.client.models import ClientSDR
 from src.client.sdr.email.models import SDREmailBank
-from src.client.sdr.email.services_email_bank import email_belongs_to_sdr, get_sdr_email_bank
-from src.email_outbound.models import EmailConversationMessage, EmailConversationThread, ProspectEmailOutreachStatus
+from src.client.sdr.email.services_email_bank import (
+    email_belongs_to_sdr,
+    get_sdr_email_bank,
+)
+from src.email_outbound.models import (
+    EmailConversationMessage,
+    EmailConversationThread,
+    ProspectEmail,
+    ProspectEmailOutreachStatus,
+)
 from src.email_outbound.services import update_prospect_email_outreach_status
 from src.email_scheduling.models import EmailMessagingSchedule
+from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import Prospect, ProspectChannels
 from src.prospecting.nylas.services import nylas_update_messages, nylas_update_threads
 from src.prospecting.services import calculate_prospect_overall_status
+from src.slack.notifications.email_prospect_replied import (
+    EmailProspectRepliedNotification,
+)
 from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus
+
 
 @celery.task(bind=True, max_retries=5)
 def process_deltas_thread_replied(
@@ -57,8 +70,7 @@ def process_single_thread_replied(
     """
     try:
         # Get payload and set it to "PROCESSING"
-        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
-            payload_id)
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(payload_id)
         if not nylas_payload:
             return False, "No payload found"
         nylas_payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
@@ -132,9 +144,14 @@ def process_single_thread_replied(
         # 3. Prospect Email belongs to Prospect
         if client_sdr_id != client_sdr.id:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "Client SDR ID in payload does not match Client SDR ID in delta"
+            nylas_payload.processing_fail_reason = (
+                "Client SDR ID in payload does not match Client SDR ID in delta"
+            )
             db.session.commit()
-            return False, "Client SDR ID in payload does not match Client SDR ID in delta"
+            return (
+                False,
+                "Client SDR ID in payload does not match Client SDR ID in delta",
+            )
         prospect: Prospect = Prospect.query.get(prospect_id)
         if not prospect:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
@@ -143,12 +160,16 @@ def process_single_thread_replied(
             return False, "No prospect found"
         if prospect.client_sdr_id != client_sdr.id:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "Prospect does not belong to Client SDR"
+            nylas_payload.processing_fail_reason = (
+                "Prospect does not belong to Client SDR"
+            )
             db.session.commit()
             return False, "Prospect does not belong to Client SDR"
         if prospect.approved_prospect_email_id != prospect_email_id:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
-            nylas_payload.processing_fail_reason = "Prospect Email does not belong to Prospect"
+            nylas_payload.processing_fail_reason = (
+                "Prospect Email does not belong to Prospect"
+            )
             db.session.commit()
             return False, "Prospect Email does not belong to Prospect"
 
@@ -173,7 +194,7 @@ def process_single_thread_replied(
             client_sdr_id=client_sdr_id,
             nylas_account_id=account_id,
             prospect_id=prospect_id,
-            thread_id=thread_id
+            thread_id=thread_id,
         )
         if not success:
             nylas_payload.processing_status = NylasWebhookProcessingStatus.FAILED
@@ -183,9 +204,7 @@ def process_single_thread_replied(
 
         # Check if this message is from me. If not, then a prospect must have replied. Mark the thread as prospect_replied.
         from_self: bool = metadata.get("from_self")
-        email_bank: SDREmailBank = get_sdr_email_bank(
-            nylas_account_id=account_id
-        )
+        email_bank: SDREmailBank = get_sdr_email_bank(nylas_account_id=account_id)
         from_sdr: bool = email_belongs_to_sdr(client_sdr_id, email_bank.email_address)
         if not from_sdr:
             thread: EmailConversationThread = EmailConversationThread.query.filter_by(
@@ -207,31 +226,54 @@ def process_single_thread_replied(
             # Send Slack Message
             if updated:
                 # Get the latest message and update the prospect accordingly
-                latest_message: EmailConversationMessage = EmailConversationMessage.query.filter_by(
-                    prospect_id=prospect_id
-                ).order_by(EmailConversationMessage.date_received.desc()).first()
+                latest_message: EmailConversationMessage = (
+                    EmailConversationMessage.query.filter_by(prospect_id=prospect_id)
+                    .order_by(EmailConversationMessage.date_received.desc())
+                    .first()
+                )
 
-                message_from = latest_message.message_from[0].get('email')
+                message_from = latest_message.message_from[0].get("email")
                 message_subject = latest_message.subject
                 message_snippet = latest_message.snippet
 
-                send_status_change_slack_block(
-                    outreach_type=ProspectChannels.EMAIL,
-                    prospect=prospect,
-                    new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                    custom_message=" responded to your email! 🙌🏽",
-                    metadata={
-                        "prospect_email": message_from,
-                        "email_title": message_subject,
-                        "email_snippet": message_snippet,
-                    },
+                prospect_email: ProspectEmail = ProspectEmail.query.get(
+                    prospect_email_id
                 )
+                body: GeneratedMessage = GeneratedMessage.query.get(
+                    prospect_email.personalized_body
+                )
+                subject: GeneratedMessage = GeneratedMessage.query.get(
+                    prospect_email.personalized_subject_line
+                )
+
+                email_replied_notification = EmailProspectRepliedNotification(
+                    client_sdr_id=client_sdr_id,
+                    prospect_id=prospect.id,
+                    email_sent_subject=subject.completion,
+                    email_sent_body=body.completion,
+                    email_reply_body=message_snippet,
+                )
+                email_replied_notification.send_notification(preview_mode=False)
+
+                # send_status_change_slack_block(
+                #     outreach_type=ProspectChannels.EMAIL,
+                #     prospect=prospect,
+                #     new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                #     custom_message=" responded to your email! 🙌🏽",
+                #     metadata={
+                #         "prospect_email": message_from,
+                #         "email_title": message_subject,
+                #         "email_snippet": message_snippet,
+                #     },
+                # )
 
             # Block future AI emails
             now = datetime.utcnow()
-            future_messages: list[EmailMessagingSchedule] = EmailMessagingSchedule.query.filter(
+            future_messages: list[
+                EmailMessagingSchedule
+            ] = EmailMessagingSchedule.query.filter(
                 EmailMessagingSchedule.prospect_email_id == prospect_email_id,
-                EmailMessagingSchedule.date_scheduled > now
+                EmailMessagingSchedule.date_scheduled > now,
             ).all()
             for message in future_messages:
                 # Delete the message
@@ -245,8 +287,7 @@ def process_single_thread_replied(
         db.session.commit()
         return True, "Successfully tracked thread replied"
     except Exception as e:
-        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
-            payload_id)
+        nylas_payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(payload_id)
         if not nylas_payload:
             return False, "No payload found"
 

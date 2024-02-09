@@ -61,6 +61,9 @@ from src.prospecting.models import (
 )
 from app import db, celery
 from src.segment.models import Segment
+from src.slack.notifications.email_prospect_replied import (
+    EmailProspectRepliedNotification,
+)
 from src.slack.notifications.linkedin_prospect_scheduling import (
     LinkedinProspectSchedulingNotification,
 )
@@ -1056,14 +1059,29 @@ def update_prospect_status_email(
             engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
         )
         if not quietly:
-            send_status_change_slack_block(
-                outreach_type=ProspectChannels.EMAIL,
-                prospect=p,
-                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                custom_message=" responded to your email! 🙌🏽",
-                metadata=metadata,
-                custom_webhook_urls=custom_webhook_urls,
+            email_sent_subject = (
+                metadata.get("email_sent_subject") if metadata else None
             )
+            email_sent_body = metadata.get("email_sent_body") if metadata else None
+            email_reply_body = metadata.get("email_reply_body") if metadata else None
+
+            email_replied_notification = EmailProspectRepliedNotification(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
+                email_sent_subject=email_sent_subject,
+                email_sent_body=email_sent_body,
+                email_reply_body=email_reply_body,
+            )
+            success = email_replied_notification.send_notification(preview_mode=False)
+
+            # send_status_change_slack_block(
+            #     outreach_type=ProspectChannels.EMAIL,
+            #     prospect=p,
+            #     new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+            #     custom_message=" responded to your email! 🙌🏽",
+            #     metadata=metadata,
+            #     custom_webhook_urls=custom_webhook_urls,
+            # )
     elif (
         new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING
     ):  # Scheduling

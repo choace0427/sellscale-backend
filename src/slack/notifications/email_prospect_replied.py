@@ -1,6 +1,6 @@
 from typing import Optional
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.li_conversation.models import LinkedinConversationEntry
+from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import Prospect
 from src.slack.models import SlackNotificationType
@@ -8,12 +8,15 @@ from src.slack.slack_notification_center import slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
 
 
-class LinkedinProspectSchedulingNotification(SlackNotificationClass):
-    """A Slack notification that is sent when the Prospect accepts a LinkedIn invite
+class EmailProspectRepliedNotification(SlackNotificationClass):
+    """A Slack notification that is sent when the Prospect replies to an email.
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
     `developer_mode` (MANDATORY): Whether or not the notification is being sent in developer mode. Defaults to False.
-    `prospect_id`: The ID of the Prospect that the AI replied to
+    `prospect_id`: The ID of the Prospect that responded
+    `email_sent_subject`: The subject of the email that was sent
+    `email_sent_body`: The body of the email that was sent
+    `email_reply_body`: The body of the reply from the Prospect
 
     This class inherits from SlackNotificationClass.
     """
@@ -23,9 +26,15 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
         client_sdr_id: int,
         developer_mode: Optional[bool] = False,
         prospect_id: Optional[int] = None,
+        email_sent_subject: Optional[str] = None,
+        email_sent_body: Optional[str] = None,
+        email_reply_body: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.prospect_id = prospect_id
+        self.email_sent_subject = email_sent_subject
+        self.email_sent_body = email_sent_body
+        self.email_reply_body = email_reply_body
 
         return
 
@@ -47,15 +56,15 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                 "prospect_name": "John Doe",
                 "prospect_title": "CEO",
                 "prospect_company": "SomeCompany",
+                "prospect_email": "john@somecompany.ai",
                 "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
+                "email_sent_subject": "Supercharge SomeCompany's sales with AI",
+                "email_sent_body": f"<p>Hey John,</p><p>Like many industries, sales oftentimes involves many hours of rote work. As a forward-thinking CEO leveraging AI in your respective industry, have you considered using AI to boost your outbound?</p><p>If this sounds interesting, *let's chat*?</p><p>Best,</p><p>{client_sdr.name}</p>",
+                "email_reply_body": f"<p>Hey,</p><p>I'm interested. Let's chat.</p><p>Best,</p><p>John Doe</p>",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
-                "conversation": [
-                    f"*{client_sdr.name}:* Hey John, if utilizing AI is a priority for you, I'd love to connect and share how we're helping other CEOs at AI companies like yours. Also, Go Bears!",
-                    f"*John Doe:* Sounds good, let's schedule a time to chat?",
-                ],
                 "initial_send_date": "January 1, 2022",
             }
 
@@ -63,41 +72,37 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
             prospect: Prospect = Prospect.query.get(self.prospect_id)
+            prospect_email: ProspectEmail = ProspectEmail.query.get(
+                prospect.approved_prospect_email_id
+            )
             client_archetype: ClientArchetype = ClientArchetype.query.get(
                 prospect.archetype_id
             )
-            urn_id = prospect.li_conversation_urn_id
-            convo: list[LinkedinConversationEntry] = (
-                LinkedinConversationEntry.query.filter_by(
-                    conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
-                )
-                .order_by(LinkedinConversationEntry.created_at.desc())
-                .limit(5)
-                .all()
-            )
-            generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
-                id=prospect.approved_outreach_message_id
-            ).first()
 
-            # Get the conversation
-            conversation = []
-            for c in reversed(
-                convo
-            ):  # Reverse the conversation so that the most recent message is at the bottom
-                conversation.append(f"*{c.author}:* {c.message}")
+            generated_message: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_body
+            )
+
+            if not self.email_sent_body or not self.email_reply_body:
+                raise ValueError(
+                    "Illegal arguments for EmailProspectResponded notification: Missing email bodies."
+                )
 
             return {
                 "prospect_name": prospect.full_name,
                 "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
+                "prospect_email": prospect.email,
                 "archetype_name": client_archetype.archetype,
                 "archetype_emoji": client_archetype.emoji,
+                "email_sent_subject": self.email_sent_subject,
+                "email_sent_body": self.email_sent_body.replace("\n", "\n>"),
+                "email_reply_body": self.email_reply_body.replace("\n", "\n>"),
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=prospect.id,
                 ),
-                "conversation": conversation,
-                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
+                "initial_send_date": generated_message.date_sent.strftime("%B %d, %Y"),
             }
 
         # Get the required objects / fields
@@ -113,34 +118,43 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
         prospect_name = fields.get("prospect_name")
         prospect_title = fields.get("prospect_title")
         prospect_company = fields.get("prospect_company")
+        prospect_email = fields.get("prospect_email")
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
+        email_sent_subject = fields.get("email_sent_subject")
+        email_sent_body = fields.get("email_sent_body")
+        email_reply_body = fields.get("email_reply_body")
         direct_link = fields.get("direct_link")
-        conversation = fields.get("conversation")
         initial_send_date = fields.get("initial_send_date")
         if (
             not prospect_name
-            or not prospect_title
-            or not prospect_company
-            or not archetype_name
-            or not direct_link
-            or not conversation
-            or not initial_send_date
+            or prospect_title
+            or prospect_company
+            or prospect_email
+            or archetype_name
+            or archetype_emoji
+            or email_sent_subject
+            or email_sent_body
+            or email_reply_body
+            or direct_link
+            or initial_send_date
         ):
             return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
 
-        # Craft the message blocks
-        message_blocks: list[dict] = []
-        message_blocks.extend(
-            [
+        # Send the message
+        slack_bot_send_message(
+            notification_type=SlackNotificationType.EMAIL_PROSPECT_REPLIED,
+            client_id=client.id,
+            base_message=f"{prospect_name} responded to your email!",
+            blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f" 🙏🔥 {prospect_name} is scheduling!",
+                        "text": f"🙌🏽 {prospect_name} responded to your email!",
                         "emoji": True,
                     },
                 },
@@ -158,28 +172,27 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Title:* {title}\n*Company:* {company}".format(
+                        "text": "*Title:* {title}\n*Company:* {company}\n*Prospect Email:*{prospect_email}".format(
                             title=prospect_title if prospect_title else "-",
                             company=prospect_company if prospect_company else "-",
+                            prospect_email=prospect_email,
                         ),
                     },
                 },
-            ]
-        )
-
-        for message in conversation:
-            message_blocks.append(
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"{message}",
+                        "text": f"*Email Subject*:\n>{email_sent_subject}",
                     },
-                }
-            )
-
-        message_blocks.extend(
-            [
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Sent Email*:\n>{email_sent_body}",
+                    },
+                },
                 {  # Add SDR information
                     "type": "context",
                     "elements": [
@@ -199,7 +212,7 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                         },
                         {
                             "type": "plain_text",
-                            "text": "📤 Outbound channel: LinkedIn",
+                            "text": "📤 Outbound channel: Email",
                             "emoji": True,
                         },
                     ],
@@ -222,15 +235,7 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                         "action_id": "button-action",
                     },
                 },
-            ]
-        )
-
-        # Send the message
-        slack_bot_send_message(
-            notification_type=SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING,
-            client_id=client.id,
-            base_message=f"🙏🔥 {prospect_name} is scheduling!",
-            blocks=message_blocks,
+            ],
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,
             testing=self.developer_mode,

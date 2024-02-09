@@ -13,6 +13,8 @@ class SlackNotificationType(Enum):
     # EMAIL
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
     EMAIL_LINK_CLICKED = "EMAIL_LINK_CLICKED"
+    EMAIL_PROSPECT_REPLIED = "EMAIL_PROSPECT_REPLIED"
+    EMAIL_MULTICHANNELED = "EMAIL_MULTICHANNELED"
 
     # GENERAL
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
@@ -44,6 +46,12 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.linkedin_prospect_scheduling import (
         LinkedinProspectSchedulingNotification,
     )
+    from src.slack.notifications.email_prospect_replied import (
+        EmailProspectRepliedNotification,
+    )
+    from src.slack.notifications.email_multichanneled import (
+        EmailMultichanneledNotification,
+    )
 
     map_slack_notification_type_to_metadata = {
         SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
@@ -68,6 +76,18 @@ def get_slack_notification_type_metadata():
             "name": "Email Link Clicked",
             "description": "A Slack notification that is sent when a Prospect clicks a link in an email",
             "class": EmailLinkClickedNotification,
+            "outbound_channel": "email",
+        },
+        SlackNotificationType.EMAIL_PROSPECT_REPLIED: {
+            "name": "Email Prospect Replied",
+            "description": "A Slack notification that is sent when a Prospect responds to your email",
+            "class": EmailProspectRepliedNotification,
+            "outbound_channel": "email",
+        },
+        SlackNotificationType.EMAIL_MULTICHANNELED: {
+            "name": "Email Multichannel",
+            "description": "A Slack notification that is sent when a Prospect requests a response on email, from a different channel.",
+            "class": EmailMultichanneledNotification,
             "outbound_channel": "email",
         },
         SlackNotificationType.DEMO_FEEDBACK_COLLECTED: {
