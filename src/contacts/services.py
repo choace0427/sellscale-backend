@@ -329,11 +329,13 @@ def get_contacts_for_page(
 
     formatted_date = datetime.now().strftime("%b %d %Y %H:%M:%S")
     hash = generate_uuid(base=f"{name} {formatted_date}")[0:6]
+
     saved_query = SavedApolloQuery(
         name_query=f"[{name}] Query on {formatted_date} [{hash}]",
         data=data,
         client_sdr_id=client_sdr_id,
         is_prefilter=is_prefilter,
+        num_results=response.json().get("pagination", {}).get("total_entries", 0),
     )
     db.session.add(saved_query)
     db.session.commit()
