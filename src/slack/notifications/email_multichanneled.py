@@ -55,7 +55,7 @@ class EmailMultichanneledNotification(SlackNotificationClass):
                 "prospect_message": "Could we continue this conversation on email? My email is john@somecompany.ai.",
                 "from_email": "youremail@sellscale.com",
                 "email_sent_subject": "Following up on our LI conversation",
-                "email_sent_body": f"<p>Hey John,</p><p>Just following up on our conversation from LinkedIn. I'd love to touch base and chat more about our AI Sales solution and how it could benefit your org.</p><p>Cheers,</p><p>{client_sdr.name}</p>",
+                "email_sent_body": f"Hey John,\nJust following up on our conversation from LinkedIn. I'd love to touch base and chat more about our AI Sales solution and how it could benefit your org.\nCheers,\n{client_sdr.name}",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -92,7 +92,7 @@ class EmailMultichanneledNotification(SlackNotificationClass):
         prospect_message = fields.get("prospect_message")
         from_email = fields.get("from_email")
         email_sent_subject = fields.get("email_sent_subject")
-        email_sent_body = fields.get("email_sent_body")
+        email_sent_body = fields.get("email_sent_body", "").replace("\n", "\n>")
         direct_link = fields.get("direct_link")
         if (
             not prospect_name

@@ -60,8 +60,8 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
                 "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
                 "email_sent_subject": "Supercharge SomeCompany's sales with AI",
-                "email_sent_body": f"<p>Hey John,</p><p>Like many industries, sales oftentimes involves many hours of rote work. As a forward-thinking CEO leveraging AI in your respective industry, have you considered using AI to boost your outbound?</p><p>If this sounds interesting, *let's chat*?</p><p>Best,</p><p>{client_sdr.name}</p>",
-                "email_reply_body": f"<p>Hey,</p><p>I'm interested. Let's chat.</p><p>Best,</p><p>John Doe</p>",
+                "email_sent_body": f"\nHey John,\nLike many industries, sales oftentimes involves many hours of rote work. As a forward-thinking CEO leveraging AI in your respective industry, have you considered using AI to boost your outbound?\nIf this sounds interesting, *let's chat*?\nBest,\n{client_sdr.name}",
+                "email_reply_body": f"\nHey,\nI'm interested. Let's chat.\nBest,\nJohn Doe",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -122,8 +122,8 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
         email_sent_subject = fields.get("email_sent_subject")
-        email_sent_body = fields.get("email_sent_body")
-        email_reply_body = fields.get("email_reply_body")
+        email_sent_body = fields.get("email_sent_body", "").replace("\n", "\n>")
+        email_reply_body = fields.get("email_reply_body", "").replace("\n", "\n>")
         direct_link = fields.get("direct_link")
         initial_send_date = fields.get("initial_send_date")
         if (
