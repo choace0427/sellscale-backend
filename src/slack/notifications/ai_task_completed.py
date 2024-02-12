@@ -51,7 +51,7 @@ class AITaskCompletedNotification(SlackNotificationClass):
 
             return {
                 "title": "Remove Security Ops titles",
-                "minutes_worked": "5 minutes ⏱️",
+                "minutes_worked": 5,
                 "description": "Removed 500+ instances of 'Security Operations' titles",
                 "contact": client_sdr.name,
                 "request_date": datetime.datetime.now().strftime("%B %d, %Y"),
@@ -119,7 +119,7 @@ class AITaskCompletedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Task:* {title}".format(task=title if title else "-"),
+                        "text": "*Task:* {title}".format(title=title if title else "-"),
                     },
                 },
                 {
@@ -154,14 +154,16 @@ class AITaskCompletedNotification(SlackNotificationClass):
                         {
                             "type": "plain_text",
                             "text": "Date Requested: {request_date}".format(
-                                request_date=request_date.strftime("%m/%d/%Y"),
+                                request_date=request_date,
                             ),
                             "emoji": True,
                         },
                         {
                             "type": "plain_text",
-                            "text": "Date Completed: {request_date}".format(
-                                request_date=datetime.now().strftime("%m/%d/%Y"),
+                            "text": "Date Completed: {complete_date}".format(
+                                complete_date=datetime.datetime.now().strftime(
+                                    "%B %d, %Y"
+                                ),
                             ),
                             "emoji": True,
                         },
