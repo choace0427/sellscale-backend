@@ -20,6 +20,8 @@ class SlackNotificationType(Enum):
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
     DEMO_FEEDBACK_UPDATED = "DEMO_FEEDBACK_UPDATED"
 
+    AI_TASK_COMPLETED = "AI_TASK_COMPLETED"
+
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
 
@@ -55,6 +57,9 @@ def get_slack_notification_type_metadata():
     )
     from src.slack.notifications.email_multichanneled import (
         EmailMultichanneledNotification,
+    )
+    from src.slack.notifications.ai_task_completed import (
+        AITaskCompletedNotification,
     )
 
     map_slack_notification_type_to_metadata = {
@@ -104,6 +109,12 @@ def get_slack_notification_type_metadata():
             "name": "Demo Feedback Updated",
             "description": "A Slack notification that is sent whenever you give update feedback on a Demo",
             "class": DemoFeedbackUpdatedNotification,
+            "outbound_channel": "all",
+        },
+        SlackNotificationType.AI_TASK_COMPLETED: {
+            "name": "AI Task Completed",
+            "description": "A Slack notification that is sent whenever the AI completes a task for you",
+            "class": AITaskCompletedNotification,
             "outbound_channel": "all",
         },
     }
