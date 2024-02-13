@@ -426,7 +426,7 @@ def create_client_archetype(
             "End with Best, (new line) (My Name) (new line) (Title)",
         ],
         contract_size=persona_contract_size or c.contract_size,
-        li_bump_amount=3,
+        li_bump_amount=0,
         persona_cta_framework_company=cta_blanks_company,
         persona_cta_framework_persona=cta_blanks_persona,
         persona_cta_framework_action=cta_blanks_solution,
