@@ -8,6 +8,7 @@ class SlackNotificationType(Enum):
 
     # LINKEDIN
     LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
+    LINKEDIN_PROSPECT_RESPONDED = "LINKEDIN_PROSPECT_RESPONDED"
     LINKEDIN_PROSPECT_SCHEDULING = "LINKEDIN_PROSPECT_SCHEDULING"
     LINKEDIN_PROSPECT_REMOVED = "LINKEDIN_PROSPECT_REMOVED"
 
@@ -43,6 +44,9 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.linkedin_invite_accepted import (
         LinkedInInviteAcceptedNotification,
     )
+    from src.slack.notifications.linkedin_prospect_responded import (
+        LinkedinProspectRespondedNotification,
+    )
     from src.slack.notifications.email_link_clicked import EmailLinkClickedNotification
     from src.slack.notifications.demo_feedback_updated import (
         DemoFeedbackUpdatedNotification,
@@ -71,6 +75,12 @@ def get_slack_notification_type_metadata():
             "name": "LinkedIn Invite Accepted",
             "description": "A Slack notification that is sent when the Prospect accepts a LinkedIn invite",
             "class": LinkedInInviteAcceptedNotification,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_PROSPECT_RESPONDED: {
+            "name": "Linkedin Prospect Responded",
+            "description": "A Slack notification that is sent when a Prospect has responded to your LinkedIn message for the first time.",
+            "class": LinkedinProspectRespondedNotification,
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING: {
