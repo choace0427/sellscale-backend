@@ -120,7 +120,7 @@ def update_ai_requests(
             ai_task_complete_notif = AITaskCompletedNotification(
                 client_sdr_id=sdr.id,
                 title=ai_request.title,
-                description=ai_request.description,
+                description=details,
                 minutes_worked=minutes_worked,
             )
             ai_task_complete_notif.send_notification(preview_mode=False)
