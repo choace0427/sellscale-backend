@@ -4443,7 +4443,7 @@ def get_tam_industries(client_sdr_id: int):
     results = db.session.execute(
         """
         select
-          company,
+          industry,
           count(distinct prospect.id)
         from prospect
         where prospect.client_id = {client_id}
@@ -4457,7 +4457,7 @@ def get_tam_industries(client_sdr_id: int):
 
     # index to status map
     key_map = {
-        0: "company",
+        0: "industry",
         1: "count",
     }
 

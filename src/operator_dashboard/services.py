@@ -225,7 +225,9 @@ def mark_task_complete(client_sdr_id: int, task_id: int, silent: bool = False) -
         priority = "🟢 `low`"
     if not silent:
         send_slack_message(
-            message="A new task was cleared by {first_name}".format(first_name=first_name),
+            message="A new task was cleared by {first_name}".format(
+                first_name=first_name
+            ),
             blocks=[
                 {
                     "type": "header",
@@ -253,8 +255,8 @@ def mark_task_complete(client_sdr_id: int, task_id: int, silent: bool = False) -
     return True
 
 
-def dismiss_task(client_sdr_id: int, task_id: int) -> bool:
-    entry = (
+def dismiss_task(client_sdr_id: int, task_id: int, days=int) -> bool:
+    entry: OperatorDashboardEntry = (
         OperatorDashboardEntry.query.filter_by(id=task_id)
         .filter_by(client_sdr_id=client_sdr_id)
         .first()
@@ -264,9 +266,12 @@ def dismiss_task(client_sdr_id: int, task_id: int) -> bool:
         return False
 
     entry.status = OperatorDashboardEntryStatus.DISMISSED
+    # entry.hidden_until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+
     db.session.commit()
 
     return True
+
 
 @celery.task
 def auto_resolve_linkedin_tasks():
@@ -287,7 +292,7 @@ def auto_resolve_linkedin_tasks():
     tasks = db.session.execute(query).fetchall()
     if not tasks:
         return
-    
+
     success = True
     for task in tasks:
         client_sdr_id = task[0]

@@ -34,7 +34,7 @@ def add_url_link(client_sdr_id: Optional[int], long_url: str, description: str):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     url_link = LinkURL(
         client_id=sdr.client_id if sdr else None,
-        url=url,
+        url=long_url,
         tiny_url=tiny_url,
         description=description,
     )
