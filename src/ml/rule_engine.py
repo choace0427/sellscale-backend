@@ -232,7 +232,10 @@ def run_message_rule_engine(message_id: int):
         )
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
-    rule_no_ingratiation(completion, problems, highlighted_words)
+
+    if message.message_type != GeneratedMessageType.EMAIL:
+        rule_no_ingratiation(completion, problems, highlighted_words)
+
     rule_no_sdr_blacklist_words(completion, problems, highlighted_words, client_sdr_id)
 
     # Only run for Email Subject Lines
