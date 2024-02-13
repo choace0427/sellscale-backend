@@ -152,7 +152,7 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
         slack_bot_send_message(
             notification_type=SlackNotificationType.EMAIL_PROSPECT_REPLIED,
             client_id=client.id,
-            base_message=f"{prospect_name} responded to your email!",
+            base_message=f"🙌🏽 {prospect_name} responded to your email!",
             blocks=[
                 {
                     "type": "header",

@@ -140,7 +140,7 @@ class LinkedinProspectRespondedNotification(SlackNotificationClass):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"{prospect_name} responded to your Linkedin Invite!",
+                        "text": f"🙌 {prospect_name} responded to your Linkedin Invite!",
                         "emoji": True,
                     },
                 },
@@ -229,7 +229,7 @@ class LinkedinProspectRespondedNotification(SlackNotificationClass):
         slack_bot_send_message(
             notification_type=SlackNotificationType.LINKEDIN_PROSPECT_RESPONDED,
             client_id=client.id,
-            base_message=f"{prospect_name} responded to your Linkedin Invite!",
+            base_message=f"🙌 {prospect_name} responded to your Linkedin Invite!",
             blocks=message_blocks,
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,

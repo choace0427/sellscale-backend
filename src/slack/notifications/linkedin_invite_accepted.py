@@ -118,7 +118,7 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
         slack_bot_send_message(
             notification_type=SlackNotificationType.LINKEDIN_INVITE_ACCEPTED,
             client_id=client.id,
-            base_message=f"A LinkedIn invite was accepted by {prospect_name} ({prospect_title}) at {prospect_company} ({archetype_name}).",
+            base_message=f"😀 A LinkedIn invite was accepted by {prospect_name} ({prospect_title}) at {prospect_company} ({archetype_name}).",
             blocks=[
                 {
                     "type": "header",

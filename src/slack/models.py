@@ -11,6 +11,7 @@ class SlackNotificationType(Enum):
     LINKEDIN_PROSPECT_RESPONDED = "LINKEDIN_PROSPECT_RESPONDED"
     LINKEDIN_PROSPECT_SCHEDULING = "LINKEDIN_PROSPECT_SCHEDULING"
     LINKEDIN_PROSPECT_REMOVED = "LINKEDIN_PROSPECT_REMOVED"
+    LINKEDIN_DEMO_SET = "LINKEDIN_DEMO_SET"
 
     # EMAIL
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
@@ -46,6 +47,9 @@ def get_slack_notification_type_metadata():
     )
     from src.slack.notifications.linkedin_prospect_responded import (
         LinkedinProspectRespondedNotification,
+    )
+    from src.slack.notifications.linkedin_demo_set import (
+        LinkedInDemoSetNotification,
     )
     from src.slack.notifications.email_link_clicked import EmailLinkClickedNotification
     from src.slack.notifications.demo_feedback_updated import (
@@ -93,6 +97,12 @@ def get_slack_notification_type_metadata():
             "name": "Linkedin Prospect Removed",
             "description": "A Slack notification that is sent when a Prospect is removed from your pipeline",
             "class": LinkedinProspectRemovedNotification,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_DEMO_SET: {
+            "name": "LinkedIn DEMO SET",
+            "description": "A Slack notification that is sent when a Prospect set demo on LinkedIn",
+            "class": LinkedInDemoSetNotification,
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.AI_REPLY_TO_EMAIL: {

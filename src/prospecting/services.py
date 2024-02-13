@@ -721,22 +721,40 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SET_TIME_TO_DEMO.value,
             engagement_metadata=message,
         )
+
+        from src.slack.notifications.linkedin_demo_set import (
+            LinkedInDemoSetNotification,
+        )
+
         if p.meta_data and p.meta_data.get("demo_set", {}).get("type", {}) == "HANDOFF":
-            send_status_change_slack_block(
-                outreach_type=ProspectChannels.LINKEDIN,
-                prospect=p,
-                new_status=ProspectStatus.DEMO_SET,
-                custom_message=" was handed off internally!! 🎉",
-                metadata={"threadUrl": p.li_conversation_thread_id},
+            notification = LinkedInDemoSetNotification(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
+                is_hand_off=True
             )
+            success = notification.send_notification(preview_mode=False)
+
+            # send_status_change_slack_block(
+            #     outreach_type=ProspectChannels.LINKEDIN,
+            #     prospect=p,
+            #     new_status=ProspectStatus.DEMO_SET,
+            #     custom_message=" was handed off internally!! 🎉",
+            #     metadata={"threadUrl": p.li_conversation_thread_id},
+            # )
         else:
-            send_status_change_slack_block(
-                outreach_type=ProspectChannels.LINKEDIN,
-                prospect=p,
-                new_status=ProspectStatus.DEMO_SET,
-                custom_message=" set a time to demo!! 🎉🎉🎉",
-                metadata={"threadUrl": p.li_conversation_thread_id},
+            notification = LinkedInDemoSetNotification(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
             )
+            success = notification.send_notification(preview_mode=False)
+
+            # send_status_change_slack_block(
+            #     outreach_type=ProspectChannels.LINKEDIN,
+            #     prospect=p,
+            #     new_status=ProspectStatus.DEMO_SET,
+            #     custom_message=" set a time to demo!! 🎉🎉🎉",
+            #     metadata={"threadUrl": p.li_conversation_thread_id},
+            # )
     elif new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,

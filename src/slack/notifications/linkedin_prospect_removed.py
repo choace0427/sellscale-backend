@@ -194,7 +194,7 @@ class LinkedinProspectRemovedNotification(SlackNotificationClass):
         slack_bot_send_message(
             notification_type=SlackNotificationType.LINKEDIN_PROSPECT_REMOVED,
             client_id=client.id,
-            base_message="",
+            base_message=f"🧹 SellScale has cleaned up your pipeline",
             blocks=blocks,
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,
