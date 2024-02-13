@@ -44,6 +44,7 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
 
         def get_preview_fields() -> dict:
             """Gets the fields to be used in the preview message."""
+            client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
 
             return {
                 "prospect_name": "John Doe",
@@ -121,7 +122,7 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
         direct_link = fields.get("direct_link")
-        conversation = fields.get("convo")
+        conversation = fields.get("conversation")
         initial_send_date = fields.get("initial_send_date")
 
         if (
@@ -129,10 +130,10 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
             or not prospect_title
             or not prospect_company
             or not prospect_icp_fit_reason
-            or not header
-            or not base_message
-            or not conversation
+            or not archetype_name
+            or not archetype_emoji
             or not direct_link
+            or not conversation
             or not initial_send_date
         ):
             return False

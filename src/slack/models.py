@@ -100,8 +100,8 @@ def get_slack_notification_type_metadata():
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.LINKEDIN_DEMO_SET: {
-            "name": "LinkedIn DEMO SET",
-            "description": "A Slack notification that is sent when a Prospect set demo on LinkedIn",
+            "name": "LinkedIn Demo Set",
+            "description": "A Slack notification that is sent when a Prospect schedules a demo through LinkedIn",
             "class": LinkedInDemoSetNotification,
             "outbound_channel": "linkedin",
         },
