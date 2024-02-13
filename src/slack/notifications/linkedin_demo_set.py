@@ -110,7 +110,7 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id or not self.is_hand_off:
+            if not self.prospect_id:
                 return False
             fields = get_fields()
 
