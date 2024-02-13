@@ -14,6 +14,7 @@ from src.prospecting.models import Prospect
 from src.client.services import (
     create_archetype_asset,
     get_available_times_via_calendly,
+    get_client_assets,
     get_tam_data,
     msg_analytics_report,
     remove_prospects_caught_by_filters,
@@ -2941,3 +2942,10 @@ def post_create_archetype_asset(client_sdr_id: int):
         return "Failed to create archetype asset", 400
 
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/get_assets", methods=["GET"])
+@require_user
+def get_assets_edpoint(client_sdr_id: int):
+    assets = get_client_assets(client_sdr_id)
+    return jsonify({"message": "Success", "data": assets}), 200
