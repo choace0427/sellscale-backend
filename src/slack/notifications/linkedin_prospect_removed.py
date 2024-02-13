@@ -82,7 +82,7 @@ class LinkedinProspectRemovedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
+            if not self.prospect_id or not self.old_status or not self.new_status:
                 return False
             fields = get_fields()
 

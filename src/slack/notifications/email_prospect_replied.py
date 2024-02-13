@@ -110,7 +110,12 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
+            if (
+                not self.prospect_id
+                or not self.email_sent_subject
+                or not self.email_sent_body
+                or not self.email_reply_body
+            ):
                 return False
             fields = get_fields()
 

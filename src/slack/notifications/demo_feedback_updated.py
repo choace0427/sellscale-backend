@@ -10,7 +10,6 @@ from src.utils.slack import URL_MAP
 
 
 class DemoFeedbackUpdatedNotification(SlackNotificationClass):
-
     """A Slack notification that is sent whenever the SDR gives feedback on a Demo
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
@@ -103,7 +102,12 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
+            if (
+                not self.rating
+                or not self.notes
+                or not self.ai_adjustment
+                or not self.prospect_id
+            ):
                 return False
             fields = get_fields()
 
