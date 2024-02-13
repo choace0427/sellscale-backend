@@ -66,14 +66,16 @@ class AITaskCompletedNotification(SlackNotificationClass):
         def get_fields() -> dict:
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
-            creation_date: AIRequest = AIRequest.query.get(self.client_sdr_id)
+            request: AIRequest = AIRequest.query.get(self.client_sdr_id)
 
             return {
                 "title": self.title,
                 "minutes_worked": self.minutes_worked,
                 "description": self.description,
                 "contact": client_sdr.name,
-                "request_date": creation_date.created_at.strftime("%B %d, %Y"),
+                "request_date": (
+                    request.created_at.strftime("%B %d, %Y") if request else "-"
+                ),
                 "completed_date": datetime.datetime.now().strftime("%B %d, %Y"),
                 "dashboard_url": (
                     "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
