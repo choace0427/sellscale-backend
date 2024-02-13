@@ -66,7 +66,7 @@ class AITaskCompletedNotification(SlackNotificationClass):
         def get_fields() -> dict:
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
-            creation_date: AIRequest = AIRequest.query(self.client_sdr_id)
+            creation_date: AIRequest = AIRequest.query.get(self.client_sdr_id)
 
             return {
                 "title": self.title,
