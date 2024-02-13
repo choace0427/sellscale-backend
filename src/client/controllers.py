@@ -12,6 +12,7 @@ from src.personas.services import (
 )
 from src.prospecting.models import Prospect
 from src.client.services import (
+    create_archetype_asset,
     get_available_times_via_calendly,
     get_tam_data,
     msg_analytics_report,
@@ -2906,5 +2907,37 @@ def post_territory_name(client_sdr_id: int):
 
     if not success:
         return "Failed to update territory name", 400
+
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/create_archetype_asset", methods=["POST"])
+@require_user
+def post_create_archetype_asset(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    asset_key = get_request_parameter(
+        "asset_key", request, json=True, required=True, parameter_type=str
+    )
+    asset_value = get_request_parameter(
+        "asset_value", request, json=True, required=True, parameter_type=str
+    )
+    asset_reason = get_request_parameter(
+        "asset_reason", request, json=True, required=True, parameter_type=str
+    )
+
+    success = create_archetype_asset(
+        client_id=client_id,
+        client_archetype_id=client_archetype_id,
+        asset_key=asset_key,
+        asset_value=asset_value,
+        asset_reason=asset_reason,
+    )
+
+    if not success:
+        return "Failed to create archetype asset", 400
 
     return "OK", 200

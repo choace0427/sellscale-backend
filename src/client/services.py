@@ -34,7 +34,7 @@ from src.prospecting.models import ProspectEvent
 from model_import import DemoFeedback, BumpFramework
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
-from src.client.models import ClientProduct
+from src.client.models import ClientArchetypeAssets, ClientProduct
 from sqlalchemy import or_
 from click import Option
 from src.client.models import DemoFeedback
@@ -4664,3 +4664,43 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
     db.session.commit()
 
     return True
+
+
+def create_archetype_asset(
+    client_id: int,
+    client_archetype_id: int,
+    asset_key: str,
+    asset_value: str,
+    asset_reason: str,
+):
+    """
+    Creates an asset for a client archetype
+    """
+    asset = ClientArchetypeAssets(
+        client_id=client_id,
+        client_archetype_id=client_archetype_id,
+        asset_key=asset_key,
+        asset_value=asset_value,
+        asset_reason=asset_reason,
+    )
+    db.session.add(asset)
+    db.session.commit()
+    return True
+
+
+def get_archetype_assets(client_archetype_id: int):
+    """
+    Gets all assets for a client archetype
+    """
+    assets = ClientArchetypeAssets.query.filter_by(
+        client_archetype_id=client_archetype_id
+    ).all()
+    return [asset.to_dict() for asset in assets]
+
+
+def get_client_assets(client_id: int):
+    """
+    Gets all assets for a client
+    """
+    assets = ClientArchetypeAssets.query.filter_by(client_id=client_id).all()
+    return [asset.to_dict() for asset in assets]

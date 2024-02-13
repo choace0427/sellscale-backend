@@ -195,9 +195,9 @@ class ClientArchetype(db.Model):
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[
-            GeneratedMessageCTA
-        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        ctas: list[GeneratedMessageCTA] = (
+            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        )
 
         return {
             "id": self.id,
@@ -207,14 +207,16 @@ class ClientArchetype(db.Model):
             "active": self.active,
             "linkedin_active": self.linkedin_active,
             "email_active": self.email_active,
-            "transformer_blocklist": [t for t in self.transformer_blocklist]
-            if self.transformer_blocklist
-            else [],
-            "transformer_blocklist_initial": [
-                t for t in self.transformer_blocklist_initial
-            ]
-            if self.transformer_blocklist_initial
-            else [],
+            "transformer_blocklist": (
+                [t for t in self.transformer_blocklist]
+                if self.transformer_blocklist
+                else []
+            ),
+            "transformer_blocklist_initial": (
+                [t for t in self.transformer_blocklist_initial]
+                if self.transformer_blocklist_initial
+                else []
+            ),
             "disable_ai_after_prospect_engaged": self.disable_ai_after_prospect_engaged,
             "client_sdr_id": self.client_sdr_id,
             "persona_fit_reason": self.persona_fit_reason,
@@ -537,9 +539,11 @@ class ClientSDR(db.Model):
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
-            "sla_schedules": [sla_schedule.to_dict() for sla_schedule in sla_schedules]
-            if sla_schedules
-            else None,
+            "sla_schedules": (
+                [sla_schedule.to_dict() for sla_schedule in sla_schedules]
+                if sla_schedules
+                else None
+            ),
             "browser_extension_ui_overlay": self.browser_extension_ui_overlay,
             "auto_archive_convos": self.auto_archive_convos,
             "slack_user_id": self.slack_user_id,
@@ -557,12 +561,12 @@ class ClientSDR(db.Model):
             "meta_data": self.meta_data,
             "auto_send_linkedin_campaign": self.auto_send_linkedin_campaign,
             "auto_send_email_campaign": self.auto_send_email_campaign,
-            "avg_contract_size": client.contract_size
-            if client and client.contract_size
-            else 10000,
-            "unassigned_persona_id": unassigned_persona.id
-            if unassigned_persona
-            else None,
+            "avg_contract_size": (
+                client.contract_size if client and client.contract_size else 10000
+            ),
+            "unassigned_persona_id": (
+                unassigned_persona.id if unassigned_persona else None
+            ),
         }
 
 
@@ -659,3 +663,27 @@ class PLGProductLeads(db.Model):
     blocks = db.Column(db.JSON)
 
     is_test = db.Column(db.Boolean, nullable=True, default=False)
+
+
+class ClientArchetypeAssets(db.Model):
+    __tablename__ = "client_archetype_assets"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
+    asset_key = db.Column(db.String)
+    asset_value = db.Column(db.String)
+    asset_reason = db.Column(db.String)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_archetype_id": self.client_archetype_id,
+            "asset_key": self.asset_key,
+            "asset_value": self.asset_value,
+            "asset_reason": self.asset_reason,
+        }
