@@ -64,6 +64,9 @@ from src.segment.models import Segment
 from src.slack.notifications.email_prospect_replied import (
     EmailProspectRepliedNotification,
 )
+from src.slack.notifications.linkedin_prospect_removed import (
+    LinkedinProspectRemovedNotification,
+)
 from src.slack.notifications.linkedin_prospect_scheduling import (
     LinkedinProspectSchedulingNotification,
 )
@@ -532,95 +535,103 @@ def update_prospect_status_linkedin(
             prospect_id=p.id,
         )
         disqualification_reason = p.disqualification_reason or "Unknown"
-        send_slack_message(
-            message="",
-            webhook_urls=[client.pipeline_notifications_webhook_url],
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "🧹 SellScale has cleaned up your pipeline",
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Prospect removed:* {prospect_name}".format(
-                            prospect_name=prospect_name,
-                            prospect_message=(
-                                p.li_last_message_from_prospect.replace("\n", " ")
-                                if p.li_last_message_from_prospect
-                                else "-"
-                            ),
-                        ),
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*AI label change:* `{old_status}` -> `{new_status}`".format(
-                            old_status=current_status.value, new_status=new_status.value
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*🧠 {type} Reason:* `{disqualification_reason}`".format(
-                            type=(
-                                "Disqualification"
-                                if new_status == ProspectStatus.NOT_QUALIFIED
-                                else "Not Interested"
-                            ),
-                            disqualification_reason=disqualification_reason,
-                        ),
-                    },
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "🧳 Title: "
-                            + str(p.title)
-                            + " @ "
-                            + str(p.company)[0:20]
-                            + ("..." if len(p.company) > 20 else ""),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "📌 SDR: " + client_sdr.name,
-                            "emoji": True,
-                        },
-                    ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": " ",
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "View Convo in Sight",
-                            "emoji": True,
-                        },
-                        "value": direct_link,
-                        "url": direct_link,
-                        "action_id": "button-action",
-                    },
-                },
-            ],
+        prospect_removed_notification = LinkedinProspectRemovedNotification(
+            client_sdr_id=p.client_sdr_id,
+            prospect_id=p.id,
+            old_status=current_status.value,
+            new_status=new_status.value,
         )
+        success = prospect_removed_notification.send_notification(preview_mode=False)
+
+        # send_slack_message(
+        #     message="",
+        #     webhook_urls=[client.pipeline_notifications_webhook_url],
+        #     blocks=[
+        #         {
+        #             "type": "header",
+        #             "text": {
+        #                 "type": "plain_text",
+        #                 "text": "🧹 SellScale has cleaned up your pipeline",
+        #                 "emoji": True,
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*Prospect removed:* {prospect_name}".format(
+        #                     prospect_name=prospect_name,
+        #                     prospect_message=(
+        #                         p.li_last_message_from_prospect.replace("\n", " ")
+        #                         if p.li_last_message_from_prospect
+        #                         else "-"
+        #                     ),
+        #                 ),
+        #             },
+        #         },
+        #         {"type": "divider"},
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*AI label change:* `{old_status}` -> `{new_status}`".format(
+        #                     old_status=current_status.value, new_status=new_status.value
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*🧠 {type} Reason:* `{disqualification_reason}`".format(
+        #                     type=(
+        #                         "Disqualification"
+        #                         if new_status == ProspectStatus.NOT_QUALIFIED
+        #                         else "Not Interested"
+        #                     ),
+        #                     disqualification_reason=disqualification_reason,
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "context",
+        #             "elements": [
+        #                 {
+        #                     "type": "plain_text",
+        #                     "text": "🧳 Title: "
+        #                     + str(p.title)
+        #                     + " @ "
+        #                     + str(p.company)[0:20]
+        #                     + ("..." if len(p.company) > 20 else ""),
+        #                     "emoji": True,
+        #                 },
+        #                 {
+        #                     "type": "plain_text",
+        #                     "text": "📌 SDR: " + client_sdr.name,
+        #                     "emoji": True,
+        #                 },
+        #             ],
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": " ",
+        #             },
+        #             "accessory": {
+        #                 "type": "button",
+        #                 "text": {
+        #                     "type": "plain_text",
+        #                     "text": "View Convo in Sight",
+        #                     "emoji": True,
+        #                 },
+        #                 "value": direct_link,
+        #                 "url": direct_link,
+        #                 "action_id": "button-action",
+        #             },
+        #         },
+        #     ],
+        # )
 
         # Archive their LinkedIn convo
         if client_sdr.auto_archive_convos is None or client_sdr.auto_archive_convos:

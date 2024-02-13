@@ -56,6 +56,11 @@ class AITaskCompletedNotification(SlackNotificationClass):
                 "contact": client_sdr.name,
                 "request_date": datetime.datetime.now().strftime("%B %d, %Y"),
                 "completed_date": datetime.datetime.now().strftime("%B %d, %Y"),
+                "dashboard_url": (
+                    "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                    + client_sdr.auth_token
+                    + "&redirect=ai-request"
+                ),
             }
 
         def get_fields() -> dict:
@@ -70,6 +75,11 @@ class AITaskCompletedNotification(SlackNotificationClass):
                 "contact": client_sdr.name,
                 "request_date": creation_date.created_at.strftime("%B %d, %Y"),
                 "completed_date": datetime.datetime.now().strftime("%B %d, %Y"),
+                "dashboard_url": (
+                    "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                    + client_sdr.auth_token
+                    + "&redirect=ai-request"
+                ),
             }
 
         # Get the required objects / fields
@@ -88,6 +98,7 @@ class AITaskCompletedNotification(SlackNotificationClass):
         contact = fields.get("contact")
         request_date = fields.get("request_date")
         completed_date = fields.get("completed_date")
+        dashboard_url = fields.get("dashboard_url")
         if (
             not title
             or not minutes_worked
@@ -95,6 +106,7 @@ class AITaskCompletedNotification(SlackNotificationClass):
             or not contact
             or not request_date
             or not completed_date
+            or not dashboard_url
         ):
             return False
 
@@ -169,24 +181,20 @@ class AITaskCompletedNotification(SlackNotificationClass):
                         },
                     ],
                 },
-                # {
-                #     "type": "section",
-                #     "text": {
-                #         "type": "mrkdwn",
-                #         "text": " ",
-                #     },
-                #     "accessory": {
-                #         "type": "button",
-                #         "text": {
-                #             "type": "plain_text",
-                #             "text": "View Convo in Sight",
-                #             "emoji": True,
-                #         },
-                #         "value": direct_link,
-                #         "url": direct_link,
-                #         "action_id": "button-action",
-                #     },
-                # },
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": " "},
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "View in Dashboard →",
+                            "emoji": True,
+                        },
+                        "url": dashboard_url,
+                        "action_id": "button-action",
+                    },
+                },
             ],
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,

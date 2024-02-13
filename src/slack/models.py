@@ -9,6 +9,7 @@ class SlackNotificationType(Enum):
     # LINKEDIN
     LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
     LINKEDIN_PROSPECT_SCHEDULING = "LINKEDIN_PROSPECT_SCHEDULING"
+    LINKEDIN_PROSPECT_REMOVED = "LINKEDIN_PROSPECT_REMOVED"
 
     # EMAIL
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
@@ -61,6 +62,9 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.ai_task_completed import (
         AITaskCompletedNotification,
     )
+    from src.slack.notifications.linkedin_prospect_removed import (
+        LinkedinProspectRemovedNotification,
+    )
 
     map_slack_notification_type_to_metadata = {
         SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
@@ -73,6 +77,12 @@ def get_slack_notification_type_metadata():
             "name": "LinkedIn Prospect Scheduling",
             "description": "A Slack notification that is sent when a Prospect is scheduling a meeting with you on LinkedIn",
             "class": LinkedinProspectSchedulingNotification,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_PROSPECT_REMOVED: {
+            "name": "Linkedin Prospect Removed",
+            "description": "A Slack notification that is sent when a Prospect is removed from your pipeline",
+            "class": LinkedinProspectRemovedNotification,
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.AI_REPLY_TO_EMAIL: {
