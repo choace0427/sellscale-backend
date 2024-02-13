@@ -67,6 +67,9 @@ from src.slack.notifications.email_prospect_replied import (
 from src.slack.notifications.linkedin_prospect_removed import (
     LinkedinProspectRemovedNotification,
 )
+from src.slack.notifications.linkedin_prospect_responded import (
+    LinkedinProspectRespondedNotification,
+)
 from src.slack.notifications.linkedin_prospect_scheduling import (
     LinkedinProspectSchedulingNotification,
 )
@@ -675,13 +678,18 @@ def update_prospect_status_linkedin(
             engagement_metadata=message,
         )
         if not quietly:
-            send_status_change_slack_block(
-                outreach_type=ProspectChannels.LINKEDIN,
-                prospect=p,
-                new_status=ProspectStatus.ACTIVE_CONVO,
-                custom_message=" responded to your LinkedIn Invite! 🙌",
-                metadata=message,
+            responded_notification = LinkedinProspectRespondedNotification(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
             )
+            success = responded_notification.send_notification(preview_mode=False)
+            # send_status_change_slack_block(
+            #     outreach_type=ProspectChannels.LINKEDIN,
+            #     prospect=p,
+            #     new_status=ProspectStatus.ACTIVE_CONVO,
+            #     custom_message=" responded to your LinkedIn Invite! 🙌",
+            #     metadata=message,
+            # )
 
     if new_status == ProspectStatus.SCHEDULING:
         create_engagement_feed_item(
