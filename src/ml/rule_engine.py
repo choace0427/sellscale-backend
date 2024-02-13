@@ -194,15 +194,16 @@ def run_message_rule_engine(message_id: int):
     problems = []
     highlighted_words = []
 
-    # NER AI
-    run_check_message_has_bad_entities(message_id)
-    format_entities(
-        message.unknown_named_entities,
-        problems,
-        highlighted_words,
-        whitelisted_names,
-        cta.text_value if cta else "",
-    )
+    # NER AI for Linkedin only
+    if message.message_type == GeneratedMessageType.LINKEDIN:
+        run_check_message_has_bad_entities(message_id)
+        format_entities(
+            message.unknown_named_entities,
+            problems,
+            highlighted_words,
+            whitelisted_names,
+            cta.text_value if cta else "",
+        )
 
     # Strict Rules
     rule_no_profanity(completion, problems, highlighted_words)
