@@ -739,20 +739,20 @@ def generate_chat_gpt_response_to_conversation_thread(
     override_bump_framework_template: Optional[str] = None,
 ):
     for _ in range(max_retries):
-        try:
-            return generate_chat_gpt_response_to_conversation_thread_helper(
-                prospect_id=prospect_id,
-                convo_history=convo_history,
-                bump_framework_id=bump_framework_id,
-                account_research_copy=account_research_copy,
-                override_bump_length=override_bump_length,
-                use_cache=use_cache,
-                bump_framework_template_id=bump_framework_template_id,
-                override_bump_framework_template=override_bump_framework_template,
-            )
-        except Exception as e:
-            time.sleep(2)
-            continue
+        # try:
+        return generate_chat_gpt_response_to_conversation_thread_helper(
+            prospect_id=prospect_id,
+            convo_history=convo_history,
+            bump_framework_id=bump_framework_id,
+            account_research_copy=account_research_copy,
+            override_bump_length=override_bump_length,
+            use_cache=use_cache,
+            bump_framework_template_id=bump_framework_template_id,
+            override_bump_framework_template=override_bump_framework_template,
+        )
+        # except Exception as e:
+        #     time.sleep(2)
+        #     continue
 
 
 def generate_smart_response(
@@ -767,8 +767,12 @@ def generate_smart_response(
 
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
-        raise Exception("No message from SDR found in convo_history")
-    sender = msg.author
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr_id = prospect.client_sdr_id
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        sender = sdr.name
+    else:
+        sender = msg.author
 
     transcript = "\n\n".join(
         [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
@@ -886,8 +890,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     # First the first message from the SDR
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
-        raise Exception("No message from SDR found in convo_history")
-    sender = msg.author
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr_id = prospect.client_sdr_id
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        sender = sdr.name
+    else:
+        sender = msg.author
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
@@ -1086,8 +1094,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper_legacy(
     # First the first message from the SDR
     msg = next(filter(lambda x: x.connection_degree == "You", convo_history), None)
     if not msg:
-        raise Exception("No message from SDR found in convo_history")
-    sender = msg.author
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr_id = prospect.client_sdr_id
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        sender = sdr.name
+    else:
+        sender = msg.author
 
     transcript = "\n\n".join(
         [x.author + " (" + str(x.date)[0:10] + "): " + x.message for x in convo_history]
