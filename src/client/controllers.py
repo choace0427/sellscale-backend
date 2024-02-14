@@ -2917,8 +2917,8 @@ def post_territory_name(client_sdr_id: int):
 def post_create_archetype_asset(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
-    client_archetype_id = get_request_parameter(
-        "client_archetype_id", request, json=True, required=True, parameter_type=int
+    client_archetype_ids = get_request_parameter(
+        "client_archetype_ids", request, json=True, required=False, parameter_type=int
     )
     asset_key = get_request_parameter(
         "asset_key", request, json=True, required=True, parameter_type=str
@@ -2932,7 +2932,7 @@ def post_create_archetype_asset(client_sdr_id: int):
 
     success = create_archetype_asset(
         client_id=client_id,
-        client_archetype_id=client_archetype_id,
+        client_archetype_ids=client_archetype_ids,
         asset_key=asset_key,
         asset_value=asset_value,
         asset_reason=asset_reason,
@@ -2947,5 +2947,6 @@ def post_create_archetype_asset(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/get_assets", methods=["GET"])
 @require_user
 def get_assets_edpoint(client_sdr_id: int):
-    assets = get_client_assets(client_sdr_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    assets = get_client_assets(client_sdr.client_id)
     return jsonify({"message": "Success", "data": assets}), 200

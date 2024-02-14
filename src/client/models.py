@@ -671,9 +671,7 @@ class ClientArchetypeAssets(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
-    client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
-    )
+    client_archetype_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
     asset_key = db.Column(db.String)
     asset_value = db.Column(db.String)
     asset_reason = db.Column(db.String)
@@ -682,7 +680,7 @@ class ClientArchetypeAssets(db.Model):
         return {
             "id": self.id,
             "client_id": self.client_id,
-            "client_archetype_id": self.client_archetype_id,
+            "client_archetype_ids": self.client_archetype_ids,
             "asset_key": self.asset_key,
             "asset_value": self.asset_value,
             "asset_reason": self.asset_reason,

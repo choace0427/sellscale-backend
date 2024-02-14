@@ -4668,7 +4668,7 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 def create_archetype_asset(
     client_id: int,
-    client_archetype_id: int,
+    client_archetype_ids: list[int],
     asset_key: str,
     asset_value: str,
     asset_reason: str,
@@ -4678,7 +4678,7 @@ def create_archetype_asset(
     """
     asset = ClientArchetypeAssets(
         client_id=client_id,
-        client_archetype_id=client_archetype_id,
+        client_archetype_ids=client_archetype_ids,
         asset_key=asset_key,
         asset_value=asset_value,
         asset_reason=asset_reason,
@@ -4693,7 +4693,7 @@ def get_archetype_assets(client_archetype_id: int):
     Gets all assets for a client archetype
     """
     assets = ClientArchetypeAssets.query.filter_by(
-        client_archetype_id=client_archetype_id
+        client_archetype_ids.contains([client_archetype_id])
     ).all()
     return [asset.to_dict() for asset in assets]
 
