@@ -6,6 +6,7 @@ from src.message_generation.services import clear_auto_generated_bumps
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from src.utils.slack import send_slack_message
 from typing import Optional
+from src.analytics.services import add_activity_log
 
 
 def get_db_bump_messages(bump_id: int):
@@ -339,6 +340,14 @@ def create_bump_framework(
     db.session.add(bump_framework)
     db.session.commit()
     bump_framework_id = bump_framework.id
+
+    # Add an activity log
+    add_activity_log(
+        client_sdr_id=client_sdr_id,
+        type="BUMP-FRAMEWORK-CREATED",
+        name="Bump Framework Created",
+        description=f"Created a new bump framework: {title}",
+    )
 
     return bump_framework_id
 

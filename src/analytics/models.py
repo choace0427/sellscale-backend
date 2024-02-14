@@ -1,5 +1,4 @@
 from email.policy import default
-
 from app import db
 
 
@@ -45,3 +44,29 @@ class ChatBotDataRepository(db.Model):
     rejection_report_data = db.Column(db.JSON, nullable=True)
     demo_feedback_data = db.Column(db.JSON, nullable=True)
     message_analytics_data = db.Column(db.JSON, nullable=True)
+
+
+class ActivityLog(db.Model):
+    __tablename__ = "activity_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    type = db.Column(db.String)
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+
+    def to_dict(self):
+
+        from model_import import ClientSDR
+
+        sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
+        return {
+            "id": self.id,
+            "client_sdr_id": self.client_sdr_id,
+            "sdr_name": sdr.name if sdr else "Unknown",
+            "type": self.type,
+            "name": self.name,
+            "description": self.description,
+            "created_at": self.created_at,
+        }
