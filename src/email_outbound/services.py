@@ -45,6 +45,7 @@ from src.email_outbound.models import (
 from src.email_outbound.ss_data import SSData
 from src.automation.slack_notification import send_status_change_slack_block
 import markdown
+from src.analytics.services import add_activity_log
 
 
 def create_prospect_email(
@@ -481,6 +482,14 @@ def update_status_from_ss_data(
                 custom_message=" responded to your email! 🙌🏽",
                 metadata={},
             )
+
+            add_activity_log(
+                client_sdr_id=prospect.client_sdr_id,
+                type="EMAIL-RESPONDED",
+                name="Email Responded",
+                description=f"{prospect.full_name} responded to your email.",
+            )
+
         elif (
             new_outreach_status == ProspectEmailOutreachStatus.SCHEDULING
         ):  # Scheduling
@@ -491,6 +500,14 @@ def update_status_from_ss_data(
                 custom_message=" is scheduling! 🙏🔥",
                 metadata={},
             )
+
+            add_activity_log(
+                client_sdr_id=prospect.client_sdr_id,
+                type="SCHEDULING",
+                name="Scheduled",
+                description=f"{prospect.full_name} is scheduling.",
+            )
+
         elif new_outreach_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
             send_status_change_slack_block(
                 outreach_type=ProspectChannels.EMAIL,
@@ -498,6 +515,13 @@ def update_status_from_ss_data(
                 new_status=ProspectEmailOutreachStatus.DEMO_SET,
                 custom_message=" set a time to demo!! 🎉🎉🎉",
                 metadata={},
+            )
+
+            add_activity_log(
+                client_sdr_id=prospect.client_sdr_id,
+                type="DEMOING",
+                name="Demo Set",
+                description=f"{prospect.full_name} set a time to demo.",
             )
 
         # Create ProspectEmailStatusRecords entry and save ProspectEmail.

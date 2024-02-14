@@ -1,4 +1,4 @@
-from src.analytics.models import FeatureFlag
+from src.analytics.models import ActivityLog, FeatureFlag
 from app import db
 from flask import jsonify
 
@@ -487,3 +487,39 @@ def get_upload_analytics_for_client(client_id):
             analytics["uploads"].append(upload_data)
 
     return analytics
+
+
+def add_activity_log(client_sdr_id: int, type: str, name: str, description: str):
+    """Adds an activity log for a given ClientSDR
+
+    Args:
+        client_sdr_id (int): The ClientSDR id
+        type (str): The type of activity
+        name (str): The name of the activity
+        description (str): The description of the activity
+    """
+    activity_log = ActivityLog(
+        client_sdr_id=client_sdr_id,
+        type=type,
+        name=name,
+        description=description,
+    )
+    db.session.add(activity_log)
+    db.session.commit()
+
+    return activity_log.id
+
+
+def get_activity_logs(client_sdr_id: int) -> list[dict]:
+    """Gets all activity logs for a given ClientSDR
+
+    Args:
+        client_sdr_id (int): The ClientSDR id
+
+    Returns:
+        List[dict]: Returns a list of activity logs for a given ClientSDR
+    """
+    activity_logs: list[ActivityLog] = ActivityLog.query.filter(
+        ActivityLog.client_sdr_id == client_sdr_id
+    ).all()
+    return [activity_log.to_dict() for activity_log in activity_logs]

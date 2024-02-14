@@ -1626,6 +1626,14 @@ def create_prospect_from_linkedin_link(
     is_lookalike_profile: bool = False,
 ) -> tuple[bool, int or str]:
     from src.research.linkedin.services import research_personal_profile_details
+    
+    # Add an activity log
+    # add_activity_log(
+    #     client_sdr_id=client_sdr_id,
+    #     type="PROSPECT-CREATED",
+    #     name="Prospect Created",
+    #     description=f"",
+    # )
 
     try:
         if "/in/" in url:

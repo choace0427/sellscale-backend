@@ -5,6 +5,7 @@ from src.prospecting.models import Prospect
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
+from src.analytics.services import add_activity_log
 
 
 class LinkedInInviteAcceptedNotification(SlackNotificationClass):
@@ -204,6 +205,14 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,
             testing=self.developer_mode,
+        )
+
+        # Add an activity log
+        add_activity_log(
+            client_sdr_id=client_sdr.id,
+            type="LINKEDIN-ACCEPTED",
+            name="LinkedIn Invite Accepted",
+            description=f"{prospect_name} accepted your LinkedIn invite.",
         )
 
         return True

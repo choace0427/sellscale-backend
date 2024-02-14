@@ -15,6 +15,7 @@ from src.prospecting.models import Prospect, ProspectChannels
 from src.prospecting.nylas.services import nylas_update_messages, nylas_update_threads
 from src.prospecting.services import calculate_prospect_overall_status
 from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus
+from src.analytics.services import add_activity_log
 
 
 @celery.task(bind=True, max_retries=5)
@@ -248,6 +249,14 @@ def process_single_message_opened(
                     "prospect_email": prospect.email,
                     "email_title": convo_thread.subject,
                 },
+            )
+
+            # Add an activity log
+            add_activity_log(
+                client_sdr_id=prospect.client_sdr_id,
+                type="EMAIL-OPENED",
+                name="Email Opened",
+                description=f"{prospect.full_name} ({prospect.email}) opened your email.",
             )
 
         # Calculate prospect overall status

@@ -49,6 +49,7 @@ import json
 from datetime import datetime, timedelta
 from sqlalchemy.orm.attributes import flag_modified
 from nylas import APIClient
+from src.analytics.services import add_activity_log
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -561,6 +562,14 @@ def create_client_archetype(
         excluded_individual_education_keywords=[],
         included_individual_seniority_keywords=[],
         excluded_individual_seniority_keywords=[],
+    )
+
+    # Add an activity log
+    add_activity_log(
+        client_sdr_id=client_sdr_id,
+        type="CAMPAIGN-CREATED",
+        name="Campaign Created",
+        description=f"Created a new campaign for {archetype}",
     )
 
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
@@ -4704,3 +4713,19 @@ def get_client_assets(client_id: int):
     """
     assets = ClientArchetypeAssets.query.filter_by(client_id=client_id).all()
     return [asset.to_dict() for asset in assets]
+
+
+def delete_archetype_asset(asset_id: int, client_sdr_id: int):
+    """
+    Deletes an asset for a client archetype
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    asset = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_sdr.client_id
+    ).first()
+    if not asset:
+        return False
+    db.session.delete(asset)
+    db.session.commit()
+    return True
+

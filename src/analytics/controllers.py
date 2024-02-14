@@ -5,6 +5,8 @@ from src.analytics.services_chatbot import answer_question, process_data_and_ans
 from src.client.models import ClientArchetype
 from src.utils.request_helpers import get_request_parameter
 from src.analytics.services import (
+    add_activity_log,
+    get_activity_logs,
     get_all_campaign_analytics_for_client,
     get_all_campaign_analytics_for_client_campaigns_page,
     get_outreach_over_time,
@@ -177,3 +179,29 @@ def ask_analytics(client_sdr_id: int):
     answer = answer_question(client_sdr_id=client_sdr_id, query=query)
 
     return jsonify({"message": "Success", "answer": answer}), 200
+
+
+@ANALYTICS_BLUEPRINT.route("/activity_log", methods=["POST"])
+@require_user
+def post_activity_log_endpoint(client_sdr_id: int):
+
+    type = get_request_parameter("type", request, json=True, required=True)
+    name = get_request_parameter("name", request, json=True, required=True)
+    description = get_request_parameter(
+        "description", request, json=True, required=True
+    )
+
+    id = add_activity_log(
+        client_sdr_id=client_sdr_id, type=type, name=name, description=description
+    )
+
+    return jsonify({"message": "Success", "data": id}), 200
+
+
+@ANALYTICS_BLUEPRINT.route("/activity_log", methods=["GET"])
+@require_user
+def get_activity_logs_endpoint(client_sdr_id: int):
+
+    logs = get_activity_logs(client_sdr_id=client_sdr_id)
+
+    return jsonify({"message": "Success", "data": logs}), 200

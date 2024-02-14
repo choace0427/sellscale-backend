@@ -1,6 +1,7 @@
 """
 Provides linkedin api-related code
 """
+
 import base64
 import datetime
 import math
@@ -158,25 +159,6 @@ class LinkedIn(object):
                 sdr.li_at_token = "INVALID"
                 db.session.add(sdr)
                 db.session.commit()
-
-                create_operator_dashboard_entry(
-                    client_sdr_id=sdr.id,
-                    urgency=OperatorDashboardEntryPriority.HIGH,
-                    tag="linkedin_disconnected",
-                    emoji="⚠️",
-                    title=f"{sdr.name}'s LinkedIn Disconnected",
-                    subtitle=f"{sdr.name}'s LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
-                    cta="Connect LinkedIn",
-                    cta_url="/settings",
-                    status=OperatorDashboardEntryStatus.PENDING,
-                    due_date=datetime.datetime.now() + datetime.timedelta(days=1),
-                    recurring=True,
-                    task_type=OperatorDashboardTaskType.LINKEDIN_DISCONNECTED,
-                    task_data={
-                        "client_sdr_id": sdr.id,
-                    },
-                    send_slack=True,
-                )
             return None
 
     def _post(self, uri, evade=default_evade, base_request=False, **kwargs):
@@ -224,25 +206,6 @@ class LinkedIn(object):
                 sdr.li_at_token = "INVALID"
                 db.session.add(sdr)
                 db.session.commit()
-
-                create_operator_dashboard_entry(
-                    client_sdr_id=sdr.id,
-                    urgency=OperatorDashboardEntryPriority.HIGH,
-                    tag="linkedin_disconnected",
-                    emoji="⚠️",
-                    title=f"LinkedIn Disconnected",
-                    subtitle=f"Your LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
-                    cta="Connect LinkedIn",
-                    cta_url="/settings",
-                    status=OperatorDashboardEntryStatus.PENDING,
-                    due_date=datetime.datetime.now() + datetime.timedelta(days=1),
-                    recurring=True,
-                    task_type=OperatorDashboardTaskType.LINKEDIN_DISCONNECTED,
-                    task_data={
-                        "client_sdr_id": sdr.id,
-                    },
-                    send_slack=True,
-                )
             return None
 
     def is_valid(self):
@@ -1019,6 +982,25 @@ def send_linkedin_disconnected_slack_message(
     send_slack_message(
         message=f"🚨 *LinkedIn Disconnected from SellScale @{client_sdr_name}* 🚨\n_Please follow the steps below to reconnect your LinkedIn_\n> 1. *<{direct_link}|Click here>* to log into SellScale.\n>2. You'll see a popup that says `Linkedin Disconnected (Reconnect)` on the top right.\n>3. Click on `Reconnect`.\n>4. Download & Open the <{browser_extension_url}|SellScale Chrome Extension> and press `Reconnect LinkedIn\nAfter that, you should see a `connected` screen!",
         webhook_urls=webhook_urls,
+    )
+
+    create_operator_dashboard_entry(
+        client_sdr_id=client_sdr.id,
+        urgency=OperatorDashboardEntryPriority.HIGH,
+        tag="linkedin_disconnected",
+        emoji="⚠️",
+        title=f"{client_sdr.name}'s LinkedIn Disconnected",
+        subtitle=f"{client_sdr.name}'s LinkedIn account has been disconnected. Please reconnect it to continue LinkedIn outbound.",
+        cta="Connect LinkedIn",
+        cta_url="/settings",
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.datetime.now() + datetime.timedelta(days=1),
+        recurring=True,
+        task_type=OperatorDashboardTaskType.LINKEDIN_DISCONNECTED,
+        task_data={
+            "client_sdr_id": client_sdr.id,
+        },
+        send_slack=True,
     )
 
 

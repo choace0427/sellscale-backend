@@ -14,6 +14,7 @@ from src.smartlead.webhooks.models import (
     SmartleadWebhookType,
 )
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
+from src.analytics.services import add_activity_log
 
 
 def create_and_process_email_opened_payload(payload: dict) -> bool:
@@ -131,6 +132,14 @@ def process_email_opened_webhook(payload_id: int):
         send_slack_message(
             message=f"Smartlead Payload: {prospect.full_name} ({prospect.email}) opened your email.",
             webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
+
+        # Add an activity log
+        add_activity_log(
+            client_sdr_id=prospect.client_sdr_id,
+            type="EMAIL-OPENED",
+            name="Email Opened",
+            description=f"{prospect.full_name} ({prospect.email}) opened your email.",
         )
 
         # Set the payload to "SUCCEEDED"
