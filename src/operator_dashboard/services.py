@@ -73,13 +73,17 @@ def create_operator_dashboard_entry(
         )
 
         urgency_str = "⚪️ unknown"
-        if urgency == OperatorDashboardEntryPriority.HIGH:
-            urgency_str = "🔴 high"
-        elif urgency == OperatorDashboardEntryPriority.MEDIUM:
-            urgency_str = "🟡 medium"
-        elif urgency == OperatorDashboardEntryPriority.LOW:
-            urgency_str = "🟢 low"
-        elif urgency == OperatorDashboardEntryPriority.COMPLETED:
+        if urgency == OperatorDashboardEntryPriority.HIGH or urgency == "HIGH":
+            urgency_str = "🔴 Blocker"
+        elif urgency == OperatorDashboardEntryPriority.MEDIUM or urgency == "MEDIUM":
+            urgency_str = "🟡 Non-blocker"
+        elif urgency == OperatorDashboardEntryPriority.LOW or urgency == "LOW":
+            urgency_str = "🟢 Non-blocker"
+        elif (
+            urgency == OperatorDashboardEntryPriority.COMPLETED
+            or urgency == "COMPLETED"
+            or urgency == "COMPLETED"
+        ):
             urgency_str = "🔵 complete"
 
         send_slack_message(
