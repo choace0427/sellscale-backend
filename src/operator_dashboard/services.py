@@ -247,8 +247,8 @@ def mark_task_complete(client_sdr_id: int, task_id: int, silent: bool = False) -
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Task name*: {task_name}\n*Priority*: {priority}".format(
-                            task_name=entry.title, priority=priority
+                        "text": "*Task name*: ~{task_name}~".format(
+                            task_name=entry.title
                         ),
                     },
                 },
