@@ -6,6 +6,7 @@ from numpy import require
 from src.client.sdr.email.services_email_bank import (
     nylas_exchange_for_authorization_code,
 )
+from sqlalchemy.orm.attributes import flag_modified
 from src.client.sdr.services_client_sdr import update_sdr_blacklist_words
 from src.personas.services import (
     clone_persona,
@@ -13,6 +14,7 @@ from src.personas.services import (
 from src.prospecting.models import Prospect
 from src.client.services import (
     create_archetype_asset,
+    delete_archetype_asset,
     get_available_times_via_calendly,
     get_client_assets,
     get_tam_data,
@@ -145,6 +147,7 @@ from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.client.models import (
     ClientArchetype,
+    ClientArchetypeAssets,
     ClientSDR,
     Client,
     DemoFeedback,
@@ -2932,7 +2935,7 @@ def post_create_archetype_asset(client_sdr_id: int):
 
     success = create_archetype_asset(
         client_id=client_id,
-        client_archetype_ids=client_archetype_ids,
+        client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,
         asset_value=asset_value,
         asset_reason=asset_reason,
@@ -2950,3 +2953,41 @@ def get_assets_edpoint(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     assets = get_client_assets(client_sdr.client_id)
     return jsonify({"message": "Success", "data": assets}), 200
+
+
+@CLIENT_BLUEPRINT.route("/asset", methods=["DELETE"])
+@require_user
+def delete_asset_endpoint(client_sdr_id: int):
+    asset_id = get_request_parameter(
+        "asset_id", request, json=True, required=True, parameter_type=int
+    )
+    success = delete_archetype_asset(asset_id, client_sdr_id)
+    if not success:
+        return "Failed to delete asset", 400
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/toggle_archetype_id_in_asset_ids", methods=["POST"])
+@require_user
+def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    asset_id = get_request_parameter(
+        "asset_id", request, json=True, required=True, parameter_type=int
+    )
+
+    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_id
+    ).first()
+    if asset.client_archetype_ids and client_archetype_id in asset.client_archetype_ids:
+        asset.client_archetype_ids.remove(client_archetype_id)
+    else:
+        asset.client_archetype_ids.append(client_archetype_id)
+    flag_modified(asset, "client_archetype_ids")
+    db.session.add(asset)
+    db.session.commit()
+
+    return "OK", 200

@@ -4704,3 +4704,19 @@ def get_client_assets(client_id: int):
     """
     assets = ClientArchetypeAssets.query.filter_by(client_id=client_id).all()
     return [asset.to_dict() for asset in assets]
+
+
+def delete_archetype_asset(asset_id: int, client_sdr_id: int):
+    """
+    Deletes an asset for a client archetype
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    asset = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_sdr.client_id
+    ).first()
+    if not asset:
+        return False
+    db.session.delete(asset)
+    db.session.commit()
+    return True
+
