@@ -373,6 +373,7 @@ def run_auto_resolve_linkedin_tasks():
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
+daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
 )
@@ -451,7 +452,7 @@ scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_notify_about_scheduling, trigger=daily_trigger)
 scheduler.add_job(run_daily_task_reminders, trigger=weekday_trigger)
 scheduler.add_job(
-    run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger
+    run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_2am_trigger
 )
 scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
