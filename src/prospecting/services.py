@@ -728,9 +728,7 @@ def update_prospect_status_linkedin(
 
         if p.meta_data and p.meta_data.get("demo_set", {}).get("type", {}) == "HANDOFF":
             notification = LinkedInDemoSetNotification(
-                client_sdr_id=p.client_sdr_id,
-                prospect_id=p.id,
-                is_hand_off=True
+                client_sdr_id=p.client_sdr_id, prospect_id=p.id, is_hand_off=True
             )
             success = notification.send_notification(preview_mode=False)
 

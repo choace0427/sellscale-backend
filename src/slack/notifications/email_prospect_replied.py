@@ -82,6 +82,11 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
             generated_message: GeneratedMessage = GeneratedMessage.query.get(
                 prospect_email.personalized_body
             )
+            send_date = (  # Ideally we want to use the date_sent field, but some legacy code made it such that older messages don't have this field populated correctly. This is a safeguard.
+                generated_message.date_sent.strftime("%B %d, %Y")
+                if generated_message.date_sent
+                else generated_message.created_at.strftime("%B %d, %Y")
+            )
 
             if not self.email_sent_body or not self.email_reply_body:
                 raise ValueError(
@@ -96,13 +101,13 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
                 "archetype_name": client_archetype.archetype,
                 "archetype_emoji": client_archetype.emoji,
                 "email_sent_subject": self.email_sent_subject,
-                "email_sent_body": self.email_sent_body.replace("\n", "\n>"),
-                "email_reply_body": self.email_reply_body.replace("\n", "\n>"),
+                "email_sent_body": self.email_sent_body,
+                "email_reply_body": self.email_reply_body,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=prospect.id,
                 ),
-                "initial_send_date": generated_message.date_sent.strftime("%B %d, %Y"),
+                "initial_send_date": send_date,
             }
 
         # Get the required objects / fields
@@ -127,12 +132,8 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
         email_sent_subject = fields.get("email_sent_subject")
-        email_sent_body = (
-            fields.get("email_sent_body", "").replace("\n", "\n>").strip("\n")
-        )
-        email_reply_body = (
-            fields.get("email_reply_body", "").replace("\n", "\n>").strip("\n")
-        )
+        email_sent_body = fields.get("email_sent_body", "").replace("\n", "\n>")
+        email_reply_body = fields.get("email_reply_body", "").replace("\n", "\n>")
         direct_link = fields.get("direct_link")
         initial_send_date = fields.get("initial_send_date")
         if (
@@ -200,6 +201,13 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
                     "text": {
                         "type": "mrkdwn",
                         "text": f"*Sent Email*:\n{email_sent_body}",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Reply*:\n{email_reply_body}",
                     },
                 },
                 {  # Add SDR information
